@@ -238,10 +238,10 @@ In this section, the example provided in the PROV-DM specification is encoded in
 <a href="http://www.w3.org/TR/prov-dm/#expression-Entity">Entity Expressions</a>: The file in its various forms and its copies are modelled as entity expressions, corresponding to multiple characterizations, as per scenario. The entity expressions are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-<span class="code-new">            "entities": {
+<span class="code-new">            "entity": {
                 <span class="code-comment">// entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])</span>
                 "e0": {
                     "type": "File",
@@ -295,10 +295,10 @@ In this section, the example provided in the PROV-DM specification is encoded in
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            <span class="code-new">"processExecutions": {
+            <span class="code-new">"processExecution": {
                 <span class="code-comment">// processExecution(pe0,create-file,t,,[])</span>
                 "pe0" : {
                     "recipeLink": "create-file",
@@ -341,10 +341,10 @@ In this section, the example provided in the PROV-DM specification is encoded in
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "entities": {
+            "entity": {
                 "e0": {
                     <span class="code-new">"wasGeneratedBy": {
                         "pe0": null <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
@@ -354,7 +354,7 @@ In this section, the example provided in the PROV-DM specification is encoded in
                 "e1": {
                     <span class="code-new">"wasGeneratedBy": {
                         "pe0": "_:wGB1" <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(fct="create"))</span>
-                        <span class="code-comment">// extra properties of this relationship can be looked up from the relations object below using key "_:wGB1"</span>
+                        <span class="code-comment">// extra properties of this relationship can be looked up from the relation object below using key "_:wGB1"</span>
                     },</span>
                     ...
                 },
@@ -389,8 +389,8 @@ In this section, the example provided in the PROV-DM specification is encoded in
                     ...
                 }
             },
-            <span class="code-comment">// Specifying extra properties of the relations above in an object called "relations"</span>
-            <span class="code-new">"relations": {
+            <span class="code-comment">// Specifying extra properties of the relations above in an object called "relation"</span>
+            <span class="code-new">"relation": {
                 "_:wGB1": {
                     "fct": "create"
                 },
@@ -425,10 +425,10 @@ Likewise, to describe the modalities according to which the various things are u
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "processExecutions": {
+            "processExecution": {
                 ...
                 "pe1" : {
                     <span class="code-new">"used": {
@@ -462,7 +462,7 @@ Likewise, to describe the modalities according to which the various things are u
                 },
                 ...
             },
-            "relations": {
+            "relation": {
                 <span class="code-new">"_:u1": {
                     "fct": "load"
                 },
@@ -491,10 +491,10 @@ Likewise, to describe the modalities according to which the various things are u
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "entities": {
+            "entity": {
                 "e2": {
                     <span class="code-new">"wasDerivedFrom": {
                         "e1": null <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
@@ -521,7 +521,7 @@ Likewise, to describe the modalities according to which the various things are u
                 }
                 ...
             },
-            "relations": {
+            "relation": {
                 <span class="code-new">"_:wDF1": {
                     "processExecution": "pe2"
                 },
@@ -540,10 +540,10 @@ Likewise, to describe the modalities according to which the various things are u
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "entities": {
+            "entity": {
                 "e1": {
                     <span class="code-new">"wasComplementOf": {
                         "e0": null <span class="code-comment">// wasComplementOf(e1,e0)</span>
@@ -581,10 +581,10 @@ Likewise, to describe the modalities according to which the various things are u
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "entities": {
+            "entity": {
                 <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", name="Alice" ])</span>
                 "a1": {
                     "type": "Person",
@@ -612,7 +612,7 @@ Likewise, to describe the modalities according to which the various things are u
                 },</span>
                 ...
             },
-            <span class="code-new">"agents": [
+            <span class="code-new">"agent": [
                 "a1", <span class="code-comment">// agent(a1)</span>
                 "a2", <span class="code-comment">// agent(a2)</span>
                 "a3", <span class="code-comment">// agent(a3)</span>
@@ -631,10 +631,10 @@ Likewise, to describe the modalities according to which the various things are u
 
 <pre>
 {
-    "accounts": {
+    "account": {
         "$": {
             ...
-            "processExecutions": {
+            "processExecution": {
                 ...
                 "pe0" : {
                     <span class="code-new">"wasControlledBy": {
@@ -668,7 +668,7 @@ Likewise, to describe the modalities according to which the various things are u
                 },
                 ...
             },
-            "relations": {
+            "relation": {
                 <span class="code-new">"_:wCB1": {
                     "role": "creator"
                 },
@@ -704,15 +704,15 @@ Likewise, to describe the modalities according to which the various things are u
       
 <h3>Overview</h3>
 
-<p>A <span class="nonterminal">provenanceContainer</span> (see section <a href="#ProvenanceContainer">Provenance Container</a>) is used to wrap PROV-DM expressions and facilitate their interchange. In PROV-JSON, it is represented as a JSON structure (see below) containing two objects <span class="name">prefixes</span> and <span class="name">accounts</span>. The former defines all namespaces used in the container, and the latter provides a set of accounts in the container, which are referenced by their identifiers (allowing multiple accounts to be bundled in one PROV-JSON structure). PROV-JSON introduces a special account, identified by <code>$</code>, to contain the serialization of all PROV-DM expressions that do not belong to a particular account.</p>
+<p>A <span class="nonterminal">provenanceContainer</span> (see section <a href="#ProvenanceContainer">Provenance Container</a>) is used to wrap PROV-DM expressions and facilitate their interchange. In PROV-JSON, it is represented as a JSON structure (see below) containing two objects <span class="name">prefix</span> and <span class="name">account</span>. The former defines all namespaces used in the container, and the latter provides a set of accounts in the container, which are referenced by their identifiers (allowing multiple accounts to be bundled in one PROV-JSON structure). PROV-JSON introduces a special account, identified by <code>$</code>, to contain the serialization of all PROV-DM expressions that do not belong to a particular account.</p>
 
 <div class="grammar"><pre>
 {
-    "prefixes": {
+    "prefix": {
         "default": "http://www.w3.org/ns/prov-dm/",
         ...
     },
-    "accounts": {
+    "account": {
     	"$": {
         	...
         }
@@ -728,19 +728,19 @@ Likewise, to describe the modalities according to which the various things are u
 <section id="expression-element"> 
 <h3>Element</h3>
 
-<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">processExecutionExecution</span>, <span class="nonterminal">agentExpression</span>, and <span class="nonterminal">annotationExpression</span>. In the account object to which these elements belong, they are put in separate structures whose names are <span class="name">entities</span>, <span class="name">processExecutions</span>, <span class="name">agents</span>, and <span class="name">annotations</span>, respectively.</p>
+<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">processExecutionExecution</span>, <span class="nonterminal">agentExpression</span>, and <span class="nonterminal">annotationExpression</span>. In the account object to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">processExecution</span>, <span class="name">agent</span>, and <span class="name">annotation</span>, respectively.</p>
 
 <div class="grammar"><pre>
 {
-    "accounts": {
+    "account": {
     	"$": {
-            "entities": {
+            "entity": {
             },
-            "processExecutions": {
+            "processExecution": {
             },
-            "agents": [
+            "agent": [
             ],
-            "annotations": {
+            "annotation": {
             },
             ...
         }
@@ -770,7 +770,7 @@ Likewise, to describe the modalities according to which the various things are u
 <br/>
 </div>
 
-<p>In PROV-JSON, each <a href="http://www.w3.org/TR/prov-dm/#expression-Entity">entity</a> is represented as a property in the <span class="nonterminal">entities</span> object identified by the entity's <span class="nonterminal">identifier</span>.The property's value itself is an object structure containing the entity's attribute-values pairs.</p>
+<p>In PROV-JSON, each <a href="http://www.w3.org/TR/prov-dm/#expression-Entity">entity</a> is represented as a property in the <span class="nonterminal">entity</span> object identified by the entity's <span class="nonterminal">identifier</span>.The property's value itself is an object structure containing the entity's attribute-values pairs.</p>
 
 The following entity assertion, for example,
 <pre class="example">
@@ -779,7 +779,7 @@ entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])
 is serialized into the following structure
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e0": {
             "type": "File",
             "location": "/shared/crime.txt",
@@ -811,7 +811,7 @@ is serialized into the following structure
 <span class="nonterminal">other-attribute-values</span>&nbsp;:=  <span class="nonterminal">attribute-values</span>
 </div>
 
-<p>Each <a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution</a> is represented as a property in the <span class="name">processExecutions</span> object identified by the process execution's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the process execution's properties and its other attribute-values pairs.</p>
+<p>Each <a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution</a> is represented as a property in the <span class="name">processExecution</span> object identified by the process execution's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the process execution's properties and its other attribute-values pairs.</p>
 
 <p>
 The following process execution assertion, for example,</p>
@@ -821,7 +821,7 @@ processExecution(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.o
 <p>is serialized into:</p>
 <pre class="example">
     ...
-    "processExecutions": {
+    "processExecution": {
         "pe1": {
             "recipeLink": "add-crime-in-london",
             "startTime": t+1,
@@ -849,7 +849,7 @@ processExecution(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.o
 <span class="name">)</span><br/>
 </div>
 
-Since an <span class="nonterminal">agentExpression</span> does not have any property, an account's <span class="name">agents</span> structure is an array containing all the identifiers of the entities that are asserted as agents (not an object like <span class="name">entities</span> or <span class="name">processExecutions</span>).
+Since an <span class="nonterminal">agentExpression</span> does not have any property, an account's <span class="name">agent</span> structure is an array containing all the identifiers of the entities that are asserted as agents (not an object like <span class="name">entity</span> or <span class="name">processExecution</span>).
 
 <pre class="example">
 entity(e1, [employee="1234", name="Alice"])  and agent(e1)
@@ -857,14 +857,14 @@ entity(e1, [employee="1234", name="Alice"])  and agent(e1)
 is encoded into:
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e1": {
             "employee": "1234",
             "name": "Alice"
         }
         ...
     },
-    "agents": ["e1", ...],
+    "agent": ["e1", ...],
     ...
 </pre>
 
@@ -893,7 +893,7 @@ is encoded into:
 <span class="nonterminal">Literal</span>
 </div>
 
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#expression-annotation">annotation</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">annotations</span> object in an account, identified by the annotation's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the annotation's attribute-values pairs.</p> 
+<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#expression-annotation">annotation</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">annotation</span> object in an account, identified by the annotation's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the annotation's attribute-values pairs.</p> 
 
 <p>
 The following annotation expression, for example,</p>
@@ -903,7 +903,7 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 <p>is encoded in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "annotations": {
+    "annotation": {
         "ann1": {
             "color": "blue",
             "screenX": 20,
@@ -949,25 +949,25 @@ In order to facilitate traversing programmatically from an element to another vi
     },
     ...
 </pre></div>
-If <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> are not present, <span class="nonterminal">relationID</span> is <code>null</code>. Otherwise, the values of <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> need to be specified in a separate object identified by <span class="nonterminal">relationID</span> in the <span class="nonterminal">relations</span> object in an account.
+If <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> are not present, <span class="nonterminal">relationID</span> is <code>null</code>. Otherwise, the values of <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> need to be specified in a separate object identified by <span class="nonterminal">relationID</span> in the <span class="nonterminal">relation</span> object in an account.
 
 <div class="grammar"><pre>
 ...
-"accounts": {
+"account": {
     "$": {
-        "entities": {
+        "entity": {
             ...
         },
-        "processExecutions": {
+        "processExecution": {
             ...
         },
-        "agents": [
+        "agent": [
             ...
         ],
-        "annotations": {
+        "annotation": {
             ...
         },
-        <span class="code-new">"relations": {
+        <span class="code-new">"relation": {
             <em>relationID</em>: {
                 ...
             },
@@ -1008,7 +1008,7 @@ If <span class="nonterminal">additionalProperties</span> and <span class="nonter
 <p>are serialized as follows.</p>
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e1": {
             "wasGeneratedBy": {
                 "pe1": "_:wGB1"
@@ -1023,7 +1023,7 @@ If <span class="nonterminal">additionalProperties</span> and <span class="nonter
         },
         ...
     },
-    "relations": {
+    "relation": {
         "_:wBG1": {
             "port": "p1",
             "order": 1,
@@ -1067,7 +1067,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <p>are serialized in to PROV-JSON:</p>
 <pre class="example">
     ...
-    "processExecutions": {
+    "processExecution": {
         "pe1": {
             "used": {
                 "e1": "_:u1",
@@ -1077,7 +1077,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
         },
         ...
     },
-    "relations": {
+    "relation": {
         "_:u1": {
             "parameter": "p1",
             "time": t1
@@ -1142,7 +1142,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e3": {
             "wasDerivedFrom": {
                 "e2": null
@@ -1160,7 +1160,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
         },
         ...
     },
-    "processExecutions": {
+    "processExecution": {
         "pe4": {
             "used": {
                 "e3": "_:u1"
@@ -1169,7 +1169,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
         },
         ...
     },
-    "relations": {
+    "relation": {
         "_:u1": {
             "channel": "in"
         },
@@ -1212,7 +1212,7 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
 <p>is serialized into:</p>
 <pre class="example">
     ...
-    "processExecutions": {
+    "processExecution": {
         "pe3": {
             "wasControlledBy": {
                 "a4": "_:wCB1"
@@ -1221,7 +1221,7 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
         },
         ...
     },
-    "relations": {
+    "relation": {
         "_:wCB1": {
             "role": "author"
         },
@@ -1307,7 +1307,7 @@ wasRevisionOf(e3,e2,a4)
 <p>is encoded in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e3": {
             "wasRevisionOf": {
                 "e2": "_:wRO1"
@@ -1316,7 +1316,7 @@ wasRevisionOf(e3,e2,a4)
         },
         ...
     },
-    "relations": {
+    "relation": {
         "_:wRO1": {
             "agent": "a4"
         },
@@ -1399,7 +1399,7 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
 <p>are serialized into:</p>
 <pre class="example">
     ...
-    "entities": {
+    "entity": {
         "e1": {
             "type": "document",
             "hasAnnotation": {
@@ -1416,7 +1416,7 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
             }
         }
     },
-    "processExecutions": {
+    "processExecution": {
         "pe": {
             "startTime": t1,
             "endTime": t2,
@@ -1425,7 +1425,7 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
             }
         },
     },
-    "annotations": {
+    "annotation": {
         "ann1": {
             "icon": "doc.png"
         },
@@ -1433,7 +1433,7 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
             "style": "dotted"
         },
     },
-    "relations": {
+    "relation": {
         "_:u1": {
             "file": "stdin",
             "hasAnnotation": "ann2"
@@ -1482,10 +1482,10 @@ container([x http://example.org/], [acc1,acc2]
 <p> is represented as follows in PROV-JSON.</p>
 <pre class="example">
 {
-    "prefixes": {
+    "prefix": {
         "x": "http://example.org/"
     },
-    "accounts": {
+    "account": {
         "$": {
             ...
         },
@@ -1529,7 +1529,7 @@ container([x http://example.org/], [acc1,acc2]
 </div>
 
 
-<p> An account is in PROV-DM is serialized into an object in the <span class="name">accounts</span> structure in a PROV-JSON representation. The following account expression, for example,</p>
+<p> An account is in PROV-DM is serialized into an object in the <span class="name">account</span> structure in a PROV-JSON representation. The following account expression, for example,</p>
 <pre class="example">
 account(acc0,
         http://example.org/asserter, 
@@ -1546,15 +1546,15 @@ account(acc0,
 <p>is encoded as:</p>
 <pre class="example">
 {
-    "accounts": {
+    "account": {
         "acc0": {
             "asserter": "http://example.org/asserter",
             <span class="code-comment">// The remaining expressions of acc0 are encoded as specified in the previous sections</span>
-            "entities": { ... },
-            "processExecutions": { ... },
-            "agents": [ ... ],
-            "annotations": { ... },
-            "relations": { ... }
+            "entity": { ... },
+            "processExecution": { ... },
+            "agent": [ ... ],
+            "annotation": { ... },
+            "relation": { ... }
         }
     }
 }
@@ -1578,7 +1578,7 @@ account(acc3,
 
 <pre class="example">
 {
-    "accounts": {
+    "account": {
         "acc3": {
             "asserter": "http://example.org/asserter1",
             <span class="code-comment">// The remaining expressions of acc3</span>
