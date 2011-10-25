@@ -1,0 +1,4 @@
+@prefix ex: <http://www.example.org/>.
+@prefix prov: <http://www.w3.org/ns/prov-o/>.
+
+ex:post prov:wasDerivedFrom ex:report.

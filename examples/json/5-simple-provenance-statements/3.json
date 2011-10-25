@@ -1,0 +1,33 @@
+{
+	"prefix": {
+		"default": "http://www.w3.org/ns/prov-dm/"
+	},
+	"entity": {
+		"post": {
+			"type": "Document",
+			"location": "http://www.example.org/post"
+		},
+		"report": {
+			"type": "Document",
+			"location": "http://www.example.org/report"
+		},
+		"paul": {
+			"type": "Person",
+		}
+	},
+	"agent": [ "paul" ],
+	"relation": {
+		"wasSummaryOf": {
+			"_:r1": {
+				"cause": "report",
+				"effect": "post"
+			}
+		},
+		"wasAttributedTo": {
+			"_:r2": {
+				"XXX": "post",
+				"YYY": "paul"
+			}
+		}
+	}
+}

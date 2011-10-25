@@ -1,0 +1,46 @@
+{
+	"prefix": {
+		"default": "http://www.w3.org/ns/prov-dm/"
+		"ex": "http://www.example.com/"
+	},
+	"entity": {
+		"post": {
+			"type": "Document",
+			"location": "http://www.example.org/post"
+		},
+		"report": {
+			"type": "Document",
+			"location": "http://www.example.org/report"
+		},
+		"paul": {
+			"type": "Person",
+			"location": "http://www.example.org/paul"
+		}
+	},
+	"agent": [ "paul" ],
+	"processExecution": {
+		"pe1": {
+			"type": "ex:publicationActivity"
+		}
+	},
+	"relation": {
+		"wasSummaryOf": {
+			"_:r1": {
+				"cause": "report",
+				"effect": "post"
+			}
+		},
+		"wasAttributedTo": {
+			"_:r2": {
+				"XXX": "post",
+				"YYY": "paul"
+			}
+		}
+		"wasGeneratedBy": {
+			"_:r3": {
+				"cause": "pe1",
+				"effect": "post"
+			}
+		}
+	}
+}
