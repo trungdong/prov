@@ -344,72 +344,51 @@ In this section, the example provided in the PROV-DM specification is encoded in
     "account": {
         "$": {
             ...
-            "entity": {
-                "e0": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe0": null <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
-                    },</span>
-                    ...
-                },
-                "e1": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe0": "_:wGB1" <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(fct="create"))</span>
-                        <span class="code-comment">// extra properties of this relationship can be looked up from the relation object below using key "_:wGB1"</span>
-                    },</span>
-                    ...
-                },
-                "e2": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe1": "_:wGB2" <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(fct="save"))</span>
-                    },</span>
-                    ...
-                },
-                "e3": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe1": "_:wGB3" <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(fct="save"))</span>
-                    },</span>
-                    ...
-                },
-                "e4": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe1": "_:wGB4" <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(port="smtp", section="attachment"))</span>
-                    },</span>
-                    ...
-                },
-                "e5": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe1": "_:wGB5" <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(port="smtp", section="attachment"))</span>
-                    },</span>
-                    ...
-                },
-                "e6": {
-                    <span class="code-new">"wasGeneratedBy": {
-                        "pe1": "_:wGB6" <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(file="stdout"))</span>
-                    },</span>
-                    ...
-                }
-            },
-            <span class="code-comment">// Specifying extra properties of the relations above in an object called "relation"</span>
             <span class="code-new">"relation": {
-                "_:wGB1": {
-                    "fct": "create"
-                },
-                "_:wGB2": {
-                    "fct": "save"
-                },
-                "_:wGB3": {
-                    "fct": "save"
-                },
-                "_:wGB4": {
-                    "port": "smtp",
-                    "section": "attachment"
-                },
-                "_:wGB5": {
-                    "port": "smtp",
-                    "section": "attachment"
-                },
-                "_:wGB6": {
-                    "file": "stdout"
+                "wasGeneratedBy": {
+                    <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
+                    "_:wGB1": {
+                        "TODO": "e0",
+                        "TODO": "pe0"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(fct="create"))</span>
+                    "_:wGB2": {
+                        "TODO": "e1",
+                        "TODO": "pe0",
+                        "fct": "create"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(fct="save"))</span>
+                    "_:wGB3": {
+                        "TODO": "e2",
+                        "TODO": "pe1",
+                        "fct": "save"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(fct="save"))</span>
+                    "_:wGB4": {
+                        "TODO": "e3",
+                        "TODO": "pe3",
+                        "fct": "save"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(port="smtp", section="attachment"))</span>
+                    "_:wGB5": {
+                        "TODO": "e4",
+                        "TODO": "pe2",
+                        "port": "smtp",
+                        "section": "attachment"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(port="smtp", section="attachment"))</span>
+                    "_:wGB6": {
+                        "TODO": "e5",
+                        "TODO": "pe4",
+                        "port": "smtp",
+                        "section": "attachment"
+                    },
+                    <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(file="stdout"))</span>
+                    "_:wGB7": {
+                        "TODO": "e6",
+                        "TODO": "pe5",
+                        "file": "stdout"
+                    }
                 }
             },</span>
             ...
@@ -428,57 +407,39 @@ Likewise, to describe the modalities according to which the various things are u
     "account": {
         "$": {
             ...
-            "processExecution": {
-                ...
-                "pe1" : {
-                    <span class="code-new">"used": {
-                        "e1": "_:u1" <span class="code-comment">// used(pe1,e1,qualifier(fct="load"))</span>
-                    },</span>
-                    ...
-                },
-                "pe2" : {
-                    <span class="code-new">"used": {
-                        "e2": "_:u2" <span class="code-comment">// used(pe2,e2,qualifier(fct="attach"))</span>
-                    },</span>
-                    ...
-                },
-                "pe3" : {
-                    <span class="code-new">"used": {
-                        "e2": "_:u3" <span class="code-comment">// used(pe3,e2,qualifier(fct="load"))</span>
-                    },</span>
-                    ...
-                },
-                "pe4" : {
-                    <span class="code-new">"used": {
-                        "e3": "_:u4" <span class="code-comment">// used(pe4,e3,qualifier(fct="attach"))</span>
-                    },</span>
-                    ...
-                },
-                "pe5" : {
-                    <span class="code-new">"used": {
-                        "e3": "_:u5" <span class="code-comment">// used(pe5,e3,qualifier(file="stdin"))</span>
-                    },</span>
-                    ...
-                },
-                ...
-            },
             "relation": {
-                <span class="code-new">"_:u1": {
-                    "fct": "load"
-                },
-                "_:u2": {
-                    "fct": "attach"
-                },
-                "_:u3": {
-                    "fct": "load"
-                },
-                "_:u4": {
-                    "fct": "attach"
-                },
-                "_:u5": {
-                    "file": "stdin"
-                }</span>
-                ...
+                <span class="code-new">"used" : {
+                    <span class="code-comment">// used(pe1,e1,qualifier(fct="load"))</span>
+                    "_:u1": {
+                        "TODO": "pe1",
+                        "TODO": "e1",
+                        "fct": "load"
+                    },
+                    <span class="code-comment">// used(pe2,e2,qualifier(fct="attach"))</span>
+                    "_:u2": {
+                        "TODO": "pe2",
+                        "TODO": "e2",
+                        "fct": "attach"
+                    },
+                    <span class="code-comment">// used(pe3,e2,qualifier(fct="load"))</span>
+                    "_:u3": {
+                        "TODO": "pe3",
+                        "TODO": "e2",
+                        "fct": "load"
+                    },
+                    <span class="code-comment">// used(pe4,e3,qualifier(fct="attach"))</span>
+                    "_:u4": {
+                        "TODO": "pe4",
+                        "TODO": "e3",
+                        "fct": "attach"
+                    },
+                    <span class="code-comment">// used(pe5,e3,qualifier(file="stdin"))</span>
+                    "_:u5": {
+                        "TODO": "pe5",
+                        "TODO": "e3",
+                        "file": "stdin"
+                    }
+                },</span>
             },
             ...
         }
@@ -494,41 +455,29 @@ Likewise, to describe the modalities according to which the various things are u
     "account": {
         "$": {
             ...
-            "entity": {
-                "e2": {
-                    <span class="code-new">"wasDerivedFrom": {
-                        "e1": null <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
-                    },</span>
-                    ...
-                },
-                "e3": {
-                    <span class="code-new">"wasDerivedFrom": {
-                        "e2": null <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
-                    },</span>
-                    ...
-                },
-                "e4": {
-                    <span class="code-new">"wasDerivedFrom": {
-                        "e2": "_:wDF1" <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-                    },</span>
-                    ...
-                },
-                "e5": {
-                    <span class="code-new">"wasDerivedFrom": {
-                        "e3": "_:wDF2" <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-                    },</span>
-                    ...
-                }
-                ...
-            },
             "relation": {
-                <span class="code-new">"_:wDF1": {
-                    "processExecution": "pe2"
-                },
-                "_:wDF2": {
-                    "processExecution": "pe4"
+                <span class="code-new">"wasDerivedFrom": {
+                    <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
+                    "_:wDF1": {
+                        "TODO": "e1",
+                        "TODO": "e2",
+                    },
+                    <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
+                    "_:wDF2": {
+                        "TODO": "e2",
+                        "TODO": "e3",
+                    },
+                    <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+                    "_:wDF3": {
+                        "processExecution": "pe2"
+                        "TODO": "TODO"
+                    },
+                    <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+                    "_:wDF4": {
+                        "processExecution": "pe4"
+                        "TODO": "TODO"
+                    }
                 },</span>
-                ...
             },
             ...
         }
@@ -543,31 +492,29 @@ Likewise, to describe the modalities according to which the various things are u
     "account": {
         "$": {
             ...
-            "entity": {
-                "e1": {
-                    <span class="code-new">"wasComplementOf": {
-                        "e0": null <span class="code-comment">// wasComplementOf(e1,e0)</span>
-                    },</span>
-                    ...
+            "relation": {
+                <span class="code-new">"wasComplementOf": {
+                    <span class="code-comment">// wasComplementOf(e1,e0)</span>
+                    "_:wCO1": {
+                        "TODO": e1,
+                        "TODO": e0
+                    },
+                    <span class="code-comment">// wasComplementOf(e2,e0)</span>
+                    "_:wCO2": {
+                        "TODO": e2,
+                        "TODO": e0
+                    },
+                    <span class="code-comment">// wasComplementOf(e3,e0)</span>
+                    "_:wCO3": {
+                        "TODO": e3,
+                        "TODO": e0
+                    },
+                    <span class="code-comment">// wasComplementOf(e6,e3)</span>
+                    "_:wCO3": {
+                        "TODO": e6,
+                        "TODO": e3
+                    }</span>
                 },
-                "e2": {
-                    <span class="code-new">"wasComplementOf": {
-                        "e0": null <span class="code-comment">// wasComplementOf(e2,e0)</span>
-                    },</span>
-                    ...
-                },
-                "e3": {
-                    <span class="code-new">"wasComplementOf": {
-                        "e0": null <span class="code-comment">// wasComplementOf(e3,e0)</span>
-                    },</span>
-                    ...
-                },
-                "e6": {
-                    <span class="code-new">"wasComplementOf": {
-                        "e3": null <span class="code-comment">// wasComplementOf(e6,e3)</span>
-                    },</span>
-                    ...
-                }
                 ...
             },
             ...
@@ -634,57 +581,39 @@ Likewise, to describe the modalities according to which the various things are u
     "account": {
         "$": {
             ...
-            "processExecution": {
-                ...
-                "pe0" : {
-                    <span class="code-new">"wasControlledBy": {
-                        "a1": "_:wCB1" <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
-                    },</span>
-                    ...
-                },
-                "pe1" : {
-                    <span class="code-new">"wasControlledBy": {
-                        "a2": "_:wCB2" <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
-                    },</span>
-                    ...
-                },
-                "pe2" : {
-                    <span class="code-new">"wasControlledBy": {
-                        "a3": "_:wCB3" <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
-                    },</span>
-                    ...
-                },
-                "pe3" : {
-                    <span class="code-new">"wasControlledBy": {
-                        "a4": "_:wCB4" <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
-                    },</span>
-                    ...
-                },
-                "pe4" : {
-                    <span class="code-new">"wasControlledBy": {
-                        "a5": "_:wCB5" <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
-                    },</span>
-                    ...
-                },
-                ...
-            },
             "relation": {
-                <span class="code-new">"_:wCB1": {
-                    "role": "creator"
-                },
-                "_:wCB2": {
-                    "role": "author"
-                },
-                "_:wCB3": {
-                    "role": "communicator"
-                },
-                "_:wCB4": {
-                    "role": "author"
-                },
-                "_:wCB5": {
-                    "role": "communicator"
+                <span class="code-new">"wasControlledBy": {
+                    <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
+                    "_:wCB1": {
+                        "TODO" : "pe0",
+                        "TODO" : "a1",
+                        "role": "creator"
+                    },
+                    <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
+                    "_:wCB2": {
+                        "TODO" : "pe1",
+                        "TODO" : "a2",
+                        "role": "author"
+                    },
+                    <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
+                    "_:wCB3": {
+                        "TODO" : "pe2",
+                        "TODO" : "a3",
+                        "role": "communicator"
+                    },
+                    <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
+                    "_:wCB4": {
+                        "TODO" : "pe3",
+                        "TODO" : "a4",
+                        "role": "author"
+                    },
+                    <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
+                    "_:wCB5": {
+                        "TODO" : "pe4",
+                        "TODO" : "a5",
+                        "role": "communicator"
+                    }
                 },</span>
-                ...
             },
             ...
         }
@@ -728,7 +657,7 @@ Likewise, to describe the modalities according to which the various things are u
 <section id="expression-element"> 
 <h3>Element</h3>
 
-<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">processExecutionExecution</span>, <span class="nonterminal">agentExpression</span>, and <span class="nonterminal">annotationExpression</span>. In the account object to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">processExecution</span>, <span class="name">agent</span>, and <span class="name">annotation</span>, respectively.</p>
+<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">processExecutionExecution</span>, <span class="nonterminal">agentExpression</span>, <span class="nonterminal">annotationExpression</span>, and <span class="nonterminal">relationExpression</span>. In the account object to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">processExecution</span>, <span class="name">agent</span>, <span class="name">annotation</span>, and <span class="name">relation</span> respectively.</p>
 
 <div class="grammar"><pre>
 {
@@ -741,6 +670,8 @@ Likewise, to describe the modalities according to which the various things are u
             "agent": [
             ],
             "annotation": {
+            },
+            "relation": {
             },
             ...
         }
@@ -935,47 +866,24 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 <br/>
 </div>
 <p>where <span class="nonterminal">identifier1</span> and <span class="nonterminal">identifier2</span> are identifiers to PROV-DM elements</p>
-In order to facilitate traversing programmatically from an element to another via their relations, a relation is bundled into the first element's definition (i.e. <span class="nonterminal">identifier1</span>), following the below convention.
+Relations are grouped by <span class="nonterminal">relationName</span> in the <span class="name">relation</span> structure.
 <div class="grammar"><pre>
     ...
-    <span class="code-comment">// The definition of the element <em>identifier1</em></span>
-    <em>identifier1</em>: {
+    "relation": {
         <em>relationName</em>: {
             <span class="code-comment">// relationName(identifier1, identifier2, ...)</span>
-            <em>identifier2</em>: <em>relationID</em>
-            <span class="code-comment">// More identifier:relationID pairs here if there are more relationName(indentifier1,...)</span>
+            <em>relationID</em>: {
+                "TODO": <em>identifier1</em>,
+                "TODO": <em>identifier2</em>,
+                ...
+            },
+            <span class="code-comment">// More relationID,identifier1,identifier2 structures here if there are more instances of relationName(...)</span>
         },
         ...
     },
     ...
 </pre></div>
-If <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> are not present, <span class="nonterminal">relationID</span> is <code>null</code>. Otherwise, the values of <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> need to be specified in a separate object identified by <span class="nonterminal">relationID</span> in the <span class="nonterminal">relation</span> object in an account.
-
-<div class="grammar"><pre>
-...
-"account": {
-    "$": {
-        "entity": {
-            ...
-        },
-        "processExecution": {
-            ...
-        },
-        "agent": [
-            ...
-        ],
-        "annotation": {
-            ...
-        },
-        <span class="code-new">"relation": {
-            <em>relationID</em>: {
-                ...
-            },
-            ...
-        }</span>
-    }
-}
-</pre></div>
+Any values of <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> are specified alongside the identifier pairs in above structure.
 
 <p>Since the <span class="nonterminal">relationID</span> concept is not defined by PROV-DM, it is up to the serialization algorithm to generate a valid identifier for <span class="nonterminal">relationID</span> that is unique internally to a PROV-JSON serialization. For example, the <a href="http://www.w3.org/TeamSubmission/turtle/#nodeID">nodeID production in Turtle</a> may be used for this purpose, e.g. <code>_:A1</code>.</p>
 
@@ -1008,34 +916,24 @@ If <span class="nonterminal">additionalProperties</span> and <span class="nonter
 <p>are serialized as follows.</p>
 <pre class="example">
     ...
-    "entity": {
-        "e1": {
-            "wasGeneratedBy": {
-                "pe1": "_:wGB1"
-            },
-            ...
-        },
-        "e2": {
-            "wasGeneratedBy": {
-                "pe1": "_:wGB2"
-            },
-            ...
-        },
-        ...
-    },
     "relation": {
-        "_:wBG1": {
-            "port": "p1",
-            "order": 1,
-            "time": t1
+        "wasGeneratedBy": {
+            "_:wBG1": {
+                "TODO": "e1",
+                "TODO": "pe1",
+                "port": "p1",
+                "order": 1,
+                "time": t1
+            },
+            "_:wBG2": {
+                "TODO": "e2",
+                "TODO": "pe1",
+                "port": "p1",
+                "order": 2,
+                "time": t2
+            },
         },
-        "_:wBG2": {
-            "port": "p1",
-            "order": 2,
-            "time": t2
-        },
-        ...
-    }
+    },
     ...
 </pre>
 Note that, in the example above, the qualifier's components are unbundled and mixed with the relation's other properties (i.e. <span class="nonterminal">time</span>) in the relation's object.
@@ -1067,27 +965,22 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <p>are serialized in to PROV-JSON:</p>
 <pre class="example">
     ...
-    "processExecution": {
-        "pe1": {
-            "used": {
-                "e1": "_:u1",
-                "e2": "_:u2"
-            },
-            ...
-        },
-        ...
-    },
     "relation": {
-        "_:u1": {
-            "parameter": "p1",
-            "time": t1
+        "used": {
+            "_:u1": {
+                "TODO": "pe1",
+                "TODO": "e1",
+                "parameter": "p1",
+                "time": t1
+            },
+            "_:u2": {
+                "TODO": "pe1",
+                "TODO": "e2",
+                "parameter": "p2",
+                "time": t2
+            },
         },
-        "_:u2": {
-            "parameter": "p2",
-            "time": t2
-        },
-        ...
-    }
+    },
     ...
 </pre>
 
@@ -1142,48 +1035,36 @@ wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "entity": {
-        "e3": {
-            "wasDerivedFrom": {
-                "e2": null
-            },
-            ...
-        },
-        "e5": {
-            "wasDerivedFrom": {
-                "e3": "_:wDF1"
-            },
-            "wasGeneratedBy": {
-                "pe4": "_:wGB1"
-            },
-            ...
-        },
-        ...
-    },
-    "processExecution": {
-        "pe4": {
-            "used": {
-                "e3": "_:u1"
-            },
-            ...
-        },
-        ...
-    },
     "relation": {
-        "_:u1": {
-            "channel": "in"
+        "used": {
+            "_:u1": {
+                "TODO": "e3",
+                "processExecution": "pe4",
+                "channel": "in"
+            },
         },
-        "_:wDF1": {
-            "processExecution": "pe4"
+        "wasDerivedFrom": {
+            "_:wDF1": {
+                "TODO": "e3",
+                "TODO": "e2",
+            },
+            "_:wDF2": {
+                "TODO": "e5",
+                "TODO": "e3",
+                "processExecution": "pe4"
+            },
         },
-        "_:wGB1": {
-            "channel": "out"
-        },
-        ...
-    }
+       "wasGeneratedBy": {
+            "_:wGB1": {
+                "TODO": "e5",
+                "TODO": "pe4",
+                "channel": "out"
+            },
+       },
+    },
     ...
 </pre>
-<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">processExecution = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's contraint <span class="nonterminal">derivation-events</span>.</p>
+<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">processExecution = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's constraint <span class="nonterminal">derivation-events</span>.</p>
 
 <p>The two remaining forms of derivation relations, i.e. <span class="name">wasEventuallyDerivedFrom (e2, e1)</span>, are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
 </p>
@@ -1211,22 +1092,18 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
 </pre>
 <p>is serialized into:</p>
 <pre class="example">
-    ...
-    "processExecution": {
-        "pe3": {
-            "wasControlledBy": {
-                "a4": "_:wCB1"
+    "relation": {
+        ...
+        "wasControlledBy": {
+            "_:wCB1": {
+                "TODO": "pe3",
+                "TODO": "a4",
+                "role": "author"
             },
             ...
         },
         ...
     },
-    "relation": {
-        "_:wCB1": {
-            "role": "author"
-        },
-        ...
-    }
     ...
 </pre>
 </section>
@@ -1307,19 +1184,13 @@ wasRevisionOf(e3,e2,a4)
 <p>is encoded in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "entity": {
-        "e3": {
-            "wasRevisionOf": {
-                "e2": "_:wRO1"
-            },
-            ...
-        },
-        ...
-    },
     "relation": {
-        "_:wRO1": {
-            "agent": "a4"
-        },
+        "wasRevisionOf": {
+            "_:wRO1": {
+                "TODO": "e3",
+                "TODO": "e2",
+                "agent": "a4"
+            },
         ...
     }
     ...
@@ -1408,8 +1279,6 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
         },
         "e2": {
             "type": "document",
-            "wasGeneratedBy": {
-                "pe": "_:wGB1"
             },
             "hasAnnotation": {
                 "ann1": null
@@ -1420,9 +1289,6 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
         "pe": {
             "startTime": t1,
             "endTime": t2,
-            "used": {
-                "e1": "_:u1"
-            }
         },
     },
     "annotation": {
@@ -1434,12 +1300,20 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
         },
     },
     "relation": {
-        "_:u1": {
-            "file": "stdin",
-            "hasAnnotation": "ann2"
+        "wasGeneratedBy": {
+            "_:wGB1": {
+                "TODO": "e2",
+                "TODO": "pe",
+                "file": "stdout"
+            },
         },
-        "_:wGB1": {
-            "file": "stdout"
+        "used": {
+            "_:u1": {
+                "TODO": "e1",
+                "TODO": "pe",
+                "file": "stdin",
+                "hasAnnotation": "ann2"
+            },
         }
     }
     ...
