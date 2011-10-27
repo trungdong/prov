@@ -338,46 +338,46 @@ In this section, the example provided in the PROV-DM specification is encoded in
         "wasGeneratedBy": {
             <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
             "_:wGB1": {
-                "TODO": "e0",
-                "TODO": "pe0"
+                "effect": "e0",
+                "cause": "pe0"
             },
-            <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(fct="create"))</span>
+            <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
             "_:wGB2": {
-                "TODO": "e1",
-                "TODO": "pe0",
-                "fct": "create"
+                "effect": "e1",
+                "cause": "pe0",
+                "fct": "ex:create"
             },
-            <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(fct="save"))</span>
+            <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
             "_:wGB3": {
-                "TODO": "e2",
-                "TODO": "pe1",
-                "fct": "save"
+                "effect": "e2",
+                "cause": "pe1",
+                "fct": "ex:save"
             },
-            <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(fct="save"))</span>
+            <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
             "_:wGB4": {
-                "TODO": "e3",
-                "TODO": "pe3",
-                "fct": "save"
+                "effect": "e3",
+                "cause": "pe3",
+                "fct": "ex:save"
             },
-            <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(port="smtp", section="attachment"))</span>
+            <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
             "_:wGB5": {
-                "TODO": "e4",
-                "TODO": "pe2",
-                "port": "smtp",
-                "section": "attachment"
+                "effect": "e4",
+                "cause": "pe2",
+                "port": "ex:smtp",
+                "section": "ex:attachment"
             },
-            <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(port="smtp", section="attachment"))</span>
+            <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
             "_:wGB6": {
-                "TODO": "e5",
-                "TODO": "pe4",
-                "port": "smtp",
-                "section": "attachment"
+                "effect": "e5",
+                "cause": "pe4",
+                "port": "ex:smtp",
+                "section": "ex:attachment"
             },
-            <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(file="stdout"))</span>
+            <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
             "_:wGB7": {
-                "TODO": "e6",
-                "TODO": "pe5",
-                "file": "stdout"
+                "effect": "e6",
+                "cause": "pe5",
+                "ex:file": "stdout"
             }
         }
     },</span>
@@ -395,35 +395,35 @@ Likewise, to describe the modalities according to which the various things are u
     ...
     "relation": {
         <span class="code-new">"used" : {
-            <span class="code-comment">// used(pe1,e1,qualifier(fct="load"))</span>
+            <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
             "_:u1": {
-                "TODO": "pe1",
-                "TODO": "e1",
-                "fct": "load"
+                "effect": "pe1",
+                "cause": "e1",
+                "ex:fct": "load"
             },
-            <span class="code-comment">// used(pe2,e2,qualifier(fct="attach"))</span>
+            <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
             "_:u2": {
-                "TODO": "pe2",
-                "TODO": "e2",
-                "fct": "attach"
+                "effect": "pe2",
+                "cause": "e2",
+                "ex:fct": "attach"
             },
-            <span class="code-comment">// used(pe3,e2,qualifier(fct="load"))</span>
+            <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
             "_:u3": {
-                "TODO": "pe3",
-                "TODO": "e2",
-                "fct": "load"
+                "effect": "pe3",
+                "cause": "e2",
+                "ex:fct": "load"
             },
-            <span class="code-comment">// used(pe4,e3,qualifier(fct="attach"))</span>
+            <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
             "_:u4": {
-                "TODO": "pe4",
-                "TODO": "e3",
-                "fct": "attach"
+                "effect": "pe4",
+                "cause": "e3",
+                "ex:fct": "attach"
             },
-            <span class="code-comment">// used(pe5,e3,qualifier(file="stdin"))</span>
+            <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
             "_:u5": {
-                "TODO": "pe5",
-                "TODO": "e3",
-                "file": "stdin"
+                "effect": "pe5",
+                "cause": "e3",
+                "ex:file": "stdin"
             }
         },</span>
     },
@@ -441,23 +441,30 @@ Likewise, to describe the modalities according to which the various things are u
         <span class="code-new">"wasDerivedFrom": {
             <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
             "_:wDF1": {
-                "TODO": "e1",
-                "TODO": "e2",
+                "effect": "e2",
+                "cause": "e1",
             },
             <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
             "_:wDF2": {
-                "TODO": "e2",
-                "TODO": "e3",
+                "effect": "e3",
+                "cause": "e2"
             },
             <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
             "_:wDF3": {
-                "processExecution": "pe2"
-                "TODO": "TODO"
+                "processExecution": "pe2",
+                "effect": "e4",
+		"cause": "e2",
+		"effectWGB": "_:wGB5",
+		"causeU": "_:u2"
             },
             <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
             "_:wDF4": {
                 "processExecution": "pe4"
-                "TODO": "TODO"
+                "effect": "e5",
+                "cause": "e3",
+		"effectWGB": "_:wGB6",
+		"causeU": "_:u4"
+            },
             }
         },</span>
     },
@@ -474,23 +481,23 @@ Likewise, to describe the modalities according to which the various things are u
         <span class="code-new">"wasComplementOf": {
             <span class="code-comment">// wasComplementOf(e1,e0)</span>
             "_:wCO1": {
-                "TODO": e1,
-                "TODO": e0
+                "subject": e1,
+                "alternate": e0
             },
             <span class="code-comment">// wasComplementOf(e2,e0)</span>
             "_:wCO2": {
-                "TODO": e2,
-                "TODO": e0
+                "subject": e2,
+                "alternate": e0
             },
             <span class="code-comment">// wasComplementOf(e3,e0)</span>
             "_:wCO3": {
-                "TODO": e3,
-                "TODO": e0
+                "subject": e3,
+                "alternate": e0
             },
             <span class="code-comment">// wasComplementOf(e6,e3)</span>
             "_:wCO3": {
-                "TODO": e6,
-                "TODO": e3
+                "subject": e6,
+                "alternate": e3
             }</span>
         },
         ...
@@ -506,30 +513,30 @@ Likewise, to describe the modalities according to which the various things are u
 {
     ...
     "entity": {
-        <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", name="Alice" ])</span>
+        <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", foaf:name="Alice" ])</span>
         "a1": {
             "type": "Person",
-            "name": "Alice"
+            "foaf:name": "Alice"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", name="Bob" ])</span>
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Bob" ])</span>
         "a2": {
             "type": "Person",
-            "name": "Bob"
+            "foaf:name": "Bob"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", name="Charles" ])</span>
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Charles" ])</span>
         "a3": {
             "type": "Person",
-            "name": "Charles"
+            "foaf:name": "Charles"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", name="David" ])</span>
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="David" ])</span>
         "a4": {
             "type": "Person",
-            "name": "David"
+            "foaf:name": "David"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", name="Edith" ])</span>
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Edith" ])</span>
         "a5": {
             "type": "Person",
-            "name": "Edith"
+            "foaf:name": "Edith"
         },</span>
         ...
     },
@@ -555,32 +562,32 @@ Likewise, to describe the modalities according to which the various things are u
         <span class="code-new">"wasControlledBy": {
             <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
             "_:wCB1": {
-                "TODO" : "pe0",
-                "TODO" : "a1",
+                "effect" : "pe0",
+                "cause" : "a1",
                 "role": "creator"
             },
             <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
             "_:wCB2": {
-                "TODO" : "pe1",
-                "TODO" : "a2",
+                "effect" : "pe1",
+                "cause" : "a2",
                 "role": "author"
             },
             <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
             "_:wCB3": {
-                "TODO" : "pe2",
-                "TODO" : "a3",
+                "effect" : "pe2",
+                "cause" : "a3",
                 "role": "communicator"
             },
             <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
             "_:wCB4": {
-                "TODO" : "pe3",
-                "TODO" : "a4",
+                "effect" : "pe3",
+                "cause" : "a4",
                 "role": "author"
             },
             <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
             "_:wCB5": {
-                "TODO" : "pe4",
-                "TODO" : "a5",
+                "effect" : "pe4",
+                "cause" : "a5",
                 "role": "communicator"
             }
         },</span>
@@ -835,8 +842,8 @@ Relations are grouped by <span class="nonterminal">relationName</span> in the <s
         <em>relationName</em>: {
             <span class="code-comment">// relationName(identifier1, identifier2, ...)</span>
             <em>relationID</em>: {
-                "TODO": <em>identifier1</em>,
-                "TODO": <em>identifier2</em>,
+		<em>attribute1</em>: <em>identifier1</em>,
+		<em>attribute2</em>: <em>identifier2</em>,
                 ...
             },
             <span class="code-comment">// More relationID,identifier1,identifier2 structures here if there are more instances of relationName(...)</span>
@@ -872,8 +879,8 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
 
 <p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Generation">generation assertions</a></p>
 <pre class="example">
-  wasGeneratedBy(e1,pe1,qualifier(port="p1", order=1),t1)
-  wasGeneratedBy(e2,pe1,qualifier(port="p1", order=2),t2)
+  wasGeneratedBy(e1,pe1,qualifier(ex:port="p1", ex:order=1),t1)
+  wasGeneratedBy(e2,pe1,qualifier(ex:port="p1", ex:order=2),t2)
 </pre>
 <p>are serialized as follows.</p>
 <pre class="example">
@@ -881,17 +888,17 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
     "relation": {
         "wasGeneratedBy": {
             "_:wBG1": {
-                "TODO": "e1",
-                "TODO": "pe1",
-                "port": "p1",
-                "order": 1,
+                "effect": "e1",
+                "cause": "pe1",
+                "ex:port": "p1",
+                "ex:order": 1,
                 "time": t1
             },
             "_:wBG2": {
-                "TODO": "e2",
-                "TODO": "pe1",
-                "port": "p1",
-                "order": 2,
+                "effect": "e2",
+                "cause": "pe1",
+                "ex:port": "p1",
+                "ex:order": 2,
                 "time": t2
             },
         },
@@ -930,15 +937,15 @@ Note that, in the example above, the qualifier's components are unbundled and mi
     "relation": {
         "used": {
             "_:u1": {
-                "TODO": "pe1",
-                "TODO": "e1",
-                "parameter": "p1",
+                "effect": "pe1",
+                "cause": "e1",
+                "ex:parameter": "p1",
                 "time": t1
             },
             "_:u2": {
-                "TODO": "pe1",
-                "TODO": "e2",
-                "parameter": "p2",
+                "effect": "pe1",
+                "cause": "e2",
+                "ex:parameter": "p2",
                 "time": t2
             },
         },
@@ -992,7 +999,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Derivation">derivation assertions</a></p>
 <pre class="example">
 wasDerivedFrom(e3,e2)
-wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
+wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
 </pre>
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
@@ -1000,27 +1007,27 @@ wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))
     "relation": {
         "used": {
             "_:u1": {
-                "TODO": "e3",
+                "cause": "e3",
                 "processExecution": "pe4",
-                "channel": "in"
+                "ex:channel": "in"
             },
         },
         "wasDerivedFrom": {
             "_:wDF1": {
-                "TODO": "e3",
-                "TODO": "e2",
+                "effect": "e3",
+                "cause": "e2",
             },
             "_:wDF2": {
-                "TODO": "e5",
-                "TODO": "e3",
+                "effect": "e5",
+                "cause": "e3",
                 "processExecution": "pe4"
             },
         },
        "wasGeneratedBy": {
             "_:wGB1": {
-                "TODO": "e5",
-                "TODO": "pe4",
-                "channel": "out"
+                "effect": "e5",
+                "cause": "pe4",
+                "ex:channel": "out"
             },
        },
     },
@@ -1058,8 +1065,8 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
         ...
         "wasControlledBy": {
             "_:wCB1": {
-                "TODO": "pe3",
-                "TODO": "a4",
+                "effect": "pe3",
+                "cause": "a4",
                 "role": "author"
             },
             ...
@@ -1149,8 +1156,8 @@ wasRevisionOf(e3,e2,a4)
     "relation": {
         "wasRevisionOf": {
             "_:wRO1": {
-                "TODO": "e3",
-                "TODO": "e2",
+                "effect": "e3",
+                "cause": "e2",
                 "agent": "a4"
             },
         ...
@@ -1219,15 +1226,15 @@ The following expressions, for example,</p>
 entity(e1,[type="document"])
 entity(e2,[type="document"])
 processExecution(pe,transform,t1,t2,[])
-used(pe,e1,qualifier(file="stdin"))
-wasGeneratedBy(e2, pe, qualifier(file="stdout"))
+used(pe,e1,qualifier(ex:file="stdin"))
+wasGeneratedBy(e2, pe, qualifier(ex:file="stdout"))
 
-annotation(ann1,[icon="doc.png"])
+annotation(ann1,[ex:icon="doc.png"])
 hasAnnotation(e1,ann1)
 hasAnnotation(e2,ann1)
 
-annotation(ann2,[style="dotted"])
-hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
+annotation(ann2,[ex:style="dotted"])
+hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
 </pre>
 <p>are serialized into:</p>
 <pre class="example">
@@ -1256,24 +1263,24 @@ hasAnnotation(relation(pe,e1,qualifier(file="stdin")),ann2)
     },
     "annotation": {
         "ann1": {
-            "icon": "doc.png"
+            "ex:icon": "doc.png"
         },
         "ann2": {
-            "style": "dotted"
+            "ex:style": "dotted"
         },
     },
     "relation": {
         "wasGeneratedBy": {
             "_:wGB1": {
-                "TODO": "e2",
-                "TODO": "pe",
-                "file": "stdout"
+                "effect": "e2",
+                "cause": "pe",
+                "ex:file": "stdout"
             },
         },
         "used": {
             "_:u1": {
-                "TODO": "e1",
-                "TODO": "pe",
+                "cause": "e1",
+                "effect": "pe",
                 "file": "stdin",
                 "hasAnnotation": "ann2"
             },
