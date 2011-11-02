@@ -92,7 +92,7 @@
           // editors, add as many as you like
           // only "name" is required
           editors:  [
-              { name: "Luc Moreau", url: "http://www.ecs.soton.ac.uk/~lavm/",
+              { name: "Trung Dong Huynh", url: "http://users.ecs.soton.ac.uk/tdh/",
                 company: "University of Southampton" },
           ],
  
@@ -101,8 +101,15 @@
           // only "name" is required. Same format as editors.
  
           authors:  [
-              { name: "Trung Dong Huynh", url: "http://www.ecs.soton.ac.uk/~tdh",
-                company: "University of Southampton" },
+              { name: "Michael O. Jewell", url: "http://www.ecs.soton.ac.uk/people/moj",
+			  	company: "University of Southampton" },
+              { name: "Amir Sezavar Keshavarz", url: "http://www.ecs.soton.ac.uk/people/ask2g10",
+			  	company: "University of Southampton" },              { name: "Danius T. Michaelides", url: "http://users.ecs.soton.ac.uk/dtm/",
+			  	company: "University of Southampton" },
+              { name: "Luc Moreau", url: "http://users.ecs.soton.ac.uk/lavm/",
+			  	company: "University of Southampton" },
+              { name: "Huanjia Yang", url: "http://www.ecs.soton.ac.uk/people/hy2",
+			  	company: "University of Southampton" },
           ],
           
           // name of the WG
@@ -627,7 +634,7 @@ Likewise, to describe the modalities according to which the various things are u
 }
 </pre></div>
 
-<p>In addition, the toplevel container contains an additional object called <span class="name">prefix</span> that defines all namespaces used in the document.</p>
+<p>In addition, the top-level container contains an additional object called <span class="name">prefix</span> that defines all namespaces used in the document.</p>
 
 <div class="grammar"><pre>
 {
@@ -888,15 +895,15 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
     "relation": {
         "wasGeneratedBy": {
             "_:wBG1": {
-                "effect": "e1",
                 "cause": "pe1",
+                "effect": "e1",
                 "ex:port": "p1",
                 "ex:order": 1,
                 "time": t1
             },
             "_:wBG2": {
-                "effect": "e2",
                 "cause": "pe1",
+                "effect": "e2",
                 "ex:port": "p1",
                 "ex:order": 2,
                 "time": t2
@@ -937,14 +944,14 @@ Note that, in the example above, the qualifier's components are unbundled and mi
     "relation": {
         "used": {
             "_:u1": {
-                "effect": "pe1",
                 "cause": "e1",
+                "effect": "pe1",
                 "ex:parameter": "p1",
                 "time": t1
             },
             "_:u2": {
-                "effect": "pe1",
                 "cause": "e2",
+                "effect": "pe1",
                 "ex:parameter": "p2",
                 "time": t2
             },
@@ -1014,26 +1021,26 @@ wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
         },
         "wasDerivedFrom": {
             "_:wDF1": {
-                "effect": "e3",
                 "cause": "e2",
+                "effect": "e3"
             },
             "_:wDF2": {
-                "effect": "e5",
                 "cause": "e3",
+                "effect": "e5",
                 "processExecution": "pe4"
             },
         },
        "wasGeneratedBy": {
             "_:wGB1": {
-                "effect": "e5",
                 "cause": "pe4",
+                "effect": "e5",
                 "ex:channel": "out"
             },
        },
     },
     ...
 </pre>
-<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">processExecution = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's constraint <span class="nonterminal">derivation-events</span>.</p>
+<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">processExecution = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's <a href="http://www.w3.org/TR/prov-dm/#derivation-events">constraint <span class="nonterminal">derivation-events</span></a>.</p>
 
 <p>The two remaining forms of derivation relations, i.e. <span class="name">wasEventuallyDerivedFrom (e2, e1)</span>, are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
 </p>
@@ -1065,8 +1072,8 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
         ...
         "wasControlledBy": {
             "_:wCB1": {
-                "effect": "pe3",
                 "cause": "a4",
+                "effect": "pe3",
                 "role": "author"
             },
             ...
@@ -1156,8 +1163,8 @@ wasRevisionOf(e3,e2,a4)
     "relation": {
         "wasRevisionOf": {
             "_:wRO1": {
-                "effect": "e3",
                 "cause": "e2",
+                "effect": "e3",
                 "agent": "a4"
             },
         ...
