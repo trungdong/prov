@@ -65,7 +65,7 @@
  
           // if your specification has a subtitle that goes below the main
           // formal title, define it here
-          subtitle   :  "Initial working draft for internal discussion",
+          subtitle   :  "Working draft for internal discussion",
  
           // if you wish the publication date to be other than today, set this
           // publishDate:  "2011-10-18",
@@ -187,427 +187,59 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 
 </section> 
 
+<section id="roadmap"> 
+<h2>Roadmap</h2>
 
-<section id="prov-json-example"> 
-<h2>Example</h2>
+<div class='issue'>TODO: Provide the specification for the JS toolbox to accompany the PROV-JSON spec here. The requirements for the toolbox to be contributed by all the authors (according to their own requirements)</div>
 
-<section> 
-<h3>A File Scenario</h3>
+<p></p>
 
-<div class='issue'>TODO: Link to <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">PROV-DM's example section</a></div>
+</section>
 
-<p>This scenario is concerned with the evolution of a crime statistics
-file (referred to as e0) stored on a shared file system and which
-journalists Alice, Bob, Charles, David, and Edith can share and
-edit. We consider various events in the evolution of file e0;
-events listed below follow each other, unless otherwise specified.</p>
+<section id="data-typing"> 
+<h2>JSON Data Typing</h2>
 
+<div class='issue'>TODO: Discuss object/array/null. Try to get the mappings into table form.</div>
 
+<p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object, array, and null are not defined here: object and array may be inferred from the first element, and a null value should simply be omitted from the dictionary.</p>
 
-<p>
-Event evt1: Alice creates (pe0) an empty file in /share/crime.txt.  We denote this e1.
-</p>
+<p>The following optional mappings apply for the default JSON types:</p>
 
-<p>
-Event evt2: Bob appends (pe1) the following line to /share/crime.txt:</p>
-<pre>
-There was a lot of crime in London last month.
-</pre>
-<p>We denote this e2.</p>
+<dl>
+<dt>number</dt>
+<dd>xsd:double</dd>
+<dt>string</dt>
+<dd>xsd:string</dd>
+<dt>boolean</dt>
+<dd>xsd:boolean</dd>
+</dl>
 
-<p>Event evt3: Charles emails (pe2) the contents of /share/crime.txt, as an
-attachment, which we refer to as e4. (We specifically refer to a copy of the file that is uploaded on the mail server.)
-</p>
-
-<p>
-Event evt4: David edits (pe3) file /share/crime.txt as follows.</p>
-<pre>
-There was a lot of crime in London and New-York last month.
-</pre>
-<p>
-We denote this e3.
-</p>
-
-<p>Event evt5: Edith emails (pe4) the contents of /share/crime.txt as an attachment, referred to as e5.
-</p>
-
-<p>Event evt6: between events evt4 and evt5, someone (unspecified) runs a spell checker (pe5) on the file /share/crime.txt.
- The file after spell checking is referred to as e6.
-</p>
-
-</section> 
-
-<section id="example-prov-json-encoding"> 
-<h3>Encoding using PROV-JSON</h3>
-
-In this section, the example provided in the PROV-DM specification is encoded into the PROV-JSON representation (specified in section <a href="#prov-json-representation">PROV-JSON: Representing the Provenance Data Model in JSON</a>).
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Entity">Entity Expressions</a>: The file in its various forms and its copies are modelled as entity expressions, corresponding to multiple characterizations, as per scenario. The entity expressions are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
-<pre>
-{
-    ...
-    <span class="code-new">"entity": {
-        <span class="code-comment">// entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])</span>
-        "e0": {
-            "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice"
-        },
-        <span class="code-comment">// entity(e1, [ type="File", location="/shared/crime.txt", creator="Alice", content="" ])</span>
-        "e1": {
-            "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": ""
-        },
-        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London last month." ])</span>
-        "e2": {
-            "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London last month."
-        },
-        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month." ])</span>
-        "e3": {
-            "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London and New York last month."
-        },
-        <span class="code-comment">// entity(e4, [ ])</span>
-        "e4": {
-        },
-        <span class="code-comment">// entity(e5, [ ])</span>
-        "e5": {
-        },
-        <span class="code-comment">// entity(e6, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month.", spellchecked="yes"])</span>
-        "e6": {
-            "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London and New York last month.",
-            "spellchecked": "yes"
-        }
-    },</span>
-    ...
-}
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution Expressions</a> represent activities in the scenario.</p>
-
-<pre>
-{
-    ...
-    <span class="code-new">"processExecution": {
-        <span class="code-comment">// processExecution(pe0,create-file,t,,[])</span>
-        "pe0" : {
-            "recipeLink": "create-file",
-            "startTime": t
-        },
-        <span class="code-comment">// processExecution(pe1,add-crime-in-london,t+1,,[])</span>
-        "pe1" : {
-            "recipeLink": "add-crime-in-london",
-            "startTime": t+1
-        },
-        <span class="code-comment">// processExecution(pe2,email,t+2,,[])</span>
-        "pe2" : {
-            "recipeLink": "email",
-            "startTime": t+2
-        },
-        <span class="code-comment">// processExecution(pe3,edit-London-New-York,t+3,,[])</span>
-        "pe3" : {
-            "recipeLink": "edit-London-New-York",
-            "startTime": t+3
-        },
-        <span class="code-comment">// processExecution(pe4,email,t+4,,[])</span>
-        "pe4" : {
-            "recipeLink": "email",
-            "startTime": t+4
-        },
-        <span class="code-comment">// processExecution(pe5,spellcheck,,,[])</span>
-        "pe5" : {
-            "recipeLink": "spellcheck"
-        },
-    },</span>
-    ...
-}
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Generation">Generation Expressions</a> represent the event at which a file is created in a specific form. To describe the modalities according to which the various characterized things are generated by a given activity, a qualifier  (expression described in <a href="http://www.w3.org/TR/prov-dm/#expression-qualifier">PROV-DM</a>) is introduced.  The interpretation of qualifiers is application specific. Illustrations of such qualifiers for the scenario are: no qualifier is provided for <span class="name">e0</span>;
-<span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message;<span class="name">e6</span> was produced on the standard output of <span class="name">pe5</span>.</p>
-
-<pre>
-{
-    ...
-    <span class="code-new">"relation": {
-        "wasGeneratedBy": {
-            <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
-            "_:wGB1": {
-                "effect": "e0",
-                "cause": "pe0"
-            },
-            <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
-            "_:wGB2": {
-                "effect": "e1",
-                "cause": "pe0",
-                "fct": "ex:create"
-            },
-            <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
-            "_:wGB3": {
-                "effect": "e2",
-                "cause": "pe1",
-                "fct": "ex:save"
-            },
-            <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
-            "_:wGB4": {
-                "effect": "e3",
-                "cause": "pe3",
-                "fct": "ex:save"
-            },
-            <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
-            "_:wGB5": {
-                "effect": "e4",
-                "cause": "pe2",
-                "port": "ex:smtp",
-                "section": "ex:attachment"
-            },
-            <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
-            "_:wGB6": {
-                "effect": "e5",
-                "cause": "pe4",
-                "port": "ex:smtp",
-                "section": "ex:attachment"
-            },
-            <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
-            "_:wGB7": {
-                "effect": "e6",
-                "cause": "pe5",
-                "ex:file": "stdout"
-            }
-        }
-    },</span>
-    ...
-}
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Use">Used Expressions</a> represent the event by which a file is read by a process execution. 
-
-Likewise, to describe the modalities according to which the various things are used by activities, a qualifier is introduced.  Illustrations of such qualifiers are: <span class="name">e1</span> is used in the context of  <span class="name">pe1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">pe2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">pe5</span>. </p>
-
-<pre>
-{
-    ...
-    "relation": {
-        <span class="code-new">"used" : {
-            <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
-            "_:u1": {
-                "effect": "pe1",
-                "cause": "e1",
-                "ex:fct": "load"
-            },
-            <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
-            "_:u2": {
-                "effect": "pe2",
-                "cause": "e2",
-                "ex:fct": "attach"
-            },
-            <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
-            "_:u3": {
-                "effect": "pe3",
-                "cause": "e2",
-                "ex:fct": "load"
-            },
-            <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
-            "_:u4": {
-                "effect": "pe4",
-                "cause": "e3",
-                "ex:fct": "attach"
-            },
-            <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
-            "_:u5": {
-                "effect": "pe5",
-                "cause": "e3",
-                "ex:file": "stdin"
-            }
-        },</span>
+<pre class="example">
+    "prefix": {
+        "x": "http://example.org/",
+        "xsd": "http://www.w3.org/2001/XMLSchema-datatypes#"
     },
-    ...
-}
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Derivation">Derivation Expressions</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the process execution underpinnng the derivation, and relevant qualifiers qualifying the use and generation of entities.</p>
-
-<pre>
-{
-    ...
-    "relation": {
-        <span class="code-new">"wasDerivedFrom": {
-            <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
-            "_:wDF1": {
-                "effect": "e2",
-                "cause": "e1",
-            },
-            <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
-            "_:wDF2": {
-                "effect": "e3",
-                "cause": "e2"
-            },
-            <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-            "_:wDF3": {
-                "processExecution": "pe2",
-                "effect": "e4",
-		"cause": "e2",
-		"effectWGB": "_:wGB5",
-		"causeU": "_:u2"
-            },
-            <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-            "_:wDF4": {
-                "processExecution": "pe4"
-                "effect": "e5",
-                "cause": "e3",
-		"effectWGB": "_:wGB6",
-		"causeU": "_:u4"
-            },
-            }
-        },</span>
-    },
-    ...
-}
-</pre>
-
-<p><a href="http://www.w3.org/TR/prov-dm/#expression-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity expressions identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>.  Likewise, the one denoted by <span class="name">e6</span> complements the expression denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
-
-<pre>
-{
-    ...
-    "relation": {
-        <span class="code-new">"wasComplementOf": {
-            <span class="code-comment">// wasComplementOf(e1,e0)</span>
-            "_:wCO1": {
-                "subject": e1,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e2,e0)</span>
-            "_:wCO2": {
-                "subject": e2,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e3,e0)</span>
-            "_:wCO3": {
-                "subject": e3,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e6,e3)</span>
-            "_:wCO3": {
-                "subject": e6,
-                "alternate": e3
-            }</span>
-        },
-        ...
-    },
-    ...
-}
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Agent">Agent Expressions</a>: the various users are represented as agents, themselves being a type of entity.</p>
-
-<pre>
-{
     ...
     "entity": {
-        <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", foaf:name="Alice" ])</span>
-        "a1": {
-            "type": "Person",
-            "foaf:name": "Alice"
-        },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Bob" ])</span>
-        "a2": {
-            "type": "Person",
-            "foaf:name": "Bob"
-        },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Charles" ])</span>
-        "a3": {
-            "type": "Person",
-            "foaf:name": "Charles"
-        },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="David" ])</span>
-        "a4": {
-            "type": "Person",
-            "foaf:name": "David"
-        },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Edith" ])</span>
-        "a5": {
-            "type": "Person",
-            "foaf:name": "Edith"
-        },</span>
-        ...
-    },
-    <span class="code-new">"agent": [
-        "a1", <span class="code-comment">// agent(a1)</span>
-        "a2", <span class="code-comment">// agent(a2)</span>
-        "a3", <span class="code-comment">// agent(a3)</span>
-        "a4", <span class="code-comment">// agent(a4)</span>
-        "a5"  <span class="code-comment">// agent(a5)</span>
-    ],</span>
-    ...
-}
-</pre>
-
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Control">Control Expressions</a>: the influence of an agent over a process execution is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
-
-<pre>
-{
-    ...
-    "relation": {
-        <span class="code-new">"wasControlledBy": {
-            <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
-            "_:wCB1": {
-                "effect" : "pe0",
-                "cause" : "a1",
-                "role": "creator"
-            },
-            <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
-            "_:wCB2": {
-                "effect" : "pe1",
-                "cause" : "a2",
-                "role": "author"
-            },
-            <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
-            "_:wCB3": {
-                "effect" : "pe2",
-                "cause" : "a3",
-                "role": "communicator"
-            },
-            <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
-            "_:wCB4": {
-                "effect" : "pe3",
-                "cause" : "a4",
-                "role": "author"
-            },
-            <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
-            "_:wCB5": {
-                "effect" : "pe4",
-                "cause" : "a5",
-                "role": "communicator"
+        "e1": {
+            "type": "document",
+            "hasAnnotation": {
+                "ann1": null
             }
-        },</span>
-    },
-    ...
-}
+            "x:byteSize": [1034, "xsd:positiveInteger"],
+            "x:compression": [82.5, "xsd:decimal"],
+            "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
+        }
+    }
 </pre>
-</section> 
+
+
 </section>
+
 
 <section id="prov-json-representation"> 
 
-<h2>PROV-JSON: Representing the Provenance Data Model in JSON</h2>
+<h2>Representing the Provenance Data Model in JSON</h2>
 
 <p>This section defines the JSON serialization for PROV-DM expressions.</p>
 
@@ -617,11 +249,13 @@ Likewise, to describe the modalities according to which the various things are u
 
 <p>A <span class="nonterminal">provenanceContainer</span> (see section <a href="#ProvenanceContainer">Provenance Container</a>) is used to wrap PROV-DM expressions and facilitate their interchange. In PROV-JSON, it is represented as the following a JSON structure:</p>
 
+<div class='issue'>TODO: Remove the <code>relation</code> structure and move all relations to the top level (i.e. same level with entity and agent).</div>
+
 <div class="grammar"><pre>
 {
     "entity": {
     },
-    "processExecution": {
+    "activity": {
     },
     "agent": [
     ],
@@ -653,7 +287,7 @@ Likewise, to describe the modalities according to which the various things are u
 <section id="expression-element"> 
 <h3>Element</h3>
 
-<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">processExecutionExecution</span>, <span class="nonterminal">agentExpression</span>, <span class="nonterminal">annotationExpression</span>, and <span class="nonterminal">relationExpression</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">processExecution</span>, <span class="name">agent</span>, <span class="name">annotation</span>, and <span class="name">relation</span> respectively.</p>
+<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">activityExpression</span>, <span class="nonterminal">agentExpression</span>, <span class="nonterminal">annotationExpression</span>, and <span class="nonterminal">relationExpression</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, <span class="name">annotation</span>, and <span class="name">relation</span> respectively.</p>
 
 
 <section id="expression-Entity"> 
@@ -702,8 +336,8 @@ is serialized into the following structure
 <h3>Process Execution Expression</h3>
 
 <div class='grammar'>
-<span class="nonterminal">processExecutionExpression</span>&nbsp;:=  
-<span class="name">processExecution</span>
+<span class="nonterminal">activityExpression</span>&nbsp;:=  
+<span class="name">activity</span>
 <span class="name">(</span>
 <span class="nonterminal">identifier</span>
 [ <span class="name">,</span>
@@ -718,17 +352,17 @@ is serialized into the following structure
 <span class="nonterminal">other-attribute-values</span>&nbsp;:=  <span class="nonterminal">attribute-values</span>
 </div>
 
-<p>Each <a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution</a> is represented as a property in the <span class="name">processExecution</span> object identified by the process execution's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the process execution's properties and its other attribute-values pairs.</p>
+<p>Each <a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution</a> is represented as a property in the <span class="name">activity</span> object identified by the process execution's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the process execution's properties and its other attribute-values pairs.</p>
 
 <p>
 The following process execution assertion, for example,</p>
 <pre class="example">
-processExecution(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.org",type="app:edit"])
+activity(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.org",type="app:edit"])
 </pre>
 <p>is serialized into:</p>
 <pre class="example">
     ...
-    "processExecution": {
+    "activity": {
         "pe1": {
             "recipeLink": "add-crime-in-london",
             "startTime": t+1,
@@ -756,7 +390,7 @@ processExecution(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.o
 <span class="name">)</span><br/>
 </div>
 
-Since an <span class="nonterminal">agentExpression</span> does not have any property, an account's <span class="name">agent</span> structure is an array containing all the identifiers of the entities that are asserted as agents (not an object like <span class="name">entity</span> or <span class="name">processExecution</span>).
+Since an <span class="nonterminal">agentExpression</span> does not have any property, an account's <span class="name">agent</span> structure is an array containing all the identifiers of the entities that are asserted as agents (not an object like <span class="name">entity</span> or <span class="name">activity</span>).
 
 <pre class="example">
 entity(e1, [employee="1234", name="Alice"])  and agent(e1)
@@ -1015,7 +649,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
         "used": {
             "_:u1": {
                 "cause": "e3",
-                "processExecution": "pe4",
+                "activity": "pe4",
                 "ex:channel": "in"
             },
         },
@@ -1027,7 +661,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
             "_:wDF2": {
                 "cause": "e3",
                 "effect": "e5",
-                "processExecution": "pe4"
+                "activity": "pe4"
             },
         },
        "wasGeneratedBy": {
@@ -1040,7 +674,7 @@ wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
     },
     ...
 </pre>
-<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">processExecution = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's <a href="http://www.w3.org/TR/prov-dm/#derivation-events">constraint <span class="nonterminal">derivation-events</span></a>.</p>
+<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">activity = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's <a href="http://www.w3.org/TR/prov-dm/#derivation-events">constraint <span class="nonterminal">derivation-events</span></a>.</p>
 
 <p>The two remaining forms of derivation relations, i.e. <span class="name">wasEventuallyDerivedFrom (e2, e1)</span>, are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
 </p>
@@ -1232,7 +866,7 @@ The following expressions, for example,</p>
 <pre class="example">
 entity(e1,[type="document"])
 entity(e2,[type="document"])
-processExecution(pe,transform,t1,t2,[])
+activity(pe,transform,t1,t2,[])
 used(pe,e1,qualifier(ex:file="stdin"))
 wasGeneratedBy(e2, pe, qualifier(ex:file="stdout"))
 
@@ -1261,7 +895,7 @@ hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
             }
         }
     },
-    "processExecution": {
+    "activity": {
         "pe": {
             "recipeLink": "transform",
             "startTime": t1,
@@ -1384,7 +1018,7 @@ account(acc0,
           ...
           wasDerivedFrom(e2,e1)
           ...
-          processExecution(pe0,create-file,t)
+          activity(pe0,create-file,t)
           ...
           wasGeneratedBy(e0,pe0,qualifier())     
           ...
@@ -1399,7 +1033,7 @@ account(acc0,
             "asserter": "http://example.org/asserter",
             <span class="code-comment">// The remaining expressions of acc0 are encoded as specified in the previous sections</span>
             "entity": { ... },
-            "processExecution": { ... },
+            "activity": { ... },
             "agent": [ ... ],
             "annotation": { ... },
             "relation": { ... }
@@ -1413,12 +1047,12 @@ account(acc0,
 account(acc3,
         http://example.org/asserter1, 
           entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])
-          processExecution(pe0,create-file,t)
+          activity(pe0,create-file,t)
           wasGeneratedBy(e0,pe0,qualifier())  
           account(acc4,
                  http://example.org/asserter2,
                  entity(e1, [ type="File", location="/shared/crime.txt", creator="Alice", content="" ])
-                 processExecution(pe0,copy-file,t)
+                 activity(pe0,copy-file,t)
                  wasGeneratedBy(e1,pe0,qualifier(fct="create"))
                  isComplement(e1,e0)))
 </pre>
@@ -1455,7 +1089,7 @@ account(acc3,
 <ul>
 <li> Applications are free to introduce application-specific attributes, according to their perspective on the world. Attributes for a given application can be distinguished by qualifying them with a prefix denoting a namespace declared in a namespace declaration.
 
-<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a set of reserved attributes: <span class="name">type</span>, <span class="name">location</span>. In addition, PROV-JSON represents most PROV-DM expressions and their properties as properties of an element, and, therefore, all these names are reserved. Specifically, they are: <span class="name">wasGeneratedBy</span>, <span class="name">used</span>, <span class="name">wasDerivedFrom</span>, <span class="name">wasEventuallyDerivedFrom</span>, <span class="name">dependedOn</span>, <span class="name">wasControlledBy</span>, <span class="name">wasComplementOf</span>, <span class="name">wasInformedBy</span>, <span class="name">wasScheduledAfter</span>, <span class="name">wasRevisionOf</span>, <span class="name">hadParticipant</span>, <span class="name">hasAnnotation</span>, <span class="name">asserter</span>, <span class="name">parent</span>, <span class="name">startTime</span>, <span class="name">endTime</span>, <span class="name">time</span>, <span class="name">agent</span>, <span class="name">processExecution</span>.</p>
+<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a set of reserved attributes: <span class="name">type</span>, <span class="name">location</span>. In addition, PROV-JSON represents most PROV-DM expressions and their properties as properties of an element, and, therefore, all these names are reserved. Specifically, they are: <span class="name">wasGeneratedBy</span>, <span class="name">used</span>, <span class="name">wasDerivedFrom</span>, <span class="name">wasEventuallyDerivedFrom</span>, <span class="name">dependedOn</span>, <span class="name">wasControlledBy</span>, <span class="name">wasComplementOf</span>, <span class="name">wasInformedBy</span>, <span class="name">wasScheduledAfter</span>, <span class="name">wasRevisionOf</span>, <span class="name">hadParticipant</span>, <span class="name">hasAnnotation</span>, <span class="name">asserter</span>, <span class="name">parent</span>, <span class="name">startTime</span>, <span class="name">endTime</span>, <span class="name">time</span>, <span class="name">agent</span>, <span class="name">activity</span>.</p>
 </li>
 
 <li>Annotation expressions allow arbitrary metadata to be associated with identifiable expressions of PROV-DM. Annotation expressions consist of name-value pairs. Like attributes, names are qualified by a namespace.</li>
@@ -1476,34 +1110,423 @@ account(acc3,
 
 </section> 
 
+<section id="prov-json-example" class="appendix"> 
+<h2>PROV-JSON Serialization Example</h2>
 
-<section id="json-datatypes">
-<h2>Datatypes</h2>
+
+<section> 
+<h3>A File Scenario</h3>
+
+<div class='issue'>TODO: Link to <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">PROV-DM's example section</a></div>
+
+<p>This scenario is concerned with the evolution of a crime statistics
+file (referred to as e0) stored on a shared file system and which
+journalists Alice, Bob, Charles, David, and Edith can share and
+edit. We consider various events in the evolution of file e0;
+events listed below follow each other, unless otherwise specified.</p>
 
 
-<p>A JSON value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, it is possible to provide the data type of a literal in PROV-JSON using a 2-element array:</p>
 
-<pre class="example">
-    "prefix": {
-        "x": "http://example.org/",
-        "xsd": "http://www.w3.org/2001/XMLSchema-datatypes#"
+<p>
+Event evt1: Alice creates (pe0) an empty file in /share/crime.txt.  We denote this e1.
+</p>
+
+<p>
+Event evt2: Bob appends (pe1) the following line to /share/crime.txt:</p>
+<pre>
+There was a lot of crime in London last month.
+</pre>
+<p>We denote this e2.</p>
+
+<p>Event evt3: Charles emails (pe2) the contents of /share/crime.txt, as an
+attachment, which we refer to as e4. (We specifically refer to a copy of the file that is uploaded on the mail server.)
+</p>
+
+<p>
+Event evt4: David edits (pe3) file /share/crime.txt as follows.</p>
+<pre>
+There was a lot of crime in London and New-York last month.
+</pre>
+<p>
+We denote this e3.
+</p>
+
+<p>Event evt5: Edith emails (pe4) the contents of /share/crime.txt as an attachment, referred to as e5.
+</p>
+
+<p>Event evt6: between events evt4 and evt5, someone (unspecified) runs a spell checker (pe5) on the file /share/crime.txt.
+ The file after spell checking is referred to as e6.
+</p>
+
+</section> 
+
+<section id="example-prov-json-encoding"> 
+<h3>Encoding using PROV-JSON</h3>
+
+In this section, the example provided in the PROV-DM specification is encoded into the PROV-JSON representation (specified in section <a href="#prov-json-representation">PROV-JSON: Representing the Provenance Data Model in JSON</a>).
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Entity">Entity Expressions</a>: The file in its various forms and its copies are modelled as entity expressions, corresponding to multiple characterizations, as per scenario. The entity expressions are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
+<pre>
+{
+    ...
+    <span class="code-new">"entity": {
+        <span class="code-comment">// entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])</span>
+        "e0": {
+            "type": "File",
+            "location": "/shared/crime.txt",
+            "creator": "Alice"
+        },
+        <span class="code-comment">// entity(e1, [ type="File", location="/shared/crime.txt", creator="Alice", content="" ])</span>
+        "e1": {
+            "type": "File",
+            "location": "/shared/crime.txt",
+            "creator": "Alice",
+            "content": ""
+        },
+        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London last month." ])</span>
+        "e2": {
+            "type": "File",
+            "location": "/shared/crime.txt",
+            "creator": "Alice",
+            "content": "There was a lot of crime in London last month."
+        },
+        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month." ])</span>
+        "e3": {
+            "type": "File",
+            "location": "/shared/crime.txt",
+            "creator": "Alice",
+            "content": "There was a lot of crime in London and New York last month."
+        },
+        <span class="code-comment">// entity(e4, [ ])</span>
+        "e4": {
+        },
+        <span class="code-comment">// entity(e5, [ ])</span>
+        "e5": {
+        },
+        <span class="code-comment">// entity(e6, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month.", spellchecked="yes"])</span>
+        "e6": {
+            "type": "File",
+            "location": "/shared/crime.txt",
+            "creator": "Alice",
+            "content": "There was a lot of crime in London and New York last month.",
+            "spellchecked": "yes"
+        }
+    },</span>
+    ...
+}
+</pre>
+
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution Expressions</a> represent activities in the scenario.</p>
+
+<pre>
+{
+    ...
+    <span class="code-new">"activity": {
+        <span class="code-comment">// activity(pe0,create-file,t,,[])</span>
+        "pe0" : {
+            "recipeLink": "create-file",
+            "startTime": t
+        },
+        <span class="code-comment">// activity(pe1,add-crime-in-london,t+1,,[])</span>
+        "pe1" : {
+            "recipeLink": "add-crime-in-london",
+            "startTime": t+1
+        },
+        <span class="code-comment">// activity(pe2,email,t+2,,[])</span>
+        "pe2" : {
+            "recipeLink": "email",
+            "startTime": t+2
+        },
+        <span class="code-comment">// activity(pe3,edit-London-New-York,t+3,,[])</span>
+        "pe3" : {
+            "recipeLink": "edit-London-New-York",
+            "startTime": t+3
+        },
+        <span class="code-comment">// activity(pe4,email,t+4,,[])</span>
+        "pe4" : {
+            "recipeLink": "email",
+            "startTime": t+4
+        },
+        <span class="code-comment">// activity(pe5,spellcheck,,,[])</span>
+        "pe5" : {
+            "recipeLink": "spellcheck"
+        },
+    },</span>
+    ...
+}
+</pre>
+
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Generation">Generation Expressions</a> represent the event at which a file is created in a specific form. To describe the modalities according to which the various characterized things are generated by a given activity, a qualifier  (expression described in <a href="http://www.w3.org/TR/prov-dm/#expression-qualifier">PROV-DM</a>) is introduced.  The interpretation of qualifiers is application specific. Illustrations of such qualifiers for the scenario are: no qualifier is provided for <span class="name">e0</span>;
+<span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message;<span class="name">e6</span> was produced on the standard output of <span class="name">pe5</span>.</p>
+
+<pre>
+{
+    ...
+    <span class="code-new">"relation": {
+        "wasGeneratedBy": {
+            <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
+            "_:wGB1": {
+                "effect": "e0",
+                "cause": "pe0"
+            },
+            <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
+            "_:wGB2": {
+                "effect": "e1",
+                "cause": "pe0",
+                "fct": "ex:create"
+            },
+            <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
+            "_:wGB3": {
+                "effect": "e2",
+                "cause": "pe1",
+                "fct": "ex:save"
+            },
+            <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
+            "_:wGB4": {
+                "effect": "e3",
+                "cause": "pe3",
+                "fct": "ex:save"
+            },
+            <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
+            "_:wGB5": {
+                "effect": "e4",
+                "cause": "pe2",
+                "port": "ex:smtp",
+                "section": "ex:attachment"
+            },
+            <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
+            "_:wGB6": {
+                "effect": "e5",
+                "cause": "pe4",
+                "port": "ex:smtp",
+                "section": "ex:attachment"
+            },
+            <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
+            "_:wGB7": {
+                "effect": "e6",
+                "cause": "pe5",
+                "ex:file": "stdout"
+            }
+        }
+    },</span>
+    ...
+}
+</pre>
+
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Use">Used Expressions</a> represent the event by which a file is read by a process execution. 
+
+Likewise, to describe the modalities according to which the various things are used by activities, a qualifier is introduced.  Illustrations of such qualifiers are: <span class="name">e1</span> is used in the context of  <span class="name">pe1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">pe2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">pe5</span>. </p>
+
+<pre>
+{
+    ...
+    "relation": {
+        <span class="code-new">"used" : {
+            <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
+            "_:u1": {
+                "effect": "pe1",
+                "cause": "e1",
+                "ex:fct": "load"
+            },
+            <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
+            "_:u2": {
+                "effect": "pe2",
+                "cause": "e2",
+                "ex:fct": "attach"
+            },
+            <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
+            "_:u3": {
+                "effect": "pe3",
+                "cause": "e2",
+                "ex:fct": "load"
+            },
+            <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
+            "_:u4": {
+                "effect": "pe4",
+                "cause": "e3",
+                "ex:fct": "attach"
+            },
+            <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
+            "_:u5": {
+                "effect": "pe5",
+                "cause": "e3",
+                "ex:file": "stdin"
+            }
+        },</span>
     },
     ...
-    "entity": {
-        "e1": {
-            "type": "document",
-            "hasAnnotation": {
-                "ann1": null
+}
+</pre>
+
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Derivation">Derivation Expressions</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the process execution underpinnng the derivation, and relevant qualifiers qualifying the use and generation of entities.</p>
+
+<pre>
+{
+    ...
+    "relation": {
+        <span class="code-new">"wasDerivedFrom": {
+            <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
+            "_:wDF1": {
+                "effect": "e2",
+                "cause": "e1",
+            },
+            <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
+            "_:wDF2": {
+                "effect": "e3",
+                "cause": "e2"
+            },
+            <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+            "_:wDF3": {
+                "activity": "pe2",
+                "effect": "e4",
+		"cause": "e2",
+		"effectWGB": "_:wGB5",
+		"causeU": "_:u2"
+            },
+            <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+            "_:wDF4": {
+                "activity": "pe4"
+                "effect": "e5",
+                "cause": "e3",
+		"effectWGB": "_:wGB6",
+		"causeU": "_:u4"
+            },
             }
-            "x:byteSize": [1034, "xsd:positiveInteger"],
-			      "x:compression": [82.5, "xsd:decimal"],
-			      "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
-        }
-    }
+        },</span>
+    },
+    ...
+}
+</pre>
+
+<p><a href="http://www.w3.org/TR/prov-dm/#expression-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity expressions identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>.  Likewise, the one denoted by <span class="name">e6</span> complements the expression denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
+
+<pre>
+{
+    ...
+    "relation": {
+        <span class="code-new">"wasComplementOf": {
+            <span class="code-comment">// wasComplementOf(e1,e0)</span>
+            "_:wCO1": {
+                "subject": e1,
+                "alternate": e0
+            },
+            <span class="code-comment">// wasComplementOf(e2,e0)</span>
+            "_:wCO2": {
+                "subject": e2,
+                "alternate": e0
+            },
+            <span class="code-comment">// wasComplementOf(e3,e0)</span>
+            "_:wCO3": {
+                "subject": e3,
+                "alternate": e0
+            },
+            <span class="code-comment">// wasComplementOf(e6,e3)</span>
+            "_:wCO3": {
+                "subject": e6,
+                "alternate": e3
+            }</span>
+        },
+        ...
+    },
+    ...
+}
+</pre>
+
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Agent">Agent Expressions</a>: the various users are represented as agents, themselves being a type of entity.</p>
+
+<pre>
+{
+    ...
+    "entity": {
+        <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", foaf:name="Alice" ])</span>
+        "a1": {
+            "type": "Person",
+            "foaf:name": "Alice"
+        },
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Bob" ])</span>
+        "a2": {
+            "type": "Person",
+            "foaf:name": "Bob"
+        },
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Charles" ])</span>
+        "a3": {
+            "type": "Person",
+            "foaf:name": "Charles"
+        },
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="David" ])</span>
+        "a4": {
+            "type": "Person",
+            "foaf:name": "David"
+        },
+        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Edith" ])</span>
+        "a5": {
+            "type": "Person",
+            "foaf:name": "Edith"
+        },</span>
+        ...
+    },
+    <span class="code-new">"agent": [
+        "a1", <span class="code-comment">// agent(a1)</span>
+        "a2", <span class="code-comment">// agent(a2)</span>
+        "a3", <span class="code-comment">// agent(a3)</span>
+        "a4", <span class="code-comment">// agent(a4)</span>
+        "a5"  <span class="code-comment">// agent(a5)</span>
+    ],</span>
+    ...
+}
 </pre>
 
 
-</section>
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#expression-Control">Control Expressions</a>: the influence of an agent over a process execution is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
+
+<pre>
+{
+    ...
+    "relation": {
+        <span class="code-new">"wasControlledBy": {
+            <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
+            "_:wCB1": {
+                "effect" : "pe0",
+                "cause" : "a1",
+                "role": "creator"
+            },
+            <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
+            "_:wCB2": {
+                "effect" : "pe1",
+                "cause" : "a2",
+                "role": "author"
+            },
+            <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
+            "_:wCB3": {
+                "effect" : "pe2",
+                "cause" : "a3",
+                "role": "communicator"
+            },
+            <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
+            "_:wCB4": {
+                "effect" : "pe3",
+                "cause" : "a4",
+                "role": "author"
+            },
+            <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
+            "_:wCB5": {
+                "effect" : "pe4",
+                "cause" : "a5",
+                "role": "communicator"
+            }
+        },</span>
+    },
+    ...
+}
+</pre>
+</section> 
+
 
 <section class="appendix"> 
 <h2>Acknowledgements</h2> 
