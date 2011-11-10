@@ -241,7 +241,7 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 
 <h2>Representing the Provenance Data Model in JSON</h2>
 
-<p>This section defines the JSON serialization for PROV-DM expressions.</p>
+<p>This section defines the JSON serialization mappings for PROV-DM expressions.</p>
 
 <section id="PROV-JSON-overview"> 
       
@@ -253,17 +253,18 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 
 <div class="grammar"><pre>
 {
-    "entity": {
+    "entity": { <span class="code-comment">// Map of entities by entities' IDs</span>
     },
-    "activity": {
+    "activity": { <span class="code-comment">// Map of activities by IDs</span>
     },
-    "agent": [
+    "agent": [ <span class="code-comment">// List of IDs of entities asserted as agents</span>
     ],
-    "annotation": {
+    "annotation": { <span class="code-comment">// Map of annotations by IDs</span>
     },
-    "relation": {
+    &lt;<i>relationName</i>&gt;: { <span class="code-comment">// A map of relations of type <i>relationName</i> by their IDs</span>
     },
-    "account": {
+    ...
+    "account": { <span class="code-comment">// Map of accounts by IDs</span>
     }
 }
 </pre></div>
@@ -462,7 +463,7 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 <section id="expression-relation">
 <h3>Relation</h3>
 
-<p>This section how PROV-ASN's different <a href="http://www.w3.org/TR/prov-dm/#expression-relation">relation expressions</a> are serialised in PROV-JSON.</p>
+<p>This section how various <a href="http://www.w3.org/TR/prov-dm/#expression-relation">relation expressions</a> in PROV-ASN are serialised in PROV-JSON.</p>
 
 <p>In general, a <span class="nonterminal">relationExpression</span> has the following construct:</p>
 
@@ -476,19 +477,20 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 <br/>
 </div>
 <p>where <span class="nonterminal">identifier1</span> and <span class="nonterminal">identifier2</span> are identifiers to PROV-DM elements</p>
-Relations are grouped by <span class="nonterminal">relationName</span> in the <span class="name">relation</span> structure.
+Relations are grouped by <span class="nonterminal">relationName</span> in a PROV-JSON structure.
 <div class="grammar"><pre>
     ...
-    "relation": {
-        <em>relationName</em>: {
-            <span class="code-comment">// relationName(identifier1, identifier2, ...)</span>
-            <em>relationID</em>: {
-		<em>attribute1</em>: <em>identifier1</em>,
-		<em>attribute2</em>: <em>identifier2</em>,
+    "annotations": { ... },
+    <i>relationName</i>: {
+        <span class="code-comment">// relationName(identifier1, identifier2, ...)</span>
+        <i>relationID</i>: {
+            <i>attribute1</i>: <em>identifier1</em>,
+            <i>attribute2</i>: <em>identifier2</em>,
                 ...
-            },
-            <span class="code-comment">// More relationID,identifier1,identifier2 structures here if there are more instances of relationName(...)</span>
         },
+        <span class="code-comment">// More relationID,identifier1,identifier2 structures here if there are more instances of relationName(...)</span>
+    },
+    <i>otherRelationName</i>: {
         ...
     },
     ...
@@ -525,26 +527,26 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
 </pre>
 <p>are serialized as follows.</p>
 <pre class="example">
+{
     ...
-    "relation": {
-        "wasGeneratedBy": {
-            "_:wBG1": {
-                "cause": "pe1",
-                "effect": "e1",
-                "ex:port": "p1",
-                "ex:order": 1,
-                "time": t1
-            },
-            "_:wBG2": {
-                "cause": "pe1",
-                "effect": "e2",
-                "ex:port": "p1",
-                "ex:order": 2,
-                "time": t2
-            },
+    "wasGeneratedBy": {
+        "_:wBG1": {
+            "cause": "pe1",
+            "effect": "e1",
+            "ex:port": "p1",
+            "ex:order": 1,
+            "time": t1
+        },
+        "_:wBG2": {
+            "cause": "pe1",
+            "effect": "e2",
+            "ex:port": "p1",
+            "ex:order": 2,
+            "time": t2
         },
     },
     ...
+}
 </pre>
 Note that, in the example above, the qualifier's components are unbundled and mixed with the relation's other properties (i.e. <span class="nonterminal">time</span>) in the relation's object.
 </section>
@@ -574,24 +576,24 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 </pre>
 <p>are serialized in to PROV-JSON:</p>
 <pre class="example">
+{
     ...
-    "relation": {
-        "used": {
-            "_:u1": {
-                "cause": "e1",
-                "effect": "pe1",
-                "ex:parameter": "p1",
-                "time": t1
-            },
-            "_:u2": {
-                "cause": "e2",
-                "effect": "pe1",
-                "ex:parameter": "p2",
-                "time": t2
-            },
+    "used": {
+        "_:u1": {
+            "cause": "e1",
+            "effect": "pe1",
+            "ex:parameter": "p1",
+            "time": t1
+        },
+        "_:u2": {
+            "cause": "e2",
+            "effect": "pe1",
+            "ex:parameter": "p2",
+            "time": t2
         },
     },
     ...
+}
 </pre>
 
 </section>
@@ -644,35 +646,35 @@ wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
 </pre>
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
+{
     ...
-    "relation": {
-        "used": {
-            "_:u1": {
-                "cause": "e3",
-                "activity": "pe4",
-                "ex:channel": "in"
-            },
+    "used": {
+        "_:u1": {
+            "cause": "e3",
+            "activity": "pe4",
+            "ex:channel": "in"
+        }
+    },
+    "wasDerivedFrom": {
+        "_:wDF1": {
+            "cause": "e2",
+            "effect": "e3"
         },
-        "wasDerivedFrom": {
-            "_:wDF1": {
-                "cause": "e2",
-                "effect": "e3"
-            },
-            "_:wDF2": {
-                "cause": "e3",
-                "effect": "e5",
-                "activity": "pe4"
-            },
-        },
-       "wasGeneratedBy": {
-            "_:wGB1": {
-                "cause": "pe4",
-                "effect": "e5",
-                "ex:channel": "out"
-            },
-       },
+        "_:wDF2": {
+            "cause": "e3",
+            "effect": "e5",
+            "activity": "pe4"
+        }
+    },
+    "wasGeneratedBy": {
+        "_:wGB1": {
+            "cause": "pe4",
+            "effect": "e5",
+            "ex:channel": "out"
+        }
     },
     ...
+}
 </pre>
 <p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">activity = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's <a href="http://www.w3.org/TR/prov-dm/#derivation-events">constraint <span class="nonterminal">derivation-events</span></a>.</p>
 
@@ -702,19 +704,17 @@ wasControlledBy(pe3,a4,qualifier[role="author"])
 </pre>
 <p>is serialized into:</p>
 <pre class="example">
-    "relation": {
-        ...
-        "wasControlledBy": {
-            "_:wCB1": {
-                "cause": "a4",
-                "effect": "pe3",
-                "role": "author"
-            },
-            ...
-        },
-        ...
+{
+    ...
+    "wasControlledBy": {
+        "_:wCB1": {
+            "cause": "a4",
+            "effect": "pe3",
+            "role": "author"
+        }
     },
     ...
+}
 </pre>
 </section>
 
@@ -793,17 +793,17 @@ wasRevisionOf(e3,e2,a4)
 </pre>
 <p>is encoded in PROV-JSON as follows.</p>
 <pre class="example">
+{
     ...
-    "relation": {
-        "wasRevisionOf": {
-            "_:wRO1": {
-                "cause": "e2",
-                "effect": "e3",
-                "agent": "a4"
-            },
-        ...
+    "wasRevisionOf": {
+        "_:wRO1": {
+            "cause": "e2",
+            "effect": "e3",
+            "agent": "a4"
+        }
     }
     ...
+}
 </pre>
 
 </section>
@@ -879,6 +879,7 @@ hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
 </pre>
 <p>are serialized into:</p>
 <pre class="example">
+{
     ...
     "entity": {
         "e1": {
@@ -910,24 +911,23 @@ hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
             "ex:style": "dotted"
         },
     },
-    "relation": {
-        "wasGeneratedBy": {
-            "_:wGB1": {
-                "effect": "e2",
-                "cause": "pe",
-                "ex:file": "stdout"
-            },
-        },
-        "used": {
-            "_:u1": {
-                "cause": "e1",
-                "effect": "pe",
-                "file": "stdin",
-                "hasAnnotation": "ann2"
-            },
+    "wasGeneratedBy": {
+        "_:wGB1": {
+            "effect": "e2",
+            "cause": "pe",
+            "ex:file": "stdout"
+        }
+    },
+    "used": {
+        "_:u1": {
+            "cause": "e1",
+            "effect": "pe",
+            "file": "stdin",
+            "hasAnnotation": "ann2"
         }
     }
     ...
+}
 </pre>
 
 
@@ -1036,7 +1036,7 @@ account(acc0,
             "activity": { ... },
             "agent": [ ... ],
             "annotation": { ... },
-            "relation": { ... }
+            <i>relationName</i>": { ... }
         }
     }
 }
@@ -1264,51 +1264,49 @@ In this section, the example provided in the PROV-DM specification is encoded in
 <pre>
 {
     ...
-    <span class="code-new">"relation": {
-        "wasGeneratedBy": {
-            <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
-            "_:wGB1": {
-                "effect": "e0",
-                "cause": "pe0"
-            },
-            <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
-            "_:wGB2": {
-                "effect": "e1",
-                "cause": "pe0",
-                "fct": "ex:create"
-            },
-            <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
-            "_:wGB3": {
-                "effect": "e2",
-                "cause": "pe1",
-                "fct": "ex:save"
-            },
-            <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
-            "_:wGB4": {
-                "effect": "e3",
-                "cause": "pe3",
-                "fct": "ex:save"
-            },
-            <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
-            "_:wGB5": {
-                "effect": "e4",
-                "cause": "pe2",
-                "port": "ex:smtp",
-                "section": "ex:attachment"
-            },
-            <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
-            "_:wGB6": {
-                "effect": "e5",
-                "cause": "pe4",
-                "port": "ex:smtp",
-                "section": "ex:attachment"
-            },
-            <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
-            "_:wGB7": {
-                "effect": "e6",
-                "cause": "pe5",
-                "ex:file": "stdout"
-            }
+    <span class="code-new">"wasGeneratedBy": {
+        <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
+        "_:wGB1": {
+            "effect": "e0",
+            "cause": "pe0"
+        },
+        <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
+        "_:wGB2": {
+            "effect": "e1",
+            "cause": "pe0",
+            "fct": "ex:create"
+        },
+        <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
+        "_:wGB3": {
+            "effect": "e2",
+            "cause": "pe1",
+            "fct": "ex:save"
+        },
+        <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
+        "_:wGB4": {
+            "effect": "e3",
+            "cause": "pe3",
+            "fct": "ex:save"
+        },
+        <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
+        "_:wGB5": {
+            "effect": "e4",
+            "cause": "pe2",
+            "port": "ex:smtp",
+            "section": "ex:attachment"
+        },
+        <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
+        "_:wGB6": {
+            "effect": "e5",
+            "cause": "pe4",
+            "port": "ex:smtp",
+            "section": "ex:attachment"
+        },
+        <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
+        "_:wGB7": {
+            "effect": "e6",
+            "cause": "pe5",
+            "ex:file": "stdout"
         }
     },</span>
     ...
@@ -1323,40 +1321,38 @@ Likewise, to describe the modalities according to which the various things are u
 <pre>
 {
     ...
-    "relation": {
-        <span class="code-new">"used" : {
-            <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
-            "_:u1": {
-                "effect": "pe1",
-                "cause": "e1",
-                "ex:fct": "load"
-            },
-            <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
-            "_:u2": {
-                "effect": "pe2",
-                "cause": "e2",
-                "ex:fct": "attach"
-            },
-            <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
-            "_:u3": {
-                "effect": "pe3",
-                "cause": "e2",
-                "ex:fct": "load"
-            },
-            <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
-            "_:u4": {
-                "effect": "pe4",
-                "cause": "e3",
-                "ex:fct": "attach"
-            },
-            <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
-            "_:u5": {
-                "effect": "pe5",
-                "cause": "e3",
-                "ex:file": "stdin"
-            }
-        },</span>
-    },
+    <span class="code-new">"used" : {
+        <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
+        "_:u1": {
+            "effect": "pe1",
+            "cause": "e1",
+            "ex:fct": "load"
+        },
+        <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
+        "_:u2": {
+            "effect": "pe2",
+            "cause": "e2",
+            "ex:fct": "attach"
+        },
+        <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
+        "_:u3": {
+            "effect": "pe3",
+            "cause": "e2",
+            "ex:fct": "load"
+        },
+        <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
+        "_:u4": {
+            "effect": "pe4",
+            "cause": "e3",
+            "ex:fct": "attach"
+        },
+        <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
+        "_:u5": {
+            "effect": "pe5",
+            "cause": "e3",
+            "ex:file": "stdin"
+        }
+    },</span>
     ...
 }
 </pre>
@@ -1367,36 +1363,33 @@ Likewise, to describe the modalities according to which the various things are u
 <pre>
 {
     ...
-    "relation": {
-        <span class="code-new">"wasDerivedFrom": {
-            <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
-            "_:wDF1": {
-                "effect": "e2",
-                "cause": "e1",
-            },
-            <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
-            "_:wDF2": {
-                "effect": "e3",
-                "cause": "e2"
-            },
-            <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-            "_:wDF3": {
-                "activity": "pe2",
-                "effect": "e4",
-		"cause": "e2",
-		"effectWGB": "_:wGB5",
-		"causeU": "_:u2"
-            },
-            <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
-            "_:wDF4": {
-                "activity": "pe4"
-                "effect": "e5",
-                "cause": "e3",
-		"effectWGB": "_:wGB6",
-		"causeU": "_:u4"
-            },
-            }
-        },</span>
+    <span class="code-new">"wasDerivedFrom": {
+        <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
+        "_:wDF1": {
+            "effect": "e2",
+            "cause": "e1",
+        },
+        <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
+        "_:wDF2": {
+            "effect": "e3",
+            "cause": "e2"
+        },
+        <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+        "_:wDF3": {
+            "activity": "pe2",
+            "effect": "e4",
+            "cause": "e2",
+            "effectWGB": "_:wGB5",
+            "causeU": "_:u2"
+        },
+        <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+        "_:wDF4": {
+            "activity": "pe4"
+            "effect": "e5",
+            "cause": "e3",
+            "effectWGB": "_:wGB6",
+            "causeU": "_:u4"
+        }
     },
     ...
 }
@@ -1407,30 +1400,27 @@ Likewise, to describe the modalities according to which the various things are u
 <pre>
 {
     ...
-    "relation": {
-        <span class="code-new">"wasComplementOf": {
-            <span class="code-comment">// wasComplementOf(e1,e0)</span>
-            "_:wCO1": {
-                "subject": e1,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e2,e0)</span>
-            "_:wCO2": {
-                "subject": e2,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e3,e0)</span>
-            "_:wCO3": {
-                "subject": e3,
-                "alternate": e0
-            },
-            <span class="code-comment">// wasComplementOf(e6,e3)</span>
-            "_:wCO3": {
-                "subject": e6,
-                "alternate": e3
-            }</span>
+    <span class="code-new">"wasComplementOf": {
+        <span class="code-comment">// wasComplementOf(e1,e0)</span>
+        "_:wCO1": {
+            "subject": e1,
+            "alternate": e0
         },
-        ...
+        <span class="code-comment">// wasComplementOf(e2,e0)</span>
+        "_:wCO2": {
+            "subject": e2,
+            "alternate": e0
+        },
+        <span class="code-comment">// wasComplementOf(e3,e0)</span>
+        "_:wCO3": {
+            "subject": e3,
+            "alternate": e0
+        },
+        <span class="code-comment">// wasComplementOf(e6,e3)</span>
+        "_:wCO3": {
+            "subject": e6,
+            "alternate": e3
+        }</span>
     },
     ...
 }
@@ -1488,40 +1478,38 @@ Likewise, to describe the modalities according to which the various things are u
 <pre>
 {
     ...
-    "relation": {
-        <span class="code-new">"wasControlledBy": {
-            <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
-            "_:wCB1": {
-                "effect" : "pe0",
-                "cause" : "a1",
-                "role": "creator"
-            },
-            <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
-            "_:wCB2": {
-                "effect" : "pe1",
-                "cause" : "a2",
-                "role": "author"
-            },
-            <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
-            "_:wCB3": {
-                "effect" : "pe2",
-                "cause" : "a3",
-                "role": "communicator"
-            },
-            <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
-            "_:wCB4": {
-                "effect" : "pe3",
-                "cause" : "a4",
-                "role": "author"
-            },
-            <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
-            "_:wCB5": {
-                "effect" : "pe4",
-                "cause" : "a5",
-                "role": "communicator"
-            }
-        },</span>
-    },
+    <span class="code-new">"wasControlledBy": {
+        <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
+        "_:wCB1": {
+            "effect" : "pe0",
+            "cause" : "a1",
+            "role": "creator"
+        },
+        <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
+        "_:wCB2": {
+            "effect" : "pe1",
+            "cause" : "a2",
+            "role": "author"
+        },
+        <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
+        "_:wCB3": {
+            "effect" : "pe2",
+            "cause" : "a3",
+            "role": "communicator"
+        },
+        <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
+        "_:wCB4": {
+            "effect" : "pe3",
+            "cause" : "a4",
+            "role": "author"
+        },
+        <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
+        "_:wCB5": {
+            "effect" : "pe4",
+            "cause" : "a5",
+            "role": "communicator"
+        }
+    },</span>
     ...
 }
 </pre>
