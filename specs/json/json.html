@@ -1477,7 +1477,33 @@ account(acc3,
 </section> 
 
 
+<section id="json-datatypes">
+<h2>Datatypes</h2>
 
+
+<p>A JSON value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, it is possible to provide the data type of a literal in PROV-JSON using a 2-element array:</p>
+
+<pre class="example">
+    "prefix": {
+        "x": "http://example.org/",
+        "xsd": "http://www.w3.org/2001/XMLSchema-datatypes#"
+    },
+    ...
+    "entity": {
+        "e1": {
+            "type": "document",
+            "hasAnnotation": {
+                "ann1": null
+            }
+            "x:byteSize": [1034, "xsd:positiveInteger"],
+			      "x:compression": [82.5, "xsd:decimal"],
+			      "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
+        }
+    }
+</pre>
+
+
+</section>
 
 <section class="appendix"> 
 <h2>Acknowledgements</h2> 
