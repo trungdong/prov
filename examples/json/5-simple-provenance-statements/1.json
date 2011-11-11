@@ -13,7 +13,7 @@
 		}
 	},
 	"relation": {
-		"wasSummaryOf": {
+		"wasDerivedFrom": {
 			"_:r1": {
 				"cause": "report",
 				"effect": "post"

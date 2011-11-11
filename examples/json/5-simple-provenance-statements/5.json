@@ -36,8 +36,14 @@
 				"YYY": "paul"
 			}
 		},
-		"hadParticipant": {
+		"wasGeneratedBy": {
 			"_:r3": {
+				"cause": "pe1",
+				"effect": "post"
+			}
+		}
+		"hadParticipant": {
+			"_:r4": {
 				"AAA": "pe1",
 				"BBB": "paul"
 			}
