@@ -212,11 +212,7 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 <section id="data-typing"> 
 <h2>JSON Data Typing</h2>
 
-<div class='issue'>TODO: Discuss object/array/null. Try to get the mappings into table form.</div>
-
-<div class='issue'>TODO: Specify how multiple attribute-value pairs sharing the same key can be represented.</div>
-
-<p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object, array, and null are not defined here: object and array may be inferred from the first element, and a null value should simply be omitted from the dictionary.</p>
+<p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object and null are not defined here: object may be inferred from the first element, and a null value should simply be omitted from the dictionary. Array is represented with the prov:array type, discussed in the next section.</p>
 
 <p>The following optional mappings apply for the default JSON types:</p>
 
@@ -227,6 +223,8 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 <dd>xsd:string</dd>
 <dt>boolean</dt>
 <dd>xsd:boolean</dd>
+<dt>array</dt>
+<dd>prov:array</dd>
 </dl>
 
 <pre class="example">
@@ -248,6 +246,17 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
     }
 </pre>
 
+<h3>Representing Arrays</h3>
+
+<p>Some keys in PROV-JSON may have more than one value. To provide an array structure with the data typing approach above, we support the use of 'prov:array' as a data type in the second element of a PROV-JSON literal. It is represented as a JSON array containing a combination of literals and literal/type pairs. For example:</p>
+
+<pre class="example">
+    "entity": {
+	"e1": {
+	    "x:values": [[1, 2, ["a string", "xsd:string"], [1.0, "xsd:double"], [true, "xsd:boolean"]], "prov:array"]
+	}
+    }
+</pre>
 
 </section>
 
