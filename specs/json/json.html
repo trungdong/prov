@@ -137,13 +137,9 @@
 
 <section id="abstract">
 <p>
-This document specifies a provenance representation, called PROV-JSON, for the W3C's Provenance Data Model (PROV-DM).</p>
+This document specifies a provenance representation in JSON, called PROV-JSON, for the W3C's Provenance Data Model (PROV-DM).</p>
 </section> 
-
-<section id="sotd">
-<em>TODO: update this section for next publication.</em>
-</section>
-    
+   
 <section> 
 <h2>Introduction</h2> 
 
@@ -161,11 +157,15 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 <section> 
 <h3>Structure of this Document</h3>
 
-<p><a href="#prov-json-representation">Section 3</a> specifies the JSON encoding for all PROV-DM records.</p>
+<p><a href="#roadmap">Section 2</a> outlines the plan for a PROV-JSON toolbox that falicitates accessing and manipulating PROV-JSON structures.</p>
+
+<p><a href="#data-typing">Section 3</a> presents the convention for encoding typed values inPROV-JSON.</p>
+
+<p><a href="#prov-json-representation">Section 4</a> specifies the JSON encoding for all PROV-DM records.</p>
+
+<p>Finally, <a href="#extensibility-section">Section 4</a> summarizes PROV-JSON's extensibility points.</p>
 
 <p>In addition, <a href="#prov-json-example">Appendix A</a> provides a PROV-JSON example representation encoding <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">the PROV-DM's File Scenario</a>.</p>
-
-<p><a href="#extensibility-section">Section 4</a> summarizes PROV-JSON extensibility points.</p>
 
 </section> 
 
@@ -194,11 +194,17 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 
 <p>In conjunction with the PROV-JSON specifications provided in this document, a PROV-JSON toolbox is being developed to facilitate working with PROV-JSON structures. The toolbox will provide the following functionalities:</p>
 <ul>
-  <li>Querying</li>
-  <li>Traversing</li>
-  <li></li>
-  <li></li>
-  <li></li>
+  <li><strong>Querying</strong>: query support for
+<ul>
+      <li>properties of an element or a relation,</li>
+      <li>elements and relations based on their types, and </li>
+      <li>inluding/excluding specific types of elements/relations.</li>
+    </ul>
+  </li>
+  <li><strong>Traversing</strong>: the toolbox presents a PROV-JSON structure as a provenance graphs of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph from one element.</li>
+  <li><strong>Simple inference</strong>: transivity closure support for transitive relations in PROV-DM</li>
+  <li><strong>Editing</strong>: creating and updating provenance graphs</li>
+  <li><strong>UI widgets</strong>: generic Javescript UI widgets to support the functionalities above</li>
 </ul>
 
 </section>
@@ -1022,7 +1028,7 @@ container([x http://example.org/], [acc1,acc2]
 </section>
 
 <section id="extensibility-section"> 
-<h2>PROV-JSON Extensibility Points</h2>
+<h2>Extensibility Points</h2>
 
 <p>Since the PROV-JSON representation was developed to encode PROV-DM, it supports the <a href="http://www.w3.org/TR/prov-dm/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
 
