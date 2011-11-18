@@ -134,11 +134,11 @@
     </script> 
   </head> 
 <body> 
-    <section id="abstract">
+
+<section id="abstract">
 <p>
-JSON representation for PROV-ASN.
-</p>
-    </section> 
+This document specifies a provenance representation, called PROV-JSON, for the W3C's Provenance Data Model (PROV-DM).</p>
+</section> 
 
 <section id="sotd">
 <em>TODO: update this section for next publication.</em>
@@ -148,7 +148,7 @@ JSON representation for PROV-ASN.
 <h2>Introduction</h2> 
 
 <p> 
-PROV-DM [[PROV-DM]], PROV-ASN, JSON
+PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). provenance information 
 </p>
 
 
@@ -161,9 +161,9 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 <section> 
 <h3>Structure of this Document</h3>
 
-<p>In <a href="#prov-json-example">section 2</a>, <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">the example provided in the PROV-DM specification</a> is encoded in PROV-JSON.</p>
+<p><a href="#prov-json-representation">Section 3</a> specifies the JSON encoding for all PROV-DM records.</p>
 
-<p><a href="#prov-json-representation">Section 3</a> provides the JSON encoding for all PROV-DM expressions.</p>
+<p>In addition, <a href="#prov-json-example">Appendix A</a> provides a PROV-JSON example representation encoding <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">the PROV-DM's File Scenario</a>.</p>
 
 <p><a href="#extensibility-section">Section 4</a> summarizes PROV-JSON extensibility points.</p>
 
@@ -192,7 +192,14 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 
 <div class='issue'>TODO: Provide the specification for the JS toolbox to accompany the PROV-JSON spec here. The requirements for the toolbox to be contributed by all the authors (according to their own requirements)</div>
 
-<p></p>
+<p>In conjunction with the PROV-JSON specifications provided in this document, a PROV-JSON toolbox is being developed to facilitate working with PROV-JSON structures. The toolbox will provide the following functionalities:</p>
+<ul>
+  <li>Querying</li>
+  <li>Traversing</li>
+  <li></li>
+  <li></li>
+  <li></li>
+</ul>
 
 </section>
 
@@ -200,6 +207,8 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 <h2>JSON Data Typing</h2>
 
 <div class='issue'>TODO: Discuss object/array/null. Try to get the mappings into table form.</div>
+
+<div class='issue'>TODO: Specify how multiple attribute-value pairs sharing the same key can be represented.</div>
 
 <p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object, array, and null are not defined here: object and array may be inferred from the first element, and a null value should simply be omitted from the dictionary.</p>
 
@@ -223,7 +232,7 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
     "entity": {
         "e1": {
             "type": "document",
-            "hasAnnotation": {
+            "hasNote": {
                 "ann1": null
             }
             "x:byteSize": [1034, "xsd:positiveInteger"],
@@ -241,15 +250,13 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 
 <h2>Representing the Provenance Data Model in JSON</h2>
 
-<p>This section defines the JSON serialization mappings for PROV-DM expressions.</p>
+<p>This section defines the JSON serialization mappings for PROV-DM records.</p>
 
 <section id="PROV-JSON-overview"> 
       
 <h3>Overview</h3>
 
-<p>A <span class="nonterminal">provenanceContainer</span> (see section <a href="#ProvenanceContainer">Provenance Container</a>) is used to wrap PROV-DM expressions and facilitate their interchange. In PROV-JSON, it is represented as the following a JSON structure:</p>
-
-<div class='issue'>TODO: Remove the <code>relation</code> structure and move all relations to the top level (i.e. same level with entity and agent).</div>
+<p>A <span class="nonterminal">recordContainer</span> (see section <a href="#RecordContainer">Record Container</a>) is used to wrap PROV-DM records and facilitate their interchange. In PROV-JSON, it is represented in one JSON structure:</p>
 
 <div class="grammar"><pre>
 {
@@ -259,7 +266,7 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
     },
     "agent": [ <span class="code-comment">// List of IDs of entities asserted as agents</span>
     ],
-    "annotation": { <span class="code-comment">// Map of annotations by IDs</span>
+    "note": { <span class="code-comment">// Map of notes by IDs</span>
     },
     &lt;<i>relationName</i>&gt;: { <span class="code-comment">// A map of relations of type <i>relationName</i> by their IDs</span>
     },
@@ -269,7 +276,7 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 }
 </pre></div>
 
-<p>In addition, the top-level container contains an additional object called <span class="name">prefix</span> that defines all namespaces used in the document.</p>
+<p>In addition, the top-level container contains an additional object called <span class="name">prefix</span> that defines all namespaces referred in the document.</p>
 
 <div class="grammar"><pre>
 {
@@ -281,42 +288,25 @@ PROV-DM [[PROV-DM]], PROV-ASN, JSON
 }
 </pre></div>
 
-<p>The following sections defines how each PROV-DM expression is represented in PROV-JSON.</p>
+<p>The following sections defines how each PROV-DM record is represented in PROV-JSON.</p>
 
 </section>
 
-<section id="expression-element"> 
+<section id="record-element"> 
 <h3>Element</h3>
 
-<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#expression-element">PROV-DM elements</a>: <span class="nonterminal">entityExpression</span>, <span class="nonterminal">activityExpression</span>, <span class="nonterminal">agentExpression</span>, <span class="nonterminal">annotationExpression</span>, and <span class="nonterminal">relationExpression</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, <span class="name">annotation</span>, and <span class="name">relation</span> respectively.</p>
+<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/prov-dm/#record-element">PROV-DM elements</a>: <span class="nonterminal">entityRecord</span>, <span class="nonterminal">activityRecord</span>, <span class="nonterminal">agentRecord</span>, and <span class="nonterminal">noteRecord</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, and <span class="name">note</span>, respectively.</p>
 
 
-<section id="expression-Entity"> 
+<section id="record-Entity"> 
       
-<h4>Entity Expression</h4>
+<h4>Entity Record</h4>
 
-<div class='grammar'>
-<span class="nonterminal">entityExpression</span>&nbsp;:=  
-<span class="name">entity</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="name">[</span>
-<span class="nonterminal">attribute-values</span>
-<span class="name">]</span>
-<span class="name">)</span><br/>
-<!-- -->
-<span class="nonterminal">attribute-values</span>&nbsp;:=  
-<span class="nonterminal">attribute-value</span>
-| <span class="nonterminal">attribute-value</span> <span class="name">,</span> <span class="nonterminal">attribute-values</span>
-<br/>
-</div>
-
-<p>In PROV-JSON, each <a href="http://www.w3.org/TR/prov-dm/#expression-Entity">entity</a> is represented as a property in the <span class="nonterminal">entity</span> object identified by the entity's <span class="nonterminal">identifier</span>.The property's value itself is an object structure containing the entity's attribute-values pairs.</p>
+<p>In PROV-JSON, each <a href="http://www.w3.org/TR/prov-dm/#record-Entity">entity</a> is represented as a property in the <span class="nonterminal">entity</span> object, identified by the entity's <span class="name">id</span>.The property's value itself is an object structure containing the entity's attribute-values pairs.</p>
 
 The following entity assertion, for example,
 <pre class="example">
-entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])
+entity(e0, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice" ])
 </pre>
 is serialized into the following structure
 <pre class="example">
@@ -324,41 +314,25 @@ is serialized into the following structure
     "entity": {
         "e0": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice"
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice"
         }
     },
     ...
 </pre>
+<div class="note">In the example above, since <span class="name">type</span> is a term beloging to the <a href="#prov-dm-namespace">PROV-DM namespace</a>, the use of a prefix is not required.</div>
 
 </section> 
 
-<section id="expression-ProcessExecution"> 
-<h3>Process Execution Expression</h3>
+<section id="record-Activity"> 
+<h3>Activity Record</h3>
 
-<div class='grammar'>
-<span class="nonterminal">activityExpression</span>&nbsp;:=  
-<span class="name">activity</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-[ <span class="name">,</span>
-<span class="nonterminal">recipeLink</span> ]
-<span class="name">,</span>
-[ <span class="nonterminal">time</span> ]
-<span class="name">,</span>
-[ <span class="nonterminal">time</span> ]
-<span class="name">,</span>
-<span class="nonterminal">other-attribute-values</span>
-<span class="name">)</span><br/>
-<span class="nonterminal">other-attribute-values</span>&nbsp;:=  <span class="nonterminal">attribute-values</span>
-</div>
-
-<p>Each <a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution</a> is represented as a property in the <span class="name">activity</span> object identified by the process execution's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the process execution's properties and its other attribute-values pairs.</p>
+<p>Each <a href="http://www.w3.org/TR/prov-dm/#record-Activity">Activity</a> is represented as a property in the <span class="name">activity</span> object identified by the Activity's <span class="name">id</span>. The property's value itself is an object structure containing the Activity's properties and its other attribute-values pairs.</p>
 
 <p>
-The following process execution assertion, for example,</p>
+The following Activity assertion, for example,</p>
 <pre class="example">
-activity(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.org",type="app:edit"])
+activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host="server.example.org",prov:type="app:edit"])
 </pre>
 <p>is serialized into:</p>
 <pre class="example">
@@ -366,90 +340,63 @@ activity(pe1,add-crime-in-london,t+1,t+1+epsilon,[host="server.example.org",type
     "activity": {
         "pe1": {
             "recipeLink": "add-crime-in-london",
-            "startTime": t+1,
-            "endTime": t+1+epsilon,
-            "host": "server.example.org"
+            "startTime": ["2011-11-16T16:05:00", "xsd:dateTime"],
+            "endTime": ["2011-11-16T16:06:00", "xsd:dateTime"],
+            "ex:host": "server.example.org"
             "type": "app:edit"
         }
     },
     ...
 </pre>
+<div class="note">Extra atribute-value pairs of an activity record are put at the same level with other properties in an activity JSON structure.</div>
 
-<p>The values of <span class="nonterminal">startTime</span> and <span class="nonterminal">endTime</span> MUST conform to the combined data and time ISO 8601 format (i.e. YYYY-MM-DDThh:mm:ssZ in UTC time).</p>
+<p>The values of <span class="nonterminal">startTime</span> and <span class="nonterminal">endTime</span> MUST conform to xsd:dateTime [[!XMLSCHEMA-2]].</p>
 </section> 
 
-<section id="expression-Agent">
-<h3>Agent Expression</h3>
+<section id="record-Agent">
+<h3>Agent Record</h3>
 
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#expression-Agent">agent</a> is a representation of a characterized thing capable of activity.</p> 
-
-<div class='grammar'>
-<span class="nonterminal">agentExpression</span>&nbsp;:= 
-<span class="name">agent</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span><br/>
-</div>
-
-Since an <span class="nonterminal">agentExpression</span> does not have any property, an account's <span class="name">agent</span> structure is an array containing all the identifiers of the entities that are asserted as agents (not an object like <span class="name">entity</span> or <span class="name">activity</span>).
+<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#record-Agent">agent</a> is a representation of an entity capable of activity. Since an <span class="nonterminal">agentRecord</span> does not have any property, the <span class="name">agent</span> structure in PROV-JSON is organized as an array which contains the identifiers of all the entities that are asserted as agents (i.e. not an object structure like <span class="name">entity</span> or <span class="name">activity</span>).
 
 <pre class="example">
-entity(e1, [employee="1234", name="Alice"])  and agent(e1)
+agent(e1, [ex:employee="1234", ex:name="Alice", prov:type="prov:Person" %% xsd:anyURI])
 </pre>
 is encoded into:
 <pre class="example">
     ...
     "entity": {
         "e1": {
-            "employee": "1234",
-            "name": "Alice"
+            "ex:employee": "1234",
+            "ex:name": "Alice",
+            "type": ["Person", "xsd:xsd:anyURI"]
         }
         ...
     },
     "agent": ["e1", ...],
     ...
 </pre>
-
+<div class="note"> Can we always expect the value of a <span class="name">type</span> property to be a URI?</div>
 </section>
 
-<section id="expression-annotation"> 
+<section id="record-note"> 
       
-<h4>Annotation Expression</h4>
+<h4>Note Record</h4>
 
-<div class='grammar'>
-<span class="nonterminal">annotationExpression</span>&nbsp;:= 
-<span class="name">annotation</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">name-values</span>
-<span class="name">)</span><br/>
-<!-- -->
-<span class="nonterminal">name-values</span>&nbsp;:=  
-<span class="nonterminal">name-value</span>
-| <span class="nonterminal">name-value</span> <span class="name">,</span> <span class="nonterminal">name-values</span>
-<br/>
-<span class="nonterminal">name-value</span>&nbsp;:=  
-<span class="nonterminal">name</span>
-<span class="name">=</span>
-<span class="nonterminal">Literal</span>
-</div>
-
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#expression-annotation">annotation</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">annotation</span> object in an account, identified by the annotation's <span class="nonterminal">identifier</span>. The property's value itself is an object structure containing the annotation's attribute-values pairs.</p> 
+<p>In PROV-DM, a <a href="http://www.w3.org/TR/prov-dm/#record-note">note</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">note</span> object, identified by the note's <span class="name">id</span>. The property's value itself is an object structure containing the note's attribute-values pairs.</p> 
 
 <p>
-The following annotation expression, for example,</p>
+The following note record, for example,</p>
 <pre class="example">
-annotation(ann1,[color="blue", screenX=20, screenY=30])
+note(ann1,[ex:color="blue", ex:screenX="20" %% xsd:integer, ex:screenY="30" %% xsd:integer])
 </pre>
 <p>is encoded in PROV-JSON as follows.</p>
 <pre class="example">
     ...
-    "annotation": {
+    "note": {
         "ann1": {
-            "color": "blue",
-            "screenX": 20,
-            "screenY": 30
+            "ex:color": "blue",
+            "screenX": [20, "xsd:integer"],
+            "screenY": [30, "xsd:integer"]
         }
     }
     ...
@@ -460,15 +407,15 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 </section>
 
 
-<section id="expression-relation">
+<section id="record-relation">
 <h3>Relation</h3>
 
-<p>This section how various <a href="http://www.w3.org/TR/prov-dm/#expression-relation">relation expressions</a> in PROV-ASN are serialised in PROV-JSON.</p>
+<p>This section how various <a href="http://www.w3.org/TR/prov-dm/#record-relation">relation records</a> in PROV-DM are serialised in PROV-JSON.</p>
 
-<p>In general, a <span class="nonterminal">relationExpression</span> has the following construct:</p>
+<p>In general, a <span class="nonterminal">relationRecord</span> has the following construct:</p>
 
 <div class='grammar'>
-<span class="nonterminal">relationExpression</span>&nbsp;:=  
+<span class="nonterminal">relationRecord</span>&nbsp;:=  
 <span class="nonterminal">relationName</span>
 (<span class="nonterminal">identifier1</span>,
 <span class="nonterminal">identifier2</span>,
@@ -480,7 +427,7 @@ annotation(ann1,[color="blue", screenX=20, screenY=30])
 Relations are grouped by <span class="nonterminal">relationName</span> in a PROV-JSON structure.
 <div class="grammar"><pre>
     ...
-    "annotations": { ... },
+    "notes": { ... },
     <i>relationName</i>: {
         <span class="code-comment">// relationName(identifier1, identifier2, ...)</span>
         <i>relationID</i>: {
@@ -497,33 +444,18 @@ Relations are grouped by <span class="nonterminal">relationName</span> in a PROV
 </pre></div>
 Any values of <span class="nonterminal">additionalProperties</span> and <span class="nonterminal">qualifiers</span> are specified alongside the identifier pairs in above structure.
 
-<p>Since the <span class="nonterminal">relationID</span> concept is not defined by PROV-DM, it is up to the serialization algorithm to generate a valid identifier for <span class="nonterminal">relationID</span> that is unique internally to a PROV-JSON serialization. For example, the <a href="http://www.w3.org/TeamSubmission/turtle/#nodeID">nodeID production in Turtle</a> may be used for this purpose, e.g. <code>_:A1</code>.</p>
+<p>Since identifiers of relations are optional in PROV-DM, there may be cases where <span class="nonterminal">relationID</span>s are missing. However, they are still required in order to maintain the validity of a PROV-JSON structure. In such cases, it is up to the serialization algorithm to generate a valid identifier for <span class="nonterminal">relationID</span> that is unique internally to a PROV-JSON serialization. For example, the <a href="http://www.w3.org/TeamSubmission/turtle/#nodeID">nodeID production in Turtle</a> may be used for this purpose, e.g. <code>_:A1</code>.</p>
 
 <p>The following sections provide more details on how each type of relation is serialized via typical examples.</p>
 
 
-<section id="expression-Generation">
-<h4>Generation Expression</h4>
+<section id="record-Generation">
+<h4>Generation Record</h4>
 
-<div class='grammar'>
-<span class="nonterminal">generationExpression</span>&nbsp;:=  
-<span class="name">wasGeneratedBy</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">generationQualifier</span>
-[<span class="name">,</span>
-<span class="nonterminal">time</span>]
-<span class="name">)</span><br/>
-</div>
-
-
-<p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Generation">generation assertions</a></p>
+<p>The following <a href="http://www.w3.org/TR/prov-dm/#record-Generation">generation assertions</a></p>
 <pre class="example">
-  wasGeneratedBy(e1,pe1,qualifier(ex:port="p1", ex:order=1),t1)
-  wasGeneratedBy(e2,pe1,qualifier(ex:port="p1", ex:order=2),t2)
+  wasGeneratedBy(e1,a1,[ex:port="p1", ex:order="1" %% xsd:integer), 2001-10-26T21:32:52)
+  wasGeneratedBy(e2,a1,[ex:port="p1", ex:order="2" %% xsd:integer), 2001-10-26T10:00:00)
 </pre>
 <p>are serialized as follows.</p>
 <pre class="example">
@@ -531,65 +463,296 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
     ...
     "wasGeneratedBy": {
         "_:wBG1": {
-            "cause": "pe1",
-            "effect": "e1",
+            "activity": "pe1",
+            "entity": "e1",
             "ex:port": "p1",
-            "ex:order": 1,
-            "time": t1
+            "ex:order": [1, xsd:integer],
+            "time":  ["2001-10-26T21:32:52", "xsd:dateTime"]
         },
         "_:wBG2": {
-            "cause": "pe1",
-            "effect": "e2",
+            "activity": "pe1",
+            "entity": "e2",
             "ex:port": "p1",
-            "ex:order": 2,
-            "time": t2
+            "ex:order": [2, xsd:integer],
+            "time":  ["2001-10-26T10:00:00", "xsd:dateTime"]
         },
     },
     ...
 }
 </pre>
-Note that, in the example above, the qualifier's components are unbundled and mixed with the relation's other properties (i.e. <span class="nonterminal">time</span>) in the relation's object.
+Note that, in the example above, the qualifier's components are unbundled and mixed alongside with the relation's other properties (i.e. <span class="name">time</span>) in the relation's object.
 </section>
 
 
-<section id="expression-Use">
-<h3>Use Expression</h3>
+<section id="record-Usage">
+<h3>Usage Record</h3>
 
-<div class='grammar'>
-<span class="nonterminal">useExpression</span>&nbsp;:=  
-<span class="name">used</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">useQualifier</span>
-[<span class="name">,</span>
-<span class="nonterminal">time</span>]
-<span class="name">)</span><br/>
-</div>
-
-<p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Use">use assertions</a></p>
+<p>The following <a href="http://www.w3.org/TR/prov-dm/#record-Usage">usage records</a></p>
 <pre class="example">
-  used(pe1,e1,qualifier(parameter="p1"),t1)
-  used(pe1,e2,qualifier(parameter="p2"),t2)
+  used(a1,e1,[ex:parameter="p1"),2011-11-16T16:00:00)
+  used(a1,e2,[ex:parameter="p2"),2011-11-16T16:00:01)
 </pre>
-<p>are serialized in to PROV-JSON:</p>
+<p>are serialized in to PROV-JSON as follows.</p>
 <pre class="example">
 {
     ...
     "used": {
         "_:u1": {
             "cause": "e1",
-            "effect": "pe1",
+            "activity": "a1",
             "ex:parameter": "p1",
-            "time": t1
+            "time": ["2011-11-16T16:00:00", "xsd:dateTime"]
         },
         "_:u2": {
             "cause": "e2",
-            "effect": "pe1",
+            "activity": "a1",
             "ex:parameter": "p2",
-            "time": t2
+            "time": ["2011-11-16T16:00:01", "xsd:dateTime"]
+        },
+    },
+    ...
+}
+</pre>
+
+</section>
+
+<section id="record-ActivityAssociation">
+<h3>Activity Association Record</h3>
+
+
+<p>The following <a href="http://www.w3.org/TR/prov-dm/#record-ActivityAssociation"> activity association records,</a></p>
+<pre class="example">
+  activity(a,[prov:type="workflow"])
+  agent(ag1,[prov:type="programmer"]
+  agent(ag2,[prov:type="researcher"]
+  wasAssociatedWith(a,ag1,[prov:role="loggedInUser", ex:how="webapp"])
+  wasAssociatedWith(a,ag2,[prov:role="designer", ex:context="phd"])
+</pre>
+<p>are serialized into:</p>
+<pre class="example">
+{
+    ...
+    "entity": {
+        "ag1": {
+            "type": "programmer"
+        },
+        "ag2": {
+            "type": "researcher"
+        }
+    },
+    "activity": {
+        "a": {
+            "type": "workflow"
+        }
+    },
+    "agent": ["ag1", "ag2"],
+    "wasAssociatedWith": {
+        "_:wAW1": {
+            "activity": "a",
+            "agent": "ag1",
+            "role": "loggedInUser",
+            "ex:how": "webapp"
+        },
+        "_:wAW2": {
+            "activity": "a",
+            "agent": "ag2",
+            "role": "designer",
+            "ex:context": "phd"
+        }
+    },
+    ...
+}
+</pre>
+</section>
+
+<section id="record-Start-End">
+<h3>Start and End Records</h3>
+
+The <a href="http://www.w3.org/TR/prov-dm/#record-Start-End">start and end records</a> below
+<pre class="example">
+  wasStartedBy(a,ag,[ex:mode="manual"])
+  wasEndedby(a,ag,[ex:mode="manual"])
+</pre>
+<p>are serialized into:</p>
+<pre class="example">
+{
+    ...
+    "wasStartedBy": {
+        "_:wSB1": {
+            "activity": "a",
+            "agent": "ag",
+            "ex:mode": "manual"
+        }
+    },
+    "wasEndedBy": {
+        "_:wEB1": {
+            "activity": "a",
+            "agent": "ag",
+            "ex:mode": "manual"
+        }
+    },
+    ...
+}
+</pre>
+
+</section>
+
+<section id="record-responsibility">
+<h3>Responsibility Record</h3>
+
+The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility records</a> below
+<pre class="example">
+  activity(a,[prov:type="workflow"])
+  agent(ag1,[prov:type="programmer"]
+  agent(ag2,[prov:type="researcher"]
+  agent(ag3,[prov:type="funder"]
+  wasAssociatedWith(a,ag1,[prov:role="loggedInUser"])
+  wasAssociatedWith(a,ag2)
+  actedOnBehalfOf(ag1,ag2,a,[prov:type="delegation"])
+  actedOnBehalfOf(ag2,ag3,a,[prov:type="contract"])
+</pre>
+<p>are serialized into:</p>
+<pre class="example">
+{
+    ...
+    "entity": {
+        "ag1": {
+            "type": "programmer"
+        },
+        "ag2": {
+            "type": "researcher"
+        },
+        "ag3": {
+            "type": "funder"
+        }
+    },
+    "activity": {
+        "a": {
+            "type": "workflow"
+        }
+    },
+    "agent": ["ag1", "ag2", "ag3"],
+    "wasAssociatedWith": {
+        "_:wAW1": {
+            "activity": "a",
+            "agent": "ag1",
+            "role": "loggedInUser"
+        },
+        "_:wAW2": {
+            "activity": "a",
+            "agent": "ag2"
+        }
+    },
+    "actedOnBehalfOf": {
+        "_:aOBO1": {
+            "subordinate": "ag1",
+            "responsible": "ag2",
+            "activity": "a",
+            "type": "delegation"
+        },
+        "_:aOBO2": {
+            "subordinate": "ag2",
+            "responsible": "ag3",
+            "activity": "a",
+            "type": "contract"
+        }
+    },
+    ...
+}
+</pre>
+
+</section>
+
+<section id="record-complement-of">
+
+<h3>Complementarity Record</h3>
+
+<p>The <a href="http://www.w3.org/TR/prov-dm/#record-complement-of">complementarity records</a> below</p>
+<pre class="example">
+  entity(rs,[ex:created="1870" %% xsd:integer])
+
+  entity(rs_l1,[prov:location="loc2"])
+  entity(rs_l2,[prov:location="The Mall"])
+
+  entity(rs_m1,[ex:membership="250" %% xsd:integer, ex:year="1900" %% xsd:integer])
+  entity(rs_m2,[ex:membership="300" %% xsd:integer, ex:year="1945" %% xsd:integer])
+  entity(rs_m3,[ex:membership="270" %% xsd:integer, ex:year="2010" %% xsd:integer])
+
+  wasComplementOf(rs_m3, rs_l2)
+  wasComplementOf(rs_m2, rs_l1)
+  wasComplementOf(rs_m2, rs_l2)
+  wasComplementOf(rs_m1, rs_l1)
+
+  wasComplementOf(rs_m3, rs)
+  wasComplementOf(rs_m2, rs)
+  wasComplementOf(rs_m1, rs)
+  wasComplementOf(rs_l1, rs)
+  wasComplementOf(rs_l2, rs)
+
+</pre>
+<p>are serialized into:</p>
+<pre class="example">
+{
+    ...
+    "entity": {
+        "rs": {
+            "ex:created": [1870, "xsd:integer"]
+        },
+        "rs_l1": {
+            "location": "loc2"
+        },
+        "rs_l2": {
+            "location": "The Mall"
+        },
+        "rs_m1": {
+            "ex:membership": [250, "xsd:integer"],
+            "ex:year": [1900, "xsd:integer"]
+        },
+        "rs_m2": {
+            "ex:membership": [300, "xsd:integer"],
+            "ex:year": [1945, "xsd:integer"]
+        },
+        "rs_m3": {
+            "ex:membership": [270, "xsd:integer"],
+            "ex:year": [2010, "xsd:integer"]
+        },
+    },
+    "wasComplementOf": {
+        "_:wCO1": {
+            "TODO": "rs_m3",
+            "TODO": "as_l2"
+        },
+        "_:wCO2": {
+            "TODO": "rs_m2",
+            "TODO": "as_l1"
+        },
+        "_:wCO3": {
+            "TODO": "rs_m2",
+            "TODO": "as_l2"
+        },
+        "_:wCO4": {
+            "TODO": "rs_m1",
+            "TODO": "as_l1"
+        },
+        "_:wCO5": {
+            "TODO": "rs_m3",
+            "TODO": "rs"
+        },
+        "_:wCO6": {
+            "TODO": "rs_m2",
+            "TODO": "rs"
+        },
+        "_:wCO7": {
+            "TODO": "rs_m1",
+            "TODO": "rs"
+        },
+        "_:wCO8": {
+            "TODO": "rs_l1",
+            "TODO": "rs"
+        },
+        "_:wCO9": {
+            "TODO": "rs_l2",
+            "TODO": "rs"
         },
     },
     ...
@@ -599,283 +762,78 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 </section>
 
 
-<section id="expression-Derivation">
-<h3>Derivation Expression</h3>
+<section id="record-Derivation">
+<h3>Derivation Record</h3>
 
-<div class='grammar'>
-<span class="nonterminal">derivationExpression</span>&nbsp;:= 
-<span class="nonterminal">pe-linked-derivationExpression</span>
-| <span class="nonterminal">pe-independent-derivationExpression</span>
-| <span class="nonterminal">transitiveDerivationExpression</span><br/>
 
-<span class="nonterminal">pe-linked-derivationExpression</span>:=  
-<span class="name">wasDerivedFrom</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-[<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">generationQualifier</span>
-<span class="name">,</span>
-<span class="nonterminal">useQualifier</span>]
-<span class="name">)</span><br/>
-
-<span class="nonterminal">pe-independent-derivationExpression</span>:=  
-<span class="name">wasEventuallyDerivedFrom</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span><br/>
-
-<span class="nonterminal">transitiveDerivationExpression</span>:=  
-<span class="name">dependedOn</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span><br/>
-</div>
-
-<p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Derivation">derivation assertions</a></p>
+<p>The following <a href="http://www.w3.org/TR/prov-dm/#record-Derivation">derivation assertions</a></p>
 <pre class="example">
-wasDerivedFrom(e3,e2)
-wasDerivedFrom(e5,e3,pe4,qualifier(ex:channel="out"),qualifier(ex:channel="in"))
+  used(u2, a4, e3, [ex:channel="in"])
+  wasGeneratedBy(g2, e5, a4, [ex:channel="out"])
+
+  wasDerivedFrom(e3,e2)
+  wasDerivedFrom(e5,e3,pe4,g2,u2)
 </pre>
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
 {
     ...
     "used": {
-        "_:u1": {
-            "cause": "e3",
-            "activity": "pe4",
+        "u1": {
+            "entity": "e3",
+            "activity": "a",
             "ex:channel": "in"
         }
     },
     "wasDerivedFrom": {
         "_:wDF1": {
-            "cause": "e2",
-            "effect": "e3"
+            "generatedEntity": "e3",
+            "usedEntity": "e2"
         },
         "_:wDF2": {
-            "cause": "e3",
-            "effect": "e5",
-            "activity": "pe4"
+            "generatedEntity": "e5",
+            "usedEntity": "e3",
+            "activity": "a4"
+            "generation": "g2",
+            "usage": "u2"
         }
     },
     "wasGeneratedBy": {
-        "_:wGB1": {
-            "cause": "pe4",
-            "effect": "e5",
+        "g2": {
+            "activity": "pe4",
+            "entity": "e5",
             "ex:channel": "out"
         }
     },
     ...
 }
 </pre>
-<p>Note that the relation <span class="name">wasDerivedFrom(e5,e3,pe4,qualifier(channel="out"),qualifier(channel="in"))</span> is serialized into three relations <span class="name">wasDerivedFrom(e5,e3)</span> with property <span class="name">activity = pe4</span>, <span class="name">wasGeneratedBy(e5,pe4,qualifier(channel="out"))</span>, and <span class="name">used(pe4,e3,qualifier(channel="in"))</span> thanks to the PROV-DM's <a href="http://www.w3.org/TR/prov-dm/#derivation-events">constraint <span class="nonterminal">derivation-events</span></a>.</p>
-
-<p>The two remaining forms of derivation relations, i.e. <span class="name">wasEventuallyDerivedFrom (e2, e1)</span>, are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
-</p>
+<div class="issue">TODO: Define mappings for the remaining forms of derivation. Note that changes to these are being discussed in W3-Prov.</div>
 
 </section>
 
 
-<section id="expression-Control">
-<h3>Control Expression</h3>
 
-<div class='grammar'>
-<span class="nonterminal">controlExpression</span>&nbsp;:= 
-<span class="name">wasControlledBy</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>,
-<span class="nonterminal">identifier</span>,
-<span class="nonterminal">controlQualifier</span>
-<span class="name">)</span>
-</div>
+<section id="record-annotation">
+<h4>Annotation Record</h4>
 
-
-<p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Control">control assertion</a></p>
-<pre class="example">
-wasControlledBy(pe3,a4,qualifier[role="author"])
-</pre>
-<p>is serialized into:</p>
-<pre class="example">
-{
-    ...
-    "wasControlledBy": {
-        "_:wCB1": {
-            "cause": "a4",
-            "effect": "pe3",
-            "role": "author"
-        }
-    },
-    ...
-}
-</pre>
-</section>
-
-
-<section id="expression-complement-of">
-
-<h3>Complementarity Expression</h3>
-
-<div class='grammar'>
-<span class="nonterminal">complementarityExpression</span>&nbsp;:=  
-<span class="name">wasComplementOf</span> 
-<span class="name">(</span> 
-<span class="nonterminal">identifier</span> 
-<span class="name">,</span> 
-<span class="nonterminal">identifier</span> 
-<span class="name">)</span> 
-</div>
-
-<p><a href="http://www.w3.org/TR/prov-dm/#expression-complement-of">Complementarity expressions</a> are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
-</p>
-
-</section>
-
-
-<section id="expression-OrderingOfProcessExecutions">
-<h3>Process Execution Ordering Expression</h3>
-
-<div class='grammar'>
-<span class="nonterminal">peOrderingExpression</span>&nbsp;:= 
-<span class="nonterminal">informationFlowOrderingExpression</span> |
-<span class="nonterminal">controlOrderingExpression</span>
-<br/>
-
-<span class="nonterminal">informationFlowOrderingExpression</span> &nbsp;:= 
-<span class="name">wasInformedBy</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span>
-<br/>
-
-<span class="nonterminal">controlOrderingExpression</span> &nbsp;:= 
-<span class="name">wasScheduledAfter</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span>
-<br/>
-</div>
-
-<p><a href="http://www.w3.org/TR/prov-dm/#expression-OrderingOfProcessExecutions">Process execution ordering expressions</a> are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
-</p>
-
-</section>
-
-<section id="expression-Revision">
-<h3>Revision Expression</h3>
-
-<div class='grammar'>
-<span class="nonterminal">revisionExpression</span>&nbsp;:= 
-<span class="name">wasRevisionOf</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-[<span class="name">,</span>
-<span class="nonterminal">identifier</span>]
-<span class="name">)</span>
-</div>
-
-<p>The following <a href="http://www.w3.org/TR/prov-dm/#expression-Revision">revision assertion</a></p>
-<pre class="example">
-wasRevisionOf(e3,e2,a4)
-</pre>
-<p>is encoded in PROV-JSON as follows.</p>
-<pre class="example">
-{
-    ...
-    "wasRevisionOf": {
-        "_:wRO1": {
-            "cause": "e2",
-            "effect": "e3",
-            "agent": "a4"
-        }
-    }
-    ...
-}
-</pre>
-
-</section>
-
-<section id="expression-Participation">
-<h3>Participation Expression</h3>
-
-<div class='grammar'>
-<span class="nonterminal">participationExpression</span>&nbsp;:= 
-<span class="name">hadParticipant</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span>
-</div>
-
-<p><a href="http://www.w3.org/TR/prov-dm/#expression-Participation">Participation expressions</a> are serialized as <a href="#expression-relation">simple relations</a> with no property or qualifier.
-</p>
-
-</section>
-
-<section id="expression-annotationAssociation">
-<h4>Annotation Association Expression</h4>
-
-<p>An <a href="http://www.w3.org/TR/prov-dm/#expression-annotationAssociation">annotation association expression</a> establishes a link between an identifiable PROV-DM expression and an annotation expression referred to by its identifier. Multiple annotation expressions can be associated with a given PROV-DM expression; symmetrically, multiple PROV-DM expressions can be associated with a given annotation expression. Since annotation expressions have identifiers, they can also be annotated.</p> 
-
-<div class='grammar'>
-<span class="nonterminal">annotationAssociationExpression</span>&nbsp;:=  
-<span class="name">hasAnnotation</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span> |
-<span class="name">hasAnnotation</span>
-<span class="name">(</span>
-<span class="nonterminal">relationIdentification</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">)</span><br/>
-<span class="nonterminal">relationIdentification</span>&nbsp;:=  
-<span class="name">relation</span>
-<span class="name">(</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">identifier</span>
-<span class="name">,</span>
-<span class="nonterminal">qualifier</span>
-[<span class="name">,</span>
-<span class="nonterminal">qualifier</span>
-]
-<span class="name">)</span>
-</div>
-
-<p>Since relations in PROV-DM do not have identifiers but can be annotated, a  <span class="nonterminal">relationIdentification</span> mechanism is provided allowing the constituents of relations to be listed so as to identify relations. However, in PROV-JSON, a relation can have an internally unique identifier, if necessary. Therefore, relations in PROV-JSON can be referenced as other PROV-DM's elements (e.g. entities, process executions) and those with annotations are serialized as with other elements.</p>
+<p>An <a href="http://www.w3.org/TR/prov-dm/#record-annotation">annotation record</a> establishes a link between an identifiable PROV-DM record and an note record referred to by its identifier. Multiple note records can be associated with a given PROV-DM record; symmetrically, multiple PROV-DM records can be associated with a given note record. Since note records have identifiers, they can also be annotated.</p> 
 
 <p>
-The following expressions, for example,</p>
+The following records, for example,</p>
 <pre class="example">
-entity(e1,[type="document"])
-entity(e2,[type="document"])
-activity(pe,transform,t1,t2,[])
-used(pe,e1,qualifier(ex:file="stdin"))
-wasGeneratedBy(e2, pe, qualifier(ex:file="stdout"))
+  entity(e1,[prov:type="document"])
+  entity(e2,[prov:type="document"])
+  activity(a,transform,t1,t2,[])
+  used(u1,a,e1,[ex:file="stdin"])
+  wasGeneratedBy(e2, a, [ex:file="stdout"])
 
-annotation(ann1,[ex:icon="doc.png"])
-hasAnnotation(e1,ann1)
-hasAnnotation(e2,ann1)
+  note(n1,[ex:icon="doc.png"])
+  hasAnnotation(e1,n1)
+  hasAnnotation(e2,n1)
 
-annotation(ann2,[ex:style="dotted"])
-hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
+  note(n2,[ex:style="dotted"])
+  hasAnnotation(u1,n2)
 </pre>
 <p>are serialized into:</p>
 <pre class="example">
@@ -883,47 +841,53 @@ hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
     ...
     "entity": {
         "e1": {
-            "type": "document",
-            "hasAnnotation": {
-                "ann1": null
-            }
+            "type": "document"
         },
         "e2": {
-            "type": "document",
-            },
-            "hasAnnotation": {
-                "ann1": null
-            }
+            "type": "document"
         }
     },
     "activity": {
-        "pe": {
+        "a": {
             "recipeLink": "transform",
             "startTime": t1,
             "endTime": t2,
         },
     },
-    "annotation": {
-        "ann1": {
+    "note": {
+        "n1": {
             "ex:icon": "doc.png"
         },
-        "ann2": {
+        "n2": {
             "ex:style": "dotted"
         },
     },
+    "hasAnnotation": {
+        "_:hA1": {
+            "record": "e1",
+            "note": "n1"
+        },
+        "_:hA2": {
+            "record": "e2",
+            "note": "n1"
+        },
+        "_:hA3": {
+            "record": "u1",
+            "note": "n2"
+        },
+    }
     "wasGeneratedBy": {
         "_:wGB1": {
-            "effect": "e2",
-            "cause": "pe",
+            "entity": "e2",
+            "activity": "a",
             "ex:file": "stdout"
         }
     },
     "used": {
-        "_:u1": {
-            "cause": "e1",
-            "effect": "pe",
-            "file": "stdin",
-            "hasAnnotation": "ann2"
+        "u1": {
+            "entity": "e1",
+            "activity": "a",
+            "ex:file": "stdin",
         }
     }
     ...
@@ -937,25 +901,12 @@ hasAnnotation(relation(pe,e1,qualifier(ex:file="stdin")),ann2)
 <section  id="bundle">
 <h3>Bundle</h3>
 
-In this section, the PROV-JSON representation for the two PROV-DM's bundling constructs are introduced, i.e., <span class="nonterminal">provenanceContainer</span>  and <span class="nonterminal">accountExpression</span>.
+In this section, the PROV-JSON representation for the two PROV-DM's bundling constructs are introduced, i.e., <span class="nonterminal">record container</span>  and <span class="nonterminal">account record</span>.
 
-<section id="ProvenanceContainer">
+<section id="RecordContainer">
 <h4>Provenance Container</h4>
 
-<p>A <a href="http://www.w3.org/TR/prov-dm/#ProvenanceContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM expressions. A PROV-JSON serialization represents an instance of provenance container.</p> 
-
-<div class='grammar'>
-<span class="nonterminal">provenanceContainer</span>&nbsp;:=  
-<span class="name">provenanceContainer</span> 
-<span class="name">(</span> 
-{ <span class="nonterminal">namespaceDeclaration</span> }
-<span class="name">,</span> 
-{ <span class="nonterminal">identifier</span> }
-<span class="name">,</span> 
-{ <span class="nonterminal">expression</span> }
-<span class="name">)</span> 
-</div>
-
+<p>A <a href="http://www.w3.org/TR/prov-dm/#RecordContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM records. A PROV-JSON serialization represents an instance of provenance container.</p> 
 
 <p>
 The following container </p>
@@ -987,42 +938,29 @@ container([x http://example.org/], [acc1,acc2]
 </section>
 
 
-<section id="expression-Account">
-<h3>Account Expression</h3>
+<section id="record-Account">
+<h3>Account Record</h3>
 
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#expression-Account">account expression</a> is a wrapper of expressions with a dual purpose:  </p> 
+<p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#record-Account">account record</a> is a wrapper of records with a dual purpose:  </p> 
 <ul>
 <li> It is the mechanism by which attribution of provenance can be assserted; it allows asserters to bundle up their assertions, and assert suitable attribution;
-<li> It provides a scoping mechanism for expression identifiers and for some contraints.</li>
+<li> It provides a scoping mechanism for record identifiers and for some contraints.</li>
 </ul>
 
 
-<div class='grammar'>
-<span class="nonterminal">accountExpression</span>&nbsp;:=  
-<span class="name">account</span> 
-<span class="name">(</span> 
-<span class="nonterminal">identifier</span> 
-<span class="name">,</span> 
-<span class="nonterminal">asserter</span> 
-<span class="name">,</span> 
-{ <span class="nonterminal">expression</span> }
-<span class="name">)</span> 
-</div>
-
-
-<p> An account is in PROV-DM is serialized into an object in the <span class="name">account</span> structure in a PROV-JSON representation. The following account expression, for example,</p>
+<p> An account is in PROV-DM is serialized into an object in the <span class="name">account</span> structure in a PROV-JSON representation. The following account record, for example,</p>
 <pre class="example">
-account(acc0,
+  account(acc0,
         http://example.org/asserter, 
-          entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])
+          entity(e0, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice" ])
           ...
           wasDerivedFrom(e2,e1)
           ...
-          activity(pe0,create-file,t)
+          activity(a0,create-file,t)
           ...
-          wasGeneratedBy(e0,pe0,qualifier())     
+          wasGeneratedBy(e0,a0,[])     
           ...
-          wasControlledBy(pe4,a5, qualifier(role="communicator"))  )
+          wasAssociatedWith(a4, ag5, [prov:role="communicator"])  )
 </pre>
 <p>is encoded as:</p>
 <pre class="example">
@@ -1031,12 +969,15 @@ account(acc0,
     "account": {
         "acc0": {
             "asserter": "http://example.org/asserter",
-            <span class="code-comment">// The remaining expressions of acc0 are encoded as specified in the previous sections</span>
+            <span class="code-comment">// The remaining records of acc0 are encoded as specified in the previous sections</span>
             "entity": { ... },
             "activity": { ... },
             "agent": [ ... ],
-            "annotation": { ... },
-            <i>relationName</i>": { ... }
+            "note": { ... },
+            "wasAssociatedWith": { ... },
+            "wasDerivedFrom": { ... },
+            "wasGeneratedBy": { ... }
+            
         }
     }
 }
@@ -1044,18 +985,17 @@ account(acc0,
 
 <p>PROV-DM allows an account to be nested in another account. The following example shows account <span class="name">acc3</span> contains a nested account <span class="name">acc4</span>.</p>
 <pre class="example">
-account(acc3,
+  account(acc3,
         http://example.org/asserter1, 
-          entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])
-          activity(pe0,create-file,t)
-          wasGeneratedBy(e0,pe0,qualifier())  
+          entity(e0, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice" ])
+          activity(a0,create-file,t)
+          wasGeneratedBy(e0,a0,[])  
           account(acc4,
                  http://example.org/asserter2,
-                 entity(e1, [ type="File", location="/shared/crime.txt", creator="Alice", content="" ])
-                 activity(pe0,copy-file,t)
-                 wasGeneratedBy(e1,pe0,qualifier(fct="create"))
-                 isComplement(e1,e0)))
-</pre>
+                 entity(e1, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="" ])
+                 activity(a0,copy-file,t)
+                 wasGeneratedBy(e1,a0,[ex:fct="create"])
+                 wasComplementOf(e1,e0)))</pre>
 <p>In PROV-JSON, <span class="name">acc3</span> and its nested account <span class="name">acc4</span> are encoded into two separate accounts. However, their parent-child relationship is maintained by the <span class="name">parent</span> link from <span class="name">acc4</span> to account <span class="name">acc3</span>, as can be seen below.</p>
 
 <pre class="example">
@@ -1064,13 +1004,13 @@ account(acc3,
     "account": {
         "acc3": {
             "asserter": "http://example.org/asserter1",
-            <span class="code-comment">// The remaining expressions of acc3</span>
+            <span class="code-comment">// The remaining records of acc3</span>
             ...
         }
         "acc4": {
             "asserter": "http://example.org/asserter2",
             "parent": "acc3",
-            <span class="code-comment">// The remaining expressions of acc4</span>
+            <span class="code-comment">// The remaining records of acc4</span>
             ...
         }
     }
@@ -1089,10 +1029,10 @@ account(acc3,
 <ul>
 <li> Applications are free to introduce application-specific attributes, according to their perspective on the world. Attributes for a given application can be distinguished by qualifying them with a prefix denoting a namespace declared in a namespace declaration.
 
-<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a set of reserved attributes: <span class="name">type</span>, <span class="name">location</span>. In addition, PROV-JSON represents most PROV-DM expressions and their properties as properties of an element, and, therefore, all these names are reserved. Specifically, they are: <span class="name">wasGeneratedBy</span>, <span class="name">used</span>, <span class="name">wasDerivedFrom</span>, <span class="name">wasEventuallyDerivedFrom</span>, <span class="name">dependedOn</span>, <span class="name">wasControlledBy</span>, <span class="name">wasComplementOf</span>, <span class="name">wasInformedBy</span>, <span class="name">wasScheduledAfter</span>, <span class="name">wasRevisionOf</span>, <span class="name">hadParticipant</span>, <span class="name">hasAnnotation</span>, <span class="name">asserter</span>, <span class="name">parent</span>, <span class="name">startTime</span>, <span class="name">endTime</span>, <span class="name">time</span>, <span class="name">agent</span>, <span class="name">activity</span>.</p>
+<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a set of reserved attributes: <span class="name">type</span>, <span class="name">location</span>. In addition, PROV-JSON represents most PROV-DM records and their properties as properties of an element, and, therefore, all these names are reserved. Specifically, they are: <span class="name">wasGeneratedBy</span>, <span class="name">used</span>, <span class="name">wasDerivedFrom</span>, <span class="name">wasEventuallyDerivedFrom</span>, <span class="name">dependedOn</span>, <span class="name">wasControlledBy</span>, <span class="name">wasComplementOf</span>, <span class="name">wasInformedBy</span>, <span class="name">wasScheduledAfter</span>, <span class="name">wasRevisionOf</span>, <span class="name">hadParticipant</span>, <span class="name">hasNote</span>, <span class="name">asserter</span>, <span class="name">parent</span>, <span class="name">startTime</span>, <span class="name">endTime</span>, <span class="name">time</span>, <span class="name">agent</span>, <span class="name">activity</span>.</p>
 </li>
 
-<li>Annotation expressions allow arbitrary metadata to be associated with identifiable expressions of PROV-DM. Annotation expressions consist of name-value pairs. Like attributes, names are qualified by a namespace.</li>
+<li>Note records allow arbitrary metadata to be associated with identifiable records of PROV-DM. Note records consist of name-value pairs. Like attributes, names are qualified by a namespace.</li>
 
 <li> Qualifiers offer a mechanism to describe modalities of use, generation, and control. They consist of ordered sequence of name-value pairs. Such names are also qualified by namespaces.
 
@@ -1105,7 +1045,7 @@ account(acc3,
 <li>Domain specific values can be expressed by means of typed literals. </li>
 </ul>
 
-<p>The PROV data model is designed to be application and technology independent, but specializations of PROV-DM are welcome and encouraged.  To ensure inter-operability, specializations of the PROV data model that exploit the extensibility points summarized in this section MUST preserve the semantics specified in this document. For instance, a qualified attribute on a domain specific entity expression MUST represent an aspect of a characterized thing and this aspect MUST remain unchanged during the characterization's interval of this entity expression.</p>
+<p>The PROV data model is designed to be application and technology independent, but specializations of PROV-DM are welcome and encouraged.  To ensure inter-operability, specializations of the PROV data model that exploit the extensibility points summarized in this section MUST preserve the semantics specified in this document. For instance, a qualified attribute on a domain specific entity record MUST represent an aspect of a characterized thing and this aspect MUST remain unchanged during the characterization's interval of this entity record.</p>
 
 
 </section> 
@@ -1165,7 +1105,7 @@ We denote this e3.
 
 In this section, the example provided in the PROV-DM specification is encoded into the PROV-JSON representation (specified in section <a href="#prov-json-representation">PROV-JSON: Representing the Provenance Data Model in JSON</a>).
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Entity">Entity Expressions</a>: The file in its various forms and its copies are modelled as entity expressions, corresponding to multiple characterizations, as per scenario. The entity expressions are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Entity">Entity Records</a>: The file in its various forms and its copies are modelled as entity records, corresponding to multiple characterizations, as per scenario. The entity records are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
 <pre>
 {
     ...
@@ -1217,7 +1157,7 @@ In this section, the example provided in the PROV-DM specification is encoded in
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-ProcessExecution">Process Execution Expressions</a> represent activities in the scenario.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Activity">Activity Records</a> represent activities in the scenario.</p>
 
 <pre>
 {
@@ -1258,7 +1198,7 @@ In this section, the example provided in the PROV-DM specification is encoded in
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Generation">Generation Expressions</a> represent the event at which a file is created in a specific form. To describe the modalities according to which the various characterized things are generated by a given activity, a qualifier  (expression described in <a href="http://www.w3.org/TR/prov-dm/#expression-qualifier">PROV-DM</a>) is introduced.  The interpretation of qualifiers is application specific. Illustrations of such qualifiers for the scenario are: no qualifier is provided for <span class="name">e0</span>;
+<a href="http://www.w3.org/TR/prov-dm/#record-Generation">Generation Records</a> represent the event at which a file is created in a specific form. To describe the modalities according to which the various characterized things are generated by a given activity, a qualifier  (record described in <a href="http://www.w3.org/TR/prov-dm/#record-qualifier">PROV-DM</a>) is introduced.  The interpretation of qualifiers is application specific. Illustrations of such qualifiers for the scenario are: no qualifier is provided for <span class="name">e0</span>;
 <span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message;<span class="name">e6</span> was produced on the standard output of <span class="name">pe5</span>.</p>
 
 <pre>
@@ -1314,7 +1254,7 @@ In this section, the example provided in the PROV-DM specification is encoded in
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Use">Used Expressions</a> represent the event by which a file is read by a process execution. 
+<a href="http://www.w3.org/TR/prov-dm/#record-Use">Used Records</a> represent the event by which a file is read by a Activity. 
 
 Likewise, to describe the modalities according to which the various things are used by activities, a qualifier is introduced.  Illustrations of such qualifiers are: <span class="name">e1</span> is used in the context of  <span class="name">pe1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">pe2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">pe5</span>. </p>
 
@@ -1358,7 +1298,7 @@ Likewise, to describe the modalities according to which the various things are u
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Derivation">Derivation Expressions</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the process execution underpinnng the derivation, and relevant qualifiers qualifying the use and generation of entities.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Derivation">Derivation Records</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the Activity underpinnng the derivation, and relevant qualifiers qualifying the use and generation of entities.</p>
 
 <pre>
 {
@@ -1395,7 +1335,7 @@ Likewise, to describe the modalities according to which the various things are u
 }
 </pre>
 
-<p><a href="http://www.w3.org/TR/prov-dm/#expression-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity expressions identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>.  Likewise, the one denoted by <span class="name">e6</span> complements the expression denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
+<p><a href="http://www.w3.org/TR/prov-dm/#record-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity records identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>.  Likewise, the one denoted by <span class="name">e6</span> complements the record denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
 
 <pre>
 {
@@ -1427,7 +1367,7 @@ Likewise, to describe the modalities according to which the various things are u
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Agent">Agent Expressions</a>: the various users are represented as agents, themselves being a type of entity.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Agent">Agent Records</a>: the various users are represented as agents, themselves being a type of entity.</p>
 
 <pre>
 {
@@ -1473,7 +1413,7 @@ Likewise, to describe the modalities according to which the various things are u
 
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#expression-Control">Control Expressions</a>: the influence of an agent over a process execution is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Control">Control Records</a>: the influence of an agent over a Activity is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
 
 <pre>
 {
@@ -1518,7 +1458,7 @@ Likewise, to describe the modalities according to which the various things are u
 
 <section class="appendix"> 
 <h2>Acknowledgements</h2> 
-<p>This specification was developed based on the PROV-DM and PROV-ASN Specification [[PROV-DM]] and reused significant content therefrom to provide consistent mappings between the two documents.</p>
+<p>This specification was developed based on the PROV-DM Specification [[PROV-DM]] and reused significant content therefrom to provide consistent mappings between the two documents.</p>
 <p>Contributions to be listed here.</p> 
 </section> 
    
