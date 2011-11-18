@@ -1074,83 +1074,66 @@ container([x http://example.org/], [acc1,acc2]
 
 <div class='issue'>TODO: Link to <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">PROV-DM's example section</a></div>
 
-<p>This scenario is concerned with the evolution of a crime statistics
-file (referred to as e0) stored on a shared file system and which
-journalists Alice, Bob, Charles, David, and Edith can share and
-edit. We consider various events in the evolution of file e0;
-events listed below follow each other, unless otherwise specified.</p>
+<p>This scenario is concerned with the evolution of a crime statistics file (referred to as e0) stored on a shared file system and which journalists Alice, Bob, Charles, David, and Edith can share and edit. We consider various events in the evolution of file e0; events listed below follow each other, unless otherwise specified.</p>
 
+<p>Event evt1: Alice creates (a0) an empty file in /share/crime.txt.  We denote this e1.</p>
 
-
-<p>
-Event evt1: Alice creates (pe0) an empty file in /share/crime.txt.  We denote this e1.
-</p>
-
-<p>
-Event evt2: Bob appends (pe1) the following line to /share/crime.txt:</p>
+<p>Event evt2: Bob appends (a1) the following line to /share/crime.txt:</p>
 <pre>
 There was a lot of crime in London last month.
 </pre>
 <p>We denote this e2.</p>
 
-<p>Event evt3: Charles emails (pe2) the contents of /share/crime.txt, as an
-attachment, which we refer to as e4. (We specifically refer to a copy of the file that is uploaded on the mail server.)
-</p>
+<p>Event evt3: Charles emails (a2) the contents of /share/crime.txt, as an attachment, which we refer to as e4. (We specifically refer to a copy of the file that is uploaded on the mail server.)</p>
 
-<p>
-Event evt4: David edits (pe3) file /share/crime.txt as follows.</p>
+<p>Event evt4: David edits (a3) file /share/crime.txt as follows.</p>
 <pre>
 There was a lot of crime in London and New-York last month.
 </pre>
-<p>
-We denote this e3.
-</p>
+<p>We denote this e3.</p>
 
-<p>Event evt5: Edith emails (pe4) the contents of /share/crime.txt as an attachment, referred to as e5.
-</p>
+<p>Event evt5: Edith emails (a4) the contents of /share/crime.txt as an attachment, referred to as e5.</p>
 
-<p>Event evt6: between events evt4 and evt5, someone (unspecified) runs a spell checker (pe5) on the file /share/crime.txt.
- The file after spell checking is referred to as e6.
-</p>
+<p>Event evt6: between events evt4 and evt5, someone (unspecified) runs a spell checker (a5) on the file /share/crime.txt. The file after spell checking is referred to as e6.</p>
 
 </section> 
 
 <section id="example-prov-json-encoding"> 
 <h3>Encoding using PROV-JSON</h3>
 
-In this section, the example provided in the PROV-DM specification is encoded into the PROV-JSON representation (specified in section <a href="#prov-json-representation">PROV-JSON: Representing the Provenance Data Model in JSON</a>).
+In this section, provenance assertions in the file scenario above (see [[PROV-DM]] for explanation of those assertions) are encoded into a PROV-JSON representation (following the mappings specified in Section <a href="#prov-json-representation">Representing the Provenance Data Model in JSON</a> above).
 <p>
 <a href="http://www.w3.org/TR/prov-dm/#record-Entity">Entity Records</a>: The file in its various forms and its copies are modelled as entity records, corresponding to multiple characterizations, as per scenario. The entity records are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
 <pre>
 {
     ...
     <span class="code-new">"entity": {
-        <span class="code-comment">// entity(e0, [ type="File", location="/shared/crime.txt", creator="Alice" ])</span>
+        <span class="code-comment">// entity(e0, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice" ])</span>
         "e0": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice"
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice"
         },
-        <span class="code-comment">// entity(e1, [ type="File", location="/shared/crime.txt", creator="Alice", content="" ])</span>
+        <span class="code-comment">// entity(e1, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="" ])</span>
         "e1": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": ""
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice",
+            "ex:content": ""
         },
-        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London last month." ])</span>
+        <span class="code-comment">// entity(e2, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="There was a lot of crime in London last month."])</span>
         "e2": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London last month."
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice",
+            "ex:content": "There was a lot of crime in London last month."
         },
-        <span class="code-comment">// entity(e2, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month." ])</span>
+        <span class="code-comment">// entity(e3, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="There was a lot of crime in London and New York last month."])</span>
         "e3": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London and New York last month."
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice",
+            "ex:content": "There was a lot of crime in London and New York last month."
         },
         <span class="code-comment">// entity(e4, [ ])</span>
         "e4": {
@@ -1158,13 +1141,13 @@ In this section, the example provided in the PROV-DM specification is encoded in
         <span class="code-comment">// entity(e5, [ ])</span>
         "e5": {
         },
-        <span class="code-comment">// entity(e6, [ type="File", location="/shared/crime.txt", creator="Alice", content="There was a lot of crime in London and New York last month.", spellchecked="yes"])</span>
+        <span class="code-comment">// entity(e6, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="There was a lot of crime in London and New York last month.", ex:spellchecked="yes"])</span>
         "e6": {
             "type": "File",
-            "location": "/shared/crime.txt",
-            "creator": "Alice",
-            "content": "There was a lot of crime in London and New York last month.",
-            "spellchecked": "yes"
+            "ex:path": "/shared/crime.txt",
+            "ex:creator": "Alice",
+            "ex:content": "There was a lot of crime in London and New York last month.",
+            "ex:spellchecked": "yes"
         }
     },</span>
     ...
@@ -1178,33 +1161,33 @@ In this section, the example provided in the PROV-DM specification is encoded in
 {
     ...
     <span class="code-new">"activity": {
-        <span class="code-comment">// activity(pe0,create-file,t,,[])</span>
-        "pe0" : {
+        <span class="code-comment">// activity(a0, create-file, 2011-11-16T16:00:00,,[])</span>
+        "a0" : {
             "recipeLink": "create-file",
-            "startTime": t
+            "startTime": ["2011-11-16T16:00:00", "xsd:dateTime"]
         },
-        <span class="code-comment">// activity(pe1,add-crime-in-london,t+1,,[])</span>
-        "pe1" : {
+        <span class="code-comment">// activity(a1, add-crime-in-london, 2011-11-16T16:05:00,,[])</span>
+        "a1" : {
             "recipeLink": "add-crime-in-london",
-            "startTime": t+1
+            "startTime": ["2011-11-16T16:05:00", "xsd:dateTime"]
         },
-        <span class="code-comment">// activity(pe2,email,t+2,,[])</span>
-        "pe2" : {
+        <span class="code-comment">// activity(a2, email, 2011-11-16T17:00:00,,[])</span>
+        "a2" : {
             "recipeLink": "email",
-            "startTime": t+2
+            "startTime": ["2011-11-16T17:00:00", "xsd:dateTime"]
         },
-        <span class="code-comment">// activity(pe3,edit-London-New-York,t+3,,[])</span>
-        "pe3" : {
+        <span class="code-comment">// activity(a3, edit-London-New-York, 2011-11-17T09:00:00,,[])</span>
+        "a3" : {
             "recipeLink": "edit-London-New-York",
-            "startTime": t+3
+            "startTime": ["2011-11-17T09:00:00", "xsd:dateTime"]
         },
-        <span class="code-comment">// activity(pe4,email,t+4,,[])</span>
-        "pe4" : {
+        <span class="code-comment">// activity(a4, email, 2011-11-17T09:30:00,,[])</span>
+        "a4" : {
             "recipeLink": "email",
-            "startTime": t+4
+            "startTime": ["2011-11-17T09:30:00", "xsd:dateTime"]
         },
-        <span class="code-comment">// activity(pe5,spellcheck,,,[])</span>
-        "pe5" : {
+        <span class="code-comment">// activity(a5, spellcheck,,,[])</span>
+        "a5" : {
             "recipeLink": "spellcheck"
         },
     },</span>
