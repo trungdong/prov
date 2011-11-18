@@ -212,6 +212,8 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 <section id="data-typing"> 
 <h2>JSON Data Typing</h2>
 
+<div class='issue'>TODO: Decide how best to represent objects. Do we need a prov:object, or is a general JSON object enough? Do we represent serialized items with a specific type?</div>
+
 <p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object and null are not defined here: object may be inferred from the first element, and a null value should simply be omitted from the dictionary. Array is represented with the prov:array type, discussed in the next section.</p>
 
 <p>The following optional mappings apply for the default JSON types:</p>
@@ -335,7 +337,7 @@ is serialized into the following structure
     },
     ...
 </pre>
-<div class="note">In the example above, since <span class="name">type</span> is a term beloging to the <a href="#prov-dm-namespace">PROV-DM namespace</a>, the use of a prefix is not required.</div>
+<div class="note">In the example above, since <span class="name">type</span> is a term belonging to the <a href="#prov-dm-namespace">PROV-DM namespace</a>, the use of a prefix is not required.</div>
 
 </section> 
 
@@ -347,18 +349,18 @@ is serialized into the following structure
 <p>
 The following Activity assertion, for example,</p>
 <pre class="example">
-activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host="server.example.org",prov:type="app:edit"])
+activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host="server.example.org",prov:type="ex:edit"])
 </pre>
 <p>is serialized into:</p>
 <pre class="example">
     ...
     "activity": {
-        "pe1": {
+        "a1": {
             "recipeLink": "add-crime-in-london",
             "startTime": ["2011-11-16T16:05:00", "xsd:dateTime"],
             "endTime": ["2011-11-16T16:06:00", "xsd:dateTime"],
-            "ex:host": "server.example.org"
-            "type": "app:edit"
+            "ex:host": "server.example.org",
+            "type": "ex:edit"
         }
     },
     ...
@@ -374,7 +376,7 @@ activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host
 <p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#record-Agent">agent</a> is a representation of an entity capable of activity. Since an <span class="nonterminal">agentRecord</span> does not have any property, the <span class="name">agent</span> structure in PROV-JSON is organized as an array which contains the identifiers of all the entities that are asserted as agents (i.e. not an object structure like <span class="name">entity</span> or <span class="name">activity</span>).
 
 <pre class="example">
-agent(e1, [ex:employee="1234", ex:name="Alice", prov:type="prov:Person" %% xsd:anyURI])
+agent(e1, [ex:employee="1234", ex:name="Alice", prov:type="prov:Person" %% xsd:QName])
 </pre>
 is encoded into:
 <pre class="example">
@@ -383,7 +385,7 @@ is encoded into:
         "e1": {
             "ex:employee": "1234",
             "ex:name": "Alice",
-            "type": ["Person", "xsd:xsd:anyURI"]
+            "type": ["Person", "xsd:QName"]
         }
         ...
     },
@@ -425,7 +427,7 @@ note(ann1,[ex:color="blue", ex:screenX="20" %% xsd:integer, ex:screenY="30" %% x
 <section id="record-relation">
 <h3>Relation</h3>
 
-<p>This section how various <a href="http://www.w3.org/TR/prov-dm/#record-relation">relation records</a> in PROV-DM are serialised in PROV-JSON.</p>
+<p>This section specifies how various <a href="http://www.w3.org/TR/prov-dm/#record-relation">relation records</a> in PROV-DM are serialised in PROV-JSON.</p>
 
 <p>In general, a <span class="nonterminal">relationRecord</span> has the following construct:</p>
 
@@ -808,7 +810,7 @@ The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility
         "_:wDF2": {
             "generatedEntity": "e5",
             "usedEntity": "e3",
-            "activity": "a4"
+            "activity": "a4",
             "generation": "g2",
             "usage": "u2"
         }
