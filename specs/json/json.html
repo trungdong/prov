@@ -20,7 +20,6 @@
     </style>
 
 <script src="http://dev.w3.org/2009/dap/ReSpec.js/js/respec.js" class="remove"></script> 
-
     <script class="remove"> 
       var addExtraReferences = function() {
           for (var k in extraReferences)
@@ -133,6 +132,7 @@
       };
     </script> 
   </head> 
+
 <body> 
 
 <section id="abstract">
@@ -143,25 +143,25 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <section> 
 <h2>Introduction</h2> 
 
-<p> 
-PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). provenance information 
-</p>
+<p> PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchange provenance information between reserch projects. In addition, the PROV-JSON representation also aims at facilitating client-side manipulations of provenance information and, at the same time, allowing the use of a generic client-side API in various web applications. However, as it is based on the Provenance Data Model [[PROV-DM]] being standardized at the <a href="http://www.w3.org/2011/prov/">W3C Provenance Working Group</a>, it is hoped that the PROV-JSON representation will also find support from a wider community.</p>
 
+<p>Note: The PROV-JSON mappings introduced later in this document were defined based specifically on <a href="http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html">this version of PROV-DM</a>. As the PROV-DM document evolves, changes there will be incoporated back into this document at a later version. However, in the mean time, the readers should be aware that there might be misalignments between this document with the latest version of PROV-DM.</p>
 
-<p>JSON requirements</p>
-
-<p>Design considerations</p>
-
+<h3>Design considerations</h3>
+<p>The development of the PROV-JSON representation has the followign goals:</p>
+<ul>
+  <li>Interoperability: It aims to be closely follow the Provenance Data Model in order to ensure the interoperability between application supporting the W3C's future recommendation.</li>
+  <li>native Javascript data types are used where possible</li>
+  <li>extensibility:custom data type </li>
+</ul>
 <p>What this specification provides</p>
 
 <section> 
 <h3>Structure of this Document</h3>
 
-<p><a href="#roadmap">Section 2</a> outlines the plan for a PROV-JSON toolbox that falicitates accessing and manipulating PROV-JSON structures.</p>
+<p><a href="#data-typing">Section 2</a> describess the convention for encoding typed values inPROV-JSON.</p>
 
-<p><a href="#data-typing">Section 3</a> presents the convention for encoding typed values inPROV-JSON.</p>
-
-<p><a href="#prov-json-representation">Section 4</a> specifies the JSON encoding for all PROV-DM records.</p>
+<p><a href="#prov-json-representation">Section 3</a> specifies the JSON encoding for all PROV-DM records.</p>
 
 <p>Finally, <a href="#extensibility-section">Section 4</a> summarizes PROV-JSON's extensibility points.</p>
 
@@ -172,14 +172,11 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 <section id="prov-dm-namespace">
 <h3>Namespace</h3>
 
-<p>The PROV-JSON namespace is the same as the PROV-DM namespace, which is <span class="name">http://www.w3.org/ns/prov-dm/</span> (TBC).</p>
-
-<p> All the elements, relations, reserved names and attributes introduced in this specification belong to the PROV-DM namespace.</p>
-
+<p>All the elements, relations, reserved names and attributes used in this specification belong to the PROV-DM namespace, which is <span class="name">http://www.w3.org/ns/prov-dm/</span> (TBC).</p>
 </section>
 
 
-<section> 
+<section>
 <h3>Conventions</h3>
 
 <p>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in [[!RFC2119]].</p>
@@ -187,29 +184,8 @@ PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). prov
 
 </section> 
 
-<section id="roadmap"> 
-<h2>Roadmap</h2>
-
-<div class='issue'>TODO: Provide the specification for the JS toolbox to accompany the PROV-JSON spec here. The requirements for the toolbox to be contributed by all the authors (according to their own requirements)</div>
-
-<p>In conjunction with the PROV-JSON specifications provided in this document, a PROV-JSON toolbox is being developed to facilitate working with PROV-JSON structures. The toolbox will provide the following functionalities:</p>
-<ul>
-  <li><strong>Querying</strong>: query support for
-<ul>
-      <li>properties of an element or a relation,</li>
-      <li>elements and relations based on their types, and </li>
-      <li>inluding/excluding specific types of elements/relations.</li>
-    </ul>
-  </li>
-  <li><strong>Traversing</strong>: the toolbox presents a PROV-JSON structure as a provenance graphs of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph from one element.</li>
-  <li><strong>Simple inference</strong>: transivity closure support for transitive relations in PROV-DM</li>
-  <li><strong>Editing</strong>: creating and updating provenance graphs</li>
-  <li><strong>UI widgets</strong>: generic Javescript UI widgets to support the functionalities above</li>
-</ul>
-
-</section>
-
 <section id="data-typing"> 
+
 <h2>JSON Data Typing</h2>
 
 <div class='issue'>TODO: Decide how best to represent objects. Do we need a prov:object, or is a general JSON object enough? Do we represent serialized items with a specific type?</div>
@@ -337,7 +313,8 @@ is serialized into the following structure
     },
     ...
 </pre>
-<div class="note">In the example above, since <span class="name">type</span> is a term belonging to the <a href="#prov-dm-namespace">PROV-DM namespace</a>, the use of a prefix is not required.</div>
+
+<div class="note">In the example above, since <span class="name">type</span> is a term belonging to the <a href="#prov-dm-namespace">PROV-DM namespace</a>, the use of a prefix is not required. See Section <a href="#RecordContainer">Record Container</a> for details on how to use prefixes and namespaces.</div>
 
 </section> 
 
@@ -515,13 +492,13 @@ Note that, in the example above, the qualifier's components are unbundled and mi
     ...
     "used": {
         "_:u1": {
-            "cause": "e1",
+            "entity": "e1",
             "activity": "a1",
             "ex:parameter": "p1",
             "time": ["2011-11-16T16:00:00", "xsd:dateTime"]
         },
         "_:u2": {
-            "cause": "e2",
+            "entity": "e2",
             "activity": "a1",
             "ex:parameter": "p2",
             "time": ["2011-11-16T16:00:01", "xsd:dateTime"]
@@ -736,40 +713,40 @@ The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility
     },
     "wasComplementOf": {
         "_:wCO1": {
-            "TODO": "rs_m3",
-            "TODO": "as_l2"
+            "subject": "rs_m3",
+            "alternate": "as_l2"
         },
         "_:wCO2": {
-            "TODO": "rs_m2",
-            "TODO": "as_l1"
+            "subject": "rs_m2",
+            "alternate": "as_l1"
         },
         "_:wCO3": {
-            "TODO": "rs_m2",
-            "TODO": "as_l2"
+            "subject": "rs_m2",
+            "alternate": "as_l2"
         },
         "_:wCO4": {
-            "TODO": "rs_m1",
-            "TODO": "as_l1"
+            "subject": "rs_m1",
+            "alternate": "as_l1"
         },
         "_:wCO5": {
-            "TODO": "rs_m3",
-            "TODO": "rs"
+            "subject": "rs_m3",
+            "alternate": "rs"
         },
         "_:wCO6": {
-            "TODO": "rs_m2",
-            "TODO": "rs"
+            "subject": "rs_m2",
+            "alternate": "rs"
         },
         "_:wCO7": {
-            "TODO": "rs_m1",
-            "TODO": "rs"
+            "subject": "rs_m1",
+            "alternate": "rs"
         },
         "_:wCO8": {
-            "TODO": "rs_l1",
-            "TODO": "rs"
+            "subject": "rs_l1",
+            "alternate": "rs"
         },
         "_:wCO9": {
-            "TODO": "rs_l2",
-            "TODO": "rs"
+            "subject": "rs_l2",
+            "alternate": "rs"
         },
     },
     ...
@@ -1108,8 +1085,11 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 <a href="http://www.w3.org/TR/prov-dm/#record-Entity">Entity Records</a>: The file in its various forms and its copies are modelled as entity records, corresponding to multiple characterizations, as per scenario. The entity records are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
 <pre>
 {
-    ...
-    <span class="code-new">"entity": {
+    <span class="code-new">"prefix": {
+        <span class="code-comment">// Only the prefix "ex" needs to be defined. "prov" is the default namespace.</span>
+        "ex": "www.example.com"
+    },
+    "entity": {
         <span class="code-comment">// entity(e0, [ prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice" ])</span>
         "e0": {
             "type": "File",
@@ -1198,54 +1178,54 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#record-Generation">Generation Records</a> represent the event at which a file is created in a specific form. To describe the modalities according to which the various characterized things are generated by a given activity, a qualifier  (record described in <a href="http://www.w3.org/TR/prov-dm/#record-qualifier">PROV-DM</a>) is introduced.  The interpretation of qualifiers is application specific. Illustrations of such qualifiers for the scenario are: no qualifier is provided for <span class="name">e0</span>;
-<span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message;<span class="name">e6</span> was produced on the standard output of <span class="name">pe5</span>.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Generation">Generation Records</a> represent the event at which a file is created in a specific form. Attributes are used to describe the modalities according to which a given entity is generated by a given activity.  The interpretation of attributes is application specific. Illustrations of such attributes for the scenario are: no attribute is provided for <span class="name">e0</span>;
+<span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message; <span class="name">e6</span> was produced on the standard output of <span class="name">a5</span>. Two identifiers <span class="name">g1</span> and <span class="name">g2</span> identify the generation records referenced in derivations introduced below.</p>
 
 <pre>
 {
     ...
     <span class="code-new">"wasGeneratedBy": {
-        <span class="code-comment">// wasGeneratedBy(e0, pe0, qualifier())</span>
+        <span class="code-comment">// wasGeneratedBy(e0, a0, [])</span>
         "_:wGB1": {
-            "effect": "e0",
-            "cause": "pe0"
+            "activity": "a0",
+            "entity": "e0"
         },
-        <span class="code-comment">// wasGeneratedBy(e1, pe0, qualifier(ex:fct="create"))</span>
+        <span class="code-comment">// wasGeneratedBy(e1, a0, [ex:fct="create"])</span>
         "_:wGB2": {
-            "effect": "e1",
-            "cause": "pe0",
-            "fct": "ex:create"
+            "activity": "a0",
+            "entity": "e1",
+            "ex:fct": "create"
         },
-        <span class="code-comment">// wasGeneratedBy(e2, pe1, qualifier(ex:fct="save"))</span>
+        <span class="code-comment">// wasGeneratedBy(e2, a1, [ex:fct="save"])</span>
         "_:wGB3": {
-            "effect": "e2",
-            "cause": "pe1",
-            "fct": "ex:save"
+            "activity": "a1",
+            "entity": "e2",
+            "ex:fct": "save"
         },
-        <span class="code-comment">// wasGeneratedBy(e3, pe3, qualifier(ex:fct="save"))</span>
+        <span class="code-comment">// wasGeneratedBy(e3, a3, [ex:fct="save"])</span>
         "_:wGB4": {
-            "effect": "e3",
-            "cause": "pe3",
-            "fct": "ex:save"
+            "activity": "a3",
+            "entity": "e3",
+            "ex:fct": "save"
         },
-        <span class="code-comment">// wasGeneratedBy(e4, pe2, qualifier(ex:port="smtp", ex:section="attachment"))</span>
+        <span class="code-comment">// wasGeneratedBy(g1, e4, a2, [ex:port="smtp", ex:section="attachment"])</span>
+        "g1": {
+            "activity": "a2",
+            "entity": "e4",
+            "ex:port": "smtp",
+            "ex:section": "attachment"
+        },
+        <span class="code-comment">// wasGeneratedBy(g2, e5, a4, [ex:port="smtp", ex:section="attachment"])</span>
+        "g2": {
+            "activity": "a4",
+            "entity": "e5",
+            "ex:port": "smtp",
+            "ex:section": "attachment"
+        },
+        <span class="code-comment">// wasGeneratedBy(e6, a5, [ex:file="stdout"])</span>
         "_:wGB5": {
-            "effect": "e4",
-            "cause": "pe2",
-            "port": "ex:smtp",
-            "section": "ex:attachment"
-        },
-        <span class="code-comment">// wasGeneratedBy(e5, pe4, qualifier(ex:port="smtp", ex:section="attachment"))</span>
-        "_:wGB6": {
-            "effect": "e5",
-            "cause": "pe4",
-            "port": "ex:smtp",
-            "section": "ex:attachment"
-        },
-        <span class="code-comment">// wasGeneratedBy(e6, pe5, qualifier(ex:file="stdout"))</span>
-        "_:wGB7": {
-            "effect": "e6",
-            "cause": "pe5",
+            "activity": "a5",
+            "entity": "e6",
             "ex:file": "stdout"
         }
     },</span>
@@ -1256,40 +1236,41 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 <p>
 <a href="http://www.w3.org/TR/prov-dm/#record-Use">Used Records</a> represent the event by which a file is read by a Activity. 
 
-Likewise, to describe the modalities according to which the various things are used by activities, a qualifier is introduced.  Illustrations of such qualifiers are: <span class="name">e1</span> is used in the context of  <span class="name">pe1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">pe2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">pe5</span>. </p>
+Likewise, attributes describe the modalities according to which the various entities are used by activities.  Illustrations of such attributes are: 
+<span class="name">e1</span> is used in the context of  <span class="name">a1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">a2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">a5</span>. Two identifiers <span class="name">u1</span> and <span class="name">u2</span> identify the Usage records referenced in derivations introduced below.</p>
 
 <pre>
 {
     ...
     <span class="code-new">"used" : {
-        <span class="code-comment">// used(pe1,e1,qualifier(ex:fct="load"))</span>
+        <span class="code-comment">// used(a1,e1,[ex:fct="load"])</span>
         "_:u1": {
-            "effect": "pe1",
-            "cause": "e1",
+            "activity": "a1",
+            "entity": "e1",
             "ex:fct": "load"
         },
-        <span class="code-comment">// used(pe2,e2,qualifier(ex:fct="attach"))</span>
+        <span class="code-comment">// used(a3,e2,[ex:fct="load"])</span>
         "_:u2": {
-            "effect": "pe2",
-            "cause": "e2",
-            "ex:fct": "attach"
-        },
-        <span class="code-comment">// used(pe3,e2,qualifier(ex:fct="load"))</span>
-        "_:u3": {
-            "effect": "pe3",
-            "cause": "e2",
+            "activity": "a3",
+            "entity": "e2",
             "ex:fct": "load"
         },
-        <span class="code-comment">// used(pe4,e3,qualifier(ex:fct="attach"))</span>
-        "_:u4": {
-            "effect": "pe4",
-            "cause": "e3",
+        <span class="code-comment">// used(u1,a2,e2,[ex:fct="attach"])</span>
+        "u1": {
+            "activity": "a2",
+            "entity": "e2",
             "ex:fct": "attach"
         },
-        <span class="code-comment">// used(pe5,e3,qualifier(ex:file="stdin"))</span>
-        "_:u5": {
-            "effect": "pe5",
-            "cause": "e3",
+        <span class="code-comment">// used(u2,a4,e3,[ex:fct="attach"])</span>
+        "u2": {
+            "activity": "a4",
+            "entity": "e3",
+            "ex:fct": "attach"
+        },
+        <span class="code-comment">// used(a5,e3,[ex:file="stdin"])</span>
+        "_:u3": {
+            "activity": "a5",
+            "entity": "e3",
             "ex:file": "stdin"
         }
     },</span>
@@ -1298,7 +1279,7 @@ Likewise, to describe the modalities according to which the various things are u
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/prov-dm/#record-Derivation">Derivation Records</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the Activity underpinnng the derivation, and relevant qualifiers qualifying the use and generation of entities.</p>
+<a href="http://www.w3.org/TR/prov-dm/#record-Derivation">Derivation Records</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the activity underpinning the derivation, and associated  usage (<span class="name">u1</span>, <span class="name">u2</span>) and generation (<span class="name">g1</span>, <span class="name">g2</span>) records.</p>
 
 <pre>
 {
@@ -1306,36 +1287,36 @@ Likewise, to describe the modalities according to which the various things are u
     <span class="code-new">"wasDerivedFrom": {
         <span class="code-comment">// wasDerivedFrom(e2,e1)</span>
         "_:wDF1": {
-            "effect": "e2",
-            "cause": "e1",
+            "generatedEntity": "e2",
+            "usedEntity": "e1",
         },
         <span class="code-comment">// wasDerivedFrom(e3,e2)</span>
         "_:wDF2": {
-            "effect": "e3",
-            "cause": "e2"
+            "generatedEntity": "e3",
+            "usedEntity": "e2"
         },
-        <span class="code-comment">// wasDerivedFrom(e4,e2,pe2,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+        <span class="code-comment">// wasDerivedFrom(e4,e2,a2,g1,u2)</span>
         "_:wDF3": {
-            "activity": "pe2",
-            "effect": "e4",
-            "cause": "e2",
-            "effectWGB": "_:wGB5",
-            "causeU": "_:u2"
+            "activity": "a2",
+            "generatedEntity": "e4",
+            "usedEntity": "e2",
+            "generation": "g1",
+            "usage": "u2"
         },
-        <span class="code-comment">// wasDerivedFrom(e5,e3,pe4,qualifier(port=smtp, section="attachment"),qualifier(fct="attach"))</span>
+        <span class="code-comment">// wasDerivedFrom(e5,e3,a4,g2,u2)</span>
         "_:wDF4": {
-            "activity": "pe4"
-            "effect": "e5",
-            "cause": "e3",
-            "effectWGB": "_:wGB6",
-            "causeU": "_:u4"
+            "activity": "a5"
+            "generatedEntity": "e5",
+            "usedEntity": "e3",
+            "generation": "g2",
+            "usage": "u2"
         }
     },
     ...
 }
 </pre>
 
-<p><a href="http://www.w3.org/TR/prov-dm/#record-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity records identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>.  Likewise, the one denoted by <span class="name">e6</span> complements the record denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
+<p><a href="http://www.w3.org/TR/prov-dm/#record-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity records identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>. Likewise, the one denoted by <span class="name">e6</span> complements the record denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
 
 <pre>
 {
@@ -1373,44 +1354,53 @@ Likewise, to describe the modalities according to which the various things are u
 {
     ...
     "entity": {
-        <span class="code-new"><span class="code-comment">// entity(a1, [ type="Person", foaf:name="Alice" ])</span>
-        "a1": {
-            "type": "Person",
-            "foaf:name": "Alice"
+        <span class="code-new"><span class="code-comment">// agent(ag1, [ prov:type="prov:Person" %% xsd:QName, ex:name="Alice" ])</span>
+        "ag1": {
+            "type": ["Person", "xsd:QName"],
+            "ex:name": "Alice"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Bob" ])</span>
-        "a2": {
-            "type": "Person",
-            "foaf:name": "Bob"
+        <span class="code-comment">// agent(ag2, [ prov:type="prov:Person" %% xsd:QName, ex:name="Bob" ])</span>
+        "ag2": {
+            "type": ["Person", "xsd:QName"],
+            "ex:name": "Bob"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Charles" ])</span>
-        "a3": {
-            "type": "Person",
-            "foaf:name": "Charles"
+        <span class="code-comment">// agent(ag3, [ prov:type="prov:Person" %% xsd:QName, ex:name="Charles" ])</span>
+        "ag3": {
+            "type": ["Person", "xsd:QName"],
+            "ex:name": "Charles"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="David" ])</span>
-        "a4": {
-            "type": "Person",
-            "foaf:name": "David"
+        <span class="code-comment">// agent(ag4, [ prov:type="prov:Person" %% xsd:QName, ex:name="David" ])</span>
+        "ag4": {
+            "type": ["Person", "xsd:QName"],
+            "ex:name": "David"
         },
-        <span class="code-comment">// entity(a1, [ type="Person", foaf:name="Edith" ])</span>
-        "a5": {
-            "type": "Person",
-            "foaf:name": "Edith"
+        <span class="code-comment">// agent(ag5, [ prov:type="prov:Person" %% xsd:QName, ex:name="Edith" ])</span>
+        "ag5": {
+            "type": ["Person", "xsd:QName"],
+            "ex:name": "Edith"
         },</span>
         ...
     },
     <span class="code-new">"agent": [
-        "a1", <span class="code-comment">// agent(a1)</span>
-        "a2", <span class="code-comment">// agent(a2)</span>
-        "a3", <span class="code-comment">// agent(a3)</span>
-        "a4", <span class="code-comment">// agent(a4)</span>
-        "a5"  <span class="code-comment">// agent(a5)</span>
+        "a1", <span class="code-comment">// agent(ag1)</span>
+        "a2", <span class="code-comment">// agent(ag2)</span>
+        "a3", <span class="code-comment">// agent(ag3)</span>
+        "a4", <span class="code-comment">// agent(ag4)</span>
+        "a5"  <span class="code-comment">// agent(ag5)</span>
     ],</span>
     ...
 }
 </pre>
 
+<p>
+<a href="http://www.w3.org/TR/prov-dm/#record-ActivityAssociation">Activity Assocation Records</a>: the association of an agent with an activity is expressed with , and the nature of this association is described by attributes.  Illustrations of such attributes include the role of the participating agent, as creator, author and communicator (role is a reserved attribute in PROV-DM).</p>
+<pre>
+wasAssociatedWith(a0, ag1, [prov:role="creator"])
+wasAssociatedWith(a1, ag2, [prov:role="author"])
+wasAssociatedWith(a2, ag3, [prov:role="communicator"])
+wasAssociatedWith(a3, ag4, [prov:role="author"])
+wasAssociatedWith(a4, ag5, [prov:role="communicator"])
+</pre>
 
 <p>
 <a href="http://www.w3.org/TR/prov-dm/#record-Control">Control Records</a>: the influence of an agent over a Activity is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
