@@ -10,6 +10,8 @@
      -->
 <!-- PM -->
     <style type="text/css">
+    @import url("extra.css");
+
       .note { font-size:small; margin-left:50px }
      .code-comment {
 	color: #808080;
@@ -143,7 +145,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <section> 
 <h2>Introduction</h2> 
 
-<p> PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchange provenance information between reserch projects. In addition, the PROV-JSON representation also aims at facilitating client-side manipulations of provenance information and, at the same time, allowing the use of a generic client-side API in various web applications. However, as it is based on the Provenance Data Model [[PROV-DM]] being standardized at the <a href="http://www.w3.org/2011/prov/">W3C Provenance Working Group</a>, it is hoped that the PROV-JSON representation will also find support from a wider community.</p>
+<p> PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchange provenance information in web applications between research projects. At the same time, the PROV-JSON representation aims at facilitating client-side manipulations of provenance information and allowing the use of a generic client-side API in various web applications. Since it is based on the Provenance Data Model [[PROV-DM]] being standardized at the <a href="http://www.w3.org/2011/prov/">W3C Provenance Working Group</a>, it is hoped that the PROV-JSON representation will also benefit, and find support from, a wider community.</p>
 
 <p>Note: The PROV-JSON mappings introduced later in this document were defined based specifically on <a href="http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html">this version of PROV-DM</a>. As the PROV-DM document evolves, changes there will be incoporated back into this document at a later version. However, in the mean time, the readers should be aware that there might be misalignments between this document with the latest version of PROV-DM.</p>
 
@@ -153,11 +155,11 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
   <li><strong>Interoperability</strong>: PROV-JSON aims to map closely the Provenance Data Model in order to ensure the interoperability between applications adopting the W3C's future recommendation. Therefore, provenance information represented in PROV-JSON can be converted from and to its counterpart in the Provenance Abstract Syntax Notation (PROV-ASN) of PROV-DM.</li>
   <li><strong>Lightweight</strong>: native Javascript data types are used where possible.</li>
   <li><strong>Extensibility</strong>: application-specific terms and data can be introduced via the use of namespaces and custom data types.</li>
-  <li><strong>Ease of use</strong>: The design of PROV-JSON aims to follow the <a href="http://en.wikipedia.org/wiki/Convention_over_Configuration">Convention-over-Configuration</a> approach. Although PROV-JSON will offers flexibility in extending the core specification to accommodate application-specific requirements, it is possible to produce and use simple PROV-JSON structures with without unnecessary overhead, such as namespace declarations.</li>
+  <li><strong>Ease of use</strong>: The design of PROV-JSON aims to follow the <a href="http://en.wikipedia.org/wiki/Convention_over_Configuration">Convention-over-Configuration</a> approach. Although PROV-JSON will offers flexibility in extending the core specification to accommodate application-specific requirements, it is possible to produce simple PROV-JSON structures without unnecessary overhead, such as namespace declarations.</li>
 </ul>
 
 
-<div class="note">This version does not include mappings for <a href="http://dvcs.w3.org/hg/prov/raw-file/default/model/ProvenanceModel.html#common-relations">common relation records</a> due to a number of changes planned to be implemented with respect to these relations in PROV-DM. However, the general PROV-JSON structure of relations can be broadly followed for such relations. The next version of this document will provide specific mappings for them.</div>
+<div class="note">This version does not include mappings for <a href="http://dvcs.w3.org/hg/prov/raw-file/default/model/ProvenanceModel.html#common-relations">common relation records</a> due to a number of changes planned to be soon implemented with respect to these relations in PROV-DM. However, the general <a href="#record-relation">PROV-JSON structure of relations</a> can be broadly followed for such relations. The next version of this document will provide specific mappings for the missing relations.</div>
 
 <section> 
 <h3>Structure of this Document</h3>
@@ -225,7 +227,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     }
 </pre>
 
-<div class='note'>How to represent objects in PROV-JSON is being under consideration. In the next version, PROV-JSON will possibly support serializing typed objects in application-specific encodings or as native JSON objects with type information.</div>
+<div class='note'>How to represent objects in PROV-JSON is being under consideration. In the next version, PROV-JSON will possibly support serializing typed objects either in application-specific encodings or as native JSON objects with type information.</div>
 
 <h3>Representing Arrays</h3>
 
@@ -765,23 +767,14 @@ The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility
 
 <p>The following <a href="http://www.w3.org/TR/prov-dm/#record-Derivation">derivation assertions</a></p>
 <pre class="example">
-  used(u2, a4, e3, [ex:channel="in"])
-  wasGeneratedBy(g2, e5, a4, [ex:channel="out"])
-
+  wasDerivedFrom(e5,e3,a4,g2,u2)
   wasDerivedFrom(e3,e2)
-  wasDerivedFrom(e5,e3,pe4,g2,u2)
+  wasBasedOn(e2,e1)
 </pre>
 <p>are represented in PROV-JSON as follows.</p>
 <pre class="example">
 {
     ...
-    "used": {
-        "u1": {
-            "entity": "e3",
-            "activity": "a",
-            "ex:channel": "in"
-        }
-    },
     "wasDerivedFrom": {
         "_:wDF1": {
             "generatedEntity": "e3",
@@ -795,17 +788,15 @@ The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility
             "usage": "u2"
         }
     },
-    "wasGeneratedBy": {
-        "g2": {
-            "activity": "pe4",
-            "entity": "e5",
-            "ex:channel": "out"
+    "wasBasedOn": {
+        "_:wBF1": {
+            "generatedEntity": "e2",
+            "usedEntity": "e1"
+        },
         }
     },
     ...
 }
-</pre>
-<div class="issue">TODO: Define mappings for the remaining forms of derivation. Note that changes to these are being discussed in W3-Prov.</div>
 
 </section>
 
@@ -903,7 +894,14 @@ In this section, the PROV-JSON representation for the two PROV-DM's bundling con
 <section id="RecordContainer">
 <h4>Provenance Container</h4>
 
-<p>A <a href="http://www.w3.org/TR/prov-dm/#RecordContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM records. A PROV-JSON serialization represents an instance of provenance container.</p> 
+<p>A <a href="http://www.w3.org/TR/prov-dm/#RecordContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM records. A PROV-JSON serialization represents an instance of provenance container. This is the outermost level of a PROV-JSON structure. In addition to the top-level JSON structures like <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, etc., particular namespaces used in a PROV-JSON structure can be declared in a <span class="name">prefix</span> structure (see an example below). Prefixes can then be used to bind terms to specific namespaces. There is a special prefix called <code>default</code>, which can be used to declare the default namespace to which all unprefixed terms will be bound.</p>
+
+<p><strong>Default prefixes</strong>: By default, the following prefixes are implicitly defined:</p>
+<ul>
+  <li><code>prov</code>: <span class="name">http://www.w3.org/ns/prov-dm/</span> (i.e. <a href="#prov-dm-namespace">PROV-DM namespace</a>)</li>
+  <li><code>xsd</code>: <span class="name">http://www.w3.org/2001/XMLSchema-datatypes</span> (i.e. XML Datatypes [[!XMLSCHEMA-2]])</li>
+</ul>
+<p>Therefore, terms that are prefixed with <code>prov:</code> or <code>xsd:</code> will be implicitly bound to the relevant namespaces without the need for their explicit declarations. In addition, the <code>default</code> prefix is implicitly defined to be <code>prov</code>. As a result, terms in the PROV-DM namespace can be written either with or without the <code>prov</code> prefix, <strong>unless</strong> a different default namespace is explicitly defined (in which case, only the former can be used).</p>
 
 <p>
 The following container </p>
@@ -1020,6 +1018,8 @@ container([x http://example.org/], [acc1,acc2]
 
 <section id="extensibility-section"> 
 <h2>Extensibility Points</h2>
+
+<div class="issue">TODO: This section need to be rewritten to reflect the major changes applied since the last public PROV-DM version.</div>
 
 <p>Since the PROV-JSON representation was developed to encode PROV-DM, it supports the <a href="http://www.w3.org/TR/prov-dm/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
 
