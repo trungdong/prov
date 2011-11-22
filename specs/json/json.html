@@ -148,13 +148,16 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <p>Note: The PROV-JSON mappings introduced later in this document were defined based specifically on <a href="http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html">this version of PROV-DM</a>. As the PROV-DM document evolves, changes there will be incoporated back into this document at a later version. However, in the mean time, the readers should be aware that there might be misalignments between this document with the latest version of PROV-DM.</p>
 
 <h3>Design considerations</h3>
-<p>The development of the PROV-JSON representation has the followign goals:</p>
+<p>The development of the PROV-JSON representation has the following goals:</p>
 <ul>
-  <li>Interoperability: It aims to be closely follow the Provenance Data Model in order to ensure the interoperability between application supporting the W3C's future recommendation.</li>
-  <li>native Javascript data types are used where possible</li>
-  <li>extensibility:custom data type </li>
+  <li><strong>Interoperability</strong>: PROV-JSON aims to map closely the Provenance Data Model in order to ensure the interoperability between applications adopting the W3C's future recommendation. Therefore, provenance information represented in PROV-JSON can be converted from and to its counterpart in the Provenance Abstract Syntax Notation (PROV-ASN) of PROV-DM.</li>
+  <li><strong>Lightweight</strong>: native Javascript data types are used where possible.</li>
+  <li><strong>Extensibility</strong>: application-specific terms and data can be introduced via the use of namespaces and custom data types.</li>
+  <li><strong>Ease of use</strong>: The design of PROV-JSON aims to follow the <a href="http://en.wikipedia.org/wiki/Convention_over_Configuration">Convention-over-Configuration</a> approach. Although PROV-JSON will offers flexibility in extending the core specification to accommodate application-specific requirements, it is possible to produce and use simple PROV-JSON structures with without unnecessary overhead, such as namespace declarations.</li>
 </ul>
-<p>What this specification provides</p>
+
+
+<div class="note">This version does not include mappings for <a href="http://dvcs.w3.org/hg/prov/raw-file/default/model/ProvenanceModel.html#common-relations">common relation records</a> due to a number of changes planned to be implemented with respect to these relations in PROV-DM. However, the general PROV-JSON structure of relations can be broadly followed for such relations. The next version of this document will provide specific mappings for them.</div>
 
 <section> 
 <h3>Structure of this Document</h3>
@@ -187,8 +190,6 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <section id="data-typing"> 
 
 <h2>JSON Data Typing</h2>
-
-<div class='issue'>TODO: Decide how best to represent objects. Do we need a prov:object, or is a general JSON object enough? Do we represent serialized items with a specific type?</div>
 
 <p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Object and null are not defined here: object may be inferred from the first element, and a null value should simply be omitted from the dictionary. Array is represented with the prov:array type, discussed in the next section.</p>
 
@@ -223,6 +224,8 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
         }
     }
 </pre>
+
+<div class='note'>How to represent objects in PROV-JSON is being under consideration. In the next version, PROV-JSON will possibly support serializing typed objects in application-specific encodings or as native JSON objects with type information.</div>
 
 <h3>Representing Arrays</h3>
 
@@ -1395,48 +1398,37 @@ Likewise, attributes describe the modalities according to which the various enti
 <p>
 <a href="http://www.w3.org/TR/prov-dm/#record-ActivityAssociation">Activity Assocation Records</a>: the association of an agent with an activity is expressed with , and the nature of this association is described by attributes.  Illustrations of such attributes include the role of the participating agent, as creator, author and communicator (role is a reserved attribute in PROV-DM).</p>
 <pre>
-wasAssociatedWith(a0, ag1, [prov:role="creator"])
-wasAssociatedWith(a1, ag2, [prov:role="author"])
-wasAssociatedWith(a2, ag3, [prov:role="communicator"])
-wasAssociatedWith(a3, ag4, [prov:role="author"])
-wasAssociatedWith(a4, ag5, [prov:role="communicator"])
-</pre>
-
-<p>
-<a href="http://www.w3.org/TR/prov-dm/#record-Control">Control Records</a>: the influence of an agent over a Activity is expressed as control, and the nature of this influence is described by qualifier.  Illustrations of such qualifiers include the role of the participating agent, as creator, author and communicator.</p>
-
-<pre>
 {
     ...
-    <span class="code-new">"wasControlledBy": {
-        <span class="code-comment">// wasControlledBy(pe0,a1, qualifier(role="creator"))</span>
-        "_:wCB1": {
-            "effect" : "pe0",
-            "cause" : "a1",
+    <span class="code-new">"wasAssociatedWith": {
+        <span class="code-comment">// wasAssociatedWith(a0, ag1, [prov:role="creator"])</span>
+        "_:wAW1": {
+            "activity" : "a0",
+            "agent" : "ag1",
             "role": "creator"
         },
-        <span class="code-comment">// wasControlledBy(pe1,a2, qualifier(role="author"))</span>
-        "_:wCB2": {
-            "effect" : "pe1",
-            "cause" : "a2",
+        <span class="code-comment">// wasAssociatedWith(a1, ag2, [prov:role="author"])</span>
+        "_:wAW2": {
+            "activity" : "a1",
+            "agent" : "ag2",
             "role": "author"
         },
-        <span class="code-comment">// wasControlledBy(pe2,a3, qualifier(role="communicator"))</span>
-        "_:wCB3": {
-            "effect" : "pe2",
-            "cause" : "a3",
+        <span class="code-comment">// wasAssociatedWith(a2, ag3, [prov:role="communicator"])</span>
+        "_:wAW3": {
+            "activity" : "a2",
+            "agent" : "ag3",
             "role": "communicator"
         },
-        <span class="code-comment">// wasControlledBy(pe3,a4, qualifier(role="author"))</span>
-        "_:wCB4": {
-            "effect" : "pe3",
-            "cause" : "a4",
+        <span class="code-comment">// wasAssociatedWith(a3, ag4, [prov:role="author"])</span>
+        "_:wAW4": {
+            "activity" : "a3",
+            "agent" : "ag4",
             "role": "author"
         },
-        <span class="code-comment">// wasControlledBy(pe4,a5, qualifier(role="communicator"))</span>
-        "_:wCB5": {
-            "effect" : "pe4",
-            "cause" : "a5",
+        <span class="code-comment">// wasAssociatedWith(a4, ag5, [prov:role="communicator"])</span>
+        "_:wAW5": {
+            "activity" : "a4",
+            "agent" : "ag5",
             "role": "communicator"
         }
     },</span>
