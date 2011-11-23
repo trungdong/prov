@@ -1,23 +1,15 @@
 {
-	"prefix": {
-		"default": "http://www.w3.org/ns/prov-dm/"
 	},
 	"entity": {
-		"post": {
-			"type": "Document",
-			"location": "http://www.example.org/post"
+		"http://www.example.org/": {
 		},
-		"report": {
-			"type": "Document",
-			"location": "http://www.example.org/report"
+		"http://www.example.org/": {
 		}
 	},
-	"relation": {
-		"wasDerivedFrom": {
-			"_:r1": {
-				"cause": "report",
-				"effect": "post"
-			}
+	"wasDerivedFrom": {
+		"_:sDF1": {
+			"generatedEntity": "http://www.example.org/",
+			"usedEntity": "http://www.example.org/"
 		}
 	}
 }

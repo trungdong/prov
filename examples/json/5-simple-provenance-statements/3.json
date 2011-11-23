@@ -1,33 +1,21 @@
 {
 	"prefix": {
-		"default": "http://www.w3.org/ns/prov-dm/"
+		"ex": "http://www.example.com/"
 	},
 	"entity": {
-		"post": {
-			"type": "Document",
-			"location": "http://www.example.org/post"
+		"ex:post": {
 		},
-		"report": {
-			"type": "Document",
-			"location": "http://www.example.org/report"
+		"ex:report": {
 		},
-		"paul": {
-			"type": "Person",
+		"ex:paul": {
+			"type": "Person"
 		}
 	},
-	"agent": [ "paul" ],
-	"relation": {
-		"wasSummaryOf": {
-			"_:r1": {
-				"cause": "report",
-				"effect": "post"
-			}
-		},
-		"wasAttributedTo": {
-			"_:r2": {
-				"XXX": "post",
-				"YYY": "paul"
-			}
+	"agent": [ "ex:paul" ],
+	"wasAttributedTo": {
+		"_:wAT": {
+			"entity": "ex:post",
+			"agent": "ex:paul"
 		}
 	}
 }

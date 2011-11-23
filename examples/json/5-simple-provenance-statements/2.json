@@ -1,23 +1,14 @@
 {
-	"prefix": {
-		"default": "http://www.w3.org/ns/prov-dm/"
-	},
 	"entity": {
-		"post": {
-			"type": "Document",
-			"location": "http://www.example.org/post"
+		"http://www.example.org/post": {
 		},
-		"report": {
-			"type": "Document",
-			"location": "http://www.example.org/report"
+		"http://www.example.org/report": {
 		}
 	},
-	"relation": {
-		"wasSummaryOf": {
-			"_:r1": {
-				"cause": "report",
-				"effect": "post"
-			}
+	"wasSummaryOf": {
+		"_:wSO1": {
+			"ancestor": "report",
+			"entity": "post"
 		}
 	}
 }
