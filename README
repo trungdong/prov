@@ -1,5 +1,9 @@
 PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchanging provenance information between research projects. In addition, the PROV-JSON representation also aims at facilitating client-side manipulations of provenance information and, at the same time, allowing the use of a generic client-side API in various web applications. However, as it is based on the Provenance Data Model (http://www.w3.org/TR/prov-dm/) being standardized at the W3C Provenance Working Group, it is hoped that the PROV-JSON representation will also find support from a wider community.
 
+Folder structure:
+- specs/json: The PROV-JSON specification document
+- examples: containing PROV-JSON examples (*.json)
+
 Plan for a PROV-JSON toolbox that facilitates accessing and manipulating PROV-JSON structures:
 
 In conjunction with the PROV-JSON specifications provided in this document, a PROV-JSON toolbox is being developed to facilitate working with PROV-JSON structures. The toolbox will provide the following functionalities:
