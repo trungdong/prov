@@ -195,7 +195,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <p>A JSON literal value is defined as being one of an object, array, number, string, boolean, or null. To allow for extra specificity, the data type of a literal in PROV-JSON may be provided using a 2-element array. The first element in this array is the literal value and the second element is the data type, given as a QName or URI. Null is not defined here: a null value should simply be omitted from the dictionary. Array is represented with the provjs:array type, discussed in the next section.</p>
 
-<p>The following mappings apply for the default JSON types. If the data type is derived from one of the below, the literal value may be kept in its original form. If it is written as a string it is the implementation's responsibility to parse it appropriately. If the data type is not derived from one of the mappings, the value should be represented as a string.</p>
+<p>The following mappings apply for the default JSON types. If the data type is derived from one of the below, the literal value may be kept in its original form.</p>
 
 <dl>
 <dt>number</dt>
@@ -216,13 +216,26 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     ...
     "entity": {
         "e1": {
-            "type": "document",
             "x:byteSize": [1034, "xsd:positiveInteger"],
             "x:compression": [82.5, "xsd:decimal"],
             "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
         }
     }
 </pre>
+
+<p>If the data type is derived from one of the above mappings then the literal value may be kept in its original form. If the value is written as a string, it is the responsibility of the implementation to parse it correctly according to its type. The following example shows four representations of the same value: one as a JSON literal; one as a JSON literal with the type explicitly stated; one as a string literal (thus requiring parsing by the implementation); and one with a custom type which will also be delegated to the implementation.</p>
+
+<pre class="example">
+    "entity": {
+        "e1": {
+            "x:visible", true,
+            "x:visible": [true, "xsd:boolean"],
+            "x:visible": ["true", "xsd:boolean"],
+            "x:visible": ["true", "ex:customBoolean"],
+        }
+    }
+</pre>
+
 
 <div class='note'>How to represent objects in PROV-JSON is being under consideration. In the next version, PROV-JSON will possibly support serializing typed objects either in an application-specific encoding or as native JSON objects with type information.</div>
 
