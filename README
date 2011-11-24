@@ -1,14 +1,14 @@
-PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchange provenance information between reserch projects. In addition, the PROV-JSON representation also aims at facilitating client-side manipulations of provenance information and, at the same time, allowing the use of a generic client-side API in various web applications. However, as it is based on the Provenance Data Model (http://www.w3.org/TR/prov-dm/) being standardized at the W3C Provenance Working Group, it is hoped that the PROV-JSON representation will also find support from a wider community.
+PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchanging provenance information between research projects. In addition, the PROV-JSON representation also aims at facilitating client-side manipulations of provenance information and, at the same time, allowing the use of a generic client-side API in various web applications. However, as it is based on the Provenance Data Model (http://www.w3.org/TR/prov-dm/) being standardized at the W3C Provenance Working Group, it is hoped that the PROV-JSON representation will also find support from a wider community.
 
-Plan for a PROV-JSON toolbox that falicitates accessing and manipulating PROV-JSON structures:
+Plan for a PROV-JSON toolbox that facilitates accessing and manipulating PROV-JSON structures:
 
 In conjunction with the PROV-JSON specifications provided in this document, a PROV-JSON toolbox is being developed to facilitate working with PROV-JSON structures. The toolbox will provide the following functionalities:
 Querying: query support for
  - properties of an element or a relation,
  - elements and relations based on their types, and
- - inluding/excluding specific types of elements/relations.
-Traversing: the toolbox presents a PROV-JSON structure as a provenance graphs of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph from one element.
-Simple inference: transivity closure support for transitive relations in PROV-DM
+ - including/excluding specific types of elements/relations.
+Traversing: the toolbox presents a PROV-JSON structure as a provenance graph of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph from one element.
+Simple inference: transitivity closure support for transitive relations in PROV-DM
 Editing: creating and updating provenance graphs
-Typed literals: handle popular data types (e.g. XSD) and provide extension points for apllication-specific data types
-UI widgets: generic Javescript UI widgets to support the functionalities above
+Typed literals: handle popular data types (e.g. XSD) and provide extension points for application-specific data types
+UI widgets: generic JavaScript UI widgets to support the functionalities above
