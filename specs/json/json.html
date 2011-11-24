@@ -232,9 +232,9 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <pre class="example">
     "entity": {
-	"e1": {
-	    "x:values": [[1, 2, [1034, "xsd:positiveInteger"], [82.5, "xsd:decimal"], ["Y29udGBudCBoZXJl", "xsd:base64Binary"]], "provjs:array"]
-	}
+        "e1": {
+            "x:values": [[[1, "xsd:integer"], 2, [1034, "xsd:positiveInteger"], [82.5, "xsd:decimal"], ["Y29udGBudCBoZXJl", "xsd:base64Binary"]], "provjs:array"]
+        }
     }
 </pre>
 
@@ -355,14 +355,14 @@ activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host
 <p>In PROV-DM, an <a href="http://www.w3.org/TR/prov-dm/#record-Agent">agent</a> is a representation of an entity capable of activity. Since an <span class="nonterminal">agentRecord</span> does not have any property, the <span class="name">agent</span> structure in PROV-JSON is organized as an array which contains the identifiers of all the entities that are asserted as agents (i.e. not an object structure like <span class="name">entity</span> or <span class="name">activity</span>).
 
 <pre class="example">
-agent(e1, [ex:employee="1234", ex:name="Alice", prov:type="prov:Person" %% xsd:QName])
+agent(e1, [ex:employee="1234" %% xsd:integer, ex:name="Alice", prov:type="prov:Person" %% xsd:QName])
 </pre>
 is encoded into:
 <pre class="example">
     ...
     "entity": {
         "e1": {
-            "ex:employee": "1234",
+            "ex:employee": [1234, "xsd:integer"],
             "ex:name": "Alice",
             "type": ["Person", "xsd:QName"]
         }
@@ -1016,42 +1016,29 @@ container([x http://example.org/], [acc1,acc2]
 <section id="extensibility-section"> 
 <h2>Extensibility Points</h2>
 
-<div class="issue">TODO: This section need to be rewritten to reflect the major changes applied since the last public PROV-DM version.</div>
-
-<p>Since the PROV-JSON representation was developed to encode PROV-DM, it supports the <a href="http://www.w3.org/TR/prov-dm/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
+<p>Since the PROV-JSON representation was developed to represent PROV-DM, it supports the <a href="http://www.w3.org/TR/prov-dm/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
 
 <ul>
-<li> Applications are free to introduce application-specific attributes, according to their perspective on the world. Attributes for a given application can be distinguished by qualifying them with a prefix denoting a namespace declared in a namespace declaration.
-
-<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a set of reserved attributes: <span class="name">type</span>, <span class="name">location</span>. In addition, PROV-JSON represents most PROV-DM records and their properties as properties of an element, and, therefore, all these names are reserved. Specifically, they are: <span class="name">wasGeneratedBy</span>, <span class="name">used</span>, <span class="name">wasDerivedFrom</span>, <span class="name">wasEventuallyDerivedFrom</span>, <span class="name">dependedOn</span>, <span class="name">wasControlledBy</span>, <span class="name">wasComplementOf</span>, <span class="name">wasInformedBy</span>, <span class="name">wasScheduledAfter</span>, <span class="name">wasRevisionOf</span>, <span class="name">hadParticipant</span>, <span class="name">hasNote</span>, <span class="name">asserter</span>, <span class="name">parent</span>, <span class="name">startTime</span>, <span class="name">endTime</span>, <span class="name">time</span>, <span class="name">agent</span>, <span class="name">activity</span>.</p>
-</li>
+<li> Applications are free to introduce application-specific attributes. They can be distinguished by qualifying them with a prefix denoting a namespace declared in a <a href="#RecordContainer">namespace declaration</a>. </li>
 
 <li>Note records allow arbitrary metadata to be associated with identifiable records of PROV-DM. Note records consist of name-value pairs. Like attributes, names are qualified by a namespace.</li>
-
-<li> Qualifiers offer a mechanism to describe modalities of use, generation, and control. They consist of ordered sequence of name-value pairs. Such names are also qualified by namespaces.
-
-<p>The <a href="#prov-dm-namespace">PROV-DM namespace</a> declares a reserved qualifier: <span class="name">role</span>.</p></li>
 
 <li>Namespaces allow attributes and names to be qualified. </li>
 
 <li>Subtyping is allowed by means of the reserved attribute <span class="name">type</span>.</li>
 
-<li>Domain specific values can be expressed by means of typed literals. </li>
+<li>Domain specific values can be expressed by means of <a href="#data-typing">typed literals</a>. </li>
 </ul>
-
-<p>The PROV data model is designed to be application and technology independent, but specializations of PROV-DM are welcome and encouraged.  To ensure inter-operability, specializations of the PROV data model that exploit the extensibility points summarized in this section MUST preserve the semantics specified in this document. For instance, a qualified attribute on a domain specific entity record MUST represent an aspect of a characterized thing and this aspect MUST remain unchanged during the characterization's interval of this entity record.</p>
-
 
 </section> 
 
 <section id="prov-json-example" class="appendix"> 
 <h2>PROV-JSON Serialization Example</h2>
 
+In order to illustrate the use of PROV-JSON in a real-world scenario, this section provides the PROV-JSON representation for the <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">File Scenario</a> given in the [[PROV-DM]] as an example.
 
 <section> 
 <h3>A File Scenario</h3>
-
-<div class='issue'>TODO: Link to <a href="http://www.w3.org/TR/prov-dm/#prov-dm-example">PROV-DM's example section</a></div>
 
 <p>This scenario is concerned with the evolution of a crime statistics file (referred to as e0) stored on a shared file system and which journalists Alice, Bob, Charles, David, and Edith can share and edit. We consider various events in the evolution of file e0; events listed below follow each other, unless otherwise specified.</p>
 
