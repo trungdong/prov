@@ -1,0 +1,48 @@
+{
+	"prefix": {
+		"default": "http://www.example.org"
+	}
+	"entity": {
+		"http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html": {
+		},
+		"http://users.ecs.soton.ac.uk/tdh/json/": {
+		},
+		"http://users.ecs.soton.ac.uk/tdh/foaf.rdf": {
+			"prov:type": "Person"
+		}
+	},
+	"activity": {
+		"editing12": {
+			"prov:recipeLink": "editing"
+		}
+	},
+	"agent": [
+		"http://users.ecs.soton.ac.uk/tdh/foaf.rdf"
+	],
+	"wasAssociatedWith": {
+		"_:wAW1": {
+			"prov:activity": "ex:editing12",
+			"prov:agent": "http://users.ecs.soton.ac.uk/tdh/foaf.rdf",
+			"prov:role": "editor"
+		}
+	},
+	"wasDerivedFrom": {
+		"_:wDF1": {
+			"prov:generatedEntity": "http://users.ecs.soton.ac.uk/tdh/json/",
+			"prov:usedEntity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html"
+		}
+	},
+	"wasGeneratedBy": {
+		"_:wGB1": {
+			"prov:entity": "http://users.ecs.soton.ac.uk/tdh/json/",
+			"prov:activity": "editing12",
+			"prov:time": ["2011-11-24T01:31:12-08:00", "xsd:dateTime"]
+		}
+	},
+	"used": {
+		"_:u1": {
+			"prov:activity": "ex:editing12",
+			"prov:entity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html"
+		}
+	}
+}

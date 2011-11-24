@@ -7,7 +7,7 @@ Querying: query support for
  - properties of an element or a relation,
  - elements and relations based on their types, and
  - including/excluding specific types of elements/relations.
-Traversing: the toolbox presents a PROV-JSON structure as a provenance graph of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph from one element.
+Traversing: the toolbox presents a PROV-JSON structure as a provenance graph of elements linked by their relations. By so doing, it provides a number of ways to traverse the graph (horizontally or vertically) from a particular element.
 Simple inference: transitivity closure support for transitive relations in PROV-DM
 Editing: creating and updating provenance graphs
 Typed literals: handle popular data types (e.g. XSD) and provide extension points for application-specific data types
