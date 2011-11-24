@@ -1,3 +1,5 @@
+// Expanded from the ex-simple.json, with more details about the derivation relation
+// Application-specific prefix "ex" defined
 {
 	"prefix": {
 		"ex": "http://www.example.org"
@@ -29,7 +31,10 @@
 	"wasDerivedFrom": {
 		"_:wDF1": {
 			"generatedEntity": "http://users.ecs.soton.ac.uk/tdh/json/",
-			"usedEntity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html"
+			"usedEntity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html",
+			"activity": ex:editing12,
+			"generation": "_:wGB1",
+			"usage": "_:u1"
 		}
 	},
 	"wasGeneratedBy": {
