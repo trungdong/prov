@@ -1,8 +1,8 @@
-// Same as ex-prefix.json. However, the application-specific prefix “ex” is now defined as default.
+// Same as ex-prefix.json. However, the application-specific prefix ï¿½exï¿½ is now defined as default.
 {
 	"prefix": {
 		"default": "http://www.example.org"
-	}
+	},
 	"entity": {
 		"http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html": {
 		},
@@ -30,8 +30,8 @@
 	"wasDerivedFrom": {
 		"_:wDF1": {
 			"prov:generatedEntity": "http://users.ecs.soton.ac.uk/tdh/json/",
-			"prov:usedEntity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html"
-			"prov:activity": editing12,
+			"prov:usedEntity": "http://dvcs.w3.org/hg/prov/file/398ecd23ada1/model/ProvenanceModel.html",
+			"prov:activity": "editing12",
 			"prov:generation": "_:wGB1",
 			"prov:usage": "_:u1"
 		}
