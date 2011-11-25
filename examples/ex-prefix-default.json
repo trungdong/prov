@@ -1,4 +1,4 @@
-// Same as ex-prefix.json. However, the application-specific prefix �ex� is now defined as default.
+// Same as ex-prefix.json. However, the application-specific prefix "ex" is now defined as default.
 {
 	"prefix": {
 		"default": "http://www.example.org"
