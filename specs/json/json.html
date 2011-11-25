@@ -228,7 +228,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <pre class="example">
     "entity": {
         "e1": {
-            "x:visible", true,
+            "x:visible": true,
             "x:visible": [true, "xsd:boolean"],
             "x:visible": ["true", "xsd:boolean"],
             "x:visible": ["true", "ex:customBoolean"],
@@ -475,14 +475,14 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
             "activity": "pe1",
             "entity": "e1",
             "ex:port": "p1",
-            "ex:order": [1, xsd:integer],
+            "ex:order": [1, "xsd:integer"],
             "time":  ["2001-10-26T21:32:52", "xsd:dateTime"]
         },
         "_:wBG2": {
             "activity": "pe1",
             "entity": "e2",
             "ex:port": "p1",
-            "ex:order": [2, xsd:integer],
+            "ex:order": [2, "xsd:integer"],
             "time":  ["2001-10-26T10:00:00", "xsd:dateTime"]
         },
     },
@@ -802,7 +802,6 @@ The <a href="http://www.w3.org/TR/prov-dm/#record-responsibility">responsibility
         "_:wBF1": {
             "generatedEntity": "e2",
             "usedEntity": "e1"
-        },
         }
     },
     ...
@@ -849,8 +848,8 @@ The following records, for example,</p>
     "activity": {
         "a": {
             "recipeLink": "transform",
-            "startTime": t1,
-            "endTime": t2,
+            "startTime": "t1",
+            "endTime": "t2",
         },
     },
     "note": {
