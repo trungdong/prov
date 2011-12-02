@@ -199,7 +199,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <dl>
 <dt>number</dt>
-<dd>xsd:double</dd>
+<dd>xsd:decimal</dd>
 <dt>string</dt>
 <dd>xsd:string</dd>
 <dt>boolean</dt>
@@ -217,7 +217,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     "entity": {
         "e1": {
             "x:byteSize": [1034, "xsd:positiveInteger"],
-            "x:compression": [82.5, "xsd:decimal"],
+            "x:compression": ["82.5e-2", "xsd:double"],
             "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
         }
     }
