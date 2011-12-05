@@ -7,7 +7,7 @@
       "type":"object",
       "description":"",
       "patternProperties": {
-        "^[a-zA-Z0-9_\-]+$": {
+        "^[a-zA-Z0-9_\\-]+$": {
           "type" : "string",
           "format": "uri"
         }
@@ -16,9 +16,7 @@
     },
     "entity":{
       "type":"object",
-      "description":"Map of entities by ids",
-      // TODO: use patternProperties instead of additionalProperties as the keys
-      // are required to be valid ids.
+      "description":"Map of entities by ids. TODO: use patternProperties instead of additionalProperties as the keys are required to be valid ids.",
       "additionalProperties":{
         "type":"object",
         "title":"entity",
@@ -77,7 +75,7 @@
         "actedOnBehalfOf":{"$ref":"#/properties/actedOnBehalfOf"},
         "wasDerivedFrom":{"$ref":"#/properties/wasDerivedFrom"},
         "wasComplementOf":{"$ref":"#/properties/wasComplementOf"},
-        "hasAnnotation":{"$ref":"#/properties/hasAnnotation"},
+        "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
       },
       "additionalProperties": {
         "type":"object",
@@ -96,7 +94,7 @@
           "actedOnBehalfOf":{"$ref":"#/properties/actedOnBehalfOf"},
           "wasDerivedFrom":{"$ref":"#/properties/wasDerivedFrom"},
           "wasComplementOf":{"$ref":"#/properties/wasComplementOf"},
-          "hasAnnotation":{"$ref":"#/properties/hasAnnotation"},
+          "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
         },
         "additionalProperties": false
       }
@@ -141,17 +139,14 @@
     },
     "wasDerivedFrom": {
       "type":"object",
+      "decription":"PROV-DM requires that activity, generation, and usage must be present at the same time with one another, hence the 'dependencies' requirements below. However, the requirement for 'prov:steps' can not be described as 'prov:steps' could also appear as 'steps' or 'anyprefix:steps'",
       "additionalProperties":{
         "type":"object",
         "properties":{
           "generatedEntity": {"type": "string", "format": "uri", "required":true},
           "usedEntity": {"type": "string", "format": "uri", "required":true},
-          // PROV-DM requires that the following must be present at the same time 
-          // with one another, hence the "dependencies" requirements below.
-          // However, the requirement for "prov:steps" can not be described as 
-          // "prov:steps" could also appear as "steps" or "anyprefix:steps"
-          "activity": {"type": "string", "format": "uri"}
-          "generation": {"type": "string", "format": "uri"}
+          "activity": {"type": "string", "format": "uri"},
+          "generation": {"type": "string", "format": "uri"},
           "usage": {"type": "string", "format": "uri"}
         },
         "additionalProperties":{"$ref":"literal"},
@@ -183,8 +178,8 @@
         },
         "additionalProperties": false
       }
-    },
+    }
     
-  }
+  },
   "additionalProperties": false
 }
