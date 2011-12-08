@@ -20,11 +20,7 @@
       "additionalProperties":{
         "type":"object",
         "title":"entity",
-        "additionalProperties":{
-          "type":"string",
-          "title": "literal",
-          "pattern": "TODO"
-        }
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "activity":{
@@ -38,7 +34,7 @@
           "startTime": {"type": "string", "format": "date-time"},
           "endTime": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{"$ref":"literal"}
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "agent":{
@@ -55,28 +51,12 @@
       "additionalProperties":{
         "type":"object",
         "title":"entity",
-        "additionalProperties":{"$ref":"literal"}
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "account": {
       "type":"object",
       "description":"Map of accounts by ids",
-      "properties":{
-        "asserter": {"type": "string", "format": "uri"},
-        "entity":{"$ref":"#/properties/entity"},
-        "activity":{"$ref":"#/properties/activity"},
-        "agent":{"$ref":"#/properties/agent"},
-        "note":{"$ref":"#/properties/note"},
-        "wasGeneratedBy":{"$ref":"#/properties/wasGeneratedBy"},
-        "used":{"$ref":"#/properties/used"},
-        "wasAssociatedWith":{"$ref":"#/properties/wasAssociatedWith"},
-        "wasStartedBy":{"$ref":"#/properties/wasStartedBy"},
-        "wasEndedby":{"$ref":"#/properties/wasEndedby"},
-        "actedOnBehalfOf":{"$ref":"#/properties/actedOnBehalfOf"},
-        "wasDerivedFrom":{"$ref":"#/properties/wasDerivedFrom"},
-        "wasComplementOf":{"$ref":"#/properties/wasComplementOf"},
-        "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
-      },
       "additionalProperties": {
         "type":"object",
         "title":"account",
@@ -108,7 +88,7 @@
           "activity": {"type": "string", "format": "uri", "required":true},
           "time": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{"$ref":"literal"}
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "used": {"$ref":"#/properties/wasGeneratedBy"},
@@ -120,7 +100,7 @@
           "activity": {"type": "string", "format": "uri", "required":true},
           "agent": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties":{"$ref":"literal"}
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "wasStartedBy": {"$ref":"#/properties/wasAssociatedWith"},
@@ -134,7 +114,7 @@
           "responsible": {"type": "string", "format": "uri", "required":true},
           "activity": {"type": "string", "format": "uri"}
         },
-        "additionalProperties":{"$ref":"literal"}
+        "additionalProperties":{"$ref":"prov-literal-schema.js"}
       }
     },
     "wasDerivedFrom": {
