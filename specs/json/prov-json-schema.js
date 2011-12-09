@@ -20,7 +20,7 @@
       "additionalProperties":{
         "type":"object",
         "title":"entity",
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "activity":{
@@ -34,7 +34,7 @@
           "startTime": {"type": "string", "format": "date-time"},
           "endTime": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "agent":{
@@ -51,7 +51,7 @@
       "additionalProperties":{
         "type":"object",
         "title":"entity",
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "account": {
@@ -88,7 +88,7 @@
           "activity": {"type": "string", "format": "uri", "required":true},
           "time": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "used": {"$ref":"#/properties/wasGeneratedBy"},
@@ -100,7 +100,7 @@
           "activity": {"type": "string", "format": "uri", "required":true},
           "agent": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "wasStartedBy": {"$ref":"#/properties/wasAssociatedWith"},
@@ -114,7 +114,7 @@
           "responsible": {"type": "string", "format": "uri", "required":true},
           "activity": {"type": "string", "format": "uri"}
         },
-        "additionalProperties":{"$ref":"prov-literal-schema.js"}
+        "additionalProperties":{}
       }
     },
     "wasDerivedFrom": {
