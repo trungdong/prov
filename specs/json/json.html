@@ -33,12 +33,12 @@
           "<a href=\"http://www.w3.org/TR/prov-dm/\"><cite>The PROV Data Model and Abstract Syntax Notation</cite></a>. "+
           "2011, Work in progress. "+
           "URL: <a href=\"http://www.w3.org/TR/prov-dm/\">http://www.w3.org/TR/prov-dm/</a>",
-/*        "PROV-SEMANTICS":
-          "James Cheney "+
-          "<a href=\"http://www.w3.org/2011/prov/wiki/FormalSemanticsStrawman\"><cite>Formal Semantics Strawman</cite></a>. "+
-          "2011, Work in progress. "+
-          "URL: <a href=\"http://www.w3.org/2011/prov/wiki/FormalSemanticsStrawman\">http://www.w3.org/2011/prov/wiki/FormalSemanticsStrawman</a>",
-
+          "JSON-SCHEMA":
+          "Kris Zyp and Gary Court "+
+          "<a href=\"http://tools.ietf.org/html/draft-zyp-json-schema-03\"><cite>A JSON Media Type for Describing the Structure and Meaning of JSON Documents</cite></a>. "+
+          "2011, Draft 3. "+
+          "URL: <a href=\"http://tools.ietf.org/html/draft-zyp-json-schema-03\">http://tools.ietf.org/html/draft-zyp-json-schema-03</a>",
+/*
         "PROV-PRIMER":
           "Yolanda Gil and Simon Miles "+
           "<a href=\"http://dvcs.w3.org/hg/prov/raw-file/default/primer/Primer.html\"><cite>Prov Model Primer</cite></a>. "+
@@ -258,7 +258,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <h2>Representing the Provenance Data Model in JSON</h2>
 
-<p>This section defines the JSON serialization mappings for PROV-DM records.</p>
+<p>This section defines the JSON serialization mappings for PROV-DM records. The mappings are presented in the forms of examples with the intention of facilitating the use of PROV-JSON. A <a href="prov-json-schema.js">schema for PROV-JSON</a>, however, is also provided for the purpose of validating PROV-JSON documents (following the schema language in [[JSON-SCHEMA]]).</p>
 
 <section id="PROV-JSON-overview"> 
       
@@ -1024,6 +1024,15 @@ container([x http://example.org/], [acc1,acc2]
 
 </section>
 </section>
+
+<section id="extensibility-identifiers"> 
+<h3>Identifiers</h3>
+
+<p>An identifier in PROV-JSON (and in <a href="http://www.w3.org/TR/prov-dm/#record-identifier">PROV-DM</a>) is a qualified name.</p>
+
+<div class="note">It is possible that there are two (or more) qualified names that resolves to the same IRI. PROV-JSON makes no provision to ensure that records referred by equivalent identifiers will be merged. It is the responsibility of the application consuming PROV-JSON to deal with such cases properly. However, it is recommended that applications producing PROV-JSON to make an effort to prevent those cases from occurring.</div>
+</section>
+
 </section>
 
 <section id="extensibility-section"> 
@@ -1042,6 +1051,7 @@ container([x http://example.org/], [acc1,acc2]
 
 <li>Domain specific values can be expressed by means of <a href="#data-typing">typed literals</a>. </li>
 </ul>
+
 
 </section> 
 
