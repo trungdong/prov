@@ -1,0 +1,59 @@
+{
+  "wasGeneratedBy": {
+    "_:wGB1": {
+      "prov:activity": "ex1:aggregated",
+      "prov:entity": "ex1:aggregate1"
+    },
+    "_:wGB2": {
+      "prov:activity": "ex1:illustrated",
+      "prov:entity": "ex1:chart1"
+    }
+  },
+  "entity": {
+    "ex1:chart1": {},
+    "ex1:derek": {
+      "prov:type": "prov:agent"
+    },
+    "ex1:aggregate1": {},
+    "ex1:regionList1": {},
+    "ex1:dataSet1": {}
+  },
+  "prefix": {
+    "ex2": "http://example.org/ex2",
+    "ex1": "http://example.org/ex1"
+  },
+  "used": {
+    "u1": {
+      "prov:activity": "ex1:aggregated",
+      "prov:role": "dataToAggregate",
+      "prov:entity": "ex1:dataSet1"
+    },
+    "_:u1": {
+      "prov:activity": "ex1:aggregated",
+      "prov:entity": "ex1:dataSet1"
+    },
+    "_:u3": {
+      "prov:activity": "ex1:illustrated",
+      "prov:entity": "ex1:aggregate1"
+    },
+    "_:u2": {
+      "prov:activity": "ex1:aggregated",
+      "prov:entity": "ex1:regionList1"
+    },
+    "_:u5": {
+      "prov:activity": "ex1:aggregated",
+      "prov:role": "regionsToAggregteBy",
+      "prov:entity": "ex1:regionList1"
+    },
+    "_:u4": {
+      "prov:activity": "ex1:aggregated",
+      "prov:role": "dataToAggregate",
+      "prov:entity": "ex1:dataSet1"
+    }
+  },
+  "activity": {
+    "ex1:aggregated": {},
+    "ex1:illustrated": {},
+    "ex1:compiled": {}
+  }
+}

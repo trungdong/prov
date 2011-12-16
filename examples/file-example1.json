@@ -1,0 +1,294 @@
+{
+  "wasAssociatedWith": {
+    "_:wAW1": {
+      "prov:activity": "ag1",
+      "prov:agent": "a0",
+      "prov:role": "creator"
+    },
+    "_:wAW3": {
+      "prov:activity": "ag3",
+      "prov:agent": "a2",
+      "prov:role": "communicator"
+    },
+    "_:wAW2": {
+      "prov:activity": "ag2",
+      "prov:agent": "a1",
+      "prov:role": "author"
+    },
+    "_:wAW5": {
+      "prov:activity": "ag5",
+      "prov:agent": "a4",
+      "prov:role": "communicator"
+    },
+    "_:wAW4": {
+      "prov:activity": "ag4",
+      "prov:agent": "a3",
+      "prov:role": "author"
+    }
+  },
+  "wasComplementOf": {
+    "_:wCO4": {
+      "prov:older": "e3",
+      "prov:newer": "e6"
+    },
+    "_:wCO1": {
+      "prov:older": "e0",
+      "prov:newer": "e1"
+    },
+    "_:wCO3": {
+      "prov:older": "e0",
+      "prov:newer": "e3"
+    },
+    "_:wCO2": {
+      "prov:older": "e0",
+      "prov:newer": "e2"
+    }
+  },
+  "wasGeneratedBy": {
+    "g2": {
+      "port": "smtp",
+      "prov:activity": "a4",
+      "prov:entity": "e5",
+      "section": "attachment"
+    },
+    "g1": {
+      "port": "smtp",
+      "prov:activity": "a2",
+      "prov:entity": "e4",
+      "section": "attachment"
+    },
+    "_:wGB1": {
+      "prov:activity": "a0",
+      "prov:entity": "e0"
+    },
+    "_:wGB2": {
+      "prov:activity": "a0",
+      "prov:entity": "e1",
+      "fct": "create"
+    },
+    "_:wGB3": {
+      "prov:activity": "a1",
+      "prov:entity": "e2",
+      "fct": "save"
+    },
+    "_:wGB4": {
+      "prov:activity": "a3",
+      "prov:entity": "e3",
+      "fct": "save"
+    },
+    "_:wGB5": {
+      "prov:activity": "a5",
+      "file": "stdout",
+      "prov:entity": "e6"
+    }
+  },
+  "entity": {
+    "ag1": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Person"
+      ],
+      "name": "Alice"
+    },
+    "s2": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Plan"
+      ],
+      "url": [
+        "xsd:anyURI",
+        "http://example.org/strategy2"
+      ]
+    },
+    "s1": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Plan"
+      ],
+      "url": [
+        "xsd:anyURI",
+        "http://example.org/strategy1"
+      ]
+    },
+    "ag5": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Person"
+      ],
+      "name": "Edith"
+    },
+    "ag4": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Person"
+      ],
+      "name": "David"
+    },
+    "ag3": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Person"
+      ],
+      "name": "Charles"
+    },
+    "ag2": {
+      "prov:type": [
+        "xsd:QName",
+        "prov:Person"
+      ],
+      "name": "Bob"
+    },
+    "e6": {
+      "content": "There was a lot of crime in London and New York last month.",
+      "prov:type": "File",
+      "spellchecked": "yes",
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e5": {},
+    "e3": {
+      "content": "There was a lot of crime in London and New York last month.",
+      "prov:type": "File",
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e4": {},
+    "e1": {
+      "content": "",
+      "prov:type": "File",
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e2": {
+      "content": "There was a lot of crime in London last month.",
+      "prov:type": "File",
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e0": {
+      "prov:type": "File",
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e0c": {
+      "prov:type": [
+        "-5",
+        "xsd:int"
+      ],
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e0d": {
+      "prov:type": [
+        "xsd:anyURI",
+        "http://www.example/foo"
+      ],
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e0a": {
+      "prov:type": [
+        "xsd:string",
+        "File"
+      ],
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    },
+    "e0b": {
+      "prov:type": [
+        "xsd:int",
+        "5"
+      ],
+      "path": "/shared/crime.txt",
+      "creator": "Alice"
+    }
+  },
+  "prefix": {
+    "default": "http://example.org/"
+  },
+  "hadPlan": {
+    "_:hP2": {
+      "prov:activity": "a2",
+      "prov:plan": "s2",
+      "kind": "newest"
+    },
+    "_:hP1": {
+      "prov:activity": "a2",
+      "prov:plan": "s1",
+      "kind": "supersed"
+    }
+  },
+  "wasDerivedFrom": {
+    "_:wDF1": {
+      "prov:generatedEntity": "e1",
+      "prov:usedEntity": "e2"
+    },
+    "_:wDF3": {
+      "prov:activity": "a2",
+      "prov:generatedEntity": "e2",
+      "prov:usage": "g1",
+      "prov:generation": "u2",
+      "prov:usedEntity": "e4"
+    },
+    "_:wDF2": {
+      "prov:generatedEntity": "e2",
+      "prov:usedEntity": "e3"
+    },
+    "_:wDF5": {
+      "prov:generatedEntity": "s1",
+      "prov:usedEntity": "s2"
+    },
+    "_:wDF4": {
+      "prov:activity": "a4",
+      "prov:generatedEntity": "e3",
+      "prov:usage": "g2",
+      "prov:generation": "u2",
+      "prov:usedEntity": "e5"
+    }
+  },
+  "used": {
+    "u2": {
+      "prov:activity": "a4",
+      "prov:entity": "e3",
+      "fct": "attach"
+    },
+    "u1": {
+      "prov:activity": "a2",
+      "prov:entity": "e2",
+      "fct": "attach"
+    },
+    "_:u1": {
+      "prov:activity": "a1",
+      "prov:entity": "e1",
+      "fct": "load"
+    },
+    "_:u3": {
+      "prov:activity": "a5",
+      "file": "stdin",
+      "prov:entity": "e3"
+    },
+    "_:u2": {
+      "prov:activity": "a3",
+      "prov:entity": "e2",
+      "fct": "load"
+    }
+  },
+  "activity": {
+    "a0": {
+      "prov:startTime": "2011-11-16T16:00:00"
+    },
+    "a1": {
+      "prov:startTime": "2011-11-16T16:05:00"
+    },
+    "a2": {
+      "prov:startTime": "2011-11-16T17:00:00"
+    },
+    "a3": {
+      "prov:endTime": "2011-11-17T09:00:00"
+    },
+    "a4": {
+      "prov:endTime": "2011-11-17T09:30:00"
+    },
+    "a5": {}
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "wasGeneratedBy": {
+    "g1": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2001-10-26T21:32:52Z",
+      "prov:entity": "ex:e1"
+    },
+    "_:wGB1": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2011-12-01T14:52:35Z",
+      "prov:entity": "ex:e1"
+    },
+    "_:wGB2": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2011-12-01T14:52:35Z",
+      "ex:param": "a",
+      "prov:entity": "ex:e1"
+    },
+    "_:wGB3": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2011-12-01T14:52:35Z",
+      "ex:param": "a",
+      "prov:entity": "ex:e1",
+      "ex:port": "foo"
+    },
+    "_:wGB4": {
+      "prov:activity": "ex:a2",
+      "prov:entity": "ex:e1"
+    },
+    "_:wGB5": {
+      "prov:activity": "ex:a2",
+      "ex:param": "a",
+      "prov:entity": "ex:e1"
+    },
+    "_:wGB6": {
+      "prov:activity": "ex:a2",
+      "ex:param": "a",
+      "prov:entity": "ex:e1",
+      "ex:port": "foo"
+    }
+  },
+  "entity": {
+    "ex:e2": {
+      "ex:param": "a"
+    },
+    "ex:e3": {
+      "ex:param": [
+        "http://example.org/type",
+        "a"
+      ]
+    },
+    "ex:e4": {
+      "ex:param": [
+        "http://example.org/type",
+        "a"
+      ]
+    },
+    "ex:e5": {
+      "ex:param": [
+        "xsd:foo",
+        "a"
+      ]
+    },
+    "ex:e1": {},
+    "ex:e6": {
+      "ex:param": "a",
+      "ex:port": "foo"
+    },
+    "ex:e7": {
+      "ex:param": "a",
+      "ex:port": [
+        "http://example.org/type",
+        "foo"
+      ]
+    },
+    "ex:e8": {
+      "ex:param": "a",
+      "ex:port": [
+        "ex:type",
+        "foo"
+      ]
+    },
+    "ex:ag5": {
+      "prov:type": "prov:agent",
+      "ex:param": [
+        "xsd:foo",
+        "a"
+      ]
+    },
+    "ex:ag6": {
+      "prov:type": "prov:agent",
+      "ex:param": "a",
+      "ex:port": "foo"
+    },
+    "ex:ag7": {
+      "prov:type": "prov:agent",
+      "ex:param": "a",
+      "ex:port": [
+        "http://example.org/type",
+        "foo"
+      ]
+    },
+    "ex:ag8": {
+      "prov:type": "prov:agent",
+      "ex:param": "a",
+      "ex:port": [
+        "ex:type",
+        "foo"
+      ]
+    },
+    "ex:e2c": {
+      "ex:param": [
+        "-100",
+        "xsd:int"
+      ]
+    },
+    "ex:ag1": {
+      "prov:type": "prov:agent"
+    },
+    "ex:e2b": {
+      "ex:param": [
+        "10",
+        "xsd:int"
+      ]
+    },
+    "ex:ag2": {
+      "prov:type": "prov:agent"
+    },
+    "ex:ag3": {
+      "prov:type": "prov:agent",
+      "ex:param": [
+        "http://example.org/type",
+        "a"
+      ]
+    },
+    "ex:ag4": {
+      "prov:type": "prov:agent",
+      "ex:param": [
+        "http://example.org/type",
+        "a"
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/ex",
+    "default": "http://example.org/default",
+    "ex2": "http://example.org/ex2"
+  },
+  "hadPlan": {
+    "_:hP1": {
+      "prov:activity": "ex:a2",
+      "ex:execution": "success",
+      "prov:plan": "ex:e8"
+    }
+  },
+  "wasDerivedFrom": {
+    "_:wDF1": {
+      "prov:generatedEntity": "ex:e2",
+      "prov:usedEntity": "ex:e1"
+    },
+    "_:wDF3": {
+      "prov:activity": "ex:pe",
+      "prov:generatedEntity": "ex:e2",
+      "prov:usage": "ex:g2",
+      "prov:generation": "ex:u1",
+      "prov:usedEntity": "ex:e1"
+    },
+    "_:wDF2": {
+      "prov:generatedEntity": "ex:e2",
+      "ex:param": "a",
+      "prov:usedEntity": "ex:e1",
+      "ex:port": "foo"
+    },
+    "_:wDF4": {
+      "prov:activity": "ex:pe",
+      "prov:generatedEntity": "ex:e2",
+      "prov:usage": "ex:g2",
+      "ex:param": "a",
+      "prov:generation": "ex:u1",
+      "prov:usedEntity": "ex:e1",
+      "ex:port": "foo"
+    }
+  },
+  "used": {
+    "u1": {
+      "prov:activity": "ex:a2",
+      "prov:role": "dataToAggregate",
+      "prov:entity": "ex:e1"
+    },
+    "_:u1": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2001-10-26T21:32:52",
+      "prov:entity": "ex:e1"
+    },
+    "_:u3": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2001-10-26T21:32:52",
+      "ex:param": "a",
+      "prov:entity": "ex:e1"
+    },
+    "_:u2": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2001-10-26T21:32:52",
+      "prov:entity": "ex:e1"
+    },
+    "_:u5": {
+      "prov:activity": "ex:a2",
+      "prov:entity": "ex:e1"
+    },
+    "_:u4": {
+      "prov:activity": "ex:a2",
+      "prov:time": "2001-10-26T21:32:52",
+      "ex:param": "a",
+      "prov:entity": "ex:e1",
+      "ex:port": "foo"
+    },
+    "_:u7": {
+      "prov:activity": "ex:a2",
+      "ex:param": "a",
+      "prov:entity": "ex:e1"
+    },
+    "_:u6": {
+      "prov:activity": "ex:a2",
+      "prov:entity": "ex:e1"
+    },
+    "_:u8": {
+      "prov:activity": "ex:a2",
+      "ex:param": "a",
+      "prov:entity": "ex:e1",
+      "ex:port": "foo"
+    }
+  },
+  "activity": {
+    "ex:a2": {
+      "prov:startTime": "2001-10-26T22:33:55",
+      "ex:param": "a",
+      "prov:endTime": "2001-11-12T21:32:52",
+      "ex:port": "foo"
+    }
+  }
+}
