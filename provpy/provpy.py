@@ -16,7 +16,7 @@ class Record:
     def _convert_value_JSON(self,value):
         valuetojson = None
         if isinstance(value,PROVLiteral):
-            valuetojson=value.to_JSON()
+            valuetojson=value.to_provJSON()
         else:
             type = self._get_type_JSON(value)
             if not type is None:
@@ -57,7 +57,7 @@ class PROVGraph(Record):
         elif isinstance(record,Account):
             self._accountlist.append(record)
             
-    def to_JSON(self):
+    def to_provJSON(self):
         self._provcontainer = {'prefix':{}}
         for prefix,url in self._namespacedict.items():
             self._provcontainer['prefix'][prefix]=url
@@ -66,22 +66,22 @@ class PROVGraph(Record):
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
                 self._provcontainer['agent'].append(element.identifier)
-            for key in element.to_JSON():
+            for key in element.to_provJSON():
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(element.to_JSON()[key])
+                self._provcontainer[key].update(element.to_provJSON()[key])
         for relation in self._relationlist:
             if relation.identifier is None:
                 relation.identifier = self._generate_identifer()
-            for key in relation.to_JSON():
+            for key in relation.to_provJSON():
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(relation.to_JSON()[key])
+                self._provcontainer[key].update(relation.to_provJSON()[key])
         for account in self._accountlist:
-            for key in account.to_JSON():
+            for key in account.to_provJSON():
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(account.to_JSON()[key])
+                self._provcontainer[key].update(account.to_provJSON()[key])
         return self._provcontainer
                     
     def add_namespace(self,prefix,url):
@@ -264,7 +264,7 @@ class Element(Record):
         self._json = {}
         self._provcontainer = {}
         
-    def to_JSON(self):
+    def to_provJSON(self):
         self._json[self.identifier]=self.attributes
         for attribute,value in self._json[self.identifier].items():
             valuetojson = self._convert_value_JSON(value)
@@ -278,8 +278,8 @@ class Entity(Element):
     def __init__(self,id,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
         
-    def to_JSON(self):
-        Element.to_JSON(self)
+    def to_provJSON(self):
+        Element.to_provJSON(self)
         self._provcontainer['entity']=self._json
         return self._provcontainer
     
@@ -291,8 +291,8 @@ class Activity(Element):
         self.starttime=starttime
         self.endtime=endtime
         
-    def to_JSON(self):
-        Element.to_JSON(self)
+    def to_provJSON(self):
+        Element.to_provJSON(self)
         if self.starttime is not None:
             self._json[self.identifier]['prov:starttime']=self._convert_value_JSON(self.starttime)
         if self.endtime is not None:
@@ -306,8 +306,8 @@ class Agent(Entity):
     def __init__(self,id,attributes=None,account=None):
         Entity.__init__(self,id,attributes,account)
         
-    def to_JSON(self):
-        Element.to_JSON(self)
+    def to_provJSON(self):
+        Element.to_provJSON(self)
         self._provcontainer['entity']=self._json
         return self._provcontainer
         
@@ -317,8 +317,8 @@ class Note(Element):
     def __init__(self,id,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
         
-    def to_JSON(self):
-        Element.to_JSON(self)
+    def to_provJSON(self):
+        Element.to_provJSON(self)
         self._provcontainer['note']=self._json
         return self._provcontainer
 
@@ -335,7 +335,7 @@ class Relation(Record):
         self._json = {}
         self._provcontainer = {}
     
-    def to_JSON(self):
+    def to_provJSON(self):
         self._json[self.identifier]=self.attributes
         for attribute,value in self._json[self.identifier].items():
             valuetojson = self._convert_value_JSON(value)
@@ -353,8 +353,8 @@ class wasGeneratedBy(Relation):
         self.activity=activity
         self.time = time
         
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:entity']=self.entity.identifier
         self._json[self.identifier]['prov:activity']=self.activity.identifier
         if self.time is not None:
@@ -371,8 +371,8 @@ class Used(Relation):
         self.activity=activity
         self.time = time
         
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:entity']=self.entity.identifier
         self._json[self.identifier]['prov:activity']=self.activity.identifier
         if self.time is not None:
@@ -388,8 +388,8 @@ class wasAssociatedWith(Relation):
         self.activity=activity
         self.agent=agent
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:activity']=self.activity.identifier
         self._json[self.identifier]['prov:agent']=self.agent.identifier
         self._provcontainer['wasAssociatedWith']=self._json
@@ -403,8 +403,8 @@ class wasStartedBy(Relation):
         self.activity=activity
         self.agent=agent
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:activity']=self.activity.identifier
         self._json[self.identifier]['prov:agent']=self.agent.identifier
         self._provcontainer['wasStartedBy']=self._json
@@ -418,8 +418,8 @@ class wasEndedBy(Relation):
         self.activity=activity
         self.agent=agent
         
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:activity']=self.activity.identifier
         self._json[self.identifier]['prov:agent']=self.agent.identifier
         self._provcontainer['wasEndedBy']=self._json
@@ -433,8 +433,8 @@ class hadPlan(Relation):
         self.entity=entity
         self.agent=agent
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:entity']=self.entity.identifier
         self._json[self.identifier]['prov:agent']=self.agent.identifier
         self._provcontainer['hadPlan']=self._json
@@ -448,8 +448,8 @@ class actedOnBehalfOf(Relation):
         self.subordinate=subordinate
         self.responsible=responsible
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:subordinate']=self.subordinate.identifier
         self._json[self.identifier]['prov:responsible']=self.responsible.identifier
         self._provcontainer['actedOnBehalfOf']=self._json
@@ -466,8 +466,8 @@ class wasDerivedFrom(Relation):
         self.generation=generation
         self.usage=usage
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:generatedentity']=self.generatedentity.identifier
         self._json[self.identifier]['prov:usedentity']=self.usedentity.identifier
         if self.activity is not None:
@@ -487,8 +487,8 @@ class wasComplementOf(Relation):
         self.subject=subject
         self.alternate=alternate
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:subject']=self.subject.identifier
         self._json[self.identifier]['prov:alternate']=self.alternate.identifier
         self._provcontainer['wasComplementOf']=self._json
@@ -502,8 +502,8 @@ class hasAnnotation(Relation):
         self.record=record
         self.note=note
 
-    def to_JSON(self):
-        Relation.to_JSON(self)
+    def to_provJSON(self):
+        Relation.to_provJSON(self)
         self._json[self.identifier]['prov:record']=self.record.identifier
         self._json[self.identifier]['prov:note']=self.note.identifier
         self._provcontainer['hasAnnotation']=self._json
@@ -517,8 +517,8 @@ class Account(PROVGraph):
         self.identifier = id
         self.parentaccount=parentaccount
     
-    def to_JSON(self):
-        PROVGraph.to_JSON(self)
+    def to_provJSON(self):
+        PROVGraph.to_provJSON(self)
         del self._provcontainer['prefix']
         innergraph = self._provcontainer
         self._provcontainer = {'account':{}}
@@ -533,7 +533,7 @@ class PROVLiteral(Record):
         self.type=type
         self._json = []
         
-    def to_JSON(self):
+    def to_provJSON(self):
         self._json.append(self.value)
         self._json.append(self.type)
         return self._json

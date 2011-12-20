@@ -52,5 +52,5 @@ acc0.add_entity("em")
 
 en = examplegraph.add_entity('en',account=acc0)
 
-print json.dumps(examplegraph.to_JSON(),indent=4)
+print json.dumps(examplegraph.to_provJSON(),indent=4)
 
