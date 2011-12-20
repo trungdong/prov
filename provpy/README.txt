@@ -7,4 +7,4 @@ The data structure is based on the (PROV-DM) PROV Data Model and Abstract Syntax
 
 EXAMPLE
 ----------------
-There is an example python (provpyexample.py) to help start with the provpy lib API.
+There is an example python module (provpyexample.py) to help you start with the provpy lib API.

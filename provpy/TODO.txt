@@ -2,7 +2,7 @@ TODO:
 1. Change base class from PROVObject to Record;
 2. Change PROVGraph class to PROVContainer class, which should be a separate class to Record;
 3. Account class should be a direct sub-class to Record;
-4. Remove the ' %% ' separator option for dealing with literal type;
+4. Remove the ' %% ' separator option for dealing with literal type; (DONE)
 5. Change <class>.to_JSON function to <class>.to_provJSON;
 6. Add .asserter and .attributes for Account class;
 

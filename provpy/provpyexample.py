@@ -36,7 +36,7 @@ g0=wasGeneratedBy(e0,a0,id="g0",time=None,attributes=attrdict)
 examplegraph.add(g0)
 
 attrdict={"ex:fct": "load",
-          "ex:typeexample" : "MyValue %% ex:MyType"}
+          "ex:typeexample" : PROVLiteral("MyValue","ex:MyType")}
 u0 = Used(a0,e1,id="u0",time=None,attributes=attrdict)
 examplegraph.add(u0)
 
