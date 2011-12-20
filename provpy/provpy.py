@@ -17,8 +17,6 @@ class Record:
         valuetojson = None
         if isinstance(value,PROVLiteral):
             valuetojson=value.to_JSON()
-        elif isinstance(value,str) and (" %% " in value):
-            valuetojson = value.split(" %% ")
         else:
             type = self._get_type_JSON(value)
             if not type is None:
