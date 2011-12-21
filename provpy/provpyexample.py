@@ -2,7 +2,7 @@ import json
 from provpy import *
 
 
-examplegraph = PROVGraph()
+examplegraph = PROVContainer()
 
 #add namespaces
 examplegraph.add_namespace("ex","http://www.example.com/")
