@@ -4,7 +4,7 @@ TODO:
 3. Account class should be a direct sub-class to Record; (DONE:huanjiayang, in the meantime Account is also a sub-class to Bundle now)
 4. Remove the ' %% ' separator option for dealing with literal type; (DONE:huanjiayang)
 5. Change <class>.to_JSON function to <class>.to_provJSON; (DONE:huanjiayang)
-6. Add .asserter and .attributes for Account class;
+6. Add .asserter and .attributes for Account class; (DONE: huanjiayang)
 7. Namespace issue (1): PROVContainer should have a default account attribute;
 8. Namespace issue (2): PROVContainer should summary all namespaces in its accounts;
 9. Namespace issue (3): PROVContainer should be able to deal with duplicated namespace/clashed prefixes in to_provJSON();

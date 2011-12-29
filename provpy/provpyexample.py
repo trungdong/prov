@@ -44,7 +44,7 @@ d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
 examplegraph.add(d0)
 
 #add accounts
-acc0 = Account("acc0")
+acc0 = Account("acc0","http://www.example.org/asserter",attributes={"attr01":"value01","attr02":PROVLiteral("Value02","ex:valueType02")})
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
