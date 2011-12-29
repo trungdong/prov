@@ -15,6 +15,8 @@ Known issues:
 2. Account/Container class should have a separate class variable for default namespace; (same with TODO 7)
 3. Account should have own namespaces (DONE:huanjiayang), and Account/PROVContainer.to_provJSON function will need to be able to merge all namespaces(TODO 8), and deal with prefix clashes (TODO 9);
 
+Questions:
+1. for Accounts nested in non-default account, should it be added into the top level container with its parent account being specified, or should it be added into its parent account directly?
 
 Possible future Dev:
 1. Record/Bundle.from_provJSON() ?
