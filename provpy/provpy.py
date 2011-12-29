@@ -14,7 +14,7 @@ class Record:
         return type
         
     def _convert_value_JSON(self,value):
-        valuetojson = None
+        valuetojson = value
         if isinstance(value,PROVLiteral):
             valuetojson=value.to_provJSON()
         else:
@@ -536,14 +536,24 @@ class PROVContainer(Bundle):
 
 class Account(Record,Bundle):
     
-    def __init__(self,id,parentaccount=None):
+    def __init__(self,id,asserter,parentaccount=None,attributes=None):
         Record.__init__(self)
         Bundle.__init__(self)
         self.identifier = id
+        self.asserter = asserter
         self.parentaccount=parentaccount
+        if attributes is None:
+            self.attributes = {}
+        else:
+            self.attributes = attributes
     
     def to_provJSON(self):
         Bundle.to_provJSON(self)
+        self._provcontainer['prov:asserter']=self.asserter
+        for attr,value in self.attributes.items():
+            valuetojson = self._convert_value_JSON(value)
+            if not valuetojson is None:
+                self._provcontainer[attr]=valuetojson
         return self._provcontainer
     
 
