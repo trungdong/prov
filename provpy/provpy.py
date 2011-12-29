@@ -523,7 +523,8 @@ class Bundle():
 
 class PROVContainer(Bundle):
     
-    def __init__(self):
+    def __init__(self,defaultnamespace=None):
+        self.defaultnamespace=defaultnamespace
         Bundle.__init__(self)
         
     def to_provJSON(self):
@@ -531,6 +532,11 @@ class PROVContainer(Bundle):
         self._provcontainer['prefix']={}
         for prefix,url in self._namespacedict.items():
             self._provcontainer['prefix'][prefix]=url
+        if not self.defaultnamespace is None:
+            if not "default" in self._provcontainer['prefix'].keys():
+                self._provcontainer['prefix']['default']=self.defaultnamespace
+            else:
+                pass # TODO: what if a namespace with prefix 'default' is already defined      
         return self._provcontainer
 
 
