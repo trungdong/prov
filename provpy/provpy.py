@@ -535,6 +535,12 @@ class PROVContainer(Bundle):
         self._provcontainer['prefix']={}
         for prefix,url in self._namespacedict.items():
             self._provcontainer['prefix'][prefix]=url
+        for account in self._accountlist:
+            for prefix,url in account._namespacedict.items():
+                if not prefix in self._provcontainer['prefix'].keys():
+                    self._provcontainer['prefix'][prefix]=url
+                else:
+                    pass # TODO: deal with prefix clashes here
         if not self.defaultnamespace is None:
             if not "default" in self._provcontainer['prefix'].keys():
                 self._provcontainer['prefix']['default']=self.defaultnamespace
