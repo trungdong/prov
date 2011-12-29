@@ -527,6 +527,9 @@ class PROVContainer(Bundle):
         self.defaultnamespace=defaultnamespace
         Bundle.__init__(self)
         
+    def set_default_namespace(self,defaultnamespace):
+        self.defaultnamespace = defaultnamespace
+        
     def to_provJSON(self):
         Bundle.to_provJSON(self)
         self._provcontainer['prefix']={}
