@@ -11,6 +11,9 @@ TODO:
 10. Namespace issue (4): PROVContainer should deal with the situation when user defined a namespace with prefix "default";
 11. Namespace issue (5): PROVContainer should deal with the situation when the same namesapce has different prefixes in different accounts?
 12. Namespace issue (6): If accounts are allowed to have default namespace, then need to deal with default namespace clashes;
+13. Reserve "default" as a prefix name;
+14. Use an Identifier class instead of string for the record identifiers?
+15. For URI and qname, accept values given in rdflib namespace format? e.g.:prov['usedentity']
 
 
 Known issues:
