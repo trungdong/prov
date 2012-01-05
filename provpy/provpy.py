@@ -358,11 +358,11 @@ class Bundle():
                     
     def add_namespace(self,prefix,url):
         #TODO: add prefix validation here
-        self._namespacedict[prefix]=url
-        self._apply_namespace(prefix, url)
-    
-    def _apply_namespace(self,prefix,url):
-        pass
+        if prefix is "default":
+            raise PROVGraph_Error("The namespace prefix 'default' is a reserved by provpy library")
+        else:
+            self._namespacedict[prefix]=url
+#            self._apply_namespace(prefix, url)
 
     def _generate_identifer(self):
         id = "_:RLAT"+str(self._relationkey)
