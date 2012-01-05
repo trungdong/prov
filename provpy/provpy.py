@@ -1,4 +1,6 @@
 import datetime
+import rdflib
+from rdflib import URIRef,Namespace
 
 class Record:
 
@@ -570,7 +572,31 @@ class PROVContainer(Bundle):
                 self._provcontainer['prefix']['default']=self.defaultnamespace
             else:
                 pass # TODO: what if a namespace with prefix 'default' is already defined
+            
+        for prefix,url in self._namespacedict.items():
+            self._apply_prefix(self._provcontainer, prefix, url)
         return self._provcontainer
+    
+    def _apply_prefix(self,target,ns_prefix,ns_URI):
+        if type(target) == type(str()):
+            if target.startswith(ns_URI):
+                target = target.replace(ns_URI,ns_prefix)
+                if ns_prefix is '':
+                    target = [target,"xsd:QName"]
+        elif type(target) == type(dict()):
+            for key in target.keys():
+                if not key == 'prefix':
+                    target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
+                    if key.startswith(ns_URI):
+                        newkey = key.replace(ns_URI,ns_prefix)
+                        target[newkey] = target[key]
+                        del target[key]
+        elif type(target) == type(list()):
+            for item in target:
+                target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
+        elif isinstance(target,URIRef):
+            target = str(target).replace(ns_URI,ns_prefix+":")
+        return target       
 
 
 class Account(Record,Bundle):

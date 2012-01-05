@@ -1,6 +1,8 @@
 import json
 from provpy import *
+from rdflib import Namespace, URIRef
 
+FOAF = Namespace("http://xmlns.com/foaf/0.1/")
 
 examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.defaultnamespace.com/")
@@ -8,6 +10,7 @@ examplegraph.set_default_namespace("http://www.defaultnamespace.com/")
 #add namespaces
 examplegraph.add_namespace("ex","http://www.example.com/")
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
+examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
 # add entities
 attrdict = {"type": "File",
@@ -18,7 +21,7 @@ examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00","xsd:dateTime")
 attrdict ={"type": "File",
            "ex:path": "/shared/crime.txt",
-           "ex:creator": "Alice",
+           "ex:creator": FOAF['Alice'],
            "ex:content": "",
            "dcterms:create": lit0}
 e1 = Entity("e1",attributes=attrdict)
