@@ -306,6 +306,7 @@ class Bundle():
                                    'xsd' :'http://www.w3.org/2001/XMLSchema-datatypes'}
         self._accountlist = []
         self._relationkey = 0
+        self._auto_ns_key = 0
         self.identifier = "default"
    
     def add(self,record):
@@ -519,6 +520,25 @@ class Bundle():
         if not prefix in self._namespacedict.keys():
             if not prefix in self._implicitnamespace.keys():
                 raise PROVGraph_Error('%s Prefix of QName not defined.' % qname)
+            
+    def _replace_prefix(self,target,oldprefix,newprefix):
+        oldprefixcolon = oldprefix + ":"
+        newprefixcolon = newprefix + ":"
+        if type(target) == type(str()):
+            if target.startswith(oldprefixcolon):
+                target = target.replace(oldprefixcolon,newprefixcolon)
+        elif type(target) == type(dict()):
+            for key in target.keys():
+                if not key == 'prefix':
+                    target[key] = self._replace_prefix(target[key],oldprefix,newprefix)
+                    if key.startswith(oldprefixcolon):
+                        newkey = key.replace(oldprefixcolon,newprefixcolon)
+                        target[newkey] = target[key]
+                        del target[key]
+        elif type(target) == type(list()):
+            for item in target:
+                target[target.index(item)] = self._replace_prefix(item,oldprefix,newprefix)
+        return target
     
 
 class PROVContainer(Bundle):
@@ -538,14 +558,18 @@ class PROVContainer(Bundle):
         for account in self._accountlist:
             for prefix,url in account._namespacedict.items():
                 if not prefix in self._provcontainer['prefix'].keys():
-                    self._provcontainer['prefix'][prefix]=url
-                else:
-                    pass # TODO: deal with prefix clashes here
+                    if not url in self._provcontainer['prefix'].values():
+                        self._provcontainer['prefix'][prefix]=url
+                elif not url in self._provcontainer['prefix'].values():
+                    newprefix = "ns" + str(self._auto_ns_key)
+                    self._auto_ns_key = self._auto_ns_key + 1
+                    self._provcontainer['account'][account.identifier] = self._replace_prefix(self._provcontainer['account'][account.identifier], prefix, newprefix)
+                    self._provcontainer['prefix'][newprefix]=url
         if not self.defaultnamespace is None:
             if not "default" in self._provcontainer['prefix'].keys():
                 self._provcontainer['prefix']['default']=self.defaultnamespace
             else:
-                pass # TODO: what if a namespace with prefix 'default' is already defined      
+                pass # TODO: what if a namespace with prefix 'default' is already defined
         return self._provcontainer
 
 
