@@ -46,6 +46,7 @@ examplegraph.add(d0)
 
 #add accounts
 acc0 = Account("acc0","http://www.example.org/asserter",attributes={"attr01":"value01","attr02":PROVLiteral("Value02","ex:valueType02")})
+acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
