@@ -24,7 +24,7 @@ attrdict ={"type": "File",
            "ex:creator": FOAF['Alice'],
            "ex:content": "",
            "dcterms:create": lit0}
-e1 = Entity("e1",attributes=attrdict)
+e1 = Entity(FOAF['Foo'],attributes=attrdict)
 examplegraph.add(e1)
 
 # add activities

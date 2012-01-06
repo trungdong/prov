@@ -12,7 +12,7 @@ TODO:
 11. Namespace issue (5): PROVContainer should deal with the situation when the same namesapce has different prefixes in different accounts?
 12. Namespace issue (6): If accounts are allowed to have default namespace, then need to deal with default namespace clashes;
 13. Reserve "default" as a prefix name; (DONE:huanjiayang)
-14. Use an Identifier class instead of string for the record identifiers?
+14. Accept URI in the form of string or URIRef as record identifier. If string is not a URI then the record will be treat as B node.(DONE:huanjiayang)
 15. For URI and qname, accept values given in rdflib namespace format? e.g.:prov['usedentity'] (DONE:huanjiayang)
 
 

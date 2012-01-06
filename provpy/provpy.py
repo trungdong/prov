@@ -29,7 +29,14 @@ class Record:
 class Element(Record):
     
     def __init__(self,id,attributes=None,account=None):
-        self.identifier = id
+        if isinstance(id,URIRef):
+            self.identifier = id
+        elif isinstance(id,str):
+            if not is_URI(id):
+                id = '_:' + id 
+            self.identifier = id
+        else:
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
         if attributes is None:
             self.attributes = {}
         else:
@@ -100,7 +107,16 @@ class Note(Element):
 class Relation(Record):
 
     def __init__(self,id,attributes,account=None):
-        self.identifier = id
+        if id is None:
+            self.identifier = id
+        elif isinstance(id,URIRef):
+            self.identifier = id
+        elif isinstance(id,str):
+            if not is_URI(id):
+                id = '_:' + id 
+            self.identifier = id
+        else:
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
         if attributes is None:
             self.attributes = {}
         else:
@@ -526,10 +542,10 @@ class Bundle():
     def _replace_prefix(self,target,oldprefix,newprefix):
         oldprefixcolon = oldprefix + ":"
         newprefixcolon = newprefix + ":"
-        if type(target) == type(str()):
+        if isinstance(target,str):
             if target.startswith(oldprefixcolon):
                 target = target.replace(oldprefixcolon,newprefixcolon)
-        elif type(target) == type(dict()):
+        elif isinstance(target,dict):
             for key in target.keys():
                 if not key == 'prefix':
                     target[key] = self._replace_prefix(target[key],oldprefix,newprefix)
@@ -537,7 +553,7 @@ class Bundle():
                         newkey = key.replace(oldprefixcolon,newprefixcolon)
                         target[newkey] = target[key]
                         del target[key]
-        elif type(target) == type(list()):
+        elif isinstance(target,list):
             for item in target:
                 target[target.index(item)] = self._replace_prefix(item,oldprefix,newprefix)
         return target
@@ -580,7 +596,7 @@ class PROVContainer(Bundle):
     def _apply_prefix(self,target,ns_prefix,ns_URI):
         if type(target) == type(str()):
             if target.startswith(ns_URI):
-                target = target.replace(ns_URI,ns_prefix)
+                target = target.replace(ns_URI,ns_prefix+":")
                 if ns_prefix is '':
                     target = [target,"xsd:QName"]
         elif type(target) == type(dict()):
@@ -588,7 +604,7 @@ class PROVContainer(Bundle):
                 if not key == 'prefix':
                     target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
                     if key.startswith(ns_URI):
-                        newkey = key.replace(ns_URI,ns_prefix)
+                        newkey = key.replace(ns_URI,ns_prefix+":")
                         target[newkey] = target[key]
                         del target[key]
         elif type(target) == type(list()):
@@ -604,7 +620,14 @@ class Account(Record,Bundle):
     def __init__(self,id,asserter,parentaccount=None,attributes=None):
         Record.__init__(self)
         Bundle.__init__(self)
-        self.identifier = id
+        if isinstance(id,URIRef):
+            self.identifier = id
+        elif isinstance(id,str):
+            if not is_URI(id):
+                id = '_:' + id 
+            self.identifier = id
+        else:
+            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an URIRef")
         self.asserter = asserter
         self.parentaccount=parentaccount
         if attributes is None:
@@ -628,3 +651,8 @@ class PROVGraph_Error(Exception):
     def __str__(self):
         return repr(self.error_message)
     
+def is_URI(str):
+    if str.startswith('http://'):
+        return True
+    else:
+        return False
