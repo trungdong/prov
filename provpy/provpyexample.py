@@ -3,27 +3,29 @@ from provpy import *
 from rdflib import Namespace, URIRef
 
 FOAF = Namespace("http://xmlns.com/foaf/0.1/")
+ex = Namespace("http://www.example.com/")
+dcterms = Namespace("http://purl.org/dc/terms/")
 
 examplegraph = PROVContainer()
-examplegraph.set_default_namespace("http://www.defaultnamespace.com/")
+examplegraph.set_default_namespace("http://www.example.com/")
 
 #add namespaces
-examplegraph.add_namespace("ex","http://www.example.com/")
+#examplegraph.add_namespace("ex","http://www.example.com/")
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
 # add entities
 attrdict = {"type": "File",
-            "ex:path": "/shared/crime.txt",
-            "ex:creator": "Alice"}
+            ex["path"]: "/shared/crime.txt",
+            ex["creator"]: "Alice"}
 e0 = Entity("e0",attrdict)
 examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00","xsd:dateTime")
 attrdict ={"type": "File",
-           "ex:path": "/shared/crime.txt",
-           "ex:creator": FOAF['Alice'],
-           "ex:content": "",
-           "dcterms:create": lit0}
+           ex["path"]: "/shared/crime.txt",
+           ex["creator"]: FOAF['Alice'],
+           ex["content"]: "",
+           dcterms["create"]: lit0}
 e1 = Entity(FOAF['Foo'],attributes=attrdict)
 examplegraph.add(e1)
 
@@ -35,12 +37,12 @@ a0 = Activity("a0",starttime=starttime,attributes=attrdict)
 examplegraph.add(a0)
 
 # add relation 
-attrdict={"ex:fct": "create"}
+attrdict={ex["fct"]: "create"}
 g0=wasGeneratedBy(e0,a0,id="g0",time=None,attributes=attrdict)
 examplegraph.add(g0)
 
-attrdict={"ex:fct": "load",
-          "ex:typeexample" : PROVLiteral("MyValue","ex:MyType")}
+attrdict={ex["fct"]: "load",
+          ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
 u0 = Used(a0,e1,id="u0",time=None,attributes=attrdict)
 examplegraph.add(u0)
 
@@ -48,7 +50,7 @@ d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
 examplegraph.add(d0)
 
 #add accounts
-acc0 = Account("acc0","http://www.example.org/asserter",attributes={"attr01":"value01","attr02":PROVLiteral("Value02","ex:valueType02")})
+acc0 = Account("acc0","http://www.example.org/asserter",attributes={"attr01":"value01","attr02":PROVLiteral("Value02",ex["valueType02"])})
 acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
