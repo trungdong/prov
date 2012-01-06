@@ -526,7 +526,8 @@ class Bundle():
     def _validate_record(self,record):
         for attribute,literal in record.attributes.items():
             if not isinstance(attribute,str):
-                raise PROVGraph_Error('Bad type for attribute name, expecting str.')
+                if not isinstance(attribute,URIRef):
+                    raise PROVGraph_Error('Bad type for attribute name, expecting str or URIRef.')
             elif (not attribute.startswith("http://")) and (":" in attribute):
                 self._validate_qname(attribute)
             if isinstance(literal,PROVLiteral):
@@ -591,12 +592,16 @@ class PROVContainer(Bundle):
             
         for prefix,url in self._namespacedict.items():
             self._apply_prefix(self._provcontainer, prefix, url)
+        self._apply_prefix(self._provcontainer, '', self.defaultnamespace)
         return self._provcontainer
     
     def _apply_prefix(self,target,ns_prefix,ns_URI):
+        prefix = ns_prefix
+        if not ns_prefix is '':
+            prefix = ns_prefix + ":"
         if type(target) == type(str()):
             if target.startswith(ns_URI):
-                target = target.replace(ns_URI,ns_prefix+":")
+                target = target.replace(ns_URI,prefix)
                 if ns_prefix is '':
                     target = [target,"xsd:QName"]
         elif type(target) == type(dict()):
@@ -604,14 +609,14 @@ class PROVContainer(Bundle):
                 if not key == 'prefix':
                     target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
                     if key.startswith(ns_URI):
-                        newkey = key.replace(ns_URI,ns_prefix+":")
+                        newkey = key.replace(ns_URI,prefix)
                         target[newkey] = target[key]
                         del target[key]
         elif type(target) == type(list()):
             for item in target:
                 target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
         elif isinstance(target,URIRef):
-            target = str(target).replace(ns_URI,ns_prefix+":")
+            target = str(target).replace(ns_URI,prefix)
         return target       
 
 
