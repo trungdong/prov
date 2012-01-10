@@ -61,3 +61,9 @@ en = examplegraph.add_entity('en',account=acc0)
 
 print json.dumps(examplegraph.to_provJSON(),indent=4)
 
+testns = PROVNamespace('test','http://www.test.com/')
+testuri = testns['localname']
+print testuri.name
+print testuri.namespacename
+print testuri.localname
+print testuri.qname("testprefix","http://www.test.com/")

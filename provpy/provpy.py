@@ -2,6 +2,37 @@ import datetime
 import rdflib
 from rdflib import URIRef,Namespace
 
+class PROVIdentifier():
+    
+    def __init__(self,name):
+        self.name = name
+
+
+class PROVURIRef(PROVIdentifier):
+    
+    def __init__(self,name,namespacename=None,localname=None):
+        PROVIdentifier.__init__(self, name)
+        self.namespacename = namespacename
+        self.localname = localname
+    
+    def qname(self,prefix,namespacename):
+        if self.namespacename is namespacename:
+            if not self.localname is None:
+                return ":".join((prefix, self.localname))
+        else:
+            return self.name
+
+
+class PROVNamespace(PROVURIRef):
+    
+    def __init__(self,prefix,namespacename):
+        self.namespacename = namespacename
+        self.prefix = prefix
+        
+    def __getitem__(self,localname):
+        return PROVURIRef(self.namespacename+localname,self.namespacename,localname)
+        
+
 class Record:
 
     def __init__(self):
