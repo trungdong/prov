@@ -1,6 +1,5 @@
 import datetime
-import rdflib
-from rdflib import URIRef,Namespace
+
 
 class PROVIdentifier():
     
@@ -14,6 +13,9 @@ class PROVURIRef(PROVIdentifier):
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
         self.localname = localname
+        
+    def __str__(self):
+        return self.name
     
     def qname(self,prefix,namespacename):
         if self.namespacename is namespacename:
@@ -21,13 +23,19 @@ class PROVURIRef(PROVIdentifier):
                 return ":".join((prefix, self.localname))
         else:
             return self.name
+    
+    def to_provJSON(self,prefix,namespacename):
+        if self.namespacename is namespacename:
+            if not self.localname is None:
+                return [self.qname(prefix,namespacename),"xsd:QName"]
+        else:
+            return self.name
 
 
 class PROVNamespace(PROVURIRef):
     
-    def __init__(self,prefix,namespacename):
+    def __init__(self,namespacename):
         self.namespacename = namespacename
-        self.prefix = prefix
         
     def __getitem__(self,localname):
         return PROVURIRef(self.namespacename+localname,self.namespacename,localname)
@@ -60,14 +68,14 @@ class Record:
 class Element(Record):
     
     def __init__(self,id,attributes=None,account=None):
-        if isinstance(id,URIRef):
+        if isinstance(id,PROVURIRef):
             self.identifier = id
         elif isinstance(id,str):
             if not is_URI(id):
                 id = '_:' + id 
             self.identifier = id
         else:
-            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
         if attributes is None:
             self.attributes = {}
         else:
@@ -140,14 +148,14 @@ class Relation(Record):
     def __init__(self,id,attributes,account=None):
         if id is None:
             self.identifier = id
-        elif isinstance(id,URIRef):
+        elif isinstance(id,PROVURIRef):
             self.identifier = id
         elif isinstance(id,str):
             if not is_URI(id):
                 id = '_:' + id 
             self.identifier = id
         else:
-            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
         if attributes is None:
             self.attributes = {}
         else:
@@ -557,8 +565,8 @@ class Bundle():
     def _validate_record(self,record):
         for attribute,literal in record.attributes.items():
             if not isinstance(attribute,str):
-                if not isinstance(attribute,URIRef):
-                    raise PROVGraph_Error('Bad type for attribute name, expecting str or URIRef.')
+                if not isinstance(attribute,PROVURIRef):
+                    raise PROVGraph_Error('Bad type for attribute name, expecting str or PROVURIRef.')
             elif (not attribute.startswith("http://")) and (":" in attribute):
                 self._validate_qname(attribute)
             if isinstance(literal,PROVLiteral):
@@ -625,7 +633,7 @@ class PROVContainer(Bundle):
             self._apply_prefix(self._provcontainer, prefix, url)
         self._apply_prefix(self._provcontainer, '', self.defaultnamespace)
         return self._provcontainer
-    
+
     def _apply_prefix(self,target,ns_prefix,ns_URI):
         prefix = ns_prefix
         if not ns_prefix is '':
@@ -635,20 +643,22 @@ class PROVContainer(Bundle):
                 target = target.replace(ns_URI,prefix)
                 if ns_prefix is '':
                     target = [target,"xsd:QName"]
+        elif isinstance(target,PROVURIRef):
+            if target.namespacename is ns_URI:
+                target.qname(ns_prefix,ns_URI)
         elif type(target) == type(dict()):
             for key in target.keys():
                 if not key == 'prefix':
                     target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
-                    if key.startswith(ns_URI):
-                        newkey = key.replace(ns_URI,prefix)
-                        target[newkey] = target[key]
-                        del target[key]
+                    newkey = self._apply_prefix(key,ns_prefix,ns_URI)
+                    target[newkey] = target[key]
+                    del target[key]
         elif type(target) == type(list()):
             for item in target:
                 target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
-        elif isinstance(target,URIRef):
+        elif isinstance(target,PROVURIRef):
             target = str(target).replace(ns_URI,prefix)
-        return target       
+        return target
 
 
 class Account(Record,Bundle):
@@ -656,14 +666,14 @@ class Account(Record,Bundle):
     def __init__(self,id,asserter,parentaccount=None,attributes=None):
         Record.__init__(self)
         Bundle.__init__(self)
-        if isinstance(id,URIRef):
+        if isinstance(id,PROVURIRef):
             self.identifier = id
         elif isinstance(id,str):
             if not is_URI(id):
                 id = '_:' + id 
             self.identifier = id
         else:
-            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an URIRef")
+            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVURIRef")
         self.asserter = asserter
         self.parentaccount=parentaccount
         if attributes is None:
