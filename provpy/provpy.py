@@ -653,20 +653,20 @@ class PROVContainer(Bundle):
         nsdict = {'default':self.defaultnamespace}
         nsdict.update(self._implicitnamespace)
         nsdict.update(self._namespacedict)
-        Bundle.to_provJSON(self,nsdict)
-        self._provcontainer['prefix']={}
-        for prefix,url in self._namespacedict.items():
-            self._provcontainer['prefix'][prefix]=url
         for account in self._accountlist:
             for prefix,url in account._namespacedict.items():
-                if not prefix in self._provcontainer['prefix'].keys():
-                    if not url in self._provcontainer['prefix'].values():
-                        self._provcontainer['prefix'][prefix]=url
-                elif not url in self._provcontainer['prefix'].values():
+                if not prefix in nsdict.keys():
+                    if not url in nsdict.values():
+                        nsdict[prefix]=url
+                elif not nsdict[prefix] is url:
                     newprefix = "ns" + str(self._auto_ns_key)
                     self._auto_ns_key = self._auto_ns_key + 1
-                    self._provcontainer['account'][account.identifier] = self._replace_prefix(self._provcontainer['account'][account.identifier], prefix, newprefix)
-                    self._provcontainer['prefix'][newprefix]=url
+                    nsdict[newprefix]=url
+        Bundle.to_provJSON(self,nsdict)
+        self._provcontainer['prefix']={}
+        for prefix,url in nsdict.items():
+            self._provcontainer['prefix'][prefix]=url
+
         if not self.defaultnamespace is None:
             if not "default" in self._provcontainer['prefix'].keys():
                 self._provcontainer['prefix']['default']=self.defaultnamespace
