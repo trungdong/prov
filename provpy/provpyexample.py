@@ -1,10 +1,10 @@
 import json
 from provpy import *
-from rdflib import Namespace, URIRef
 
-FOAF = Namespace("http://xmlns.com/foaf/0.1/")
-ex = Namespace("http://www.example.com/")
-dcterms = Namespace("http://purl.org/dc/terms/")
+
+FOAF = PROVNamespace("http://xmlns.com/foaf/0.1/")
+ex = PROVNamespace("http://www.example.com/")
+dcterms = PROVNamespace("http://purl.org/dc/terms/")
 
 examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.example.com/")
@@ -61,9 +61,12 @@ en = examplegraph.add_entity('en',account=acc0)
 
 print json.dumps(examplegraph.to_provJSON(),indent=4)
 
-testns = PROVNamespace('test','http://www.test.com/')
+testns = PROVNamespace('http://www.test.com/')
 testuri = testns['localname']
 print testuri.name
 print testuri.namespacename
 print testuri.localname
 print testuri.qname("testprefix","http://www.test.com/")
+
+print u0.to_provJSON()
+print testuri.to_provJSON('test','http://www.test.com/')
