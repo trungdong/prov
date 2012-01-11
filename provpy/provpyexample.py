@@ -50,8 +50,8 @@ d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
 examplegraph.add(d0)
 
 #add accounts
-acc0 = Account("acc0","http://www.example.org/asserter",attributes={"attr01":"value01","attr02":PROVLiteral("Value02",ex["valueType02"])})
-acc0.add_namespace("ex","http://www.example2222.com/")
+acc0 = Account("acc0",ex["asserter_name"],attributes={"attr01":"value01","attr02":PROVLiteral("Value02",ex["valueType02"])})
+#acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
@@ -61,12 +61,21 @@ en = examplegraph.add_entity('en',account=acc0)
 
 print json.dumps(examplegraph.to_provJSON(),indent=4)
 
+#import pprint
+#pp = pprint.PrettyPrinter(indent=4)
+#pp.pprint(examplegraph.to_provJSON())
+
+nsdict = {'foaf' : "http://xmlns.com/foaf/0.1/",
+            'ex' : "http://www.example.com/",
+            'dcterms' : "http://purl.org/dc/terms/"}
 testns = PROVNamespace('http://www.test.com/')
 testuri = testns['localname']
 print testuri.name
 print testuri.namespacename
 print testuri.localname
-print testuri.qname("testprefix","http://www.test.com/")
+print testuri.qname({"testprefix" : "http://www.test.com/"})
 
-print u0.to_provJSON()
-print testuri.to_provJSON('test','http://www.test.com/')
+print u0.to_provJSON(nsdict)
+print testuri.to_provJSON({'test':'http://www.test.com/'})
+
+print d0.to_provJSON(nsdict)
