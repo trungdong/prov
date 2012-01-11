@@ -13,6 +13,7 @@ examplegraph.set_default_namespace("http://www.example.com/")
 #examplegraph.add_namespace("ex","http://www.example.com/")
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
+examplegraph.add_namespace("ex","http://www.example111.com/")
 
 # add entities
 attrdict = {"type": "File",
@@ -51,7 +52,7 @@ examplegraph.add(d0)
 
 #add accounts
 acc0 = Account("acc0",ex["asserter_name"],attributes={"attr01":"value01","attr02":PROVLiteral("Value02",ex["valueType02"])})
-#acc0.add_namespace("ex","http://www.example2222.com/")
+acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
