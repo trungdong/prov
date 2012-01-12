@@ -21,7 +21,7 @@ class PROVURIRef(PROVIdentifier):
         rt = self.name
         for prefix,namespacename in nsdict.items():
             if not prefix is 'default':
-                if self.namespacename is namespacename:
+                if self.namespacename == namespacename:
                     if not self.localname is None:
                         rt = ":".join((prefix, self.localname))
             else:
@@ -40,7 +40,9 @@ class PROVNamespace(PROVURIRef):
         
     def __getitem__(self,localname):
         return PROVURIRef(self.namespacename+localname,self.namespacename,localname)
-        
+
+
+xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
 
 class Record:
 
@@ -49,10 +51,12 @@ class Record:
     
     def _get_type_JSON(self,value):
         type = None
+        if isinstance(value,float):
+            type = xsd["float"]
         if isinstance(value,datetime.datetime):
-            type = "xsd:dateTime"
+            type = xsd["dateTime"]
         if isinstance(value,int):
-            type = "xsd:integer"
+            type = xsd["integer"]
         return type
         
     def _convert_value_JSON(self,value,nsdict):
@@ -62,7 +66,7 @@ class Record:
         else:
             type = self._get_type_JSON(value)
             if not type is None:
-                valuetojson=[str(value),type]
+                valuetojson=[str(value),type.qname(nsdict)]
         return valuetojson
 
 
@@ -376,6 +380,7 @@ class PROVLiteral():
             self._json.append(self.value)
         if isinstance(self.type,PROVURIRef):
             self._json.append(self.type.qname(nsdict))
+            print self._json
         else:
             self._json.append(self.type)
         return self._json
@@ -389,7 +394,7 @@ class Bundle():
         self._relationlist = []
         self._namespacedict = {}
         self._implicitnamespace = {'prov':'http://www.w3.org/ns/prov-dm/',
-                                   'xsd' :'http://www.w3.org/2001/XMLSchema-datatypes'}
+                                   'xsd' :'http://www.w3.org/2001/XMLSchema-datatypes#'}
         self._accountlist = []
         self._elementkey = 0
         self._relationkey = 0
