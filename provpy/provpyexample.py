@@ -5,6 +5,7 @@ from provpy import *
 FOAF = PROVNamespace("http://xmlns.com/foaf/0.1/")
 ex = PROVNamespace("http://www.example.com/")
 dcterms = PROVNamespace("http://purl.org/dc/terms/")
+ns_xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
 
 examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.example.com/")
@@ -20,7 +21,7 @@ attrdict = {"type": "File",
             ex["creator"]: "Alice"}
 e0 = Entity("e0",attrdict)
 examplegraph.add(e0)
-lit0 = PROVLiteral("2011-11-16T16:06:00","xsd:dateTime")
+lit0 = PROVLiteral("2011-11-16T16:06:00",ns_xsd["dateTime"])
 attrdict ={"type": "File",
            ex["path"]: "/shared/crime.txt",
            ex["creator"]: FOAF['Alice'],
@@ -59,11 +60,11 @@ acc0.add_entity("em")
 
 en = examplegraph.add_entity('en',account=acc0)
 
-print json.dumps(examplegraph.to_provJSON(),indent=4)
+#print json.dumps(examplegraph.to_provJSON(),indent=4)
 
-#import pprint
-#pp = pprint.PrettyPrinter(indent=4)
-#pp.pprint(examplegraph.to_provJSON())
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+pp.pprint(examplegraph.to_provJSON())
 
 nsdict = {'foaf' : "http://xmlns.com/foaf/0.1/",
             'ex' : "http://www.example.com/",
@@ -79,3 +80,6 @@ print u0.to_provJSON(nsdict)
 print testuri.to_provJSON({'test':'http://www.test.com/'})
 
 print d0.to_provJSON(nsdict)
+
+xx=2
+print type(xx)
