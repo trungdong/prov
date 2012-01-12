@@ -23,7 +23,7 @@ examplegraph.add_namespace("ex","http://www.example111.com/")
 attrdict = {"type": "File",
             ex["path"]: "/shared/crime.txt",
             ex["creator"]: "Alice"}
-e0 = Entity(id="e0",attributes=attrdict)
+e0 = Entity(id=None,attributes=attrdict)
 examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00",xsd["dateTime"])
 attrdict ={"type": "File",
@@ -61,7 +61,7 @@ acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
-acc0.add_entity("em")
+acc0.add_entity()
 
 en = examplegraph.add_entity('en',account=acc0)
 
