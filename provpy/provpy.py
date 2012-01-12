@@ -20,16 +20,20 @@ class PROVURIRef(PROVIdentifier):
     def qname(self,nsdict):
         rt = self.name
         for prefix,namespacename in nsdict.items():
-            if not prefix is 'default':
-                if self.namespacename == namespacename:
+            if self.namespacename == namespacename:
+                if not prefix == 'default':
                     if not self.localname is None:
                         rt = ":".join((prefix, self.localname))
-            else:
-                rt = self.localname
+                else:
+                    rt = self.localname
         return rt
     
     def to_provJSON(self,nsdict):
-        rt = [self.qname(nsdict),"xsd:QName"]
+        qname = self.qname(nsdict)
+        if self.name == qname:
+            rt = [qname,"xsd:anyURI"]
+        else:
+            rt = [qname,"xsd:QName"]
         return rt
 
 
@@ -63,6 +67,8 @@ class Record:
     def _convert_value_JSON(self,value,nsdict):
         valuetojson = value
         if isinstance(value,PROVLiteral) or isinstance(value,PROVURIRef):
+            print "here is the value:"
+            print value
             valuetojson=value.to_provJSON(nsdict)
         else:
             type = self._get_type_JSON(value)
@@ -377,6 +383,8 @@ class PROVLiteral():
     def to_provJSON(self,nsdict):
         if isinstance(self.value,PROVURIRef):
             self._json.append(self.value.qname(nsdict))
+            print "look here!!!!!:"
+            print self.value.qname(nsdict)
         else:
             self._json.append(self.value)
         if isinstance(self.type,PROVURIRef):
