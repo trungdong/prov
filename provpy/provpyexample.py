@@ -7,6 +7,8 @@ ex = PROVNamespace("http://www.example.com/")
 dcterms = PROVNamespace("http://purl.org/dc/terms/")
 xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
 
+testns = PROVNamespace('http://www.test.org/')
+
 
 examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.example.com/")
@@ -21,14 +23,15 @@ examplegraph.add_namespace("ex","http://www.example111.com/")
 attrdict = {"type": "File",
             ex["path"]: "/shared/crime.txt",
             ex["creator"]: "Alice"}
-e0 = Entity("e0",attrdict)
+e0 = Entity(id="e0",attributes=attrdict)
 examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00",xsd["dateTime"])
 attrdict ={"type": "File",
            ex["path"]: "/shared/crime.txt",
-           ex["creator"]: FOAF['Alice'],
+           dcterms["creator"]: PROVArray(FOAF['Alice'],FOAF['Bill']),
            ex["content"]: "",
-           dcterms["create"]: lit0}
+           dcterms["create"]: lit0,
+           ex["testns"]:testns["localname"]}
 e1 = Entity(FOAF['Foo'],attributes=attrdict)
 examplegraph.add(e1)
 
@@ -82,3 +85,7 @@ print u0.to_provJSON(nsdict)
 print testuri.to_provJSON({'test':'http://www.test.com/'})
 
 print d0.to_provJSON(nsdict)
+
+
+ttt = PROVLiteral("MyValue",ex["MyType"])
+print isinstance(ttt,PROVLiteral)

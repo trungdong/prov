@@ -1,7 +1,7 @@
 import datetime
 
 
-class PROVIdentifier():
+class PROVIdentifier(object):
     
     def __init__(self,name):
         self.name = name
@@ -16,6 +16,15 @@ class PROVURIRef(PROVIdentifier):
         
     def __str__(self):
         return self.name
+    
+    def __eq__(self,other):
+        if not isinstance(other,PROVURIRef):
+            return False
+        else:
+            return self.name == other.name
+    
+    def __hash__(self):
+        return id(self)
     
     def qname(self,nsdict):
         rt = self.name
@@ -47,6 +56,14 @@ class PROVNamespace(PROVURIRef):
 
         
 xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
+prov = PROVNamespace('http://www.w3.org/ns/prov-dm/')
+
+
+class PROVArray(list):
+    def __init__(self,*args):
+        list.__init__(self)
+        for item in args:
+            self.append(item)
 
 
 class Record:
@@ -56,24 +73,34 @@ class Record:
     
     def _get_type_JSON(self,value):
         type = None
+        if isinstance(value,str) or isinstance(value,bool):
+            type = None
         if isinstance(value,float):
             type = xsd["float"]
         if isinstance(value,datetime.datetime):
             type = xsd["dateTime"]
         if isinstance(value,int):
             type = xsd["integer"]
+        if isinstance(value,PROVArray):
+            type = prov["array"]
         return type
         
     def _convert_value_JSON(self,value,nsdict):
         valuetojson = value
-        if isinstance(value,PROVLiteral) or isinstance(value,PROVURIRef):
-            print "here is the value:"
-            print value
+        if isinstance(value,PROVLiteral): 
+            valuetojson=value.to_provJSON(nsdict)
+        elif isinstance(value,PROVURIRef):
             valuetojson=value.to_provJSON(nsdict)
         else:
             type = self._get_type_JSON(value)
             if not type is None:
-                valuetojson=[str(value),type.qname(nsdict)]
+                if not type == prov["array"]:
+                    valuetojson=[str(value),type.qname(nsdict)]
+                else:
+                    newvalue = []
+                    for item in value:
+                        newvalue.append(self._convert_value_JSON(item, nsdict))
+                    valuetojson=[newvalue,type.qname(nsdict)]
         return valuetojson
 
 
@@ -88,7 +115,7 @@ class Element(Record):
             else:
                 raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
         else:
-            self.identifer = id
+            self.identifier = id
         if attributes is None:
             self.attributes = {}
         else:
@@ -101,7 +128,7 @@ class Element(Record):
     def to_provJSON(self,nsdict):
         if isinstance(self.identifier,PROVURIRef):
             self._idJSON = self.identifier.qname(nsdict)
-        elif self.identifer is None:
+        elif self.identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
         self._json[self._idJSON]=self.attributes
@@ -383,8 +410,6 @@ class PROVLiteral():
     def to_provJSON(self,nsdict):
         if isinstance(self.value,PROVURIRef):
             self._json.append(self.value.qname(nsdict))
-            print "look here!!!!!:"
-            print self.value.qname(nsdict)
         else:
             self._json.append(self.value)
         if isinstance(self.type,PROVURIRef):
@@ -433,7 +458,7 @@ class Bundle():
     def to_provJSON(self,nsdict):
         for element in self._elementlist:
             if element.identifier is None:
-                element._idJSON = self._generate_elem_identifer()
+                element._idJSON = self._generate_elem_identifier()
             if isinstance(element,Agent):
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
@@ -444,7 +469,7 @@ class Bundle():
                 self._provcontainer[key].update(element.to_provJSON(nsdict)[key])
         for relation in self._relationlist:
             if relation.identifier is None:
-                relation._idJSON = self._generate_rlat_identifer()
+                relation._idJSON = self._generate_rlat_identifier()
             for key in relation.to_provJSON(nsdict):
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
@@ -466,18 +491,18 @@ class Bundle():
             self._namespacedict[prefix]=url
 #            self._apply_namespace(prefix, url)
 
-    def _generate_rlat_identifer(self):
+    def _generate_rlat_identifier(self):
         id = "_:RLAT"+str(self._relationkey)
         self._relationkey = self._relationkey + 1
         if self._validate_id(id) is False:
-            id = self._generate_rlat_identifer()
+            id = self._generate_rlat_identifier()
         return id
 
-    def _generate_elem_identifer(self):
+    def _generate_elem_identifier(self):
         id = "_:ELEM"+str(self._elementkey)
         self._relationkey = self._elementkey + 1
         if self._validate_id(id) is False:
-            id = self._generate_elem_identifer()
+            id = self._generate_elem_identifier()
         return id
         
     def _validate_id(self,id):
