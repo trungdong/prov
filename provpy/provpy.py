@@ -245,8 +245,8 @@ class wasGeneratedBy(Relation):
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:entity']=self.entity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
             self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
         self._provcontainer['wasGeneratedBy']=self._json
@@ -263,8 +263,8 @@ class Used(Relation):
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:entity']=self.entity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
             self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
         self._provcontainer['used']=self._json
@@ -280,8 +280,8 @@ class wasAssociatedWith(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:agent']=self.agent.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasAssociatedWith']=self._json
         return self._provcontainer
     
@@ -295,8 +295,8 @@ class wasStartedBy(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:agent']=self.agent.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasStartedBy']=self._json
         return self._provcontainer
     
@@ -310,8 +310,8 @@ class wasEndedBy(Relation):
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:agent']=self.agent.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasEndedBy']=self._json
         return self._provcontainer
     
@@ -325,8 +325,8 @@ class hadPlan(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:entity']=self.entity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:agent']=self.agent.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['hadPlan']=self._json
         return self._provcontainer
     
@@ -340,8 +340,8 @@ class actedOnBehalfOf(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:subordinate']=self.subordinate.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:responsible']=self.responsible.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:subordinate']=self.subordinate._idJSON
+        self._json[self._idJSON]['prov:responsible']=self.responsible._idJSON
         self._provcontainer['actedOnBehalfOf']=self._json
         return self._provcontainer
     
@@ -358,14 +358,14 @@ class wasDerivedFrom(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:generatedentity']=self.generatedentity.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:usedentity']=self.usedentity.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:generatedentity']=self.generatedentity._idJSON
+        self._json[self._idJSON]['prov:usedentity']=self.usedentity._idJSON
         if self.activity is not None:
-            self._json[self._idJSON]['prov:activity']=self.activity.identifier.qname(nsdict)
+            self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.generation is not None:
-            self._json[self._idJSON]['prov:generation']=self.generation.identifier.qname(nsdict)
+            self._json[self._idJSON]['prov:generation']=self.generation._idJSON
         if self.usage is not None:
-            self._json[self._idJSON]['prov:usage']=self.usage.identifier.qname(nsdict)
+            self._json[self._idJSON]['prov:usage']=self.usage._idJSON
         self._provcontainer['wasDerivedFrom']=self._json
         return self._provcontainer
                         
@@ -379,8 +379,8 @@ class wasComplementOf(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:subject']=self.subject.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:alternate']=self.alternate.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:subject']=self.subject._idJSON
+        self._json[self._idJSON]['prov:alternate']=self.alternate._idJSON
         self._provcontainer['wasComplementOf']=self._json
         return self._provcontainer
             
@@ -394,8 +394,8 @@ class hasAnnotation(Relation):
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:record']=self.record.identifier.qname(nsdict)
-        self._json[self._idJSON]['prov:note']=self.note.identifier.qname(nsdict)
+        self._json[self._idJSON]['prov:record']=self.record._idJSON
+        self._json[self._idJSON]['prov:note']=self.note._idJSON
         self._provcontainer['hasAnnotation']=self._json
         return self._provcontainer
     
@@ -456,9 +456,8 @@ class Bundle():
             self._accountlist.append(record)
             
     def to_provJSON(self,nsdict):
+        self._generate_idJSON(nsdict)
         for element in self._elementlist:
-            if element.identifier is None:
-                element._idJSON = self._generate_elem_identifier()
             if isinstance(element,Agent):
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
@@ -468,8 +467,6 @@ class Bundle():
                     self._provcontainer[key]={}
                 self._provcontainer[key].update(element.to_provJSON(nsdict)[key])
         for relation in self._relationlist:
-            if relation.identifier is None:
-                relation._idJSON = self._generate_rlat_identifier()
             for key in relation.to_provJSON(nsdict):
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
@@ -477,11 +474,25 @@ class Bundle():
         for account in self._accountlist:
             if not 'account' in self._provcontainer.keys():
                 self._provcontainer['account']={}
-            account._idJSON = account.identifier.qname(nsdict)
             if not account._idJSON in self._provcontainer['account'].keys():
                 self._provcontainer['account'][account._idJSON]={}
             self._provcontainer['account'][account._idJSON].update(account.to_provJSON(nsdict))
         return self._provcontainer
+
+    def _generate_idJSON(self,nsdict):
+        for element in self._elementlist:
+            if element.identifier is None:
+                element._idJSON = self._generate_elem_identifier()
+            else:
+                element._idJSON = element.identifier.qname(nsdict)
+        for relation in self._relationlist:
+            if relation.identifier is None:
+                relation._idJSON = self._generate_rlat_identifier()
+            else:
+                relation._idJSON = relation.identifier.qname(nsdict)
+        for account in self._accountlist:
+            account._idJSON = account.identifier.qname(nsdict)
+            account._generate_idJSON(nsdict)
                     
     def add_namespace(self,prefix,url):
         #TODO: add prefix validation here
@@ -500,7 +511,7 @@ class Bundle():
 
     def _generate_elem_identifier(self):
         id = "_:ELEM"+str(self._elementkey)
-        self._relationkey = self._elementkey + 1
+        self._elementkey = self._elementkey + 1
         if self._validate_id(id) is False:
             id = self._generate_elem_identifier()
         return id
@@ -515,7 +526,7 @@ class Bundle():
                 valid = False
         return valid
 
-    def add_entity(self,id,attributes=None,account=None):
+    def add_entity(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -523,7 +534,7 @@ class Bundle():
             self.add(element)
             return element
     
-    def add_activity(self,id,starttime=None,endtime=None,attributes=None,account=None):
+    def add_activity(self,id=None,starttime=None,endtime=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -531,7 +542,7 @@ class Bundle():
             self._elementlist.append(element)
             return element
     
-    def add_agent(self,id,attributes=None,account=None):
+    def add_agent(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -539,7 +550,7 @@ class Bundle():
             self._elementlist.append(element)
             return element
     
-    def add_note(self,id,attributes=None,account=None):
+    def add_note(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
