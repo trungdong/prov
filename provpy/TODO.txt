@@ -16,8 +16,8 @@ TODO:
 15. For URI and qname, accept values given in rdflib namespace format? e.g.:prov['usedentity'] (DONE:huanjiayang)
 
 16. default value type mapping between Python types and JSON types;
-17. Define own URIRef and Namespace classes, remove dependency on rdflib;
-18. for identifiers, if given as string then treat it as local name with the default namespace; If not given, treat as blank node;
+17. Define own URIRef and Namespace classes, remove dependency on rdflib; (DONE:huanjiayang)
+18. for identifiers, if given as string then treat it as local name with the default namespace; If not given, treat as blank node; (DONE:huanjiayang)
 
 others:
 19. Start to add inline documentation;
