@@ -30,9 +30,8 @@
         "type":"object",
         "title":"activity",
         "properties":{
-          "recipeLink": {"type": "string", "format": "uri"},
-          "startTime": {"type": "string", "format": "date-time"},
-          "endTime": {"type": "string", "format": "date-time"}
+          "prov:startTime": {"type": "string", "format": "date-time"},
+          "prov:endTime": {"type": "string", "format": "date-time"}
         },
         "additionalProperties":{}
       }
@@ -50,7 +49,7 @@
       "description":"Map of notes by ids",
       "additionalProperties":{
         "type":"object",
-        "title":"entity",
+        "title":"note",
         "additionalProperties":{}
       }
     },
@@ -73,7 +72,8 @@
           "wasEndedby":{"$ref":"#/properties/wasEndedby"},
           "actedOnBehalfOf":{"$ref":"#/properties/actedOnBehalfOf"},
           "wasDerivedFrom":{"$ref":"#/properties/wasDerivedFrom"},
-          "wasComplementOf":{"$ref":"#/properties/wasComplementOf"},
+          "alternateOf":{"$ref":"#/properties/alternateOf"},
+          "specializationOf":{"$ref":"#/properties/specializationOf"},
           "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
         },
         "additionalProperties": false
@@ -84,9 +84,9 @@
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "entity": {"type": "string", "format": "uri", "required":true},
-          "activity": {"type": "string", "format": "uri", "required":true},
-          "time": {"type": "string", "format": "date-time"}
+          "prov:entity": {"type": "string", "format": "uri", "required":true},
+          "prov:activity": {"type": "string", "format": "uri", "required":true},
+          "prov:time": {"type": "string", "format": "date-time"}
         },
         "additionalProperties":{}
       }
@@ -97,22 +97,33 @@
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "activity": {"type": "string", "format": "uri", "required":true},
-          "agent": {"type": "string", "format": "uri", "required":true}
+          "prov:activity": {"type": "string", "format": "uri", "required":true},
+          "prov:agent": {"type": "string", "format": "uri", "required":true},
+          "prov:plan": {"type": "string", "format": "uri", "required":false}
         },
         "additionalProperties":{}
       }
     },
-    "wasStartedBy": {"$ref":"#/properties/wasAssociatedWith"},
-    "wasEndedby": {"$ref":"#/properties/wasAssociatedWith"},
+    "wasStartedBy": {
+      "type":"object",
+      "additionalProperties":{
+        "type":"object",
+        "properties":{
+          "prov:activity": {"type": "string", "format": "uri", "required":true},
+          "prov:agent": {"type": "string", "format": "uri", "required":true}
+        },
+        "additionalProperties":{}
+      }
+    },
+    "wasEndedby": {"$ref":"#/properties/wasStartedBy"},
     "actedOnBehalfOf": {
       "type":"object",
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "subordinate": {"type": "string", "format": "uri", "required":true},
-          "responsible": {"type": "string", "format": "uri", "required":true},
-          "activity": {"type": "string", "format": "uri"}
+          "prov:subordinate": {"type": "string", "format": "uri", "required":true},
+          "prov:responsible": {"type": "string", "format": "uri", "required":true},
+          "prov:activity": {"type": "string", "format": "uri"}
         },
         "additionalProperties":{}
       }
@@ -123,29 +134,40 @@
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "generatedEntity": {"type": "string", "format": "uri", "required":true},
-          "usedEntity": {"type": "string", "format": "uri", "required":true},
-          "activity": {"type": "string", "format": "uri"},
-          "generation": {"type": "string", "format": "uri"},
-          "usage": {"type": "string", "format": "uri"}
+          "prov:generatedEntity": {"type": "string", "format": "uri", "required":true},
+          "prov:usedEntity": {"type": "string", "format": "uri", "required":true},
+          "prov:activity": {"type": "string", "format": "uri"},
+          "prov:generation": {"type": "string", "format": "uri"},
+          "prov:usage": {"type": "string", "format": "uri"}
         },
-        "additionalProperties":{"$ref":"literal"},
+        "additionalProperties":{},
         "dependencies": {
-          "activity": ["generation", "usage"],
-          "generation": ["activity", "usage"],
-          "usage": ["activity", "generation"]
+          "prov:activity": ["prov:generation", "prov:usage"],
+          "prov:generation": ["prov:activity", "prov:usage"],
+          "prov:usage": ["prov:activity", "prov:generation"]
         }
       }
     },
-    "wasComplementOf": {
+    "alternateOf": {
       "type":"object",
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "subject": {"type": "string", "format": "uri", "required":true},
-          "alternate": {"type": "string", "format": "uri", "required":true}
+          "prov:entity": {"type": "string", "format": "uri", "required":true},
+          "prov:alternate": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties": false
+        "additionalProperties": {}
+      }
+    },
+    "specializationOf": {
+      "type":"object",
+      "additionalProperties":{
+        "type":"object",
+        "properties":{
+          "prov:entity": {"type": "string", "format": "uri", "required":true},
+          "prov:specialization": {"type": "string", "format": "uri", "required":true}
+        },
+        "additionalProperties": {}
       }
     },
     "hasAnnotation": {
@@ -153,8 +175,8 @@
       "additionalProperties":{
         "type":"object",
         "properties":{
-          "annotated": {"type": "string", "format": "uri", "required":true},
-          "note": {"type": "string", "format": "uri", "required":true}
+          "prov:annotated": {"type": "string", "format": "uri", "required":true},
+          "prov:note": {"type": "string", "format": "uri", "required":true}
         },
         "additionalProperties": false
       }
