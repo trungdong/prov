@@ -14,7 +14,9 @@ examplegraph = PROVContainer()
 # Set the default namespace name
 examplegraph.set_default_namespace("http://www.example.com/")
 
-#add the other namespaces into the container
+# add the other namespaces with their prefixes into the container
+# You can do this any time before you output the JSON serialization
+# of the container
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
