@@ -15,6 +15,15 @@ TODO:
 14. Accept URI in the form of string or URIRef as record identifier. If string is not a URI then the record will be treat as B node.(DONE:huanjiayang)
 15. For URI and qname, accept values given in rdflib namespace format? e.g.:prov['usedentity'] (DONE:huanjiayang)
 
+16. default value type mapping between Python types and JSON types; (DONE:huanjiayang)
+17. Define own URIRef and Namespace classes, remove dependency on rdflib; (DONE:huanjiayang)
+18. for identifiers, if given as string then treat it as local name with the default namespace; If not given, treat as blank node; (DONE:huanjiayang)
+
+others:
+19. Start to add in-line documentation;
+20. Start to break the example module down to smaller examples;
+21. Start to validate the result with the PROVJOSN schema validator;
+
 
 Known issues:
 1. No function available to delete/remove record;
