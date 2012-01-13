@@ -1,6 +1,70 @@
 import datetime
-import rdflib
-from rdflib import URIRef,Namespace
+
+
+class PROVIdentifier(object):
+    
+    def __init__(self,name):
+        self.name = name
+
+
+class PROVURIRef(PROVIdentifier):
+    
+    def __init__(self,name,namespacename=None,localname=None):
+        PROVIdentifier.__init__(self, name)
+        self.namespacename = namespacename
+        self.localname = localname
+        
+    def __str__(self):
+        return self.name
+    
+    def __eq__(self,other):
+        if not isinstance(other,PROVURIRef):
+            return False
+        else:
+            return self.name == other.name
+    
+    def __hash__(self):
+        return id(self)
+    
+    def qname(self,nsdict):
+        rt = self.name
+        for prefix,namespacename in nsdict.items():
+            if self.namespacename == namespacename:
+                if not prefix == 'default':
+                    if not self.localname is None:
+                        rt = ":".join((prefix, self.localname))
+                else:
+                    rt = self.localname
+        return rt
+    
+    def to_provJSON(self,nsdict):
+        qname = self.qname(nsdict)
+        if self.name == qname:
+            rt = [qname,"xsd:anyURI"]
+        else:
+            rt = [qname,"xsd:QName"]
+        return rt
+
+
+class PROVNamespace(PROVURIRef):
+    
+    def __init__(self,namespacename):
+        self.namespacename = namespacename
+        
+    def __getitem__(self,localname):
+        return PROVURIRef(self.namespacename+localname,self.namespacename,localname)
+
+        
+xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
+prov = PROVNamespace('http://www.w3.org/ns/prov-dm/')
+
+
+class PROVArray(list):
+    def __init__(self,*args):
+        list.__init__(self)
+        for item in args:
+            self.append(item)
+
 
 class Record:
 
@@ -9,34 +73,49 @@ class Record:
     
     def _get_type_JSON(self,value):
         type = None
+        if isinstance(value,str) or isinstance(value,bool):
+            type = None
+        if isinstance(value,float):
+            type = xsd["float"]
         if isinstance(value,datetime.datetime):
-            type = "xsd:dateTime"
+            type = xsd["dateTime"]
         if isinstance(value,int):
-            type = "xsd:integer"
+            type = xsd["integer"]
+        if isinstance(value,PROVArray):
+            type = prov["array"]
         return type
         
-    def _convert_value_JSON(self,value):
+    def _convert_value_JSON(self,value,nsdict):
         valuetojson = value
-        if isinstance(value,PROVLiteral):
-            valuetojson=value.to_provJSON()
+        if isinstance(value,PROVLiteral): 
+            valuetojson=value.to_provJSON(nsdict)
+        elif isinstance(value,PROVURIRef):
+            valuetojson=value.to_provJSON(nsdict)
         else:
             type = self._get_type_JSON(value)
             if not type is None:
-                valuetojson=[str(value),type]
+                if not type == prov["array"]:
+                    valuetojson=[str(value),type.qname(nsdict)]
+                else:
+                    newvalue = []
+                    for item in value:
+                        newvalue.append(self._convert_value_JSON(item, nsdict))
+                    valuetojson=[newvalue,type.qname(nsdict)]
         return valuetojson
 
 
 class Element(Record):
     
-    def __init__(self,id,attributes=None,account=None):
-        if isinstance(id,URIRef):
-            self.identifier = id
-        elif isinstance(id,str):
-            if not is_URI(id):
-                id = '_:' + id 
-            self.identifier = id
+    def __init__(self,id=None,attributes=None,account=None):
+        if not id is None:
+            if isinstance(id,PROVURIRef):
+                self.identifier = id
+            elif isinstance(id,str):
+                self.identifier = PROVURIRef(id,'',id)
+            else:
+                raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
         else:
-            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
+            self.identifier = id
         if attributes is None:
             self.attributes = {}
         else:
@@ -44,62 +123,74 @@ class Element(Record):
         self.account=account
         self._json = {}
         self._provcontainer = {}
+        self._idJSON = None
         
-    def to_provJSON(self):
-        self._json[self.identifier]=self.attributes
-        for attribute,value in self._json[self.identifier].items():
-            valuetojson = self._convert_value_JSON(value)
+    def to_provJSON(self,nsdict):
+        if isinstance(self.identifier,PROVURIRef):
+            self._idJSON = self.identifier.qname(nsdict)
+        elif self.identifier is None:
+            if self._idJSON is None:
+                self._idJSON = 'NoID'
+        self._json[self._idJSON]=self.attributes
+        for attribute in self._json[self._idJSON].keys():
+            if isinstance(attribute, PROVURIRef):
+                attrtojson = attribute.qname(nsdict)
+                self._json[self._idJSON][attrtojson] = self._json[self._idJSON][attribute]
+                del self._json[self._idJSON][attribute]
+        for attribute,value in self._json[self._idJSON].items():
+            valuetojson = self._convert_value_JSON(value,nsdict)
             if not valuetojson is None:
-                self._json[self.identifier][attribute] = valuetojson
+                self._json[self._idJSON][attribute] = valuetojson
         return self._json
     
 
 class Entity(Element):
 
-    def __init__(self,id,attributes=None,account=None):
+    def __init__(self,id=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
         
-    def to_provJSON(self):
-        Element.to_provJSON(self)
+    def to_provJSON(self,nsdict):
+        Element.to_provJSON(self,nsdict)
         self._provcontainer['entity']=self._json
         return self._provcontainer
     
 
 class Activity(Element):
     
-    def __init__(self,id,starttime=None,endtime=None,attributes=None,account=None):
+    def __init__(self,id=None,starttime=None,endtime=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
         self.starttime=starttime
         self.endtime=endtime
         
-    def to_provJSON(self):
-        Element.to_provJSON(self)
+    def to_provJSON(self,nsdict):
+        Element.to_provJSON(self,nsdict)
         if self.starttime is not None:
-            self._json[self.identifier]['prov:starttime']=self._convert_value_JSON(self.starttime)
+            self._json[self._idJSON]['prov:starttime']=self._convert_value_JSON(self.starttime,nsdict)
         if self.endtime is not None:
-            self._json[self.identifier]['prov:endtime']=self._convert_value_JSON(self.endtime)
+            self._json[self._idJSON]['prov:endtime']=self._convert_value_JSON(self.endtime,nsdict)
         self._provcontainer['activity']=self._json
         return self._provcontainer
 
 
 class Agent(Entity):
 
-    def __init__(self,id,attributes=None,account=None):
+    def __init__(self,id=None,attributes=None,account=None):
         Entity.__init__(self,id,attributes,account)
         
-    def to_provJSON(self):
-        Element.to_provJSON(self)
+    def to_provJSON(self,nsdict):
+        Element.to_provJSON(self,nsdict)
         self._provcontainer['entity']=self._json
+        #TODO: How to mark an Agent?
         return self._provcontainer
         
 
 class Note(Element):
 
-    def __init__(self,id,attributes=None,account=None):
+    def __init__(self,id=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
         
-    def to_provJSON(self):
-        Element.to_provJSON(self)
+    def to_provJSON(self,nsdict):
+        Element.to_provJSON(self,nsdict)
         self._provcontainer['note']=self._json
         return self._provcontainer
 
@@ -109,14 +200,12 @@ class Relation(Record):
     def __init__(self,id,attributes,account=None):
         if id is None:
             self.identifier = id
-        elif isinstance(id,URIRef):
+        elif isinstance(id,PROVURIRef):
             self.identifier = id
         elif isinstance(id,str):
-            if not is_URI(id):
-                id = '_:' + id 
-            self.identifier = id
+            self.identifier = PROVURIRef(id,'',id)
         else:
-            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an URIRef")
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
         if attributes is None:
             self.attributes = {}
         else:
@@ -124,13 +213,24 @@ class Relation(Record):
         self.account=account
         self._json = {}
         self._provcontainer = {}
+        self._idJSON = None
     
-    def to_provJSON(self):
-        self._json[self.identifier]=self.attributes
-        for attribute,value in self._json[self.identifier].items():
-            valuetojson = self._convert_value_JSON(value)
+    def to_provJSON(self,nsdict):
+        if isinstance(self.identifier,PROVURIRef):
+            self._idJSON = self.identifier.qname(nsdict)
+        elif self.identifier is None:
+            if self._idJSON is None:
+                self._idJSON = 'NoID'
+        self._json[self._idJSON]=self.attributes
+        for attribute in self._json[self._idJSON].keys():
+            if isinstance(attribute, PROVURIRef):
+                attrtojson = attribute.qname(nsdict)
+                self._json[self._idJSON][attrtojson] = self._json[self._idJSON][attribute]
+                del self._json[self._idJSON][attribute]
+        for attribute,value in self._json[self._idJSON].items():
+            valuetojson = self._convert_value_JSON(value,nsdict)
             if not valuetojson is None:
-                self._json[self.identifier][attribute] = valuetojson
+                self._json[self._idJSON][attribute] = valuetojson
         return self._json
         
     
@@ -143,12 +243,12 @@ class wasGeneratedBy(Relation):
         self.activity=activity
         self.time = time
         
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:entity']=self.entity.identifier
-        self._json[self.identifier]['prov:activity']=self.activity.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
-            self._json[self.identifier]['prov:time']=self._convert_value_JSON(self.time)
+            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
         self._provcontainer['wasGeneratedBy']=self._json
         return self._provcontainer
     
@@ -161,12 +261,12 @@ class Used(Relation):
         self.activity=activity
         self.time = time
         
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:entity']=self.entity.identifier
-        self._json[self.identifier]['prov:activity']=self.activity.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
-            self._json[self.identifier]['prov:time']=self._convert_value_JSON(self.time)
+            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
         self._provcontainer['used']=self._json
         return self._provcontainer
     
@@ -178,10 +278,10 @@ class wasAssociatedWith(Relation):
         self.activity=activity
         self.agent=agent
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:activity']=self.activity.identifier
-        self._json[self.identifier]['prov:agent']=self.agent.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasAssociatedWith']=self._json
         return self._provcontainer
     
@@ -193,10 +293,10 @@ class wasStartedBy(Relation):
         self.activity=activity
         self.agent=agent
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:activity']=self.activity.identifier
-        self._json[self.identifier]['prov:agent']=self.agent.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasStartedBy']=self._json
         return self._provcontainer
     
@@ -208,10 +308,10 @@ class wasEndedBy(Relation):
         self.activity=activity
         self.agent=agent
         
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:activity']=self.activity.identifier
-        self._json[self.identifier]['prov:agent']=self.agent.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:activity']=self.activity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['wasEndedBy']=self._json
         return self._provcontainer
     
@@ -223,10 +323,10 @@ class hadPlan(Relation):
         self.entity=entity
         self.agent=agent
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:entity']=self.entity.identifier
-        self._json[self.identifier]['prov:agent']=self.agent.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
         self._provcontainer['hadPlan']=self._json
         return self._provcontainer
     
@@ -238,10 +338,10 @@ class actedOnBehalfOf(Relation):
         self.subordinate=subordinate
         self.responsible=responsible
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:subordinate']=self.subordinate.identifier
-        self._json[self.identifier]['prov:responsible']=self.responsible.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:subordinate']=self.subordinate._idJSON
+        self._json[self._idJSON]['prov:responsible']=self.responsible._idJSON
         self._provcontainer['actedOnBehalfOf']=self._json
         return self._provcontainer
     
@@ -256,16 +356,16 @@ class wasDerivedFrom(Relation):
         self.generation=generation
         self.usage=usage
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:generatedentity']=self.generatedentity.identifier
-        self._json[self.identifier]['prov:usedentity']=self.usedentity.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:generatedentity']=self.generatedentity._idJSON
+        self._json[self._idJSON]['prov:usedentity']=self.usedentity._idJSON
         if self.activity is not None:
-            self._json[self.identifier]['prov:activity']=self.activity.identifier
+            self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.generation is not None:
-            self._json[self.identifier]['prov:generation']=self.generation.identifier
+            self._json[self._idJSON]['prov:generation']=self.generation._idJSON
         if self.usage is not None:
-            self._json[self.identifier]['prov:usage']=self.usage.identifier
+            self._json[self._idJSON]['prov:usage']=self.usage._idJSON
         self._provcontainer['wasDerivedFrom']=self._json
         return self._provcontainer
                         
@@ -277,10 +377,10 @@ class wasComplementOf(Relation):
         self.subject=subject
         self.alternate=alternate
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:subject']=self.subject.identifier
-        self._json[self.identifier]['prov:alternate']=self.alternate.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:subject']=self.subject._idJSON
+        self._json[self._idJSON]['prov:alternate']=self.alternate._idJSON
         self._provcontainer['wasComplementOf']=self._json
         return self._provcontainer
             
@@ -292,10 +392,10 @@ class hasAnnotation(Relation):
         self.record=record
         self.note=note
 
-    def to_provJSON(self):
-        Relation.to_provJSON(self)
-        self._json[self.identifier]['prov:record']=self.record.identifier
-        self._json[self.identifier]['prov:note']=self.note.identifier
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:record']=self.record._idJSON
+        self._json[self._idJSON]['prov:note']=self.note._idJSON
         self._provcontainer['hasAnnotation']=self._json
         return self._provcontainer
     
@@ -307,9 +407,15 @@ class PROVLiteral():
         self.type=type
         self._json = []
         
-    def to_provJSON(self):
-        self._json.append(self.value)
-        self._json.append(self.type)
+    def to_provJSON(self,nsdict):
+        if isinstance(self.value,PROVURIRef):
+            self._json.append(self.value.qname(nsdict))
+        else:
+            self._json.append(self.value)
+        if isinstance(self.type,PROVURIRef):
+            self._json.append(self.type.qname(nsdict))
+        else:
+            self._json.append(self.type)
         return self._json
 
 
@@ -321,18 +427,20 @@ class Bundle():
         self._relationlist = []
         self._namespacedict = {}
         self._implicitnamespace = {'prov':'http://www.w3.org/ns/prov-dm/',
-                                   'xsd' :'http://www.w3.org/2001/XMLSchema-datatypes'}
+                                   'xsd' :'http://www.w3.org/2001/XMLSchema-datatypes#'}
         self._accountlist = []
+        self._elementkey = 0
         self._relationkey = 0
         self._auto_ns_key = 0
         self.identifier = "default"
+        self._idJSON = None
    
     def add(self,record):
         if isinstance(record,Element):
             self._validate_record(record)
             if record.account is None:
                 self._elementlist.append(record)
-            elif record.account.identifier is not self.identifier:
+            elif not record.account.identifier == self.identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
                 self._elementlist.append(record)
@@ -340,37 +448,51 @@ class Bundle():
             self._validate_record(record)
             if record.account is None:
                 self._relationlist.append(record)
-            elif record.account.identifier is not self.identifier:
+            elif not record.account.identifier == self.identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
                 self._relationlist.append(record)
         elif isinstance(record,Account):
             self._accountlist.append(record)
             
-    def to_provJSON(self):
+    def to_provJSON(self,nsdict):
+        self._generate_idJSON(nsdict)
         for element in self._elementlist:
             if isinstance(element,Agent):
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
                 self._provcontainer['agent'].append(element.identifier)
-            for key in element.to_provJSON():
+            for key in element.to_provJSON(nsdict):
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(element.to_provJSON()[key])
+                self._provcontainer[key].update(element.to_provJSON(nsdict)[key])
         for relation in self._relationlist:
-            if relation.identifier is None:
-                relation.identifier = self._generate_identifer()
-            for key in relation.to_provJSON():
+            for key in relation.to_provJSON(nsdict):
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(relation.to_provJSON()[key])
+                self._provcontainer[key].update(relation.to_provJSON(nsdict)[key])
         for account in self._accountlist:
             if not 'account' in self._provcontainer.keys():
                 self._provcontainer['account']={}
-            if not account.identifier in self._provcontainer['account'].keys():
-                self._provcontainer['account'][account.identifier]={}
-            self._provcontainer['account'][account.identifier].update(account.to_provJSON())
+            if not account._idJSON in self._provcontainer['account'].keys():
+                self._provcontainer['account'][account._idJSON]={}
+            self._provcontainer['account'][account._idJSON].update(account.to_provJSON(nsdict))
         return self._provcontainer
+
+    def _generate_idJSON(self,nsdict):
+        for element in self._elementlist:
+            if element.identifier is None:
+                element._idJSON = self._generate_elem_identifier()
+            else:
+                element._idJSON = element.identifier.qname(nsdict)
+        for relation in self._relationlist:
+            if relation.identifier is None:
+                relation._idJSON = self._generate_rlat_identifier()
+            else:
+                relation._idJSON = relation.identifier.qname(nsdict)
+        for account in self._accountlist:
+            account._idJSON = account.identifier.qname(nsdict)
+            account._generate_idJSON(nsdict)
                     
     def add_namespace(self,prefix,url):
         #TODO: add prefix validation here
@@ -380,24 +502,31 @@ class Bundle():
             self._namespacedict[prefix]=url
 #            self._apply_namespace(prefix, url)
 
-    def _generate_identifer(self):
+    def _generate_rlat_identifier(self):
         id = "_:RLAT"+str(self._relationkey)
         self._relationkey = self._relationkey + 1
         if self._validate_id(id) is False:
-            id = self._generate_identifer()
+            id = self._generate_rlat_identifier()
         return id
-    
+
+    def _generate_elem_identifier(self):
+        id = "_:ELEM"+str(self._elementkey)
+        self._elementkey = self._elementkey + 1
+        if self._validate_id(id) is False:
+            id = self._generate_elem_identifier()
+        return id
+        
     def _validate_id(self,id):
         valid = True
         for element in self._elementlist:
-            if element.identifier == id:
+            if element._idJSON == id:
                 valid = False
         for relation in self._relationlist:
-            if relation.identifier == id:
+            if relation._idJSON == id:
                 valid = False
         return valid
 
-    def add_entity(self,id,attributes=None,account=None):
+    def add_entity(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -405,7 +534,7 @@ class Bundle():
             self.add(element)
             return element
     
-    def add_activity(self,id,starttime=None,endtime=None,attributes=None,account=None):
+    def add_activity(self,id=None,starttime=None,endtime=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -413,7 +542,7 @@ class Bundle():
             self._elementlist.append(element)
             return element
     
-    def add_agent(self,id,attributes=None,account=None):
+    def add_agent(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -421,7 +550,7 @@ class Bundle():
             self._elementlist.append(element)
             return element
     
-    def add_note(self,id,attributes=None,account=None):
+    def add_note(self,id=None,attributes=None,account=None):
         if self._validate_id(id) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -526,13 +655,13 @@ class Bundle():
     def _validate_record(self,record):
         for attribute,literal in record.attributes.items():
             if not isinstance(attribute,str):
-                if not isinstance(attribute,URIRef):
-                    raise PROVGraph_Error('Bad type for attribute name, expecting str or URIRef.')
-            elif (not attribute.startswith("http://")) and (":" in attribute):
-                self._validate_qname(attribute)
-            if isinstance(literal,PROVLiteral):
-                if literal.type is "xsd:QName":
-                    self._validate_qname(literal.value)
+                if not isinstance(attribute,PROVURIRef):
+                    raise PROVGraph_Error('Bad type for attribute name, expecting str or PROVURIRef.')
+#            elif (not attribute.startswith("http://")) and (":" in attribute):
+#                self._validate_qname(attribute)
+#            if isinstance(literal,PROVLiteral):
+#                if literal.type is "xsd:QName":
+#                    self._validate_qname(literal.value)
 
     def _validate_qname(self,qname):
         prefix=qname.split(':')[0]
@@ -570,31 +699,34 @@ class PROVContainer(Bundle):
         self.defaultnamespace = defaultnamespace
         
     def to_provJSON(self):
-        Bundle.to_provJSON(self)
-        self._provcontainer['prefix']={}
-        for prefix,url in self._namespacedict.items():
-            self._provcontainer['prefix'][prefix]=url
+        nsdict = {'default':self.defaultnamespace}
+        nsdict.update(self._implicitnamespace)
+        nsdict.update(self._namespacedict)
         for account in self._accountlist:
             for prefix,url in account._namespacedict.items():
-                if not prefix in self._provcontainer['prefix'].keys():
-                    if not url in self._provcontainer['prefix'].values():
-                        self._provcontainer['prefix'][prefix]=url
-                elif not url in self._provcontainer['prefix'].values():
+                if not prefix in nsdict.keys():
+                    if not url in nsdict.values():
+                        nsdict[prefix]=url
+                elif not nsdict[prefix] is url:
                     newprefix = "ns" + str(self._auto_ns_key)
                     self._auto_ns_key = self._auto_ns_key + 1
-                    self._provcontainer['account'][account.identifier] = self._replace_prefix(self._provcontainer['account'][account.identifier], prefix, newprefix)
-                    self._provcontainer['prefix'][newprefix]=url
+                    nsdict[newprefix]=url
+        Bundle.to_provJSON(self,nsdict)
+        self._provcontainer['prefix']={}
+        for prefix,url in nsdict.items():
+            self._provcontainer['prefix'][prefix]=url
+
         if not self.defaultnamespace is None:
             if not "default" in self._provcontainer['prefix'].keys():
                 self._provcontainer['prefix']['default']=self.defaultnamespace
             else:
                 pass # TODO: what if a namespace with prefix 'default' is already defined
             
-        for prefix,url in self._namespacedict.items():
-            self._apply_prefix(self._provcontainer, prefix, url)
-        self._apply_prefix(self._provcontainer, '', self.defaultnamespace)
+#        for prefix,url in self._namespacedict.items():
+#            self._apply_prefix(self._provcontainer, prefix, url)
+#        self._apply_prefix(self._provcontainer, '', self.defaultnamespace)
         return self._provcontainer
-    
+
     def _apply_prefix(self,target,ns_prefix,ns_URI):
         prefix = ns_prefix
         if not ns_prefix is '':
@@ -604,20 +736,22 @@ class PROVContainer(Bundle):
                 target = target.replace(ns_URI,prefix)
                 if ns_prefix is '':
                     target = [target,"xsd:QName"]
+        elif isinstance(target,PROVURIRef):
+            if target.namespacename is ns_URI:
+                target.qname({ns_prefix:ns_URI})
         elif type(target) == type(dict()):
             for key in target.keys():
                 if not key == 'prefix':
                     target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
-                    if key.startswith(ns_URI):
-                        newkey = key.replace(ns_URI,prefix)
-                        target[newkey] = target[key]
-                        del target[key]
+                    newkey = self._apply_prefix(key,ns_prefix,ns_URI)
+                    target[newkey] = target[key]
+                    del target[key]
         elif type(target) == type(list()):
             for item in target:
                 target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
-        elif isinstance(target,URIRef):
+        elif isinstance(target,PROVURIRef):
             target = str(target).replace(ns_URI,prefix)
-        return target       
+        return target
 
 
 class Account(Record,Bundle):
@@ -625,14 +759,18 @@ class Account(Record,Bundle):
     def __init__(self,id,asserter,parentaccount=None,attributes=None):
         Record.__init__(self)
         Bundle.__init__(self)
-        if isinstance(id,URIRef):
+        if isinstance(id,PROVURIRef):
             self.identifier = id
         elif isinstance(id,str):
-            if not is_URI(id):
-                id = '_:' + id 
-            self.identifier = id
+            self.identifier = PROVURIRef(id,'',id)
         else:
-            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an URIRef")
+            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVURIRef")
+        if isinstance(asserter,PROVURIRef):
+            self.asserter = asserter
+        elif isinstance(asserter,str):
+            self.asserter = PROVURIRef(id,'',id)
+        else:
+            raise PROVGraph_Error("The asserter of PROV account record must be given as a string or an PROVURIRef")
         self.asserter = asserter
         self.parentaccount=parentaccount
         if attributes is None:
@@ -640,13 +778,18 @@ class Account(Record,Bundle):
         else:
             self.attributes = attributes
     
-    def to_provJSON(self):
-        Bundle.to_provJSON(self)
-        self._provcontainer['prov:asserter']=self.asserter
-        for attr,value in self.attributes.items():
-            valuetojson = self._convert_value_JSON(value)
+    def to_provJSON(self,nsdict):
+        Bundle.to_provJSON(self,nsdict)
+        self._provcontainer['prov:asserter']=self.asserter.qname(nsdict)
+        for attribute in self._provcontainer.keys():
+            if isinstance(attribute, PROVURIRef):
+                attrtojson = attribute.qname(nsdict)
+                self._provcontainer[attrtojson] = self._provcontainer[attribute]
+                del self._provcontainer[attribute]
+        for attribute,value in self.attributes.items():
+            valuetojson = self._convert_value_JSON(value,nsdict)
             if not valuetojson is None:
-                self._provcontainer[attr]=valuetojson
+                self._provcontainer[attribute]=valuetojson
         return self._provcontainer
     
 
