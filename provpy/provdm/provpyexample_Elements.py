@@ -2,11 +2,11 @@ import json
 from provpy import *
 
 # Define your namespaces (see provpyexample_PROVURIRef_PROVNamespace.py)
-FOAF = PROVNamespace("http://xmlns.com/foaf/0.1/")
-ex = PROVNamespace("http://www.example.com/")
-dcterms = PROVNamespace("http://purl.org/dc/terms/")
-xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
-prov = PROVNamespace("http://www.w3.org/ns/prov-dm/")
+FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
+ex = PROVNamespace("ex","http://www.example.com/")
+dcterms = PROVNamespace("dcterms","http://purl.org/dc/terms/")
+xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
+prov = PROVNamespace("prov","http://www.w3.org/ns/prov-dm/")
 
 # create a provenance container
 examplegraph = PROVContainer()
