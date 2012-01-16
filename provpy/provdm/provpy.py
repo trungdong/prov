@@ -756,7 +756,7 @@ class PROVContainer(Bundle):
 
 class Account(Record,Bundle):
     
-    def __init__(self,id,asserter,parentaccount=None,attributes=None):
+    def __init__(self,id,asserter,parentaccount=None):
         Record.__init__(self)
         Bundle.__init__(self)
         if isinstance(id,PROVURIRef):
@@ -773,10 +773,6 @@ class Account(Record,Bundle):
             raise PROVGraph_Error("The asserter of PROV account record must be given as a string or an PROVURIRef")
         self.asserter = asserter
         self.parentaccount=parentaccount
-        if attributes is None:
-            self.attributes = {}
-        else:
-            self.attributes = attributes
     
     def to_provJSON(self,nsdict):
         Bundle.to_provJSON(self,nsdict)
@@ -786,10 +782,6 @@ class Account(Record,Bundle):
                 attrtojson = attribute.qname(nsdict)
                 self._provcontainer[attrtojson] = self._provcontainer[attribute]
                 del self._provcontainer[attribute]
-        for attribute,value in self.attributes.items():
-            valuetojson = self._convert_value_JSON(value,nsdict)
-            if not valuetojson is None:
-                self._provcontainer[attribute]=valuetojson
         return self._provcontainer
     
 
