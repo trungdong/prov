@@ -776,7 +776,7 @@ class Account(Record,Bundle):
     
     def to_provJSON(self,nsdict):
         Bundle.to_provJSON(self,nsdict)
-        self._provcontainer['prov:asserter']=self.asserter.qname(nsdict)
+        self._provcontainer['asserter']=self.asserter.qname(nsdict)
         for attribute in self._provcontainer.keys():
             if isinstance(attribute, PROVURIRef):
                 attrtojson = attribute.qname(nsdict)
