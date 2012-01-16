@@ -7,9 +7,9 @@ class PROVIdentifier(object):
         self.name = name
 
 
-class PROVURIRef(PROVIdentifier):
+class PROVQname(PROVIdentifier):
     
-    def __init__(self,name,namespacename=None,localname=None):
+    def __init__(self,name,prefix=None,namespacename=None,localname=None):
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
         self.localname = localname
@@ -18,7 +18,7 @@ class PROVURIRef(PROVIdentifier):
         return self.name
     
     def __eq__(self,other):
-        if not isinstance(other,PROVURIRef):
+        if not isinstance(other,PROVQname):
             return False
         else:
             return self.name == other.name
@@ -46,17 +46,18 @@ class PROVURIRef(PROVIdentifier):
         return rt
 
 
-class PROVNamespace(PROVURIRef):
+class PROVNamespace(PROVIdentifier):
     
-    def __init__(self,namespacename):
+    def __init__(self,prefix,namespacename):
+        self.prefix = prefix
         self.namespacename = namespacename
         
     def __getitem__(self,localname):
-        return PROVURIRef(self.namespacename+localname,self.namespacename,localname)
+        return PROVQname(self.namespacename+localname,self.prefix,self.namespacename,localname)
 
         
-xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
-prov = PROVNamespace('http://www.w3.org/ns/prov-dm/')
+xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
+prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 
 
 class PROVArray(list):
@@ -89,7 +90,7 @@ class Record:
         valuetojson = value
         if isinstance(value,PROVLiteral): 
             valuetojson=value.to_provJSON(nsdict)
-        elif isinstance(value,PROVURIRef):
+        elif isinstance(value,PROVQname):
             valuetojson=value.to_provJSON(nsdict)
         else:
             type = self._get_type_JSON(value)
@@ -108,12 +109,12 @@ class Element(Record):
     
     def __init__(self,id=None,attributes=None,account=None):
         if not id is None:
-            if isinstance(id,PROVURIRef):
+            if isinstance(id,PROVQname):
                 self.identifier = id
             elif isinstance(id,str):
-                self.identifier = PROVURIRef(id,'',id)
+                self.identifier = PROVQname(id,'',id)
             else:
-                raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
+                raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         else:
             self.identifier = id
         if attributes is None:
@@ -126,14 +127,14 @@ class Element(Record):
         self._idJSON = None
         
     def to_provJSON(self,nsdict):
-        if isinstance(self.identifier,PROVURIRef):
+        if isinstance(self.identifier,PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
         self._json[self._idJSON]=self.attributes
         for attribute in self._json[self._idJSON].keys():
-            if isinstance(attribute, PROVURIRef):
+            if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
                 self._json[self._idJSON][attrtojson] = self._json[self._idJSON][attribute]
                 del self._json[self._idJSON][attribute]
@@ -200,12 +201,12 @@ class Relation(Record):
     def __init__(self,id,attributes,account=None):
         if id is None:
             self.identifier = id
-        elif isinstance(id,PROVURIRef):
+        elif isinstance(id,PROVQname):
             self.identifier = id
         elif isinstance(id,str):
-            self.identifier = PROVURIRef(id,'',id)
+            self.identifier = PROVQname(id,'',id)
         else:
-            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVURIRef")
+            raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         if attributes is None:
             self.attributes = {}
         else:
@@ -216,14 +217,14 @@ class Relation(Record):
         self._idJSON = None
     
     def to_provJSON(self,nsdict):
-        if isinstance(self.identifier,PROVURIRef):
+        if isinstance(self.identifier,PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
         self._json[self._idJSON]=self.attributes
         for attribute in self._json[self._idJSON].keys():
-            if isinstance(attribute, PROVURIRef):
+            if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
                 self._json[self._idJSON][attrtojson] = self._json[self._idJSON][attribute]
                 del self._json[self._idJSON][attribute]
@@ -408,11 +409,11 @@ class PROVLiteral():
         self._json = []
         
     def to_provJSON(self,nsdict):
-        if isinstance(self.value,PROVURIRef):
+        if isinstance(self.value,PROVQname):
             self._json.append(self.value.qname(nsdict))
         else:
             self._json.append(self.value)
-        if isinstance(self.type,PROVURIRef):
+        if isinstance(self.type,PROVQname):
             self._json.append(self.type.qname(nsdict))
         else:
             self._json.append(self.type)
@@ -655,8 +656,8 @@ class Bundle():
     def _validate_record(self,record):
         for attribute,literal in record.attributes.items():
             if not isinstance(attribute,str):
-                if not isinstance(attribute,PROVURIRef):
-                    raise PROVGraph_Error('Bad type for attribute name, expecting str or PROVURIRef.')
+                if not isinstance(attribute,PROVQname):
+                    raise PROVGraph_Error('Bad type for attribute name, expecting str or PROVQname.')
 #            elif (not attribute.startswith("http://")) and (":" in attribute):
 #                self._validate_qname(attribute)
 #            if isinstance(literal,PROVLiteral):
@@ -736,7 +737,7 @@ class PROVContainer(Bundle):
                 target = target.replace(ns_URI,prefix)
                 if ns_prefix is '':
                     target = [target,"xsd:QName"]
-        elif isinstance(target,PROVURIRef):
+        elif isinstance(target,PROVQname):
             if target.namespacename is ns_URI:
                 target.qname({ns_prefix:ns_URI})
         elif type(target) == type(dict()):
@@ -749,7 +750,7 @@ class PROVContainer(Bundle):
         elif type(target) == type(list()):
             for item in target:
                 target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
-        elif isinstance(target,PROVURIRef):
+        elif isinstance(target,PROVQname):
             target = str(target).replace(ns_URI,prefix)
         return target
 
@@ -759,18 +760,18 @@ class Account(Record,Bundle):
     def __init__(self,id,asserter,parentaccount=None):
         Record.__init__(self)
         Bundle.__init__(self)
-        if isinstance(id,PROVURIRef):
+        if isinstance(id,PROVQname):
             self.identifier = id
         elif isinstance(id,str):
-            self.identifier = PROVURIRef(id,'',id)
+            self.identifier = PROVQname(id,'',id)
         else:
-            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVURIRef")
-        if isinstance(asserter,PROVURIRef):
+            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVQname")
+        if isinstance(asserter,PROVQname):
             self.asserter = asserter
         elif isinstance(asserter,str):
-            self.asserter = PROVURIRef(id,'',id)
+            self.asserter = PROVQname(id,'',id)
         else:
-            raise PROVGraph_Error("The asserter of PROV account record must be given as a string or an PROVURIRef")
+            raise PROVGraph_Error("The asserter of PROV account record must be given as a string or an PROVQname")
         self.asserter = asserter
         self.parentaccount=parentaccount
     
@@ -778,7 +779,7 @@ class Account(Record,Bundle):
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['asserter']=self.asserter.qname(nsdict)
         for attribute in self._provcontainer.keys():
-            if isinstance(attribute, PROVURIRef):
+            if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
                 self._provcontainer[attrtojson] = self._provcontainer[attribute]
                 del self._provcontainer[attribute]

@@ -2,12 +2,12 @@ import json
 from provpy import *
 
 
-FOAF = PROVNamespace("http://xmlns.com/foaf/0.1/")
-ex = PROVNamespace("http://www.example.com/")
-dcterms = PROVNamespace("http://purl.org/dc/terms/")
-xsd = PROVNamespace('http://www.w3.org/2001/XMLSchema-datatypes#')
+FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
+ex = PROVNamespace("ex","http://www.example.com/")
+dcterms = PROVNamespace("dcterms","http://purl.org/dc/terms/")
+xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 
-testns = PROVNamespace('http://www.test.org/')
+testns = PROVNamespace("testns",'http://www.test.org/')
 
 
 examplegraph = PROVContainer()
@@ -74,15 +74,14 @@ pp.pprint(examplegraph.to_provJSON())
 nsdict = {'foaf' : "http://xmlns.com/foaf/0.1/",
             'ex' : "http://www.example.com/",
             'dcterms' : "http://purl.org/dc/terms/"}
-testns = PROVNamespace('http://www.test.com/')
 testuri = testns['localname']
 print testuri.name
 print testuri.namespacename
 print testuri.localname
-print testuri.qname({"testprefix" : "http://www.test.com/"})
+print testuri.qname({"testprefix" : "http://www.test.org/"})
 
 print u0.to_provJSON(nsdict)
-print testuri.to_provJSON({'test':'http://www.test.com/'})
+print testuri.to_provJSON({'test':'http://www.test.org/'})
 
 print d0.to_provJSON(nsdict)
 
