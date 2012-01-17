@@ -7,8 +7,8 @@ ex = PROVNamespace("ex","http://www.example.com/")
 dcterms = PROVNamespace("dcterms","http://purl.org/dc/terms/")
 xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 
-testns = PROVNamespace("testns",'http://www.test.org/')
-
+testns = PROVNamespace("test",'http://www.test.org/')
+exns = PROVNamespace("test",'http://www.example.org/')
 
 examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.example.com/")
@@ -17,7 +17,7 @@ examplegraph.set_default_namespace("http://www.example.com/")
 #examplegraph.add_namespace("ex","http://www.example.com/")
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
-examplegraph.add_namespace("ex","http://www.example111.com/")
+#examplegraph.add_namespace("ex","http://www.example111.com/")
 
 # add entities
 attrdict = {"type": "File",
@@ -31,7 +31,7 @@ attrdict ={"type": "File",
            dcterms["creator"]: PROVArray(FOAF['Alice'],FOAF['Bill']),
            ex["content"]: "",
            dcterms["create"]: lit0,
-           ex["testns"]:testns["localname"]}
+           exns["testns"]:testns["localname"]}
 e1 = Entity(FOAF['Foo'],attributes=attrdict)
 examplegraph.add(e1)
 
@@ -91,3 +91,6 @@ print isinstance(ttt,PROVLiteral)
 
 f = open('C:/exampleresult.json', 'w')
 f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+
+for item in d0._attributelist:
+    print item
