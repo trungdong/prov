@@ -654,41 +654,11 @@ class Bundle():
         self._accountlist.append(acc)
 
     def _validate_record(self,record):
-        for attribute,literal in record.attributes.items():
-            if not isinstance(attribute,str):
-                if not isinstance(attribute,PROVQname):
-                    raise PROVGraph_Error('Bad type for attribute name, expecting str or PROVQname.')
-#            elif (not attribute.startswith("http://")) and (":" in attribute):
-#                self._validate_qname(attribute)
-#            if isinstance(literal,PROVLiteral):
-#                if literal.type is "xsd:QName":
-#                    self._validate_qname(literal.value)
+        pass # Put possible record validation here
 
     def _validate_qname(self,qname):
-        prefix=qname.split(':')[0]
-        if not prefix in self._namespacedict.keys():
-            if not prefix in self._implicitnamespace.keys():
-                raise PROVGraph_Error('%s Prefix of QName not defined.' % qname)
+        pass # Put possible Qname validation here
             
-    def _replace_prefix(self,target,oldprefix,newprefix):
-        oldprefixcolon = oldprefix + ":"
-        newprefixcolon = newprefix + ":"
-        if isinstance(target,str):
-            if target.startswith(oldprefixcolon):
-                target = target.replace(oldprefixcolon,newprefixcolon)
-        elif isinstance(target,dict):
-            for key in target.keys():
-                if not key == 'prefix':
-                    target[key] = self._replace_prefix(target[key],oldprefix,newprefix)
-                    if key.startswith(oldprefixcolon):
-                        newkey = key.replace(oldprefixcolon,newprefixcolon)
-                        target[newkey] = target[key]
-                        del target[key]
-        elif isinstance(target,list):
-            for item in target:
-                target[target.index(item)] = self._replace_prefix(item,oldprefix,newprefix)
-        return target
-    
 
 class PROVContainer(Bundle):
     
@@ -722,37 +692,7 @@ class PROVContainer(Bundle):
                 self._provcontainer['prefix']['default']=self.defaultnamespace
             else:
                 pass # TODO: what if a namespace with prefix 'default' is already defined
-            
-#        for prefix,url in self._namespacedict.items():
-#            self._apply_prefix(self._provcontainer, prefix, url)
-#        self._apply_prefix(self._provcontainer, '', self.defaultnamespace)
         return self._provcontainer
-
-    def _apply_prefix(self,target,ns_prefix,ns_URI):
-        prefix = ns_prefix
-        if not ns_prefix is '':
-            prefix = ns_prefix + ":"
-        if type(target) == type(str()):
-            if target.startswith(ns_URI):
-                target = target.replace(ns_URI,prefix)
-                if ns_prefix is '':
-                    target = [target,"xsd:QName"]
-        elif isinstance(target,PROVQname):
-            if target.namespacename is ns_URI:
-                target.qname({ns_prefix:ns_URI})
-        elif type(target) == type(dict()):
-            for key in target.keys():
-                if not key == 'prefix':
-                    target[key] = self._apply_prefix(target[key],ns_prefix,ns_URI)
-                    newkey = self._apply_prefix(key,ns_prefix,ns_URI)
-                    target[newkey] = target[key]
-                    del target[key]
-        elif type(target) == type(list()):
-            for item in target:
-                target[target.index(item)] = self._apply_prefix(item,ns_prefix,ns_URI)
-        elif isinstance(target,PROVQname):
-            target = str(target).replace(ns_URI,prefix)
-        return target
 
 
 class Account(Record,Bundle):
@@ -791,9 +731,3 @@ class PROVGraph_Error(Exception):
         self.error_message = error_message
     def __str__(self):
         return repr(self.error_message)
-    
-def is_URI(str):
-    if str.startswith('http://'):
-        return True
-    else:
-        return False
