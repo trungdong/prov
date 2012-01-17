@@ -13,6 +13,7 @@ class PROVQname(PROVIdentifier):
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
         self.localname = localname
+        self.prefix = prefix
         
     def __str__(self):
         return self.name
@@ -35,6 +36,9 @@ class PROVQname(PROVIdentifier):
                         rt = ":".join((prefix, self.localname))
                 else:
                     rt = self.localname
+        if not self.namespacename in nsdict.values():
+            if not self.prefix is None:
+                rt = ":".join((self.prefix, self.localname))
         return rt
     
     def to_provJSON(self,nsdict):
@@ -112,7 +116,7 @@ class Element(Record):
             if isinstance(id,PROVQname):
                 self.identifier = id
             elif isinstance(id,str):
-                self.identifier = PROVQname(id,'',id)
+                self.identifier = PROVQname(id,None,None,id)
             else:
                 raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         else:
@@ -125,6 +129,7 @@ class Element(Record):
         self._json = {}
         self._provcontainer = {}
         self._idJSON = None
+        self._attributelist = [self.identifier,self.account,self.attributes]
         
     def to_provJSON(self,nsdict):
         if isinstance(self.identifier,PROVQname):
@@ -143,7 +148,7 @@ class Element(Record):
             if not valuetojson is None:
                 self._json[self._idJSON][attribute] = valuetojson
         return self._json
-    
+
 
 class Entity(Element):
 
@@ -162,6 +167,7 @@ class Activity(Element):
         Element.__init__(self,id,attributes,account)
         self.starttime=starttime
         self.endtime=endtime
+        self._attributelist.extend([self.starttime,self.endtime])
         
     def to_provJSON(self,nsdict):
         Element.to_provJSON(self,nsdict)
@@ -198,13 +204,13 @@ class Note(Element):
 
 class Relation(Record):
 
-    def __init__(self,id,attributes,account=None):
+    def __init__(self,id,attributes=None,account=None):
         if id is None:
             self.identifier = id
         elif isinstance(id,PROVQname):
             self.identifier = id
         elif isinstance(id,str):
-            self.identifier = PROVQname(id,'',id)
+            self.identifier = PROVQname(id,None,None,id)
         else:
             raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         if attributes is None:
@@ -215,6 +221,7 @@ class Relation(Record):
         self._json = {}
         self._provcontainer = {}
         self._idJSON = None
+        self._attributelist = [self.identifier,self.account,self.attributes]
     
     def to_provJSON(self,nsdict):
         if isinstance(self.identifier,PROVQname):
@@ -243,6 +250,7 @@ class wasGeneratedBy(Relation):
         self.entity=entity
         self.activity=activity
         self.time = time
+        self._attributelist.extend([self.entity,self.activity,self.time])
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -261,6 +269,7 @@ class Used(Relation):
         self.entity=entity
         self.activity=activity
         self.time = time
+        self._attributelist.extend([self.entity,self.activity,self.time])
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -278,6 +287,7 @@ class wasAssociatedWith(Relation):
         Relation.__init__(self,id,attributes,account)
         self.activity=activity
         self.agent=agent
+        self._attributelist.extend([self.agent,self.activity])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -293,6 +303,7 @@ class wasStartedBy(Relation):
         Relation.__init__(self,id,attributes,account)
         self.activity=activity
         self.agent=agent
+        self._attributelist.extend([self.agent,self.activity])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -308,6 +319,7 @@ class wasEndedBy(Relation):
         Relation.__init__(self,id,attributes,account)
         self.activity=activity
         self.agent=agent
+        self._attributelist.extend([self.agent,self.activity])
         
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -323,6 +335,7 @@ class hadPlan(Relation):
         Relation.__init__(self,id,attributes,account)
         self.entity=entity
         self.agent=agent
+        self._attributelist.extend([self.agent,self.entity])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -338,6 +351,7 @@ class actedOnBehalfOf(Relation):
         Relation.__init__(self,id,attributes,account)
         self.subordinate=subordinate
         self.responsible=responsible
+        self._attributelist.extend([self.subordinate,self.responsible])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -356,6 +370,7 @@ class wasDerivedFrom(Relation):
         self.activity=activity
         self.generation=generation
         self.usage=usage
+        self._attributelist.extend([self.generatedentity,self.usedentity,self.activity,self.generation,self.usage])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -377,6 +392,7 @@ class wasComplementOf(Relation):
         Relation.__init__(self,id,attributes,account)
         self.subject=subject
         self.alternate=alternate
+        self._attributelist.extend([self.subject,self.alternate])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -392,6 +408,7 @@ class hasAnnotation(Relation):
         Relation.__init__(self,id,attributes,account)
         self.record=record
         self.note=note
+        self._attributelist.extend([self.record,self.note])
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -665,23 +682,70 @@ class PROVContainer(Bundle):
     def __init__(self,defaultnamespace=None):
         self.defaultnamespace=defaultnamespace
         Bundle.__init__(self)
+        self._visitedrecord = []
+        self._nsdict = {}
         
     def set_default_namespace(self,defaultnamespace):
         self.defaultnamespace = defaultnamespace
-        
+
+    def _create_nsdict(self):
+        self._auto_ns_key = 0
+        self._nsdict = {'default':self.defaultnamespace}
+        self._nsdict.update(self._implicitnamespace)
+        self._nsdict.update(self._namespacedict)
+        self._visitedrecord = []
+        self._merge_namespace(self)
+        return self._nsdict
+    
+    def _merge_namespace(self,obj):
+        self._visitedrecord.append(obj)
+        if isinstance(obj,Bundle):
+            for element in obj._elementlist:
+                for attr in element._attributelist:
+                    if not attr in self._visitedrecord:
+                        self._merge_namespace(attr)
+            for relation in obj._relationlist:
+                for attr in relation._attributelist:
+                    if not attr in self._visitedrecord:
+                        self._merge_namespace(attr)
+            for account in obj._accountlist:
+                if not account in self._visitedrecord:
+                    self._merge_namespace(account)
+        if isinstance(obj,PROVQname):
+            if not obj.prefix is None:
+                if obj.prefix in self._nsdict.keys():
+                    if not obj.namespacename == self._nsdict[obj.prefix]:
+                        if not self._nsdict["default"] == obj.namespacename:
+                            newprefix = self._generate_prefix()
+                            self._nsdict[newprefix] = obj.namespacename
+                elif not obj.namespacename in self._nsdict:
+                    self._nsdict[obj.prefix] = obj.namespacename
+        if isinstance(obj,list):
+            for item in obj:
+                self._merge_namespace(item)
+        if isinstance(obj,dict):
+            for key,value in obj.items():
+                self._merge_namespace(key)
+                self._merge_namespace(value)
+
+    def _generate_prefix(self):
+        prefix = "ns" + str(self._auto_ns_key)
+        self._auto_ns_key = self._auto_ns_key + 1
+        if prefix in self._nsdict.keys():
+            prefix = self._generate_prefix()
+        return prefix 
+
     def to_provJSON(self):
-        nsdict = {'default':self.defaultnamespace}
-        nsdict.update(self._implicitnamespace)
-        nsdict.update(self._namespacedict)
-        for account in self._accountlist:
-            for prefix,url in account._namespacedict.items():
-                if not prefix in nsdict.keys():
-                    if not url in nsdict.values():
-                        nsdict[prefix]=url
-                elif not nsdict[prefix] is url:
-                    newprefix = "ns" + str(self._auto_ns_key)
-                    self._auto_ns_key = self._auto_ns_key + 1
-                    nsdict[newprefix]=url
+        nsdict = self._create_nsdict()
+#        for account in self._accountlist:
+#            for prefix,url in account._namespacedict.items():
+#                if not prefix in nsdict.keys():
+#                    if not url in nsdict.values():
+#                        nsdict[prefix]=url
+#                elif not nsdict[prefix] is url:
+#                    newprefix = "ns" + str(self._auto_ns_key)
+#                    self._auto_ns_key = self._auto_ns_key + 1
+#                    nsdict[newprefix]=url
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['prefix']={}
         for prefix,url in nsdict.items():
@@ -703,7 +767,7 @@ class Account(Record,Bundle):
         if isinstance(id,PROVQname):
             self.identifier = id
         elif isinstance(id,str):
-            self.identifier = PROVQname(id,'',id)
+            self.identifier = PROVQname(id,None,None,id)
         else:
             raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVQname")
         if isinstance(asserter,PROVQname):
