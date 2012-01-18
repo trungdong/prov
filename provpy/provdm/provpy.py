@@ -134,7 +134,7 @@ class Element(Record):
         elif self.identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
-        self._json[self._idJSON]=self.attributes
+        self._json[self._idJSON]=self.attributes.copy()
         for attribute in self._json[self._idJSON].keys():
             if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
@@ -226,7 +226,7 @@ class Relation(Record):
         elif self.identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
-        self._json[self._idJSON]=self.attributes
+        self._json[self._idJSON]=self.attributes.copy()
         for attribute in self._json[self._idJSON].keys():
             if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
