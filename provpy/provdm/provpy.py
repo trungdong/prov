@@ -695,6 +695,9 @@ class PROVContainer(Bundle):
         self._nsdict.update(self._namespacedict)
         self._visitedrecord = []
         self._merge_namespace(self)
+        for prefix,namespacename in self._nsdict.items():
+            if namespacename == self.defaultnamespace:
+                del self._nsdict[prefix]
         return self._nsdict
     
     def _merge_namespace(self,obj):
@@ -737,15 +740,6 @@ class PROVContainer(Bundle):
 
     def to_provJSON(self):
         nsdict = self._create_nsdict()
-#        for account in self._accountlist:
-#            for prefix,url in account._namespacedict.items():
-#                if not prefix in nsdict.keys():
-#                    if not url in nsdict.values():
-#                        nsdict[prefix]=url
-#                elif not nsdict[prefix] is url:
-#                    newprefix = "ns" + str(self._auto_ns_key)
-#                    self._auto_ns_key = self._auto_ns_key + 1
-#                    nsdict[newprefix]=url
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['prefix']={}
         for prefix,url in nsdict.items():
