@@ -423,6 +423,7 @@ class PROVLiteral():
         self._json = []
         
     def to_provJSON(self,nsdict):
+        self._json = []
         if isinstance(self.value,PROVQname):
             self._json.append(self.value.qname(nsdict))
         else:
