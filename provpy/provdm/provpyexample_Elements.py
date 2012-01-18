@@ -1,7 +1,7 @@
 import json
 from provpy import *
 
-# Define your namespaces (see provpyexample_PROVURIRef_PROVNamespace.py)
+# Define your namespaces (see provpyexample_PROVQname_PROVNamespace.py)
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
 ex = PROVNamespace("ex","http://www.example.com/")
 dcterms = PROVNamespace("dcterms","http://purl.org/dc/terms/")
@@ -17,6 +17,9 @@ examplegraph.set_default_namespace("http://www.example.com/")
 # add the other namespaces with their prefixes into the container
 # You can do this any time before you output the JSON serialization
 # of the container
+# Note for each namespace name, if a prefix given here is different to the
+# one carried in the PROVNamespace instance defined previously, the prefix
+# HERE will be used in the JSON serialization.
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
@@ -38,7 +41,7 @@ attrdict ={prov["type"]: ex["File"],
            dcterms["creator"]: FOAF['Alice'],
            ex["content"]: "",
            dcterms["create"]: lit0}
-# create the entity, note this time we give the id as a PROVURIRef
+# create the entity, note this time we give the id as a PROVQname
 e1 = Entity(FOAF['Foo'],attributes=attrdict)
 examplegraph.add(e1)
 
@@ -47,7 +50,5 @@ examplegraph.add(e1)
 a0 = Activity(id=None,starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["recipeLink"]: ex["create-file"]})
 examplegraph.add(a0)
 
-
 # You can have the JSON of the container with the to_provJSON() function
-# as container is also a provenance record
 print json.dumps(examplegraph.to_provJSON(),indent=4)
