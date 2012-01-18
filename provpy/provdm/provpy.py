@@ -64,13 +64,6 @@ xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 
 
-class PROVArray(list):
-    def __init__(self,*args):
-        list.__init__(self)
-        for item in args:
-            self.append(item)
-
-
 class Record:
 
     def __init__(self):
@@ -86,7 +79,7 @@ class Record:
             type = xsd["dateTime"]
         if isinstance(value,int):
             type = xsd["integer"]
-        if isinstance(value,PROVArray):
+        if isinstance(value,list):
             type = prov["array"]
         return type
         
@@ -103,9 +96,13 @@ class Record:
                     valuetojson=[str(value),type.qname(nsdict)]
                 else:
                     newvalue = []
+                    islist = False
                     for item in value:
+                        if isinstance(item,list):
+                            islist = True
                         newvalue.append(self._convert_value_JSON(item, nsdict))
-                    valuetojson=[newvalue,type.qname(nsdict)]
+                    if islist is False:
+                        valuetojson=[newvalue,type.qname(nsdict)]
         return valuetojson
 
 
@@ -480,15 +477,17 @@ class Bundle():
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
                 self._provcontainer['agent'].append(element.identifier)
-            for key in element.to_provJSON(nsdict):
+            jsondict = element.to_provJSON(nsdict)
+            for key in jsondict:
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(element.to_provJSON(nsdict)[key])
+                self._provcontainer[key].update(jsondict[key])
         for relation in self._relationlist:
-            for key in relation.to_provJSON(nsdict):
+            jsondict = relation.to_provJSON(nsdict)
+            for key in jsondict:
                 if not key in self._provcontainer.keys():
                     self._provcontainer[key]={}
-                self._provcontainer[key].update(relation.to_provJSON(nsdict)[key])
+                self._provcontainer[key].update(jsondict[key])
         for account in self._accountlist:
             if not 'account' in self._provcontainer.keys():
                 self._provcontainer['account']={}
