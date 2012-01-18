@@ -697,9 +697,10 @@ class PROVContainer(Bundle):
         self._merge_namespace(self)
         for prefix,namespacename in self._nsdict.items():
             if namespacename == self.defaultnamespace:
-                del self._nsdict[prefix]
+                if not prefix == "default":
+                    del self._nsdict[prefix]
         return self._nsdict
-    
+
     def _merge_namespace(self,obj):
         self._visitedrecord.append(obj)
         if isinstance(obj,Bundle):
