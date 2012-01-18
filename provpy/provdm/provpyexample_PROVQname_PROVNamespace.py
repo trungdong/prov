@@ -11,7 +11,7 @@ prov = PROVNamespace("prov","http://www.w3.org/ns/prov-dm/")
 # The URIRef can then be defined using the namespace created
 exuri = ex["mylocalname"]
 
-# The URIRef will have a type of PROVURIRef:
+# The URIRef will have a type of PROVQname:
 print "the type of exuri is: %s" % type(exuri)
 
 # You are able to access the full uri, its namespace name and local name
@@ -19,7 +19,7 @@ print "the full uri of exuri is: %s" % exuri.name
 print "the namespace name of exuri is: %s" % exuri.namespacename
 print "the local name of exuri is: %s" % exuri.localname
 
-# You will use PROVURIRef for any URIRef when you use provpy lib
+# You will use PROVQname for any URIRef when you use provpy lib
 # to create your provenance records:
 
 # for example, create an entity
