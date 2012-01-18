@@ -22,13 +22,13 @@ examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 # add entities
 attrdict = {"type": "File",
             ex["path"]: "/shared/crime.txt",
-            ex["creator"]: "Alice"}
+            ex["creator"]: FOAF["Alice"]}
 e0 = Entity(id=None,attributes=attrdict)
 examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00",xsd["dateTime"])
 attrdict ={"type": "File",
            ex["path"]: "/shared/crime.txt",
-           dcterms["creator"]: PROVArray(FOAF['Alice'],FOAF['Bill']),
+           dcterms["creator"]: [FOAF['Alice'],FOAF['Bill'],exns['Foo']],
            ex["content"]: "",
            dcterms["create"]: lit0,
            exns["testns"]:testns["localname"]}
@@ -89,8 +89,5 @@ print d0.to_provJSON(nsdict)
 ttt = PROVLiteral("MyValue",ex["MyType"])
 print isinstance(ttt,PROVLiteral)
 
-f = open('C:/exampleresult.json', 'w')
-f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
-
-for item in d0._attributelist:
-    print item
+#f = open('C:/exampleresult.json', 'w')
+#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
