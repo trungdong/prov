@@ -737,6 +737,9 @@ class PROVContainer(Bundle):
     def _merge_namespace(self,obj):
         self._visitedrecord.append(obj)
         if isinstance(obj,Bundle):
+            for prefix,namespacename in obj._namespacedict.items():
+                tempqname = PROVQname(namespacename,prefix,namespacename,None)
+                self._merge_namespace(tempqname)
             for element in obj._elementlist:
                 for attr in element._attributelist:
                     if not attr in self._visitedrecord:
