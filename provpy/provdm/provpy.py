@@ -581,7 +581,7 @@ class Bundle():
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             element=Activity(id,starttime,endtime,attributes,account=account)
-            self._elementlist.append(element)
+            self.add(element)
             return element
     
     def add_agent(self,id=None,attributes=None,account=None):
@@ -589,7 +589,7 @@ class Bundle():
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             element=Agent(id,attributes,account=account)
-            self._elementlist.append(element)
+            self.add(element)
             return element
     
     def add_note(self,id=None,attributes=None,account=None):
@@ -597,7 +597,7 @@ class Bundle():
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             element=Note(id,attributes,account=account)
-            self._elementlist.append(element)
+            self.add(element)
             return element
 
     def add_wasGeneratedBy(self,entity,activity,id=None,time=None,attributes=None,account=None):
@@ -606,7 +606,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasGeneratedBy(entity,activity,id,time,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_used(self,activity,entity,id=None,time=None,attributes=None,account=None):
@@ -615,7 +615,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=Used(activity,entity,id,time,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_wasAssociatedWith(self,activity,agent,id=None,attributes=None,account=None):
@@ -624,7 +624,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasAssociatedWith(activity,agent,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_wasStartedBy(self,activity,agent,id=None,attributes=None,account=None):
@@ -633,7 +633,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasStartedBy(activity,agent,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_wasEndedBy(self,activity,agent,id=None,attributes=None,account=None):
@@ -642,7 +642,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasEndedBy(activity,agent,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_hadPlan(self,agent,entity,id=None,attributes=None,account=None):
@@ -651,7 +651,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=hadPlan(agent,entity,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
     
     def add_actedOnBehalfOf(self,subordinate,responsible,id=None,attributes=None,account=None):
@@ -660,7 +660,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=actedOnBehalfOf(subordinate,responsible,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
       
     def add_wasDerivedFrom(self,generatedentity,usedentity,id=None,activity=None,generation=None,usage=None,attributes=None,account=None):
@@ -669,7 +669,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasDerivedFrom(generatedentity,usedentity,id,activity,generation,usage,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
     
     def add_wasComplementOf(self,subject,alternate,id=None,attributes=None,account=None):
@@ -678,7 +678,7 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=wasComplementOf(subject,alternate,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
     
     def add_hasAnnotation(self,record,note,id=None,attributes=None,account=None):
@@ -687,12 +687,12 @@ class Bundle():
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
             relation=hasAnnotation(record,note,id,attributes,account=account)
-            self._relationlist.append(relation)
+            self.add(relation)
             return relation
 
     def add_account(self,id,parentaccount=None):
         acc = Account(id,parentaccount)
-        self._accountlist.append(acc)
+        self.add(acc)
 
     def _validate_record(self,record):
         pass # Put possible record validation here
