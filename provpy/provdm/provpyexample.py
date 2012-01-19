@@ -71,23 +71,5 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(examplegraph.to_provJSON())
 
-nsdict = {'foaf' : "http://xmlns.com/foaf/0.1/",
-            'ex' : "http://www.example.com/",
-            'dcterms' : "http://purl.org/dc/terms/"}
-testuri = testns['localname']
-print testuri.name
-print testuri.namespacename
-print testuri.localname
-print testuri.qname({"testprefix" : "http://www.test.org/"})
-
-print u0.to_provJSON(nsdict)
-print testuri.to_provJSON({'test':'http://www.test.org/'})
-
-print d0.to_provJSON(nsdict)
-
-
-ttt = PROVLiteral("MyValue",ex["MyType"])
-print isinstance(ttt,PROVLiteral)
-
-#f = open('C:/exampleresult.json', 'w')
-#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+f = open('C:/exampleresult.json', 'w')
+f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
