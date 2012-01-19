@@ -383,7 +383,7 @@ class wasDerivedFrom(Relation):
         return self._provcontainer
                         
 
-class wasComplementOf(Relation):
+class alternateOf(Relation):
     
     def __init__(self,subject,alternate,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
@@ -395,9 +395,25 @@ class wasComplementOf(Relation):
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:subject']=self.subject._idJSON
         self._json[self._idJSON]['prov:alternate']=self.alternate._idJSON
-        self._provcontainer['wasComplementOf']=self._json
+        self._provcontainer['alternateOf']=self._json
         return self._provcontainer
-            
+ 
+ 
+class specializationOf(Relation):
+    
+    def __init__(self,subject,specialization,id=None,attributes=None,account=None):
+        Relation.__init__(self,id,attributes,account)
+        self.subject=subject
+        self.specialization=specialization
+        self._attributelist.extend([self.subject,self.specialization])
+
+    def to_provJSON(self,nsdict):
+        Relation.to_provJSON(self,nsdict)
+        self._json[self._idJSON]['prov:subject']=self.subject._idJSON
+        self._json[self._idJSON]['prov:specialization']=self.specialization._idJSON
+        self._provcontainer['specializationOf']=self._json
+        return self._provcontainer
+               
 
 class hasAnnotation(Relation):
     
