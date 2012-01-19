@@ -472,6 +472,7 @@ class Bundle():
             self._validate_record(record)
             if record.account is None:
                 self._elementlist.append(record)
+                record.account = self
             elif not record.account.identifier == self.identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
@@ -480,12 +481,19 @@ class Bundle():
             self._validate_record(record)
             if record.account is None:
                 self._relationlist.append(record)
+                record.account = self
             elif not record.account.identifier == self.identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
                 self._relationlist.append(record)
         elif isinstance(record,Account):
-            self._accountlist.append(record)
+            if record.parentaccount is None:
+                self._accountlist.append(record)
+                record.parentaccount = self
+            elif not record.parentaccount.identifier == self.identifier:
+                record.account.add(record)
+            elif not record in self._accountlist:
+                self._accountlist.append(record)
             
     def to_provJSON(self,nsdict):
         self._generate_idJSON(nsdict)
