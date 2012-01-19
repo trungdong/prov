@@ -672,12 +672,21 @@ class Bundle():
             self.add(relation)
             return relation
     
-    def add_wasComplementOf(self,subject,alternate,id=None,attributes=None,account=None):
+    def add_alternateOf(self,subject,alternate,id=None,attributes=None,account=None):
         if not id is None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
-            relation=wasComplementOf(subject,alternate,id,attributes,account=account)
+            relation=alternateOf(subject,alternate,id,attributes,account=account)
+            self.add(relation)
+            return relation
+
+    def add_specializationOf(self,subject,specialization,id=None,attributes=None,account=None):
+        if not id is None:
+            if self._validate_id(id) is False:
+                raise PROVGraph_Error('Identifier conflicts with existing assertions')
+        else:
+            relation=specializationOf(subject,specialization,id,attributes,account=account)
             self.add(relation)
             return relation
     
