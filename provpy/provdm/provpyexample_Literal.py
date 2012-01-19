@@ -14,7 +14,7 @@ examplegraph = PROVContainer()
 examplegraph.set_default_namespace("http://www.example.com/")
 
 #add namespaces
-#examplegraph.add_namespace("ex","http://www.example.com/")
+examplegraph.add_namespace("ex","http://www.example.com/")
 examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 #examplegraph.add_namespace("ex","http://www.example111.com/")
@@ -42,9 +42,5 @@ attrdict.update({
                  })
 e0 = Entity(id=None,attributes=attrdict)
 examplegraph.add(e0)
-
-
-
-
 
 print json.dumps(examplegraph.to_provJSON(),indent=4)
