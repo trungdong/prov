@@ -6,15 +6,15 @@ PROV_REC_AGENT                  = 3
 PROV_REC_NOTE                   = 9
 PROV_REC_ACCOUNT                = 10
 PROV_REC_GENERATION             = 11
-PROV_REC_USAGE                  = 12;
-PROV_REC_ACTIVITY_ASSOCIATION   = 13;
-PROV_REC_START                  = 14;
-PROV_REC_END                    = 15;
-PROV_REC_RESPONSIBILITY         = 16;
-PROV_REC_DERIVATION             = 17;
-PROV_REC_ALTERNATE              = 18;
-PROV_REC_SPECIALIZATION         = 19;
-PROV_REC_ANNOTATION             = 99;
+PROV_REC_USAGE                  = 12
+PROV_REC_ACTIVITY_ASSOCIATION   = 13
+PROV_REC_START                  = 14
+PROV_REC_END                    = 15
+PROV_REC_RESPONSIBILITY         = 16
+PROV_REC_DERIVATION             = 17
+PROV_REC_ALTERNATE              = 18
+PROV_REC_SPECIALIZATION         = 19
+PROV_REC_ANNOTATION             = 99
 
 PROV_RECORD_TYPES = (
     (PROV_REC_ENTITY,               u'Entity'),
@@ -56,9 +56,9 @@ PROV_RECORD_ATTRIBUTES = (
 ) 
 
 class Record(models.Model):
-    rec_id = models.CharField(max_length=255, null=True, blank=True)
-    rec_type = models.SmallIntegerField(choices=PROV_RECORD_TYPES)
-    account = models.ForeignKey('Account', related_name='records', null=True, blank=True)
+    rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    rec_type = models.SmallIntegerField(choices=PROV_RECORD_TYPES, db_index=True)
+    account = models.ForeignKey('Account', related_name='records', null=True, blank=True, db_index=True)
     attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
     
     
@@ -78,12 +78,12 @@ class Account(Record):
     
     
 class RecordAttribute(models.Model):
-    record = models.ForeignKey(Record, related_name='from_records')
+    record = models.ForeignKey(Record, related_name='from_records', db_index=True)
     attribute = models.ForeignKey(Record, related_name='to_records')
-    prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES)
+    prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, db_index=True)
 
 class LiteralAttribute(models.Model):
-    record = models.ForeignKey(Record, related_name='literals')
+    record = models.ForeignKey(Record, related_name='literals', db_index=True)
     name = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
     datatype = models.CharField(max_length=255)

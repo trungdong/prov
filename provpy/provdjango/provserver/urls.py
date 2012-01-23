@@ -4,7 +4,7 @@ from django.conf.urls.defaults import patterns, include, url
 # from django.contrib import admin
 # admin.autodiscover()
 
-urlpatterns = patterns('',
+urlpatterns = patterns('provserver.views',
     # Examples:
     # url(r'^$', 'provdjango.views.home', name='home'),
     # url(r'^provdjango/', include('provdjango.foo.urls')),
@@ -14,5 +14,6 @@ urlpatterns = patterns('',
 
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
-    (r'^prov/', include('provserver.urls')),
+    
+    (r'^get$', 'get_prov_json'),
 )
