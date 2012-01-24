@@ -14,5 +14,7 @@ def get_prov_json(request):
             return HttpResponse(content='{id : %s}' % entity_id, mimetype='application/json')
         return HttpResponse(content='{Not found}', mimetype='application/json')
     else:
-        return HttpResponse(content='{Empty}', mimetype='application/json')
+        accounts = ProvDJAccount.objects.all()
+        
+        return HttpResponse(content=accounts[0].to_provJSON(), mimetype='application/json')
 

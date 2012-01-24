@@ -1,38 +1,6 @@
 from django.db import models
-
-PROV_REC_ENTITY                 = 1
-PROV_REC_ACTIVITY               = 2
-PROV_REC_AGENT                  = 3
-PROV_REC_NOTE                   = 9
-PROV_REC_ACCOUNT                = 10
-PROV_REC_GENERATION             = 11
-PROV_REC_USAGE                  = 12
-PROV_REC_ACTIVITY_ASSOCIATION   = 13
-PROV_REC_START                  = 14
-PROV_REC_END                    = 15
-PROV_REC_RESPONSIBILITY         = 16
-PROV_REC_DERIVATION             = 17
-PROV_REC_ALTERNATE              = 18
-PROV_REC_SPECIALIZATION         = 19
-PROV_REC_ANNOTATION             = 99
-
-PROV_RECORD_TYPES = (
-    (PROV_REC_ENTITY,               u'Entity'),
-    (PROV_REC_ACTIVITY,             u'Activity'),
-    (PROV_REC_AGENT,                u'Agent'),
-    (PROV_REC_NOTE,                 u'Note'),
-    (PROV_REC_ACCOUNT,              u'Account'),
-    (PROV_REC_GENERATION,           u'Generation'),
-    (PROV_REC_USAGE,                u'Usage'),
-    (PROV_REC_ACTIVITY_ASSOCIATION, u'ActivityAssociation'),
-    (PROV_REC_START,                u'Start'),
-    (PROV_REC_END,                  u'End'),
-    (PROV_REC_RESPONSIBILITY,       u'Responsibility'),
-    (PROV_REC_DERIVATION,           u'Derivation'),
-    (PROV_REC_ALTERNATE,            u'Alternate'),
-    (PROV_REC_SPECIALIZATION,       u'Specialization'),
-    (PROV_REC_ANNOTATION,           u'Annotation'),
-)
+import uuid
+from provpy import *
 
 PROV_RECORD_ATTRIBUTES = (
     # Relations properties
@@ -55,35 +23,86 @@ PROV_RECORD_ATTRIBUTES = (
     (101, u'prov:asserter'),
 ) 
 
-class Record(models.Model):
+class ProvDJRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=PROV_RECORD_TYPES, db_index=True)
-    account = models.ForeignKey('Account', related_name='records', null=True, blank=True, db_index=True)
+    account = models.ForeignKey('ProvDJAccount', related_name='records', null=True, blank=True, db_index=True)
     attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
     
-    
-    #@staticmethod
+    @staticmethod
+    def create(record, account):
+        if isinstance(record, Account):
+            pass
+        else:
+            ProvDJRecord.objects.create(rec_id=record.get_record_id(), rec_type=record.get_prov_type(), account=account)
 
-class AccountManager(models.Manager):
+class ProvDJAccountManager(models.Manager):
     def get_query_set(self):
-        return super(AccountManager, self).get_query_set().filter(prov_type=PROV_REC_ACCOUNT)
+        return super(ProvDJAccountManager, self).get_query_set().filter(rec_type=PROV_REC_ACCOUNT)
     
-class Account(Record):
-    objects = AccountManager()
+class ProvDJAccount(ProvDJRecord):
+#    objects = ProvDJAccountManager()
     class Meta:
         proxy = True
     
+    def __init__(self, **kwargs):
+        kwargs['rec_type'] = PROV_REC_ACCOUNT
+        ProvDJRecord.__init__(self, **kwargs)
+        
+    def set_asserter(self, asserter):
+        self.literals.create(name='prov:asserter', value=asserter, datatype='xsd:anyURI')
+    
+    @staticmethod    
+    def create(account, subaccount):
+        pass
+        
     def get_records(self):
         return Record.objects.filter(account=self)
     
+    def get_prov_graph(self):
+        records = self.get_records()
+        graph = PROVContainer()
+        for record in records:
+            add_ProvDM_Record(graph, record)
+            
+            
+def add_ProvDM_Record(graph, record):
+    rec_type = record.rec_type
+    # TODO Get all the record attributes here
+    if rec_type == PROV_REC_ENTITY:
+        graph.add_entity(record.rec_id)
+    elif rec_type == PROV_REC_ACTIVITY:
+        graph.add_activity(record.rec_id)
+    elif rec_type == PROV_REC_AGENT:
+        graph.add_agent(record.rec_id)
+    elif rec_type == PROV_REC_ANNOTATION:
+        graph.add_note(record.rec_id)
+    else:
+        # Unsupported type
+        # TODO Raise an error here
+        pass
     
 class RecordAttribute(models.Model):
-    record = models.ForeignKey(Record, related_name='from_records', db_index=True)
-    attribute = models.ForeignKey(Record, related_name='to_records')
+    record = models.ForeignKey(ProvDJRecord, related_name='from_records', db_index=True)
+    attribute = models.ForeignKey(ProvDJRecord, related_name='to_records')
     prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, db_index=True)
 
 class LiteralAttribute(models.Model):
-    record = models.ForeignKey(Record, related_name='literals', db_index=True)
+    record = models.ForeignKey(ProvDJRecord, related_name='literals', db_index=True)
     name = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
     datatype = models.CharField(max_length=255)
+    
+def save_records(prov_graph):
+    account_id = uuid.uuid4()
+    account = ProvDJAccount.objects.create(rec_id=account_id)    
+    account.set_asserter('#me')
+    
+    records = prov_graph.get_records()
+    for record in records:
+        ProvDJRecord.create(record, account)
+        
+def test_model():
+    from provpyexample_Elements import examplegraph
+    save_records(examplegraph)
+

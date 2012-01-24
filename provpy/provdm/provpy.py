@@ -100,6 +100,7 @@ prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 class Record:
 
     def __init__(self):
+        self.identifier = None
         pass
     
     def _get_type_JSON(self,value):
@@ -141,6 +142,8 @@ class Record:
     def get_prov_type(self):
         return self.prov_type
 
+    def get_record_id(self):
+        return self.identifier
 
 class Element(Record):
     
