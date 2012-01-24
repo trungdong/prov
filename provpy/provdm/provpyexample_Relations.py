@@ -24,14 +24,14 @@ examplegraph.add_namespace("dcterms","http://purl.org/dc/terms/")
 examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
 # add some entities that will be used by the relations
-e0 = Entity()
+e0 = Entity(ex['e0'])
 examplegraph.add(e0)
 
 e1 = Entity(ex['Foo'],attributes={dcterms['creator']:FOAF['Alice']})
 examplegraph.add(e1)
 
 # an activity as well
-a0 = Activity(id=None,starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["recipeLink"]: ex["create-file"]})
+a0 = Activity(ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["recipeLink"]: ex["create-file"]})
 examplegraph.add(a0)
 
 

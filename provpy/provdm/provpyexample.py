@@ -23,7 +23,7 @@ examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 attrdict = {"type": "File",
             ex["path"]: "/shared/crime.txt",
             ex["creator"]: FOAF["Alice"]}
-e0 = Entity(id=None,attributes=attrdict)
+e0 = Entity(ex['e0'],attributes=attrdict)
 examplegraph.add(e0)
 lit0 = PROVLiteral("2011-11-16T16:06:00",xsd["dateTime"])
 attrdict ={"type": "File",
@@ -61,7 +61,7 @@ acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
 
-acc0.add_entity()
+acc0.add_entity(ex['e2'])
 
 en = examplegraph.add_entity('en',account=acc0)
 

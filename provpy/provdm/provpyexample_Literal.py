@@ -40,7 +40,7 @@ attrdict.update({
                  ex['multi_values'] : [1,"value2",PROVLiteral("value3",ex["myType"])],
                  ex['languages'] : [PROVLiteral("EN",xsd["language"]),PROVLiteral("FR",xsd["language"])]
                  })
-e0 = Entity(id=None,attributes=attrdict)
+e0 = Entity(id=ex['e0'],attributes=attrdict)
 examplegraph.add(e0)
 
 print json.dumps(examplegraph.to_provJSON(),indent=4)

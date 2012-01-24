@@ -47,7 +47,7 @@ examplegraph.add(e1)
 
 # add activities
 # You can give the attributes during the creation if there are not many
-a0 = Activity(id=None,starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["recipeLink"]: ex["create-file"]})
+a0 = Activity(id=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
 examplegraph.add(a0)
 
 # You can have the JSON of the container with the to_provJSON() function

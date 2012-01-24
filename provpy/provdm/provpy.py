@@ -1,5 +1,38 @@
 import datetime
 
+PROV_REC_ENTITY                 = 1
+PROV_REC_ACTIVITY               = 2
+PROV_REC_AGENT                  = 3
+PROV_REC_NOTE                   = 9
+PROV_REC_ACCOUNT                = 10
+PROV_REC_GENERATION             = 11
+PROV_REC_USAGE                  = 12
+PROV_REC_ACTIVITY_ASSOCIATION   = 13
+PROV_REC_START                  = 14
+PROV_REC_END                    = 15
+PROV_REC_RESPONSIBILITY         = 16
+PROV_REC_DERIVATION             = 17
+PROV_REC_ALTERNATE              = 18
+PROV_REC_SPECIALIZATION         = 19
+PROV_REC_ANNOTATION             = 99
+
+PROV_RECORD_TYPES = (
+    (PROV_REC_ENTITY,               u'Entity'),
+    (PROV_REC_ACTIVITY,             u'Activity'),
+    (PROV_REC_AGENT,                u'Agent'),
+    (PROV_REC_NOTE,                 u'Note'),
+    (PROV_REC_ACCOUNT,              u'Account'),
+    (PROV_REC_GENERATION,           u'Generation'),
+    (PROV_REC_USAGE,                u'Usage'),
+    (PROV_REC_ACTIVITY_ASSOCIATION, u'ActivityAssociation'),
+    (PROV_REC_START,                u'Start'),
+    (PROV_REC_END,                  u'End'),
+    (PROV_REC_RESPONSIBILITY,       u'Responsibility'),
+    (PROV_REC_DERIVATION,           u'Derivation'),
+    (PROV_REC_ALTERNATE,            u'Alternate'),
+    (PROV_REC_SPECIALIZATION,       u'Specialization'),
+    (PROV_REC_ANNOTATION,           u'Annotation'),
+)
 
 class PROVIdentifier(object):
     
@@ -104,12 +137,15 @@ class Record:
                     if islist is False:
                         valuetojson=[newvalue,type.qname(nsdict)]
         return valuetojson
+    
+    def get_prov_type(self):
+        return self.prov_type
 
 
 class Element(Record):
     
     def __init__(self,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if isinstance(id,PROVQname):
                 self.identifier = id
             elif isinstance(id,str):
@@ -117,7 +153,8 @@ class Element(Record):
             else:
                 raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         else:
-            self.identifier = id
+            raise PROVGraph_Error("An element is always required to have an identifier")
+        
         if attributes is None:
             self.attributes = {}
         else:
@@ -151,6 +188,7 @@ class Entity(Element):
 
     def __init__(self,id=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_ENTITY
         
     def to_provJSON(self,nsdict):
         Element.to_provJSON(self,nsdict)
@@ -162,6 +200,7 @@ class Activity(Element):
     
     def __init__(self,id=None,starttime=None,endtime=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_ACTIVITY
         self.starttime=starttime
         self.endtime=endtime
         self._attributelist.extend([self.starttime,self.endtime])
@@ -180,6 +219,7 @@ class Agent(Entity):
 
     def __init__(self,id=None,attributes=None,account=None):
         Entity.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_AGENT
         
     def to_provJSON(self,nsdict):
         Element.to_provJSON(self,nsdict)
@@ -192,6 +232,7 @@ class Note(Element):
 
     def __init__(self,id=None,attributes=None,account=None):
         Element.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_NOTE
         
     def to_provJSON(self,nsdict):
         Element.to_provJSON(self,nsdict)
@@ -244,6 +285,7 @@ class wasGeneratedBy(Relation):
     
     def __init__(self,entity,activity,id=None,time=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_GENERATION
         self.entity=entity
         self.activity=activity
         self.time = time
@@ -263,6 +305,7 @@ class Used(Relation):
     
     def __init__(self,activity,entity,id=None,time=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_USAGE
         self.entity=entity
         self.activity=activity
         self.time = time
@@ -282,6 +325,7 @@ class wasAssociatedWith(Relation):
     
     def __init__(self,activity,agent,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_ACTIVITY_ASSOCIATION
         self.activity=activity
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
@@ -298,6 +342,7 @@ class wasStartedBy(Relation):
     
     def __init__(self,activity,agent,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_START
         self.activity=activity
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
@@ -314,6 +359,7 @@ class wasEndedBy(Relation):
     
     def __init__(self,activity,agent,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_END
         self.activity=activity
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
@@ -326,26 +372,28 @@ class wasEndedBy(Relation):
         return self._provcontainer
     
 
-class hadPlan(Relation):
-    
-    def __init__(self,agent,entity,id=None,attributes=None,account=None):
-        Relation.__init__(self,id,attributes,account)
-        self.entity=entity
-        self.agent=agent
-        self._attributelist.extend([self.agent,self.entity])
-
-    def to_provJSON(self,nsdict):
-        Relation.to_provJSON(self,nsdict)
-        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
-        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
-        self._provcontainer['hadPlan']=self._json
-        return self._provcontainer
+# No longer exists
+#class hadPlan(Relation):
+#    
+#    def __init__(self,agent,entity,id=None,attributes=None,account=None):
+#        Relation.__init__(self,id,attributes,account)
+#        self.entity=entity
+#        self.agent=agent
+#        self._attributelist.extend([self.agent,self.entity])
+#
+#    def to_provJSON(self,nsdict):
+#        Relation.to_provJSON(self,nsdict)
+#        self._json[self._idJSON]['prov:entity']=self.entity._idJSON
+#        self._json[self._idJSON]['prov:agent']=self.agent._idJSON
+#        self._provcontainer['hadPlan']=self._json
+#        return self._provcontainer
     
 
 class actedOnBehalfOf(Relation):
     
     def __init__(self,subordinate,responsible,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_RESPONSIBILITY
         self.subordinate=subordinate
         self.responsible=responsible
         self._attributelist.extend([self.subordinate,self.responsible])
@@ -362,6 +410,7 @@ class wasDerivedFrom(Relation):
     
     def __init__(self,generatedentity,usedentity,id=None,activity=None,generation=None,usage=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_DERIVATION
         self.generatedentity=generatedentity
         self.usedentity=usedentity
         self.activity=activity
@@ -387,6 +436,7 @@ class alternateOf(Relation):
     
     def __init__(self,subject,alternate,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_ALTERNATE
         self.subject=subject
         self.alternate=alternate
         self._attributelist.extend([self.subject,self.alternate])
@@ -403,6 +453,7 @@ class specializationOf(Relation):
     
     def __init__(self,subject,specialization,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_SPECIALIZATION
         self.subject=subject
         self.specialization=specialization
         self._attributelist.extend([self.subject,self.specialization])
@@ -419,6 +470,7 @@ class hasAnnotation(Relation):
     
     def __init__(self,record,note,id=None,attributes=None,account=None):
         Relation.__init__(self,id,attributes,account)
+        self.prov_type = PROV_REC_ANNOTATION
         self.record=record
         self.note=note
         self._attributelist.extend([self.record,self.note])
@@ -645,14 +697,14 @@ class Bundle():
             self.add(relation)
             return relation
 
-    def add_hadPlan(self,agent,entity,id=None,attributes=None,account=None):
-        if not id is None:
-            if self._validate_id(id) is False:
-                raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=hadPlan(agent,entity,id,attributes,account=account)
-            self.add(relation)
-            return relation
+#    def add_hadPlan(self,agent,entity,id=None,attributes=None,account=None):
+#        if not id is None:
+#            if self._validate_id(id) is False:
+#                raise PROVGraph_Error('Identifier conflicts with existing assertions')
+#        else:
+#            relation=hadPlan(agent,entity,id,attributes,account=account)
+#            self.add(relation)
+#            return relation
     
     def add_actedOnBehalfOf(self,subordinate,responsible,id=None,attributes=None,account=None):
         if not id is None:
@@ -708,6 +760,13 @@ class Bundle():
 
     def _validate_qname(self,qname):
         pass # Put possible Qname validation here
+    
+    def get_records(self):
+        records = []
+        records.extend(self._elementlist)
+        records.extend(self._relationlist)
+        records.extend(self._accountlist)
+        return records
             
 
 class PROVContainer(Bundle):
@@ -794,6 +853,8 @@ class Account(Record,Bundle):
     
     def __init__(self,id,asserter,parentaccount=None):
         Record.__init__(self)
+        self.prov_type = PROV_REC_ACCOUNT
+        
         Bundle.__init__(self)
         if isinstance(id,PROVQname):
             self.identifier = id
