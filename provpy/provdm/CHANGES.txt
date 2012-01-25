@@ -1,1 +1,4 @@
+v1.0.1, 25/01/2012 -- Minor bug fix release.
+* Handle prefix serialization correctly in PROVContainer when the default namespace is not given. 
+
 v1.0.0, 24/01/2012 -- Initial release.
