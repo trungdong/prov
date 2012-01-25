@@ -1,5 +1,5 @@
 import json
-from provpy import *
+from provdm.model import *
 
 # The namespace names should be defined as instances of PROVNamespace
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")

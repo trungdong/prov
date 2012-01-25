@@ -1,5 +1,6 @@
 import json
-from provpy import *
+import datetime
+from provdm.model import *
 
 
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
@@ -71,5 +72,5 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(examplegraph.to_provJSON())
 
-f = open('C:/exampleresult.json', 'w')
-f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+#f = open('C:/exampleresult.json', 'w')
+#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
