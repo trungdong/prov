@@ -153,7 +153,7 @@ class Element(Record):
         if id is not None:
             if isinstance(id,PROVQname):
                 self.identifier = id
-            elif isinstance(id,str):
+            elif isinstance(id, (str, unicode)):
                 self.identifier = PROVQname(id,None,None,id)
             else:
                 raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
@@ -252,7 +252,7 @@ class Relation(Record):
             self.identifier = id
         elif isinstance(id,PROVQname):
             self.identifier = id
-        elif isinstance(id,str):
+        elif isinstance(id, (str, unicode)):
             self.identifier = PROVQname(id,None,None,id)
         else:
             raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
@@ -593,12 +593,12 @@ class Bundle():
             account._idJSON = account.identifier.qname(nsdict)
             account._generate_idJSON(nsdict)
                     
-    def add_namespace(self,prefix,url):
+    def add_namespace(self, prefix, uri):
         #TODO: add prefix validation here
         if prefix is "default":
             raise PROVGraph_Error("The namespace prefix 'default' is a reserved by provpy library")
         else:
-            self._namespacedict[prefix]=url
+            self._namespacedict[prefix] = uri
 #            self._apply_namespace(prefix, url)
 
     def get_namespaces(self):
@@ -787,6 +787,9 @@ class PROVContainer(Bundle):
         
     def set_default_namespace(self,defaultnamespace):
         self.defaultnamespace = defaultnamespace
+        
+    def get_default_namespace(self):
+        return self.defaultnamespace
 
     def _create_nsdict(self):
         self._auto_ns_key = 0
@@ -867,7 +870,7 @@ class Account(Record,Bundle):
         Bundle.__init__(self)
         if isinstance(id,PROVQname):
             self.identifier = id
-        elif isinstance(id,str):
+        elif isinstance(id, (str, unicode)):
             self.identifier = PROVQname(id,None,None,id)
         else:
             raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVQname")
@@ -883,6 +886,9 @@ class Account(Record,Bundle):
             self.attributes = {}
         else:
             self.attributes = attributes
+    
+    def get_asserter(self):
+        return self.asserter
     
     def to_provJSON(self,nsdict):
         Bundle.to_provJSON(self,nsdict)
