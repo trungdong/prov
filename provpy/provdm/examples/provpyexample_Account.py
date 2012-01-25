@@ -20,7 +20,8 @@ examplegraph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
 
 # to add record in an account, first create the account
 # identifier and asserter are required arguments for Account
-acc0 = Account("acc0",ex["asserter_name"])
+# You can give optional attributes in a dictionary with keyword argument 'attributes'
+acc0 = Account("acc0",ex["asserter_name"],attributes={ex['accountattr']:ex['accattrvalue']})
 # You are allowed to add namespace into Account, the namespaces
 # from all accounts will be merged with top level container's namespace
 # definitions before exporting JSON. If two prefix clashes, on of them
