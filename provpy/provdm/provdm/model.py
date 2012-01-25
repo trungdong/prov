@@ -38,7 +38,9 @@ class PROVIdentifier(object):
     
     def __init__(self,name):
         self.name = name
-
+        
+    def uri(self):
+        return self.name
 
 class PROVQname(PROVIdentifier):
     
@@ -64,13 +66,13 @@ class PROVQname(PROVIdentifier):
         rt = self.name
         for prefix,namespacename in nsdict.items():
             if self.namespacename == namespacename:
-                if not prefix == 'default':
-                    if not self.localname is None:
+                if prefix <> 'default':
+                    if self.localname is not None:
                         rt = ":".join((prefix, self.localname))
                 else:
                     rt = self.localname
         if not self.namespacename in nsdict.values():
-            if not self.prefix is None:
+            if self.prefix is not None:
                 rt = ":".join((self.prefix, self.localname))
         return rt
     
@@ -104,18 +106,18 @@ class Record:
         pass
     
     def _get_type_JSON(self,value):
-        type = None
+        datatype = None
         if isinstance(value,str) or isinstance(value,bool):
-            type = None
+            datatype = None
         if isinstance(value,float):
-            type = xsd["float"]
+            datatype = xsd["float"]
         if isinstance(value,datetime.datetime):
-            type = xsd["dateTime"]
+            datatype = xsd["dateTime"]
         if isinstance(value,int):
-            type = xsd["integer"]
+            datatype = xsd["integer"]
         if isinstance(value,list):
-            type = prov["array"]
-        return type
+            datatype = prov["array"]
+        return datatype
         
     def _convert_value_JSON(self,value,nsdict):
         valuetojson = value
@@ -124,10 +126,10 @@ class Record:
         elif isinstance(value,PROVQname):
             valuetojson=value.to_provJSON(nsdict)
         else:
-            type = self._get_type_JSON(value)
-            if not type is None:
-                if not type == prov["array"]:
-                    valuetojson=[str(value),type.qname(nsdict)]
+            datatype = self._get_type_JSON(value)
+            if datatype is not None:
+                if not datatype == prov["array"]:
+                    valuetojson=[str(value),datatype.qname(nsdict)]
                 else:
                     newvalue = []
                     islist = False
@@ -136,7 +138,7 @@ class Record:
                             islist = True
                         newvalue.append(self._convert_value_JSON(item, nsdict))
                     if islist is False:
-                        valuetojson=[newvalue,type.qname(nsdict)]
+                        valuetojson=[newvalue,datatype.qname(nsdict)]
         return valuetojson
     
     def get_prov_type(self):
@@ -182,7 +184,7 @@ class Element(Record):
                 del self._json[self._idJSON][attribute]
         for attribute,value in self._json[self._idJSON].items():
             valuetojson = self._convert_value_JSON(value,nsdict)
-            if not valuetojson is None:
+            if valuetojson is not None:
                 self._json[self._idJSON][attribute] = valuetojson
         return self._json
 
@@ -278,7 +280,7 @@ class Relation(Record):
                 del self._json[self._idJSON][attribute]
         for attribute,value in self._json[self._idJSON].items():
             valuetojson = self._convert_value_JSON(value,nsdict)
-            if not valuetojson is None:
+            if valuetojson is not None:
                 self._json[self._idJSON][attribute] = valuetojson
         return self._json
         
@@ -599,6 +601,9 @@ class Bundle():
             self._namespacedict[prefix]=url
 #            self._apply_namespace(prefix, url)
 
+    def get_namespaces(self):
+        return self._namespacedict 
+    
     def _generate_rlat_identifier(self):
         id = "_:RLAT"+str(self._relationkey)
         self._relationkey = self._relationkey + 1
@@ -656,7 +661,7 @@ class Bundle():
             return element
 
     def add_wasGeneratedBy(self,entity,activity,id=None,time=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -665,7 +670,7 @@ class Bundle():
             return relation
 
     def add_used(self,activity,entity,id=None,time=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -674,7 +679,7 @@ class Bundle():
             return relation
 
     def add_wasAssociatedWith(self,activity,agent,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -683,7 +688,7 @@ class Bundle():
             return relation
 
     def add_wasStartedBy(self,activity,agent,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -692,7 +697,7 @@ class Bundle():
             return relation
 
     def add_wasEndedBy(self,activity,agent,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -701,7 +706,7 @@ class Bundle():
             return relation
 
 #    def add_hadPlan(self,agent,entity,id=None,attributes=None,account=None):
-#        if not id is None:
+#        if id is not None:
 #            if self._validate_id(id) is False:
 #                raise PROVGraph_Error('Identifier conflicts with existing assertions')
 #        else:
@@ -710,7 +715,7 @@ class Bundle():
 #            return relation
     
     def add_actedOnBehalfOf(self,subordinate,responsible,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -719,7 +724,7 @@ class Bundle():
             return relation
       
     def add_wasDerivedFrom(self,generatedentity,usedentity,id=None,activity=None,generation=None,usage=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -728,7 +733,7 @@ class Bundle():
             return relation
     
     def add_alternateOf(self,subject,alternate,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -737,7 +742,7 @@ class Bundle():
             return relation
 
     def add_specializationOf(self,subject,specialization,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -746,7 +751,7 @@ class Bundle():
             return relation
     
     def add_hasAnnotation(self,record,note,id=None,attributes=None,account=None):
-        if not id is None:
+        if id is not None:
             if self._validate_id(id) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -845,7 +850,7 @@ class PROVContainer(Bundle):
         for prefix,url in nsdict.items():
             self._provcontainer['prefix'][prefix]=url
 
-        if not self.defaultnamespace is None:
+        if self.defaultnamespace is not None:
             if not "default" in self._provcontainer['prefix'].keys():
                 self._provcontainer['prefix']['default']=self.defaultnamespace
             else:
