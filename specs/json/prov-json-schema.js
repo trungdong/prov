@@ -76,7 +76,7 @@
           "specializationOf":{"$ref":"#/properties/specializationOf"},
           "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
         },
-        "additionalProperties": false
+        "additionalProperties": true
       }
     },
     "wasGeneratedBy": {
