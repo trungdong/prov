@@ -785,7 +785,8 @@ class PROVContainer(Bundle):
 
     def _create_nsdict(self):
         self._auto_ns_key = 0
-        self._nsdict = {'default':self.defaultnamespace}
+        if not self.defaultnamespace is None:
+            self._nsdict = {'default':self.defaultnamespace}
         self._nsdict.update(self._implicitnamespace)
         self._nsdict.update(self._namespacedict)
         self._visitedrecord = []
