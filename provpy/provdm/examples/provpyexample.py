@@ -1,5 +1,6 @@
 import json
-from provpy import *
+import datetime
+from provdm.model import *
 
 
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
@@ -56,7 +57,7 @@ d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
 examplegraph.add(d0)
 
 #add accounts
-acc0 = Account("acc0",ex["asserter_name"])
+acc0 = Account("acc0",ex["asserter_name"],attributes={ex['accountattr']:ex['accattrvalue']})
 acc0.add_namespace("ex","http://www.example2222.com/")
 #acc0.add_namespace('ex','www.example.com')
 examplegraph.add(acc0)
@@ -71,5 +72,5 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(examplegraph.to_provJSON())
 
-f = open('C:/exampleresult.json', 'w')
-f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+#f = open('C:/exampleresult.json', 'w')
+#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
