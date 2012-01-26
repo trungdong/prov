@@ -301,7 +301,7 @@ class wasGeneratedBy(Relation):
         self._json[self._idJSON]['prov:entity']=self.entity._idJSON
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
-            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
+            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time,nsdict)
         self._provcontainer['wasGeneratedBy']=self._json
         return self._provcontainer
     
@@ -321,7 +321,7 @@ class Used(Relation):
         self._json[self._idJSON]['prov:entity']=self.entity._idJSON
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         if self.time is not None:
-            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time)
+            self._json[self._idJSON]['prov:time']=self._convert_value_JSON(self.time,nsdict)
         self._provcontainer['used']=self._json
         return self._provcontainer
     
