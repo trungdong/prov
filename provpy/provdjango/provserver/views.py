@@ -1,10 +1,12 @@
 from models import PDAccount, PDRecord
 from django.http import HttpResponse
+import simplejson
 
 def get_prov_json(request):
-#    from provdjango.provserver.test.testModel import Test
-#    graph = Test.build_prov_graph()
-#    save_records(graph)
+    from provdjango.provserver.test.testModel import Test
+    from models import save_records
+    graph = Test.build_prov_graph()
+    save_records(graph)
     
     if 'id' in request.GET:
         entity_id = request.GET.get('id')
@@ -19,5 +21,5 @@ def get_prov_json(request):
     else:
         account = PDAccount.objects.get()
         graph = account.get_PROVContainer()
-        return HttpResponse(content=graph.to_provJSON(), mimetype='application/json')
+        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
 

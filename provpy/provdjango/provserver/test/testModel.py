@@ -5,7 +5,7 @@ Created on Jan 25, 2012
 '''
 import unittest
 from provdm.provdm.model import PROVNamespace, PROVContainer, Entity, Activity,\
-    PROVLiteral
+    PROVLiteral, wasGeneratedBy, Used, wasDerivedFrom
 import datetime
 
 
@@ -42,7 +42,7 @@ class Test(unittest.TestCase):
         # then create the entity
         # If you give the id as a string, it will be treated as a localname
         # under the default namespace
-        e0 = Entity(id=ex["e0"],attributes=attrdict)
+        e0 = Entity(identifier=ex["e0"],attributes=attrdict)
         # you can then add the entity into the provenance container
         graph.add(e0)
         
@@ -59,8 +59,23 @@ class Test(unittest.TestCase):
         
         # add activities
         # You can give the attributes during the creation if there are not many
-        a0 = Activity(id=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
+        a0 = Activity(identifier=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
         graph.add(a0)
+        
+        attrdict = {ex["fct"]: "create"}
+        g0 = wasGeneratedBy(e0,a0,identifier="g0",time=None,attributes=attrdict)
+        graph.add(g0)
+        
+        attrdict={ex["fct"]: "load",
+                  ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
+        u0 = Used(a0,e1,identifier="u0",time=None,attributes=attrdict)
+        graph.add(u0)
+        
+        # The id for a relation is an optional argument, The system will generate one
+        # if you do not specify it 
+        d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
+        graph.add(d0)
+
         
         return graph
     

@@ -43,10 +43,6 @@ class PDAccount(PDRecord):
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
     
-#    def __init__(self, **kwargs):
-#        kwargs['rec_type'] = PROV_REC_ACCOUNT
-#        PDRecord.__init__(self, **kwargs)
-        
     @staticmethod
     def create(account_id, asserter_id):
         return PDAccount.objects.create(rec_id=account_id, rec_type=PROV_REC_ACCOUNT, asserter=asserter_id)
@@ -175,6 +171,9 @@ def create_record(prov_record, account, record_map):
         save_account(pdrecord, prov_record.get_records(), record_map)
         
     # TODO add all attributes here
+    attributes = prov_record.get_all_attributes()
+    for (name, value) in attributes.iteritems():
+        Attribute.objects.create(record=pdrecord, attr_type=str(name), value=str(value))
     return pdrecord
 
 def save_account(account, records, record_map):
@@ -191,7 +190,7 @@ def save_records(prov_graph):
         account.add_namespace(prefix, uri)
     default_namespace_uri = prov_graph.get_default_namespace()
     if default_namespace_uri:
-        account.add_namespace('$', default_namespace_uri)
+        account.add_namespace('default', default_namespace_uri)
      
     records = prov_graph.get_records()
     record_map = {}
@@ -201,7 +200,7 @@ def build_PROVContainer(account):
     graph = PROVContainer()
     namespaces = account.get_namespaces()
     for (prefix, uri) in namespaces.iteritems():
-        if prefix == '$':
+        if prefix == 'default':
             graph.set_default_namespace(uri)
         else:
             graph.add_namespace(prefix, uri)
@@ -211,14 +210,20 @@ def build_PROVContainer(account):
     for record in records:
         rec_type = record.rec_type
         rec_id = record.rec_id
+        attributes = record.attributes.values_list('attr_type', 'value')
+        attr_map = {}
+        for (name, value) in attributes:
+            attr_map[name] = value 
         
         if rec_type == PROV_REC_ACCOUNT:
             # Do something special with account
             pass
         elif rec_type == PROV_REC_ENTITY:
-            graph.add_entity(rec_id)
+            graph.add_entity(rec_id, attributes=attr_map)
         elif rec_type == PROV_REC_ACTIVITY:
-            graph.add_activity(rec_id)
+#            startTime = datetime.strptime(attr_map.startTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None 
+#            endTime = datetime.strptime(attr_map.endTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None
+            graph.add_activity(rec_id, attributes=attr_map)
             
     return graph
     
