@@ -1,3 +1,6 @@
+v1.0.3, 27/01/2012 -- New Licensed release.
+* MIT licensed with copy right to University of Southampton.
+
 v1.0.2, 25/01/2012 -- Minor update and bug fix release.
 * Handle Unicode identifiers correctly;
 * Added getAsserter function for Accounts;

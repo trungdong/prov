@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='provdm',
-    version='1.0.2',
+    version='1.0.3',
     author='Huanjia Yang',
     author_email='huanjiayang@hotmail.com',
     packages=['provdm', 'test','examples'],
