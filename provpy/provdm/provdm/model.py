@@ -179,14 +179,16 @@ class Record(object):
         return self.identifier
     
     def get_record_attributes(self):
-        return {}
+        return dict()
     
     def get_other_attributes(self):
         # It might be needed to return an immutable copy to avoid accidental modifications
         return self.attributes
     
     def get_all_attributes(self):
-        return self.get_record_attributes().update(self.attributes)
+        attributes = self.get_record_attributes()
+        attributes.update(self.attributes) 
+        return attributes
 
 class Element(Record):
     
@@ -286,7 +288,7 @@ class Note(Element):
 
 class Relation(Record):
 
-    def __init__(self, identifier, attributes=None, account=None):
+    def __init__(self, identifier=None, attributes=None, account=None):
         Record.__init__(self, identifier, attributes, account)
 
         self._json = {}
@@ -373,12 +375,18 @@ class Used(Relation):
 
 class wasAssociatedWith(Relation):
     
-    def __init__(self,activity,agent,identifier=None,attributes=None,account=None):
+    def __init__(self, activity, agent, identifier=None, attributes=None, account=None):
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_ACTIVITY_ASSOCIATION
         self.activity=activity
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
+        
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['agent'] = self.agent
+        record_attributes['activity'] = self.activity
+        return record_attributes
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -396,6 +404,12 @@ class wasStartedBy(Relation):
         self.activity=activity
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
+        
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['entity'] = self.entity
+        record_attributes['activity'] = self.activity
+        return record_attributes
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -414,6 +428,12 @@ class wasEndedBy(Relation):
         self.agent=agent
         self._attributelist.extend([self.agent,self.activity])
         
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['entity'] = self.entity
+        record_attributes['activity'] = self.activity
+        return record_attributes
+        
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
@@ -424,12 +444,18 @@ class wasEndedBy(Relation):
 
 class actedOnBehalfOf(Relation):
     
-    def __init__(self,subordinate,responsible,identifier=None,attributes=None,account=None):
-        Relation.__init__(self,identifier,attributes,account)
+    def __init__(self, subordinate, responsible, identifier=None, attributes=None, account=None):
+        Relation.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_RESPONSIBILITY
-        self.subordinate=subordinate
-        self.responsible=responsible
+        self.subordinate = subordinate
+        self.responsible = responsible
         self._attributelist.extend([self.subordinate,self.responsible])
+        
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['subordinate'] = self.subordinate
+        record_attributes['responsible'] = self.responsible
+        return record_attributes
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -441,14 +467,15 @@ class actedOnBehalfOf(Relation):
 
 class wasDerivedFrom(Relation):
     
-    def __init__(self,generatedentity,usedentity,identifier=None,activity=None,generation=None,usage=None,attributes=None,account=None):
+    def __init__(self, generatedentity, usedentity, identifier=None, activity=None, generation=None, usage=None, attributes=None, account=None):
+        #TODO Enforce mandatory attributes as required by PROV-DM
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_DERIVATION
-        self.generatedentity=generatedentity
-        self.usedentity=usedentity
-        self.activity=activity
-        self.generation=generation
-        self.usage=usage
+        self.generatedentity = generatedentity
+        self.usedentity = usedentity
+        self.activity = activity
+        self.generation = generation
+        self.usage = usage
         self._attributelist.extend([self.generatedentity,self.usedentity,self.activity,self.generation,self.usage])
         
     def get_record_attributes(self):
@@ -483,9 +510,16 @@ class alternateOf(Relation):
     def __init__(self,subject,alternate,identifier=None,attributes=None,account=None):
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_ALTERNATE
-        self.subject=subject
-        self.alternate=alternate
+        self.subject = subject
+        self.alternate = alternate
         self._attributelist.extend([self.subject,self.alternate])
+        
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['subject'] = self.subject
+        record_attributes['alternate'] = self.alternate
+        return record_attributes
+
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -500,9 +534,15 @@ class specializationOf(Relation):
     def __init__(self,subject,specialization,identifier=None,attributes=None,account=None):
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_SPECIALIZATION
-        self.subject=subject
-        self.specialization=specialization
+        self.subject = subject
+        self.specialization = specialization
         self._attributelist.extend([self.subject,self.specialization])
+        
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['subject'] = self.subject
+        record_attributes['specialization'] = self.specialization
+        return record_attributes
 
     def to_provJSON(self,nsdict):
         Relation.to_provJSON(self,nsdict)
@@ -533,19 +573,22 @@ class PROVLiteral():
     
     def __init__(self, value, datatype):
         self.value = value
-        self.type = datatype
+        self.datatype = datatype
         self._json = []
+        
+    def __str__(self):
+        return 'Not supported yet'
         
     def to_provJSON(self,nsdict):
         self._json = []
-        if isinstance(self.value,PROVQname):
+        if isinstance(self.value, PROVQname):
             self._json.append(self.value.qname(nsdict))
         else:
             self._json.append(self.value)
-        if isinstance(self.type,PROVQname):
-            self._json.append(self.type.qname(nsdict))
+        if isinstance(self.datatype, PROVQname):
+            self._json.append(self.datatype.qname(nsdict))
         else:
-            self._json.append(self.type)
+            self._json.append(self.datatype)
         return self._json
 
 
@@ -914,6 +957,10 @@ class Account(Record,Bundle):
         self._record_attributes = asserter
         self.parentaccount=parentaccount
         
+    def get_record_attributes(self):
+        record_attributes = {}
+        record_attributes['asserter'] = self.asserter
+        return record_attributes
     
     def get_asserter(self):
         return self.asserter
