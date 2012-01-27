@@ -195,6 +195,7 @@ def save_records(prov_graph):
     records = prov_graph.get_records()
     record_map = {}
     save_account(account, records, record_map)
+    return account
     
 def build_PROVContainer(account):
     graph = PROVContainer()
@@ -224,6 +225,8 @@ def build_PROVContainer(account):
 #            startTime = datetime.strptime(attr_map.startTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None 
 #            endTime = datetime.strptime(attr_map.endTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None
             graph.add_activity(rec_id, attributes=attr_map)
+        elif rec_type == PROV_REC_GENERATION:
+            pass
             
     return graph
     
