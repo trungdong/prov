@@ -30,7 +30,7 @@ attrdict = {"type": "File",
 # then create the entity
 # If you give the id as a string, it will be treated as a localname
 # under the default namespace
-e0 = Entity(id="e0",attributes=attrdict)
+e0 = Entity(identifier="e0",attributes=attrdict)
 # you can then add the entity into the provenance container
 examplegraph.add(e0)
 
@@ -47,7 +47,7 @@ examplegraph.add(e1)
 
 # add activities
 # You can give the attributes during the creation if there are not many
-a0 = Activity(id=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
+a0 = Activity(identifier=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
 examplegraph.add(a0)
 
 # You can have the JSON of the container with the to_provJSON() function

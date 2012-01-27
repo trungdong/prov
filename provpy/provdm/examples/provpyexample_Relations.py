@@ -38,12 +38,12 @@ examplegraph.add(a0)
 
 # Then add some relations, using the element instances directly in the call
 attrdict = {ex["fct"]: "create"}
-g0 = wasGeneratedBy(e0,a0,id="g0",time=None,attributes=attrdict)
+g0 = wasGeneratedBy(e0,a0,identifier="g0",time=None,attributes=attrdict)
 examplegraph.add(g0)
 
 attrdict={ex["fct"]: "load",
           ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
-u0 = Used(a0,e1,id="u0",time=None,attributes=attrdict)
+u0 = Used(a0,e1,identifier="u0",time=None,attributes=attrdict)
 examplegraph.add(u0)
 
 # The id for a relation is an optional argument, The system will generate one

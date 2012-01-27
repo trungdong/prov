@@ -45,7 +45,7 @@ examplegraph.add(acc0)
 # top level container with the account specified in the record's argument.
 # The account MUST have been added into the container before you can do it
 # this way:
-g0=wasGeneratedBy(e0,a0,id="g0",time=None,attributes={ex["fct"]: "create"},account=acc0)
+g0=wasGeneratedBy(e0,a0,identifier="g0",time=None,attributes={ex["fct"]: "create"},account=acc0)
 examplegraph.add(g0)
 # or this way:
 e1 = examplegraph.add_entity('e1',account=acc0)
