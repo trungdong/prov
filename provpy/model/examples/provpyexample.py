@@ -1,6 +1,6 @@
 import json
 import datetime
-from provdm.model import *
+from provpy.model.core import *
 
 
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
@@ -45,12 +45,12 @@ examplegraph.add(a0)
 
 # add relation 
 attrdict={ex["fct"]: "create"}
-g0=wasGeneratedBy(e0,a0,id="g0",time=None,attributes=attrdict)
+g0=wasGeneratedBy(e0,a0,identifier="g0",time=None,attributes=attrdict)
 examplegraph.add(g0)
 
 attrdict={ex["fct"]: "load",
           ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
-u0 = Used(a0,e1,id="u0",time=None,attributes=attrdict)
+u0 = Used(a0,e1,identifier="u0",time=None,attributes=attrdict)
 examplegraph.add(u0)
 
 d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
@@ -72,5 +72,5 @@ import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(examplegraph.to_provJSON())
 
-#f = open('C:/exampleresult.json', 'w')
-#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+f = open('C:/exampleresult.json', 'w')
+f.write(json.dumps(examplegraph.to_provJSON(),indent=4))

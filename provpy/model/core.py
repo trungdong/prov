@@ -605,7 +605,7 @@ class Bundle():
         self._elementkey = 0
         self._relationkey = 0
         self._auto_ns_key = 0
-        self.identifier = "default"
+        self.identifier = PROVQname("default", localname="default")
         self._idJSON = None
    
     def add(self,record):
@@ -667,13 +667,16 @@ class Bundle():
             if element.identifier is None:
                 element._idJSON = self._generate_elem_identifier()
             else:
+                print "generate idJSON for %s" % str(element.identifier)
                 element._idJSON = element.identifier.qname(nsdict)
         for relation in self._relationlist:
             if relation.identifier is None:
                 relation._idJSON = self._generate_rlat_identifier()
             else:
+                print "generate idJSON for %s" % str(relation.identifier)
                 relation._idJSON = relation.identifier.qname(nsdict)
         for account in self._accountlist:
+            print "generate idJSON for %s" % str(account.identifier)
             account._idJSON = account.identifier.qname(nsdict)
             account._generate_idJSON(nsdict)
                     
