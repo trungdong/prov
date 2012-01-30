@@ -1,15 +1,15 @@
 from setuptools import setup
 
 setup(
-    name='provdm',
-    version='1.0.3',
+    name='provpy',
+    version='1.0.0',
     author='Huanjia Yang',
     author_email='huanjiayang@hotmail.com',
-    packages=['provdm', 'test','examples'],
+    packages=['provpy', 'provpy.model','provpy.model.examples','provpy.model.test'],
     scripts=[],
-    url='http://github.com/trungdong/w3-prov/tree/master/provpy/provdm',
+    url='http://github.com/trungdong/w3-prov/tree/master/provpy',
     license='LICENSE.txt',
     description='A Python implementation of PROV-DM data model.',
-    long_description=open('README.txt').read(),
+    long_description=open('README').read(),
     install_requires=[],
 )
