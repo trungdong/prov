@@ -1,7 +1,7 @@
 import json
 import datetime
 from provpy.model.core import *
-
+from provpy.model.common import *
 
 FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
 ex = PROVNamespace("ex","http://www.example.com/")
@@ -66,11 +66,20 @@ acc0.add_entity(ex['e2'])
 
 en = examplegraph.add_entity('en',account=acc0)
 
+
+a1 = Activity("a1")
+examplegraph.add(a1)
+testcommon = wasStartedBy(a1,a0)
+examplegraph.add(testcommon)
+
 #print json.dumps(examplegraph.to_provJSON(),indent=4)
 
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 pp.pprint(examplegraph.to_provJSON())
 
-f = open('C:/exampleresult.json', 'w')
-f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
+
+
+
+#f = open('C:/exampleresult.json', 'w')
+#f.write(json.dumps(examplegraph.to_provJSON(),indent=4))
