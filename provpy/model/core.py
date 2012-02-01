@@ -605,7 +605,8 @@ class Bundle():
         self._elementkey = 0
         self._relationkey = 0
         self._auto_ns_key = 0
-        self.identifier = PROVQname("default", localname="default")
+        if self.identifier is None:
+            self.identifier = PROVQname("default", localname="default")
         self._idJSON = None
    
     def add(self,record):
@@ -859,6 +860,7 @@ class PROVContainer(Bundle):
     
     def __init__(self,defaultnamespace=None):
         self.defaultnamespace=defaultnamespace
+        self.identifier = None
         Bundle.__init__(self)
         self._visitedrecord = []
         self._nsdict = {}
