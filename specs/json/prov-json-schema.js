@@ -16,10 +16,12 @@
     },
     "entity":{
       "type":"object",
-      "description":"Map of entities by ids. TODO: use patternProperties instead of additionalProperties as the keys are required to be valid ids.",
+      "description":"Map of entities by ids",
+	  // TODO: use patternProperties instead of additionalProperties as the keys are required to be valid ids (i.e. following a specific pattern).
       "additionalProperties":{
         "type":"object",
         "title":"entity",
+		// TODO: Define the schema for attribute-value pairs here and the other similar occurences in the objects below, taking into account qname id, literals, and provjs:array datatypes
         "additionalProperties":{}
       }
     },
@@ -33,7 +35,7 @@
           "prov:startTime": {"type": "string", "format": "date-time"},
           "prov:endTime": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{}
+		"additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "agent":{
@@ -50,6 +52,7 @@
       "additionalProperties":{
         "type":"object",
         "title":"note",
+		// TODO: Link to the schema for optional attribute-value pairs
         "additionalProperties":{}
       }
     },
@@ -74,9 +77,10 @@
           "wasDerivedFrom":{"$ref":"#/properties/wasDerivedFrom"},
           "alternateOf":{"$ref":"#/properties/alternateOf"},
           "specializationOf":{"$ref":"#/properties/specializationOf"},
-          "hasAnnotation":{"$ref":"#/properties/hasAnnotation"}
+          "hasAnnotation":{"$ref":"#/properties/hasAnnotation"},
+		  "account": {"$ref":"#/properties/account"}
         },
-        "additionalProperties": true
+		"additionalProperties": {"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "wasGeneratedBy": {
@@ -88,7 +92,7 @@
           "prov:activity": {"type": "string", "format": "uri", "required":true},
           "prov:time": {"type": "string", "format": "date-time"}
         },
-        "additionalProperties":{}
+        "additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "used": {"$ref":"#/properties/wasGeneratedBy"},
@@ -101,7 +105,7 @@
           "prov:agent": {"type": "string", "format": "uri", "required":true},
           "prov:plan": {"type": "string", "format": "uri", "required":false}
         },
-        "additionalProperties":{}
+        "additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "wasStartedBy": {
@@ -112,7 +116,7 @@
           "prov:activity": {"type": "string", "format": "uri", "required":true},
           "prov:agent": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties":{}
+        "additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "wasEndedby": {"$ref":"#/properties/wasStartedBy"},
@@ -125,7 +129,7 @@
           "prov:responsible": {"type": "string", "format": "uri", "required":true},
           "prov:activity": {"type": "string", "format": "uri"}
         },
-        "additionalProperties":{}
+        "additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "wasDerivedFrom": {
@@ -140,7 +144,7 @@
           "prov:generation": {"type": "string", "format": "uri"},
           "prov:usage": {"type": "string", "format": "uri"}
         },
-        "additionalProperties":{},
+        "additionalProperties":{"$ref":"#/properties/entity/additionalProperties/additionalProperties"},
         "dependencies": {
           "prov:activity": ["prov:generation", "prov:usage"],
           "prov:generation": ["prov:activity", "prov:usage"],
@@ -156,7 +160,7 @@
           "prov:entity": {"type": "string", "format": "uri", "required":true},
           "prov:alternate": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties": {}
+        "additionalProperties": {"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "specializationOf": {
@@ -167,7 +171,7 @@
           "prov:entity": {"type": "string", "format": "uri", "required":true},
           "prov:specialization": {"type": "string", "format": "uri", "required":true}
         },
-        "additionalProperties": {}
+        "additionalProperties": {"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
     },
     "hasAnnotation": {
