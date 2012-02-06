@@ -1,26 +1,44 @@
 from django.db import models
 import uuid
-from provdm.provdm.model import *
+from model.core import *
+
+PROV_ATTR_RECORD                = 0
+PROV_ATTR_ENTITY                = 1
+PROV_ATTR_ACTIVITY              = 2
+PROV_ATTR_AGENT                 = 3
+PROV_ATTR_NOTE                  = 4
+PROV_ATTR_PLAN                  = 5
+PROV_ATTR_SUBORDINATE           = 6
+PROV_ATTR_RESPONSIBLE           = 7
+PROV_ATTR_GENERATED_ENTITY      = 8
+PROV_ATTR_USED_ENTITY           = 9
+PROV_ATTR_GENERATION            = 10
+PROV_ATTR_USAGE                 = 11
+PROV_ATTR_ALTERNATE             = 12
+PROV_ATTR_SPECIALIZATION        = 13
+
+PROV_ATTR_NAMESPACE             = 100
+PROV_ATTR_ASSERTER              = 101
 
 PROV_RECORD_ATTRIBUTES = (
     # Relations properties
-    (0, u'prov:record'),
-    (1, u'prov:entity'),
-    (2, u'prov:activity'),
-    (3, u'prov:agent'),
-    (4, u'prov:note'),
-    (5, u'prov:plan'),
-    (6, u'prov:subordinate'),
-    (7, u'prov:responsible'),
-    (8, u'prov:generatedEntity'),
-    (9, u'prov:usedEntity'),
-    (10, u'prov:generation'),
-    (11, u'prov:usage'),
-    (12, u'prov:alternate'),
-    (13, u'prov:specialization'),
+    (PROV_ATTR_RECORD, u'prov:record'),
+    (PROV_ATTR_ENTITY, u'prov:entity'),
+    (PROV_ATTR_ACTIVITY, u'prov:activity'),
+    (PROV_ATTR_AGENT, u'prov:agent'),
+    (PROV_ATTR_NOTE, u'prov:note'),
+    (PROV_ATTR_PLAN, u'prov:plan'),
+    (PROV_ATTR_SUBORDINATE, u'prov:subordinate'),
+    (PROV_ATTR_RESPONSIBLE, u'prov:responsible'),
+    (PROV_ATTR_GENERATED_ENTITY, u'prov:generatedEntity'),
+    (PROV_ATTR_USED_ENTITY, u'prov:usedEntity'),
+    (PROV_ATTR_GENERATION, u'prov:generation'),
+    (PROV_ATTR_USAGE, u'prov:usage'),
+    (PROV_ATTR_ALTERNATE, u'prov:alternate'),
+    (PROV_ATTR_SPECIALIZATION, u'prov:specialization'),
     # Account properties
-    (100, u'prov:namespace'),
-    (101, u'prov:asserter'),
+    (PROV_ATTR_NAMESPACE, u'prov:namespace'),
+    (PROV_ATTR_ASSERTER, u'prov:asserter'),
 ) 
 
 class PDNamespace(models.Model):
@@ -32,12 +50,19 @@ class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=PROV_RECORD_TYPES, db_index=True)
     account = models.ForeignKey('PDAccount', related_name='records', null=True, blank=True, db_index=True)
+    attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
 
-class Attribute(models.Model):
-    record = models.ForeignKey(PDRecord, related_name='attributes', db_index=True)
+class RecordAttribute(models.Model):
+    record = models.ForeignKey(PDRecord, related_name='from_records', db_index=True)
+    value = models.ForeignKey(PDRecord, related_name='to_records')
+    prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, db_index=True)
+
+class LiteralAttribute(models.Model):
+    record = models.ForeignKey(PDRecord, related_name='literals', db_index=True)
     prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, null=True, blank=True, db_index=True)
-    attr_type = models.CharField(max_length=255, null=True, blank=True)
-    value = models.CharField(max_length=255, null=True, blank=True)
+    name = models.CharField(max_length=255)
+    value = models.CharField(max_length=255)
+    datatype = models.CharField(max_length=255)
 
 class PDAccount(PDRecord):
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
@@ -62,100 +87,6 @@ class PDAccount(PDRecord):
         
     def get_PROVContainer(self):
         return build_PROVContainer(self)
-    
-
-#class PDNamespace(models.Model):
-#    rec_id = models.CharField(max_length=255, db_index=True)
-#    uri  = models.CharField(max_length=255, db_index=True)
-#
-#class PDIdentifier(models.Model):
-#    name = models.CharField(max_length=255, db_index=True)
-#    namespace = models.ForeignKey(PDNamespace, related_name='identifiers', null=True, blank=True)
-#    
-#    @staticmethod
-#    def create(identifier):
-#        ids = PDIdentifier.objects.filter(name=identifier) 
-#        if ids.exist():
-#            return ids[0]
-#        else:
-#            return PDIdentifier.objects.create(name=identifier)
-#
-#class PDRecord(models.Model):
-#    rec_id = models.ForeignKey(PDIdentifier, related_name='records', null=True, blank=True)
-#    rec_type = models.SmallIntegerField(choices=PROV_RECORD_TYPES, db_index=True)
-#    account = models.ForeignKey('PDAccount', related_name='records', null=True, blank=True, db_index=True)
-#    attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
-#    
-#    @staticmethod
-#    def create(record, account):
-#        if isinstance(record, Account):
-#            pass
-#        else:
-#            PDRecord.objects.create(rec_id=record.get_record_id(), rec_type=record.get_prov_type(), account=account)
-#
-#class PDAccount(PDRecord):
-#    asserter = models.ForeignKey(PDIdentifier, related_name='accounts', null=True, blank=True)
-#    namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
-#    
-#    def __init__(self, **kwargs):
-#        kwargs['rec_type'] = PROV_REC_ACCOUNT
-#        PDRecord.__init__(self, **kwargs)
-#        
-##    def set_asserter(self, asserter):
-##        self.literals.create(name='prov:asserter', value=asserter, datatype='xsd:anyURI')
-#    @staticmethod
-#    def create(account_id, asserter):
-#        if isinstance(account_id, PDIdentifier):
-#            identifier = account_id
-#        else:
-#            identifier = PDIdentifier.create(account_id)
-#        if isinstance(asserter, PDIdentifier):
-#            asserter_id = asserter
-#        else:
-#            asserter_id = PDIdentifier.create(asserter)
-#        return PDAccount.objects.create(rec_id=identifier, asserter=asserter_id)
-#    
-#    @staticmethod    
-#    def create_sub_account(pd_account, subaccount):
-#        pass
-#        
-#    def get_records(self):
-#        return PDRecord.objects.filter(account=self)
-#    
-#    def get_prov_graph(self):
-#        records = self.get_records()
-#        graph = PROVContainer()
-#        for record in records:
-#            add_ProvDM_Record(graph, record)
-#            
-#            
-#def add_ProvDM_Record(graph, record):
-#    rec_type = record.rec_type
-#    # TODO Get all the record attributes here
-#    if rec_type == PROV_REC_ENTITY:
-#        graph.add_entity(record.rec_id)
-#    elif rec_type == PROV_REC_ACTIVITY:
-#        graph.add_activity(record.rec_id)
-#    elif rec_type == PROV_REC_AGENT:
-#        graph.add_agent(record.rec_id)
-#    elif rec_type == PROV_REC_ANNOTATION:
-#        graph.add_note(record.rec_id)
-#    else:
-#        # Unsupported type
-#        # TODO Raise an error here
-#        pass
-#    
-#class RecordAttribute(models.Model):
-#    record = models.ForeignKey(PDRecord, related_name='from_records', db_index=True)
-#    attribute = models.ForeignKey(PDRecord, related_name='to_records')
-#    prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, db_index=True)
-#
-#class LiteralAttribute(models.Model):
-#    record = models.ForeignKey(PDRecord, related_name='literals', db_index=True)
-#    name = models.CharField(max_length=255)
-#    value = models.CharField(max_length=255)
-#    datatype = models.ForeignKey(PDIdentifier, related_name='literals', null=True, blank=True)
-#    
 
 def create_record(prov_record, account, record_map):
     prov_type = prov_record.get_prov_type()
@@ -178,23 +109,31 @@ def create_record(prov_record, account, record_map):
 
 def save_account(account, records, record_map):
     for record in records:
+        # if the record is not visited
         if record not in record_map:
+            # visit it and create the corresponding PDRecord
             create_record(record, account, record_map)
 
 def save_records(prov_graph):
+    # Generate a unique id for a new account to contain the provenance graph
     account_id = uuid.uuid4().urn
-    
-    account = PDAccount.create(account_id, '#me')    
+    account = PDAccount.create(account_id, '#me')
+    # Save all the namespaces for future QName recreation
     namespaces = prov_graph.get_namespaces()
     for (prefix,uri) in namespaces.iteritems():
         account.add_namespace(prefix, uri)
+    # and the default namespace as well
     default_namespace_uri = prov_graph.get_default_namespace()
     if default_namespace_uri:
         account.add_namespace('default', default_namespace_uri)
      
-    records = prov_graph.get_records()
+    # An empty map to keep track of the visited records
     record_map = {}
+    # Getting all the individual records containted in the graph
+    records = prov_graph.get_records()
+    # and save them
     save_account(account, records, record_map)
+    #Return the account
     return account
     
 def build_PROVContainer(account):
