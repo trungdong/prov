@@ -1,0 +1,13 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+
+{% block content %}
+    <table>
+    	<thead><th>PROV-JSON of input graph</th><th>PROV-JSON of output graph</th></thead>
+    	<tr>
+    		<td><pre>{{ input }}</pre></td>
+    		<td><pre>{{ output }}</pre></td>
+    	</tr>
+    </table>
+{% endblock %}

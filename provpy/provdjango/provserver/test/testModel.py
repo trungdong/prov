@@ -4,7 +4,7 @@ Created on Jan 25, 2012
 @author: Dong
 '''
 import unittest
-from provdm.provdm.model import PROVNamespace, PROVContainer, Entity, Activity,\
+from model.core import PROVNamespace, PROVContainer, Entity, Activity,\
     PROVLiteral, wasGeneratedBy, Used, wasDerivedFrom
 import datetime
 

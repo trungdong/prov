@@ -35,24 +35,68 @@ PROV_RECORD_TYPES = (
     (PROV_REC_ANNOTATION,           u'Annotation'),
 )
 
-class PROVIdentifier(object):
+class PROVLiteral(object):
     
-    def __init__(self,name):
-        self.name = name
+    def __init__(self, value, datatype):
+        self.value = value
+        self.datatype = datatype
+        self._json = []
         
+    def __str__(self):
+        return '"s"^^"s"' % (self.value, self.datatype)
+        
+    def to_provJSON(self,nsdict):
+        self._json = []
+        if isinstance(self.value, PROVQname):
+            self._json.append(self.value.qname(nsdict))
+        else:
+            self._json.append(self.value)
+        if isinstance(self.datatype, PROVQname):
+            self._json.append(self.datatype.qname(nsdict))
+        else:
+            self._json.append(self.datatype)
+        return self._json
+    
+    def get_value(self):
+        return str(self.value)
+    
+    def get_datatype(self):
+        return str(self.datatype)
+    
+
+class PROVIdentifier(PROVLiteral):
+    
+    def __init__(self, name):
+        self.name = name
+    
+    def __str__(self):
+        return self.name
+        
+    def get_value(self):
+        return self.uri()
+    
+    def get_datatype(self):
+        return 'xsd:anyURI'
+    
     def uri(self):
+        return self.name
+    
+    def qname(self, nsdict):
         return self.name
 
 class PROVQname(PROVIdentifier):
     
-    def __init__(self,name,prefix=None,namespacename=None,localname=None):
+    def __init__(self, name, prefix=None, namespacename=None, localname=None):
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
         self.localname = localname
         self.prefix = prefix
         
     def __str__(self):
-        return self.name
+        if self.prefix and self.localname:
+            return ":".join((self.prefix, self.localname))
+        else:
+            return self.name
     
     def __eq__(self,other):
         if not isinstance(other,PROVQname):
@@ -63,7 +107,16 @@ class PROVQname(PROVIdentifier):
     def __hash__(self):
         return id(self)
     
-    def qname(self,nsdict):
+    def get_value(self):
+        return str(self)
+    
+    def get_datatype(self):
+        if self.prefix and self.localname:
+            return 'xsd:QName'
+        else:
+            return 'xsd:anyURI'
+    
+    def qname(self, nsdict):
         rt = self.name
         for prefix,namespacename in nsdict.items():
             if self.namespacename == namespacename:
@@ -77,7 +130,7 @@ class PROVQname(PROVIdentifier):
                 rt = ":".join((self.prefix, self.localname))
         return rt
     
-    def to_provJSON(self,nsdict):
+    def to_provJSON(self, nsdict):
         qname = self.qname(nsdict)
         if self.name == qname:
             rt = [qname,"xsd:anyURI"]
@@ -86,33 +139,35 @@ class PROVQname(PROVIdentifier):
         return rt
 
 
-class PROVNamespace(PROVIdentifier):
-    
-    def __init__(self,prefix,namespacename):
+class PROVNamespace(object):
+    def __init__(self, prefix, namespacename):
         self.prefix = prefix
         self.namespacename = namespacename
         
-    def __getitem__(self,localname):
-        return PROVQname(self.namespacename+localname,self.prefix,self.namespacename,localname)
+    def __getitem__(self, localname):
+        return PROVQname(self.namespacename + localname, self.prefix, self.namespacename, localname)
 
-        
+# Default namespaces        
 xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 
-
+class LiteralAttribute(object):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+    
 class Record(object):
 
     def __init__(self, identifier=None, attributes=None, account=None):
         if identifier is not None:
-            if isinstance(identifier, PROVQname):
+            if isinstance(identifier, PROVIdentifier):
                 self.identifier = identifier
             elif isinstance(identifier, (str, unicode)):
                 self.identifier = PROVQname(identifier, localname=identifier)
             else:
-                raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
+                raise PROVGraph_Error("The identifier of PROV record must be given as a string or a PROVIdentifier")
         else:
             self.identifier = None
-        
         
         self._record_attributes = {}
 
@@ -130,31 +185,25 @@ class Record(object):
         #TODO should we return None here?
         return None
         
-#    def __getattr__(self, attr):
-#        if attr in self._attributes:
-#            return self._attributes[attr]
-#        # If no attribute could be found, raise the standard error
-#        raise AttributeError, attr
-    
-    def _get_type_JSON(self,value):
+    def _get_type_JSON(self, value):
         datatype = None
-        if isinstance(value,str) or isinstance(value,bool):
+        if isinstance(value, str) or isinstance(value, bool):
             datatype = None
-        if isinstance(value,float):
+        if isinstance(value, float):
             datatype = xsd["float"]
-        if isinstance(value,datetime.datetime):
+        if isinstance(value, datetime.datetime):
             datatype = xsd["dateTime"]
-        if isinstance(value,int):
+        if isinstance(value, int):
             datatype = xsd["integer"]
-        if isinstance(value,list):
+        if isinstance(value, list):
             datatype = prov["array"]
         return datatype
         
-    def _convert_value_JSON(self,value,nsdict):
+    def _convert_value_JSON(self, value, nsdict):
         valuetojson = value
-        if isinstance(value,PROVLiteral): 
+        if isinstance(value, PROVLiteral): 
             valuetojson=value.to_provJSON(nsdict)
-        elif isinstance(value,PROVQname):
+        elif isinstance(value, PROVQname):
             valuetojson=value.to_provJSON(nsdict)
         else:
             datatype = self._get_type_JSON(value)
@@ -165,11 +214,11 @@ class Record(object):
                     newvalue = []
                     islist = False
                     for item in value:
-                        if isinstance(item,list):
+                        if isinstance(item, list):
                             islist = True
                         newvalue.append(self._convert_value_JSON(item, nsdict))
                     if islist is False:
-                        valuetojson=[newvalue,datatype.qname(nsdict)]
+                        valuetojson=[newvalue, datatype.qname(nsdict)]
         return valuetojson
     
     def get_prov_type(self):
@@ -189,6 +238,10 @@ class Record(object):
         attributes = self.get_record_attributes()
         attributes.update(self.attributes) 
         return attributes
+    
+    def add_attributes(self, attributes):
+        self.attributes.update(attributes)
+
 
 class Element(Record):
     
@@ -202,8 +255,8 @@ class Element(Record):
         self._idJSON = None
         self._attributelist = [self.identifier, self.account, self.attributes]
         
-    def to_provJSON(self,nsdict):
-        if isinstance(self.identifier,PROVQname):
+    def to_provJSON(self, nsdict):
+        if isinstance(self.identifier, PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
             if self._idJSON is None:
@@ -214,8 +267,8 @@ class Element(Record):
                 attrtojson = attribute.qname(nsdict)
                 self._json[self._idJSON][attrtojson] = self._json[self._idJSON][attribute]
                 del self._json[self._idJSON][attribute]
-        for attribute,value in self._json[self._idJSON].items():
-            valuetojson = self._convert_value_JSON(value,nsdict)
+        for attribute, value in self._json[self._idJSON].items():
+            valuetojson = self._convert_value_JSON(value, nsdict)
             if valuetojson is not None:
                 self._json[self._idJSON][attribute] = valuetojson
         return self._json
@@ -246,9 +299,9 @@ class Activity(Element):
     def get_record_attributes(self):
         record_attributes = {}
         if self.starttime is not None:
-            record_attributes['startTime'] = self.starttime
+            record_attributes['prov:startTime'] = self.starttime
         if self.endtime is not None:
-            record_attributes['endTime'] = self.endtime
+            record_attributes['prov:endTime'] = self.endtime
         return record_attributes
         
     def to_provJSON(self,nsdict):
@@ -328,10 +381,10 @@ class wasGeneratedBy(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['entity'] = self.entity
-        record_attributes['activity'] = self.activity
+        record_attributes['prov:entity'] = self.entity
+        record_attributes['prov:activity'] = self.activity
         if self.time is not None:
-            record_attributes['time'] = self.time
+            record_attributes['prov:time'] = self.time
         return record_attributes
     
     def to_provJSON(self,nsdict):
@@ -356,10 +409,10 @@ class Used(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['entity'] = self.entity
-        record_attributes['activity'] = self.activity
+        record_attributes['prov:entity'] = self.entity
+        record_attributes['prov:activity'] = self.activity
         if self.time is not None:
-            record_attributes['time'] = self.time
+            record_attributes['prov:time'] = self.time
         return record_attributes
 
         
@@ -384,8 +437,8 @@ class wasAssociatedWith(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['agent'] = self.agent
-        record_attributes['activity'] = self.activity
+        record_attributes['prov:agent'] = self.agent
+        record_attributes['prov:activity'] = self.activity
         return record_attributes
 
     def to_provJSON(self,nsdict):
@@ -407,8 +460,8 @@ class wasStartedBy(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['entity'] = self.entity
-        record_attributes['activity'] = self.activity
+        record_attributes['prov:entity'] = self.entity
+        record_attributes['prov:activity'] = self.activity
         return record_attributes
 
     def to_provJSON(self,nsdict):
@@ -430,8 +483,8 @@ class wasEndedBy(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['entity'] = self.entity
-        record_attributes['activity'] = self.activity
+        record_attributes['prov:entity'] = self.entity
+        record_attributes['prov:activity'] = self.activity
         return record_attributes
         
     def to_provJSON(self,nsdict):
@@ -453,8 +506,8 @@ class actedOnBehalfOf(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['subordinate'] = self.subordinate
-        record_attributes['responsible'] = self.responsible
+        record_attributes['prov:subordinate'] = self.subordinate
+        record_attributes['prov:responsible'] = self.responsible
         return record_attributes
 
     def to_provJSON(self,nsdict):
@@ -480,14 +533,14 @@ class wasDerivedFrom(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['generatedEntity'] = self.generatedentity
-        record_attributes['usedEntity'] = self.usedentity
+        record_attributes['prov:generatedEntity'] = self.generatedentity
+        record_attributes['prov:usedEntity'] = self.usedentity
         if self.activity is not None:
-            record_attributes['activity'] = self.activity
+            record_attributes['prov:activity'] = self.activity
         if self.generation is not None:
-            record_attributes['generation'] = self.generation
+            record_attributes['prov:generation'] = self.generation
         if self.usage is not None:
-            record_attributes['usage'] = self.usage
+            record_attributes['prov:usage'] = self.usage
         return record_attributes
 
 
@@ -516,8 +569,8 @@ class alternateOf(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['subject'] = self.subject
-        record_attributes['alternate'] = self.alternate
+        record_attributes['prov:subject'] = self.subject
+        record_attributes['prov:alternate'] = self.alternate
         return record_attributes
 
 
@@ -540,8 +593,8 @@ class specializationOf(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['subject'] = self.subject
-        record_attributes['specialization'] = self.specialization
+        record_attributes['prov:subject'] = self.subject
+        record_attributes['prov:specialization'] = self.specialization
         return record_attributes
 
     def to_provJSON(self,nsdict):
@@ -568,29 +621,6 @@ class hasAnnotation(Relation):
         self._provcontainer['hasAnnotation']=self._json
         return self._provcontainer
     
-
-class PROVLiteral():
-    
-    def __init__(self, value, datatype):
-        self.value = value
-        self.datatype = datatype
-        self._json = []
-        
-    def __str__(self):
-        return 'Not supported yet'
-        
-    def to_provJSON(self,nsdict):
-        self._json = []
-        if isinstance(self.value, PROVQname):
-            self._json.append(self.value.qname(nsdict))
-        else:
-            self._json.append(self.value)
-        if isinstance(self.datatype, PROVQname):
-            self._json.append(self.datatype.qname(nsdict))
-        else:
-            self._json.append(self.datatype)
-        return self._json
-
 
 class Bundle():
     
@@ -716,19 +746,19 @@ class Bundle():
                 valid = False
         return valid
 
-    def add_entity(self,identifier=None,attributes=None,account=None):
+    def add_entity(self, identifier=None, attributes=None, account=None):
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
-            element=Entity(identifier,attributes,account)
+            element=Entity(identifier, attributes, account)
             self.add(element)
             return element
     
-    def add_activity(self,identifier=None,starttime=None,endtime=None,attributes=None,account=None):
+    def add_activity(self, identifier=None, starttime=None, endtime=None, attributes=None, account=None):
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
-            element=Activity(identifier,starttime,endtime,attributes,account=account)
+            element=Activity(identifier, starttime, endtime, attributes, account)
             self.add(element)
             return element
     
@@ -939,7 +969,28 @@ class PROVContainer(Bundle):
             else:
                 pass # TODO: what if a namespace with prefix 'default' is already defined
         return self._provcontainer
-
+    
+    def get_compact_identifier(self, uri):
+        """Generates a QName for the URI if possible. Otherwise, return an Identifier for the original URI. Returns None if uri is None"""
+        
+        if uri is None:
+            # Nothing to do
+            return None
+        # Check the default namespace
+        if self.defaultnamespace:
+            if uri.startswith(self.defaultnamespace):
+                # Simply remove the default namespace's URI from the original URI
+                return PROVIdentifier(uri.replace(self.defaultnamespace, ''))
+        
+        # Check the user-defined namespaces
+        for (prefix, namespace) in self._namespacedict.iteritems():
+            if uri.startswith(namespace):
+                return PROVQname(uri, prefix, namespace, uri.replace(namespace, ''))
+        
+        # Check the implicit namespaces
+        for (prefix, namespace) in self._implicitnamespace.iteritems():
+            if uri.startswith(namespace):
+                return PROVQname(uri, prefix, namespace, uri.replace(namespace, ''))
 
 class Account(Record,Bundle):
     
@@ -964,7 +1015,7 @@ class Account(Record,Bundle):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['asserter'] = self.asserter
+        record_attributes['prov:asserter'] = self.asserter
         return record_attributes
     
     def get_asserter(self):
