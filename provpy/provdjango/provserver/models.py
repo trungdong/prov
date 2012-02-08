@@ -2,6 +2,7 @@
 from django.db import models
 import uuid
 import model.core as provdm
+import datetime
 
 # Constants
 PROV_ATTR_RECORD                = 0
@@ -170,7 +171,7 @@ def create_record(prov_record, account, record_map):
                                                 name=attr_name, value=value.get_value(), datatype=value.get_datatype())
             else:
                 LiteralAttribute.objects.create(record=pdrecord, prov_type=PROV_RECORD_LITERAL_MAP.get(attr_name),
-                                                name=attr_name, value=value, datatype=None)
+                                                name=attr_name, value=value, datatype=type(value))
             
     return pdrecord
 
@@ -180,6 +181,78 @@ def save_account(account, records, record_map):
         if record not in record_map:
             # visit it and create the corresponding PDRecord
             create_record(record, account, record_map)
+    
+def _parse_literal_value(literal, datatype):
+    if datatype == 'xsd:datetime':
+        return datetime.datetime(literal)
+    elif datatype == 'xsd:anyURI':
+        return provdm.PROVIdentifier(literal)
+    elif datatype == u"<type 'str'>":
+        return str(literal)
+    elif datatype == u"<type 'int'>":
+        return int(literal) 
+    return literal
+
+def _create_prov_record(graph, record, record_map):
+    if record in record_map:
+        # skip this record
+        return record_map[record]
+    
+    rec_type = record.rec_type
+    rec_id = graph.get_compact_identifier(record.rec_id)
+    
+    from collections import defaultdict
+    # Prepare record-attributes, this map will return None for non-existent key request
+    record_attributes = defaultdict(lambda: None)
+    for attr in RecordAttribute.objects.filter(record=record):
+        # If the other PROV record has been created, use it; otherwise, create it before use 
+        other_prov_record = record_map[attr.value] if attr.value in record_map else _create_prov_record(graph, attr.value, record_map) 
+        record_attributes[attr.prov_type] = other_prov_record 
+    # Prepare literal-attributes
+    prov_literals = defaultdict(lambda: None)
+    other_literals = defaultdict(lambda: None)
+    for attr in record.literals.all():
+        if attr.prov_type:
+            prov_literals[attr.prov_type] = _parse_literal_value(attr.value, attr.datatype)
+        else:
+            other_literals[str(graph.get_compact_identifier(attr.name))] = _parse_literal_value(attr.value, attr.datatype)
+            
+    # Create the record by its type
+    #TODO Add account support
+    if rec_type == provdm.PROV_REC_ENTITY:
+        prov_record = graph.add_entity(rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_ACTIVITY:
+        prov_record = graph.add_activity(rec_id, prov_literals[PROV_ATTR_STARTTIME], prov_literals[PROV_ATTR_ENDTIME], other_literals)
+    elif rec_type == provdm.PROV_REC_AGENT:
+        prov_record = graph.add_agent(rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_NOTE:
+        prov_record = graph.add_note(rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_GENERATION:
+        prov_record = graph.add_wasGeneratedBy(record_attributes[PROV_ATTR_ENTITY], record_attributes[PROV_ATTR_ACTIVITY], rec_id, prov_literals[PROV_ATTR_TIME], other_literals)
+    elif rec_type == provdm.PROV_REC_USAGE:
+        prov_record = graph.add_used(record_attributes[PROV_ATTR_ACTIVITY], record_attributes[PROV_ATTR_ENTITY], rec_id, prov_literals[PROV_ATTR_TIME], other_literals)
+    elif rec_type == provdm.PROV_REC_ACTIVITY_ASSOCIATION:
+        prov_record = graph.add_wasAssociatedWith(record_attributes[PROV_ATTR_ACTIVITY], record_attributes[PROV_ATTR_AGENT], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_START:
+        prov_record = graph.add_wasStartedBy(record_attributes[PROV_ATTR_ACTIVITY], record_attributes[PROV_ATTR_AGENT], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_END:
+        prov_record = graph.add_wasEndedBy(record_attributes[PROV_ATTR_ACTIVITY], record_attributes[PROV_ATTR_AGENT], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_RESPONSIBILITY:
+        prov_record = graph.add_actedOnBehalfOf(record_attributes[PROV_ATTR_SUBORDINATE], record_attributes[PROV_ATTR_RESPONSIBLE], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_DERIVATION:
+        prov_record = graph.add_wasDerivedFrom(record_attributes[PROV_ATTR_GENERATED_ENTITY], record_attributes[PROV_ATTR_USED_ENTITY], rec_id, record_attributes[PROV_ATTR_ACTIVITY], record_attributes[PROV_ATTR_GENERATION], record_attributes[PROV_ATTR_USAGE], other_literals)
+    elif rec_type == provdm.PROV_REC_ALTERNATE:
+        prov_record = graph.add_alternateOf(record_attributes[PROV_ATTR_ENTITY], record_attributes[PROV_ATTR_ALTERNATE], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_SPECIALIZATION:
+        prov_record = graph.add_specializationOf(record_attributes[PROV_ATTR_ENTITY], record_attributes[PROV_ATTR_SPECIALIZATION], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_ANNOTATION:
+        prov_record = graph.add_hasAnnotation(record_attributes[PROV_ATTR_RECORD], record_attributes[PROV_ATTR_NOTE], rec_id, other_literals)
+    elif rec_type == provdm.PROV_REC_ACCOUNT:
+        #TODO implement creating account
+        prov_record = graph.add_account(rec_id)
+        
+    record_map[record] = prov_record    
+    return prov_record
     
 def build_PROVContainer(account):
     graph = provdm.PROVContainer()
@@ -191,34 +264,9 @@ def build_PROVContainer(account):
             graph.add_namespace(prefix, uri)
     
     record_map = {}
+    # Sorting the records by their types to make sure the elements are created before the relations
     records = account.records.order_by('rec_type')
     for record in records:
-        rec_type = record.rec_type
-        rec_id = graph.get_compact_identifier(record.rec_id)
-        attributes = record.attributes.all()
-        prov_literals = record.literals.filter(prov_type__isnull=False)
-        literal_attrs = record.literals.filter(prov_type__isnull=True)
-        if rec_type == provdm.PROV_REC_ACCOUNT:
-            # Do something special with account
-            pass
-        elif rec_type == provdm.PROV_REC_ENTITY:
-            prov_record = graph.add_entity(rec_id)
-        elif rec_type == provdm.PROV_REC_ACTIVITY:
-#            startTime = datetime.strptime(attr_map.startTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None 
-#            endTime = datetime.strptime(attr_map.endTime, 'YYYY-MM-DD HH:MM:SS.mmmmmm') if 'time' in attr_map else None
-            prov_record = graph.add_activity(rec_id)
-        elif rec_type == provdm.PROV_REC_GENERATION:
-            pass
-        if prov_record:
-            # Build the attributes list
-            attributes = {}
-            for attr in literal_attrs:
-                attr_name = str(graph.get_compact_identifier(attr.name))
-                attributes[attr_name] = attr.value
-            if attributes:
-                prov_record.add_attributes(attributes)
-                
-            record_map[record] = prov_record 
-        
+        _create_prov_record(graph, record, record_map)
     return graph
     
