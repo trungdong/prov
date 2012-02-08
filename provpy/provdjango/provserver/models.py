@@ -129,7 +129,13 @@ class PDAccount(PDRecord):
 
 
 # Internal functions
-def create_record(prov_record, account, record_map):
+def _convert_python_literal(literal):
+    if isinstance(literal, datetime.datetime):
+        return literal.isoformat()
+    else:
+        return literal
+    
+def _create_pdrecord(prov_record, account, record_map):
     prov_type = prov_record.get_prov_type()
     record_id = prov_record.get_record_id()
     record_uri = record_id.uri() if record_id is not None else None
@@ -157,7 +163,7 @@ def create_record(prov_record, account, record_map):
                     # Assumption: no bidirectional relationship between records; otherwise, duplicated RecordAttribute will be created
                     # Recursive call to create the other record
                     # TODO: Check if the other record is in another account
-                    other_record = create_record(value, account, record_map)
+                    other_record = _create_pdrecord(value, account, record_map)
                 else:
                     other_record = record_map[value]
                 RecordAttribute.objects.create(record=pdrecord, value=other_record, prov_type=PROV_RECORD_ATTR_MAP[name])
@@ -171,7 +177,7 @@ def create_record(prov_record, account, record_map):
                                                 name=attr_name, value=value.get_value(), datatype=value.get_datatype())
             else:
                 LiteralAttribute.objects.create(record=pdrecord, prov_type=PROV_RECORD_LITERAL_MAP.get(attr_name),
-                                                name=attr_name, value=value, datatype=type(value))
+                                                name=attr_name, value=_convert_python_literal(value), datatype=type(value))
             
     return pdrecord
 
@@ -180,16 +186,16 @@ def save_account(account, records, record_map):
         # if the record is not visited
         if record not in record_map:
             # visit it and create the corresponding PDRecord
-            create_record(record, account, record_map)
+            _create_pdrecord(record, account, record_map)
     
 def _parse_literal_value(literal, datatype):
-    if datatype == 'xsd:datetime':
-        return datetime.datetime(literal)
+    if datatype == 'xsd:dateTime' or datatype == "<type 'datetime.datetime'>":
+        return datetime.datetime.strptime(literal, "%Y-%m-%dT%H:%M:%S")
     elif datatype == 'xsd:anyURI':
         return provdm.PROVIdentifier(literal)
-    elif datatype == u"<type 'str'>":
+    elif datatype == "<type 'str'>":
         return str(literal)
-    elif datatype == u"<type 'int'>":
+    elif datatype == "<type 'int'>":
         return int(literal) 
     return literal
 
