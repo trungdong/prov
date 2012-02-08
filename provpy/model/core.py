@@ -99,7 +99,7 @@ class PROVQname(PROVIdentifier):
             return self.name
     
     def __eq__(self,other):
-        if not isinstance(other,PROVQname):
+        if not isinstance(other, PROVQname):
             return False
         else:
             return self.name == other.name
@@ -569,7 +569,7 @@ class alternateOf(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['prov:subject'] = self.subject
+        record_attributes['prov:entity'] = self.subject
         record_attributes['prov:alternate'] = self.alternate
         return record_attributes
 
@@ -593,7 +593,7 @@ class specializationOf(Relation):
         
     def get_record_attributes(self):
         record_attributes = {}
-        record_attributes['prov:subject'] = self.subject
+        record_attributes['prov:entity'] = self.subject
         record_attributes['prov:specialization'] = self.specialization
         return record_attributes
 
