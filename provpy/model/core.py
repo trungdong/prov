@@ -782,91 +782,81 @@ class Bundle():
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=wasGeneratedBy(entity,activity,identifier,time,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=wasGeneratedBy(entity,activity,identifier,time,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_used(self,activity,entity,identifier=None,time=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=Used(activity,entity,identifier,time,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=Used(activity,entity,identifier,time,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_wasAssociatedWith(self,activity,agent,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=wasAssociatedWith(activity,agent,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=wasAssociatedWith(activity,agent,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_wasStartedBy(self,activity,agent,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=wasStartedBy(activity,agent,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=wasStartedBy(activity,agent,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_wasEndedBy(self,activity,agent,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=wasEndedBy(activity,agent,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=wasEndedBy(activity,agent,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_actedOnBehalfOf(self,subordinate,responsible,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=actedOnBehalfOf(subordinate,responsible,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=actedOnBehalfOf(subordinate,responsible,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
       
     def add_wasDerivedFrom(self,generatedentity,usedentity,identifier=None,activity=None,generation=None,usage=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=wasDerivedFrom(generatedentity,usedentity,identifier,activity,generation,usage,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=wasDerivedFrom(generatedentity,usedentity,identifier,activity,generation,usage,attributes,account=account)
+        self.add(relation)
+        return relation
     
     def add_alternateOf(self,subject,alternate,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=alternateOf(subject,alternate,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=alternateOf(subject,alternate,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_specializationOf(self,subject,specialization,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=specializationOf(subject,specialization,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=specializationOf(subject,specialization,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
     
     def add_hasAnnotation(self,record,note,identifier=None,attributes=None,account=None):
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
-        else:
-            relation=hasAnnotation(record,note,identifier,attributes,account=account)
-            self.add(relation)
-            return relation
+        relation=hasAnnotation(record,note,identifier,attributes,account=account)
+        self.add(relation)
+        return relation
 
     def add_account(self,identifier,parentaccount=None):
         acc = Account(identifier,parentaccount)
@@ -991,6 +981,8 @@ class PROVContainer(Bundle):
         for (prefix, namespace) in self._implicitnamespace.iteritems():
             if uri.startswith(namespace):
                 return PROVQname(uri, prefix, namespace, uri.replace(namespace, ''))
+        # Nothing works, return the original URI    
+        return PROVIdentifier(uri)
 
 class Account(Record,Bundle):
     
