@@ -1,3 +1,6 @@
+v1.1.2, 09/02/2012 -- Minor update release.
+* Added empty() function for Bundle.
+
 v1.1.1, 01/02/2012 -- Minor bug fix release.
 * Initialize Account identifier correctly.
 
