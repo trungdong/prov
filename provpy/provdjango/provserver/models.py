@@ -263,7 +263,7 @@ def _create_prov_record(graph, record, record_map):
 def build_PROVContainer(account):
     graph = provdm.PROVContainer()
     namespaces = account.get_namespaces()
-    for (prefix, uri) in namespaces.iteritems():
+    for (prefix, uri) in namespaces.items():
         if prefix == 'default':
             graph.set_default_namespace(uri)
         else:
