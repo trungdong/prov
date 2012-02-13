@@ -197,7 +197,8 @@ class ProvRecord(object):
                     record_id = value.get_identifier()
                     items.append(str(record_id) if record_id is not None else self._container.get_anon_id(value))
                 else:
-                    items.append(str(value) if value is not None else '')
+                    # Assuming this is a datetime value
+                    items.append(value.isoformat() if value is not None else '')
         
         extra = []
         if self._extra_attributes:
@@ -333,9 +334,11 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
     
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        return self.add_element(PROV_REC_ACTIVITY, identifier,
-                                {PROV_ATTR_STARTTIME: startTime, PROV_ATTR_ENDTIME: endTime},
-                                other_attributes)
+        #TODO Check for valid time values
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_STARTTIME]= startTime
+        attributes[PROV_ATTR_ENDTIME]= endTime
+        return self.add_element(PROV_REC_ACTIVITY, identifier, attributes, other_attributes)
     
     def agent(self, identifier, other_attributes):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes=None)
@@ -344,9 +347,13 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
     
     def generation(self, identifier, entity, activity, time=None, other_attributes=None):
-        if not isinstance(entity, ProvEntity) or not isinstance(activity, ProvActivity):
+        if not isinstance(entity, ProvEntity):
             # TODO Specify exception details
             raise ProvException
+        if not isinstance(activity, ProvActivity):
+            # TODO Specify exception details
+            raise ProvException
+        #TODO Check for valid time value
         attributes = OrderedDict()
         attributes[PROV_ATTR_ENTITY]= entity
         attributes[PROV_ATTR_ACTIVITY]= activity
@@ -354,9 +361,13 @@ class ProvContainer(object):
         return self.add_record(PROV_REC_GENERATION, identifier, attributes, other_attributes)
     
     def usage(self, identifier, activity, entity, time=None, other_attributes=None):
-        if not isinstance(entity, ProvEntity) or not isinstance(activity, ProvActivity):
+        if not isinstance(activity, ProvActivity):
             # TODO Specify exception details
             raise ProvException
+        if not isinstance(entity, ProvEntity):
+            # TODO Specify exception details
+            raise ProvException
+        #TODO Check for valid time value
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY]= activity
         attributes[PROV_ATTR_ENTITY]= entity
