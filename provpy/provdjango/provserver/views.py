@@ -7,8 +7,8 @@ from django.template.context import RequestContext
 def get_prov_json(request):
     from provdjango.provserver.test.testModel import Test
     graph = Test.build_prov_graph()
-#    from models import save_records
-#    account = save_records(graph)
+    from models import save_records
+    account = save_records(graph)
     
     if 'id' in request.GET:
         entity_id = request.GET.get('id')
