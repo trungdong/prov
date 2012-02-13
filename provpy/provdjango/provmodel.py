@@ -1,5 +1,6 @@
 import datetime
 import json
+from collections import OrderedDict
 
 # Constants
 PROV_REC_ENTITY                 = 1
@@ -136,6 +137,12 @@ class QName(Identifier):
         self._namespace = namespace
         self._localpart = localpart
         
+    def get_namespace(self):
+        return self._namespace
+    
+    def get_localpart(self):
+        return self._localpart
+    
     def get_uri(self):
         return ''.join([self._namespace._uri, self._localpart])
     
@@ -177,13 +184,20 @@ class ProvRecord(object):
     def get_type(self):
         pass
     
+    def get_identifier(self):
+        return self._identifier
+    
     def __str__(self):
         items = []
         if self._identifier:
             items.append(str(self._identifier))
         if self._attributes:
             for (attr, value) in self._attributes.items():
-                items.append(str(value) if value is not None else '')
+                if isinstance(value, ProvRecord):
+                    record_id = value.get_identifier()
+                    items.append(str(record_id) if record_id is not None else self._container.get_anon_id(value))
+                else:
+                    items.append(str(value) if value is not None else '')
         
         extra = []
         if self._extra_attributes:
@@ -266,6 +280,29 @@ class ProvContainer(object):
         if prefix not in self._namespaces:
             self._namespaces[prefix] = namespace
 
+    def valid_identifier(self, identifier):
+        if identifier is None:
+            return None
+        if isinstance(identifier, Identifier):
+            if isinstance(identifier, QName):
+                # Register the namespace if it has not been registered before
+                namespace = identifier.get_namespace() 
+                if namespace not in self._namespaces.values():
+                    self.add_namespace(namespace)
+            # return the original identifier
+            return identifier
+        elif isinstance(identifier, (str, unicode)):
+            if ':' in identifier:
+                # create and return an Identifier with the given uri
+                return Identifier(identifier)
+            else:
+                # create and return an identifier in the default namespace
+                return self._default_namespace[identifier] 
+        
+    def get_anon_id(self, record):
+        #TODO Implement a dict of self-generated anon ids for records without identifier
+        return "Anon ID"
+    
     # PROV-JSON serialization/deserialization    
     class ProvJSONEncoder(json.JSONEncoder):
         def default(self, o):
@@ -285,7 +322,7 @@ class ProvContainer(object):
             
     # Provenance statements
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
-        new_record = PROV_REC_CLS[record_type](self, identifier, attributes, other_attributes)
+        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
         self._records.append(new_record)
         return new_record
     
@@ -307,12 +344,24 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
     
     def generation(self, identifier, entity, activity, time=None, other_attributes=None):
-        attributes = {}
+        if not isinstance(entity, ProvEntity) or not isinstance(activity, ProvActivity):
+            # TODO Specify exception details
+            raise ProvException
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY]= entity
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_TIME]= time
         return self.add_record(PROV_REC_GENERATION, identifier, attributes, other_attributes)
     
     def usage(self, identifier, activity, entity, time=None, other_attributes=None):
-        attributes = {}
-        return self.add_record(PROV_REC_GENERATION, identifier, attributes, other_attributes)
+        if not isinstance(entity, ProvEntity) or not isinstance(activity, ProvActivity):
+            # TODO Specify exception details
+            raise ProvException
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_ENTITY]= entity
+        attributes[PROV_ATTR_TIME]= time
+        return self.add_record(PROV_REC_USAGE, identifier, attributes, other_attributes)
     
     # Aliases
     wasGeneratedBy = generation
@@ -363,16 +412,14 @@ def test():
     # add activities
     # You can give the _attributes during the creation if there are not many
     a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["plan"]: EX["create-file"]})
-#    
-#    attrdict = {ex["fct"]: "create"}
-#    g0 = wasGeneratedBy(e0,a0,_identifier="g0",time=None,_attributes=attrdict)
-#    g.add(g0)
-#    
-#    attrdict={ex["fct"]: "load",
-#              ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
-#    u0 = Used(a0,e1,_identifier="u0",time=None,_attributes=attrdict)
-#    g.add(u0)
-#    
+    
+    attrdict = {EX["fct"]: "create"}
+    g0 = g.wasGeneratedBy("g0", e0, a0, None, attrdict)
+    
+    attrdict={EX["fct"]: "load",
+              EX["typeexample"] : Literal("MyValue", EX["MyType"])}
+    u0 = g.used("u0", a0, e1, None, attrdict)
+    
 #    # The id for a relation is an optional argument, The system will generate one
 #    # if you do not specify it 
 #    d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,_attributes=None)
