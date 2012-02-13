@@ -36,6 +36,24 @@ PROV_RECORD_TYPES = (
     (PROV_REC_ANNOTATION,           u'Annotation'),
 )
 
+PROV_ASN_MAP = {
+    PROV_REC_ENTITY:               u'entity',
+    PROV_REC_ACTIVITY:             u'activity',
+    PROV_REC_AGENT:                u'agent',
+    PROV_REC_NOTE:                 u'note',
+    PROV_REC_ACCOUNT:              u'account',
+    PROV_REC_GENERATION:           u'wasGeneratedBy',
+    PROV_REC_USAGE:                u'used',
+    PROV_REC_ACTIVITY_ASSOCIATION: u'wasAssociatedWith',
+    PROV_REC_START:                u'wasStartedBy',
+    PROV_REC_END:                  u'wasEndedBy',
+    PROV_REC_RESPONSIBILITY:       u'actedOnBehalfOf',
+    PROV_REC_DERIVATION:           u'wasDerivedFrom',
+    PROV_REC_ALTERNATE:            u'alternateOf',
+    PROV_REC_SPECIALIZATION:       u'specializationOf',
+    PROV_REC_ANNOTATION:           u'hasAnnotation',
+}
+
 PROV_ATTR_RECORD                = 0
 PROV_ATTR_ENTITY                = 1
 PROV_ATTR_ACTIVITY              = 2
@@ -71,40 +89,40 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_USAGE, u'prov:usage'),
     (PROV_ATTR_ALTERNATE, u'prov:alternate'),
     (PROV_ATTR_SPECIALIZATION, u'prov:specialization'),
-)
-
-PROV_RECORD_LITERALS = (
     # Literal properties
     (PROV_ATTR_TIME, u'prov:time'),
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
     (PROV_ATTR_ENDTIME, u'prov:endTime'),
 )
 
+PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
+PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
+
 
 class Literal(object):
     def __init__(self, value, datatype):
-        self.value = value
-        self.datatype = datatype
+        self._value = value
+        self._datatype = datatype
         
     def __str__(self):
-        return '"s"^^"s"' % (self.value, self.datatype)
+        return '%s %%%% %s' % (str(self._value), str(self._datatype))
     
     def get_value(self):
-        return self.value
+        return self._value
     
     def get_datatype(self):
-        return self.datatype
+        return self._datatype
 
 
 class Identifier(object):
     def __init__(self, uri):
-        self.uri = uri
+        self._uri = uri
         
     def get_uri(self):
-        return self.uri
+        return self._uri
     
     def __str__(self):
-        return self.uri
+        return self._uri
     
     def __eq__(self, other):
         return self.get_uri() == other.get_uri() if isinstance(other, Identifier) else False
@@ -115,23 +133,26 @@ class Identifier(object):
 
 class QName(Identifier):
     def __init__(self, namespace, localpart):
-        self.namespace = namespace
-        self.localpart = localpart
+        self._namespace = namespace
+        self._localpart = localpart
         
     def get_uri(self):
-        return ''.join(self.namespace, self.localpart)
+        return ''.join([self._namespace._uri, self._localpart])
     
     def __str__(self):
-        return ':'.join(self.namespace.prefix, self.localpart)
+        return ':'.join([self._namespace._prefix, self._localpart])
     
 
 class Namespace(object):
     def __init__(self, prefix, uri):
-        self.prefix = prefix
-        self.uri = uri
-        
+        self._prefix = prefix
+        self._uri = uri
+
+    def get_prefix(self):
+        return self._prefix
+            
     def get_uri(self):
-        return self.uri
+        return self._uri
     
     def __getitem__(self, localpart):
         return QName(self, localpart)
@@ -146,15 +167,30 @@ class ProvException(Exception):
 
 
 class ProvRecord(object):
-    """Base class for PROV records."""
+    """Base class for PROV _records."""
     def __init__(self, container, identifier, attributes, other_attributes):
-        self.container = container
-        self.identifier = identifier
-        self.attributes = attributes
-        self.other_attributes = other_attributes
+        self._container = container
+        self._identifier = identifier
+        self._attributes = attributes
+        self._extra_attributes = other_attributes
         
     def get_type(self):
         pass
+    
+    def __str__(self):
+        items = []
+        if self._identifier:
+            items.append(str(self._identifier))
+        if self._attributes:
+            for (attr, value) in self._attributes.items():
+                items.append(str(value) if value is not None else '')
+        
+        extra = []
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes.items():
+                extra.append('%s="%s"' % (str(attr), str(value)))
+        
+        return '%s(%s, [%s])' % (PROV_ASN_MAP[self.get_type()], ', '.join(items), ', '.join(extra))
 
 
 class ProvElement(ProvRecord):
@@ -214,11 +250,23 @@ PROV_REC_CLS = {
     }
 
 
-class ProvContainter(object):
+class ProvContainer(object):
     def __init__(self):
-        self.records = list()
-        self.namespaces = dict()
+        self._records = list()
+        self._namespaces = { PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}
+        self._default_namespace = PROV
         
+    # Container configurations
+    def set_default_namespace(self, namespace):
+        self._default_namespace = namespace
+        self._namespaces.update({namespace.get_prefix(): namespace})
+        
+    def add_namespace(self, namespace):
+        prefix = namespace.get_prefix()
+        if prefix not in self._namespaces:
+            self._namespaces[prefix] = namespace
+
+    # PROV-JSON serialization/deserialization    
     class ProvJSONEncoder(json.JSONEncoder):
         def default(self, o):
             return json.JSONEncoder.default(self, o)
@@ -226,19 +274,31 @@ class ProvContainter(object):
     class ProvJSONDecoder(json.JSONDecoder):
         def decode(self, s):
             return json.JSONDecoder.decode(self, s)
-        
+    
+    # Miscellaneous functions
+    def print_records(self):
+        for (prefix, namespace) in self._namespaces.items():
+            print 'prefix %s: %s' % (prefix, namespace.get_uri())
+        print ''
+        for record in self._records:
+            print record
+            
+    # Provenance statements
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
         new_record = PROV_REC_CLS[record_type](self, identifier, attributes, other_attributes)
+        self._records.append(new_record)
         return new_record
     
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
         return self.add_record(record_type, identifier, attributes, other_attributes)
         
-    def entity(self, identifier, other_attributes):
+    def entity(self, identifier, other_attributes=None):
         return self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
     
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        return self.add_element(PROV_REC_ACTIVITY, identifier, None, other_attributes)
+        return self.add_element(PROV_REC_ACTIVITY, identifier,
+                                {PROV_ATTR_STARTTIME: startTime, PROV_ATTR_ENDTIME: endTime},
+                                other_attributes)
     
     def agent(self, identifier, other_attributes):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes=None)
@@ -257,3 +317,67 @@ class ProvContainter(object):
     # Aliases
     wasGeneratedBy = generation
     used = usage
+    
+
+# Tests
+
+def test():
+    FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
+    EX = Namespace("ex","http://www.example.com/")
+    DCTERMS = Namespace("dcterms","http://purl.org/dc/terms/")
+    
+    # create a provenance _container
+    g = ProvContainer()
+    
+    # Set the default _namespace name
+    g.set_default_namespace(EX)
+    
+    # add the other _namespaces with their prefixes into the _container
+    # You can do this any time before you output the JSON serialization
+    # of the _container
+    # Note for each _namespace name, if a _prefix given here is different to the
+    # one carried in the PROVNamespace instance defined previously, the _prefix
+    # HERE will be used in the JSON serialization.
+    g.add_namespace(DCTERMS)
+    g.add_namespace(FOAF)
+    
+    # add entities, first define the _attributes in a dictionary
+    e0_attrs = {PROV["type"]: "File",
+                EX["path"]: "/shared/crime.txt",
+                EX["creator"]: "Alice"}
+    # then create the entity
+    # If you give the id as a string, it will be treated as a localname
+    # under the default _namespace
+    e0 = g.entity(EX["e0"], e0_attrs)
+    
+    # define the _attributes for the next entity
+    lit0 = Literal("2011-11-16T16:06:00", XSD["dateTime"])
+    attrdict ={PROV["type"]: EX["File"],
+               EX["path"]: "/shared/crime.txt",
+               DCTERMS["creator"]: FOAF['Alice'],
+               EX["content"]: "",
+               DCTERMS["create"]: lit0}
+    # create the entity, note this time we give the id as a PROVQname
+    e1 = g.entity(FOAF['Foo'], attrdict)
+    
+    # add activities
+    # You can give the _attributes during the creation if there are not many
+    a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["plan"]: EX["create-file"]})
+#    
+#    attrdict = {ex["fct"]: "create"}
+#    g0 = wasGeneratedBy(e0,a0,_identifier="g0",time=None,_attributes=attrdict)
+#    g.add(g0)
+#    
+#    attrdict={ex["fct"]: "load",
+#              ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
+#    u0 = Used(a0,e1,_identifier="u0",time=None,_attributes=attrdict)
+#    g.add(u0)
+#    
+#    # The id for a relation is an optional argument, The system will generate one
+#    # if you do not specify it 
+#    d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,_attributes=None)
+#    g.add(d0)
+
+    g.print_records()
+    
+test()
