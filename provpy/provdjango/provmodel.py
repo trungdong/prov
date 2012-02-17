@@ -1,6 +1,7 @@
 import datetime
 import json
 from collections import OrderedDict
+from model.core import PROV_REC_DERIVATION
 
 # Constants
 PROV_REC_ENTITY                 = 1
@@ -245,6 +246,9 @@ class ProvUsage(ProvRelation):
     def get_type(self):
         return PROV_REC_USAGE
     
+class ProvDerivation(ProvRelation):
+    def get_type(self):
+        return PROV_REC_DERIVATION
     
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
@@ -258,7 +262,7 @@ PROV_REC_CLS = {
 #    PROV_REC_START                  = 14
 #    PROV_REC_END                    = 15
 #    PROV_REC_RESPONSIBILITY         = 16
-#    PROV_REC_DERIVATION             = 17
+    PROV_REC_DERIVATION             : ProvDerivation
 #    PROV_REC_ALTERNATE              = 18
 #    PROV_REC_SPECIALIZATION         = 19
 #    PROV_REC_ANNOTATION             = 99
@@ -374,9 +378,36 @@ class ProvContainer(object):
         attributes[PROV_ATTR_TIME]= time
         return self.add_record(PROV_REC_USAGE, identifier, attributes, other_attributes)
     
+    def derivation(self, identifier, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, other_attributes=None):
+        if generatedEntity is None:
+            raise ProvException
+        if usedEntity is None:
+            raise ProvException
+        if not isinstance(generatedEntity, ProvEntity):
+            # TODO Specify exception details
+            raise ProvException
+        if not isinstance(usedEntity, ProvEntity):
+            # TODO Specify exception details
+            raise ProvException
+        #TODO Check for valid time value
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
+        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        #TODO Check for PROV-DM's constraints and the validity of input variables here
+        if activity is not None:
+            attributes[PROV_ATTR_ACTIVITY]= activity
+        if generation is not None:
+            attributes[PROV_ATTR_GENERATION] = generation
+        if usage is not None:
+            attributes[PROV_ATTR_USAGE] = usage
+        if time is not None:
+            attributes[PROV_ATTR_TIME]= time
+        
+        return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
     # Aliases
     wasGeneratedBy = generation
     used = usage
+    wasDerivedFrom = derivation
     
 
 # Tests
@@ -431,10 +462,9 @@ def test():
               EX["typeexample"] : Literal("MyValue", EX["MyType"])}
     u0 = g.used("u0", a0, e1, None, attrdict)
     
-#    # The id for a relation is an optional argument, The system will generate one
-#    # if you do not specify it 
-#    d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,_attributes=None)
-#    g.add(d0)
+    # The id for a relation is an optional argument, The system will generate one
+    # if you do not specify it 
+    d0 = g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
 
     g.print_records()
     
