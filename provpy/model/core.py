@@ -636,6 +636,17 @@ class Bundle():
                 record.account.add(record)
             elif not record in self._accountlist:
                 self._accountlist.append(record)
+
+    def empty(self):
+        self._provcontainer = {}
+        self._elementlist = []
+        self._relationlist = []
+        self._namespacedict = {}
+        self._accountlist = []
+        self._elementkey = 0
+        self._relationkey = 0
+        self._auto_ns_key = 0
+        self._idJSON = None
             
     def to_provJSON(self,nsdict):
         self._generate_idJSON(nsdict)
