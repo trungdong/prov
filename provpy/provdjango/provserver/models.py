@@ -68,7 +68,7 @@ def save_records(prov_graph):
      
     # An empty map to keep track of the visited records
     record_map = {}
-    # Getting all the individual records containted in the graph
+    # Getting all the individual records contained in the graph
     records = prov_graph.get_records()
     # and save them
     save_account(account, records, record_map)
@@ -78,20 +78,20 @@ def save_records(prov_graph):
 
 # Classes
 class PDNamespace(models.Model):
-    prefix = models.CharField(max_length=255, db_index=True)
-    uri  = models.CharField(max_length=255, db_index=True)
+    _prefix = models.CharField(max_length=255, db_index=True)
+    _uri  = models.CharField(max_length=255, db_index=True)
 
 
 class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=provdm.PROV_RECORD_TYPES, db_index=True)
-    account = models.ForeignKey('PDAccount', related_name='records', null=True, blank=True, db_index=True)
-    attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
+    account = models.ForeignKey('PDAccount', related_name='_records', null=True, blank=True, db_index=True)
+    _attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
 
 
 class RecordAttribute(models.Model):
     record = models.ForeignKey(PDRecord, related_name='from_records', db_index=True)
-    value = models.ForeignKey(PDRecord, related_name='to_records')
+    _value = models.ForeignKey(PDRecord, related_name='to_records')
     prov_type = models.SmallIntegerField(choices=PROV_RECORD_ATTRIBUTES, db_index=True)
 
 
@@ -99,13 +99,13 @@ class LiteralAttribute(models.Model):
     record = models.ForeignKey(PDRecord, related_name='literals', db_index=True)
     prov_type = models.SmallIntegerField(choices=PROV_RECORD_LITERALS, null=True, blank=True, db_index=True)
     name = models.CharField(max_length=255)
-    value = models.CharField(max_length=255)
-    datatype = models.CharField(max_length=255, null=True, blank=True)
+    _value = models.CharField(max_length=255)
+    _datatype = models.CharField(max_length=255, null=True, blank=True)
 
 
 class PDAccount(PDRecord):
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
-    namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
+    _namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
     
     @staticmethod
     def create(account_id, asserter_id):
@@ -113,15 +113,15 @@ class PDAccount(PDRecord):
     
     def add_namespace(self, prefix, uri):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri)
-        self.namespaces.add(namespace)
+        self._namespaces.add(namespace)
         
     def add_sub_account(self, account_record):
         pass
     
     def get_namespaces(self):
         results = {}
-        for namespace in self.namespaces.all():
-            results[namespace.prefix] = namespace.uri
+        for namespace in self._namespaces.all():
+            results[namespace._prefix] = namespace._uri
         return results
         
     def get_PROVContainer(self):
@@ -138,23 +138,23 @@ def _convert_python_literal(literal):
 def _create_pdrecord(prov_record, account, record_map):
     prov_type = prov_record.get_prov_type()
     record_id = prov_record.get_record_id()
-    record_uri = record_id.uri() if record_id is not None else None
+    record_uri = record_id._uri() if record_id is not None else None
     if prov_type <> provdm.PROV_REC_ACCOUNT:
         # Create a normal record
         pdrecord = PDRecord.objects.create(rec_id=record_uri, rec_type=prov_type, account=account)
         record_map[prov_record] = pdrecord
     else:
         # Create an account record
-        asserter_uri = prov_record.get_asserter().uri()
+        asserter_uri = prov_record.get_asserter()._uri()
         pdrecord = PDAccount.objects.create(rec_id=record_id, rec_type=prov_type, account=account, asserter=asserter_uri)
         record_map[prov_record] = pdrecord
         # Recursive call to save this account
         save_account(pdrecord, prov_record.get_records(), record_map)
         
-    # TODO add all attributes here
+    # TODO add all _attributes here
     attributes = prov_record.get_all_attributes()
     for (name, value) in attributes.iteritems():
-        # TODO This assume all prov attributes use QName strings, e.g. "prov:entity"
+        # TODO This assume all prov _attributes use QName strings, e.g. "prov:entity"
         if name in PROV_RECORD_ATTR_MAP:
             # Create a linked attribute's record
             if isinstance(value, provdm.Record):
@@ -171,7 +171,7 @@ def _create_pdrecord(prov_record, account, record_map):
                 raise Exception('Expected a PROV Record for %s. Got %s.' % name )
         else:
             # Create a literal attribute
-            attr_name = name.uri() if isinstance(name, provdm.PROVIdentifier) else str(name)
+            attr_name = name._uri() if isinstance(name, provdm.PROVIdentifier) else str(name)
             if isinstance(value, provdm.PROVLiteral):
                 LiteralAttribute.objects.create(record=pdrecord, prov_type=PROV_RECORD_LITERAL_MAP.get(attr_name),
                                                 name=attr_name, value=value.get_value(), datatype=value.get_datatype())
@@ -208,20 +208,20 @@ def _create_prov_record(graph, record, record_map):
     rec_id = graph.get_compact_identifier(record.rec_id)
     
     from collections import defaultdict
-    # Prepare record-attributes, this map will return None for non-existent key request
+    # Prepare record-_attributes, this map will return None for non-existent key request
     record_attributes = defaultdict(lambda: None)
     for attr in RecordAttribute.objects.filter(record=record):
         # If the other PROV record has been created, use it; otherwise, create it before use 
-        other_prov_record = record_map[attr.value] if attr.value in record_map else _create_prov_record(graph, attr.value, record_map) 
+        other_prov_record = record_map[attr._value] if attr._value in record_map else _create_prov_record(graph, attr._value, record_map) 
         record_attributes[attr.prov_type] = other_prov_record 
-    # Prepare literal-attributes
+    # Prepare literal-_attributes
     prov_literals = defaultdict(lambda: None)
     other_literals = defaultdict(lambda: None)
     for attr in record.literals.all():
         if attr.prov_type:
-            prov_literals[attr.prov_type] = _parse_literal_value(attr.value, attr.datatype)
+            prov_literals[attr.prov_type] = _parse_literal_value(attr._value, attr._datatype)
         else:
-            other_literals[str(graph.get_compact_identifier(attr.name))] = _parse_literal_value(attr.value, attr.datatype)
+            other_literals[str(graph.get_compact_identifier(attr.name))] = _parse_literal_value(attr._value, attr._datatype)
             
     # Create the record by its type
     #TODO Add account support
@@ -271,7 +271,7 @@ def build_PROVContainer(account):
     
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
-    records = account.records.order_by('rec_type')
+    records = account._records.order_by('rec_type')
     for record in records:
         _create_prov_record(graph, record, record_map)
     return graph
