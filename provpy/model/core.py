@@ -38,30 +38,30 @@ PROV_RECORD_TYPES = (
 class PROVLiteral(object):
     
     def __init__(self, value, datatype):
-        self.value = value
-        self.datatype = datatype
+        self._value = value
+        self._datatype = datatype
         self._json = []
         
     def __str__(self):
-        return '"s"^^"s"' % (self.value, self.datatype)
+        return '"s"^^"s"' % (self._value, self._datatype)
         
     def to_provJSON(self,nsdict):
         self._json = []
-        if isinstance(self.value, PROVQname):
-            self._json.append(self.value.qname(nsdict))
+        if isinstance(self._value, PROVQname):
+            self._json.append(self._value.qname(nsdict))
         else:
-            self._json.append(self.value)
-        if isinstance(self.datatype, PROVQname):
-            self._json.append(self.datatype.qname(nsdict))
+            self._json.append(self._value)
+        if isinstance(self._datatype, PROVQname):
+            self._json.append(self._datatype.qname(nsdict))
         else:
-            self._json.append(self.datatype)
+            self._json.append(self._datatype)
         return self._json
     
     def get_value(self):
-        return str(self.value)
+        return str(self._value)
     
     def get_datatype(self):
-        return str(self.datatype)
+        return str(self._datatype)
     
 
 class PROVIdentifier(PROVLiteral):
@@ -154,34 +154,34 @@ prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 class LiteralAttribute(object):
     def __init__(self, name, value):
         self.name = name
-        self.value = value
+        self._value = value
     
 class Record(object):
 
     def __init__(self, identifier=None, attributes=None, account=None):
         if identifier is not None:
             if isinstance(identifier, PROVIdentifier):
-                self.identifier = identifier
+                self._identifier = identifier
             elif isinstance(identifier, (str, unicode)):
-                self.identifier = PROVQname(identifier, localname=identifier)
+                self._identifier = PROVQname(identifier, localname=identifier)
             else:
-                raise PROVGraph_Error("The identifier of PROV record must be given as a string or a PROVIdentifier")
+                raise PROVGraph_Error("The _identifier of PROV record must be given as a string or a PROVIdentifier")
         else:
-            self.identifier = None
+            self._identifier = None
         
         self._record_attributes = {}
 
         #TODO Remove the following code. It is here to maintain compatibility with the current JSON export code            
         if attributes is None:
-            self.attributes = {}
+            self._attributes = {}
         else:
-            self.attributes = attributes
+            self._attributes = attributes
 
         self.account = account
         
     def __str__(self):
-        if self.identifier is not None:
-            return str(self.identifier)
+        if self._identifier is not None:
+            return str(self._identifier)
         #TODO should we return None here?
         return None
         
@@ -225,43 +225,43 @@ class Record(object):
         return self.prov_type
 
     def get_record_id(self):
-        return self.identifier
+        return self._identifier
     
     def get_record_attributes(self):
         return dict()
     
     def get_other_attributes(self):
         # It might be needed to return an immutable copy to avoid accidental modifications
-        return self.attributes
+        return self._attributes
     
     def get_all_attributes(self):
         attributes = self.get_record_attributes()
-        attributes.update(self.attributes) 
+        attributes.update(self._attributes) 
         return attributes
     
     def add_attributes(self, attributes):
-        self.attributes.update(attributes)
+        self._attributes.update(attributes)
 
 
 class Element(Record):
     
     def __init__(self, identifier=None, attributes=None, account=None):
         if identifier is None:
-            raise PROVGraph_Error("An element is always required to have an identifier")
+            raise PROVGraph_Error("An element is always required to have an _identifier")
         Record.__init__(self, identifier, attributes, account)
         
         self._json = {}
         self._provcontainer = {}
         self._idJSON = None
-        self._attributelist = [self.identifier, self.account, self.attributes]
+        self._attributelist = [self._identifier, self.account, self._attributes]
         
     def to_provJSON(self, nsdict):
-        if isinstance(self.identifier, PROVQname):
-            self._idJSON = self.identifier.qname(nsdict)
-        elif self.identifier is None:
+        if isinstance(self._identifier, PROVQname):
+            self._idJSON = self._identifier.qname(nsdict)
+        elif self._identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
-        self._json[self._idJSON]=self.attributes.copy()
+        self._json[self._idJSON]=self._attributes.copy()
         for attribute in self._json[self._idJSON].keys():
             if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
@@ -347,15 +347,15 @@ class Relation(Record):
         self._json = {}
         self._provcontainer = {}
         self._idJSON = None
-        self._attributelist = [self.identifier,self.account,self.attributes]
+        self._attributelist = [self._identifier,self.account,self._attributes]
     
     def to_provJSON(self,nsdict):
-        if isinstance(self.identifier,PROVQname):
-            self._idJSON = self.identifier.qname(nsdict)
-        elif self.identifier is None:
+        if isinstance(self._identifier,PROVQname):
+            self._idJSON = self._identifier.qname(nsdict)
+        elif self._identifier is None:
             if self._idJSON is None:
                 self._idJSON = 'NoID'
-        self._json[self._idJSON]=self.attributes.copy()
+        self._json[self._idJSON]=self._attributes.copy()
         for attribute in self._json[self._idJSON].keys():
             if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
@@ -521,7 +521,7 @@ class actedOnBehalfOf(Relation):
 class wasDerivedFrom(Relation):
     
     def __init__(self, generatedentity, usedentity, identifier=None, activity=None, generation=None, usage=None, attributes=None, account=None):
-        #TODO Enforce mandatory attributes as required by PROV-DM
+        #TODO Enforce mandatory _attributes as required by PROV-DM
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_DERIVATION
         self.generatedentity = generatedentity
@@ -635,8 +635,8 @@ class Bundle():
         self._elementkey = 0
         self._relationkey = 0
         self._auto_ns_key = 0
-        if self.identifier is None:
-            self.identifier = PROVQname("default", localname="default")
+        if self._identifier is None:
+            self._identifier = PROVQname("default", localname="default")
         self._idJSON = None
    
     def add(self,record):
@@ -645,7 +645,7 @@ class Bundle():
             if record.account is None:
                 self._elementlist.append(record)
                 record.account = self
-            elif not record.account.identifier == self.identifier:
+            elif not record.account._identifier == self._identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
                 self._elementlist.append(record)
@@ -654,7 +654,7 @@ class Bundle():
             if record.account is None:
                 self._relationlist.append(record)
                 record.account = self
-            elif not record.account.identifier == self.identifier:
+            elif not record.account._identifier == self._identifier:
                 record.account.add(record)
             elif not record in self._elementlist:
                 self._relationlist.append(record)
@@ -662,7 +662,7 @@ class Bundle():
             if record.parentaccount is None:
                 self._accountlist.append(record)
                 record.parentaccount = self
-            elif not record.parentaccount.identifier == self.identifier:
+            elif not record.parentaccount._identifier == self._identifier:
                 record.account.add(record)
             elif not record in self._accountlist:
                 self._accountlist.append(record)
@@ -673,7 +673,7 @@ class Bundle():
             if isinstance(element,Agent):
                 if not 'agent' in self._provcontainer.keys():
                     self._provcontainer['agent']=[]
-                self._provcontainer['agent'].append(element.identifier)
+                self._provcontainer['agent'].append(element._identifier)
             jsondict = element.to_provJSON(nsdict)
             for key in jsondict:
                 if not key in self._provcontainer.keys():
@@ -695,20 +695,20 @@ class Bundle():
 
     def _generate_idJSON(self,nsdict):
         for element in self._elementlist:
-            if element.identifier is None:
+            if element._identifier is None:
                 element._idJSON = self._generate_elem_identifier()
             else:
-                print "generate idJSON for %s" % str(element.identifier)
-                element._idJSON = element.identifier.qname(nsdict)
+                print "generate idJSON for %s" % str(element._identifier)
+                element._idJSON = element._identifier.qname(nsdict)
         for relation in self._relationlist:
-            if relation.identifier is None:
+            if relation._identifier is None:
                 relation._idJSON = self._generate_rlat_identifier()
             else:
-                print "generate idJSON for %s" % str(relation.identifier)
-                relation._idJSON = relation.identifier.qname(nsdict)
+                print "generate idJSON for %s" % str(relation._identifier)
+                relation._idJSON = relation._identifier.qname(nsdict)
         for account in self._accountlist:
-            print "generate idJSON for %s" % str(account.identifier)
-            account._idJSON = account.identifier.qname(nsdict)
+            print "generate idJSON for %s" % str(account._identifier)
+            account._idJSON = account._identifier.qname(nsdict)
             account._generate_idJSON(nsdict)
                     
     def add_namespace(self, prefix, uri):
@@ -880,7 +880,7 @@ class PROVContainer(Bundle):
     
     def __init__(self,defaultnamespace=None):
         self.defaultnamespace=defaultnamespace
-        self.identifier = None
+        self._identifier = None
         Bundle.__init__(self)
         self._visitedrecord = []
         self._nsdict = {}
@@ -988,7 +988,7 @@ class Account(Record,Bundle):
     
     def __init__(self, identifier, asserter, parentaccount=None, attributes=None):
         if identifier is None:
-            raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVQname")
+            raise PROVGraph_Error("The _identifier of PROV account record must be given as a string or an PROVQname")
         Record.__init__(self, identifier, attributes, parentaccount)
         self.prov_type = PROV_REC_ACCOUNT
 
@@ -1016,7 +1016,7 @@ class Account(Record,Bundle):
     def to_provJSON(self,nsdict):
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['asserter']=self.asserter.qname(nsdict)
-        for attribute,value in self.attributes.items():
+        for attribute,value in self._attributes.items():
             attrtojson = attribute
             if isinstance(attribute, PROVQname):
                 attrtojson = attribute.qname(nsdict)
