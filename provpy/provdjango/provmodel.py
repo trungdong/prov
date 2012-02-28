@@ -1,7 +1,6 @@
 import datetime
 import json
-from collections import OrderedDict
-from model.core import PROV_REC_DERIVATION
+from collections import OrderedDict, defaultdict
 
 # Constants
 PROV_REC_ENTITY                 = 1
@@ -309,13 +308,45 @@ class ProvContainer(object):
         return "Anon ID"
     
     # PROV-JSON serialization/deserialization    
-    class ProvJSONEncoder(json.JSONEncoder):
+    class JSONEncoder(json.JSONEncoder):
         def default(self, o):
-            return json.JSONEncoder.default(self, o)
+            if isinstance(o, ProvContainer):
+                return o._get_JSON_container()
+            else:
+                # Use the default encoder instead
+                return json.JSONEncoder.default(self, o)
             
-    class ProvJSONDecoder(json.JSONDecoder):
+    class JSONDecoder(json.JSONDecoder):
         def decode(self, s):
             return json.JSONDecoder.decode(self, s)
+    
+    def _get_JSON_container(self):
+        container = defaultdict(dict)
+        prefixes = {}
+        for (prefix, namespace) in self._namespaces.items():
+            prefixes[prefix] = namespace.get_uri()
+        container['prefix'] = prefixes
+        ids = {}
+        for record in self._records:
+            rec_type = PROV_ASN_MAP[record.get_type()]
+            identifier = str(record._identifier) if record._identifier else self.get_anon_id(record)
+            ids[record] = identifier;
+            
+            record_json = {}
+            if record._attributes:
+                for (attr, value) in record._attributes.items():
+                    if isinstance(value, ProvRecord):
+                        attr_record_id = str(value.get_identifier())
+                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = attr_record_id 
+                    elif value is not None:
+                        # Assuming this is a datetime value
+                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = [value.isoformat(), 'xsd:dateTime']
+            if record._extra_attributes:
+                for (attr, value) in record._extra_attributes.items():
+                    record_json[str(attr)] = str(value)
+            container[rec_type][identifier] = record_json
+        
+        return container
     
     # Miscellaneous functions
     def print_records(self):
@@ -467,5 +498,7 @@ def test():
     d0 = g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
 
     g.print_records()
+    json_str = json.dumps(g, cls=ProvContainer.JSONEncoder, indent=4)
+    print json_str 
     
 test()
