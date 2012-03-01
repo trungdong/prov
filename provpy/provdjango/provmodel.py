@@ -1,5 +1,6 @@
 import datetime
 import json
+import re
 from collections import OrderedDict, defaultdict
 
 # Constants
@@ -96,10 +97,36 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_ENDTIME, u'prov:endTime'),
 )
 
+PROV_RECORD_IDS_MAP = dict((PROV_ASN_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_ASN_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
 
+def parse_xsd_dateTime(s):
+    """Returns datetime or None."""
+    m = re.match(""" ^
+    (?P<year>-?[0-9]{4}) - (?P<month>[0-9]{2}) - (?P<day>[0-9]{2})
+    T (?P<hour>[0-9]{2}) : (?P<minute>[0-9]{2}) : (?P<second>[0-9]{2})
+    (?P<microsecond>\.[0-9]{1,6})?
+    (?P<tz>
+      Z | (?P<tz_hr>[-+][0-9]{2}) : (?P<tz_min>[0-9]{2})
+    )?
+    $ """, s, re.X)
+    if m is not None:
+        values = m.groupdict()
+    if values["microsecond"] is None:
+        values["microsecond"] = 0
+    else:
+        values["microsecond"] = values["microsecond"][1:]
+        values["microsecond"] += "0" * (6 - len(values["microsecond"]))
+    values = dict((k, int(v)) for k, v in values.iteritems()
+                  if not k.startswith("tz"))
+    try:
+        return datetime.datetime(**values)
+    except ValueError:
+        pass
+    return None
+    
 class Literal(object):
     def __init__(self, value, datatype):
         self._value = value
@@ -113,6 +140,9 @@ class Literal(object):
     
     def get_datatype(self):
         return self._datatype
+    
+    def json_representation(self):
+        return [str(self._value), str(self._datatype)]
 
 
 class Identifier(object):
@@ -130,6 +160,9 @@ class Identifier(object):
     
     def __hash__(self):
         return hash(self.get_uri())
+    
+    def json_representation(self):
+        return [str(self), u'xsd:anyURI']
     
 
 class QName(Identifier):
@@ -149,6 +182,9 @@ class QName(Identifier):
     def __str__(self):
         return ':'.join([self._namespace._prefix, self._localpart])
     
+    def json_representation(self):
+        return [str(self), u'xsd:QName']
+    
 
 class Namespace(object):
     def __init__(self, prefix, uri):
@@ -160,6 +196,9 @@ class Namespace(object):
             
     def get_uri(self):
         return self._uri
+    
+    def __eq__(self, other):
+        return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
     
     def __getitem__(self, localpart):
         return QName(self, localpart)
@@ -175,17 +214,30 @@ class ProvException(Exception):
 
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, container, identifier, attributes, other_attributes):
+    def __init__(self, container, identifier, attributes=None, other_attributes=None):
         self._container = container
         self._identifier = identifier
-        self._attributes = attributes
-        self._extra_attributes = other_attributes
+        self._attributes = None
+        self._extra_attributes = None
+        if attributes or other_attributes:
+            self.add_attributes(attributes, other_attributes)
         
     def get_type(self):
         pass
     
     def get_identifier(self):
         return self._identifier
+    
+    def add_attributes(self, attributes, extra_attributes):
+        if attributes:
+            if self._attributes is None:
+                self._attributes = OrderedDict(attributes)
+            else:
+                self._attributes.update(attributes)
+        if extra_attributes:
+            if self._extra_attributes is None:
+                self._extra_attributes = {}
+            self._extra_attributes.update(extra_attributes)
     
     def __str__(self):
         items = []
@@ -203,7 +255,7 @@ class ProvRecord(object):
         extra = []
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes.items():
-                extra.append('%s="%s"' % (str(attr), str(value)))
+                extra.append('%s="%s"' % (str(attr), value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
         
         return '%s(%s, [%s])' % (PROV_ASN_MAP[self.get_type()], ', '.join(items), ', '.join(extra))
 
@@ -268,86 +320,205 @@ PROV_REC_CLS = {
     }
 
 
-class ProvContainer(object):
-    def __init__(self):
-        self._records = list()
-        self._namespaces = { PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}
-        self._default_namespace = PROV
+class NamespaceManager(dict):
+    def __init__(self, default_namespaces={}, default=None):
+        self._default_namespaces = {}
+        self._default_namespaces.update(default_namespaces)
+        self._namespaces = {}
+        self.update(self._default_namespaces)
+        self._default = default
+        # TODO check if default is in the default namespaces
+        self._anon_id_count = 0 
+        self._rename_map = {}
         
-    # Container configurations
+    def get_namespace(self, uri):
+        for namespace in self.values():
+            if uri == namespace._uri:
+                return namespace
+        return None
+    
     def set_default_namespace(self, namespace):
-        self._default_namespace = namespace
-        self._namespaces.update({namespace.get_prefix(): namespace})
-        
+        # TODO Check for existing namespaces 
+        self._default = namespace
+    
     def add_namespace(self, namespace):
+        if namespace in self.values():
+            # no need to do anything
+            return
+        if namespace in self._rename_map:
+            # already renamed and added
+            return
+        
         prefix = namespace.get_prefix()
-        if prefix not in self._namespaces:
-            self._namespaces[prefix] = namespace
-
-    def valid_identifier(self, identifier):
+        if prefix in self:
+            # Conflicting prefix
+            new_prefix = self._get_unused_prefix(prefix)
+            new_namespace = Namespace(new_prefix, namespace.get_uri())
+            self._rename_map[namespace] = new_namespace
+            prefix = new_prefix
+            namespace = new_namespace
+        self._namespaces[prefix] = namespace
+        self[prefix] = namespace
+    
+    def get_valid_identifier(self, identifier):
         if identifier is None:
             return None
         if isinstance(identifier, Identifier):
             if isinstance(identifier, QName):
                 # Register the namespace if it has not been registered before
                 namespace = identifier.get_namespace() 
-                if namespace not in self._namespaces.values():
+                if namespace not in self.values():
                     self.add_namespace(namespace)
             # return the original identifier
             return identifier
         elif isinstance(identifier, (str, unicode)):
             if ':' in identifier:
-                # create and return an Identifier with the given uri
-                return Identifier(identifier)
+                # check if the identifier contains a registered prefix
+                prefix, local_part = identifier.split(':', 1)
+                if prefix in self:
+                    # return a new QName
+                    return self[prefix][local_part]
+                else:
+                    # treat as a URI (with the first part as its scheme) and return an Identifier with the given uri
+                    return Identifier(identifier)
             else:
                 # create and return an identifier in the default namespace
-                return self._default_namespace[identifier] 
+                return self._default[identifier]
+    
+    def get_anonymous_identifier(self, local_prefix='id'):
+        self._anon_id_count += 1
+        return Identifier('_:%s%d' % (local_prefix, self._anon_id_count))
+    
+    def _get_unused_prefix(self, original_prefix):
+        if original_prefix not in self:
+            return original_prefix
+        count = 1
+        while True:
+            new_prefix = '_'.join((original_prefix, count))
+            if new_prefix in self:
+                count += 1
+            else:
+                return new_prefix
+        
+
+class ProvContainer(object):
+    def __init__(self):
+        self._records = list()
+        self._namespaces = NamespaceManager({ PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, PROV)
+        
+    # Container configurations
+    def set_default_namespace(self, namespace):
+        self._namespaces.set_default_namespace(namespace)
+        
+    def add_namespace(self, namespace):
+        self._namespaces.add_namespace(namespace)
+
+    def valid_identifier(self, identifier):
+        return self._namespaces.get_valid_identifier(identifier) 
         
     def get_anon_id(self, record):
         #TODO Implement a dict of self-generated anon ids for records without identifier
-        return "Anon ID"
+        return self._namespaces.get_anonymous_identifier()
     
     # PROV-JSON serialization/deserialization    
     class JSONEncoder(json.JSONEncoder):
         def default(self, o):
             if isinstance(o, ProvContainer):
-                return o._get_JSON_container()
+                return o._encode_JSON_container()
             else:
                 # Use the default encoder instead
                 return json.JSONEncoder.default(self, o)
             
     class JSONDecoder(json.JSONDecoder):
         def decode(self, s):
-            return json.JSONDecoder.decode(self, s)
+            json_container = json.JSONDecoder.decode(self, s)
+            result = ProvContainer()
+            result._decode_JSON_container(json_container)
+            return result
     
-    def _get_JSON_container(self):
+    def _encode_json_representation(self, value):
+        try:
+            return value.json_representation()
+        except AttributeError:
+            if isinstance(value, datetime.datetime):
+                return [value.isoformat(), u'xsd:dateTime']
+            else:
+                return str(value)
+    
+    def _decode_json_representation(self, value):
+        if isinstance(value, list):
+            number = len(value)
+            if number == 2:
+                datatype = value[1]
+                if datatype == u'xsd:anyURI':
+                    return Identifier(value[0])
+                elif datatype == u'xsd:QName':
+                    return self.valid_identifier(value[0])
+                elif datatype == u'xsd:dateTime':
+                    return parse_xsd_dateTime(value[0])
+                else:
+                    return Literal(value[0], self.valid_identifier(value[1]))
+            else:
+                # TODO Deal with multiple values here
+                pass
+        else:
+            return value
+        
+    def _encode_JSON_container(self):
         container = defaultdict(dict)
         prefixes = {}
         for (prefix, namespace) in self._namespaces.items():
             prefixes[prefix] = namespace.get_uri()
-        container['prefix'] = prefixes
+        container[u'prefix'] = prefixes
         ids = {}
+        # generating/mapping all record identifiers 
+        for record in self._records:
+            ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
         for record in self._records:
             rec_type = PROV_ASN_MAP[record.get_type()]
-            identifier = str(record._identifier) if record._identifier else self.get_anon_id(record)
-            ids[record] = identifier;
+            identifier = str(ids[record])
             
             record_json = {}
             if record._attributes:
                 for (attr, value) in record._attributes.items():
                     if isinstance(value, ProvRecord):
-                        attr_record_id = str(value.get_identifier())
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = attr_record_id 
+                        attr_record_id = ids[value]
+                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id) 
                     elif value is not None:
                         # Assuming this is a datetime value
                         record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = [value.isoformat(), 'xsd:dateTime']
             if record._extra_attributes:
                 for (attr, value) in record._extra_attributes.items():
-                    record_json[str(attr)] = str(value)
+                    record_json[str(attr)] = self._encode_json_representation(value)
             container[rec_type][identifier] = record_json
         
         return container
     
+    def _decode_JSON_container(self, jc):
+        if u'prefix' in jc:
+            prefixes = jc[u'prefix']
+            for prefix, uri in prefixes.items():
+                self.add_namespace(Namespace(prefix, uri))
+        records = sorted([(PROV_RECORD_IDS_MAP[rec_type], rec_id, jc[rec_type][rec_id])
+                          for rec_type in jc if rec_type <> u'prefix'
+                          for rec_id in jc[rec_type]],
+                         key=lambda record: record[0])
+        
+        record_map = {}
+        for (record_type, identifier, _) in records:
+            record_map[identifier] = self.add_record(record_type, identifier, None, None)
+        for (_, identifier, attributes) in records:
+            record = record_map[identifier]
+            prov_attributes = {}
+            extra_attributes = {}
+            # Splitting PROV attributes and the others
+            for attr, value in attributes.items():
+                if attr in PROV_ATTRIBUTES_ID_MAP:
+                    prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
+                else:
+                    extra_attributes[self.valid_identifier(attr)] = self._decode_json_representation(value)
+            record.add_attributes(prov_attributes, extra_attributes)
+        
     # Miscellaneous functions
     def print_records(self):
         for (prefix, namespace) in self._namespaces.items():
@@ -484,7 +655,7 @@ def test():
     
     # add activities
     # You can give the _attributes during the creation if there are not many
-    a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["plan"]: EX["create-file"]})
+    a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["type"]: EX["create-file"]})
     
     attrdict = {EX["fct"]: "create"}
     g0 = g.wasGeneratedBy("g0", e0, a0, None, attrdict)
@@ -495,10 +666,16 @@ def test():
     
     # The id for a relation is an optional argument, The system will generate one
     # if you do not specify it 
-    d0 = g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
+    g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
 
+    print 'Original graph in ASN'
     g.print_records()
     json_str = json.dumps(g, cls=ProvContainer.JSONEncoder, indent=4)
-    print json_str 
+    print 'Original graph in JSON'
+    print json_str
+    g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
+    print 'Graph decoded from JSON' 
+    g2.print_records()
+    
     
 test()
