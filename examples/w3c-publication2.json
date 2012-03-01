@@ -1,0 +1,62 @@
+{
+  "wasAssociatedWith": {
+    "_:wAW1": {
+      "prov:activity": "ex:webmaster",
+      "prov:agent": "ex:rcp"
+    }
+  },
+  "wasGeneratedBy": {
+    "rec:g": {
+      "prov:activity": "ex:rcp",
+      "prov:entity": "w3:WD-prov-dm-20111215"
+    }
+  },
+  "entity": {
+    "ex:webmaster": {
+      "prov:type": "Person"
+    },
+    "hg:Overview.html": {
+      "prov:type": "file in hg"
+    },
+    "ex:req3": {
+      "prov:type": [
+        "http://www.w3.org/2005/08/01-transitions.html#pubreq",
+        "xsd:anyURI"
+      ]
+    },
+    "w3:WD-prov-dm-20111215": {
+      "prov:type": "html4"
+    }
+  },
+  "prefix": {
+    "process": "http://www.w3.org/2005/10/Process-20051014/tr.html#",
+    "ex": "http://example.org/",
+    "rec": "http://example.org/record",
+    "w3": "http://www.w3.org/TR/2011/",
+    "hg": "http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/"
+  },
+  "wasDerivedFrom": {
+    "_:wDF1": {
+      "prov:activity": "ex:rcp",
+      "prov:generatedEntity": "w3:WD-prov-dm-20111215",
+      "prov:usage": "rec:g",
+      "prov:generation": "rec:u",
+      "prov:usedEntity": "hg:Overview.html"
+    }
+  },
+  "used": {
+    "rec:u": {
+      "prov:activity": "ex:rcp",
+      "prov:entity": "hg:Overview.html"
+    },
+    "_:u1": {
+      "prov:activity": "ex:rcp",
+      "prov:entity": "ex:req3"
+    }
+  },
+  "activity": {
+    "ex:rcp": {
+      "prov:type": "copy directory"
+    }
+  }
+}

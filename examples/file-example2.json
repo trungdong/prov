@@ -8,7 +8,8 @@
     "_:wAW3": {
       "prov:activity": "ex:ag3",
       "prov:agent": "ex:a2",
-      "prov:role": "communicator"
+      "prov:role": "communicator",
+      "prov:plan": "ex:s1"
     },
     "_:wAW2": {
       "prov:activity": "ex:ag2",
@@ -18,7 +19,8 @@
     "_:wAW5": {
       "prov:activity": "ex:ag5",
       "prov:agent": "ex:a4",
-      "prov:role": "communicator"
+      "prov:role": "communicator",
+      "prov:plan": "ex:s2"
     },
     "_:wAW4": {
       "prov:activity": "ex:ag4",
@@ -26,22 +28,10 @@
       "prov:role": "author"
     }
   },
-  "wasComplementOf": {
-    "_:wCO4": {
-      "prov:older": "ex:e3",
-      "prov:newer": "ex:e6"
-    },
-    "_:wCO1": {
-      "prov:older": "ex:e0",
-      "prov:newer": "ex:e1"
-    },
-    "_:wCO3": {
-      "prov:older": "ex:e0",
-      "prov:newer": "ex:e3"
-    },
-    "_:wCO2": {
-      "prov:older": "ex:e0",
-      "prov:newer": "ex:e2"
+  "specializationOf": {
+    "_:aO4": {
+      "prov:specialization": "ex:e6",
+      "prov:entity": "ex:e3"
     }
   },
   "wasGeneratedBy": {
@@ -117,58 +107,58 @@
     },
     "ex:ag5": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Person"
+        "prov:Person",
+        "xsd:QName"
       ],
       "ex:name": "Edith"
     },
     "ex:s1": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Plan"
+        "prov:Plan",
+        "xsd:QName"
       ],
       "ex:url": [
-        "xsd:anyURI",
-        "http://example.org/strategy1.html"
+        "http://example.org/strategy1.html",
+        "xsd:anyURI"
       ],
       "prov:label": "Communication Strategy 1"
     },
     "ex:s2": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Plan"
+        "prov:Plan",
+        "xsd:QName"
       ],
       "ex:url": [
-        "xsd:anyURI",
-        "http://example.org/strategy2.html"
+        "http://example.org/strategy2.html",
+        "xsd:anyURI"
       ],
       "prov:label": "Communication Strategy 2"
     },
     "ex:ag1": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Person"
+        "prov:Person",
+        "xsd:QName"
       ],
       "ex:name": "Alice"
     },
     "ex:ag2": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Person"
+        "prov:Person",
+        "xsd:QName"
       ],
       "ex:name": "Bob"
     },
     "ex:ag3": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Person"
+        "prov:Person",
+        "xsd:QName"
       ],
       "ex:name": "Charles"
     },
     "ex:ag4": {
       "prov:type": [
-        "xsd:QName",
-        "prov:Person"
+        "prov:Person",
+        "xsd:QName"
       ],
       "ex:name": "David"
     }
@@ -176,44 +166,46 @@
   "prefix": {
     "ex": "http://example.org/"
   },
-  "hadPlan": {
-    "_:hP2": {
-      "prov:activity": "ex:a2",
-      "ex:kind": "newest",
-      "prov:plan": "ex:s2"
+  "alternateOf": {
+    "_:aO1": {
+      "prov:alternate": "ex:e1",
+      "prov:entity": "ex:e0"
     },
-    "_:hP1": {
-      "prov:activity": "ex:a2",
-      "ex:kind": "supersed",
-      "prov:plan": "ex:s1"
+    "_:aO2": {
+      "prov:alternate": "ex:e2",
+      "prov:entity": "ex:e0"
+    },
+    "_:aO3": {
+      "prov:alternate": "ex:e3",
+      "prov:entity": "ex:e0"
     }
   },
   "wasDerivedFrom": {
     "_:wDF1": {
-      "prov:generatedEntity": "ex:e1",
-      "prov:usedEntity": "ex:e2"
+      "prov:generatedEntity": "ex:e2",
+      "prov:usedEntity": "ex:e1"
     },
     "_:wDF3": {
       "prov:activity": "ex:a2",
-      "prov:generatedEntity": "ex:e2",
+      "prov:generatedEntity": "ex:e4",
       "prov:usage": "ex:g1",
       "prov:generation": "ex:u2",
-      "prov:usedEntity": "ex:e4"
+      "prov:usedEntity": "ex:e2"
     },
     "_:wDF2": {
-      "prov:generatedEntity": "ex:e2",
-      "prov:usedEntity": "ex:e3"
+      "prov:generatedEntity": "ex:e3",
+      "prov:usedEntity": "ex:e2"
     },
     "_:wDF5": {
-      "prov:generatedEntity": "ex:s1",
-      "prov:usedEntity": "ex:s2"
+      "prov:generatedEntity": "ex:s2",
+      "prov:usedEntity": "ex:s1"
     },
     "_:wDF4": {
       "prov:activity": "ex:a4",
-      "prov:generatedEntity": "ex:e3",
+      "prov:generatedEntity": "ex:e5",
       "prov:usage": "ex:g2",
       "prov:generation": "ex:u2",
-      "prov:usedEntity": "ex:e5"
+      "prov:usedEntity": "ex:e3"
     }
   },
   "used": {
