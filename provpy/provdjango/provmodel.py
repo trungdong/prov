@@ -101,7 +101,7 @@ PROV_RECORD_IDS_MAP = dict((PROV_ASN_MAP[rec_type_id], rec_type_id) for rec_type
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
-
+# Datatypes
 def parse_xsd_dateTime(s):
     """Returns datetime or None."""
     m = re.match(""" ^
@@ -206,12 +206,12 @@ class Namespace(object):
 XSD = Namespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 PROV = Namespace("prov",'http://www.w3.org/ns/prov-dm/')
     
-
+# Exceptions
 class ProvException(Exception):
     """Base class for exceptions in this module."""
     pass
 
-
+# PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
     def __init__(self, container, identifier, attributes=None, other_attributes=None):
@@ -231,13 +231,28 @@ class ProvRecord(object):
     def add_attributes(self, attributes, extra_attributes):
         if attributes:
             if self._attributes is None:
-                self._attributes = OrderedDict(attributes)
+                self._attributes = attributes
             else:
                 self._attributes.update(attributes)
         if extra_attributes:
             if self._extra_attributes is None:
                 self._extra_attributes = {}
             self._extra_attributes.update(extra_attributes)
+            
+    def required_record_type(self, record, cls):
+        if record is None:
+            return None
+        elif isinstance(record, cls):
+            return record
+        else:
+            # Check for an existing record in the container having the same identifier
+            existing_record = self._container.get_record(record)
+            if existing_record and isinstance(existing_record, cls):
+                return existing_record
+            else:
+                # TODO added exception details
+                raise ProvException
+                
     
     def __str__(self):
         items = []
@@ -255,7 +270,7 @@ class ProvRecord(object):
         extra = []
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes.items():
-                extra.append('%s="%s"' % (str(attr), value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
+                extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
         
         return '%s(%s, [%s])' % (PROV_ASN_MAP[self.get_type()], ', '.join(items), ', '.join(extra))
 
@@ -276,6 +291,24 @@ class ProvEntity(ProvElement):
 class ProvActivity(ProvElement):
     def get_type(self):
         return PROV_REC_ACTIVITY
+    
+    def add_attributes(self, attributes, extra_attributes):
+        startTime = attributes[PROV_ATTR_STARTTIME] if PROV_ATTR_STARTTIME in attributes else None 
+        endTime = attributes[PROV_ATTR_ENDTIME] if PROV_ATTR_ENDTIME in attributes else None
+        if startTime and not isinstance(startTime, datetime.datetime):
+            #TODO Raise error value here
+            pass
+        if endTime and not isinstance(endTime, datetime.datetime):
+            #TODO Raise error value here
+            pass
+        if startTime and endTime and startTime > endTime:
+            #TODO Raise logic exception here
+            pass
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_STARTTIME]= startTime
+        attributes[PROV_ATTR_ENDTIME]= endTime
+            
+        ProvElement.add_attributes(self, attributes, extra_attributes)
 
 
 class ProvAgent(ProvElement):
@@ -291,15 +324,99 @@ class ProvNote(ProvElement):
 class ProvGeneration(ProvRelation):
     def get_type(self):
         return PROV_REC_GENERATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity) 
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity)
+        if not activity or not entity:
+            raise ProvException
+        # Optional attributes
+        time = attributes[PROV_ATTR_TIME] if PROV_ATTR_TIME in attributes else None
+        if time and not isinstance(time, datetime.datetime):
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY] = entity 
+        attributes[PROV_ATTR_ACTIVITY] = activity
+        attributes[PROV_ATTR_TIME] = time
+        
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
 class ProvUsage(ProvRelation):
     def get_type(self):
         return PROV_REC_USAGE
     
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
+        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity)
+        if not activity or not entity:
+            raise ProvException
+        # Optional attributes
+        time = attributes[PROV_ATTR_TIME] if PROV_ATTR_TIME in attributes else None 
+        if time and not isinstance(time, datetime.datetime):
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_ENTITY]= entity
+        attributes[PROV_ATTR_TIME]= time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+    
+class ProvActivityAssociation(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ACTIVITY_ASSOCIATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        if not activity or not agent:
+            raise ProvException
+        # Optional attributes
+        plan = self.required_record_type(attributes[PROV_ATTR_PLAN], ProvEntity) if PROV_ATTR_PLAN in attributes else None
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_AGENT]= agent
+        attributes[PROV_ATTR_PLAN]= plan
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+    
 class ProvDerivation(ProvRelation):
     def get_type(self):
         return PROV_REC_DERIVATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        generatedEntity = self.required_record_type(attributes[PROV_ATTR_GENERATED_ENTITY], ProvEntity)
+        usedEntity = self.required_record_type(attributes[PROV_ATTR_USED_ENTITY], ProvEntity)
+        if not generatedEntity or not usedEntity:
+            raise ProvException
+        # Optional attributes
+        #TODO Check for PROV-DM's constraints and the validity of input variables here
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) if PROV_ATTR_ACTIVITY in attributes else None 
+        generation = self.required_record_type(attributes[PROV_ATTR_GENERATION], ProvGeneration) if PROV_ATTR_GENERATION in attributes else None
+        usage = self.required_record_type(attributes[PROV_ATTR_USAGE], ProvUsage) if PROV_ATTR_USAGE in attributes else None
+        time = attributes[PROV_ATTR_TIME] if PROV_ATTR_TIME in attributes else None
+        if time and not isinstance(time, datetime.datetime):
+            raise ProvException
+        # Check time's validity usedEntity <= derivation <= generatedEntity
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
+        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        #TODO Check for PROV-DM's constraints and the validity of input variables here
+        if activity is not None:
+            attributes[PROV_ATTR_ACTIVITY]= activity
+        if generation is not None:
+            attributes[PROV_ATTR_GENERATION] = generation
+        if usage is not None:
+            attributes[PROV_ATTR_USAGE] = usage
+        if time is not None:
+            attributes[PROV_ATTR_TIME]= time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
     
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
@@ -309,7 +426,7 @@ PROV_REC_CLS = {
 #    PROV_REC_ACCOUNT                : 10
     PROV_REC_GENERATION             : ProvGeneration,
     PROV_REC_USAGE                  : ProvUsage,
-#    PROV_REC_ACTIVITY_ASSOCIATION   = 13
+    PROV_REC_ACTIVITY_ASSOCIATION   : ProvActivityAssociation,
 #    PROV_REC_START                  = 14
 #    PROV_REC_END                    = 15
 #    PROV_REC_RESPONSIBILITY         = 16
@@ -320,6 +437,7 @@ PROV_REC_CLS = {
     }
 
 
+# Container
 class NamespaceManager(dict):
     def __init__(self, default_namespaces={}, default=None):
         self._default_namespaces = {}
@@ -336,6 +454,9 @@ class NamespaceManager(dict):
             if uri == namespace._uri:
                 return namespace
         return None
+    
+    def get_registered_namespaces(self):
+        return self._namespaces.values()
     
     def set_default_namespace(self, namespace):
         # TODO Check for existing namespaces 
@@ -361,7 +482,7 @@ class NamespaceManager(dict):
         self[prefix] = namespace
     
     def get_valid_identifier(self, identifier):
-        if identifier is None:
+        if not identifier:
             return None
         if isinstance(identifier, Identifier):
             if isinstance(identifier, QName):
@@ -372,7 +493,9 @@ class NamespaceManager(dict):
             # return the original identifier
             return identifier
         elif isinstance(identifier, (str, unicode)):
-            if ':' in identifier:
+            if identifier.startswith('_:'):
+                return None
+            elif ':' in identifier:
                 # check if the identifier contains a registered prefix
                 prefix, local_part = identifier.split(':', 1)
                 if prefix in self:
@@ -404,6 +527,7 @@ class NamespaceManager(dict):
 class ProvContainer(object):
     def __init__(self):
         self._records = list()
+        self._id_map = dict()
         self._namespaces = NamespaceManager({ PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, PROV)
         
     # Container configurations
@@ -420,6 +544,12 @@ class ProvContainer(object):
         #TODO Implement a dict of self-generated anon ids for records without identifier
         return self._namespaces.get_anonymous_identifier()
     
+    def get_record(self, identifier):
+        try:
+            return self._id_map[identifier]
+        except:
+            return None
+        
     # PROV-JSON serialization/deserialization    
     class JSONEncoder(json.JSONEncoder):
         def default(self, o):
@@ -467,8 +597,8 @@ class ProvContainer(object):
     def _encode_JSON_container(self):
         container = defaultdict(dict)
         prefixes = {}
-        for (prefix, namespace) in self._namespaces.items():
-            prefixes[prefix] = namespace.get_uri()
+        for namespace in self._namespaces.get_registered_namespaces():
+            prefixes[namespace.get_prefix()] = namespace.get_uri()
         container[u'prefix'] = prefixes
         ids = {}
         # generating/mapping all record identifiers 
@@ -521,8 +651,8 @@ class ProvContainer(object):
         
     # Miscellaneous functions
     def print_records(self):
-        for (prefix, namespace) in self._namespaces.items():
-            print 'prefix %s: %s' % (prefix, namespace.get_uri())
+        for namespace in self._namespaces.get_registered_namespaces():
+            print 'prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri())
         print ''
         for record in self._records:
             print record
@@ -531,6 +661,8 @@ class ProvContainer(object):
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
         self._records.append(new_record)
+        if new_record._identifier:
+            self._id_map[new_record._identifier] = new_record
         return new_record
     
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
@@ -540,11 +672,7 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
     
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        #TODO Check for valid time values
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_STARTTIME]= startTime
-        attributes[PROV_ATTR_ENDTIME]= endTime
-        return self.add_element(PROV_REC_ACTIVITY, identifier, attributes, other_attributes)
+        return self.add_element(PROV_REC_ACTIVITY, identifier, {PROV_ATTR_STARTTIME: startTime, PROV_ATTR_ENDTIME: endTime}, other_attributes)
     
     def agent(self, identifier, other_attributes):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes=None)
@@ -553,66 +681,82 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
     
     def generation(self, identifier, entity, activity, time=None, other_attributes=None):
-        if not isinstance(entity, ProvEntity):
-            # TODO Specify exception details
-            raise ProvException
-        if not isinstance(activity, ProvActivity):
-            # TODO Specify exception details
-            raise ProvException
-        #TODO Check for valid time value
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ENTITY]= entity
-        attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_TIME]= time
-        return self.add_record(PROV_REC_GENERATION, identifier, attributes, other_attributes)
+        return self.add_record(PROV_REC_GENERATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: time}, other_attributes)
     
     def usage(self, identifier, activity, entity, time=None, other_attributes=None):
-        if not isinstance(activity, ProvActivity):
-            # TODO Specify exception details
-            raise ProvException
-        if not isinstance(entity, ProvEntity):
-            # TODO Specify exception details
-            raise ProvException
-        #TODO Check for valid time value
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_ENTITY]= entity
-        attributes[PROV_ATTR_TIME]= time
-        return self.add_record(PROV_REC_USAGE, identifier, attributes, other_attributes)
+        return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: time}, other_attributes)
+    
+    def activityAssociation(self, identifier, activity, agent, plan=None, other_attributes=None):
+        return self.add_record(PROV_REC_ACTIVITY_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
     
     def derivation(self, identifier, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, other_attributes=None):
-        if generatedEntity is None:
-            raise ProvException
-        if usedEntity is None:
-            raise ProvException
-        if not isinstance(generatedEntity, ProvEntity):
-            # TODO Specify exception details
-            raise ProvException
-        if not isinstance(usedEntity, ProvEntity):
-            # TODO Specify exception details
-            raise ProvException
-        #TODO Check for valid time value
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
-        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
-        #TODO Check for PROV-DM's constraints and the validity of input variables here
-        if activity is not None:
-            attributes[PROV_ATTR_ACTIVITY]= activity
-        if generation is not None:
-            attributes[PROV_ATTR_GENERATION] = generation
-        if usage is not None:
-            attributes[PROV_ATTR_USAGE] = usage
-        if time is not None:
-            attributes[PROV_ATTR_TIME]= time
-        
+        attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
+                      PROV_ATTR_USED_ENTITY: usedEntity,
+                      PROV_ATTR_ACTIVITY: activity,
+                      PROV_ATTR_GENERATION: generation,
+                      PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
+    
     # Aliases
     wasGeneratedBy = generation
     used = usage
     wasDerivedFrom = derivation
+    wasAssociatedWith = activityAssociation
     
 
 # Tests
+
+def w3c_publication_1():
+    
+    # prefix ex  <http://example.org/>
+    ex = Namespace('ex', 'http://example.org/')
+    # prefix w3  <http://www.w3.org/>
+    w3 = Namespace('w3', 'http://www.w3.org/')
+    # prefix tr  <http://www.w3.org/TR/2011/>
+    tr = Namespace('tr', 'http://www.w3.org/TR/2011/')
+    #prefix pr  <http://www.w3.org/2005/10/Process-20051014/tr.html#>
+    pr = Namespace('pr', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
+    
+    #prefix ar1 <https://lists.w3.org/Archives/Member/chairs/2011OctDec/>
+    ar1 = Namespace('ar1', 'https://lists.w3.org/Archives/Member/chairs/2011OctDec/')
+    #prefix ar2 <https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/>
+    ar2 = Namespace('ar3', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/')
+    #prefix ar3 <https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/>
+    ar3 = Namespace('ar2', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/')
+    
+    
+    g = ProvContainer()
+    
+    g.entity(tr['WD-prov-dm-20111018'], {PROV['type']: pr['RecsWD']})
+    g.entity(tr['WD-prov-dm-20111215'], {PROV['type']: pr['RecsWD']})
+    g.entity(pr['rec-advance'], {PROV['type']: PROV['Plan']})
+    
+    
+    g.entity(ar1['0004'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#transreq")})
+    g.entity(ar2['0141'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+    g.entity(ar3['0111'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+    
+    
+    g.wasDerivedFrom(None, tr['WD-prov-dm-20111215'], tr['WD-prov-dm-20111018'])
+    
+    
+    g.activity(ex['pub1'], other_attributes={PROV['type']: "publish"})
+    g.activity(ex['pub2'], other_attributes={PROV['type']: "publish"})
+    
+    
+    g.wasGeneratedBy(None, tr['WD-prov-dm-20111018'], ex['pub1'])
+    g.wasGeneratedBy(None, tr['WD-prov-dm-20111215'], ex['pub2'])
+    
+    g.used(None, ex['pub1'], ar1['0004'])
+    g.used(None, ex['pub1'], ar2['0141'])
+    g.used(None, ex['pub2'], ar3['0111'])
+    
+    g.agent(w3['Consortium'], {PROV['type']: PROV['Organization']})
+    
+    g.wasAssociatedWith(None, ex['pub1'], w3['Consortium'], pr['rec-advance'])
+    g.wasAssociatedWith(None, ex['pub2'], w3['Consortium'], pr['rec-advance'])
+
+    return g
 
 def test():
     FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
@@ -668,14 +812,16 @@ def test():
     # if you do not specify it 
     g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
 
-    print 'Original graph in ASN'
-    g.print_records()
-    json_str = json.dumps(g, cls=ProvContainer.JSONEncoder, indent=4)
-    print 'Original graph in JSON'
-    print json_str
-    g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
-    print 'Graph decoded from JSON' 
-    g2.print_records()
+    return g
     
     
-test()
+# Testing code
+g = w3c_publication_1()
+print 'Original graph in ASN'
+g.print_records()
+json_str = json.dumps(g, cls=ProvContainer.JSONEncoder, indent=4)
+#print 'Original graph in JSON'
+#print json_str
+g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
+print 'Graph decoded from JSON' 
+g2.print_records()
