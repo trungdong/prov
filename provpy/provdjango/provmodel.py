@@ -208,7 +208,7 @@ class Namespace(object):
     def qname(self, identifier):
         uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
         if uri and uri.startswith(self._uri):
-            return QName(self, uri[len(self._uri),])
+            return QName(self, uri[len(self._uri):])
         else:
             return None
         
@@ -706,12 +706,14 @@ class ProvContainer(object):
             record.add_attributes(prov_attributes, extra_attributes)
         
     # Miscellaneous functions
+    def get_asn(self):
+        records = ['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()]
+        records.append('')
+        records.extend([str(record) for record in self._records]) 
+        return '\n'.join(records)
+        
     def print_records(self):
-        for namespace in self._namespaces.get_registered_namespaces():
-            print 'prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri())
-        print ''
-        for record in self._records:
-            print record
+        print self.get_asn()
             
     def __eq__(self, other):
         this_records = set(self._records)

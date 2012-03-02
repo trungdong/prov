@@ -97,11 +97,28 @@ def _encode_python_literal(literal):
         datatype = literal.get_datatype()
         xsd_type = prov.XSD.qname(datatype);
         if xsd_type:
-            return value, str(xsd_type)
+            xsd_type_str = str(xsd_type)
+#            if xsd_type_str in ('xsd:anyURI', 'xsd:QName'):
+            return value, xsd_type_str 
         else:
-            return value, datatype
+            return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype
     else:
-        return literal
+        return literal, type(literal)
+
+DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
+                          "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
+                          "<type 'str'>": str,
+                          "<type 'unicode'>": unicode,
+                          "<type 'int'>": int}
+
+def _decode_python_literal(value, datatype, graph):
+    if datatype in DATATYPE_FUNCTIONS_MAP:
+        return DATATYPE_FUNCTIONS_MAP[datatype](value)
+    elif datatype == 'xsd:anyURI':
+        return graph.valid_identifier(value)
+    else:
+        literal_type = graph.valid_identifier(datatype)
+        return prov.Literal(value, literal_type) 
     
 def _create_pdrecord(prov_record, account, record_map):
     logger.debug('Saving PROV record: %s' % str(prov_record))
@@ -163,17 +180,6 @@ def save_account(account, records, record_map):
             # visit it and create the corresponding PDRecord
             _create_pdrecord(record, account, record_map)
     
-def _parse_literal_value(literal, datatype):
-    if datatype == 'xsd:dateTime' or datatype == "<type 'datetime.datetime'>":
-        return datetime.datetime.strptime(literal, "%Y-%m-%dT%H:%M:%S")
-    elif datatype == 'xsd:anyURI':
-        return prov.Identifier(literal)
-    elif datatype == "<type 'str'>":
-        return str(literal)
-    elif datatype == "<type 'int'>":
-        return int(literal) 
-    return literal
-
 def _create_prov_record(graph, record, record_map):
     if record in record_map:
         # skip this record
@@ -193,10 +199,9 @@ def _create_prov_record(graph, record, record_map):
     other_literals = defaultdict()
     for attr in record.literals.all():
         if attr.prov_type:
-            prov_literals[attr.prov_type] = _parse_literal_value(attr.value, attr.datatype)
+            prov_literals[attr.prov_type] = _decode_python_literal(attr.value, attr.datatype, graph)
         else:
-            if 
-            other_literals[graph.valid_identifier(attr.name)] = _parse_literal_value(attr.value, attr.datatype)
+            other_literals[graph.valid_identifier(attr.name)] = _decode_python_literal(attr.value, attr.datatype, graph)
     prov_attributes.update(prov_literals)
             
     # Create the record by its type

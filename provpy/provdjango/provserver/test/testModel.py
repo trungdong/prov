@@ -21,6 +21,7 @@ class Test(unittest.TestCase):
         
         # Set the default _namespace name
         g.set_default_namespace(EX.get_uri())
+        g.add_namespace(DCTERMS)
         
         # add entities, first define the _attributes in a dictionary
         e0_attrs = {PROV["type"]: "File",

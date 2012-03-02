@@ -7,9 +7,9 @@ from provdjango.provmodel import ProvContainer
 
 def get_prov_json(request):
     from provdjango.provserver.test.testModel import Test
-    graph = Test.build_prov_graph()
+    g1 = Test.build_prov_graph()
     from models import save_records
-    account = save_records(graph)
+    account = save_records(g1)
     
     if 'id' in request.GET:
         entity_id = request.GET.get('id')
@@ -23,9 +23,11 @@ def get_prov_json(request):
         return HttpResponse(content='{Not found}', mimetype='application/json')
     else:
 #        account = PDAccount.objects.get()
-        graph2 = account.get_PROVContainer()
-        return render_to_response('provserver/test.html', {'input' : json.dumps(graph, cls=ProvContainer.JSONEncoder, indent=4),
-                                                           'output' : json.dumps(graph2, cls=ProvContainer.JSONEncoder, indent=4),},
+        g2 = account.get_PROVContainer()
+        return render_to_response('provserver/test.html', {'json_1' : json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4),
+                                                           'json_2' : json.dumps(g2, cls=ProvContainer.JSONEncoder, indent=4),
+                                                           'asn_1': g1.get_asn(),
+                                                           'asn_2': g2.get_asn()},
                                   context_instance=RequestContext(request))
 #        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
 
