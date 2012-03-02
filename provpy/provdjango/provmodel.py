@@ -1,3 +1,4 @@
+import logging
 import datetime
 import json
 import re
@@ -253,7 +254,27 @@ class ProvRecord(object):
                 # TODO added exception details
                 raise ProvException
                 
-    
+    def __eq__(self, other):
+        if self.__class__ <> other.__class__:
+            return False
+        if self._identifier and not (self._identifier == other._identifier):
+            return False
+        if self._attributes and other._attributes:
+            if len(self._attributes) <> len(other._attributes):
+                return False
+            for attr, value_a in self._attributes.items():
+                value_b = other._attributes[attr]
+                if isinstance(value_a, ProvRecord) and value_a._identifier:
+                    if not (value_a._identifier == value_b._identifier):
+                        return False
+                elif value_a <> value_b:
+                    return False
+        elif self._attributes <> other._attributes:
+            return False
+        if self._extra_attributes <> other._extra_attributes:
+            return False
+        return True 
+          
     def __str__(self):
         items = []
         if self._identifier:
@@ -657,6 +678,40 @@ class ProvContainer(object):
         for record in self._records:
             print record
             
+    def __eq__(self, other):
+        this_records = set(self._records)
+        other_records = set(other._records)
+        if len(this_records) <> len(other_records):
+            return False
+        # check if all records for equality
+        for record_a in this_records:
+            if record_a._identifier:
+                record_b = other.get_record(record_a._identifier)
+                if record_b: 
+                    if record_a == record_b:
+                        other_records.remove(record_b)
+                        continue
+                    else:
+                        logging.debug("Inequal PROV records:")
+                        logging.debug("%s" % str(record_a))
+                        logging.debug("%s" % str(record_b))
+                        return False
+                else:
+                    logging.debug("Could not find a record with this identifier: %s" % str(record_a._identifier))
+                    return False
+            else:
+                # Manually look for the record
+                found = False
+                for record_b in other_records:
+                    if record_a == record_b:
+                        other_records.remove(record_b)
+                        found = True
+                        break
+                if not found:
+                    logging.debug("Could not find this record: %s" % str(record_a))
+                    return False
+        return True
+            
     # Provenance statements
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
@@ -769,15 +824,6 @@ def test():
     # Set the default _namespace name
     g.set_default_namespace(EX)
     
-    # add the other _namespaces with their prefixes into the _container
-    # You can do this any time before you output the JSON serialization
-    # of the _container
-    # Note for each _namespace name, if a _prefix given here is different to the
-    # one carried in the PROVNamespace instance defined previously, the _prefix
-    # HERE will be used in the JSON serialization.
-    g.add_namespace(DCTERMS)
-    g.add_namespace(FOAF)
-    
     # add entities, first define the _attributes in a dictionary
     e0_attrs = {PROV["type"]: "File",
                 EX["path"]: "/shared/crime.txt",
@@ -801,8 +847,7 @@ def test():
     # You can give the _attributes during the creation if there are not many
     a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["type"]: EX["create-file"]})
     
-    attrdict = {EX["fct"]: "create"}
-    g0 = g.wasGeneratedBy("g0", e0, a0, None, attrdict)
+    g0 = g.wasGeneratedBy("g0", e0, a0, None, {EX["fct"]: "create"})
     
     attrdict={EX["fct"]: "load",
               EX["typeexample"] : Literal("MyValue", EX["MyType"])}
@@ -816,12 +861,14 @@ def test():
     
     
 # Testing code
-g = w3c_publication_1()
-print 'Original graph in ASN'
-g.print_records()
-json_str = json.dumps(g, cls=ProvContainer.JSONEncoder, indent=4)
-#print 'Original graph in JSON'
-#print json_str
+logging.basicConfig(level=logging.DEBUG)
+g1 = w3c_publication_1()
+print '-------------------------------------- Original graph in ASN'
+g1.print_records()
+json_str = json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4)
+print '-------------------------------------- Original graph in JSON'
+print json_str
 g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
-print 'Graph decoded from JSON' 
+print '-------------------------------------- Graph decoded from JSON' 
 g2.print_records()
+print 'g1 == g2: %s' % (g1 == g2)
