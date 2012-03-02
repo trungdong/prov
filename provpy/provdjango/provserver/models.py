@@ -87,9 +87,19 @@ class PDAccount(PDRecord):
 
 
 # Internal functions
-def _convert_python_literal(literal):
+def _encode_python_literal(literal):
     if isinstance(literal, datetime.datetime):
-        return literal.isoformat()
+        return literal.isoformat(), 'xsd:dateTime'
+    elif isinstance(literal, prov.Identifier):
+        return literal.get_uri(), 'xsd:anyURI'
+    elif isinstance(literal, prov.Literal):
+        value, _ = _encode_python_literal(literal.get_value())
+        datatype = literal.get_datatype()
+        xsd_type = prov.XSD.qname(datatype);
+        if xsd_type:
+            return value, str(xsd_type)
+        else:
+            return value, datatype
     else:
         return literal
     
@@ -120,10 +130,8 @@ def _create_pdrecord(prov_record, account, record_map):
             if attr in prov.PROV_ATTRIBUTE_LITERALS:
                 # Create a literal attribute
                 attr_name = prov.PROV_ID_ATTRIBUTES_MAP[attr]
-                if isinstance(value, prov.Literal):
-                    LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value.get_value(), datatype=value.get_datatype())
-                else:
-                    LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=_convert_python_literal(value), datatype=type(value))
+                value, datatype = _encode_python_literal(value)
+                LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype)
             else:
                 # Create a linked attribute's record
                 if isinstance(value, prov.ProvRecord):
@@ -142,10 +150,8 @@ def _create_pdrecord(prov_record, account, record_map):
         for (attr, value) in extra_attributes.items():
             # Create a literal attribute
             attr_name = attr.get_uri() if isinstance(attr, prov.Identifier) else attr
-            if isinstance(value, prov.Literal):
-                LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value.get_value(), datatype=value.get_datatype())
-            else:
-                LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=_convert_python_literal(value), datatype=type(value))
+            value, datatype = _encode_python_literal(value)
+            LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype)
             
     return pdrecord
 
@@ -189,6 +195,7 @@ def _create_prov_record(graph, record, record_map):
         if attr.prov_type:
             prov_literals[attr.prov_type] = _parse_literal_value(attr.value, attr.datatype)
         else:
+            if 
             other_literals[graph.valid_identifier(attr.name)] = _parse_literal_value(attr.value, attr.datatype)
     prov_attributes.update(prov_literals)
             

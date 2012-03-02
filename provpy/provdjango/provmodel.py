@@ -201,6 +201,17 @@ class Namespace(object):
     def get_uri(self):
         return self._uri
     
+    def contains(self, identifier):
+        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        return uri.startswith(self._uri) if uri else False
+    
+    def qname(self, identifier):
+        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        if uri and uri.startswith(self._uri):
+            return QName(self, uri[len(self._uri),])
+        else:
+            return None
+        
     def __eq__(self, other):
         return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
     
