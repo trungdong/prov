@@ -1,8 +1,9 @@
 from models import PDAccount, PDRecord
 from django.http import HttpResponse
-import simplejson
+import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
+from provdjango.provmodel import ProvContainer
 
 def get_prov_json(request):
     from provdjango.provserver.test.testModel import Test
@@ -21,10 +22,10 @@ def get_prov_json(request):
             return HttpResponse(content='{id : %s}' % entity_id, mimetype='application/json')
         return HttpResponse(content='{Not found}', mimetype='application/json')
     else:
-        account = PDAccount.objects.get()
+#        account = PDAccount.objects.get()
         graph2 = account.get_PROVContainer()
-        return render_to_response('provserver/test.html', {'input' : simplejson.dumps(graph.to_provJSON(), indent=4),
-                                                           'output' : simplejson.dumps(graph2.to_provJSON(), indent=4)},
+        return render_to_response('provserver/test.html', {'input' : json.dumps(graph, cls=ProvContainer.JSONEncoder, indent=4),
+                                                           'output' : json.dumps(graph2, cls=ProvContainer.JSONEncoder, indent=4),},
                                   context_instance=RequestContext(request))
 #        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
 

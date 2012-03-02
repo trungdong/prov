@@ -4,80 +4,58 @@ Created on Jan 25, 2012
 @author: Dong
 '''
 import unittest
-from model.core import PROVNamespace, PROVContainer, Entity, Activity,\
-    PROVLiteral, wasGeneratedBy, Used, wasDerivedFrom
 import datetime
+from provdjango.provmodel import Namespace, ProvContainer, PROV, Literal, XSD
 
 
 class Test(unittest.TestCase):
 
     @staticmethod
     def build_prov_graph():
-        # Define your namespaces (see provpyexample_PROVQname_PROVNamespace.py)
-        FOAF = PROVNamespace("foaf","http://xmlns.com/foaf/0.1/")
-        ex = PROVNamespace("ex","http://www.example.com/")
-        dcterms = PROVNamespace("dcterms","http://purl.org/dc/terms/")
-        xsd = PROVNamespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
-        prov = PROVNamespace("prov","http://www.w3.org/ns/prov-dm/")
+        FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
+        EX = Namespace("ex","http://www.example.com/")
+        DCTERMS = Namespace("dcterms","http://purl.org/dc/terms/")
         
-        # create a provenance container
-        graph = PROVContainer()
+        # create a provenance _container
+        g = ProvContainer()
         
-        # Set the default namespace name
-        graph.set_default_namespace("http://www.example.com/")
+        # Set the default _namespace name
+        g.set_default_namespace(EX.get_uri())
         
-        # add the other namespaces with their prefixes into the container
-        # You can do this any time before you output the JSON serialization
-        # of the container
-        # Note for each namespace name, if a prefix given here is different to the
-        # one carried in the PROVNamespace instance defined previously, the prefix
-        # HERE will be used in the JSON serialization.
-        graph.add_namespace("dcterms","http://purl.org/dc/terms/")
-        graph.add_namespace("foaf","http://xmlns.com/foaf/0.1/")
-        
-        # add entities, first define the attributes in a dictionary
-        attrdict = {"type": "File",
-                    ex["path"]: "/shared/crime.txt",
-                    ex["creator"]: "Alice"}
+        # add entities, first define the _attributes in a dictionary
+        e0_attrs = {PROV["type"]: "File",
+                    EX["path"]: "/shared/crime.txt",
+                    EX["creator"]: "Alice"}
         # then create the entity
         # If you give the id as a string, it will be treated as a localname
-        # under the default namespace
-        e0 = Entity(identifier=ex["e0"],attributes=attrdict)
-        # you can then add the entity into the provenance container
-        graph.add(e0)
+        # under the default _namespace
+        e0 = g.entity(EX["e0"], e0_attrs)
         
-        # define the attributes for the next entity
-        lit0 = PROVLiteral("2011-11-16T16:06:00",xsd["dateTime"])
-        attrdict ={prov["type"]: ex["File"],
-                   ex["path"]: "/shared/crime.txt",
-                   dcterms["creator"]: FOAF['Alice'],
-                   ex["content"]: "",
-                   dcterms["create"]: lit0}
+        # define the _attributes for the next entity
+        lit0 = Literal("2011-11-16T16:06:00", XSD["dateTime"])
+        attrdict ={PROV["type"]: EX["File"],
+                   EX["path"]: "/shared/crime.txt",
+                   DCTERMS["creator"]: FOAF['Alice'],
+                   EX["content"]: "",
+                   DCTERMS["create"]: lit0}
         # create the entity, note this time we give the id as a PROVQname
-        e1 = Entity(FOAF['Foo'],attributes=attrdict)
-        graph.add(e1)
+        e1 = g.entity(FOAF['Foo'], attrdict)
         
         # add activities
-        # You can give the attributes during the creation if there are not many
-        a0 = Activity(identifier=ex['a0'],starttime=datetime.datetime(2008, 7, 6, 5, 4, 3),attributes={prov["plan"]: ex["create-file"]})
-        graph.add(a0)
+        # You can give the _attributes during the creation if there are not many
+        a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["type"]: EX["create-file"]})
         
-        attrdict = {ex["fct"]: "create"}
-        g0 = wasGeneratedBy(e0,a0,identifier="g0",time=None,attributes=attrdict)
-        graph.add(g0)
+        g0 = g.wasGeneratedBy("g0", e0, a0, None, {EX["fct"]: "create"})
         
-        attrdict={ex["fct"]: "load",
-                  ex["typeexample"] : PROVLiteral("MyValue",ex["MyType"])}
-        u0 = Used(a0,e1,identifier="u0",time=None,attributes=attrdict)
-        graph.add(u0)
+        attrdict={EX["fct"]: "load",
+                  EX["typeexample"] : Literal("MyValue", EX["MyType"])}
+        u0 = g.used("u0", a0, e1, None, attrdict)
         
         # The id for a relation is an optional argument, The system will generate one
         # if you do not specify it 
-        d0=wasDerivedFrom(e0,e1,activity=a0,generation=g0,usage=u0,attributes=None)
-        graph.add(d0)
-
-        
-        return graph
+        g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
+    
+        return g
     
     def setUp(self):
         self.prov_graph = Test.build_prov_graph()

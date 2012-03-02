@@ -3,6 +3,7 @@ import datetime
 import json
 import re
 from collections import OrderedDict, defaultdict
+logger = logging.getLogger(__name__)
 
 # Constants
 PROV_REC_ENTITY                 = 1
@@ -71,7 +72,7 @@ PROV_ATTR_GENERATION            = 10
 PROV_ATTR_USAGE                 = 11
 PROV_ATTR_ALTERNATE             = 12
 PROV_ATTR_SPECIALIZATION        = 13
-
+# Literal properties
 PROV_ATTR_TIME                  = 100
 PROV_ATTR_STARTTIME             = 101
 PROV_ATTR_ENDTIME               = 102
@@ -97,6 +98,8 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
     (PROV_ATTR_ENDTIME, u'prov:endTime'),
 )
+
+PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
 
 PROV_RECORD_IDS_MAP = dict((PROV_ASN_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_ASN_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
@@ -239,7 +242,10 @@ class ProvRecord(object):
             if self._extra_attributes is None:
                 self._extra_attributes = {}
             self._extra_attributes.update(extra_attributes)
-            
+    
+    def get_attributes(self):
+        return (self._attributes, self._extra_attributes)
+    
     def required_record_type(self, record, cls):
         if record is None:
             return None
@@ -479,9 +485,12 @@ class NamespaceManager(dict):
     def get_registered_namespaces(self):
         return self._namespaces.values()
     
-    def set_default_namespace(self, namespace):
-        # TODO Check for existing namespaces 
-        self._default = namespace
+    def set_default_namespace(self, uri):
+        self._default = Namespace('', uri)
+        self[''] = self._default  
+        
+    def get_default_namespace(self):
+        return self._default
     
     def add_namespace(self, namespace):
         if namespace in self.values():
@@ -523,7 +532,13 @@ class NamespaceManager(dict):
                     # return a new QName
                     return self[prefix][local_part]
                 else:
-                    # treat as a URI (with the first part as its scheme) and return an Identifier with the given uri
+                    # treat as a URI (with the first part as its scheme)
+                    # check if the URI can be compacted
+                    for namespace in self.values():
+                        if identifier.startswith(namespace.get_uri()):
+                            # create a QName with the namespace
+                            return namespace[identifier.replace(namespace.get_uri(), '')] 
+                    # return an Identifier with the given URI
                     return Identifier(identifier)
             else:
                 # create and return an identifier in the default namespace
@@ -552,18 +567,27 @@ class ProvContainer(object):
         self._namespaces = NamespaceManager({ PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, PROV)
         
     # Container configurations
-    def set_default_namespace(self, namespace):
-        self._namespaces.set_default_namespace(namespace)
+    def set_default_namespace(self, uri):
+        self._namespaces.set_default_namespace(uri)
+        
+    def get_default_namespace(self):
+        return self._namespaces.get_default_namespace()
         
     def add_namespace(self, namespace):
         self._namespaces.add_namespace(namespace)
 
+    def get_registered_namespaces(self):
+        return self._namespaces.get_registered_namespaces()
+        
     def valid_identifier(self, identifier):
         return self._namespaces.get_valid_identifier(identifier) 
         
     def get_anon_id(self, record):
         #TODO Implement a dict of self-generated anon ids for records without identifier
         return self._namespaces.get_anonymous_identifier()
+    
+    def get_records(self):
+        return self._records
     
     def get_record(self, identifier):
         try:
@@ -692,12 +716,12 @@ class ProvContainer(object):
                         other_records.remove(record_b)
                         continue
                     else:
-                        logging.debug("Inequal PROV records:")
-                        logging.debug("%s" % str(record_a))
-                        logging.debug("%s" % str(record_b))
+                        logger.debug("Inequal PROV records:")
+                        logger.debug("%s" % str(record_a))
+                        logger.debug("%s" % str(record_b))
                         return False
                 else:
-                    logging.debug("Could not find a record with this identifier: %s" % str(record_a._identifier))
+                    logger.debug("Could not find a record with this identifier: %s" % str(record_a._identifier))
                     return False
             else:
                 # Manually look for the record
@@ -708,7 +732,7 @@ class ProvContainer(object):
                         found = True
                         break
                 if not found:
-                    logging.debug("Could not find this record: %s" % str(record_a))
+                    logger.debug("Could not find this record: %s" % str(record_a))
                     return False
         return True
             
