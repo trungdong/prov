@@ -422,6 +422,57 @@ class ProvActivityAssociation(ProvRelation):
         attributes[PROV_ATTR_AGENT]= agent
         attributes[PROV_ATTR_PLAN]= plan
         ProvRelation.add_attributes(self, attributes, extra_attributes)
+        
+class ProvStart(ProvRelation):
+    def get_type(self):
+        return PROV_REC_START
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        if not activity or not agent:
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_AGENT]= agent
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+        
+class ProvEnd(ProvRelation):
+    def get_type(self):
+        return PROV_REC_END
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        if not activity or not agent:
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_AGENT]= agent
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+        
+class ProvResponsibility(ProvRelation):
+    def get_type(self):
+        return PROV_REC_RESPONSIBILITY
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        subordinate = self.required_record_type(attributes[PROV_ATTR_SUBORDINATE], ProvAgent) 
+        responsible = self.required_record_type(attributes[PROV_ATTR_RESPONSIBLE], ProvAgent)
+        if not subordinate or not responsible:
+            raise ProvException
+        # Optional attributes
+        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) if PROV_ATTR_ACTIVITY in attributes else None
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_SUBORDINATE] = subordinate
+        attributes[PROV_ATTR_RESPONSIBLE] = responsible
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
     
 class ProvDerivation(ProvRelation):
     def get_type(self):
@@ -456,6 +507,55 @@ class ProvDerivation(ProvRelation):
         if time is not None:
             attributes[PROV_ATTR_TIME]= time
         ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+class ProvAlternate(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ALTERNATE
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity) 
+        alternate = self.required_record_type(attributes[PROV_ATTR_ALTERNATE], ProvEntity)
+        if not entity or not alternate:
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY]= entity
+        attributes[PROV_ATTR_ALTERNATE]= alternate
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+class ProvSpecialization(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ALTERNATE
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity) 
+        specialization = self.required_record_type(attributes[PROV_ATTR_SPECIALIZATION], ProvEntity)
+        if not entity or not specialization:
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY]= entity
+        attributes[PROV_ATTR_SPECIALIZATION]= specialization
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+class ProvAnnotation(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ALTERNATE
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        record = self.required_record_type(attributes[PROV_ATTR_RECORD], ProvRecord) 
+        note = self.required_record_type(attributes[PROV_ATTR_NOTE], ProvEntity)
+        if not record or not note:
+            raise ProvException
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_RECORD]= record
+        attributes[PROV_ATTR_NOTE]= note
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
     
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
@@ -466,13 +566,13 @@ PROV_REC_CLS = {
     PROV_REC_GENERATION             : ProvGeneration,
     PROV_REC_USAGE                  : ProvUsage,
     PROV_REC_ACTIVITY_ASSOCIATION   : ProvActivityAssociation,
-#    PROV_REC_START                  = 14
-#    PROV_REC_END                    = 15
-#    PROV_REC_RESPONSIBILITY         = 16
-    PROV_REC_DERIVATION             : ProvDerivation
-#    PROV_REC_ALTERNATE              = 18
-#    PROV_REC_SPECIALIZATION         = 19
-#    PROV_REC_ANNOTATION             = 99
+    PROV_REC_START                  : ProvStart,
+    PROV_REC_END                    : ProvEnd,
+    PROV_REC_RESPONSIBILITY         : ProvResponsibility,
+    PROV_REC_DERIVATION             : ProvDerivation,
+    PROV_REC_ALTERNATE              : ProvAlternate,
+    PROV_REC_SPECIALIZATION         : ProvSpecialization,
+    PROV_REC_ANNOTATION             : ProvAnnotation
     }
 
 
@@ -781,7 +881,16 @@ class ProvContainer(object):
     
     def activityAssociation(self, identifier, activity, agent, plan=None, other_attributes=None):
         return self.add_record(PROV_REC_ACTIVITY_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
+        
+    def start(self, activity, agent, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent}, other_attributes)
     
+    def end(self, activity, agent, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent}, other_attributes)
+    
+    def responsibility(self, subordinate, responsible, activity, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_RESPONSIBILITY, identifier, {PROV_ATTR_SUBORDINATE: subordinate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
+        
     def derivation(self, identifier, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
                       PROV_ATTR_USED_ENTITY: usedEntity,
@@ -790,8 +899,23 @@ class ProvContainer(object):
                       PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
     
+    def alternate(self, entity, alternate, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ALTERNATE: alternate}, other_attributes)
+    
+    def specialization(self, entity, specialization, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_SPECIALIZATION: specialization}, other_attributes)
+    
+    def annotation(self, record, note, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ANNOTATION, identifier, {PROV_ATTR_RECORD: record, PROV_ATTR_NOTE: note}, other_attributes)
+    
     # Aliases
     wasGeneratedBy = generation
     used = usage
     wasDerivedFrom = derivation
     wasAssociatedWith = activityAssociation
+    wasStartedBy = start
+    wasEndedBy = end
+    actedOnBehalfOf = responsibility
+    alternateOf = alternate
+    specializationOf = specialization
+    hasAnnotation = annotation
