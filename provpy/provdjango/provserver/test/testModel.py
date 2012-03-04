@@ -5,7 +5,10 @@ Created on Jan 25, 2012
 '''
 import unittest
 import datetime
-from provdjango.provmodel import Namespace, ProvContainer, PROV, Literal, XSD
+from provdjango.provmodel import Namespace, ProvContainer, PROV, Literal, XSD,\
+    Identifier
+import logging
+import json
 
 
 class Test(unittest.TestCase):
@@ -58,6 +61,58 @@ class Test(unittest.TestCase):
     
         return g
     
+    @staticmethod
+    def w3c_publication_1():
+        # prefix ex  <http://example.org/>
+        ex = Namespace('ex', 'http://example.org/')
+        # prefix w3  <http://www.w3.org/>
+        w3 = Namespace('w3', 'http://www.w3.org/')
+        # prefix tr  <http://www.w3.org/TR/2011/>
+        tr = Namespace('tr', 'http://www.w3.org/TR/2011/')
+        #prefix pr  <http://www.w3.org/2005/10/Process-20051014/tr.html#>
+        pr = Namespace('pr', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
+        
+        #prefix ar1 <https://lists.w3.org/Archives/Member/chairs/2011OctDec/>
+        ar1 = Namespace('ar1', 'https://lists.w3.org/Archives/Member/chairs/2011OctDec/')
+        #prefix ar2 <https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/>
+        ar2 = Namespace('ar3', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/')
+        #prefix ar3 <https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/>
+        ar3 = Namespace('ar2', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/')
+        
+        
+        g = ProvContainer()
+        
+        g.entity(tr['WD-prov-dm-20111018'], {PROV['type']: pr['RecsWD']})
+        g.entity(tr['WD-prov-dm-20111215'], {PROV['type']: pr['RecsWD']})
+        g.entity(pr['rec-advance'], {PROV['type']: PROV['Plan']})
+        
+        
+        g.entity(ar1['0004'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#transreq")})
+        g.entity(ar2['0141'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+        g.entity(ar3['0111'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+        
+        
+        g.wasDerivedFrom(None, tr['WD-prov-dm-20111215'], tr['WD-prov-dm-20111018'])
+        
+        
+        g.activity(ex['pub1'], other_attributes={PROV['type']: "publish"})
+        g.activity(ex['pub2'], other_attributes={PROV['type']: "publish"})
+        
+        
+        g.wasGeneratedBy(None, tr['WD-prov-dm-20111018'], ex['pub1'])
+        g.wasGeneratedBy(None, tr['WD-prov-dm-20111215'], ex['pub2'])
+        
+        g.used(None, ex['pub1'], ar1['0004'])
+        g.used(None, ex['pub1'], ar2['0141'])
+        g.used(None, ex['pub2'], ar3['0111'])
+        
+        g.agent(w3['Consortium'], {PROV['type']: PROV['Organization']})
+        
+        g.wasAssociatedWith(None, ex['pub1'], w3['Consortium'], pr['rec-advance'])
+        g.wasAssociatedWith(None, ex['pub2'], w3['Consortium'], pr['rec-advance'])
+    
+        return g
+    
     def setUp(self):
         self.prov_graph = Test.build_prov_graph()
 
@@ -65,7 +120,19 @@ class Test(unittest.TestCase):
         pass
 
     def testName(self):
-        pass
+        # Testing code
+        logging.basicConfig(level=logging.DEBUG)
+        g1 = Test.w3c_publication_1()
+        print '-------------------------------------- Original graph in ASN'
+        g1.print_records()
+        json_str = json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4)
+#        print '-------------------------------------- Original graph in JSON'
+#        print json_str
+        g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
+        print '-------------------------------------- Graph decoded from JSON' 
+        g2.print_records()
+        assert(g1 == g2)
+        
 
 
 if __name__ == "__main__":

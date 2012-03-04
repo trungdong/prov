@@ -4,10 +4,13 @@ import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from provdjango.provmodel import ProvContainer
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
 
 def get_prov_json(request):
     from provdjango.provserver.test.testModel import Test
-    g1 = Test.build_prov_graph()
+    g1 = Test.w3c_publication_1()
     from models import save_records
     account = save_records(g1)
     
