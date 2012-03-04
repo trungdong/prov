@@ -652,9 +652,12 @@ class NamespaceManager(dict):
                             return namespace[identifier.replace(namespace.get_uri(), '')] 
                     # return an Identifier with the given URI
                     return Identifier(identifier)
-            else:
+            elif self._default:
                 # create and return an identifier in the default namespace
                 return self._default[identifier]
+            else:
+                # TODO Should an exception raised here
+                return Identifier(identifier) 
     
     def get_anonymous_identifier(self, local_prefix='id'):
         self._anon_id_count += 1
@@ -756,6 +759,8 @@ class ProvContainer(object):
         prefixes = {}
         for namespace in self._namespaces.get_registered_namespaces():
             prefixes[namespace.get_prefix()] = namespace.get_uri()
+        if self._namespaces._default:
+            prefixes['$'] = self._namespaces._default.get_uri()
         container[u'prefix'] = prefixes
         ids = {}
         # generating/mapping all record identifiers 
@@ -785,7 +790,10 @@ class ProvContainer(object):
         if u'prefix' in jc:
             prefixes = jc[u'prefix']
             for prefix, uri in prefixes.items():
-                self.add_namespace(Namespace(prefix, uri))
+                if prefix <> '$':
+                    self.add_namespace(Namespace(prefix, uri))
+                else:
+                    self.set_default_namespace(uri)
         records = sorted([(PROV_RECORD_IDS_MAP[rec_type], rec_id, jc[rec_type][rec_id])
                           for rec_type in jc if rec_type <> u'prefix'
                           for rec_id in jc[rec_type]],
@@ -873,13 +881,13 @@ class ProvContainer(object):
     def note(self, identifier, other_attributes):
         return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
     
-    def generation(self, identifier, entity, activity, time=None, other_attributes=None):
+    def generation(self, entity, activity, time=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_GENERATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: time}, other_attributes)
     
-    def usage(self, identifier, activity, entity, time=None, other_attributes=None):
+    def usage(self, activity, entity, time=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: time}, other_attributes)
     
-    def activityAssociation(self, identifier, activity, agent, plan=None, other_attributes=None):
+    def activityAssociation(self, activity, agent, plan=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ACTIVITY_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
         
     def start(self, activity, agent, identifier=None, other_attributes=None):
@@ -891,7 +899,7 @@ class ProvContainer(object):
     def responsibility(self, subordinate, responsible, activity, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_RESPONSIBILITY, identifier, {PROV_ATTR_SUBORDINATE: subordinate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
         
-    def derivation(self, identifier, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, other_attributes=None):
+    def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
                       PROV_ATTR_USED_ENTITY: usedEntity,
                       PROV_ATTR_ACTIVITY: activity,

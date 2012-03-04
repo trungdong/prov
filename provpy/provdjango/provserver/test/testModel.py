@@ -49,15 +49,15 @@ class Test(unittest.TestCase):
         # You can give the _attributes during the creation if there are not many
         a0 = g.activity(EX['a0'], datetime.datetime(2008, 7, 6, 5, 4, 3), None, {PROV["type"]: EX["create-file"]})
         
-        g0 = g.wasGeneratedBy("g0", e0, a0, None, {EX["fct"]: "create"})
+        g0 = g.wasGeneratedBy(e0, a0, None, "g0", {EX["fct"]: "create"})
         
         attrdict={EX["fct"]: "load",
                   EX["typeexample"] : Literal("MyValue", EX["MyType"])}
-        u0 = g.used("u0", a0, e1, None, attrdict)
+        u0 = g.used(a0, e1, None, "u0", attrdict)
         
         # The id for a relation is an optional argument, The system will generate one
         # if you do not specify it 
-        g.wasDerivedFrom(None, e0, e1, a0, g0, u0)
+        g.wasDerivedFrom(e0, e1, a0, g0, u0)
     
         return g
     
@@ -92,24 +92,24 @@ class Test(unittest.TestCase):
         g.entity(ar3['0111'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
         
         
-        g.wasDerivedFrom(None, tr['WD-prov-dm-20111215'], tr['WD-prov-dm-20111018'])
+        g.wasDerivedFrom(tr['WD-prov-dm-20111215'], tr['WD-prov-dm-20111018'])
         
         
         g.activity(ex['pub1'], other_attributes={PROV['type']: "publish"})
         g.activity(ex['pub2'], other_attributes={PROV['type']: "publish"})
         
         
-        g.wasGeneratedBy(None, tr['WD-prov-dm-20111018'], ex['pub1'])
-        g.wasGeneratedBy(None, tr['WD-prov-dm-20111215'], ex['pub2'])
+        g.wasGeneratedBy(tr['WD-prov-dm-20111018'], ex['pub1'])
+        g.wasGeneratedBy(tr['WD-prov-dm-20111215'], ex['pub2'])
         
-        g.used(None, ex['pub1'], ar1['0004'])
-        g.used(None, ex['pub1'], ar2['0141'])
-        g.used(None, ex['pub2'], ar3['0111'])
+        g.used(ex['pub1'], ar1['0004'])
+        g.used(ex['pub1'], ar2['0141'])
+        g.used(ex['pub2'], ar3['0111'])
         
         g.agent(w3['Consortium'], {PROV['type']: PROV['Organization']})
         
-        g.wasAssociatedWith(None, ex['pub1'], w3['Consortium'], pr['rec-advance'])
-        g.wasAssociatedWith(None, ex['pub2'], w3['Consortium'], pr['rec-advance'])
+        g.wasAssociatedWith(ex['pub1'], w3['Consortium'], pr['rec-advance'])
+        g.wasAssociatedWith(ex['pub2'], w3['Consortium'], pr['rec-advance'])
     
         return g
     
@@ -119,10 +119,10 @@ class Test(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def testName(self):
-        # Testing code
+    def testJSONSerialization(self):
         logging.basicConfig(level=logging.DEBUG)
         g1 = Test.w3c_publication_1()
+#        g1 = Test.build_prov_graph()
         print '-------------------------------------- Original graph in ASN'
         g1.print_records()
         json_str = json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4)
