@@ -1,5 +1,5 @@
 """Module docstring to go here"""
-from django.db import models
+from django.db import models, connection
 from collections import defaultdict
 import uuid
 import datetime
@@ -83,7 +83,11 @@ class PDAccount(PDRecord):
         
     def get_PROVContainer(self):
         logger.debug('Loading account id %s' % self.rec_id)
-        return build_PROVContainer(self)
+        num_queries_old = len(connection.queries)
+        prov_graph = build_PROVContainer(self)
+        num_queries_new = len(connection.queries)
+        logger.debug('Finished loading account id %s. Made %d database queries.' % (self.rec_id, num_queries_new - num_queries_old)) 
+        return prov_graph
 
 
 # Internal functions
@@ -180,24 +184,25 @@ def save_account(account, records, record_map):
             # visit it and create the corresponding PDRecord
             _create_pdrecord(record, account, record_map)
     
-def _create_prov_record(graph, record, record_map):
-    if record in record_map:
+def _create_prov_record(graph, pk, records, attributes, literals, record_map):
+    if pk in record_map:
         # skip this record
-        return record_map[record]
+        return record_map[pk]
     
-    record_type = record.rec_type
-    record_id = graph.valid_identifier(record.rec_id)
+    record_type = records[pk]['rec_type']
+    record_id = graph.valid_identifier(records[pk]['rec_id'])
     
     # Prepare record-_attributes, this map will return None for non-existent key request
     prov_attributes = defaultdict()
-    for attr in RecordAttribute.objects.filter(record=record):
+#    for rec_id, attr_id in RecordAttribute.objects.filter(record=record).values_list('value__pk', 'prov_type', flat=True):
+    for attr_id, value_id in attributes[pk]:
         # If the other PROV record has been created, use it; otherwise, create it before use 
-        other_prov_record = record_map[attr.value] if attr.value in record_map else _create_prov_record(graph, attr.value, record_map) 
-        prov_attributes[attr.prov_type] = other_prov_record 
+        other_prov_record = record_map[value_id] if value_id in record_map else _create_prov_record(graph, value_id, records, attributes, literals, record_map) 
+        prov_attributes[attr_id] = other_prov_record 
     # Prepare literal-_attributes
     prov_literals = defaultdict()
     other_literals = defaultdict()
-    for attr in record.literals.all():
+    for attr in literals[pk]:
         if attr.prov_type:
             prov_literals[attr.prov_type] = _decode_python_literal(attr.value, attr.datatype, graph)
         else:
@@ -208,7 +213,7 @@ def _create_prov_record(graph, record, record_map):
     #TODO Add account support
     prov_record = graph.add_record(record_type, record_id, prov_attributes, other_literals)
         
-    record_map[record] = prov_record
+    record_map[pk] = prov_record
     logger.debug('Loaded PROV record: %s' % str(prov_record))
     return prov_record
     
@@ -223,7 +228,19 @@ def build_PROVContainer(account):
     
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
-    records = account._records.order_by('rec_type')
-    for record in records:
-        _create_prov_record(graph, record, record_map)
+#    records = account._records.order_by('rec_type')
+    records = defaultdict(dict) 
+    for pk, rec_id, rec_type in PDRecord.objects.select_related().filter(account=account).values_list('pk', 'rec_id', 'rec_type').order_by('rec_type'):
+        records[pk]['rec_id'] = rec_id
+        records[pk]['rec_type'] = rec_type
+        
+    attributes = defaultdict(list)
+    for rec_id, value_id, attr_id in RecordAttribute.objects.filter(record__account=account).values_list('record__pk', 'value__pk', 'prov_type'):
+        attributes[rec_id].append((attr_id, value_id))
+        
+    literals = defaultdict(list)
+    for literal_attr in LiteralAttribute.objects.filter(record__account=account):
+        literals[literal_attr.record_id].append(literal_attr)
+    for pk in records:
+        _create_prov_record(graph, pk, records, attributes, literals, record_map)
     return graph
