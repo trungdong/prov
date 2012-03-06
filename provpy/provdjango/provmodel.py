@@ -306,12 +306,14 @@ class ProvRecord(object):
                     # Assuming this is a datetime value
                     items.append(value.isoformat() if value is not None else '')
         
-        extra = []
         if self._extra_attributes:
+            extra = []
             for (attr, value) in self._extra_attributes.items():
                 extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
+            if extra:
+                items.append('[%s]' % ', '.join(extra))
         
-        return '%s(%s, [%s])' % (PROV_ASN_MAP[self.get_type()], ', '.join(items), ', '.join(extra))
+        return '%s(%s)' % (PROV_ASN_MAP[self.get_type()], ', '.join(items))
 
 
 class ProvElement(ProvRecord):
