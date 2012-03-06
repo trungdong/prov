@@ -301,7 +301,7 @@ class ProvRecord(object):
             for (attr, value) in self._attributes.items():
                 if isinstance(value, ProvRecord):
                     record_id = value.get_identifier()
-                    items.append(str(record_id) if record_id is not None else self._container.get_anon_id(value))
+                    items.append(str(record_id))
                 else:
                     # Assuming this is a datetime value
                     items.append(value.isoformat() if value is not None else '')
@@ -428,6 +428,24 @@ class ProvActivityAssociation(ProvRelation):
         attributes[PROV_ATTR_AGENT]= agent
         attributes[PROV_ATTR_PLAN]= plan
         ProvRelation.add_attributes(self, attributes, extra_attributes)
+        
+    def __str__(self):
+        items = [str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier())]
+        agent_id = self._attributes[PROV_ATTR_AGENT].get_identifier()
+        if PROV_ATTR_PLAN in self._attributes and self._attributes[PROV_ATTR_PLAN]:
+            plan_id = self._attributes[PROV_ATTR_PLAN].get_identifier()
+            items.append('%s @ %s' % (str(agent_id), str(plan_id)))
+        else:
+            items.append(str(agent_id))
+        if self._extra_attributes:
+            extra = []
+            for (attr, value) in self._extra_attributes.items():
+                extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
+            if extra:
+                items.append('[%s]' % ', '.join(extra))
+        
+        return '%s(%s)' % (PROV_ASN_MAP[self.get_type()], ', '.join(items))
+        
         
 class ProvStart(ProvRelation):
     def get_type(self):
