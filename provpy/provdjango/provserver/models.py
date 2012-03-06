@@ -13,22 +13,7 @@ def save_records(prov_graph):
     # Generate a unique id for a new account to contain the provenance graph
     account_id = uuid.uuid4().urn
     account = PDAccount.create(account_id, '#me')
-    # Save all the namespaces for future QName recreation
-    logger.debug('Saving namespaces...')
-    namespaces = prov_graph.get_registered_namespaces()
-    for namespace in namespaces:
-        account.add_namespace(namespace.get_prefix(), namespace.get_uri())
-    # and the default namespace as well
-    default_namespace = prov_graph.get_default_namespace()
-    if default_namespace:
-        account.add_namespace('', default_namespace.get_uri())
-     
-    # An empty map to keep track of the visited records
-    record_map = {}
-    # Getting all the individual records contained in the graph
-    records = prov_graph.get_records()
-    # and save them
-    save_account(account, records, record_map)
+    account.save_graph(prov_graph)
     #Return the account
     return account
 
@@ -81,7 +66,25 @@ class PDAccount(PDRecord):
             results[namespace.prefix] = namespace.uri
         return results
         
-    def get_PROVContainer(self):
+    def save_graph(self, prov_graph):
+        # Save all the namespaces for future QName recreation
+        logger.debug('Saving namespaces...')
+        namespaces = prov_graph.get_registered_namespaces()
+        for namespace in namespaces:
+            self.add_namespace(namespace.get_prefix(), namespace.get_uri())
+        # and the default namespace as well
+        default_namespace = prov_graph.get_default_namespace()
+        if default_namespace:
+            self.add_namespace('', default_namespace.get_uri())
+         
+        # An empty map to keep track of the visited records
+        record_map = {}
+        # Getting all the individual records contained in the graph
+        records = prov_graph.get_records()
+        # and save them
+        save_account(self, records, record_map)
+        
+    def get_graph(self):
         logger.debug('Loading account id %s' % self.rec_id)
         num_queries_old = len(connection.queries)
         prov_graph = build_PROVContainer(self)
@@ -194,7 +197,6 @@ def _create_prov_record(graph, pk, records, attributes, literals, record_map):
     
     # Prepare record-_attributes, this map will return None for non-existent key request
     prov_attributes = defaultdict()
-#    for rec_id, attr_id in RecordAttribute.objects.filter(record=record).values_list('value__pk', 'prov_type', flat=True):
     for attr_id, value_id in attributes[pk]:
         # If the other PROV record has been created, use it; otherwise, create it before use 
         other_prov_record = record_map[value_id] if value_id in record_map else _create_prov_record(graph, value_id, records, attributes, literals, record_map) 
@@ -228,7 +230,6 @@ def build_PROVContainer(account):
     
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
-#    records = account._records.order_by('rec_type')
     records = defaultdict(dict) 
     for pk, rec_id, rec_type in PDRecord.objects.select_related().filter(account=account).values_list('pk', 'rec_id', 'rec_type').order_by('rec_type'):
         records[pk]['rec_id'] = rec_id

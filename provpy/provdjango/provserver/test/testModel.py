@@ -14,7 +14,7 @@ import json
 class Test(unittest.TestCase):
 
     @staticmethod
-    def build_prov_graph():
+    def test_graph():
         FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
         EX = Namespace("ex","http://www.example.com/")
         DCTERMS = Namespace("dcterms","http://purl.org/dc/terms/")

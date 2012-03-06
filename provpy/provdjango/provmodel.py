@@ -332,14 +332,18 @@ class ProvActivity(ProvElement):
         return PROV_REC_ACTIVITY
     
     def add_attributes(self, attributes, extra_attributes):
-        startTime = attributes[PROV_ATTR_STARTTIME] if PROV_ATTR_STARTTIME in attributes else None 
+        startTime = attributes[PROV_ATTR_STARTTIME] if PROV_ATTR_STARTTIME in attributes else None
         endTime = attributes[PROV_ATTR_ENDTIME] if PROV_ATTR_ENDTIME in attributes else None
         if startTime and not isinstance(startTime, datetime.datetime):
-            #TODO Raise error value here
-            pass
+            startTime = parse_xsd_dateTime(startTime)
+            if not startTime:
+                # TODO Raise error
+                pass
         if endTime and not isinstance(endTime, datetime.datetime):
-            #TODO Raise error value here
-            pass
+            endTime = parse_xsd_dateTime(endTime)
+            if not endTime:
+                # TODO Raise error
+                pass
         if startTime and endTime and startTime > endTime:
             #TODO Raise logic exception here
             pass
@@ -411,7 +415,7 @@ class ProvActivityAssociation(ProvRelation):
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
         if not activity or not agent:
             raise ProvException
         # Optional attributes
@@ -430,7 +434,7 @@ class ProvStart(ProvRelation):
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
         if not activity or not agent:
             raise ProvException
         
@@ -446,7 +450,7 @@ class ProvEnd(ProvRelation):
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], ProvAgent)
+        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
         if not activity or not agent:
             raise ProvException
         
@@ -461,8 +465,8 @@ class ProvResponsibility(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        subordinate = self.required_record_type(attributes[PROV_ATTR_SUBORDINATE], ProvAgent) 
-        responsible = self.required_record_type(attributes[PROV_ATTR_RESPONSIBLE], ProvAgent)
+        subordinate = self.required_record_type(attributes[PROV_ATTR_SUBORDINATE], (ProvAgent, ProvEntity)) 
+        responsible = self.required_record_type(attributes[PROV_ATTR_RESPONSIBLE], (ProvAgent, ProvEntity))
         if not subordinate or not responsible:
             raise ProvException
         # Optional attributes
@@ -812,7 +816,9 @@ class ProvContainer(object):
                     prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                 else:
                     extra_attributes[self.valid_identifier(attr)] = self._decode_json_representation(value)
+            logger.debug('Adding attributes for record %s' % str(record))
             record.add_attributes(prov_attributes, extra_attributes)
+            logger.debug('Resulting record: %s' % str(record))
         
     # Miscellaneous functions
     def get_asn(self):

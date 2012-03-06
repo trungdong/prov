@@ -22,16 +22,15 @@ class AccountResource(ModelResource):
         return ModelResource.get_object_list(self, request)
     
     def obj_create(self, bundle, request=None, **kwargs):
-        return ModelResource.obj_create(self, bundle, request=request, **kwargs)
-    
-    def obj_get(self, request=None, **kwargs):
-        account = ModelResource.obj_get(self, request=request, **kwargs)
-        prov_graph = account.get_PROVContainer()
-        self.content = prov_graph._encode_JSON_container()
-        return account
-    
-    def dehydrate(self, bundle):
-        prov_graph = bundle.obj.get_PROVContainer()
-#        bundle.data['content'] = prov_graph._encode_JSON_container()
-        self.content = prov_graph._encode_JSON_container()
+        prov_graph = ProvContainer()
+        prov_graph._decode_JSON_container(bundle.data['content'])
+        
+        account = PDAccount.create(bundle.data['rec_id'], bundle.data['asserter'])
+        account.save_graph(prov_graph)
+
+        bundle.obj = account
         return bundle
+        
+    def dehydrate_content(self, bundle):
+        prov_graph = bundle.obj.get_graph()
+        return prov_graph._encode_JSON_container()
