@@ -3,8 +3,6 @@ from tastypie.authorization import Authorization
 from tastypie.resources import ModelResource
 from models import PDAccount
 from provdjango.provmodel import ProvContainer
-import json
-
 
 class AccountResource(ModelResource):
     class Meta:
@@ -16,13 +14,6 @@ class AccountResource(ModelResource):
         authorization= Authorization()
         
     content = fields.DictField(attribute='content', null=True)
-#    json.dumps(prov_graph, cls=ProvContainer.JSONEncoder)
-    
-#    def get_object_list(self, request):
-#        return ModelResource.get_object_list(self, request)
-#    
-#    def obj_get(self, request=None, **kwargs):
-#        return ModelResource.obj_get(self, request=request, **kwargs)
     
     def obj_create(self, bundle, request=None, **kwargs):
         prov_graph = ProvContainer()

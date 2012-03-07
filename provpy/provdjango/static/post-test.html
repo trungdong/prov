@@ -214,13 +214,12 @@ function test() {
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
 		  success: function(data) {
-			  $('#result').text(data);
+			  console.log(data);
 			}
 		});
 };
 </script>
 <h1>Testing submiting PROV-JSON to server</h1>
-<p>Post result:</p>
-<pre id="result"></pre>
+<p>Run test() in the JavaScript console to test the POST request.</p>
 </body>
 </html>

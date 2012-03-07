@@ -1,5 +1,5 @@
 """Module docstring to go here"""
-from django.db import models, connection
+from django.db import models
 from collections import defaultdict
 import uuid
 import datetime
@@ -86,10 +86,7 @@ class PDAccount(PDRecord):
         
     def get_graph(self):
         logger.debug('Loading account id %s' % self.rec_id)
-        num_queries_old = len(connection.queries)
         prov_graph = build_PROVContainer(self)
-        num_queries_new = len(connection.queries)
-        logger.debug('Finished loading account id %s. Made %d database queries.' % (self.rec_id, num_queries_new - num_queries_old)) 
         return prov_graph
 
 
