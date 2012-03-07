@@ -430,13 +430,15 @@ class ProvActivityAssociation(ProvRelation):
         ProvRelation.add_attributes(self, attributes, extra_attributes)
         
     def __str__(self):
-        items = [str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier())]
-        agent_id = self._attributes[PROV_ATTR_AGENT].get_identifier()
-        if PROV_ATTR_PLAN in self._attributes and self._attributes[PROV_ATTR_PLAN]:
-            plan_id = self._attributes[PROV_ATTR_PLAN].get_identifier()
-            items.append('%s @ %s' % (str(agent_id), str(plan_id)))
-        else:
-            items.append(str(agent_id))
+        items = []
+        if self._attributes:
+            items.append(str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier()))
+            agent_id = self._attributes[PROV_ATTR_AGENT].get_identifier()
+            if PROV_ATTR_PLAN in self._attributes and self._attributes[PROV_ATTR_PLAN]:
+                plan_id = self._attributes[PROV_ATTR_PLAN].get_identifier()
+                items.append('%s @ %s' % (str(agent_id), str(plan_id)))
+            else:
+                items.append(str(agent_id))
         if self._extra_attributes:
             extra = []
             for (attr, value) in self._extra_attributes.items():
