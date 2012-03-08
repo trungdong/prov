@@ -14,7 +14,7 @@ import json
 class Test(unittest.TestCase):
 
     @staticmethod
-    def test_graph():
+    def example_graph():
         FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
         EX = Namespace("ex","http://www.example.com/")
         DCTERMS = Namespace("dcterms","http://purl.org/dc/terms/")
@@ -113,16 +113,58 @@ class Test(unittest.TestCase):
     
         return g
     
+    @staticmethod
+    def w3c_publication_2():
+        # prefix ex  <http://example.org/>
+        ex = Namespace('ex', 'http://example.org/')
+        # prefix rec <http://example.org/record>
+        rec = Namespace('rec', 'http://example.org/record')
+        # prefix w3  <http://www.w3.org/>
+        w3 = Namespace('w3', 'http://www.w3.org/')
+        # prefix hg <http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/>
+        hg = Namespace('hg', 'http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/')
+        # prefix process <http://www.w3.org/2005/10/Process-20051014/tr.html#>
+        process = Namespace('process', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
+                
+        g = ProvContainer()
+        
+        # entity(hg:Overview.html, [ prov:type="file in hg" ])
+        g.entity(hg['Overview.html'], {PROV['type']: "file in hg"})
+        # entity(w3:WD-prov-dm-20111215, [ prov:type="html4" ])
+        g.entity(w3['WD-prov-dm-20111215'], {PROV['type']: "html4"})
+        
+        # activity(ex:rcp,,,[prov:type="copy directory"])
+        g.activity(ex['rcp'], other_attributes={PROV['type']: "copy directory"})
+        
+        # wasGeneratedBy(rec:g,w3:WD-prov-dm-20111215, ex:rcp)
+        g.wasGeneratedBy(w3['WD-prov-dm-20111215'], ex['rcp'], identifier=rec['g'])
+        
+        # entity(ex:req3, [ prov:type="http://www.w3.org/2005/08/01-transitions.html#pubreq" %% xsd:anyURI ])
+        g.entity(ex['req3'], { PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+        
+        # used(rec:u, ex:rcp,hg:Overview.html)
+        g.used(ex['rcp'], hg['Overview.html'], identifier=rec['u'])
+        # used(ex:rcp,ex:req3)
+        g.used(ex['rcp'], ex['req3'])
+        
+        # wasDerivedFrom(w3:WD-prov-dm-20111215,hg:Overview.html, ex:rcp, rec:g, rec:u)
+        g.wasDerivedFrom(w3['WD-prov-dm-20111215'], hg['Overview.html'], ex['rcp'], rec['g'], rec['u'])
+        
+        # agent(ex:webmaster, [ prov:type="Person" ])
+        g.agent(ex['webmaster'], {PROV['type']: "Person"})
+            
+        return g
+    
     def setUp(self):
-        self.prov_graph = Test.build_prov_graph()
+        self.prov_graph = Test.test_graph()
 
     def tearDown(self):
         pass
 
     def testJSONSerialization(self):
         logging.basicConfig(level=logging.DEBUG)
-        g1 = Test.w3c_publication_1()
-#        g1 = Test.build_prov_graph()
+        g1 = Test.w3c_publication_2()
+#        g1 = Test.example_graph()
         print '-------------------------------------- Original graph in ASN'
         g1.print_records()
         json_str = json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4)

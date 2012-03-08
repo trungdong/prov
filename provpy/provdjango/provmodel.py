@@ -157,7 +157,7 @@ class Identifier(object):
         return self._uri
     
     def __str__(self):
-        return self._uri
+        return self._uri + ' %% xsd:anyURI'
     
     def __eq__(self, other):
         return self.get_uri() == other.get_uri() if isinstance(other, Identifier) else False
@@ -166,7 +166,7 @@ class Identifier(object):
         return hash(self.get_uri())
     
     def json_representation(self):
-        return [str(self), u'xsd:anyURI']
+        return [self._uri, u'xsd:anyURI']
     
 
 class QName(Identifier):
