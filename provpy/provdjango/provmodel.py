@@ -137,7 +137,7 @@ class Literal(object):
         self._datatype = datatype
         
     def __str__(self):
-        return '%s %%%% %s' % (str(self._value), str(self._datatype))
+        return self.asn_representation()
     
     def get_value(self):
         return self._value
@@ -145,6 +145,9 @@ class Literal(object):
     def get_datatype(self):
         return self._datatype
     
+    def asn_representation(self):
+        return '%s %%%% %s' % (str(self._value), str(self._datatype))
+        
     def json_representation(self):
         return [str(self._value), str(self._datatype)]
 
@@ -157,13 +160,16 @@ class Identifier(object):
         return self._uri
     
     def __str__(self):
-        return self._uri + ' %% xsd:anyURI'
+        return self._uri
     
     def __eq__(self, other):
         return self.get_uri() == other.get_uri() if isinstance(other, Identifier) else False
     
     def __hash__(self):
         return hash(self.get_uri())
+    
+    def asn_representation(self):
+        return self._uri + ' %% xsd:anyURI'
     
     def json_representation(self):
         return [self._uri, u'xsd:anyURI']
@@ -185,6 +191,9 @@ class QName(Identifier):
         return ''.join([self._namespace._uri, self._localpart])
     
     def __str__(self):
+        return self._str
+    
+    def asn_representation(self):
         return self._str
     
     def json_representation(self):
@@ -294,6 +303,9 @@ class ProvRecord(object):
         return True 
           
     def __str__(self):
+        return self.get_asn()
+    
+    def get_asn(self):
         items = []
         if self._identifier:
             items.append(str(self._identifier))
@@ -314,7 +326,7 @@ class ProvRecord(object):
                 items.append('[%s]' % ', '.join(extra))
         
         return '%s(%s)' % (PROV_ASN_MAP[self.get_type()], ', '.join(items))
-
+    
 
 class ProvElement(ProvRecord):
     pass
@@ -429,7 +441,7 @@ class ProvActivityAssociation(ProvRelation):
         attributes[PROV_ATTR_PLAN]= plan
         ProvRelation.add_attributes(self, attributes, extra_attributes)
         
-    def __str__(self):
+    def get_asn(self):
         items = []
         if self._attributes:
             items.append(str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier()))
