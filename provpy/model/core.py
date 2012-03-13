@@ -90,7 +90,7 @@ class PROVNamespace(PROVIdentifier):
     
     def __init__(self,prefix,namespacename):
         self.prefix = prefix
-        self.namespacename = namespacename
+        self.namespacename = str(namespacename)
         
     def __getitem__(self,localname):
         return PROVQname(self.namespacename+localname,self.prefix,self.namespacename,localname)

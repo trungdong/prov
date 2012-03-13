@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='provpy',
-    version='1.1.2',
+    version='1.1.3',
     author='Huanjia Yang',
     author_email='huanjiayang@hotmail.com',
     packages=['provpy', 'provpy.model','provpy.model.examples','provpy.model.test'],
