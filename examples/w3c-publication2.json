@@ -1,8 +1,8 @@
 {
   "wasAssociatedWith": {
     "_:wAW1": {
-      "prov:activity": "ex:webmaster",
-      "prov:agent": "ex:rcp"
+      "prov:activity": "ex:rcp",
+      "prov:agent": "ex:webmaster"
     }
   },
   "wasGeneratedBy": {
@@ -39,8 +39,8 @@
     "_:wDF1": {
       "prov:activity": "ex:rcp",
       "prov:generatedEntity": "w3:WD-prov-dm-20111215",
-      "prov:usage": "rec:g",
-      "prov:generation": "rec:u",
+      "prov:usage": "rec:u",
+      "prov:generation": "rec:g",
       "prov:usedEntity": "hg:Overview.html"
     }
   },

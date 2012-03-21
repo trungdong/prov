@@ -1,76 +1,44 @@
 {
   "wasAssociatedWith": {
     "_:wAW1": {
-      "prov:activity": "ex:ag1",
-      "prov:agent": "ex:a0",
+      "prov:activity": "ex:a0",
+      "prov:agent": "ex:ag1",
       "role": "creator"
     },
     "_:wAW3": {
-      "prov:activity": "ex:ag3",
-      "prov:agent": "ex:a2",
+      "prov:activity": "ex:a2",
+      "prov:agent": "ex:ag3",
       "role": "communicator",
       "prov:plan": "ex:s1"
     },
     "_:wAW2": {
-      "prov:activity": "ex:ag2",
-      "prov:agent": "ex:a1",
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag2",
       "role": "author"
     },
     "_:wAW5": {
-      "prov:activity": "ex:ag5",
-      "prov:agent": "ex:a4",
+      "prov:activity": "ex:a4",
+      "prov:agent": "ex:ag5",
       "role": "communicator",
       "prov:plan": "ex:s2"
     },
     "_:wAW4": {
-      "prov:activity": "ex:ag4",
-      "prov:agent": "ex:a3",
+      "prov:activity": "ex:a3",
+      "prov:agent": "ex:ag4",
       "role": "author"
     }
   },
   "specializationOf": {
-    "_:aO4": {
+    "_:sO1": {
       "prov:specialization": "ex:e6",
       "prov:entity": "ex:e3"
     }
   },
   "wasGeneratedBy": {
-    "ex:g1": {
-      "prov:activity": "ex:a2",
-      "ex:section": "attachment",
-      "prov:entity": "ex:e4",
-      "ex:port": "smtp"
-    },
-    "ex:g2": {
-      "prov:activity": "ex:a4",
-      "ex:section": "attachment",
-      "prov:entity": "ex:e5",
-      "ex:port": "smtp"
-    },
     "_:wGB1": {
       "prov:activity": "ex:a0",
       "prov:time": "2011-11-17T09:30:00",
       "prov:entity": "ex:e0"
-    },
-    "_:wGB2": {
-      "prov:activity": "ex:a0",
-      "ex:fct": "create",
-      "prov:entity": "ex:e1"
-    },
-    "_:wGB3": {
-      "prov:activity": "ex:a1",
-      "ex:fct": "save",
-      "prov:entity": "ex:e2"
-    },
-    "_:wGB4": {
-      "prov:activity": "ex:a3",
-      "ex:fct": "save",
-      "prov:entity": "ex:e3"
-    },
-    "_:wGB5": {
-      "prov:activity": "ex:a5",
-      "prov:entity": "ex:e6",
-      "ex:file": "stdout"
     }
   },
   "entity": {
@@ -193,8 +161,8 @@
     "_:wDF3": {
       "prov:activity": "ex:a2",
       "prov:generatedEntity": "ex:e4",
-      "prov:usage": "ex:g1",
-      "prov:generation": "ex:u2",
+      "prov:usage": "ex:u2",
+      "prov:generation": "ex:g1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF2": {
@@ -208,8 +176,8 @@
     "_:wDF4": {
       "prov:activity": "ex:a4",
       "prov:generatedEntity": "ex:e5",
-      "prov:usage": "ex:g2",
-      "prov:generation": "ex:u2",
+      "prov:usage": "ex:u2",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e3"
     }
   },

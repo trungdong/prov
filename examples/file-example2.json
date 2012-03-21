@@ -1,35 +1,34 @@
 {
   "wasAssociatedWith": {
     "_:wAW1": {
-      "prov:activity": "ex:ag1",
-      "prov:agent": "ex:a0",
+      "prov:activity": "ex:a0",
+      "prov:agent": "ex:ag1",
       "prov:role": "creator"
     },
     "_:wAW3": {
-      "prov:activity": "ex:ag3",
-      "prov:agent": "ex:a2",
+      "prov:activity": "ex:a2",
+      "prov:agent": "ex:ag3",
       "prov:role": "communicator",
       "prov:plan": "ex:s1"
     },
     "_:wAW2": {
-      "prov:activity": "ex:ag2",
-      "prov:agent": "ex:a1",
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag2",
       "prov:role": "author"
     },
     "_:wAW5": {
-      "prov:activity": "ex:ag5",
-      "prov:agent": "ex:a4",
-      "prov:role": "communicator",
-      "prov:plan": "ex:s2"
+      "prov:activity": "ex:a4",
+      "prov:agent": "ex:ag5",
+      "prov:role": "communicator"
     },
     "_:wAW4": {
-      "prov:activity": "ex:ag4",
-      "prov:agent": "ex:a3",
+      "prov:activity": "ex:a3",
+      "prov:agent": "ex:ag4",
       "prov:role": "author"
     }
   },
   "specializationOf": {
-    "_:aO4": {
+    "_:sO1": {
       "prov:specialization": "ex:e6",
       "prov:entity": "ex:e3"
     }
@@ -188,8 +187,8 @@
     "_:wDF3": {
       "prov:activity": "ex:a2",
       "prov:generatedEntity": "ex:e4",
-      "prov:usage": "ex:g1",
-      "prov:generation": "ex:u2",
+      "prov:usage": "ex:u2",
+      "prov:generation": "ex:g1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF2": {
@@ -203,8 +202,8 @@
     "_:wDF4": {
       "prov:activity": "ex:a4",
       "prov:generatedEntity": "ex:e5",
-      "prov:usage": "ex:g2",
-      "prov:generation": "ex:u2",
+      "prov:usage": "ex:u2",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e3"
     }
   },

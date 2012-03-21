@@ -1,23 +1,23 @@
 {
   "wasAssociatedWith": {
     "_:wAW1": {
-      "prov:activity": "w3:Consortium",
-      "prov:agent": "ex:pub1",
+      "prov:activity": "ex:act1",
+      "prov:agent": "w3:Consortium",
       "prov:plan": "pr:rec-advance"
     },
     "_:wAW2": {
-      "prov:activity": "w3:Consortium",
-      "prov:agent": "ex:pub2",
+      "prov:activity": "ex:act2",
+      "prov:agent": "w3:Consortium",
       "prov:plan": "pr:rec-advance"
     }
   },
   "wasGeneratedBy": {
     "_:wGB1": {
-      "prov:activity": "ex:pub1",
+      "prov:activity": "ex:act1",
       "prov:entity": "tr:WD-prov-dm-20111018"
     },
     "_:wGB2": {
-      "prov:activity": "ex:pub2",
+      "prov:activity": "ex:act2",
       "prov:entity": "tr:WD-prov-dm-20111215"
     }
   },
@@ -79,23 +79,23 @@
   },
   "used": {
     "_:u1": {
-      "prov:activity": "ex:pub1",
+      "prov:activity": "ex:act1",
       "prov:entity": "ar1:0004"
     },
     "_:u3": {
-      "prov:activity": "ex:pub2",
+      "prov:activity": "ex:act2",
       "prov:entity": "ar3:0111"
     },
     "_:u2": {
-      "prov:activity": "ex:pub1",
+      "prov:activity": "ex:act1",
       "prov:entity": "ar2:0141"
     }
   },
   "activity": {
-    "ex:pub1": {
+    "ex:act2": {
       "prov:type": "publish"
     },
-    "ex:pub2": {
+    "ex:act1": {
       "prov:type": "publish"
     }
   }

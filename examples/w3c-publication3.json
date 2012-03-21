@@ -1,63 +1,63 @@
 {
   "wasAssociatedWith": {
     "_:wAW11": {
-      "prov:activity": "ex:James",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:James",
       "prov:role": "contributor"
     },
     "_:wAW12": {
-      "prov:activity": "ex:Satya",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Satya",
       "prov:role": "contributor"
     },
     "_:wAW10": {
-      "prov:activity": "ex:Simon",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Simon",
       "prov:role": "contributor"
     },
     "_:wAW1": {
-      "prov:activity": "ex:Luc",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Luc",
       "prov:role": "editor"
     },
     "_:wAW3": {
-      "prov:activity": "ex:Khalid",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Khalid",
       "prov:role": "contributor"
     },
     "_:wAW2": {
-      "prov:activity": "ex:Paolo",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Paolo",
       "prov:role": "editor"
     },
     "_:wAW5": {
-      "prov:activity": "ex:Yolanda",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Yolanda",
       "prov:role": "contributor"
     },
     "_:wAW4": {
-      "prov:activity": "ex:Stephen",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Stephen",
       "prov:role": "contributor"
     },
     "_:wAW7": {
-      "prov:activity": "ex:Paul",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Paul",
       "prov:role": "contributor"
     },
     "_:wAW6": {
-      "prov:activity": "ex:Ryan",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Ryan",
       "prov:role": "contributor"
     },
     "_:wAW9": {
-      "prov:activity": "ex:Jim",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Jim",
       "prov:role": "contributor"
     },
     "_:wAW8": {
-      "prov:activity": "ex:Graham",
-      "prov:agent": "ex:edit1",
+      "prov:activity": "ex:edit1",
+      "prov:agent": "ex:Graham",
       "prov:role": "contributor"
     }
   },
