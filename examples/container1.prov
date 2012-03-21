@@ -196,6 +196,7 @@
   "wasDerivedFrom": {
     "_:wDF31": {
       "prov:generatedEntity": "ex:e1",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF7": {
@@ -224,15 +225,18 @@
     },
     "_:wDF9": {
       "prov:generatedEntity": "ex:e1",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF34": {
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF8": {
       "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF10": {
@@ -248,11 +252,13 @@
     },
     "_:wDF30": {
       "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF12": {
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF1": {
@@ -344,6 +350,7 @@
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
+      "prov:usage": "ex:u1",
       "ex:param2": "b",
       "prov:usedEntity": "ex:e2"
     },
@@ -352,6 +359,7 @@
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
       "ex:param2": "b",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF41": {
@@ -383,12 +391,14 @@
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
       "ex:param2": "b",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF42": {
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
+      "prov:usage": "ex:u1",
       "ex:param2": "b",
       "prov:usedEntity": "ex:e2"
     },
@@ -401,12 +411,14 @@
     "_:wDF38": {
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
+      "prov:usage": "ex:u1",
       "ex:param2": "b",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF35": {
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF36": {
@@ -420,6 +432,7 @@
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
       "ex:param2": "b",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF19": {
@@ -441,11 +454,13 @@
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
       "ex:param2": "b",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     },
     "_:wDF16": {
       "prov:generatedEntity": "ex:e1",
       "ex:param1": "a",
+      "prov:usage": "ex:u1",
       "ex:param2": "b",
       "prov:usedEntity": "ex:e2"
     },
@@ -465,6 +480,7 @@
     "_:wDF13": {
       "prov:activity": "ex:a1",
       "prov:generatedEntity": "ex:e1",
+      "prov:generation": "ex:g2",
       "prov:usedEntity": "ex:e2"
     }
   },
