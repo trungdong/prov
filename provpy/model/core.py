@@ -3,7 +3,7 @@
 """
 The Provpy library - core.py contains essential classes 
 that map to the provenance types, bundle and records 
-defined in the core part of the PROV-DM specification.
+defined in the core part of the PROV-DM specification (http://www.w3.org/TR/prov-dm/).
 """
 
 """ The date and time format in Provpy relies on the datetime package"""
@@ -54,20 +54,23 @@ class PROVIdentifier(object):
         return self.name
 
 class PROVQname(PROVIdentifier):
-    """ The PROV-DM specification requires that all identifiers used for record
+    """ The class for qualified names. The PROV-DM specification requires that all identifiers used for record
         are qualified names.
     """
     def __init__(self,name,prefix=None,namespacename=None,localname=None):
+        """ For initialization, the full URI is required, with 3 optional arguments of name space prefix,
+        name space name and the local part """
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
         self.localname = localname
         self.prefix = prefix
         
     def __str__(self):
+        """ The string representation of a PROVQname is its full URI """
         return self.name
     
     def __eq__(self,other):
-        """ The comparison of two PROVQname instances depends only on their resolved names """
+        """ The comparison of two PROVQname instances depends only on their full URI / resolved names """
         if not isinstance(other,PROVQname):
             return False
         else:
@@ -120,6 +123,7 @@ prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 class Record(object):
     """ The base class for PROV Record """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialization, the record identifier, attribute and its account are all optional arguments """
         if identifier is not None:
             if isinstance(identifier, PROVQname):
                 self.identifier = identifier
@@ -153,7 +157,7 @@ class Record(object):
 #        raise AttributeError, attr
     
     def _get_type_JSON(self,value):
-        """ return the PROV JSON type of a attribute value """
+        """ returns the PROV JSON type of a attribute value """
         datatype = None
         if isinstance(value,str) or isinstance(value,bool):
             datatype = None
@@ -168,7 +172,7 @@ class Record(object):
         return datatype
         
     def _convert_value_JSON(self,value,nsdict):
-        """ convert the value of an attribute into PROV JSON format """
+        """ converts the value of an attribute into PROV JSON format """
         valuetojson = value
         if isinstance(value,PROVLiteral): 
             valuetojson=value.to_provJSON(nsdict)
@@ -191,12 +195,15 @@ class Record(object):
         return valuetojson
     
     def get_prov_type(self):
+        """ returns the type of the PROV record, such as entity, activity, usage etc. """
         return self.prov_type
 
     def get_record_id(self):
+        """ returns the identifier of the record """
         return self.identifier
     
     def get_record_attributes(self):
+        """ returns the attributes of the record """
         return dict()
     
     def get_other_attributes(self):
@@ -211,6 +218,7 @@ class Record(object):
 class Element(Record):
     """ The super class that represent all types of PROV elements. """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialization, the record identifier, attribute and its account are all optional arguments """
         if identifier is None:
             raise PROVGraph_Error("An element is always required to have an identifier")
         Record.__init__(self, identifier, attributes, account)
@@ -243,6 +251,7 @@ class Element(Record):
 class Entity(Element):
     """ The class for PROV entity """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialization, the record identifier, attribute and its account are all optional arguments """
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_ENTITY
         
@@ -256,6 +265,8 @@ class Entity(Element):
 class Activity(Element):
     """ The class for PROV activity """
     def __init__(self, identifier=None, starttime=None, endtime=None, attributes=None, account=None):
+        """ For initialisation, the activity identifier, attribute, start time, 
+        end time and its account are all optional arguments """
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_ACTIVITY
         
@@ -264,6 +275,7 @@ class Activity(Element):
         self._attributelist.extend([self.starttime,self.endtime])
         
     def get_record_attributes(self):
+        """ returns the record attributes, which are the activity start time and end time """
         record_attributes = {}
         if self.starttime is not None:
             record_attributes['startTime'] = self.starttime
@@ -272,7 +284,7 @@ class Activity(Element):
         return record_attributes
         
     def to_provJSON(self,nsdict):
-        """ returns the PROV JSON serialization of an activity """
+        """ returns the PROV JSON serialisation of an activity """
         Element.to_provJSON(self,nsdict)
         if self.starttime is not None:
             self._json[self._idJSON]['prov:starttime']=self._convert_value_JSON(self.starttime,nsdict)
@@ -283,8 +295,10 @@ class Activity(Element):
 
 
 class Agent(Entity):
-    """ The class for PROV agent """
+    """ The class that defines the PROV agent record """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialization, the agent identifier, attribute 
+        and its account are all optional arguments """
         Entity.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_AGENT
         
@@ -297,13 +311,15 @@ class Agent(Entity):
         
 
 class Note(Element):
-    """ The class for PROV note """
+    """ The class that defines the PROV note record """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialisation, the agent identifier, attribute 
+        and its account are all optional arguments """
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_NOTE
         
     def to_provJSON(self,nsdict):
-        """ returns the PROV JSON serialization of a note """
+        """ returns the PROV JSON serialisation of a note """
         Element.to_provJSON(self,nsdict)
         self._provcontainer['note']=self._json
         return self._provcontainer
@@ -312,6 +328,8 @@ class Note(Element):
 class Relation(Record):
     """ The super class for all types of PROV relation """
     def __init__(self, identifier=None, attributes=None, account=None):
+        """ For initialisation, the relation identifier, attribute 
+        and its account are all optional arguments """
         Record.__init__(self, identifier, attributes, account)
 
         self._json = {}
@@ -320,7 +338,7 @@ class Relation(Record):
         self._attributelist = [self.identifier,self.account,self.attributes]
     
     def to_provJSON(self,nsdict):
-        """ the general part of returning the PROV JSON serialization of PROV relations """
+        """ the general part of returning the PROV JSON serialisation of PROV relations """
         if isinstance(self.identifier,PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
@@ -341,8 +359,10 @@ class Relation(Record):
     
 
 class wasGeneratedBy(Relation):
-    
+    """ The class that defines the wasGeneratedBy record """
     def __init__(self, entity, activity, identifier=None, time=None, attributes=None, account=None):
+        """ For initialisation, the entity and activity are required, identifier, time, 
+        account and attributes are optional arguments """
         Relation.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_GENERATION
         self.entity=entity
@@ -351,6 +371,7 @@ class wasGeneratedBy(Relation):
         self._attributelist.extend([self.entity,self.activity,self.time])
         
     def get_record_attributes(self):
+        """ returns the record attributes: entity, activity and time """
         record_attributes = {}
         record_attributes['entity'] = self.entity
         record_attributes['activity'] = self.activity
@@ -359,6 +380,7 @@ class wasGeneratedBy(Relation):
         return record_attributes
     
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:entity']=self.entity._idJSON
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
@@ -369,8 +391,10 @@ class wasGeneratedBy(Relation):
     
 
 class Used(Relation):
-    
+    """ The class that defines the usage record """
     def __init__(self,activity,entity,identifier=None,time=None,attributes=None,account=None):
+        """ For initialisation, the entity and activity are required, identifier, time, 
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_USAGE
         self.entity=entity
@@ -379,6 +403,7 @@ class Used(Relation):
         self._attributelist.extend([self.entity,self.activity,self.time])
         
     def get_record_attributes(self):
+        """ returns the record attributes: entity, activity and time """
         record_attributes = {}
         record_attributes['entity'] = self.entity
         record_attributes['activity'] = self.activity
@@ -388,6 +413,7 @@ class Used(Relation):
 
         
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:entity']=self.entity._idJSON
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
@@ -398,8 +424,10 @@ class Used(Relation):
     
 
 class wasAssociatedWith(Relation):
-    
+    """ The class that defines the wasAssociatedWith record """
     def __init__(self, activity, agent, identifier=None, attributes=None, account=None):
+        """ For initialisation, the agent and activity are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_ACTIVITY_ASSOCIATION
         self.activity=activity
@@ -407,12 +435,14 @@ class wasAssociatedWith(Relation):
         self._attributelist.extend([self.agent,self.activity])
         
     def get_record_attributes(self):
+        """ returns the record attributes: agent and activity. """
         record_attributes = {}
         record_attributes['agent'] = self.agent
         record_attributes['activity'] = self.activity
         return record_attributes
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         self._json[self._idJSON]['prov:agent']=self.agent._idJSON
@@ -421,8 +451,10 @@ class wasAssociatedWith(Relation):
     
 
 class wasStartedBy(Relation):
-    
+    """ The class that defines the wasStartedBy record """
     def __init__(self,activity,agent,identifier=None,attributes=None,account=None):
+        """ For initialisation, the agent and activity are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_START
         self.activity=activity
@@ -430,12 +462,14 @@ class wasStartedBy(Relation):
         self._attributelist.extend([self.agent,self.activity])
         
     def get_record_attributes(self):
+        """ returns the record attributes: agent and activity. """
         record_attributes = {}
-        record_attributes['entity'] = self.entity
+        record_attributes['agent'] = self.agent
         record_attributes['activity'] = self.activity
         return record_attributes
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         self._json[self._idJSON]['prov:agent']=self.agent._idJSON
@@ -444,8 +478,10 @@ class wasStartedBy(Relation):
     
 
 class wasEndedBy(Relation):
-    
+    """ The class that defines the wasEndedBy record """
     def __init__(self,activity,agent,identifier=None,attributes=None,account=None):
+        """ For initialisation, the entity and activity are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_END
         self.activity=activity
@@ -453,12 +489,14 @@ class wasEndedBy(Relation):
         self._attributelist.extend([self.agent,self.activity])
         
     def get_record_attributes(self):
+        """ returns the record attributes: agent and activity. """
         record_attributes = {}
-        record_attributes['entity'] = self.entity
+        record_attributes['agent'] = self.agent
         record_attributes['activity'] = self.activity
         return record_attributes
         
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:activity']=self.activity._idJSON
         self._json[self._idJSON]['prov:agent']=self.agent._idJSON
@@ -467,8 +505,10 @@ class wasEndedBy(Relation):
         
 
 class actedOnBehalfOf(Relation):
-    
+    """ The class that defines the actedOnBehalfOf record """
     def __init__(self, subordinate, responsible, identifier=None, attributes=None, account=None):
+        """ For initialisation, the subordinate and responsible are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_RESPONSIBILITY
         self.subordinate = subordinate
@@ -476,12 +516,14 @@ class actedOnBehalfOf(Relation):
         self._attributelist.extend([self.subordinate,self.responsible])
         
     def get_record_attributes(self):
+        """ returns the record attributes: subordinate and responsible. """
         record_attributes = {}
         record_attributes['subordinate'] = self.subordinate
         record_attributes['responsible'] = self.responsible
         return record_attributes
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:subordinate']=self.subordinate._idJSON
         self._json[self._idJSON]['prov:responsible']=self.responsible._idJSON
@@ -490,8 +532,10 @@ class actedOnBehalfOf(Relation):
     
 
 class wasDerivedFrom(Relation):
-    
+    """ The class that defines the wasDerivedFrom record """
     def __init__(self, generatedentity, usedentity, identifier=None, activity=None, generation=None, usage=None, attributes=None, account=None):
+        """ For initialisation, the generated entity and the used entity are required, identifier, activity, usage,
+        account and attributes are optional arguments """
         #TODO Enforce mandatory attributes as required by PROV-DM
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_DERIVATION
@@ -503,6 +547,8 @@ class wasDerivedFrom(Relation):
         self._attributelist.extend([self.generatedentity,self.usedentity,self.activity,self.generation,self.usage])
         
     def get_record_attributes(self):
+        """ returns the record attributes: generatedEntity, usedEntity 
+        and, if availalbe, activity, generation and usage. """
         record_attributes = {}
         record_attributes['generatedEntity'] = self.generatedentity
         record_attributes['usedEntity'] = self.usedentity
@@ -516,6 +562,7 @@ class wasDerivedFrom(Relation):
 
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:generatedentity']=self.generatedentity._idJSON
         self._json[self._idJSON]['prov:usedentity']=self.usedentity._idJSON
@@ -530,8 +577,10 @@ class wasDerivedFrom(Relation):
                         
 
 class alternateOf(Relation):
-    
+    """ The class that defines the alternateOf record """
     def __init__(self,subject,alternate,identifier=None,attributes=None,account=None):
+        """ For initialisation, the subject and alternate are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_ALTERNATE
         self.subject = subject
@@ -539,6 +588,7 @@ class alternateOf(Relation):
         self._attributelist.extend([self.subject,self.alternate])
         
     def get_record_attributes(self):
+        """ returns the record attributes: subject and alternate. """
         record_attributes = {}
         record_attributes['subject'] = self.subject
         record_attributes['alternate'] = self.alternate
@@ -546,6 +596,7 @@ class alternateOf(Relation):
 
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:subject']=self.subject._idJSON
         self._json[self._idJSON]['prov:alternate']=self.alternate._idJSON
@@ -554,8 +605,10 @@ class alternateOf(Relation):
  
  
 class specializationOf(Relation):
-    
+    """ The class that defines the specializationOf record """
     def __init__(self,subject,specialization,identifier=None,attributes=None,account=None):
+        """ For initialisation, the subject and specialization are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self,identifier,attributes,account)
         self.prov_type = PROV_REC_SPECIALIZATION
         self.subject = subject
@@ -563,12 +616,14 @@ class specializationOf(Relation):
         self._attributelist.extend([self.subject,self.specialization])
         
     def get_record_attributes(self):
+        """ returns the record attributes: subject and specialization. """
         record_attributes = {}
         record_attributes['subject'] = self.subject
         record_attributes['specialization'] = self.specialization
         return record_attributes
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:subject']=self.subject._idJSON
         self._json[self._idJSON]['prov:specialization']=self.specialization._idJSON
@@ -577,8 +632,10 @@ class specializationOf(Relation):
                
 
 class hasAnnotation(Relation):
-    
+    """ The class that defines the hasAnnotation record """
     def __init__(self, record, note, identifier=None, attributes=None, account=None):
+        """ For initialisation, the record and note are required, identifier,
+        account and attributes are optional arguments """
         Relation.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_ANNOTATION
         self.record=record
@@ -586,6 +643,7 @@ class hasAnnotation(Relation):
         self._attributelist.extend([self.record, self.note])
 
     def to_provJSON(self,nsdict):
+        """ generates the PROV JSON serialization of the record """
         Relation.to_provJSON(self,nsdict)
         self._json[self._idJSON]['prov:record']=self.record._idJSON
         self._json[self._idJSON]['prov:note']=self.note._idJSON
@@ -601,6 +659,7 @@ class PROVLiteral():
         self._json = []
         
     def __str__(self):
+        """ This function is not supported yet. """
         return 'Not supported yet'
         
     def to_provJSON(self,nsdict):
@@ -620,6 +679,8 @@ class PROVLiteral():
 class Bundle():
     """ defines the super class for PROV bundles """
     def __init__(self):
+        """ No argument to be given for initialisation of a Bundle class. This super class
+        is not intended to defined directly by user applications """
         self._provcontainer = {}
         self._elementlist = []
         self._relationlist = []
@@ -635,7 +696,7 @@ class Bundle():
         self._idJSON = None
    
     def add(self,record):
-        """ attach a PROV record to the PROV bundle """
+        """ attaches a PROV record to the PROV bundle """
         if isinstance(record,Element):
             self._validate_record(record)
             if record.account is None:
@@ -664,7 +725,7 @@ class Bundle():
                 self._accountlist.append(record)
 
     def empty(self):
-        """ empties a PROV bundle """
+        """ the function empties the PROV bundle """
         self._provcontainer = {}
         self._elementlist = []
         self._relationlist = []
