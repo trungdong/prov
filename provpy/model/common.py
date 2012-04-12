@@ -1,3 +1,11 @@
+# Copyright (c) 2012, University of Southampton.
+
+"""
+The Provpy library common.py contains classes that map 
+to the provenance records defined in the common relation 
+part of the PROV-DM specification.
+"""
+
 from core import *
 
 class tracedTo(Relation):

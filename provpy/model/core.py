@@ -1,6 +1,15 @@
-import datetime
-#from lxml.cssselect import ident
+# Copyright (c) 2012, University of Southampton.
 
+"""
+The Provpy library - core.py contains essential classes 
+that map to the provenance types, bundle and records 
+defined in the core part of the PROV-DM specification.
+"""
+
+""" The date and time format in Provpy relies on the datetime package"""
+import datetime
+
+""" identifier of PROV types for internal use only """
 PROV_REC_ENTITY                 = 1
 PROV_REC_ACTIVITY               = 2
 PROV_REC_AGENT                  = 3
@@ -17,6 +26,7 @@ PROV_REC_ALTERNATE              = 18
 PROV_REC_SPECIALIZATION         = 19
 PROV_REC_ANNOTATION             = 99
 
+""" notation of PROV types for internal use only """
 PROV_RECORD_TYPES = (
     (PROV_REC_ENTITY,               u'Entity'),
     (PROV_REC_ACTIVITY,             u'Activity'),
@@ -36,7 +46,7 @@ PROV_RECORD_TYPES = (
 )
 
 class PROVIdentifier(object):
-    
+    """ The PROV identifier used for identifying records"""    
     def __init__(self,name):
         self.name = name
         
@@ -44,7 +54,9 @@ class PROVIdentifier(object):
         return self.name
 
 class PROVQname(PROVIdentifier):
-    
+    """ The PROV-DM specification requires that all identifiers used for record
+        are qualified names.
+    """
     def __init__(self,name,prefix=None,namespacename=None,localname=None):
         PROVIdentifier.__init__(self, name)
         self.namespacename = namespacename
@@ -55,6 +67,7 @@ class PROVQname(PROVIdentifier):
         return self.name
     
     def __eq__(self,other):
+        """ The comparison of two PROVQname instances depends only on their resolved names """
         if not isinstance(other,PROVQname):
             return False
         else:
@@ -64,6 +77,9 @@ class PROVQname(PROVIdentifier):
         return id(self)
     
     def qname(self,nsdict):
+        """ returns the Qname of an PROVQname instance, based on the 
+            namespace dictionary argument.
+        """
         rt = self.name
         for prefix,namespacename in nsdict.items():
             if self.namespacename == namespacename:
@@ -78,6 +94,7 @@ class PROVQname(PROVIdentifier):
         return rt
     
     def to_provJSON(self,nsdict):
+        """ returns a representation of the PROVQname in PROV JSON format """
         qname = self.qname(nsdict)
         if self.name == qname:
             rt = [qname,"xsd:anyURI"]
@@ -87,7 +104,7 @@ class PROVQname(PROVIdentifier):
 
 
 class PROVNamespace(PROVIdentifier):
-    
+    """ The namespace class used by Provpy """
     def __init__(self,prefix,namespacename):
         self.prefix = prefix
         self.namespacename = str(namespacename)
@@ -101,7 +118,7 @@ prov = PROVNamespace("prov",'http://www.w3.org/ns/prov-dm/')
 
 
 class Record(object):
-
+    """ The base class for PROV Record """
     def __init__(self, identifier=None, attributes=None, account=None):
         if identifier is not None:
             if isinstance(identifier, PROVQname):
@@ -112,7 +129,6 @@ class Record(object):
                 raise PROVGraph_Error("The identifier of PROV record must be given as a string or an PROVQname")
         else:
             self.identifier = None
-        
         
         self._record_attributes = {}
 
@@ -137,6 +153,7 @@ class Record(object):
 #        raise AttributeError, attr
     
     def _get_type_JSON(self,value):
+        """ return the PROV JSON type of a attribute value """
         datatype = None
         if isinstance(value,str) or isinstance(value,bool):
             datatype = None
@@ -151,6 +168,7 @@ class Record(object):
         return datatype
         
     def _convert_value_JSON(self,value,nsdict):
+        """ convert the value of an attribute into PROV JSON format """
         valuetojson = value
         if isinstance(value,PROVLiteral): 
             valuetojson=value.to_provJSON(nsdict)
@@ -191,7 +209,7 @@ class Record(object):
         return attributes
 
 class Element(Record):
-    
+    """ The super class that represent all types of PROV elements. """
     def __init__(self, identifier=None, attributes=None, account=None):
         if identifier is None:
             raise PROVGraph_Error("An element is always required to have an identifier")
@@ -203,6 +221,7 @@ class Element(Record):
         self._attributelist = [self.identifier, self.account, self.attributes]
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serialization of an element """
         if isinstance(self.identifier,PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
@@ -222,19 +241,20 @@ class Element(Record):
 
 
 class Entity(Element):
-
+    """ The class for PROV entity """
     def __init__(self, identifier=None, attributes=None, account=None):
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_ENTITY
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serialization of an entity """
         Element.to_provJSON(self,nsdict)
         self._provcontainer['entity']=self._json
         return self._provcontainer
     
 
 class Activity(Element):
-    
+    """ The class for PROV activity """
     def __init__(self, identifier=None, starttime=None, endtime=None, attributes=None, account=None):
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_ACTIVITY
@@ -252,6 +272,7 @@ class Activity(Element):
         return record_attributes
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serialization of an activity """
         Element.to_provJSON(self,nsdict)
         if self.starttime is not None:
             self._json[self._idJSON]['prov:starttime']=self._convert_value_JSON(self.starttime,nsdict)
@@ -262,12 +283,13 @@ class Activity(Element):
 
 
 class Agent(Entity):
-
+    """ The class for PROV agent """
     def __init__(self, identifier=None, attributes=None, account=None):
         Entity.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_AGENT
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serialization of an agent """
         Element.to_provJSON(self,nsdict)
         self._provcontainer['entity']=self._json
         #TODO: How to mark an Agent?
@@ -275,19 +297,20 @@ class Agent(Entity):
         
 
 class Note(Element):
-
+    """ The class for PROV note """
     def __init__(self, identifier=None, attributes=None, account=None):
         Element.__init__(self, identifier, attributes, account)
         self.prov_type = PROV_REC_NOTE
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serialization of a note """
         Element.to_provJSON(self,nsdict)
         self._provcontainer['note']=self._json
         return self._provcontainer
 
 
 class Relation(Record):
-
+    """ The super class for all types of PROV relation """
     def __init__(self, identifier=None, attributes=None, account=None):
         Record.__init__(self, identifier, attributes, account)
 
@@ -297,6 +320,7 @@ class Relation(Record):
         self._attributelist = [self.identifier,self.account,self.attributes]
     
     def to_provJSON(self,nsdict):
+        """ the general part of returning the PROV JSON serialization of PROV relations """
         if isinstance(self.identifier,PROVQname):
             self._idJSON = self.identifier.qname(nsdict)
         elif self.identifier is None:
@@ -570,7 +594,7 @@ class hasAnnotation(Relation):
     
 
 class PROVLiteral():
-    
+    """ defines the literal class used as attribute values in PROV-DM """
     def __init__(self, value, datatype):
         self.value = value
         self.datatype = datatype
@@ -580,6 +604,7 @@ class PROVLiteral():
         return 'Not supported yet'
         
     def to_provJSON(self,nsdict):
+        """ returns the PROV JSON serilization of a PROV literal """
         self._json = []
         if isinstance(self.value, PROVQname):
             self._json.append(self.value.qname(nsdict))
@@ -593,7 +618,7 @@ class PROVLiteral():
 
 
 class Bundle():
-    
+    """ defines the super class for PROV bundles """
     def __init__(self):
         self._provcontainer = {}
         self._elementlist = []
@@ -610,6 +635,7 @@ class Bundle():
         self._idJSON = None
    
     def add(self,record):
+        """ attach a PROV record to the PROV bundle """
         if isinstance(record,Element):
             self._validate_record(record)
             if record.account is None:
@@ -638,6 +664,7 @@ class Bundle():
                 self._accountlist.append(record)
 
     def empty(self):
+        """ empties a PROV bundle """
         self._provcontainer = {}
         self._elementlist = []
         self._relationlist = []
@@ -649,6 +676,7 @@ class Bundle():
         self._idJSON = None
             
     def to_provJSON(self,nsdict):
+        """ the general part of building a PROV JSON serialization of the PROV bundle """
         self._generate_idJSON(nsdict)
         for element in self._elementlist:
             if isinstance(element,Agent):
@@ -675,6 +703,7 @@ class Bundle():
         return self._provcontainer
 
     def _generate_idJSON(self,nsdict):
+        """ generates the identifier to be used in the PROV JSON serialization of the PROV bundle """
         for element in self._elementlist:
             if element.identifier is None:
                 element._idJSON = self._generate_elem_identifier()
@@ -693,6 +722,7 @@ class Bundle():
             account._generate_idJSON(nsdict)
                     
     def add_namespace(self, prefix, uri):
+        """ attaches a name space to the PROV bundle """
         #TODO: add prefix validation here
         if prefix is "default":
             raise PROVGraph_Error("The namespace prefix 'default' is a reserved by provpy library")
@@ -701,9 +731,11 @@ class Bundle():
 #            self._apply_namespace(prefix, url)
 
     def get_namespaces(self):
+        """ returns a dictionary containing all the namespaces attached to the PROV bundle """
         return self._namespacedict 
     
     def _generate_rlat_identifier(self):
+        """ generates an identifier for a PROV relation """
         identifier = "_:RLAT"+str(self._relationkey)
         self._relationkey = self._relationkey + 1
         if self._validate_id(identifier) is False:
@@ -711,6 +743,7 @@ class Bundle():
         return identifier
 
     def _generate_elem_identifier(self):
+        """ generates an identifier for a PROV element """
         identifier = "_:ELEM"+str(self._elementkey)
         self._elementkey = self._elementkey + 1
         if self._validate_id(identifier) is False:
@@ -718,6 +751,7 @@ class Bundle():
         return identifier
         
     def _validate_id(self, identifier):
+        """ validates an identifier by looking at whether it conflicts with existing records """
         valid = True
         for element in self._elementlist:
             if element._idJSON == identifier:
@@ -728,6 +762,7 @@ class Bundle():
         return valid
 
     def add_entity(self,identifier=None,attributes=None,account=None):
+        """ attach an entity record to the PROV bundle """
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -736,6 +771,7 @@ class Bundle():
             return element
     
     def add_activity(self,identifier=None,starttime=None,endtime=None,attributes=None,account=None):
+        """ attach an activity record to the PROV bundle """
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -744,6 +780,7 @@ class Bundle():
             return element
     
     def add_agent(self,identifier=None,attributes=None,account=None):
+        """ attach an agent record to the PROV bundle """
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -752,6 +789,7 @@ class Bundle():
             return element
     
     def add_note(self,identifier=None,attributes=None,account=None):
+        """ attach a note record to the PROV bundle """
         if self._validate_id(identifier) is False:
             raise PROVGraph_Error('Identifier conflicts with existing assertions')
         else:
@@ -760,6 +798,7 @@ class Bundle():
             return element
 
     def add_wasGeneratedBy(self,entity,activity,identifier=None,time=None,attributes=None,account=None):
+        """ attach a wasGeneratedBy record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -769,6 +808,7 @@ class Bundle():
             return relation
 
     def add_used(self,activity,entity,identifier=None,time=None,attributes=None,account=None):
+        """ attach a usage record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -778,6 +818,7 @@ class Bundle():
             return relation
 
     def add_wasAssociatedWith(self,activity,agent,identifier=None,attributes=None,account=None):
+        """ attach a wasAssociatedWith record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -787,6 +828,7 @@ class Bundle():
             return relation
 
     def add_wasStartedBy(self,activity,agent,identifier=None,attributes=None,account=None):
+        """ attach a wasStartedBy record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -796,6 +838,7 @@ class Bundle():
             return relation
 
     def add_wasEndedBy(self,activity,agent,identifier=None,attributes=None,account=None):
+        """ attach a wasEndedBy record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -805,6 +848,7 @@ class Bundle():
             return relation
 
     def add_actedOnBehalfOf(self,subordinate,responsible,identifier=None,attributes=None,account=None):
+        """ attach a actedOnBehalfOf record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -814,6 +858,7 @@ class Bundle():
             return relation
       
     def add_wasDerivedFrom(self,generatedentity,usedentity,identifier=None,activity=None,generation=None,usage=None,attributes=None,account=None):
+        """ attach a derivation record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -823,6 +868,7 @@ class Bundle():
             return relation
     
     def add_alternateOf(self,subject,alternate,identifier=None,attributes=None,account=None):
+        """ attach an alternateOf record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -832,6 +878,7 @@ class Bundle():
             return relation
 
     def add_specializationOf(self,subject,specialization,identifier=None,attributes=None,account=None):
+        """ attach a specializationOf record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -841,6 +888,7 @@ class Bundle():
             return relation
     
     def add_hasAnnotation(self,record,note,identifier=None,attributes=None,account=None):
+        """ attach a hasAnnotation record to the PROV bundle """
         if identifier is not None:
             if self._validate_id(identifier) is False:
                 raise PROVGraph_Error('Identifier conflicts with existing assertions')
@@ -850,16 +898,18 @@ class Bundle():
             return relation
 
     def add_account(self,identifier,parentaccount=None):
+        """ add an account to the PROV bundle """
         acc = Account(identifier,parentaccount)
         self.add(acc)
 
     def _validate_record(self,record):
-        pass # Put possible record validation here
+        pass # Put any possible record validation here
 
     def _validate_qname(self,qname):
-        pass # Put possible Qname validation here
+        pass # Put any possible Qname validation here
     
     def get_records(self):
+        """ returns a list of all the records contained in the PROV bundle """
         records = []
         records.extend(self._elementlist)
         records.extend(self._relationlist)
@@ -868,7 +918,7 @@ class Bundle():
             
 
 class PROVContainer(Bundle):
-    
+    """ defines the PROV container class """
     def __init__(self,defaultnamespace=None):
         self.defaultnamespace=defaultnamespace
         self.identifier = None
@@ -877,12 +927,15 @@ class PROVContainer(Bundle):
         self._nsdict = {}
         
     def set_default_namespace(self,defaultnamespace):
+        """ set the default name space of the PROV container """
         self.defaultnamespace = defaultnamespace
         
     def get_default_namespace(self):
+        """ returns the default name space of the PROV container """
         return self.defaultnamespace
 
     def _create_nsdict(self):
+        """ internal function that creates the dictionary of name spaces contained by the PROV container """
         self._auto_ns_key = 0
         if not self.defaultnamespace is None:
             self._nsdict = {'default':self.defaultnamespace}
@@ -897,6 +950,7 @@ class PROVContainer(Bundle):
         return self._nsdict
 
     def _merge_namespace(self,obj):
+        """ summarises all the name spaces used in the argument object in a recursion """
         self._visitedrecord.append(obj)
         if isinstance(obj,Bundle):
             for prefix,namespacename in obj._namespacedict.items():
@@ -931,6 +985,7 @@ class PROVContainer(Bundle):
                 self._merge_namespace(value)
 
     def _generate_prefix(self):
+        """ generate a ns prefix to be used when a conflict of two name space prefixes occurs """
         prefix = "ns" + str(self._auto_ns_key)
         self._auto_ns_key = self._auto_ns_key + 1
         if prefix in self._nsdict.keys():
@@ -938,6 +993,7 @@ class PROVContainer(Bundle):
         return prefix 
 
     def to_provJSON(self):
+        """ build the PROV JSON serialization of the PROV container """
         nsdict = self._create_nsdict()
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['prefix']={}
@@ -953,7 +1009,7 @@ class PROVContainer(Bundle):
 
 
 class Account(Record,Bundle):
-    
+    """ defines the PROV account """
     def __init__(self, identifier, asserter, parentaccount=None, attributes=None):
         if identifier is None:
             raise PROVGraph_Error("The identifier of PROV account record must be given as a string or an PROVQname")
@@ -974,14 +1030,17 @@ class Account(Record,Bundle):
         self.parentaccount=parentaccount
         
     def get_record_attributes(self):
+        """ returns all the attributes of the account instance """
         record_attributes = {}
         record_attributes['asserter'] = self.asserter
         return record_attributes
     
     def get_asserter(self):
+        """ returns the asserter of the account """
         return self.asserter
     
     def to_provJSON(self,nsdict):
+        """ builds the PROV JSON serialization of the account """
         Bundle.to_provJSON(self,nsdict)
         self._provcontainer['asserter']=self.asserter.qname(nsdict)
         for attribute,value in self.attributes.items():
@@ -1001,6 +1060,7 @@ class Account(Record,Bundle):
     
 
 class PROVGraph_Error(Exception):
+    """ defines a primitive class for Provpy error handling """
     def __init__(self, error_message):
         self.error_message = error_message
     def __str__(self):
