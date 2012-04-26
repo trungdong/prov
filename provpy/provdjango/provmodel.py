@@ -2,76 +2,130 @@ import logging
 import datetime
 import json
 import re
+import collections
 from collections import OrderedDict, defaultdict
 logger = logging.getLogger(__name__)
 
-# Constants
-PROV_REC_ENTITY                 = 1
-PROV_REC_ACTIVITY               = 2
-PROV_REC_AGENT                  = 3
-PROV_REC_NOTE                   = 9
-PROV_REC_ACCOUNT                = 10
-PROV_REC_GENERATION             = 11
-PROV_REC_USAGE                  = 12
-PROV_REC_ACTIVITY_ASSOCIATION   = 13
+## PROV record constants - PROV-DM WD5
+# C1. Entities/Activities
+PROV_REC_ENTITY                 = 10
+PROV_REC_ACTIVITY               = 11
+PROV_REC_GENERATION             = 12
+PROV_REC_USAGE                  = 13
 PROV_REC_START                  = 14
 PROV_REC_END                    = 15
-PROV_REC_RESPONSIBILITY         = 16
-PROV_REC_DERIVATION             = 17
-PROV_REC_ALTERNATE              = 18
-PROV_REC_SPECIALIZATION         = 19
-PROV_REC_ANNOTATION             = 99
+PROV_REC_INVALIDATION           = 16
+PROV_REC_COMMUNICATION          = 17
+PROV_REC_STARTBYACTIVITY        = 18
+# C2. Agents/Responsibility
+PROV_REC_AGENT                  = 20
+PROV_REC_ATTRIBUTION            = 21
+PROV_REC_ASSOCIATION            = 22
+PROV_REC_RESPONSIBILITY         = 23
+# C3. Derivations
+PROV_REC_DERIVATION             = 30
+PROV_REC_REVISION               = 31
+PROV_REC_QUOTATION              = 32
+PROV_REC_ORIGINALSOURCE         = 33
+PROV_REC_TRACE                  = 34
+# C4. Alternate
+PROV_REC_ALTERNATE              = 40
+PROV_REC_SPECIALIZATION         = 41
+# C5. Collections
+PROV_REC_COLLECTION             = 50
+PROV_REC_DICTIONARY             = 51
+PROV_REC_INSERTION              = 52
+PROV_REC_REMOVAL                = 53
+PROV_REC_MEMBERSHIP             = 54
+# C6. Annotations
+PROV_REC_NOTE                   = 60
+PROV_REC_ANNOTATION             = 61
+# Non-standard records
+PROV_REC_ACCOUNT                = 100
 
 PROV_RECORD_TYPES = (
     (PROV_REC_ENTITY,               u'Entity'),
     (PROV_REC_ACTIVITY,             u'Activity'),
-    (PROV_REC_AGENT,                u'Agent'),
-    (PROV_REC_NOTE,                 u'Note'),
-    (PROV_REC_ACCOUNT,              u'Account'),
     (PROV_REC_GENERATION,           u'Generation'),
     (PROV_REC_USAGE,                u'Usage'),
-    (PROV_REC_ACTIVITY_ASSOCIATION, u'ActivityAssociation'),
     (PROV_REC_START,                u'Start'),
     (PROV_REC_END,                  u'End'),
+    (PROV_REC_INVALIDATION,         u'Invalidation'),
+    (PROV_REC_COMMUNICATION,        u'Communication'),
+    (PROV_REC_STARTBYACTIVITY,      u'StartByActivity'),
+    (PROV_REC_AGENT,                u'Agent'),
+    (PROV_REC_ATTRIBUTION,          u'Attribution'),
+    (PROV_REC_ASSOCIATION,          u'Association'),
     (PROV_REC_RESPONSIBILITY,       u'Responsibility'),
     (PROV_REC_DERIVATION,           u'Derivation'),
+    (PROV_REC_REVISION,             u'Revision'),
+    (PROV_REC_QUOTATION,            u'Quotation'),
+    (PROV_REC_ORIGINALSOURCE,       u'OriginalSource'),
+    (PROV_REC_TRACE,                u'Trace'),
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
+    (PROV_REC_COLLECTION,           u'Collection'),
+    (PROV_REC_DICTIONARY,           u'Dictionary'),
+    (PROV_REC_INSERTION,            u'Insertion'),
+    (PROV_REC_REMOVAL,              u'Removal'),
+    (PROV_REC_MEMBERSHIP,           u'Membership'),
+    (PROV_REC_NOTE,                 u'Note'),
     (PROV_REC_ANNOTATION,           u'Annotation'),
+    (PROV_REC_ACCOUNT,              u'Account'),
 )
 
-PROV_ASN_MAP = {
+PROV_N_MAP = {
     PROV_REC_ENTITY:               u'entity',
     PROV_REC_ACTIVITY:             u'activity',
-    PROV_REC_AGENT:                u'agent',
-    PROV_REC_NOTE:                 u'note',
-    PROV_REC_ACCOUNT:              u'account',
     PROV_REC_GENERATION:           u'wasGeneratedBy',
     PROV_REC_USAGE:                u'used',
-    PROV_REC_ACTIVITY_ASSOCIATION: u'wasAssociatedWith',
     PROV_REC_START:                u'wasStartedBy',
     PROV_REC_END:                  u'wasEndedBy',
+    PROV_REC_INVALIDATION:         u'wasInvalidatedBy',
+    PROV_REC_COMMUNICATION:        u'wasInformedBy',
+    PROV_REC_STARTBYACTIVITY:      u'wasStartedByActivity',
+    PROV_REC_AGENT:                u'agent',
+    PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
+    PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
     PROV_REC_RESPONSIBILITY:       u'actedOnBehalfOf',
     PROV_REC_DERIVATION:           u'wasDerivedFrom',
+    PROV_REC_REVISION:             u'wasRevisionOf',
+    PROV_REC_QUOTATION:            u'wasQuotedFrom',
+    PROV_REC_ORIGINALSOURCE:       u'hadOriginalSource',
+    PROV_REC_TRACE:                u'traceTo',
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
+    PROV_REC_COLLECTION:           u'Collection',
+    PROV_REC_DICTIONARY:           u'Dictionary',
+    PROV_REC_INSERTION:            u'derivedByInsertionFrom',
+    PROV_REC_REMOVAL:              u'derivedByRemovalFrom',
+    PROV_REC_MEMBERSHIP:           u'memberOf',
+    PROV_REC_NOTE:                 u'note',
     PROV_REC_ANNOTATION:           u'hasAnnotation',
+    PROV_REC_ACCOUNT:              u'account',
 }
 
+## Identifiers for PROV's attributes
 PROV_ATTR_RECORD                = 0
 PROV_ATTR_ENTITY                = 1
 PROV_ATTR_ACTIVITY              = 2
-PROV_ATTR_AGENT                 = 3
-PROV_ATTR_NOTE                  = 4
-PROV_ATTR_PLAN                  = 5
-PROV_ATTR_SUBORDINATE           = 6
-PROV_ATTR_RESPONSIBLE           = 7
+PROV_ATTR_TRIGGER               = 3
+PROV_ATTR_INFORMED              = 4
+PROV_ATTR_INFORMANT             = 5
+PROV_ATTR_STARTED               = 6
+PROV_ATTR_STARTER               = 7
+PROV_ATTR_AGENT                 = 8
+PROV_ATTR_PLAN                  = 9
+PROV_ATTR_SUBORDINATE           = 10
+PROV_ATTR_RESPONSIBLE           = 11
 PROV_ATTR_GENERATED_ENTITY      = 8
 PROV_ATTR_USED_ENTITY           = 9
 PROV_ATTR_GENERATION            = 10
 PROV_ATTR_USAGE                 = 11
 PROV_ATTR_ALTERNATE             = 12
 PROV_ATTR_SPECIALIZATION        = 13
+PROV_ATTR_NOTE                  = 4
+
 # Literal properties
 PROV_ATTR_TIME                  = 100
 PROV_ATTR_STARTTIME             = 101
@@ -82,8 +136,12 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_RECORD, u'prov:record'),
     (PROV_ATTR_ENTITY, u'prov:entity'),
     (PROV_ATTR_ACTIVITY, u'prov:activity'),
+    (PROV_ATTR_TRIGGER, u'prov:trigger'),
+    (PROV_ATTR_INFORMED, u'prov:informed'),
+    (PROV_ATTR_INFORMANT, u'prov:informant'),
+    (PROV_ATTR_STARTED, u'prov:started'),
+    (PROV_ATTR_STARTER, u'prov:starter'),
     (PROV_ATTR_AGENT, u'prov:agent'),
-    (PROV_ATTR_NOTE, u'prov:note'),
     (PROV_ATTR_PLAN, u'prov:plan'),
     (PROV_ATTR_SUBORDINATE, u'prov:subordinate'),
     (PROV_ATTR_RESPONSIBLE, u'prov:responsible'),
@@ -93,6 +151,7 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_USAGE, u'prov:usage'),
     (PROV_ATTR_ALTERNATE, u'prov:alternate'),
     (PROV_ATTR_SPECIALIZATION, u'prov:specialization'),
+    (PROV_ATTR_NOTE, u'prov:note'),
     # Literal properties
     (PROV_ATTR_TIME, u'prov:time'),
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
@@ -101,7 +160,7 @@ PROV_RECORD_ATTRIBUTES = (
 
 PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
 
-PROV_RECORD_IDS_MAP = dict((PROV_ASN_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_ASN_MAP)
+PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
@@ -130,7 +189,19 @@ def parse_xsd_dateTime(s):
     except ValueError:
         pass
     return None
-    
+
+DATATYPE_PARSERS = {
+    datetime.datetime: parse_xsd_dateTime,
+}
+
+def parse_datatype(value, datatype):
+    if datatype in DATATYPE_PARSERS:
+        # found the required parser
+        return DATATYPE_PARSERS[datatype](value)
+    else:
+        # No parser found for the given data type
+        raise Exception(u'No parser found for the data type <%s>' % str(datatype))
+        
 class Literal(object):
     def __init__(self, value, datatype):
         self._value = value
@@ -231,11 +302,24 @@ class Namespace(object):
 XSD = Namespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 PROV = Namespace("prov",'http://www.w3.org/ns/prov-dm/')
     
-# Exceptions
+### Exceptions
+
 class ProvException(Exception):
     """Base class for exceptions in this module."""
     pass
 
+class ProvExceptionMissingRequiredAttribute(ProvException):
+    def __init__(self, record_type, attribute_id):
+        self.record_type = record_type
+        self.attribute_id = attribute_id
+
+class ProvExceptionNotValidAttribute(ProvException):
+    def __init__(self, record_type, attribute, attribute_types):
+        self.record_type = record_type
+        self.attribute = attribute
+        self.attribute_types = attribute_types
+
+        
 # PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
@@ -267,19 +351,63 @@ class ProvRecord(object):
     def get_attributes(self):
         return (self._attributes, self._extra_attributes)
     
-    def required_record_type(self, record, cls):
-        if record is None:
+    def get_prov_graph(self):
+        return self._container
+    
+    def _parse_record(self, attribute, attribute_types):
+        # check to see if there is an existing record matching the attribute (as the record's identifier)
+        existing_record = self._container.get_record(attribute)
+        if existing_record and isinstance(existing_record, attribute_types):
+            return existing_record
+        else:
             return None
-        elif isinstance(record, cls):
+        
+    def _parse_attribute(self, attribute, attribute_types):
+        # attempt to find an existing record
+        record = self._parse_attribute(attribute, attribute_types)
+        if record:
             return record
         else:
-            # Check for an existing record in the container having the same identifier
-            existing_record = self._container.get_record(record)
-            if existing_record and isinstance(existing_record, cls):
-                return existing_record
+            # It is not a record, try to parse it with known datatype parsers
+            if isinstance(attribute_types, collections.Iterable):
+                for datatype in attribute_types:
+                    data = parse_datatype(attribute, datatype)
+                    if data:
+                        return data
             else:
-                # TODO added exception details
-                raise ProvException
+                data = parse_datatype(attribute, datatype)
+                if data:
+                    return data
+        return None        
+    
+    def _validate_attribute(self, attribute, attribute_types):
+        if isinstance(attribute, attribute_types):
+            # The attribute is of a required type
+            # Return it
+            return attribute
+        else:
+            # The attribute is not of a valid type
+            # Attempt to parse it
+            parsed_value = self._parse_attribute(attribute, attribute_types)
+            if parsed_value is None:
+                raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
+            return parsed_value
+                
+    def required_attribute(self, attributes, attribute_id, attribute_types):
+        if attribute_id not in attributes:
+            # Raise an exception about the missing attribute
+            raise ProvExceptionMissingRequiredAttribute(self.get_type(), attribute_id)
+        # Found the required attribute
+        attribute = attributes.get(attribute_id)
+        return self._validate_attribute(attribute, attribute_types)
+            
+    def optional_attribute(self, attributes, attribute_id, attribute_types):
+        if attribute_id not in attributes:
+            # Because this is optional, return nothing
+            return None
+        # Found the optional attribute
+        attribute = attributes.get(attribute_id)
+        return self._validate_attribute(attribute, attribute_types)
                 
     def __eq__(self, other):
         if self.__class__ <> other.__class__:
@@ -325,7 +453,7 @@ class ProvRecord(object):
             if extra:
                 items.append('[%s]' % ', '.join(extra))
         
-        return '%s(%s)' % (PROV_ASN_MAP[self.get_type()], ', '.join(items))
+        return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
     
 
 class ProvElement(ProvRecord):
@@ -335,6 +463,8 @@ class ProvElement(ProvRecord):
 class ProvRelation(ProvRecord):
     pass
 
+
+### Component 1: Entities and Activities
 
 class ProvEntity(ProvElement):
     def get_type(self):
@@ -346,52 +476,33 @@ class ProvActivity(ProvElement):
         return PROV_REC_ACTIVITY
     
     def add_attributes(self, attributes, extra_attributes):
-        startTime = attributes[PROV_ATTR_STARTTIME] if PROV_ATTR_STARTTIME in attributes else None
-        endTime = attributes[PROV_ATTR_ENDTIME] if PROV_ATTR_ENDTIME in attributes else None
-        if startTime and not isinstance(startTime, datetime.datetime):
-            startTime = parse_xsd_dateTime(startTime)
-            if not startTime:
-                # TODO Raise error
-                pass
-        if endTime and not isinstance(endTime, datetime.datetime):
-            endTime = parse_xsd_dateTime(endTime)
-            if not endTime:
-                # TODO Raise error
-                pass
+        startTime = self.optional_attribute(attributes, PROV_ATTR_STARTTIME, datetime.datetime)
+        endTime = self.optional_attribute(attributes, PROV_ATTR_ENDTIME, datetime.datetime)
         if startTime and endTime and startTime > endTime:
             #TODO Raise logic exception here
             pass
         attributes = OrderedDict()
-        attributes[PROV_ATTR_STARTTIME]= startTime
-        attributes[PROV_ATTR_ENDTIME]= endTime
+        attributes[PROV_ATTR_STARTTIME] = startTime
+        attributes[PROV_ATTR_ENDTIME] = endTime
             
         ProvElement.add_attributes(self, attributes, extra_attributes)
 
+    # Convenient methods
+    def set_time(self, startTime=None, endTime=None):
+        # The _attributes dict should be initialised
+        self._attributes[PROV_ATTR_STARTTIME] = startTime
+        self._attributes[PROV_ATTR_ENDTIME] = endTime
 
-class ProvAgent(ProvElement):
-    def get_type(self):
-        return PROV_REC_AGENT
-
-    
-class ProvNote(ProvElement):
-    def get_type(self):
-        return PROV_REC_NOTE
-
-    
 class ProvGeneration(ProvRelation):
     def get_type(self):
         return PROV_REC_GENERATION
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity) 
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity)
-        if not activity or not entity:
-            raise ProvException
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
+        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        time = attributes[PROV_ATTR_TIME] if PROV_ATTR_TIME in attributes else None
-        if time and not isinstance(time, datetime.datetime):
-            raise ProvException
+        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ENTITY] = entity 
@@ -407,33 +518,133 @@ class ProvUsage(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        entity = self.required_record_type(attributes[PROV_ATTR_ENTITY], ProvEntity)
-        if not activity or not entity:
-            raise ProvException
+        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
         # Optional attributes
-        time = attributes[PROV_ATTR_TIME] if PROV_ATTR_TIME in attributes else None 
-        if time and not isinstance(time, datetime.datetime):
-            raise ProvException
+        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_ENTITY]= entity
-        attributes[PROV_ATTR_TIME]= time
+        attributes[PROV_ATTR_ACTIVITY] = activity
+        attributes[PROV_ATTR_ENTITY] = entity
+        attributes[PROV_ATTR_TIME] = time
         ProvRelation.add_attributes(self, attributes, extra_attributes)
-    
-class ProvActivityAssociation(ProvRelation):
+
+class ProvStart(ProvRelation):
     def get_type(self):
-        return PROV_REC_ACTIVITY_ASSOCIATION
+        return PROV_REC_START
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
-        if not activity or not agent:
-            raise ProvException
+        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        plan = self.required_record_type(attributes[PROV_ATTR_PLAN], ProvEntity) if PROV_ATTR_PLAN in attributes else None
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY] = activity
+        attributes[PROV_ATTR_TRIGGER] = trigger
+        attributes[PROV_ATTR_TIME] = time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+        
+class ProvEnd(ProvRelation):
+    def get_type(self):
+        return PROV_REC_END
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
+        # Optional attributes
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ACTIVITY] = activity
+        attributes[PROV_ATTR_TRIGGER] = trigger
+        attributes[PROV_ATTR_TIME] = time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+class ProvInvalidation(ProvRelation):
+    def get_type(self):
+        return PROV_REC_INVALIDATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        # Optional attributes
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
+        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
+        # Constraint: activity, time, and extra_attributes cannot be missing at the same time
+        if (activity is None) and (time is None) and (not extra_attributes):
+            raise ProvException(u'At least one of "actitivy", "time", or "extra_attributes" must be present in an Invalidation assertion.') 
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY] = entity
+        attributes[PROV_ATTR_ACTIVITY] = activity
+        attributes[PROV_ATTR_TIME] = time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+class ProvCommunication(ProvRelation):
+    def get_type(self):
+        return PROV_REC_COMMUNICATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
+        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, ProvActivity)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_INFORMED] = informed
+        attributes[PROV_ATTR_INFORMANT] = informant
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+class ProvStartByActivity(ProvRelation):
+    def get_type(self):
+        return PROV_REC_STARTBYACTIVITY
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        started = self.required_attribute(attributes, PROV_ATTR_STARTED, ProvActivity)
+        starter = self.required_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_STARTED] = started
+        attributes[PROV_ATTR_STARTER] = starter
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+##### Component 2: Agents and Responsibility
+class ProvAgent(ProvElement):
+    def get_type(self):
+        return PROV_REC_AGENT
+
+    
+class ProvAttribution(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ATTRIBUTION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_ENTITY] = entity
+        attributes[PROV_ATTR_AGENT] = agent
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+class ProvAssociation(ProvRelation):
+    def get_type(self):
+        return PROV_REC_ASSOCIATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
+        # Optional attributes
+        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
+        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, ProvEntity)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY]= activity
@@ -458,59 +669,33 @@ class ProvActivityAssociation(ProvRelation):
             if extra:
                 items.append('[%s]' % ', '.join(extra))
         
-        return '%s(%s)' % (PROV_ASN_MAP[self.get_type()], ', '.join(items))
-        
-        
-class ProvStart(ProvRelation):
-    def get_type(self):
-        return PROV_REC_START
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
-        if not activity or not agent:
-            raise ProvException
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_AGENT]= agent
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-        
-class ProvEnd(ProvRelation):
-    def get_type(self):
-        return PROV_REC_END
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) 
-        agent = self.required_record_type(attributes[PROV_ATTR_AGENT], (ProvAgent, ProvEntity))
-        if not activity or not agent:
-            raise ProvException
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_AGENT]= agent
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-        
+        return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
+
+
 class ProvResponsibility(ProvRelation):
     def get_type(self):
         return PROV_REC_RESPONSIBILITY
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        subordinate = self.required_record_type(attributes[PROV_ATTR_SUBORDINATE], (ProvAgent, ProvEntity)) 
-        responsible = self.required_record_type(attributes[PROV_ATTR_RESPONSIBLE], (ProvAgent, ProvEntity))
-        if not subordinate or not responsible:
-            raise ProvException
+        subordinate = self.required_attribute(attributes, PROV_ATTR_SUBORDINATE, (ProvAgent, ProvEntity)) 
+        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, (ProvAgent, ProvEntity))
         # Optional attributes
-        activity = self.required_record_type(attributes[PROV_ATTR_ACTIVITY], ProvActivity) if PROV_ATTR_ACTIVITY in attributes else None
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_SUBORDINATE] = subordinate
         attributes[PROV_ATTR_RESPONSIBLE] = responsible
         attributes[PROV_ATTR_ACTIVITY]= activity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+### Component 3: Derivations
+
+class ProvNote(ProvElement):
+    def get_type(self):
+        return PROV_REC_NOTE
+
     
 class ProvDerivation(ProvRelation):
     def get_type(self):
@@ -744,7 +929,8 @@ class ProvContainer(object):
     
     def get_record(self, identifier):
         try:
-            return self._id_map[identifier]
+            valid_id = self.valid_identifier(identifier)
+            return self._id_map[valid_id]
         except:
             return None
         
@@ -805,7 +991,7 @@ class ProvContainer(object):
         for record in self._records:
             ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
         for record in self._records:
-            rec_type = PROV_ASN_MAP[record.get_type()]
+            rec_type = PROV_N_MAP[record.get_type()]
             identifier = str(ids[record])
             
             record_json = {}
