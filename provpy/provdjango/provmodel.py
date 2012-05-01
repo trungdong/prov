@@ -324,7 +324,7 @@ class Namespace(object):
         return QName(self, localpart)
     
 XSD = Namespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
-PROV = Namespace("prov",'http://www.w3.org/ns/prov-dm/')
+PROV = Namespace("prov",'http://www.w3.org/ns/prov')
     
 ### Exceptions
 
@@ -1233,17 +1233,23 @@ class ProvContainer(object):
                                {PROV_ATTR_QUOTE: quote, PROV_ATTR_ORIGINAL: original,
                                 PROV_ATTR_QUOTER_AGENT: quoterAgent, PROV_ATTR_ORIGINAL_AGENT: originalAgent}, other_attributes)
     
+    def originalsource(self, derived, source, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_DERIVED: derived, PROV_ATTR_SOURCE: source}, other_attributes)
+    
+    def trace(self, entity, ancestor, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ANCESTOR: ancestor}, other_attributes)
+    
+    def specialization(self, specializedEntity, generalEntity, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIALIZED_ENTITY: specializedEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
+    
+    def alternate(self, alternate1, alternate2, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
+    
     def note(self, identifier, other_attributes):
         return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
         
-    def alternate(self, entity, alternate, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ALTERNATE: alternate}, other_attributes)
-    
-    def specialization(self, entity, specialization, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_SPECIALIZATION: specialization}, other_attributes)
-    
-    def annotation(self, record, note, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ANNOTATION, identifier, {PROV_ATTR_RECORD: record, PROV_ATTR_NOTE: note}, other_attributes)
+    def annotation(self, something, note, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_ANNOTATION, identifier, {PROV_ATTR_SOMETHING: something, PROV_ATTR_NOTE: note}, other_attributes)
     
     # Aliases
     wasGeneratedBy = generation
@@ -1259,6 +1265,8 @@ class ProvContainer(object):
     wasDerivedFrom = derivation
     wasRevisionOf = revision
     wasQuotedFrom = quotation
+    hadOriginalSource = originalsource
+    tracedTo = trace
     alternateOf = alternate
     specializationOf = specialization
     hasAnnotation = annotation
