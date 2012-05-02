@@ -370,7 +370,8 @@ class ProvRecord(object):
         if extra_attributes:
             if self._extra_attributes is None:
                 self._extra_attributes = {}
-            self._extra_attributes.update(extra_attributes)
+            # Check attributes for valid qualified names
+            self._extra_attributes.update((self._container.valid_identifier(attribute), value) for attribute, value in extra_attributes.items())
     
     def get_attributes(self):
         return (self._attributes, self._extra_attributes)
@@ -388,7 +389,7 @@ class ProvRecord(object):
         
     def _parse_attribute(self, attribute, attribute_types):
         # attempt to find an existing record
-        record = self._parse_attribute(attribute, attribute_types)
+        record = self._parse_record(attribute, attribute_types)
         if record:
             return record
         else:
@@ -431,6 +432,9 @@ class ProvRecord(object):
             return None
         # Found the optional attribute
         attribute = attributes.get(attribute_id)
+        if attribute is None:
+            return None
+        # Validate its type
         return self._validate_attribute(attribute, attribute_types)
                 
     def __eq__(self, other):
@@ -468,12 +472,16 @@ class ProvRecord(object):
                     items.append(str(record_id))
                 else:
                     # Assuming this is a datetime value
-                    items.append(value.isoformat() if value is not None else '')
+                    items.append(value.isoformat() if value is not None else '-')
         
         if self._extra_attributes:
             extra = []
             for (attr, value) in self._extra_attributes.items():
-                extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
+                try:
+                    asn_represenation = value.asn_representation()
+                except:
+                    asn_represenation = '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                extra.append('%s="%s"' % (str(attr), asn_represenation))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
         
@@ -875,8 +883,12 @@ PROV_REC_CLS = {
     PROV_REC_ASSOCIATION            : ProvAssociation,
     PROV_REC_RESPONSIBILITY         : ProvResponsibility,
     PROV_REC_DERIVATION             : ProvDerivation,
-    PROV_REC_ALTERNATE              : ProvAlternate,
+    PROV_REC_REVISION               : ProvRevision,
+    PROV_REC_QUOTATION              : ProvQuotation,
+    PROV_REC_ORIGINALSOURCE         : ProvOriginalSource,
+    PROV_REC_TRACE                  : ProvTrace,
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
+    PROV_REC_ALTERNATE              : ProvAlternate,
     PROV_REC_NOTE                   : ProvNote,
     PROV_REC_ANNOTATION             : ProvAnnotation
     }
@@ -1119,9 +1131,9 @@ class ProvContainer(object):
                     prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                 else:
                     extra_attributes[self.valid_identifier(attr)] = self._decode_json_representation(value)
-            logger.debug('Adding attributes for record %s' % str(record))
+#            logger.debug('Adding attributes for record %s' % str(record))
             record.add_attributes(prov_attributes, extra_attributes)
-            logger.debug('Resulting record: %s' % str(record))
+#            logger.debug('Resulting record: %s' % str(record))
         
     # Miscellaneous functions
     def get_asn(self):
@@ -1206,7 +1218,7 @@ class ProvContainer(object):
         return self.add_record(PROV_REC_STARTBYACTIVITY, identifier, {PROV_ATTR_STARTED: started, PROV_ATTR_STARTED: starter}, other_attributes)
 
     def agent(self, identifier, other_attributes):
-        return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes=None)
+        return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes)
     
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ATTRIBUTION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_AGENT: agent}, other_attributes)
@@ -1228,7 +1240,7 @@ class ProvContainer(object):
     def revision(self, newer, older, responsibility=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_REVISION, identifier, {PROV_ATTR_NEWER: newer, PROV_ATTR_OLDER: older, PROV_ATTR_RESPONSIBILITY: responsibility}, other_attributes)
     
-    def quotation(self, quote, original=None, quoterAgent=None, originalAgent, identifier=None, other_attributes=None):
+    def quotation(self, quote, original=None, quoterAgent=None, originalAgent=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_QUOTATION, identifier, 
                                {PROV_ATTR_QUOTE: quote, PROV_ATTR_ORIGINAL: original,
                                 PROV_ATTR_QUOTER_AGENT: quoterAgent, PROV_ATTR_ORIGINAL_AGENT: originalAgent}, other_attributes)
@@ -1246,7 +1258,7 @@ class ProvContainer(object):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
     
     def note(self, identifier, other_attributes):
-        return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes=None)
+        return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes)
         
     def annotation(self, something, note, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ANNOTATION, identifier, {PROV_ATTR_SOMETHING: something, PROV_ATTR_NOTE: note}, other_attributes)

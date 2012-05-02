@@ -9,6 +9,8 @@ from provdjango.provmodel import Namespace, ProvContainer, PROV, Literal, XSD,\
     Identifier
 import logging
 import json
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Test(unittest.TestCase):
@@ -62,6 +64,76 @@ class Test(unittest.TestCase):
         return g
     
     @staticmethod
+    def primer_graph():
+        #prefix ex <http://example/>
+        ex = Namespace('ex', 'http://example/')
+        
+        g = ProvContainer()
+        g.add_namespace(Namespace("dcterms","http://purl.org/dc/terms/"))
+        
+        #entity(ex:article, [dcterms:title="Crime rises in cities"])
+        g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})
+        #entity(ex:dataSet1)
+        g.entity(ex['dataSet1'])
+        #entity(ex:dataSet2)
+        g.entity(ex['dataSet2'])
+        #entity(ex:regionList)
+        g.entity(ex['regionList'])
+        #entity(ex:composition)
+        g.entity(ex['composition'])
+        #entity(ex:chart1)
+        g.entity(ex['chart1'])
+        #entity(ex:chart2)
+        g.entity(ex['chart2'])
+
+        #activity(ex:compile)
+        g.activity(ex['compile'])
+        #activity(ex:compose)
+        g.activity(ex['compose'])
+        #activity(ex:illustrate)
+        g.activity(ex['illustrate'])
+
+        #used(ex:compose, ex:dataSet1, -)
+        g.used(ex['compose'], ex['dataSet1'])
+        #used(ex:compose, ex:regionList, -)
+        g.used(ex['compose'], ex['regionList'])
+        #wasGeneratedBy(ex:composition, ex:compose, -)
+        g.wasGeneratedBy('ex:composition', 'ex:compose')
+        
+        #used(ex:illustrate, ex:composition, -)
+        g.used('ex:illustrate', 'ex:composition')
+        #wasGeneratedBy(ex:chart1, ex:illustrate, -)
+        g.wasGeneratedBy('ex:chart1', 'ex:illustrate')
+        #
+        #
+        #agent(ex:derek, [ prov:type="prov:Person", foaf:givenName = "Derek", 
+        #       foaf:mbox= "<mailto:derek@example.org>"])
+        g.agent('ex:derek', {'prov:type': "prov:Person", 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
+        #wasAssociatedWith(ex:compose, ex:derek, -)
+        g.wasAssociatedWith('ex:compose', 'ex:derek')
+        #wasAssociatedWith(ex:illustrate, ex:derek, -)
+        g.wasAssociatedWith('ex:illustrate', 'ex:derek')
+        
+        # agent(ex:chartgen, [ prov:type="prov:Organization", foaf:name = "Chart Generators Inc"])
+        g.agent('ex:chartgen', {'prov:type': "prov:Organization", 'foaf:name' : "Chart Generators Inc"})
+        # actedOnBehalfOf(ex:derek, ex:chartgen, ex:compose)
+        g.actedOnBehalfOf('ex:derek', 'ex:chartgen', 'ex:compose')
+        # wasAttributedTo(ex:chart1, ex:derek)
+        g.wasAttributedTo('ex:chart1', 'ex:derek')
+
+        # used(ex:compose, ex:dataSet1, -,   [ prov:role = "ex:dataToCompose"])
+        g.used('ex:compose', 'ex:dataSet1', other_attributes={'prov:role' : "ex:dataToCompose"})
+        # used(ex:compose, ex:regionList, -, [ prov:role = "ex:regionsToAggregteBy"])
+        g.used('ex:compose', 'ex:regionList', other_attributes={'prov:role' : "ex:regionsToAggregteBy"})
+
+        # wasRevisionOf(ex:dataSet2, ex:dataSet1, -)
+        g.wasRevisionOf('ex:dataSet2', 'ex:dataSet1')
+        # wasDerivedFrom(ex:chart2, ex:dataSet2)
+        g.wasDerivedFrom('ex:chart2', 'ex:dataSet2')
+        
+        return g
+        
+    @staticmethod
     def w3c_publication_1():
         # prefix ex  <http://example.org/>
         ex = Namespace('ex', 'http://example.org/')
@@ -69,114 +141,146 @@ class Test(unittest.TestCase):
         w3 = Namespace('w3', 'http://www.w3.org/')
         # prefix tr  <http://www.w3.org/TR/2011/>
         tr = Namespace('tr', 'http://www.w3.org/TR/2011/')
-        #prefix pr  <http://www.w3.org/2005/10/Process-20051014/tr.html#>
-        pr = Namespace('pr', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
-        
-        #prefix ar1 <https://lists.w3.org/Archives/Member/chairs/2011OctDec/>
-        ar1 = Namespace('ar1', 'https://lists.w3.org/Archives/Member/chairs/2011OctDec/')
-        #prefix ar2 <https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/>
-        ar2 = Namespace('ar3', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/')
-        #prefix ar3 <https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/>
-        ar3 = Namespace('ar2', 'https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/')
-        
+        # prefix process <http://www.w3.org/2005/10/Process-20051014/tr.html#>
+        process = Namespace('process', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
+        # prefix email   <https://lists.w3.org/Archives/Member/w3c-archive/>
+        email = Namespace('email', 'https://lists.w3.org/Archives/Member/w3c-archive/')
+        # prefix chairs  <https://lists.w3.org/Archives/Member/chairs/>
+        chairs = Namespace('chairs', 'https://lists.w3.org/Archives/Member/chairs/')
+        # prefix trans   <http://www.w3.org/2005/08/01-transitions.html#>
+        trans = Namespace('trans', 'http://www.w3.org/2005/08/01-transitions.html#')
         
         g = ProvContainer()
+        g.add_namespace(ex)
+        g.add_namespace(w3)
+        g.add_namespace(tr)
+        g.add_namespace(process)
+        g.add_namespace(email)
+        g.add_namespace(chairs)
+        g.add_namespace(trans)
+ 
+        # entity(tr:WD-prov-dm-20111018, [ prov:type='process:RecsWD' ])
+        g.entity('tr:WD-prov-dm-20111018', {'prov:type': 'process:RecsWD'})
+        # entity(tr:WD-prov-dm-20111215, [ prov:type='process:RecsWD' ])
+        g.entity('tr:WD-prov-dm-20111215', {'prov:type': 'process:RecsWD'})
+        # entity(process:rec-advance,    [ prov:type='prov:Plan' ])
+        g.entity('process:rec-advance',    {'prov:type': 'prov:Plan'})
+
+        # entity(chairs:2011OctDec/0004, [ prov:type='trans:transreq' ])
+        g.entity('chairs:2011OctDec/0004', {'prov:type': 'trans:transreq'})
+        # entity(email:2011Oct/0141,     [ prov:type='trans:pubreq' ])
+        g.entity('email:2011Oct/0141', {'prov:type': 'trans:pubreq'})
+        # entity(email:2011Dec/0111,     [ prov:type='trans:pubreq' ])
+        g.entity('email:2011Dec/0111', {'prov:type': 'trans:pubreq'})
+
+        # wasDerivedFrom(tr:WD-prov-dm-20111215,tr:WD-prov-dm-20111018)
+        g.wasDerivedFrom('tr:WD-prov-dm-20111215', 'tr:WD-prov-dm-20111018')
+
+        # activity(ex:act1,-,-,[prov:type="publish"])
+        g.activity('ex:act1', other_attributes={'prov:type': "publish"})
+        # activity(ex:act2,-,-,[prov:type="publish"])
+        g.activity('ex:act2', other_attributes={'prov:type': "publish"})
+
+        # wasGeneratedBy(tr:WD-prov-dm-20111018, ex:act1, -)
+        g.wasGeneratedBy('tr:WD-prov-dm-20111018', 'ex:act1')
+        # wasGeneratedBy(tr:WD-prov-dm-20111215, ex:act2, -)
+        g.wasGeneratedBy('tr:WD-prov-dm-20111215', 'ex:act2')
+
+        # used(ex:act1,chairs:2011OctDec/0004,-)
+        g.used('ex:act1', 'chairs:2011OctDec/0004')
+        # used(ex:act1,email:2011Oct/0141,-)
+        g.used('ex:act1', 'email:2011Oct/0141')
+        # used(ex:act2,email:2011Dec/0111,-)
+        g.used('ex:act2', 'email:2011Dec/0111')
+
+        # agent(w3:Consortium, [ prov:type="Organization" ])
+        g.agent('w3:Consortium', other_attributes= {'prov:type': "Organization"})
+
+        # wasAssociatedWith(ex:act1, w3:Consortium, process:rec-advance)
+        g.wasAssociatedWith('ex:act1', 'w3:Consortium', 'process:rec-advance')
+        # wasAssociatedWith(ex:act2, w3:Consortium, process:rec-advance)
+        g.wasAssociatedWith('ex:act2', 'w3:Consortium', 'process:rec-advance')
         
-        g.entity(tr['WD-prov-dm-20111018'], {PROV['type']: pr['RecsWD']})
-        g.entity(tr['WD-prov-dm-20111215'], {PROV['type']: pr['RecsWD']})
-        g.entity(pr['rec-advance'], {PROV['type']: PROV['Plan']})
-        
-        
-        g.entity(ar1['0004'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#transreq")})
-        g.entity(ar2['0141'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
-        g.entity(ar3['0111'], {PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
-        
-        
-        g.wasDerivedFrom(tr['WD-prov-dm-20111215'], tr['WD-prov-dm-20111018'])
-        
-        
-        g.activity(ex['pub1'], other_attributes={PROV['type']: "publish"})
-        g.activity(ex['pub2'], other_attributes={PROV['type']: "publish"})
-        
-        
-        g.wasGeneratedBy(tr['WD-prov-dm-20111018'], ex['pub1'])
-        g.wasGeneratedBy(tr['WD-prov-dm-20111215'], ex['pub2'])
-        
-        g.used(ex['pub1'], ar1['0004'])
-        g.used(ex['pub1'], ar2['0141'])
-        g.used(ex['pub2'], ar3['0111'])
-        
-        g.agent(w3['Consortium'], {PROV['type']: PROV['Organization']})
-        
-        g.wasAssociatedWith(ex['pub1'], w3['Consortium'], pr['rec-advance'])
-        g.wasAssociatedWith(ex['pub2'], w3['Consortium'], pr['rec-advance'])
     
         return g
     
     @staticmethod
     def w3c_publication_2():
-        # prefix ex  <http://example.org/>
+        #prefix ex <http://example.org/>
         ex = Namespace('ex', 'http://example.org/')
-        # prefix rec <http://example.org/record>
+        #prefix rec <http://example.org/record>
         rec = Namespace('rec', 'http://example.org/record')
-        # prefix w3  <http://www.w3.org/>
-        w3 = Namespace('w3', 'http://www.w3.org/')
-        # prefix hg <http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/>
+        #prefix w3 <http://www.w3.org/TR/2011/>
+        w3 = Namespace('w3', 'http://www.w3.org/TR/2011/')
+        #prefix hg <http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/>
         hg = Namespace('hg', 'http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/')
-        # prefix process <http://www.w3.org/2005/10/Process-20051014/tr.html#>
-        process = Namespace('process', 'http://www.w3.org/2005/10/Process-20051014/tr.html#')
-                
+        
+        
         g = ProvContainer()
         
         # entity(hg:Overview.html, [ prov:type="file in hg" ])
-        g.entity(hg['Overview.html'], {PROV['type']: "file in hg"})
+        g.entity(hg['Overview.html'], {'prov:type': "file in hg"})
         # entity(w3:WD-prov-dm-20111215, [ prov:type="html4" ])
-        g.entity(w3['WD-prov-dm-20111215'], {PROV['type']: "html4"})
-        
-        # activity(ex:rcp,,,[prov:type="copy directory"])
-        g.activity(ex['rcp'], other_attributes={PROV['type']: "copy directory"})
-        
-        # wasGeneratedBy(rec:g,w3:WD-prov-dm-20111215, ex:rcp)
-        g.wasGeneratedBy(w3['WD-prov-dm-20111215'], ex['rcp'], identifier=rec['g'])
-        
+        g.entity(w3['WD-prov-dm-20111215'], {'prov:type': "html4"})
+
+        # activity(ex:rcp,-,-,[prov:type="copy directory"])
+        g.activity(ex['rcp'], None, None, {'prov:type': "copy directory"})
+
+        # wasGeneratedBy(rec:g,w3:WD-prov-dm-20111215, ex:rcp, -)
+        g.wasGeneratedBy('w3:WD-prov-dm-20111215', 'ex:rcp', identifier=rec['g'])
+
         # entity(ex:req3, [ prov:type="http://www.w3.org/2005/08/01-transitions.html#pubreq" %% xsd:anyURI ])
-        g.entity(ex['req3'], { PROV['type']: Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
+        g.entity('ex:req3', {'prov:type': Identifier("http://www.w3.org/2005/08/01-transitions.html#pubreq")})
         
-        # used(rec:u, ex:rcp,hg:Overview.html)
-        g.used(ex['rcp'], hg['Overview.html'], identifier=rec['u'])
-        # used(ex:rcp,ex:req3)
-        g.used(ex['rcp'], ex['req3'])
-        
+        # used(rec:u, ex:rcp,hg:Overview.html,-)
+        g.used('ex:rcp', 'hg:Overview.html', identifier='rec:u')
+        # used(ex:rcp,ex:req3,-)
+        g.used('ex:rcp', 'ex:req3')
+        #
         # wasDerivedFrom(w3:WD-prov-dm-20111215,hg:Overview.html, ex:rcp, rec:g, rec:u)
-        g.wasDerivedFrom(w3['WD-prov-dm-20111215'], hg['Overview.html'], ex['rcp'], rec['g'], rec['u'])
-        
+        g.wasDerivedFrom('w3:WD-prov-dm-20111215', 'hg:Overview.html', 'ex:rcp', 'rec:g', 'rec:u')
+
         # agent(ex:webmaster, [ prov:type="Person" ])
-        g.agent(ex['webmaster'], {PROV['type']: "Person"})
+        g.agent('ex:webmaster', {'prov:type': "Person"})
+
+        # wasAssociatedWith(ex:rcp, ex:webmaster, -)
+        g.wasAssociatedWith('ex:rcp', 'ex:webmaster')
             
         return g
     
     def setUp(self):
-        self.prov_graph = Test.test_graph()
+        pass
 
     def tearDown(self):
         pass
 
-    def testJSONSerialization(self):
-        logging.basicConfig(level=logging.DEBUG)
-        g1 = Test.w3c_publication_2()
-#        g1 = Test.example_graph()
-        print '-------------------------------------- Original graph in ASN'
-        g1.print_records()
-        json_str = json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4)
+    def runTestOnGraph(self, graph):
+        logger.debug('Original graph in PROV-N\n%s' % graph.get_asn())
+        json_str = json.dumps(graph, cls=ProvContainer.JSONEncoder, indent=4)
 #        print '-------------------------------------- Original graph in JSON'
 #        print json_str
+        logger.debug('Original graph in PROV-JSON\n%s' % json_str)
         g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
-        print '-------------------------------------- Graph decoded from JSON' 
-        g2.print_records()
-        assert(g1 == g2)
+#        print '-------------------------------------- Graph decoded from JSON' 
+#        g2.print_records()
+        logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_asn())
+        assert(graph == g2)
         
-
-
+    def testPrimerExample(self):
+        logger.info('Testing the Primer example')
+        g1 = Test.primer_graph()
+        self.runTestOnGraph(g1)
+        
+    def testW3CPublication1Example(self):
+        logger.info('Testing the W3C Publication 1 example')
+        g1 = Test.w3c_publication_1()
+        self.runTestOnGraph(g1)
+        
+    def testW3CPublication2Example(self):
+        logger.info('Testing the W3C Publication 2 example')
+        g1 = Test.w3c_publication_2()
+        self.runTestOnGraph(g1)
+        
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
