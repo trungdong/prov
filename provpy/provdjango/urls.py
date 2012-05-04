@@ -1,8 +1,15 @@
 from django.conf.urls.defaults import patterns, include, url
+from tastypie.api import Api
+from provdjango.provserver.api import AccountResource
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
 # admin.autodiscover()
+
+# Tasty Pie API configurations
+v0_api = Api(api_name='v0')
+v0_api.register(AccountResource())
+
 
 urlpatterns = patterns('',
     # Examples:
@@ -15,4 +22,5 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
     (r'^prov/', include('provserver.urls')),
+    (r'^api/', include(v0_api.urls)),
 )

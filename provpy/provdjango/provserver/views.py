@@ -1,12 +1,16 @@
 from models import PDAccount, PDRecord
 from django.http import HttpResponse
-import simplejson
+import json
+from django.shortcuts import render_to_response
+from django.template.context import RequestContext
+from provdjango.provmodel import ProvContainer
+
 
 def get_prov_json(request):
     from provdjango.provserver.test.testModel import Test
-    from models import save_records
-    graph = Test.build_prov_graph()
-    account = save_records(graph)
+    g1 = Test.w3c_publication_1()
+#    from models import save_records
+#    account = save_records(g1)
     
     if 'id' in request.GET:
         entity_id = request.GET.get('id')
@@ -19,6 +23,11 @@ def get_prov_json(request):
             return HttpResponse(content='{id : %s}' % entity_id, mimetype='application/json')
         return HttpResponse(content='{Not found}', mimetype='application/json')
     else:
-        graph = account.get_PROVContainer()
-        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
-
+        account = PDAccount.objects.get(id=1)
+        g2 = account.get_graph()
+        return render_to_response('provserver/test.html', {'json_1' : json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4),
+                                                           'json_2' : json.dumps(g2, cls=ProvContainer.JSONEncoder, indent=4),
+                                                           'asn_1': g1.get_asn(),
+                                                           'asn_2': g2.get_asn()},
+                                  context_instance=RequestContext(request))
+#        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
