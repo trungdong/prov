@@ -1,5 +1,10 @@
 {
   "wasGeneratedBy": {
+    "_:wGB7": {
+      "ex:param": "a",
+      "prov:entity": "ex:e1",
+      "ex:port": "foo"
+    },
     "g1": {
       "prov:activity": "ex:a2",
       "prov:time": "2001-10-26T21:32:52Z",
@@ -43,22 +48,10 @@
     "ex:e2": {
       "ex:param": "a"
     },
-    "ex:e3": {
-      "ex:param": [
-        "http://example.org/type",
-        "a"
-      ]
-    },
-    "ex:e4": {
-      "ex:param": [
-        "http://example.org/type",
-        "a"
-      ]
-    },
     "ex:e5": {
       "ex:param": [
-        "xsd:foo",
-        "a"
+        "a",
+        "xsd:foo"
       ]
     },
     "ex:e1": {},
@@ -66,46 +59,35 @@
       "ex:param": "a",
       "ex:port": "foo"
     },
-    "ex:e7": {
-      "ex:param": "a",
-      "ex:port": [
-        "http://example.org/type",
-        "foo"
-      ]
-    },
     "ex:e8": {
       "ex:param": "a",
       "ex:port": [
-        "ex:type",
-        "foo"
+        "foo",
+        "ex:type"
       ]
     },
     "ex:ag5": {
-      "prov:type": "prov:agent",
       "ex:param": [
-        "xsd:foo",
-        "a"
+        "a",
+        "xsd:foo"
       ]
     },
     "ex:ag6": {
-      "prov:type": "prov:agent",
       "ex:param": "a",
       "ex:port": "foo"
     },
     "ex:ag7": {
-      "prov:type": "prov:agent",
       "ex:param": "a",
       "ex:port": [
-        "http://example.org/type",
-        "foo"
+        "foo",
+        "http://example.org/type"
       ]
     },
     "ex:ag8": {
-      "prov:type": "prov:agent",
       "ex:param": "a",
       "ex:port": [
-        "ex:type",
-        "foo"
+        "foo",
+        "ex:type"
       ]
     },
     "ex:e2c": {
@@ -114,70 +96,57 @@
         "xsd:int"
       ]
     },
-    "ex:ag1": {
-      "prov:type": "prov:agent"
-    },
+    "ex:ag1": {},
     "ex:e2b": {
       "ex:param": [
         "10",
         "xsd:int"
       ]
     },
-    "ex:ag2": {
-      "prov:type": "prov:agent"
-    },
+    "ex:ag2": {},
     "ex:ag3": {
-      "prov:type": "prov:agent",
       "ex:param": [
-        "http://example.org/type",
-        "a"
+        "a",
+        "http://example.org/type"
       ]
     },
     "ex:ag4": {
-      "prov:type": "prov:agent",
       "ex:param": [
-        "http://example.org/type",
-        "a"
+        "a",
+        "http://example.org/type"
       ]
     }
   },
   "prefix": {
-    "ex": "http://example.org/ex",
+    "ex": "http://example.org/ex/",
     "default": "http://example.org/default",
-    "ex2": "http://example.org/ex2"
-  },
-  "hadPlan": {
-    "_:hP1": {
-      "prov:activity": "ex:a2",
-      "ex:execution": "success",
-      "prov:plan": "ex:e8"
-    }
+    "ex2": "http://example.org/ex2/"
   },
   "wasDerivedFrom": {
     "_:wDF1": {
-      "prov:generatedEntity": "ex:e2",
-      "prov:usedEntity": "ex:e1"
+      "prov:generatedEntity": "ex:e1",
+      "prov:usedEntity": "ex:e2"
     },
     "_:wDF3": {
       "prov:activity": "ex:pe",
-      "prov:generatedEntity": "ex:e2",
-      "prov:usage": "ex:g2",
-      "prov:generation": "ex:u1",
-      "prov:usedEntity": "ex:e1"
+      "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
+      "prov:generation": "ex:g2",
+      "prov:usedEntity": "ex:e2"
     },
     "_:wDF2": {
-      "prov:generatedEntity": "ex:e2",
+      "prov:generatedEntity": "ex:e1",
       "ex:param": "a",
-      "prov:usedEntity": "ex:e1",
+      "prov:usedEntity": "ex:e2",
       "ex:port": "foo"
     },
     "_:wDF4": {
       "prov:activity": "ex:pe",
-      "prov:generatedEntity": "ex:e2",
-      "prov:usage": "ex:g2",
+      "prov:generatedEntity": "ex:e1",
+      "prov:usage": "ex:u1",
       "ex:param": "a",
-      "prov:generation": "ex:u1",
-      "prov:usedEntity": "ex:e1",
+      "prov:generation": "ex:g2",
+      "prov:usedEntity": "ex:e2",
       "ex:port": "foo"
     }
   },
@@ -230,6 +199,18 @@
       "ex:port": "foo"
     }
   },
+  "agent": [
+    "ex:ag1",
+    "ex:ag1",
+    "ex:ag2",
+    "ex:ag3",
+    "ex:ag4",
+    "ex:ag5",
+    "ex:ag6",
+    "ex:ag7",
+    "ex:ag8",
+    "ex:ag2"
+  ],
   "activity": {
     "ex:a2": {
       "prov:startTime": "2001-10-26T22:33:55",
