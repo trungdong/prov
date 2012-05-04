@@ -5,8 +5,7 @@ Created on Jan 25, 2012
 '''
 import unittest
 import datetime
-from provdjango.provmodel import Namespace, ProvContainer, PROV, Literal, XSD,\
-    Identifier
+from dm import Namespace, ProvContainer, PROV, Literal, XSD, Identifier
 import logging
 import json
 logging.basicConfig(level=logging.DEBUG)
