@@ -1,0 +1,37 @@
+TODO:
+1. Change base class from PROVObject to Record; (DONE:huanjiayang)
+2. Change PROVGraph class to PROVContainer class, which should be a separate class to Record; (DONE:huanjiayang, now have a new Bundle class, PROVcontainer and Account are both sub-class of Bundle class, the Account is also a sub-class of Record)
+3. Account class should be a direct sub-class to Record; (DONE:huanjiayang, in the meantime Account is also a sub-class to Bundle now)
+4. Remove the ' %% ' separator option for dealing with literal type; (DONE:huanjiayang)
+5. Change <class>.to_JSON function to <class>.to_provJSON; (DONE:huanjiayang)
+6. Add .asserter and .attributes for Account class; (DONE: huanjiayang)
+7. Namespace issue (1): PROVContainer should have a default namespace attribute; (DONE: huanjiayang)
+8. Namespace issue (2): PROVContainer should summary all namespaces in its accounts; (DONE:huanjiayang)
+9. Namespace issue (3): PROVContainer should be able to deal with duplicated namespace/clashed prefixes (DONE:huanjiayang) in to_provJSON();
+10. Namespace issue (4): PROVContainer should deal with the situation when user defined a namespace with prefix "default";
+11. Namespace issue (5): PROVContainer should deal with the situation when the same namesapce has different prefixes in different accounts?
+12. Namespace issue (6): If accounts are allowed to have default namespace, then need to deal with default namespace clashes;
+13. Reserve "default" as a prefix name; (DONE:huanjiayang)
+14. Accept URI in the form of string or URIRef as record identifier. If string is not a URI then the record will be treat as B node.(DONE:huanjiayang)
+15. For URI and qname, accept values given in rdflib namespace format? e.g.:prov['usedentity'] (DONE:huanjiayang)
+
+16. default value type mapping between Python types and JSON types; (DONE:huanjiayang)
+17. Define own URIRef and Namespace classes, remove dependency on rdflib; (DONE:huanjiayang)
+18. for identifiers, if given as string then treat it as local name with the default namespace; If not given, treat as blank node; (DONE:huanjiayang)
+
+others:
+19. Start to add in-line documentation;
+20. Start to break the example module down to smaller examples;
+21. Start to validate the result with the PROVJOSN schema validator;
+
+
+Known issues:
+1. No function available to delete/remove record;
+2. Account/Container class should have a separate class variable for default namespace; (same with TODO 7)
+3. Account should have own namespaces (DONE:huanjiayang), and Account/PROVContainer.to_provJSON function will need to be able to merge all namespaces(TODO 8), and deal with prefix clashes (TODO 9);
+
+Questions:
+1. When adding an account nested by another non-default account, should it be added into the top level container with its parent account being specified, or should it be added into its parent account directly?
+
+Possible future Dev:
+1. Record/Bundle.from_provJSON() ?
