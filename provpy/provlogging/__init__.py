@@ -264,6 +264,7 @@ class ProvLogger(object):
     def __init__(self):
         self.prov = ProvContainer()
         self.counters = defaultdict(int)
+        self.entity_id_map = dict()
         self.handlers = []
         self.disabled = 0
     
@@ -321,7 +322,16 @@ class ProvLogger(object):
     def get_identifier(self, entity_type):
         current_count = self.counters[entity_type] + 1
         self.counters[entity_type] = current_count
-        return '%s_%d' % (entity_type, current_count) 
+        identifier = '%s_%d' % (entity_type, current_count) 
+        return self.prov.valid_identifier(identifier)
+    
+    def get_object_identifier(self, entity):
+        if entity in self.entity_id_map:
+            return self.entity_id_map[entity]
+        else:
+            entity_id = self.get_identifier('entity')
+            self.entity_id_map[entity] = entity_id
+            return entity_id
     
     def activity(self, activity_type, startTime=None, endTime=None, extra_attributes=None):
         record = self.prov.activity(self.get_identifier(activity_type), startTime, endTime, extra_attributes)
@@ -340,10 +350,11 @@ def getLogger(asserter=None):
 root.addHandler(StreamHandler())
 
 class ActivityLogRecord(object):
-    def __init__(self, activity):
+    def __init__(self, activity, provlogger):
         self.activity = activity
         self.prov_graph = activity.get_prov_graph()
         self.records = [activity]
+        self.provlogger = provlogger
         
     def __str__(self):
         return '\n'.join(map(str, self.records))
@@ -351,19 +362,29 @@ class ActivityLogRecord(object):
     def set_time(self, startTime, endTime):
         self.activity.set_time(startTime, endTime)
         
-    def entity(self, identifier):
+    def entity(self, identifier, attributes={}):
         entity_record = self.prov_graph.get_record(identifier)
         if entity_record is None:
-            entity_record = self.prov_graph.entity(identifier)
+            entity_record = self.prov_graph.entity(identifier, attributes)
             self.records.append(entity_record)
         return entity_record
-        
+    
+    def get_entity_id(self, entity):
+        entity_id = self.provlogger.get_object_identifier(entity)
+        if self.prov_graph.get_record(entity_id) is None:
+            self.entity(entity_id, {'ex:value': entity})
+        return entity_id
+
     def uses(self, entity_id, attributes={}):
         time = datetime.datetime.now()
         entity = self.entity(entity_id)
         usage_record = self.prov_graph.used(self.activity, entity, time, other_attributes=attributes)
         self.records.append(usage_record)
         return usage_record
+    
+    def uses_object(self, entity, attributes={}):
+        entity_id = self.get_entity_id(entity)
+        return self.uses(entity_id, attributes)
         
     def generates(self, entity_id, attributes={}):
         time = datetime.datetime.now()
@@ -371,6 +392,10 @@ class ActivityLogRecord(object):
         generation_record = self.prov_graph.wasGeneratedBy(entity, self.activity, time, other_attributes=attributes)
         self.records.append(generation_record)
         return generation_record
+    
+    def generates_object(self, entity, attributes={}):
+        entity_id = self.get_entity_id(entity)
+        return self.generates(entity_id, attributes)
         
     def derives(self, generated_entity_id, used_entity_id, attributes={}):
         time = datetime.datetime.now()
@@ -379,6 +404,11 @@ class ActivityLogRecord(object):
         derivation_record = self.prov_graph.wasDerivedFrom(generated_entity, used_entity_id, self.activity, time=time, other_attributes=attributes)
         self.records.append(derivation_record)
         return derivation_record
+    
+    def derives_object(self, generated_entity, used_entity, attributes={}):
+        generated_entity_id = self.get_entity_id(generated_entity)
+        used_entity_id = self.get_entity_id(used_entity)
+        return self.derives(generated_entity_id, used_entity_id, attributes)
     
 class Activity(object):
     def __init__(self, activity_type=None, extra_attributes=None, provlogger=root):
@@ -413,15 +443,21 @@ class Activity(object):
     def new_activity_log_record(self):
         # Create an generic activity from the template
         activity = self.provlogger.activity(self.activity_type, extra_attributes=self.extra_attributes)
-        return ActivityLogRecord(activity)
+        return ActivityLogRecord(activity, self.provlogger)
         
     
 def current_activity():
-    frame = inspect.currentframe()
+    frame = inspect.currentframe().f_back.f_back;
     try:
         # TODO Check for cases where the activity cannot be found
         # (e.g. the main function is wrapped multiple times)
-        return frame.f_back.f_back.f_locals.get('activity')
+        while True:
+            if frame is None:
+                # Can't go back any further
+                raise Exception
+            if 'activity' in frame.f_locals:
+                return frame.f_locals.get('activity')
+            frame = frame.f_back;
     finally:
         # Delete the frame object to break the reference cycle
         # (allowing it to be garbage collected and avoiding memory leak)
