@@ -241,10 +241,10 @@ class Literal(object):
         return self._datatype
     
     def asn_representation(self):
-        return '%s %%%% %s' % (str(self._value), str(self._datatype))
+        return u'%s %%%% %s' % (str(self._value), str(self._datatype))
         
     def json_representation(self):
-        return [str(self._value), str(self._datatype)]
+        return u'"%s"^^%s' % (str(self._value), str(self._datatype))
 
 
 class Identifier(object):
@@ -264,10 +264,10 @@ class Identifier(object):
         return hash(self.get_uri())
     
     def asn_representation(self):
-        return self._uri + ' %% xsd:anyURI'
+        return self._uri + u' %% xsd:anyURI'
     
     def json_representation(self):
-        return [self._uri, u'xsd:anyURI']
+        return self._uri + u'^^xsd:anyURI'
     
 
 class QName(Identifier):
@@ -292,7 +292,7 @@ class QName(Identifier):
         return self._str
     
     def json_representation(self):
-        return [str(self), u'xsd:QName']
+        return str(self) + u'^^ xsd:QName'
     
 
 class Namespace(object):
@@ -369,9 +369,17 @@ class ProvRecord(object):
                 self._attributes.update(attributes)
         if extra_attributes:
             if self._extra_attributes is None:
-                self._extra_attributes = {}
+                self._extra_attributes = []
+            try:
+                # This will only work if extra_attributes is a dictionary
+                # Converting the dictionary into a list of tuples (i.e. attribute-value pairs) 
+                extra_attributes = extra_attributes.items()
+            except:
+                # Do nothing if it did not work, expect the variable is already a list
+                pass
+            attr_list = ((self._container.valid_identifier(attribute), value) for attribute, value in extra_attributes)
             # Check attributes for valid qualified names
-            self._extra_attributes.update((self._container.valid_identifier(attribute), value) for attribute, value in extra_attributes.items())
+            self._extra_attributes.extend(attr_list)
     
     def get_attributes(self):
         return (self._attributes, self._extra_attributes)
@@ -476,7 +484,7 @@ class ProvRecord(object):
         
         if self._extra_attributes:
             extra = []
-            for (attr, value) in self._extra_attributes.items():
+            for (attr, value) in self._extra_attributes:
                 try:
                     asn_represenation = value.asn_representation()
                 except:
@@ -696,7 +704,7 @@ class ProvAssociation(ProvRelation):
                 items.append(str(agent_id))
         if self._extra_attributes:
             extra = []
-            for (attr, value) in self._extra_attributes.items():
+            for (attr, value) in self._extra_attributes:
                 extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
@@ -1055,22 +1063,26 @@ class ProvContainer(object):
                 return str(value)
     
     def _decode_json_representation(self, value):
-        if isinstance(value, list):
-            number = len(value)
-            if number == 2:
-                datatype = value[1]
+        try:
+            # If the value is a string
+            components = value.split('^^')
+            if len(components) == 2:
+                # that can be split into two components separated by ^^
+                # the second component is the datatype
+                datatype = components[1]
                 if datatype == u'xsd:anyURI':
-                    return Identifier(value[0])
+                    return Identifier(components[0])
                 elif datatype == u'xsd:QName':
-                    return self.valid_identifier(value[0])
+                    return self.valid_identifier(components[0])
                 elif datatype == u'xsd:dateTime':
-                    return parse_xsd_dateTime(value[0])
+                    return parse_xsd_dateTime(components[0])
                 else:
-                    return Literal(value[0], self.valid_identifier(value[1]))
+                    return Literal(components[0], self.valid_identifier(value[1]))
             else:
-                # TODO Deal with multiple values here
-                pass
-        else:
+                # that cannot be split as above, return it
+                return value
+        except:
+            # not a string, just return it
             return value
         
     def _encode_JSON_container(self):
@@ -1099,8 +1111,21 @@ class ProvContainer(object):
                         # Assuming this is a datetime value
                         record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = [value.isoformat(), 'xsd:dateTime']
             if record._extra_attributes:
-                for (attr, value) in record._extra_attributes.items():
-                    record_json[str(attr)] = self._encode_json_representation(value)
+                for (attr, value) in record._extra_attributes:
+                    attr_id = str(attr)
+                    value_json = self._encode_json_representation(value)
+                    if attr_id in record_json:
+                        # Multi-value attribute
+                        existing_value = record_json[attr_id]
+                        try:
+                            # Add the value to the current list of values
+                            existing_value.add(value_json)
+                        except:
+                            # But if the existing value is not a list, it'll fail
+                            # create the list for the existing value and the second value
+                            record_json[attr_id] = [existing_value, value_json]
+                    else:
+                        record_json[attr_id] = value_json
             container[rec_type][identifier] = record_json
         
         return container
@@ -1124,13 +1149,19 @@ class ProvContainer(object):
         for (_, identifier, attributes) in records:
             record = record_map[identifier]
             prov_attributes = {}
-            extra_attributes = {}
+            extra_attributes = []
             # Splitting PROV attributes and the others
             for attr, value in attributes.items():
                 if attr in PROV_ATTRIBUTES_ID_MAP:
                     prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                 else:
-                    extra_attributes[self.valid_identifier(attr)] = self._decode_json_representation(value)
+                    attr_id = self.valid_identifier(attr)
+                    if isinstance(value, list):
+                        # Parsing multi-value attribute
+                        extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                    else:
+                        # add the single-value attribute
+                        extra_attributes.append((attr_id, self._decode_json_representation(value)))
 #            logger.debug('Adding attributes for record %s' % str(record))
             record.add_attributes(prov_attributes, extra_attributes)
 #            logger.debug('Resulting record: %s' % str(record))
