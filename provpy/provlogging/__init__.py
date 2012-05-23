@@ -326,11 +326,12 @@ class ProvLogger(object):
         return self.prov.valid_identifier(identifier)
     
     def get_object_identifier(self, entity):
-        if entity in self.entity_id_map:
-            return self.entity_id_map[entity]
+        identity = id(entity)
+        if identity in self.entity_id_map:
+            return self.entity_id_map[identity]
         else:
             entity_id = self.get_identifier('entity')
-            self.entity_id_map[entity] = entity_id
+            self.entity_id_map[identity] = entity_id
             return entity_id
     
     def activity(self, activity_type, startTime=None, endTime=None, extra_attributes=None):
