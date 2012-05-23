@@ -28,10 +28,11 @@ class Test(unittest.TestCase):
 
     def testProvLogging(self):
         logger.debug('Calling increase(x)')
-        x = 1
+        x = 1000
         y = increase(x)
         logger.debug('Calling increase(y)')
         z = increase(y)
+        a = increase(1001)
 
 if __name__ == "__main__":
     #import sys;sys.argv = ['', 'Test.testName']
