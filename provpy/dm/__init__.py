@@ -324,7 +324,7 @@ class Namespace(object):
         return QName(self, localpart)
     
 XSD = Namespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
-PROV = Namespace("prov",'http://www.w3.org/ns/prov')
+PROV = Namespace("prov",'http://www.w3.org/ns/prov#')
     
 ### Exceptions
 

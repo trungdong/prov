@@ -1,14 +1,14 @@
-from models import PDAccount, PDRecord
+from models import PDAccount, PDRecord, save_records
 from django.http import HttpResponse
 import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from provdjango.provmodel import ProvContainer
+from dm import ProvContainer
 
 
 def get_prov_json(request):
-    from provdjango.provserver.test.testModel import Test
-    g1 = Test.w3c_publication_1()
+    from dm.test import examples 
+    g1 = examples.w3c_publication_1()
 #    from models import save_records
 #    account = save_records(g1)
     

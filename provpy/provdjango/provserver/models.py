@@ -3,7 +3,7 @@ from django.db import models
 from collections import defaultdict
 import uuid
 import datetime
-import provdjango.provmodel as prov
+import dm as prov
 import logging
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ def _create_pdrecord(prov_record, account, record_map):
                 else:
                     raise Exception('Expected a PROV Record for %s. Got %s.' % str(value))
     if extra_attributes:
-        for (attr, value) in extra_attributes.items():
+        for (attr, value) in extra_attributes:
             # Create a literal attribute
             attr_name = attr.get_uri() if isinstance(attr, prov.Identifier) else attr
             value, datatype = _encode_python_literal(value)
@@ -200,12 +200,12 @@ def _create_prov_record(graph, pk, records, attributes, literals, record_map):
         prov_attributes[attr_id] = other_prov_record 
     # Prepare literal-_attributes
     prov_literals = defaultdict()
-    other_literals = defaultdict()
+    other_literals = []
     for attr in literals[pk]:
         if attr.prov_type:
             prov_literals[attr.prov_type] = _decode_python_literal(attr.value, attr.datatype, graph)
         else:
-            other_literals[graph.valid_identifier(attr.name)] = _decode_python_literal(attr.value, attr.datatype, graph)
+            other_literals.append((graph.valid_identifier(attr.name), _decode_python_literal(attr.value, attr.datatype, graph)))
     prov_attributes.update(prov_literals)
             
     # Create the record by its type
