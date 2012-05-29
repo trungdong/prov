@@ -1,4 +1,4 @@
-from dm import ProvContainer, Namespace, Literal, PROV, XSD, Identifier
+from model import ProvContainer, Namespace, Literal, PROV, XSD, Identifier
 import datetime
 
 def example_graph():

@@ -361,12 +361,7 @@ class ProvRecord(object):
     def get_identifier(self):
         return self._identifier
     
-    def add_attributes(self, attributes, extra_attributes):
-        if attributes:
-            if self._attributes is None:
-                self._attributes = attributes
-            else:
-                self._attributes.update(attributes)
+    def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
             if self._extra_attributes is None:
                 self._extra_attributes = []
@@ -380,6 +375,14 @@ class ProvRecord(object):
             attr_list = ((self._container.valid_identifier(attribute), value) for attribute, value in extra_attributes)
             # Check attributes for valid qualified names
             self._extra_attributes.extend(attr_list)
+            
+    def add_attributes(self, attributes, extra_attributes):
+        if attributes:
+            if self._attributes is None:
+                self._attributes = attributes
+            else:
+                self._attributes.update(attributes)
+        self.add_extra_attributes(extra_attributes)
     
     def get_attributes(self):
         return (self._attributes, self._extra_attributes)
