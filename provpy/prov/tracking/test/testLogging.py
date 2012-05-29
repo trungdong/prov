@@ -4,7 +4,7 @@ Created on Jan 25, 2012
 @author: Dong
 '''
 import unittest
-import tracking as prov
+import prov.tracking as prov
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

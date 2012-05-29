@@ -4,10 +4,10 @@ Created on Jan 25, 2012
 @author: Dong
 '''
 import unittest
-from model import ProvContainer
+from prov.model import ProvContainer
 import logging
 import json
-from model.test import examples
+import examples
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
