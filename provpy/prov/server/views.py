@@ -3,11 +3,11 @@ from django.http import HttpResponse
 import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from model import ProvContainer
+from prov.model import ProvContainer
 
 
 def get_prov_json(request):
-    from model.test import examples 
+    from prov.model.test import examples 
     g1 = examples.w3c_publication_1()
 #    account = save_records(g1)
     

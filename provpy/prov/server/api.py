@@ -2,7 +2,7 @@ from tastypie import fields
 from tastypie.authorization import Authorization
 from tastypie.resources import ModelResource
 from models import PDAccount
-from model import ProvContainer
+from prov.model import ProvContainer
 
 class AccountResource(ModelResource):
     class Meta:
