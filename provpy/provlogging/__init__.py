@@ -363,6 +363,9 @@ class ActivityLogRecord(object):
     def set_time(self, startTime, endTime):
         self.activity.set_time(startTime, endTime)
         
+    def add_attributes(self, attributes):
+        self.activity.add_extra_attributes(attributes)
+        
     def entity(self, identifier, attributes={}):
         entity_record = self.prov_graph.get_record(identifier)
         if entity_record is None:
@@ -370,10 +373,10 @@ class ActivityLogRecord(object):
             self.records.append(entity_record)
         return entity_record
     
-    def get_entity_id(self, entity):
+    def get_entity_id(self, entity, attributes={}):
         entity_id = self.provlogger.get_object_identifier(entity)
         if self.prov_graph.get_record(entity_id) is None:
-            self.entity(entity_id, {'ex:value': entity})
+            self.entity(entity_id, attributes)
         return entity_id
 
     def uses(self, entity_id, attributes={}):
@@ -383,8 +386,8 @@ class ActivityLogRecord(object):
         self.records.append(usage_record)
         return usage_record
     
-    def uses_object(self, entity, attributes={}):
-        entity_id = self.get_entity_id(entity)
+    def uses_object(self, entity, attributes={}, entity_attributes={}):
+        entity_id = self.get_entity_id(entity, entity_attributes)
         return self.uses(entity_id, attributes)
         
     def generates(self, entity_id, attributes={}):
@@ -394,8 +397,8 @@ class ActivityLogRecord(object):
         self.records.append(generation_record)
         return generation_record
     
-    def generates_object(self, entity, attributes={}):
-        entity_id = self.get_entity_id(entity)
+    def generates_object(self, entity, attributes={}, entity_attributes={}):
+        entity_id = self.get_entity_id(entity, entity_attributes)
         return self.generates(entity_id, attributes)
         
     def derives(self, generated_entity_id, used_entity_id, attributes={}):
@@ -406,9 +409,9 @@ class ActivityLogRecord(object):
         self.records.append(derivation_record)
         return derivation_record
     
-    def derives_object(self, generated_entity, used_entity, attributes={}):
-        generated_entity_id = self.get_entity_id(generated_entity)
-        used_entity_id = self.get_entity_id(used_entity)
+    def derives_object(self, generated_entity, used_entity, attributes={}, gen_entity_attributes={}, used_entity_attributes={}):
+        generated_entity_id = self.get_entity_id(generated_entity, gen_entity_attributes)
+        used_entity_id = self.get_entity_id(used_entity, used_entity_attributes)
         return self.derives(generated_entity_id, used_entity_id, attributes)
     
 class Activity(object):
