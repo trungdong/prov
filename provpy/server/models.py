@@ -3,7 +3,7 @@ from django.db import models
 from collections import defaultdict
 import uuid
 import datetime
-import dm as prov
+import model as prov
 import logging
 logger = logging.getLogger(__name__)
 
