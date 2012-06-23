@@ -30,8 +30,8 @@
       var extraReferences = {
 		  "PROV-DM":
           "Luc Moreau, Paolo Missier"+
-          "<a href=\"http://www.w3.org/TR/prov-dm/\"><cite>The PROV Data Model and Abstract Syntax Notation</cite></a>. "+
-          "2011, Work in progress. "+
+          "<a href=\"http://www.w3.org/TR/prov-dm/\"><cite>PROV-DM: The PROV Data Model</cite></a>. "+
+          "2012, Work in progress. "+
           "URL: <a href=\"http://www.w3.org/TR/prov-dm/\">http://www.w3.org/TR/prov-dm/</a>",
           "JSON-SCHEMA":
           "Kris Zyp and Gary Court "+
@@ -41,21 +41,21 @@
 /*
         "PROV-PRIMER":
           "Yolanda Gil and Simon Miles "+
-          "<a href=\"http://dvcs.w3.org/hg/prov/raw-file/default/primer/Primer.html\"><cite>Prov Model Primer</cite></a>. "+
-          "2011, Work in progress. "+
-          "URL: <a href=\"http://dvcs.w3.org/hg/prov/raw-file/default/primer/Primer.html\">http://dvcs.w3.org/hg/prov/raw-file/default/primer/Primer.html</a>",
+          "<a href=\"http://www.w3.org/TR/prov-primer/\"><cite>PROV Model Primer</cite></a>. "+
+          "2012, Work in progress. "+
+          "URL: <a href=\"http://www.w3.org/TR/prov-primer/\">http://www.w3.org/TR/prov-primer/</a>",
 
         "PROV-O":
-          "Satya Sahoo and Deborah McGuinness "+
-          "<a href=\"http://dvcs.w3.org/hg/prov/raw-file/default/ontology/ProvenanceFormalModel.html\"><cite>Provenance Formal Model</cite></a>. "+
-          "2011, Work in progress. "+
-          "URL: <a href=\"http://dvcs.w3.org/hg/prov/raw-file/default/ontology/ProvenanceFormalModel.html\">http://dvcs.w3.org/hg/prov/raw-file/default/ontology/ProvenanceFormalModel.html</a>",
+          "Timothy Lebo, Satya Sahoo and Deborah McGuinness "+
+          "<a href=\"http://www.w3.org/TR/prov-o/\"><cite>PROV-O: The PROV Ontology</cite></a>. "+
+          "2012, Work in progress. "+
+          "URL: <a href=\"http://www.w3.org/TR/prov-o/\">http://www.w3.org/TR/prov-o/</a>",
 
         "PROV-PAQ":
           "Graham Klyne and Paul Groth "+
-          "<a href=\"http://dvcs.w3.org/hg/prov/raw-file/tip/paq/provenance-access.html\"><cite>Provenance Access and Query</cite></a>. "+
+          "<a href=\"http://www.w3.org/TR/prov-aq/\"><cite>PROV-AQ: Provenance Access and Query</cite></a>. "+
           "2011, Work in progress. "+
-          "URL: <a href=\"http://dvcs.w3.org/hg/prov/raw-file/tip/paq/provenance-access.html\">http://dvcs.w3.org/hg/prov/tip/paq/provenance-access.html</a>",
+          "URL: <a href=\"http://www.w3.org/TR/prov-aq/\">http://www.w3.org/TR/prov-aq/</a>",
 */      };
       var respecConfig = {
           // specification status (e.g. WD, LCWD, NOTE, etc.). If in doubt use ED.
@@ -105,7 +105,8 @@
               { name: "Michael O. Jewell", url: "http://www.ecs.soton.ac.uk/people/moj",
 			  	company: "University of Southampton" },
               { name: "Amir Sezavar Keshavarz", url: "http://www.ecs.soton.ac.uk/people/ask2g10",
-			  	company: "University of Southampton" },              { name: "Danius T. Michaelides", url: "http://users.ecs.soton.ac.uk/dtm/",
+			  	company: "University of Southampton" },
+			  { name: "Danius T. Michaelides", url: "http://users.ecs.soton.ac.uk/dtm/",
 			  	company: "University of Southampton" },
               { name: "Luc Moreau", url: "http://users.ecs.soton.ac.uk/lavm/",
 			  	company: "University of Southampton" },
@@ -147,7 +148,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <p> PROV-JSON is a JSON representation for the Provenance Data Model (PROV-DM). The representation was developed internally at the University of Southampton as a common format for exchanging provenance information in web applications between research projects. At the same time, the PROV-JSON representation aims at facilitating client-side manipulations of provenance information and allowing the use of a generic client-side API in various web applications. Since it is based on the Provenance Data Model [[PROV-DM]] being standardized at the <a href="http://www.w3.org/2011/prov/">W3C Provenance Working Group</a>, it is hoped that the PROV-JSON representation will also benefit, and find support from, a wider community.</p>
 
-<p>Note: The PROV-JSON mappings introduced later in this document were defined based specifically on the <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/">second working draft of PROV-DM</a>. As the PROV-DM document evolves, changes there will be incorporated back into this document at a later version. However, in the meantime, the readers should be aware that there might be misalignments between this document and the latest version of PROV-DM.</p>
+<p>Note: The PROV-JSON mappings introduced later in this document were defined based specifically on the <a href="http://www.w3.org/TR/2011/prov-dm/">second working draft of PROV-DM</a>. As the PROV-DM document evolves, changes there will be incorporated back into this document at a later version. However, in the meantime, the readers should be aware that there might be misalignments between this document and the latest version of PROV-DM.</p>
 
 <h3>Design considerations</h3>
 <p>The development of the PROV-JSON representation has the following goals:</p>
@@ -159,8 +160,6 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 </ul>
 
 
-<div class="note">This version does not include mappings for <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#common-relations">common relation records</a> due to a number of changes planned to be soon implemented with respect to these relations in PROV-DM. However, the general <a href="#record-relation">PROV-JSON structure of relations</a> can be broadly followed for such relations. The next version of this document will provide specific mappings for the missing relations.</div>
-
 <section> 
 <h3>Structure of this Document</h3>
 
@@ -170,7 +169,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <p>Finally, <a href="#extensibility-section">Section 4</a> summarizes PROV-JSON's extensibility points.</p>
 
-<p>In addition, <a href="#prov-json-example">Appendix A</a> provides a PROV-JSON example representation encoding <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#prov-dm-example">the PROV-DM's File Scenario</a>.</p>
+<p>In addition, <a href="#prov-json-example">Appendix A</a> provides a PROV-JSON example representation encoding <a href="http://www.w3.org/TR/2011/prov-dm/#prov-dm-example">the PROV-DM's File Scenario</a>.</p>
 
 </section> 
 
@@ -205,7 +204,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <dt>boolean</dt>
 <dd>xsd:boolean</dd>
 <dt>array</dt>
-<dd>provjs:array</dd>
+<dd>List of <a href="#multiple-value-properties">multiple values</a> of a property.</dd>
 </dl>
 
 <pre class="example">
@@ -216,9 +215,9 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     ...
     "entity": {
         "e1": {
-            "x:byteSize": [1034, "xsd:positiveInteger"],
-            "x:compression": ["82.5e-2", "xsd:double"],
-            "x:content": ["Y29udGVudCBoZXJl", "xsd:base64Binary"],
+            "x:byteSize": "1034^^xsd:positiveInteger",
+            "x:compression": "82.5e-2^^xsd:double",
+            "x:content": "Y29udGVudCBoZXJl^^xsd:base64Binary",
         }
     }
 </pre>
@@ -229,9 +228,8 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     "entity": {
         "e1": {
             "x:visible": true,
-            "x:visible": [true, "xsd:boolean"],
-            "x:visible": ["true", "xsd:boolean"],
-            "x:visible": ["true", "ex:customBoolean"],
+            "x:enabled": "true^^xsd:boolean",
+            "x:custom": "true^^ex:customBoolean",
         }
     }
 </pre>
@@ -239,14 +237,14 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 
 <div class='note'>How to represent objects in PROV-JSON is being under consideration. In the next version, PROV-JSON will possibly support serializing typed objects either in an application-specific encoding or as native JSON objects with type information.</div>
 
-<h3>Representing Arrays</h3>
+<h3 id="multiple-value-properties">Properties with multiple values</h3>
 
 <p>Some keys in PROV-JSON may have more than one value. To provide an array structure with the data typing approach above, we support the use of 'provjs:array' as a data type in the second element of a PROV-JSON literal. It is represented as a JSON array containing a combination of literals and literal/type pairs. For example:</p>
 
 <pre class="example">
     "entity": {
         "e1": {
-            "x:values": [[[1, "xsd:integer"], 2, [1034, "xsd:positiveInteger"], [82.5, "xsd:decimal"], ["Y29udGBudCBoZXJl", "xsd:base64Binary"]], "provjs:array"]
+            "x:values": ["1^^xsd:integer", 2, "1034^^xsd:positiveInteger", "82.5^^xsd:decimal", "Y29udGBudCBoZXJl^^xsd:base64Binary"]
         }
     }
 </pre>
@@ -264,7 +262,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
       
 <h3>Overview</h3>
 
-<p>A <span class="nonterminal">recordContainer</span> (see section <a href="#RecordContainer">Record Container</a>) is used to wrap PROV-DM records and facilitate their interchange. In PROV-JSON, it is represented in one JSON structure:</p>
+<p>A <span class="nonterminal">bundle</span> (see section <a href="#RecordContainer">Bundle</a>) is used to wrap PROV-DM assertions and facilitate their interchange. In PROV-JSON, it is represented in one JSON structure:</p>
 
 <div class="grammar"><pre>
 {
@@ -277,7 +275,7 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
     &lt;<i>relationName</i>&gt;: { <span class="code-comment">// A map of relations of type <i>relationName</i> by their IDs</span>
     },
     ...
-    "account": { <span class="code-comment">// Map of accounts by IDs</span>
+    "bundle": { <span class="code-comment">// Map of named bundles by IDs</span>
     }
 }
 </pre></div>
@@ -301,14 +299,14 @@ This document specifies a provenance representation in JSON, called PROV-JSON, f
 <section id="record-element"> 
 <h3>Element</h3>
 
-<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-element">PROV-DM elements</a>: <span class="nonterminal">entityRecord</span>, <span class="nonterminal">activityRecord</span>, <span class="nonterminal">agentRecord</span>, and <span class="nonterminal">noteRecord</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, and <span class="name">note</span>, respectively.</p>
+<p>This section describes the JSON representations for all <a href="http://www.w3.org/TR/2011/prov-dm/#record-element">PROV-DM elements</a>: <span class="nonterminal">entityRecord</span>, <span class="nonterminal">activityRecord</span>, <span class="nonterminal">agentRecord</span>, and <span class="nonterminal">noteRecord</span>. In the container to which these elements belong, they are put in separate structures whose names are <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, and <span class="name">note</span>, respectively.</p>
 
 
 <section id="record-Entity"> 
       
 <h4>Entity Record</h4>
 
-<p>In PROV-JSON, each <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Entity">entity</a> is represented as a property in the <span class="nonterminal">entity</span> object, identified by the entity's <span class="name">id. The</span> property's value itself is an object structure containing the entity's attribute-values pairs.</p>
+<p>In PROV-JSON, each <a href="http://www.w3.org/TR/2011/prov-dm/#record-Entity">entity</a> is represented as a property in the <span class="nonterminal">entity</span> object, identified by the entity's <span class="name">id. The</span> property's value itself is an object structure containing the entity's attribute-values pairs.</p>
 
 The following entity assertion, for example,
 <pre class="example">
@@ -334,12 +332,11 @@ is serialized into the following structure
 <section id="record-Activity"> 
 <h3>Activity Record</h3>
 
-<p>Each <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Activity">Activity</a> is represented as a property in the <span class="name">activity</span> object identified by the Activity's <span class="name">id</span>. The property's value itself is an object structure containing the Activity's properties and its other attribute-values pairs.</p>
+<p>Each <a href="http://www.w3.org/TR/2011/prov-dm/#record-Activity">Activity</a> is represented as a property in the <span class="name">activity</span> object identified by the Activity's <span class="name">id</span>. The property's value itself is an object structure containing the Activity's properties and its other attribute-values pairs.</p>
 
 <p>
 The following Activity assertion, for example,</p>
-<pre class="example">&nbsp;  </pre>
-<pre>activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host="server.example.org",prov:type="ex:edit" %% xsd:QName])</pre>
+<pre class="example">activity(a1,add-crime-in-london,2011-11-16T16:05:00,2011-11-16T16:06:00,[ex:host="server.example.org",prov:type="ex:edit" %% xsd:QName])</pre>
 <p>is serialized into:</p>
 <pre class="example">
     ...
@@ -362,7 +359,7 @@ The following Activity assertion, for example,</p>
 <section id="record-Agent">
 <h3>Agent Record</h3>
 
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Agent">agent</a> is a representation of an entity capable of activity. It can be of the following types <span class="name">prov:Person</span>, <span class="name">prov:Organization</span>, or <span class="name">prov:SoftwareAgent</span>, which are subclasses of <span class="name">prov:Agent</span>. Hence, in PROV-JSON, an agent record is encoded as an <a href="#record-Entity">entity</a> but with an extra <span class="name">prov:type</span> attribute to indicate that it is an agent, i.e. <span class="name">"prov:type": ["prov:Agent", "xsd:QName"]</span>.
+<p>In PROV-DM, an <a href="http://www.w3.org/TR/2011/prov-dm/#record-Agent">agent</a> is a representation of an entity capable of activity. It can be of the following types <span class="name">prov:Person</span>, <span class="name">prov:Organization</span>, or <span class="name">prov:SoftwareAgent</span>, which are subclasses of <span class="name">prov:Agent</span>. Hence, in PROV-JSON, an agent record is encoded as an <a href="#record-Entity">entity</a> but with an extra <span class="name">prov:type</span> attribute to indicate that it is an agent, i.e. <span class="name">"prov:type": ["prov:Agent", "xsd:QName"]</span>.
 
 <pre class="example">
 agent(e1, [ex:employee="1234" %% xsd:integer, ex:name="Alice", prov:type="prov:Person" %% xsd:QName])
@@ -387,7 +384,7 @@ is encoded into:
       
 <h4>Note Record</h4>
 
-<p>In PROV-DM, a <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-note">note</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">note</span> object, identified by the note's <span class="name">id</span>. The property's value itself is an object structure containing the note's attribute-values pairs.</p> 
+<p>In PROV-DM, a <a href="http://www.w3.org/TR/2011/prov-dm/#record-note">note</a> is a set of name-value pairs, whose meaning is application specific. It is represented in PROV-JSON as a property of the <span class="name">note</span> object, identified by the note's <span class="name">id</span>. The property's value itself is an object structure containing the note's attribute-values pairs.</p> 
 
 <p>
 The following note record, for example,</p>
@@ -415,7 +412,7 @@ note(ann1,[ex:color="blue", ex:screenX="20" %% xsd:integer, ex:screenY="30" %% x
 <section id="record-relation">
 <h3>Relation</h3>
 
-<p>This section specifies how various <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-relation">relation records</a> in PROV-DM are serialized in PROV-JSON.</p>
+<p>This section specifies how various <a href="http://www.w3.org/TR/2011/prov-dm/#record-relation">relation records</a> in PROV-DM are serialized in PROV-JSON.</p>
 
 <p>In general, a <span class="nonterminal">relationRecord</span> has the following construct:</p>
 
@@ -457,7 +454,7 @@ Any values of <span class="nonterminal">additionalProperties</span> and <span cl
 <section id="record-Generation">
 <h4>Generation Record</h4>
 
-<p>The following <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Generation">generation assertions</a></p>
+<p>The following <a href="http://www.w3.org/TR/2011/prov-dm/#record-Generation">generation assertions</a></p>
 <pre class="example">
   wasGeneratedBy(e1,a1, 2001-10-26T21:32:52, [ex:port="p1", ex:order=1])
   wasGeneratedBy(e2,a1, 2001-10-26T10:00:00, [ex:port="p1", ex:order=2])
@@ -492,7 +489,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <section id="record-Usage">
 <h3>Usage Record</h3>
 
-<p>The following <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Usage">usage records</a></p>
+<p>The following <a href="http://www.w3.org/TR/2011/prov-dm/#record-Usage">usage records</a></p>
 <pre class="example">
   used(a1,e1,2011-11-16T16:00:00,[ex:parameter="p1"])
   used(a1,e2,2011-11-16T16:00:01,[ex:parameter="p2"])
@@ -525,7 +522,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <h3>Activity Association Record</h3>
 
 
-<p>The following <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-ActivityAssociation"> activity association records,</a></p>
+<p>The following <a href="http://www.w3.org/TR/2011/prov-dm/#record-ActivityAssociation"> activity association records,</a></p>
 <pre class="example">
   activity(a,[prov:type="workflow"])
   agent(ag1,[prov:type="programmer"]
@@ -572,7 +569,7 @@ Note that, in the example above, the qualifier's components are unbundled and mi
 <section id="record-Start-End">
 <h3>Start and End Records</h3>
 
-The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Start-End">start and end records</a> below
+The <a href="http://www.w3.org/TR/2011/prov-dm/#record-Start-End">start and end records</a> below
 <pre class="example">
   wasStartedBy(a,ag,[ex:mode="manual"])
   wasEndedby(a,ag,[ex:mode="manual"])
@@ -604,7 +601,7 @@ The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Start-End">st
 <section id="record-responsibility">
 <h3>Responsibility Record</h3>
 
-The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-responsibility">responsibility records</a> below
+The <a href="http://www.w3.org/TR/2011/prov-dm/#record-responsibility">responsibility records</a> below
 <pre class="example">
   activity(a,[prov:type="workflow"])
   agent(ag1,[prov:type="programmer"]
@@ -670,7 +667,7 @@ The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-responsibilit
 <h3>Derivation Record</h3>
 
 
-<p>The following <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Derivation">derivation assertions</a></p>
+<p>The following <a href="http://www.w3.org/TR/2011/prov-dm/#record-Derivation">derivation assertions</a></p>
 <pre class="example">
   wasDerivedFrom(e5,e3,a4,g2,u2)
   wasDerivedFrom(e3,e2)
@@ -709,7 +706,7 @@ The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-responsibilit
 
 <h3>Complementarity Record</h3>
 
-<p>The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-complement-of">complementarity records</a> below</p>
+<p>The <a href="http://www.w3.org/TR/2011/prov-dm/#record-complement-of">complementarity records</a> below</p>
 <pre class="example">
   entity(rs,[ex:created="1870" %% xsd:integer])
 
@@ -807,7 +804,7 @@ The <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-responsibilit
 <section id="record-annotation">
 <h4>Annotation Record</h4>
 
-<p>An <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-annotation">annotation record</a> establishes a link between an identifiable PROV-DM record and a note record referred to by its identifier. Multiple note records can be associated with a given PROV-DM record; symmetrically, multiple PROV-DM records can be associated with a given note record. Since note records have identifiers, they can also be annotated.</p> 
+<p>An <a href="http://www.w3.org/TR/2011/prov-dm/#record-annotation">annotation record</a> establishes a link between an identifiable PROV-DM record and a note record referred to by its identifier. Multiple note records can be associated with a given PROV-DM record; symmetrically, multiple PROV-DM records can be associated with a given note record. Since note records have identifiers, they can also be annotated.</p> 
 
 <p>
 The following records, for example,</p>
@@ -889,18 +886,18 @@ The following records, for example,</p>
 </section>
 
 <section  id="bundle">
-<h3>Bundle</h3>
+<h3>Bundles</h3>
 
-In this section, the PROV-JSON representations for the two PROV-DM's bundling constructs are introduced, i.e., <span class="nonterminal">record container</span>  and <span class="nonterminal">account record</span>.
+In this section, the PROV-JSON representations for the two PROV-DM's bundling constructs are introduced, i.e., a <span class="nonterminal">bundle</span>  and a <span class="nonterminal">named bundle</span>.
 
 <section id="RecordContainer">
-<h4>Provenance Container</h4>
+<h4>Bundle</h4>
 
-<p>A <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#RecordContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM records. A PROV-JSON serialization represents an instance of provenance container. This is the outermost level of a PROV-JSON structure. In addition to the top-level JSON structures like <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, etc., particular namespaces used in a PROV-JSON structure can be declared in a <span class="name">prefix</span> structure (see an example below). Prefixes can then be used to bind terms to specific namespaces. There is a special prefix called <code>default</code>, which can be used to declare the default namespace to which all unprefixed terms will be bound.</p>
+<p>A <a href="http://www.w3.org/TR/2011/prov-dm/#RecordContainer">provenance container</a> is a house-keeping construct of PROV-DM used for bundling PROV-DM assertions. A PROV-JSON serialization represents an instance of bundle. This is the outermost level of a PROV-JSON structure. In addition to the top-level JSON structures like <span class="name">entity</span>, <span class="name">activity</span>, <span class="name">agent</span>, etc., particular namespaces used in a PROV-JSON structure can be declared in a <span class="name">prefix</span> structure (see an example below). Prefixes can then be used to bind terms to specific namespaces. There is a special prefix called <code>default</code>, which can be used to declare the default namespace to which all unprefixed terms will be bound.</p>
 
 <p><strong>Default prefixes</strong>: By default, the following prefixes are implicitly defined:</p>
 <ul>
-  <li><code>prov</code>: <span class="name">http://www.w3.org/ns/prov-dm/</span> (i.e. <a href="#prov-dm-namespace">PROV-DM namespace</a>)</li>
+  <li><code>prov</code>: <span class="name">http://www.w3.org/ns/prov/#</span> (i.e. <a href="#prov-dm-namespace">PROV-DM namespace</a>)</li>
   <li><code>xsd</code>: <span class="name">http://www.w3.org/2001/XMLSchema-datatypes</span> (i.e. XML Datatypes [[!XMLSCHEMA-2]])</li>
 </ul>
 <p>Therefore, terms that are prefixed with <code>prov:</code> or <code>xsd:</code> will be implicitly bound to the relevant namespaces without the need for their explicit declarations. In addition, the <code>default</code> prefix is implicitly defined to be <code>prov</code>. As a result, terms in the PROV-DM namespace can be written either with or without the <code>prov</code> prefix, <strong>unless</strong> a different default namespace is explicitly defined (in which case, only the former can be used).</p>
@@ -919,7 +916,7 @@ container([x http://example.org/], [acc1,acc2]
         "x": "http://example.org/"
     },
     ...
-    "account": {
+    "bundle": {
         "acc1": {
             "prov:asserter": "http://example.org/asserter1",
             ...
@@ -938,7 +935,7 @@ container([x http://example.org/], [acc1,acc2]
 <section id="record-Account">
 <h3>Account Record</h3>
 
-<p>In PROV-DM, an <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Account">account record</a> is a wrapper of records with a dual purpose:  </p> 
+<p>In PROV-DM, an <a href="http://www.w3.org/TR/2011/prov-dm/#record-Account">account record</a> is a wrapper of records with a dual purpose:  </p> 
 <ul>
 <li> It is the mechanism by which attribution of provenance can be asserted; it allows asserters to bundle up their assertions, and assert suitable attribution;
 <li> It provides a scoping mechanism for record identifiers and for some constraints.</li>
@@ -1020,7 +1017,7 @@ container([x http://example.org/], [acc1,acc2]
 <section id="extensibility-identifiers"> 
 <h3>Identifiers</h3>
 
-<p>An identifier in PROV-JSON (and in <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-identifier">PROV-DM</a>) is a qualified name.</p>
+<p>An identifier in PROV-JSON (and in <a href="http://www.w3.org/TR/2011/prov-dm/#record-identifier">PROV-DM</a>) is a qualified name.</p>
 
 <div class="note">It is possible that there are two (or more) qualified names that resolves to the same IRI. PROV-JSON makes no provision to ensure that records referred by equivalent identifiers will be merged. It is the responsibility of the application consuming PROV-JSON to deal with such cases properly. However, it is recommended that applications producing PROV-JSON to make an effort to prevent those cases from occurring.</div>
 </section>
@@ -1030,7 +1027,7 @@ container([x http://example.org/], [acc1,acc2]
 <section id="extensibility-section"> 
 <h2>Extensibility Points</h2>
 
-<p>Since the PROV-JSON representation was developed to represent PROV-DM, it supports the <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
+<p>Since the PROV-JSON representation was developed to represent PROV-DM, it supports the <a href="http://www.w3.org/TR/2011/prov-dm/#extensibility-section">extensibility points</a> provided by PROV-DM, allowing designers to specialize it to specific applications or domains. We summarize these extensibility points here:
 
 <ul>
 <li> Applications are free to introduce application-specific attributes. They can be distinguished by qualifying them with a prefix denoting a namespace declared in a <a href="#RecordContainer">namespace declaration</a>. </li>
@@ -1050,7 +1047,7 @@ container([x http://example.org/], [acc1,acc2]
 <section id="prov-json-example" class="appendix"> 
 <h2>PROV-JSON Serialization Example</h2>
 
-In order to illustrate the use of PROV-JSON in a real-world scenario, this section provides the PROV-JSON representation for the <a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#prov-dm-example">File Scenario</a> given in the [[PROV-DM]] as an example.
+In order to illustrate the use of PROV-JSON in a real-world scenario, this section provides the PROV-JSON representation for the <a href="http://www.w3.org/TR/2011/prov-dm/#prov-dm-example">File Scenario</a> given in the [[PROV-DM]] as an example.
 
 <section> 
 <h3>A File Scenario</h3>
@@ -1084,7 +1081,7 @@ There was a lot of crime in London and New-York last month.
 
 In this section, provenance assertions in the file scenario above (see [[PROV-DM]] for explanation of those assertions) are encoded into a PROV-JSON representation (following the mappings specified in Section <a href="#prov-json-representation">Representing the Provenance Data Model in JSON</a> above).
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Entity">Entity Records</a>: The file in its various forms and its copies are modelled as entity records, corresponding to multiple characterizations, as per scenario. The entity records are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Entity">Entity Records</a>: The file in its various forms and its copies are modelled as entity records, corresponding to multiple characterizations, as per scenario. The entity records are identified by  <span class="name">e0</span>, ..., <span class="name">e6</span>.</p>
 <pre>
 {
     <span class="code-new">"prefix": {
@@ -1139,7 +1136,7 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Activity">Activity Records</a> represent activities in the scenario.</p>
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Activity">Activity Records</a> represent activities in the scenario.</p>
 
 <pre>
 {
@@ -1180,7 +1177,7 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Generation">Generation Records</a> represent the event at which a file is created in a specific form. Attributes are used to describe the modalities according to which a given entity is generated by a given activity.  The interpretation of attributes is application specific. Illustrations of such attributes for the scenario are: no attribute is provided for <span class="name">e0</span>;
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Generation">Generation Records</a> represent the event at which a file is created in a specific form. Attributes are used to describe the modalities according to which a given entity is generated by a given activity.  The interpretation of attributes is application specific. Illustrations of such attributes for the scenario are: no attribute is provided for <span class="name">e0</span>;
 <span class="name">e2</span> was generated by the editor's  save function;  <span class="name">e4</span> can be found on the smtp port, in the attachment section of the mail message; <span class="name">e6</span> was produced on the standard output of <span class="name">a5</span>. Two identifiers <span class="name">g1</span> and <span class="name">g2</span> identify the generation records referenced in derivations introduced below.</p>
 
 <pre>
@@ -1236,7 +1233,7 @@ In this section, provenance assertions in the file scenario above (see [[PROV-DM
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Use">Used Records</a> represent the event by which a file is read by an activity. 
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Use">Used Records</a> represent the event by which a file is read by an activity. 
 
 Likewise, attributes describe the modalities according to which the various entities are used by activities.  Illustrations of such attributes are: 
 <span class="name">e1</span> is used in the context of  <span class="name">a1</span>'s <span class="name">load</span> functionality; <span class="name">e2</span> is used by <span class="name">a2</span> in the context of its attach functionality; <span class="name">e3</span> is used on the standard input by <span class="name">a5</span>. Two identifiers <span class="name">u1</span> and <span class="name">u2</span> identify the Usage records referenced in derivations introduced below.</p>
@@ -1281,7 +1278,7 @@ Likewise, attributes describe the modalities according to which the various enti
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Derivation">Derivation Records</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the activity underpinning the derivation, and associated  usage (<span class="name">u1</span>, <span class="name">u2</span>) and generation (<span class="name">g1</span>, <span class="name">g2</span>) records.</p>
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Derivation">Derivation Records</a> express that an entity is derived from another.  The first two are expressed in their compact version, whereas the following two are expressed in their full version, including the activity underpinning the derivation, and associated  usage (<span class="name">u1</span>, <span class="name">u2</span>) and generation (<span class="name">g1</span>, <span class="name">g2</span>) records.</p>
 
 <pre>
 {
@@ -1318,7 +1315,7 @@ Likewise, attributes describe the modalities according to which the various enti
 }
 </pre>
 
-<p><a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity records identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>. Likewise, the one denoted by <span class="name">e6</span> complements the record denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
+<p><a href="http://www.w3.org/TR/2011/prov-dm/#record-complement-of">wasComplementOf</a>: The crime statistics file (<span class="name">e0</span>) has various contents over its existence (<span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span>); the entity records identified by <span class="name">e1</span>, <span class="name">e2</span>, <span class="name">e3</span> complement <span class="name">e0</span> with an attribute <span class="name">content</span>. Likewise, the one denoted by <span class="name">e6</span> complements the record denoted by <span class="name">e3</span> with an attribute <span class="name">spellchecked</span>.</p>
 
 <pre>
 {
@@ -1350,7 +1347,7 @@ Likewise, attributes describe the modalities according to which the various enti
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-Agent">Agent Records</a>: the various users are represented as agents, themselves being a type of entity.</p>
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-Agent">Agent Records</a>: the various users are represented as agents, themselves being a type of entity.</p>
 
 <pre>
 {
@@ -1395,7 +1392,7 @@ Likewise, attributes describe the modalities according to which the various enti
 </pre>
 
 <p>
-<a href="http://www.w3.org/TR/2011/WD-prov-dm-20111215/#record-ActivityAssociation">Activity Association Records</a>: the association of an agent with an activity is expressed with , and the nature of this association is described by attributes.  Illustrations of such attributes include the role of the participating agent, as creator, author and communicator (role is a reserved attribute in PROV-DM).</p>
+<a href="http://www.w3.org/TR/2011/prov-dm/#record-ActivityAssociation">Activity Association Records</a>: the association of an agent with an activity is expressed with , and the nature of this association is described by attributes.  Illustrations of such attributes include the role of the participating agent, as creator, author and communicator (role is a reserved attribute in PROV-DM).</p>
 <pre>
 {
     ...

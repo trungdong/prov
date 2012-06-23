@@ -1,5 +1,5 @@
 {
-  "title":"Provenance Container",
+  "title":"Provenance Bundle",
   "type":"object",
   
   "properties":{
@@ -46,19 +46,9 @@
         "format": "uri"
       }
     },
-    "note":{
+    "bundle": {
       "type":"object",
-      "description":"Map of notes by ids",
-      "additionalProperties":{
-        "type":"object",
-        "title":"note",
-		// TODO: Link to the schema for optional attribute-value pairs
-        "additionalProperties":{}
-      }
-    },
-    "account": {
-      "type":"object",
-      "description":"Map of accounts by ids",
+      "description":"Map of named bundles by ids",
       "additionalProperties": {
         "type":"object",
         "title":"account",
@@ -173,19 +163,7 @@
         },
         "additionalProperties": {"$ref":"#/properties/entity/additionalProperties/additionalProperties"}
       }
-    },
-    "hasAnnotation": {
-      "type":"object",
-      "additionalProperties":{
-        "type":"object",
-        "properties":{
-          "prov:annotated": {"type": "string", "format": "uri", "required":true},
-          "prov:note": {"type": "string", "format": "uri", "required":true}
-        },
-        "additionalProperties": false
-      }
-    }
-    
+    },    
   },
   "additionalProperties": false
 }
