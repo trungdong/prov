@@ -411,6 +411,8 @@ class ProvRecord(object):
                     if data:
                         return data
             else:
+                # only one datatype provided
+                datatype = attribute_types
                 data = parse_datatype(attribute, datatype)
                 if data:
                     return data
