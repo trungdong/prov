@@ -1129,7 +1129,7 @@ class ProvContainer(object):
                         record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id) 
                     elif value is not None:
                         # Assuming this is a datetime value
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = [value.isoformat(), 'xsd:dateTime']
+                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat()
             if record._extra_attributes:
                 for (attr, value) in record._extra_attributes:
                     attr_id = str(attr)
