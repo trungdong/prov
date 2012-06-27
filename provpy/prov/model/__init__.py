@@ -188,17 +188,21 @@ PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_i
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
-# Datatypes
-def parse_xsd_dateTime(s):
-    """Returns datetime or None."""
-    m = re.match(""" ^
+_r_xsd_dateTime = re.compile(""" ^
     (?P<year>-?[0-9]{4}) - (?P<month>[0-9]{2}) - (?P<day>[0-9]{2})
     T (?P<hour>[0-9]{2}) : (?P<minute>[0-9]{2}) : (?P<second>[0-9]{2})
     (?P<microsecond>\.[0-9]{1,6})?
     (?P<tz>
       Z | (?P<tz_hr>[-+][0-9]{2}) : (?P<tz_min>[0-9]{2})
     )?
-    $ """, s, re.X)
+    $ """, re.X)
+_r_typed_literal_uri = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^<(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)>$', re.X)
+_r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)$', re.X)
+
+# Datatypes
+def parse_xsd_dateTime(s):
+    """Returns datetime or None."""
+    m = _r_xsd_dateTime.match(s)
     if m is not None:
         values = m.groupdict()
     if values["microsecond"] is None:
@@ -213,6 +217,7 @@ def parse_xsd_dateTime(s):
     except ValueError:
         pass
     return None
+
 
 DATATYPE_PARSERS = {
     datetime.datetime: parse_xsd_dateTime,
@@ -244,8 +249,11 @@ class Literal(object):
         return u'%s %%%% %s' % (str(self._value), str(self._datatype))
         
     def json_representation(self):
-        return u'"%s"^^%s' % (str(self._value), str(self._datatype))
-
+        if isinstance(self._datatype, QName):
+            return u'"%s"^^%s' % (str(self._value), str(self._datatype))
+        else:
+            # Assuming it is a valid identifier
+            return u'"%s"^^<%s>' % (str(self._value), self._datatype.get_uri())
 
 class Identifier(object):
     def __init__(self, uri):
@@ -267,7 +275,7 @@ class Identifier(object):
         return self._uri + u' %% xsd:anyURI'
     
     def json_representation(self):
-        return self._uri + u'^^xsd:anyURI'
+        return u'"%s"^^%s' % (self._uri, u'xsd:anyURI')
     
 
 class QName(Identifier):
@@ -292,7 +300,7 @@ class QName(Identifier):
         return self._str
     
     def json_representation(self):
-        return str(self) + u'^^ xsd:QName'
+        return u'"%s"^^%s' % (str(self), u'xsd:QName')
     
 
 class Namespace(object):
@@ -1063,28 +1071,35 @@ class ProvContainer(object):
             return value.json_representation()
         except AttributeError:
             if isinstance(value, datetime.datetime):
-                return [value.isoformat(), u'xsd:dateTime']
+                return u'"%s"^^%s' % (value.isoformat(), u'xsd:dateTime')
             else:
                 return str(value)
     
     def _decode_json_representation(self, value):
         try:
             # If the value is a string
-            components = value.split('^^')
-            if len(components) == 2:
-                # that can be split into two components separated by ^^
-                # the second component is the datatype
-                datatype = components[1]
+            # try matching a typed literal with uri pattern 
+            m = _r_typed_literal_uri.match(value)
+            if m is None:
+                # try matching a typed literal with qname pattern
+                m = _r_typed_literal_qname.match(value)
+            if m is not None:
+                # found one of the typed literal patterns
+                component = m.groupdict()
+                value_str = component['value']
+                datatype = component['datatype']
+                # Check for common data types
+                # TODO Add a proper XSD datatype converter to replace this
                 if datatype == u'xsd:anyURI':
-                    return Identifier(components[0])
+                    return Identifier(value_str)
                 elif datatype == u'xsd:QName':
-                    return self.valid_identifier(components[0])
+                    return self.valid_identifier(value_str)
                 elif datatype == u'xsd:dateTime':
-                    return parse_xsd_dateTime(components[0])
+                    return parse_xsd_dateTime(value_str)
                 else:
-                    return Literal(components[0], self.valid_identifier(value[1]))
+                    return Literal(value_str, self.valid_identifier(datatype))
             else:
-                # that cannot be split as above, return it
+                # cannot match the patterns, just return the string
                 return value
         except:
             # not a string, just return it
