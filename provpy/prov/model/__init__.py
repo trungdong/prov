@@ -16,7 +16,6 @@ PROV_REC_START                  = 14
 PROV_REC_END                    = 15
 PROV_REC_INVALIDATION           = 16
 PROV_REC_COMMUNICATION          = 17
-PROV_REC_STARTBYACTIVITY        = 18
 # C2. Agents/Responsibility
 PROV_REC_AGENT                  = 20
 PROV_REC_ATTRIBUTION            = 21
@@ -52,7 +51,6 @@ PROV_RECORD_TYPES = (
     (PROV_REC_END,                  u'End'),
     (PROV_REC_INVALIDATION,         u'Invalidation'),
     (PROV_REC_COMMUNICATION,        u'Communication'),
-    (PROV_REC_STARTBYACTIVITY,      u'StartByActivity'),
     (PROV_REC_AGENT,                u'Agent'),
     (PROV_REC_ATTRIBUTION,          u'Attribution'),
     (PROV_REC_ASSOCIATION,          u'Association'),
@@ -83,7 +81,6 @@ PROV_N_MAP = {
     PROV_REC_END:                  u'wasEndedBy',
     PROV_REC_INVALIDATION:         u'wasInvalidatedBy',
     PROV_REC_COMMUNICATION:        u'wasInformedBy',
-    PROV_REC_STARTBYACTIVITY:      u'wasStartedByActivity',
     PROV_REC_AGENT:                u'agent',
     PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
     PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
@@ -111,8 +108,8 @@ PROV_ATTR_ACTIVITY              = 2
 PROV_ATTR_TRIGGER               = 3
 PROV_ATTR_INFORMED              = 4
 PROV_ATTR_INFORMANT             = 5
-PROV_ATTR_STARTED               = 6
-PROV_ATTR_STARTER               = 7
+PROV_ATTR_STARTER               = 6
+PROV_ATTR_ENDER                 = 7
 PROV_ATTR_AGENT                 = 8
 PROV_ATTR_PLAN                  = 9
 PROV_ATTR_SUBORDINATE           = 10
@@ -150,8 +147,8 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_TRIGGER, u'prov:trigger'),
     (PROV_ATTR_INFORMED, u'prov:informed'),
     (PROV_ATTR_INFORMANT, u'prov:informant'),
-    (PROV_ATTR_STARTED, u'prov:started'),
     (PROV_ATTR_STARTER, u'prov:starter'),
+    (PROV_ATTR_ENDER, u'prov:ender'),
     (PROV_ATTR_AGENT, u'prov:agent'),
     (PROV_ATTR_PLAN, u'prov:plan'),
     (PROV_ATTR_SUBORDINATE, u'prov:subordinate'),
@@ -591,11 +588,13 @@ class ProvStart(ProvRelation):
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
         trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY] = activity
         attributes[PROV_ATTR_TRIGGER] = trigger
+        attributes[PROV_ATTR_STARTER] = starter
         attributes[PROV_ATTR_TIME] = time
         ProvRelation.add_attributes(self, attributes, extra_attributes)
         
@@ -608,11 +607,13 @@ class ProvEnd(ProvRelation):
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
         trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        ender = self.optional_attribute(attributes, PROV_ATTR_ENDER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY] = activity
         attributes[PROV_ATTR_TRIGGER] = trigger
+        attributes[PROV_ATTR_ENDER] = ender
         attributes[PROV_ATTR_TIME] = time
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
@@ -652,20 +653,6 @@ class ProvCommunication(ProvRelation):
         attributes[PROV_ATTR_INFORMANT] = informant
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-
-class ProvStartByActivity(ProvRelation):
-    def get_type(self):
-        return PROV_REC_STARTBYACTIVITY
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        started = self.required_attribute(attributes, PROV_ATTR_STARTED, ProvActivity)
-        starter = self.required_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_STARTED] = started
-        attributes[PROV_ATTR_STARTER] = starter
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
 ##### Component 2: Agents and Responsibility
@@ -898,7 +885,6 @@ PROV_REC_CLS = {
     PROV_REC_END                    : ProvEnd,
     PROV_REC_INVALIDATION           : ProvInvalidation,
     PROV_REC_COMMUNICATION          : ProvCommunication,
-    PROV_REC_STARTBYACTIVITY        : ProvStartByActivity,
     PROV_REC_AGENT                  : ProvAgent,
     PROV_REC_ATTRIBUTION            : ProvAttribution,
     PROV_REC_ASSOCIATION            : ProvAssociation,
@@ -1253,11 +1239,11 @@ class ProvContainer(object):
     def usage(self, activity, entity, time=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: time}, other_attributes)
     
-    def start(self, activity, trigger=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger}, other_attributes)
+    def start(self, activity, trigger=None, starter=None, time=None, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_STARTER: starter, PROV_ATTR_TIME: time}, other_attributes)
     
-    def end(self, activity, trigger=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger}, other_attributes)
+    def end(self, activity, trigger=None, ender=None, time=None, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_ENDER: ender, PROV_ATTR_TIME: time}, other_attributes)
     
     def invalidation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_INVALIDATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: time}, other_attributes)
@@ -1265,9 +1251,6 @@ class ProvContainer(object):
     def communication(self, informed, informant, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_COMMUNICATION, identifier, {PROV_ATTR_INFORMED: informed, PROV_ATTR_INFORMANT: informant}, other_attributes)
     
-    def startbyactivity(self, started, starter, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_STARTBYACTIVITY, identifier, {PROV_ATTR_STARTED: started, PROV_ATTR_STARTED: starter}, other_attributes)
-
     def agent(self, identifier, other_attributes):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes)
     
@@ -1321,7 +1304,6 @@ class ProvContainer(object):
     wasEndedBy = end
     wasInvalidatedBy = invalidation
     wasInformedBy = communication
-    wasStartedByActivity = startbyactivity
     wasAttributedTo = attribution
     wasAssociatedWith = association
     actedOnBehalfOf = responsibility
