@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import patterns, include, url
 from tastypie.api import Api
-from server.api import AccountResource
+from server.api import AccountResource, UserResource
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
@@ -9,6 +9,7 @@ from server.api import AccountResource
 # Tasty Pie API configurations
 v0_api = Api(api_name='v0')
 v0_api.register(AccountResource())
+v0_api.register(UserResource())
 
 
 urlpatterns = patterns('',
