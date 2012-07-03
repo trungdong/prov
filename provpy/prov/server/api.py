@@ -6,13 +6,15 @@ from tastypie.resources import ModelResource
 from models import PDAccount
 from prov.model import ProvContainer
 
-class UserResource(ModelResource):
-    class Meta:
-        queryset = User.objects.all()
-        fields = ['username']
+#===============================================================================
+# class UserResource(ModelResource):
+#    class Meta:
+#        queryset = User.objects.all()
+#        fields = ['username']
+#===============================================================================
 
 class AccountResource(ModelResource):
-    creator = fields.ForeignKey(UserResource, 'owner')
+#    creator = fields.ForeignKey(UserResource, 'owner')
 
     class Meta:
         queryset = PDAccount.objects.all()
