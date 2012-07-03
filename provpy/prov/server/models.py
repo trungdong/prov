@@ -48,7 +48,7 @@ class LiteralAttribute(models.Model):
 
 
 class PDAccount(PDRecord):
-    owner = models.OneToOneField(User)
+    owner = models.ForeignKey(User)
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
     
@@ -255,5 +255,5 @@ def _create_profile(sender, instance, created, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
 
-post_save.connect(_create_profile, sender=User)
+post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
     
