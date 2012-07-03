@@ -8,10 +8,42 @@
     <meta name="keywords" content="">
     <meta name="author" content="Trung Dong Huynh">
     <title>{% block title %}PROVServer{% endblock %}</title>
-    
+    <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/custom.css" rel="stylesheet">
+    {% block script%}
+    {% endblock %}
   </head>
-
   <body>
-   {% block content %}{% endblock %}
+  <div class="navbar navbar-fixed-top">  
+  	<div class="navbar-inner">  
+    	<div class="container">  
+    	<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+   		<ul class="nav">  
+  			<li>  
+    		<div class="brand" >PROV-JSON Repisotry</div>  
+  			</li>  
+		    <li class="active"><a href="/prov/home">Home</a></li>  
+		    <li><a href="/prov/info">About</a></li>  
+		    <li><a href="/prov/contact">Contact</a></li>  
+		</ul>  
+    	</div>  
+  	</div>  
+  </div>
+  <div id="wrap">
+	<div id="main" class="container clear-top">
+    	<div class="row">
+        	<div class="span12">
+  	{% block messages %}{% endblock %}
+    {% block content %}{% endblock %}
+        	</div>   
+        </div>
+    </div>
+  </div>
   </body>
-</html>
+<footer>
+<div class="footer" id="footer"> <h4>&copy; University of Southampton 2012</h4></div>
+</footer>

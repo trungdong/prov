@@ -1,0 +1,14 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{%block title %}
+	PROV Server Login
+{% endblock %}
+{% block errors %}
+	{%if form.errors %}
+		<div class="container"> Your username and password did not match! </div>
+	{% endif %}
+{% endblock %}
+{% block content %}
+
+{% endblock %}

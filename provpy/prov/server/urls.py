@@ -1,4 +1,5 @@
 from django.conf.urls.defaults import patterns, include, url
+from django.contrib.auth.views import login
 
 # Uncomment the next two lines to enable the admin:
 # from django.contrib import admin
@@ -17,3 +18,6 @@ urlpatterns = patterns('server.views',
     
     (r'^get$', 'get_prov_json'),
 )
+urlpatterns+= patterns('',
+                (r'^home', 'django.contrib.auth.views.login'),
+                )
