@@ -8,7 +8,6 @@ import prov.tracking as prov
 import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-provlogger = prov.getLogger()
 
 @prov.Activity('TestActivity', {'prov:type': 'TestIncrease'})
 def increase(x):
