@@ -1,14 +1,44 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
+{% block script %}
+<script type="text/javascript">
+function register(){
+	window.location.href="/prov/register"
+}
+</script>
+{% endblock %}
 {%block title %}
 	PROV Server Login
 {% endblock %}
 {% block errors %}
-	{%if form.errors %}
-		<div class="container"> Your username and password did not match! </div>
-	{% endif %}
 {% endblock %}
 {% block content %}
-
+<div class="container">  
+	<div class="leaderboard">  
+		<h1>Welcome to the PROV-JSON Repistory Web UI</h1>  
+		<p>This is a web UI developed for testing PROV-JSON API</p>   
+	</div>
+	<div class="row">
+	<div class="offset4 span4" >
+	{%if form.errors %}
+		<div class="label"> Your username and password did not match! </div>
+	{% endif %}
+	<form  class="well" method="post" action="{% url 'django.contrib.auth.views.login' %}">
+		{% csrf_token %}
+		<div class="control-group">
+			<label class="control-label" for="id_username">Username: </label>
+			{{ form.username }}  
+		</div>
+		<div class="control-group">
+			<label class="control-label" for="id_password">Password: </label>
+			{{ form.password }} 
+		</div>
+        <button type="submit" class="btn btn-primary" value="login">Login</button>
+        <button class="btn offset1" type="button" onClick="register()">Register</button>  
+		<input type="hidden" name="next" value="{{ next }}" />
+	</form>
+	</div>
+	</div>
+</div> 
 {% endblock %}

@@ -1,9 +1,13 @@
 from models import PDAccount, PDRecord, save_records
 from django.http import HttpResponse
+from django.contrib.auth.models import User
 import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from prov.model import ProvContainer
+from prov.server.forms import ProfileForm
+from django.http import HttpResponseRedirect
+from django.shortcuts import render_to_response
 
 
 def get_prov_json(request):
@@ -30,3 +34,21 @@ def get_prov_json(request):
                                                        'asn_2': g2.get_asn()},
                                   context_instance=RequestContext(request))
 #        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
+
+def registration(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST)
+        if form.is_valid():
+            #import logging
+            #logging.debug("validated")
+            user=User.objects.create_user(username=form.cleaned_data['username'],
+                                     password=form.cleaned_data['password'])
+            return HttpResponseRedirect('/prov/home')
+        else:
+            return render_to_response('server/register.html',{'form': form}, 
+                                      context_instance=RequestContext(request))
+        
+    form = ProfileForm()
+    return render_to_response('server/register.html', {'form': form}, context_instance=RequestContext(request))
+
+    

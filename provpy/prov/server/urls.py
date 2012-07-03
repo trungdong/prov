@@ -17,7 +17,9 @@ urlpatterns = patterns('server.views',
     # url(r'^admin/', include(admin.site.urls)),
     
     (r'^get$', 'get_prov_json'),
+    (r'register$', 'registration'),
 )
 urlpatterns+= patterns('',
-                (r'^home', 'django.contrib.auth.views.login'),
+                (r'^home', 'django.contrib.auth.views.login', 
+                 {'template_name': 'server/home.html'}),
                 )

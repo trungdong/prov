@@ -28,7 +28,7 @@ class PDNamespace(models.Model):
 
 class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
-    rec_type = models.SmallIntegerField(choices=prov.PROV_RECORD_TYPES, db_index=True)
+    rec_type = models.SmallIntegerField(choices=provm.PROV_RECORD_TYPES, db_index=True)
     account = models.ForeignKey('PDAccount', related_name='_records', null=True, blank=True, db_index=True)
     attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
 

@@ -1,0 +1,37 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% block script %}
+{% endblock %}
+{%block title %}
+	PROV Server Login
+{% endblock %}
+{% block errors %}
+{% endblock %}
+{% block content %}
+<div class="container">  
+	<div class="leaderboard">  
+		<h1>Welcome to the PROV-JSON Repistory Web UI</h1>  
+		<p>This is a web UI developed for testing PROV-JSON API</p>   
+	</div>
+	<div class="row">
+	<div class="offset4 span4" >
+	<form method="post" action="{% url 'server.views.registration' %}" class="well">
+	{% csrf_token %}
+	{{ form.non_field_errors }}
+	{% for field in form %}
+		<div class="control-group">
+		{{ field.label_tag }}
+		{{ field }}
+  		{% for error in field.errors %}
+  		<span class="help-inline">{{error}}</span>
+  		{% endfor %} 
+  		</div>
+  	{% endfor %}
+	<button type="submit" class="btn btn-primary" value="submit">Submit</button>
+	<input type="hidden" name="next" value="{{ next }}" />
+	</form>
+	</div>
+	</div>
+</div> 
+{% endblock %}
