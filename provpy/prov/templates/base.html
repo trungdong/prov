@@ -10,8 +10,9 @@
     <title>{% block title %}PROVServer{% endblock %}</title>
     <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
     <link href="/static/custom.css" rel="stylesheet">
-    {% block script%}
-    {% endblock %}
+   	<script type="text/javascript" src="/static/webUI.js"></script>
+   	{% block head %}
+   	{% endblock %}
   </head>
   <body>
   <div class="navbar navbar-fixed-top">  
@@ -23,13 +24,18 @@
             <span class="icon-bar"></span>
           </a>
    		<ul class="nav">  
-  			<li>  
-    		<div class="brand" >PROV-JSON Repisotry</div>  
+  			<li>
+  				<div class="brand" >PROV-JSON Repisotry</div>  
   			</li>  
 		    <li class="active"><a href="/prov/home">Home</a></li>  
 		    <li><a href="/prov/info">About</a></li>  
 		    <li><a href="/prov/contact">Contact</a></li>  
 		</ul>  
+		{% if logged %}
+		<ul class="nav pull-right">
+			<li><a href="/prov/logout">Logout</a></li>
+		</ul>
+		{% endif %}
     	</div>  
   	</div>  
   </div>
@@ -45,5 +51,7 @@
   </div>
   </body>
 <footer>
-<div class="footer" id="footer"> <h4>&copy; University of Southampton 2012</h4></div>
+	<div class="footer" id="footer">
+		<h4>&copy; University of Southampton 2012</h4>
+	</div>
 </footer>

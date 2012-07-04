@@ -17,3 +17,6 @@ html, body {
     bottom: 0px;
     width: 100%;
 }
+
+table { table-layout: fixed; }
+table th, table td { overflow: hidden; }

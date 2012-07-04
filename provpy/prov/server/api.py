@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from tastypie import fields
-from tastypie.authorization import Authorization, DjangoAuthorization
+from tastypie.authorization import Authorization
 from tastypie.authentication import BasicAuthentication
 from tastypie.resources import ModelResource
 from models import PDAccount
@@ -27,6 +27,7 @@ class AccountResource(ModelResource):
         authentication = BasicAuthentication()
         
     content = fields.DictField(attribute='content', null=True)
+    owner = fields.CharField(attribute='owner', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):
         prov_graph = ProvContainer()

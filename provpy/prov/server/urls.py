@@ -18,8 +18,12 @@ urlpatterns = patterns('server.views',
     
     (r'^get$', 'get_prov_json'),
     (r'register$', 'registration'),
+    (r'home$', 'profile'),
+    (r'bundles/(?P<bundle_id>\d+)/$', 'detail'),
+    (r'create$', 'create')    
 )
 urlpatterns+= patterns('',
-                (r'^home', 'django.contrib.auth.views.login', 
-                 {'template_name': 'server/home.html'}),
+                (r'^login$', 'django.contrib.auth.views.login', 
+                 {'template_name': 'server/login.html'}),
+                 (r'^logout$', 'django.contrib.auth.views.logout_then_login')
                 )
