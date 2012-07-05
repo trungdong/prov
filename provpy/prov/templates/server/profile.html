@@ -8,8 +8,8 @@
 	<div class="leaderboard">
 		<h1>Welcome {{ user }}, this is your PROV-JSON Repistory!</h1>
 		<p>You can browse all available bundles here.</p>
-		<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
-	</div>
+	</div>	
+	<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
 	{% if message %}
 	<div class="row">
 		<div class="span8"> <h3>{{ message }}</h3></div>
@@ -35,7 +35,7 @@
         {% endfor %}
         </tbody>  
       </table>
-      <div class="row">
-			<td><input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" /> </td>  
-	  </div>
+      {% if bundles|length > 10 %}
+	  <input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />  
+	  {% endif %}
 {% endblock %}

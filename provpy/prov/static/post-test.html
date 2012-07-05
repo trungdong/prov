@@ -197,9 +197,8 @@ function test() {
 	var account = {
 			"asserter": "#unknown",
 			"rec_id": "#agentswitch-mockup",
-			"content": data
+			"content": data		
 		};
-	console.log(JSON.stringify(account));
 	$.ajax({
 		  type: 'POST',
 		  url: '/api/v0/account/',
