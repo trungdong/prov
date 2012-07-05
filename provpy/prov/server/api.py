@@ -20,8 +20,8 @@ class AccountResource(ModelResource):
         queryset = PDAccount.objects.all()
         resource_name = 'account'
         excludes = ['rec_type']
-        list_allowed_methods = ['get', 'post']
-        detail_allowed_methods = ['get', 'post']
+        list_allowed_methods = ['get', 'post', 'delete']
+        detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization= Authorization()
         authentication = BasicAuthentication()

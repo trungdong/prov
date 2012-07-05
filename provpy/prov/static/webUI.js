@@ -16,9 +16,21 @@ function view_bundle(id){
 };
 
 function delete_bundle(id){
+	var bundle = '{"id":"' + id + '"}'; 
+	$.ajax({
+		  type: 'DELETE',
+		  url: '/api/v0/account/'+id+'/',
+		  data: bundle,
+		  contentType: 'application/json',
+		  success: function(data) {
+		  	  window.location.href='/prov/home?message=The%20bundle%20with%20ID%20' + id
+		  	  +'%20was%20successfully%20deleted.';	
+			}
+		});	
+	return false;
 };
 
-function test(event) {
+function create_bundle(event) {
 	var bundle = '{"asserter":"' + document.bundle_form.asserter.value +
 			   '","rec_id":"' + document.bundle_form.rec_id.value +
 			   '","content":{' + document.bundle_form.content.value.replace(/(\r\n|\n|\r|\s+)/gm,"") + '}}'  
