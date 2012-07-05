@@ -48,7 +48,7 @@ def registration(request):
             user = authenticate(username=form.cleaned_data['username'],
                                 password=form.cleaned_data['password'])
             login(request,user)
-            if(form.data['next']):
+            if form.data['next']:
                 return HttpResponseRedirect(form.data['next'])
             return HttpResponseRedirect('/prov/home')
         else:
@@ -64,9 +64,15 @@ def registration(request):
     
 @login_required
 def profile(request):
+        if request.method == 'GET':
+            try:
+                message = request.GET['message']
+            except MultiValueDictKeyError:
+                message = None
         return render_to_response('server/profile.html', 
                                   {'user': request.user.username,
                                    'bundles': request.user.pdaccount_set.all(),
+                                   'message': message,
                                    'logged': True})
 
 @login_required

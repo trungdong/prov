@@ -190,7 +190,7 @@ data = {
       "prov:type": "as:uSwitchRequest",
       "prov:startTime": "2011-11-01T16:01:00"
     }
-  }
+  }	
 };
 
 function test() {
@@ -199,6 +199,7 @@ function test() {
 			"rec_id": "#agentswitch-mockup",
 			"content": data
 		};
+	console.log(JSON.stringify(account));
 	$.ajax({
 		  type: 'POST',
 		  url: '/api/v0/account/',

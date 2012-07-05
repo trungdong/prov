@@ -5,11 +5,16 @@
 	PROV Server
 {% endblock %}
 {% block content %}
-<div class="container">  
-	<div class="leaderboard">  
-		<h1>Welcome {{ user }}, this is your PROV-JSON Repistory!</h1>  
-		<p>You can browse all available bundles here.</p>   
+	<div class="leaderboard">
+		<h1>Welcome {{ user }}, this is your PROV-JSON Repistory!</h1>
+		<p>You can browse all available bundles here.</p>
+		<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
 	</div>
+	{% if message %}
+	<div class="row">
+		<div class="span8"> <h3>{{ message }}</h3></div>
+	</div>
+	{% endif %}
 	<table class="table span2">  
         <thead>  
           <tr>  
@@ -33,5 +38,4 @@
       <div class="row">
 			<td><input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" /> </td>  
 	  </div>
-</div>
 {% endblock %}
