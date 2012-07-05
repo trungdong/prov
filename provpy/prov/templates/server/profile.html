@@ -1,0 +1,37 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{%block title %}
+	PROV Server
+{% endblock %}
+{% block content %}
+<div class="container">  
+	<div class="leaderboard">  
+		<h1>Welcome {{ user }}, this is your PROV-JSON Repistory!</h1>  
+		<p>You can browse all available bundles here.</p>   
+	</div>
+	<table class="table span2">  
+        <thead>  
+          <tr>  
+            <th style="width: 20%">Bundle-ID</th>  
+            <th>Asserter</th>
+            <th style="width: 15%"></th>
+            <th style="width: 15%"></th>   
+          </tr>  
+        </thead>  
+        <tbody>
+        {% for account in bundles %}  
+          <tr>  
+            <td>{{ account.id }}</td>  
+            <td>{{ account.asserter }}</td>  
+            <td><input class="btn" type="button" onClick="view_bundle({{account.id}})" value="View" /> </td>  
+            <td><input class="btn" type="button" onClick="delete_bundle({{account.id}})" value="Delete" /> </td>
+          </tr>  
+        {% endfor %}
+        </tbody>  
+      </table>
+      <div class="row">
+			<td><input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" /> </td>  
+	  </div>
+</div>
+{% endblock %}

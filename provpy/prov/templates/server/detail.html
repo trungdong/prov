@@ -1,0 +1,25 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{%block title %}
+	PROV Server
+{% endblock %}
+{% block content %}
+<div class="row">
+	<div class="leaderboard span8" style="padding-bottom : 10px">  
+		<h1>You are viewing Bundle with ID {{ bundle.id }}.</h1>
+		<h2>Asserter is {{ bundle.asserter }}.<h2>
+		<h2>The record ID is {{ bundle.rec_id }}.<h2>
+	</div>
+	<input class="btn btn-primary offset3" type="button" onClick="go_to('/prov/home');" value="Back"/>  
+</div>
+	<div class="row">
+		<div class="span12">
+		<pre name="content">{{ bundle.get_graph.get_asn }}</pre>
+		</div>
+	</div>
+    <div class="row">
+    		<input class="btn btn-primary offset4" type="button" onClick="delete_bundle({{ id }})" value="Delete"/>  
+			<input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/>  
+	</div>
+{% endblock %}

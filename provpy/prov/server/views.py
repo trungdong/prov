@@ -73,7 +73,7 @@ def profile(request):
 def detail(request, bundle_id):
     PDAccount.objects.get(id=bundle_id).get_graph().print_records()
     return render_to_response('server/detail.html',
-                              {'logged': True, 'id': bundle_id})
+                              {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)})
     
 @login_required()
 def create(request):
