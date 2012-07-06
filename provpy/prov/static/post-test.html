@@ -5,192 +5,192 @@
 <script src="/static/jquery.js"></script>
 <script>
 data = {
-  "wasAssociatedWith": {
-    "_:wAW1": {
-      "prov:activity": "ex:reg_u1",
-      "prov:agent": "ex:u1"
-    },
-    "_:wAW3": {
-      "prov:activity": "ex:sum_231",
-      "prov:agent": "as:agentswitch"
-    },
-    "_:wAW2": {
-      "prov:activity": "ex:cons_predict_23",
-      "prov:agent": "as:agentswitch"
-    },
-    "_:wAW5": {
-      "prov:activity": "ex:billing_3890",
-      "prov:agent": "as:agentswitch"
-    },
-    "_:wAW4": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:agent": "as:uSwitch"
-    }
-  },
-  "wasGeneratedBy": {
-    "g2": {
-      "prov:activity": "ex:sum_231",
-      "prov:entity": "ex:u1_est_annual_cons_51"
-    },
-    "g1": {
-      "prov:activity": "ex:cons_predict_23",
-      "prov:entity": "ex:u1_cons_profile_5"
-    },
-    "_:wGB1": {
-      "prov:activity": "ex:reg_u1",
-      "prov:entity": "ex:profile_u1"
-    },
-    "g4": {
-      "prov:activity": "ex:billing_3890",
-      "prov:entity": "ex:u1_est_cost"
-    },
-    "g3": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:entity": "ex:tariff_list_93158"
-    }
-  },
-  "entity": {
-    "ex:u1": {
-      "prov:type": "\"prov:Person\"^^xsd:QName",
-      "ex:name": "Alice"
-    },
-    "ex:tariff_sp_13": {
-      "as:peak_rate_tier2": "10.3",
-      "prov:type": "as:ElectricityTariff",
-      "as:peak_rate_tier1": "12.9",
-      "as:offpeak_rate_tier2": "5.19",
-      "as:threshold_tier_1": "900"
-    },
-    "ex:elec_data_u1_5": {
-      "prov:type": "as:ElectricityConsumptionData",
-      "as:data": "",
-      "as:start": "2011-08-01T00:00:00",
-      "as:end": "2011-10-31T23:59:59"
-    },
-    "ex:u1_est_cons_profile_5": {
-      "prov:type": "as:ElectricityConsumptionProfile"
-    },
-    "ex:profile_u1": {
-      "prov:type": "e20:UserProfile",
-      "e20:postcode": "\"postcode:SO163GN\"^^xsd:QName",
-      "e20:username": "alice"
-    },
-    "ex:u1_est_annual_cons_51": {
-      "prov:type": "as:AnnualElectricityConsumption",
-      "as:peak": "2970",
-      "as:offpeak": "3630"
-    },
-    "ex:u1_est_cost": {
-      "prov:type": "as:EstimatedElectricityCost",
-      "as:net_cost": "591.37",
-      "as:total_cost": "610.44"
-    },
-    "as:uSwitch": {
-      "prov:type": "\"prov:SoftwareAgent\"^^xsd:QName",
-      "as:api_url": "http://api.uswitch.com/v1/"
-    },
-    "as:agentswitch": {
-      "prov:type": "prov:agent"
-    },
-    "ex:tariff_list_93158": {
-      "prov:type": "as:TariffList"
-    },
-    "ex:u1_cons_profile_5": {
-        "prov:type": "as:ConsumptionProfile"
-    }
-  },
-  "prefix": {
-    "ex": "http://example.org/",
-    "as": "http://www.agentswitch.org/ns/",
-    "postcode": "http://data.ordnancesurvey.co.uk/doc/postcodeunit/",
-    "e20": "http://www.energy2020.org/"
-  },
-  "wasDerivedFrom": {
-    "_:wDF1": {
-      "prov:activity": "ex:cons_predict_23",
-      "prov:generatedEntity": "ex:u1_cons_profile_5",
-      "prov:usage": "u1",
-      "prov:generation": "g1",
-      "prov:usedEntity": "ex:elec_data_u1_5"
-    },
-    "_:wDF3": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:generatedEntity": "ex:tariff_list_93158",
-      "prov:usage": "u3",
-      "prov:generation": "g3",
-      "prov:usedEntity": "ex:tariff_sp_13"
-    },
-    "_:wDF2": {
-      "prov:activity": "ex:sum_231",
-      "prov:generatedEntity": "ex:u1_est_annual_cons_51",
-      "prov:usage": "u2",
-      "prov:generation": "g2",
-      "prov:usedEntity": "ex:u1_cons_profile_5"
-    },
-    "_:wDF4": {
-      "prov:activity": "ex:billing_3890",
-      "prov:generatedEntity": "ex:u1_est_cost",
-      "prov:usage": "u4",
-      "prov:generation": "g4",
-      "prov:usedEntity": "ex:u1_est_annual_cons_51"
-    }
-  },
-  "used": {
-    "u2": {
-      "prov:activity": "ex:sum_231",
-      "prov:entity": "ex:u1_cons_profile_5"
-    },
-    "u1": {
-      "prov:activity": "ex:cons_predict_23",
-      "prov:entity": "ex:elec_data_u1_5"
-    },
-    "u4": {
-      "prov:activity": "ex:billing_3890",
-      "prov:entity": "ex:u1_est_annual_cons_51"
-    },
-    "_:u1": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:entity": "ex:profile_u1"
-    },
-    "u3": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:entity": "ex:tariff_sp_13"
-    },
-    "_:u3": {
-      "prov:activity": "ex:billing_3890",
-      "prov:entity": "ex:tariff_list_93158"
-    },
-    "_:u2": {
-      "prov:activity": "ex:uswitch_req_1291",
-      "prov:entity": "ex:u1_est_annual_cons_51"
-    },
-    "_:u4": {
-      "prov:activity": "ex:billing_3890",
-      "prov:entity": "ex:tariff_sp_13"
-    }
-  },
-  "activity": {
-    "ex:sum_231": {
-      "prov:type": "as:ConsumptionSummary",
-      "prov:startTime": "2011-11-01T16:00:01"
-    },
-    "ex:billing_3890": {
-      "prov:type": "as:ElectricityBillCalculation",
-      "prov:startTime": "2011-11-01T16:02:00"
-    },
-    "ex:reg_u1": {
-      "prov:type": "e20:UserRegistration",
-      "prov:startTime": "2011-07-25T19:35:00"
-    },
-    "ex:cons_predict_23": {
-      "prov:type": "as:ConsumptionPrediction",
-      "prov:startTime": "2011-11-01T16:00:00"
-    },
-    "ex:uswitch_req_1291": {
-      "prov:type": "as:uSwitchRequest",
-      "prov:startTime": "2011-11-01T16:01:00"
-    }
-  }	
+	  "wasAssociatedWith": {
+	    "_:wAW1": {
+	      "prov:activity": "ex:reg_u1",
+	      "prov:agent": "ex:u1"
+	    },
+	    "_:wAW3": {
+	      "prov:activity": "ex:sum_231",
+	      "prov:agent": "as:agentswitch"
+	    },
+	    "_:wAW2": {
+	      "prov:activity": "ex:cons_predict_23",
+	      "prov:agent": "as:agentswitch"
+	    },
+	    "_:wAW5": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:agent": "as:agentswitch"
+	    },
+	    "_:wAW4": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:agent": "as:uSwitch"
+	    }
+	  },
+	  "wasGeneratedBy": {
+	    "g2": {
+	      "prov:activity": "ex:sum_231",
+	      "prov:entity": "ex:u1_est_annual_cons_51"
+	    },
+	    "g1": {
+	      "prov:activity": "ex:cons_predict_23",
+	      "prov:entity": "ex:u1_cons_profile_5"
+	    },
+	    "_:wGB1": {
+	      "prov:activity": "ex:reg_u1",
+	      "prov:entity": "ex:profile_u1"
+	    },
+	    "g4": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:entity": "ex:u1_est_cost"
+	    },
+	    "g3": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:entity": "ex:tariff_list_93158"
+	    }
+	  },
+	  "entity": {
+	    "ex:u1": {
+	      "prov:type": "\"prov:Person\"^^xsd:QName",
+	      "ex:name": "Alice"
+	    },
+	    "ex:tariff_sp_13": {
+	      "as:peak_rate_tier2": "10.3",
+	      "prov:type": "as:ElectricityTariff",
+	      "as:peak_rate_tier1": "12.9",
+	      "as:offpeak_rate_tier2": "5.19",
+	      "as:threshold_tier_1": "900"
+	    },
+	    "ex:elec_data_u1_5": {
+	      "prov:type": "as:ElectricityConsumptionData",
+	      "as:data": "",
+	      "as:start": "2011-08-01T00:00:00",
+	      "as:end": "2011-10-31T23:59:59"
+	    },
+	    "ex:u1_est_cons_profile_5": {
+	      "prov:type": "as:ElectricityConsumptionProfile"
+	    },
+	    "ex:profile_u1": {
+	      "prov:type": "e20:UserProfile",
+	      "e20:postcode": "\"postcode:SO163GN\"^^xsd:QName",
+	      "e20:username": "alice"
+	    },
+	    "ex:u1_est_annual_cons_51": {
+	      "prov:type": "as:AnnualElectricityConsumption",
+	      "as:peak": "2970",
+	      "as:offpeak": "3630"
+	    },
+	    "ex:u1_est_cost": {
+	      "prov:type": "as:EstimatedElectricityCost",
+	      "as:net_cost": "591.37",
+	      "as:total_cost": "610.44"
+	    },
+	    "as:uSwitch": {
+	      "prov:type": "\"prov:SoftwareAgent\"^^xsd:QName",
+	      "as:api_url": "http://api.uswitch.com/v1/"
+	    },
+	    "as:agentswitch": {
+	      "prov:type": "prov:agent"
+	    },
+	    "ex:tariff_list_93158": {
+	      "prov:type": "as:TariffList"
+	    },
+	    "ex:u1_cons_profile_5": {
+	        "prov:type": "as:ConsumptionProfile"
+	    }
+	  },
+	  "prefix": {
+	    "ex": "http://example.org/",
+	    "as": "http://www.agentswitch.org/ns/",
+	    "postcode": "http://data.ordnancesurvey.co.uk/doc/postcodeunit/",
+	    "e20": "http://www.energy2020.org/"
+	  },
+	  "wasDerivedFrom": {
+	    "_:wDF1": {
+	      "prov:activity": "ex:cons_predict_23",
+	      "prov:generatedEntity": "ex:u1_cons_profile_5",
+	      "prov:usage": "u1",
+	      "prov:generation": "g1",
+	      "prov:usedEntity": "ex:elec_data_u1_5"
+	    },
+	    "_:wDF3": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:generatedEntity": "ex:tariff_list_93158",
+	      "prov:usage": "u3",
+	      "prov:generation": "g3",
+	      "prov:usedEntity": "ex:tariff_sp_13"
+	    },
+	    "_:wDF2": {
+	      "prov:activity": "ex:sum_231",
+	      "prov:generatedEntity": "ex:u1_est_annual_cons_51",
+	      "prov:usage": "u2",
+	      "prov:generation": "g2",
+	      "prov:usedEntity": "ex:u1_cons_profile_5"
+	    },
+	    "_:wDF4": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:generatedEntity": "ex:u1_est_cost",
+	      "prov:usage": "u4",
+	      "prov:generation": "g4",
+	      "prov:usedEntity": "ex:u1_est_annual_cons_51"
+	    }
+	  },
+	  "used": {
+	    "u2": {
+	      "prov:activity": "ex:sum_231",
+	      "prov:entity": "ex:u1_cons_profile_5"
+	    },
+	    "u1": {
+	      "prov:activity": "ex:cons_predict_23",
+	      "prov:entity": "ex:elec_data_u1_5"
+	    },
+	    "u4": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:entity": "ex:u1_est_annual_cons_51"
+	    },
+	    "_:u1": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:entity": "ex:profile_u1"
+	    },
+	    "u3": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:entity": "ex:tariff_sp_13"
+	    },
+	    "_:u3": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:entity": "ex:tariff_list_93158"
+	    },
+	    "_:u2": {
+	      "prov:activity": "ex:uswitch_req_1291",
+	      "prov:entity": "ex:u1_est_annual_cons_51"
+	    },
+	    "_:u4": {
+	      "prov:activity": "ex:billing_3890",
+	      "prov:entity": "ex:tariff_sp_13"
+	    }
+	  },
+	  "activity": {
+	    "ex:sum_231": {
+	      "prov:type": "as:ConsumptionSummary",
+	      "prov:startTime": "2011-11-01T16:00:01"
+	    },
+	    "ex:billing_3890": {
+	      "prov:type": "as:ElectricityBillCalculation",
+	      "prov:startTime": "2011-11-01T16:02:00"
+	    },
+	    "ex:reg_u1": {
+	      "prov:type": "e20:UserRegistration",
+	      "prov:startTime": "2011-07-25T19:35:00"
+	    },
+	    "ex:cons_predict_23": {
+	      "prov:type": "as:ConsumptionPrediction",
+	      "prov:startTime": "2011-11-01T16:00:00"
+	    },
+	    "ex:uswitch_req_1291": {
+	      "prov:type": "as:uSwitchRequest",
+	      "prov:startTime": "2011-11-01T16:01:00"
+	    }
+	  }	
 };
 
 function test() {

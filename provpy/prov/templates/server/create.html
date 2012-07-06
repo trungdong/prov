@@ -11,7 +11,8 @@
 	</div>
 	<div class="row">
 	<div class="offset1 span10" >
-	<form name="bundle_form" class="well">
+	<form class="well" action="{% url 'server.views.profile' %}" method="post">
+		{% csrf_token %}
 		<div class="control-group">  
             <label class="control-label" for="rec_id">Asserter</label>  
             <input type="text" class="input-xlarge" name="asserter">   
@@ -24,7 +25,7 @@
             <label class="control-label" for="content">Content (In JSON fromat)</label>  
             <textarea class="span9" name="content" rows="10"></textarea>  
         </div>    	  		
-		<button type="button" class="btn btn-primary offset4 " onClick="create_bundle();">Submit</button>
+		<button type="submit" class="btn btn-primary offset4" value="submit">Submit</button>
 		<input class="btn btn-primary offset3" type="button" onClick="go_to('/prov/home');" value="Back"/> 
 	</form>
 	</div>

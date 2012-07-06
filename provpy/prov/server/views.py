@@ -1,14 +1,14 @@
-from models import PDAccount, PDRecord, save_records
+from models import PDAccount, PDRecord
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 import json
-from django.shortcuts import render_to_response,redirect
+from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from prov.model import ProvContainer
+from prov.model import json
 from prov.server.forms import ProfileForm
-from django.http import HttpResponseRedirect
 from django.utils.datastructures import MultiValueDictKeyError
 
 
@@ -69,6 +69,13 @@ def profile(request):
                 message = request.GET['message']
             except MultiValueDictKeyError:
                 message = None
+        elif request.method == 'POST':
+            prov_graph = ProvContainer()
+            prov_graph._decode_JSON_container(json.loads(request.POST['content']))
+            account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
+            account.save_graph(prov_graph)
+            message = 'The bundle was successfully created with ID ' + `account.id` + "."
+        
         return render_to_response('server/profile.html', 
                                   {'user': request.user.username,
                                    'bundles': request.user.pdaccount_set.all(),
@@ -83,5 +90,6 @@ def detail(request, bundle_id):
     
 @login_required()
 def create(request):
-    return render_to_response('server/create.html',{'logged': True})
+    return render_to_response('server/create.html',{'logged': True},
+                              context_instance=RequestContext(request))
     
