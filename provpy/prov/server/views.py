@@ -69,24 +69,32 @@ def profile(request):
                 message = request.GET['message']
             except MultiValueDictKeyError:
                 message = None
+                
         elif request.method == 'POST':
-            prov_graph = ProvContainer()
-            prov_graph._decode_JSON_container(json.loads(request.POST['content']))
-            account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
-            account.save_graph(prov_graph)
-            message = 'The bundle was successfully created with ID ' + `account.id` + "."
-        
+            try:
+                rid = request.POST['delete_id']
+                PDAccount.objects.get(id=rid).delete()
+                message = 'The bundle with ID ' + rid + ' was successfully deleted.'
+            except MultiValueDictKeyError:
+                prov_graph = ProvContainer()
+                prov_graph._decode_JSON_container(json.loads(request.POST['content']))
+                account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
+                account.save_graph(prov_graph)
+                message = 'The bundle was successfully created with ID ' + `account.id` + "."
+            
         return render_to_response('server/profile.html', 
                                   {'user': request.user.username,
                                    'bundles': request.user.pdaccount_set.all(),
                                    'message': message,
-                                   'logged': True})
+                                   'logged': True},
+                                  context_instance=RequestContext(request))
 
 @login_required
 def detail(request, bundle_id):
     PDAccount.objects.get(id=bundle_id).get_graph().print_records()
     return render_to_response('server/detail.html',
-                              {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)})
+                              {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)},
+                              context_instance=RequestContext(request))
     
 @login_required()
 def create(request):
