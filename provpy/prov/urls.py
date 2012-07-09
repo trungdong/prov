@@ -9,6 +9,7 @@ from server.api import AccountResource
 # Tasty Pie API configurations
 v0_api = Api(api_name='v0')
 v0_api.register(AccountResource())
+#v0_api.register(UserResource())
 
 
 urlpatterns = patterns('',

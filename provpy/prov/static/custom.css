@@ -1,0 +1,23 @@
+html, body {
+			padding-top : 30px;
+			padding-bottom : 30px;
+        }
+
+#footer
+{
+    clear: both;
+    border: 15px groove black;
+    background: black;
+    color: White;
+    padding: 0;
+    text-align: middle;
+    vertical-align: middle;
+    line-height: normal;
+    margin: 20;
+    position: fixed;
+    bottom: 0px;
+    width: 100%;
+}
+
+table { table-layout: fixed; }
+table th, table td { overflow: hidden; }

@@ -1,0 +1,40 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% block content %}
+	<h1>Welcome {{ user }}, this is your PROV-JSON Repistory!</h1>
+	<p>You can browse all available bundles here.</p>
+	<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
+	{% if message %}
+	<div class="row">
+		<div class="span8"> <h3>{{ message }}</h3></div>
+	</div>
+	{% endif %}
+	<table class="table">  
+        <thead>  
+          <tr>  
+            <th style="width: 20%">Bundle-ID</th>  
+            <th>Asserter</th>
+            <th style="width: 15%"></th>
+            <th style="width: 15%"></th>   
+          </tr>  
+        </thead>  
+        <tbody>
+        {% for account in bundles reversed %}  
+          <tr>  
+            <td>{{ account.id }}</td>  
+            <td>{{ account.asserter }}</td>  
+            <td><input class="btn btn-info" type="button" onClick="view_bundle({{account.id}})" value="View" /> </td>  
+            <form action="{% url 'server.views.profile' %}" method="post" >
+            	{% csrf_token %}
+            	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
+            	<input type="hidden" name="delete_id" value="{{ account.id }}" />
+            </form>
+          </tr>  
+        {% endfor %}
+        </tbody>  
+      </table>
+      {% if bundles|length > 10 %}
+	  <input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />  
+	  {% endif %}
+{% endblock %}

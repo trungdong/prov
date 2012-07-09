@@ -1,5 +1,7 @@
 """Module docstring to go here"""
 from django.db import models
+from django.contrib.auth.models import User
+from django.db.models.signals import  post_save
 from collections import defaultdict
 import uuid
 import datetime
@@ -46,12 +48,14 @@ class LiteralAttribute(models.Model):
 
 
 class PDAccount(PDRecord):
+    owner = models.ForeignKey(User)
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
     
     @staticmethod
-    def create(account_id, asserter_id):
-        return PDAccount.objects.create(rec_id=account_id, rec_type=prov.PROV_REC_ACCOUNT, asserter=asserter_id)
+    def create(account_id, asserter_id, owner_id):
+        return PDAccount.objects.create(rec_id=account_id, rec_type=prov.PROV_REC_ACCOUNT,
+                                        asserter=asserter_id, owner = owner_id)
     
     def add_namespace(self, prefix, uri):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri)
@@ -88,6 +92,9 @@ class PDAccount(PDRecord):
         logger.debug('Loading account id %s' % self.rec_id)
         prov_graph = build_PROVContainer(self)
         return prov_graph
+
+class UserProfile(models.Model):
+    user = models.ForeignKey(User, unique=True)
 
 
 # Internal functions
@@ -242,3 +249,11 @@ def build_PROVContainer(account):
     for pk in records:
         _create_prov_record(graph, pk, records, attributes, literals, record_map)
     return graph
+
+def _create_profile(sender, instance, created, **kwargs):
+    #logging.debug(created)
+    if(created):
+        UserProfile.objects.create(user=instance)
+
+post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
+    
