@@ -6,13 +6,7 @@ from django.contrib.auth.models import User
 
 class ProvApiKeyAuthentication(ApiKeyAuthentication):
     def is_authenticated(self, request, **kwargs):
-        """
-        Checks a user's basic auth credentials against the current
-        Django auth backend.
-
-        Should return either ``True`` if allowed, ``False`` if not or an
-        ``HttpResponse`` if you need something custom.
-        """
+        
         if not request.META.get('HTTP_AUTHORIZATION'):
             return self._unauthorized()
 
