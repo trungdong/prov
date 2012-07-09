@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import  post_save
 from tastypie.models import ApiKey
+from tastypie.authentication import ApiKeyAuthentication
 from collections import defaultdict
 import uuid
 import datetime
@@ -97,7 +98,7 @@ class PDAccount(PDRecord):
 class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
 
-
+    
 # Internal functions
 def _encode_python_literal(literal):
     if isinstance(literal, datetime.datetime):

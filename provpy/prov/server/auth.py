@@ -13,11 +13,11 @@ class ProvApiKeyAuthentication(ApiKeyAuthentication):
         Should return either ``True`` if allowed, ``False`` if not or an
         ``HttpResponse`` if you need something custom.
         """
-        if not request.META.get('AUTHORIZATION'):
+        if not request.META.get('HTTP_AUTHORIZATION'):
             return self._unauthorized()
 
         try:
-            (auth_type, data) = request.META['AUTHORIZATION'].split()
+            (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split()
             if auth_type != 'Prov-API':
                 return self._unauthorized()
             user_pass = base64.b64decode(data)

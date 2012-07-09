@@ -2,6 +2,7 @@
 *
 *  Base64 encode / decode
 *  http://www.webtoolkit.info/
+*  http://www.webtoolkit.info/javascript-base64.html
 *
 **/
  
