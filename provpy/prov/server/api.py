@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from tastypie import fields
 from tastypie.authorization import Authorization
-from tastypie.authentication import BasicAuthentication
+from tastypie.authentication import BasicAuthentication, ApiKeyAuthentication
 from tastypie.resources import ModelResource
 from models import PDAccount
 from prov.model import ProvContainer
@@ -24,7 +24,7 @@ class AccountResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization= Authorization()
-        authentication = BasicAuthentication()
+        authentication = ApiKeyAuthentication()
         
     content = fields.DictField(attribute='content', null=True)
     owner = fields.CharField(attribute='owner', null=True)

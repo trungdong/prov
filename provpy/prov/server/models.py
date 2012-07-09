@@ -2,6 +2,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import  post_save
+from tastypie.models import ApiKey
 from collections import defaultdict
 import uuid
 import datetime
@@ -250,10 +251,11 @@ def build_PROVContainer(account):
         _create_prov_record(graph, pk, records, attributes, literals, record_map)
     return graph
 
-def _create_profile(sender, instance, created, **kwargs):
-    #logging.debug(created)
+def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
+        ApiKey.objects.create(user=instance)
+#        logging.debug(ApiKey.objects.get(user=instance).key)
 
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
     
