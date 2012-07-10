@@ -1,0 +1,42 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{%block title %}
+	PROV Server
+{% endblock %}
+{% block content %}
+<div class="row">
+	<div class="leaderboard span8 " style="padding-bottom : 10px">  
+		{% if key %}
+		<h2>The Api key you have currently linked to your account is: {{ key }}</h2>
+		<h3>It was generated at {{ date }} </h3>
+		{% else %}
+		<h2>Currently you don't have any generated API key linked to your account.</h2>
+		{% endif %}
+	</div>
+	<input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/>  
+</div>
+{% if message %}
+	<div class="row">
+		<div class="span8 offset4"> <h4>{{ message }}</h4></div>
+	</div>
+{% endif %}
+<div class="row">
+	<div class="span5">
+	<form action="{% url 'server.views.api_key' %}" method="post" >
+		{% csrf_token %}
+        <input class="btn btn-primary offset3" type="submit" onClick="go_to('/prov/home');" value="Generate New"/>
+        <input type="hidden" name="action" value="generate" />
+    </form>
+    </div>
+    {% if key %}
+    <div class="span6">
+    <form action="{% url 'server.views.api_key' %}" method="post" >
+		{% csrf_token %}
+        <input class="btn btn-primary offset1" type="submit" onClick="go_to('/prov/home');" value="Delete"/>
+        <input type="hidden" name="action" value="delete" />
+    </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
