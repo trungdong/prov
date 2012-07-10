@@ -21,7 +21,7 @@
     <div class="row">		
     		<form action="{% url 'server.views.profile' %}" method="post" >
             	{% csrf_token %}
-            	<td><button class="btn btn-primary offset4" type="submit" value="Delete">Delete </button></td>
+            	<td><button class="btn btn-danger offset4" type="submit" value="Delete">Delete </button></td>
             	<input type="hidden" name="delete_id" value="{{ bundle.id }}" />
             	<input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/> 
             </form>  

@@ -1,58 +1,68 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% load url from future %}
 <!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:fb="http://www.facebook.com/2008/fbml">
+<html lang="en">
   <head>
     <meta charset="utf-8">
+    <title>{% block title %}PROVServer{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="keywords" content="">
-    <meta name="author" content="Trung Dong Huynh">
-    <title>{% block title %}PROVServer{% endblock %}</title>
+    <meta name="author" content="">
+
     <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
     <link href="/static/custom.css" rel="stylesheet">
     <script src="/static/jquery.js"></script>
    	<script type="text/javascript" src="/static/webUI.js"></script>
-   	{% block head %}
-   	{% endblock %}
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="/static/images/provserver-64.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/static/images/provserver-144.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/static/images/provserver-114.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/static/images/provserver-72.png">
+    <link rel="apple-touch-icon-precomposed" href="/static/images/provserver-57.png">
+    
+    {% block head %}{% endblock %}
   </head>
   <body>
-  <div class="navbar navbar-fixed-top">  
-  	<div class="navbar-inner">  
-    	<div class="container">  
-    	<a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+    <div class="navbar navbar-fixed-top">  
+      <div class="navbar-inner">
+        <div class="container">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-   		<ul class="nav">  
-  			<li>
-  				<div class="brand" >PROV-JSON Repisotry</div>  
-  			</li>  
-		    <li class="active"><a href="/prov/home">Home</a></li>  
-		    <li><a href="/prov/info">About</a></li>  
-		    <li><a href="/prov/contact">Contact</a></li>  
-		</ul>  
-		{% if logged %}
-		<ul class="nav pull-right">
-			<li><a href="/prov/logout">Logout</a></li>
-		</ul>
-		{% endif %}
-    	</div>  
-  	</div>  
-  </div>
-  <div id="wrap">
-	<div id="main" class="container clear-top">
-    	<div class="row">
-        	<div class="span12">
-  	{% block messages %}{% endblock %}
-    {% block content %}{% endblock %}
-        	</div>   
+          <div class="brand">Provenance Server</div>
+          <ul class="nav">
+            <li class="active"><a href="/prov/home">Home</a></li>
+            <li><a href="/prov/about">About</a></li>
+            <li><a href="/prov/contact">Contact</a></li>
+          </ul>  
+          {% if logged %}<ul class="nav pull-right">
+            <li><a href="/prov/logout">Logout</a></li>
+          </ul>{% endif %}
         </div>
+      </div>
     </div>
-  </div>
+    <div id="main" class="container clear-top">
+      <div class="row">
+        <div class="span12">
+          {% block messages %}{% endblock %}
+          {% block content %}{% endblock %}
+        </div>   
+      </div>
+    </div>
+    <footer>
+      <div class="footer" id="footer">
+        <h4>&copy; University of Southampton 2012</h4>
+      </div>
+    </footer>
   </body>
-<footer>
-	<div class="footer" id="footer">
-		<h4>&copy; University of Southampton 2012</h4>
-	</div>
-</footer>
+</html>
