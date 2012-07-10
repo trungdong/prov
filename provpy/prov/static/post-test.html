@@ -198,8 +198,7 @@ function test() {
 	var user = 'patence';
 	var pass = 'b4702794b52445bab04a51ead73d5adbc554c970';
 	var tok = user + ':' + pass;
-  	var hash = Base64.encode(tok);
-  	var auth = 'Prov-API ' + hash;
+  	var auth = 'ApiKey ' + tok;
 	
 	var account = {
 			"asserter": "#unknown",
