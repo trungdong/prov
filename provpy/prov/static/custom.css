@@ -2,6 +2,11 @@ html, body {
 			padding-top : 30px;
 			padding-bottom : 30px;
         }
+.row{
+	margin-left: -20px;
+  	*zoom: 1;
+  	margin-bottom: 20px;
+}
 
 #footer
 {

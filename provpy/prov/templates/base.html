@@ -41,7 +41,10 @@
           </a>
           <div class="brand">Provenance Server</div>
           <ul class="nav">
-            <li class="active"><a href="/prov/home">Home</a></li>
+            <li><a href="/prov/home">Home</a></li>
+            {% if logged %}
+            <li><a href="/prov/auth">API Key</a></li>
+            {% endif %}
             <li><a href="/prov/about">About</a></li>
             <li><a href="/prov/contact">Contact</a></li>
           </ul>  

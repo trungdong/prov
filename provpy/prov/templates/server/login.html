@@ -5,12 +5,11 @@
 	PROV Server Login
 {% endblock %}
 {% block content %}
-<div class="container">  
-	<div class="leaderboard">  
-		<h1>Welcome to the PROV-JSON Repistory Web UI</h1>  
-		<p>This is a web UI developed for testing PROV-JSON API</p>   
-	</div>
-	<div class="row">
+<div class="leaderboard">  
+	<h1>Welcome to the PROV-JSON Repistory Web UI</h1>  
+	<p>This is a web UI developed for testing PROV-JSON API</p>   
+</div>
+<div class="row">
 	<div class="offset4 span4" >
 	{%if form.errors %}
 		<div class="label"> Your username and password did not match! </div>
@@ -29,7 +28,6 @@
         <input class="btn offset1" type="button" onClick="register(myform.next.value)" value="Register" />  
 		<input type="hidden" name="next" value="{{ next }}" />
 	</form>
-	</div>
 	</div>
 </div> 
 {% endblock %}

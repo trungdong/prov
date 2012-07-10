@@ -3,13 +3,14 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
-import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
 from prov.model import ProvContainer
 from prov.model import json
 from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
+from tastypie.models import ApiKey
+from ubuntuone.storageprotocol.errors import DoesNotExistError
 
 
 def get_prov_json(request):
@@ -77,7 +78,7 @@ def profile(request):
                 message = 'The bundle with ID ' + rid + ' was successfully deleted.'
             except MultiValueDictKeyError:
                 prov_graph = ProvContainer()
-                prov_graph._decode_JSON_container(json.loads(request.POST['content']))
+                prov_graph._decode_JSON_container(json.loads('{' + request.POST['content']+'}'))
                 account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 account.save_graph(prov_graph)
                 message = 'The bundle was successfully created with ID ' + `account.id` + "."
@@ -96,8 +97,43 @@ def detail(request, bundle_id):
                               {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)},
                               context_instance=RequestContext(request))
     
-@login_required()
+@login_required
 def create(request):
     return render_to_response('server/create.html',{'logged': True},
                               context_instance=RequestContext(request))
+
+@login_required
+def api_key(request):
+    key = None
+    date = None
+    message = None
+    try:
+        api_key = ApiKey.objects.get(user=request.user)
+    except ApiKey.DoesNotExist:
+        api_key = None
+    
+    if request.method == 'POST':
+        try:
+            action = request.POST['action']
+            if action == 'delete' and api_key:
+                api_key.delete()
+                api_key = None
+                message = 'The API key was successfully deleted.'
+            elif action == 'generate':
+                if not api_key:
+                    api_key = ApiKey.objects.create(user=request.user)
+                else:
+                    api_key.key = ApiKey.generate_key(api_key)
+                message = 'The API key was successfully generated.'
+        except MultiValueDictKeyError:
+            pass
+
+    if api_key:
+        key = api_key.key
+        date = api_key.created
+        
+    return render_to_response('server/api_key.html',{'logged': True, 'key': key, 'date': date,
+                                                     'message': message},
+                              context_instance=RequestContext(request))
+
     

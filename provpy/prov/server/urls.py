@@ -19,7 +19,8 @@ urlpatterns = patterns('server.views',
     (r'register$', 'registration'),
     (r'home$', 'profile'),
     (r'bundles/(?P<bundle_id>\d+)/$', 'detail'),
-    (r'create$', 'create')    
+    (r'create$', 'create'),
+    (r'auth$', 'api_key'),    
 )
 urlpatterns+= patterns('',
                 (r'^login$', 'django.contrib.auth.views.login', 

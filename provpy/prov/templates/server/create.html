@@ -5,11 +5,10 @@
 	PROV Server
 {% endblock %}
 {% block content %}
-<div class="container">  
-	<div class="leaderboard" style="padding-bottom : 10px">  
-		<h1>Input the bundle you wish to upload.</h1>  
-	</div>
-	<div class="row">
+<div class="leaderboard" style="padding-bottom : 10px">  
+	<h1>Input the bundle you wish to upload.</h1>  
+</div>
+<div class="row">
 	<div class="offset1 span10" >
 	<form class="well" action="{% url 'server.views.profile' %}" method="post">
 		{% csrf_token %}
@@ -28,7 +27,6 @@
 		<button type="submit" class="btn btn-primary offset4" value="submit">Submit</button>
 		<input class="btn offset3" type="button" onClick="go_to('/prov/home');" value="Back"/> 
 	</form>
-	</div>
 	</div>
 </div>
 {% endblock %}
