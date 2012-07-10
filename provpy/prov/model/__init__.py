@@ -1,3 +1,15 @@
+'''Python implemetation of the W3C Provenance Data Model (PROV-DM)
+
+Support for PROV-JSON import/export 
+
+References:
+
+PROV-DM: http://www.w3.org/TR/prov-dm/
+
+@author: Trung Dong Huynh <trungdong@donggiang.com>
+@copyright: University of Southampton 2012
+'''
+
 import logging
 import datetime
 import json
@@ -12,29 +24,28 @@ PROV_REC_ENTITY                 = 10
 PROV_REC_ACTIVITY               = 11
 PROV_REC_GENERATION             = 12
 PROV_REC_USAGE                  = 13
-PROV_REC_START                  = 14
-PROV_REC_END                    = 15
-PROV_REC_INVALIDATION           = 16
-PROV_REC_COMMUNICATION          = 17
+PROV_REC_COMMUNICATION          = 14
+PROV_REC_START                  = 15
+PROV_REC_END                    = 16
+PROV_REC_INVALIDATION           = 17
+
 # C2. Derivations
-PROV_REC_DERIVATION             = 30
-PROV_REC_REVISION               = 31
-PROV_REC_QUOTATION              = 32
-PROV_REC_SOURCE         = 33
+PROV_REC_DERIVATION             = 20
+
 # C3. Agents/Responsibility
 PROV_REC_AGENT                  = 20
 PROV_REC_ATTRIBUTION            = 21
 PROV_REC_ASSOCIATION            = 22
-PROV_REC_RESPONSIBILITY         = 23
+PROV_REC_DELEGATION             = 23
 PROV_REC_INFLUENCE              = 24
 # C4. Bundles
-PROV_REC_BUNDLE                 = 90
+PROV_REC_BUNDLE                 = 40
 # C5. Alternate
-PROV_REC_ALTERNATE              = 40
-PROV_REC_SPECIALIZATION         = 41
-PROV_REC_MENTION                = 42
+PROV_REC_ALTERNATE              = 50
+PROV_REC_SPECIALIZATION         = 51
+PROV_REC_MENTION                = 52
 # C6. Collections
-PROV_REC_COLLECTION             = 50
+#PROV_REC_COLLECTION             = 50
 PROV_REC_MEMBERSHIP             = 51
 # Non-standard records
 PROV_REC_ACCOUNT                = 100
@@ -44,21 +55,20 @@ PROV_RECORD_TYPES = (
     (PROV_REC_ACTIVITY,             u'Activity'),
     (PROV_REC_GENERATION,           u'Generation'),
     (PROV_REC_USAGE,                u'Usage'),
+    (PROV_REC_COMMUNICATION,        u'Communication'),
     (PROV_REC_START,                u'Start'),
     (PROV_REC_END,                  u'End'),
     (PROV_REC_INVALIDATION,         u'Invalidation'),
-    (PROV_REC_COMMUNICATION,        u'Communication'),
+    (PROV_REC_DERIVATION,           u'Derivation'),
     (PROV_REC_AGENT,                u'Agent'),
     (PROV_REC_ATTRIBUTION,          u'Attribution'),
     (PROV_REC_ASSOCIATION,          u'Association'),
-    (PROV_REC_RESPONSIBILITY,       u'Responsibility'),
-    (PROV_REC_DERIVATION,           u'Derivation'),
-    (PROV_REC_REVISION,             u'Revision'),
-    (PROV_REC_QUOTATION,            u'Quotation'),
-    (PROV_REC_SOURCE,               u'Source'),
+    (PROV_REC_DELEGATION,           u'Delegation'),
+    (PROV_REC_BUNDLE,               u'Bundle'),
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
-    (PROV_REC_COLLECTION,           u'Collection'),
+    (PROV_REC_MENTION,              u'Mention'),
+#    (PROV_REC_COLLECTION,           u'Collection'),
     (PROV_REC_MEMBERSHIP,           u'Membership'),
     (PROV_REC_ACCOUNT,              u'Account'),
 )
@@ -68,23 +78,20 @@ PROV_N_MAP = {
     PROV_REC_ACTIVITY:             u'activity',
     PROV_REC_GENERATION:           u'wasGeneratedBy',
     PROV_REC_USAGE:                u'used',
+    PROV_REC_COMMUNICATION:        u'wasInformedBy',
     PROV_REC_START:                u'wasStartedBy',
     PROV_REC_END:                  u'wasEndedBy',
     PROV_REC_INVALIDATION:         u'wasInvalidatedBy',
-    PROV_REC_COMMUNICATION:        u'wasInformedBy',
+    PROV_REC_DERIVATION:           u'wasDerivedFrom',
     PROV_REC_AGENT:                u'agent',
     PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
     PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
-    PROV_REC_RESPONSIBILITY:       u'actedOnBehalfOf',
-    PROV_REC_DERIVATION:           u'wasDerivedFrom',
-    PROV_REC_REVISION:             u'wasRevisionOf',
-    PROV_REC_QUOTATION:            u'wasQuotedFrom',
-    PROV_REC_SOURCE:               u'hadPrimarySource',
+    PROV_REC_DELEGATION:           u'actedOnBehalfOf',
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
-    PROV_REC_COLLECTION:           u'Collection',
+    PROV_REC_MENTION:              u'mentionOf',
+#    PROV_REC_COLLECTION:           u'Collection',
     PROV_REC_MEMBERSHIP:           u'memberOf',
-    PROV_REC_ACCOUNT:              u'account',
 }
 
 ## Identifiers for PROV's attributes
@@ -97,28 +104,22 @@ PROV_ATTR_STARTER               = 6
 PROV_ATTR_ENDER                 = 7
 PROV_ATTR_AGENT                 = 8
 PROV_ATTR_PLAN                  = 9
-PROV_ATTR_SUBORDINATE           = 10
+PROV_ATTR_DELEGATE              = 10
 PROV_ATTR_RESPONSIBLE           = 11
 PROV_ATTR_GENERATED_ENTITY      = 12
 PROV_ATTR_USED_ENTITY           = 13
 PROV_ATTR_GENERATION            = 14
 PROV_ATTR_USAGE                 = 15
-PROV_ATTR_NEWER                 = 16
-PROV_ATTR_OLDER                 = 17
-PROV_ATTR_RESPONSIBILITY        = 18
-PROV_ATTR_QUOTE                 = 19
-PROV_ATTR_ORIGINAL              = 20
-PROV_ATTR_QUOTER_AGENT          = 21
-PROV_ATTR_ORIGINAL_AGENT        = 22
-PROV_ATTR_DERIVED               = 23
-PROV_ATTR_SOURCE                = 24
-PROV_ATTR_ANCESTOR              = 25
-PROV_ATTR_SPECIALIZED_ENTITY    = 26
+PROV_ATTR_SPECIFIC_ENTITY       = 26
 PROV_ATTR_GENERAL_ENTITY        = 27
 PROV_ATTR_ALTERNATE1            = 28
 PROV_ATTR_ALTERNATE2            = 29
-PROV_ATTR_SOMETHING             = 30
-PROV_ATTR_NOTE                  = 31
+PROV_ATTR_BUNDLE                = 30
+PROV_ATTR_INFLUENCEE            = 31
+PROV_ATTR_INFLUENCER            = 32
+PROV_ATTR_COLLECTION            = 33
+PROV_ATTR_ENTITY_SET            = 34
+PROV_ATTR_COMPLETE              = 35
 
 # Literal properties
 PROV_ATTR_TIME                  = 100
@@ -136,28 +137,19 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_ENDER, u'prov:ender'),
     (PROV_ATTR_AGENT, u'prov:agent'),
     (PROV_ATTR_PLAN, u'prov:plan'),
-    (PROV_ATTR_SUBORDINATE, u'prov:subordinate'),
+    (PROV_ATTR_DELEGATE, u'prov:delegate'),
     (PROV_ATTR_RESPONSIBLE, u'prov:responsible'),
     (PROV_ATTR_GENERATED_ENTITY, u'prov:generatedEntity'),
     (PROV_ATTR_USED_ENTITY, u'prov:usedEntity'),
     (PROV_ATTR_GENERATION, u'prov:generation'),
     (PROV_ATTR_USAGE, u'prov:usage'),
-    (PROV_ATTR_NEWER, u'prov:newer'),
-    (PROV_ATTR_OLDER, u'prov:older'),
-    (PROV_ATTR_RESPONSIBILITY, u'prov:responsibility'),
-    (PROV_ATTR_QUOTE, u'prov:quote'),
-    (PROV_ATTR_ORIGINAL, u'prov:original'),
-    (PROV_ATTR_QUOTER_AGENT, u'prov:quoterAgent'),
-    (PROV_ATTR_ORIGINAL_AGENT, u'prov:originalAgent'),
-    (PROV_ATTR_DERIVED, u'prov:derived'),
-    (PROV_ATTR_SOURCE, u'prov:source'),
-    (PROV_ATTR_ANCESTOR, u'prov:ancestor'),
-    (PROV_ATTR_SPECIALIZED_ENTITY, u'prov:specializedEntity'),
+    (PROV_ATTR_SPECIFIC_ENTITY, u'prov:specificEntity'),
     (PROV_ATTR_GENERAL_ENTITY, u'prov:generalEntity'),
     (PROV_ATTR_ALTERNATE1, u'prov:alternate1'),
     (PROV_ATTR_ALTERNATE2, u'prov:alternate2'),
-    (PROV_ATTR_SOMETHING, u'prov:something'),
-    (PROV_ATTR_NOTE, u'prov:note'),
+    (PROV_ATTR_BUNDLE, u'prov:bundle'),
+    (PROV_ATTR_INFLUENCEE, u'prov:influencee'),
+    (PROV_ATTR_INFLUENCER, u'prov:influencer'),
     # Literal properties
     (PROV_ATTR_TIME, u'prov:time'),
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
@@ -570,6 +562,20 @@ class ProvUsage(ProvRelation):
         attributes[PROV_ATTR_TIME] = time
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
+class ProvCommunication(ProvRelation):
+    def get_type(self):
+        return PROV_REC_COMMUNICATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
+        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, ProvActivity)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_INFORMED] = informed
+        attributes[PROV_ATTR_INFORMANT] = informant
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
 class ProvStart(ProvRelation):
     def get_type(self):
         return PROV_REC_START
@@ -581,7 +587,7 @@ class ProvStart(ProvRelation):
         trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
         starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-        
+
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY] = activity
         attributes[PROV_ATTR_TRIGGER] = trigger
@@ -630,23 +636,32 @@ class ProvInvalidation(ProvRelation):
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
-class ProvCommunication(ProvRelation):
+### Component 2: Derivations
+
+class ProvDerivation(ProvRelation):
     def get_type(self):
-        return PROV_REC_COMMUNICATION
+        return PROV_REC_DERIVATION
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
-        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, ProvActivity)
+        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
+        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        # Optional attributes
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
+        generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
+        usage = self.optional_attribute(attributes, PROV_ATTR_USAGE, ProvUsage)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_INFORMED] = informed
-        attributes[PROV_ATTR_INFORMANT] = informant
+        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
+        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_GENERATION] = generation
+        attributes[PROV_ATTR_USAGE] = usage
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
+### Component 3: Agents, Responsibility, and Influence
 
-##### Component 2: Agents and Responsibility
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_REC_AGENT
@@ -703,102 +718,48 @@ class ProvAssociation(ProvRelation):
         return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
 
 
-class ProvResponsibility(ProvRelation):
+class ProvDelegation(ProvRelation):
     def get_type(self):
-        return PROV_REC_RESPONSIBILITY
+        return PROV_REC_DELEGATION
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        subordinate = self.required_attribute(attributes, PROV_ATTR_SUBORDINATE, (ProvAgent, ProvEntity)) 
+        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, (ProvAgent, ProvEntity)) 
         responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, (ProvAgent, ProvEntity))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_SUBORDINATE] = subordinate
+        attributes[PROV_ATTR_DELEGATE] = delegate
         attributes[PROV_ATTR_RESPONSIBLE] = responsible
         attributes[PROV_ATTR_ACTIVITY]= activity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-
-### Component 3: Derivations
-
-class ProvDerivation(ProvRelation):
+class ProvInfluence(ProvRelation):
     def get_type(self):
-        return PROV_REC_DERIVATION
+        return PROV_REC_INFLUENCE
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
-        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, (ProvAgent, ProvEntity)) 
+        influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, (ProvAgent, ProvEntity))
         # Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
-        generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
-        usage = self.optional_attribute(attributes, PROV_ATTR_USAGE, ProvUsage)
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
-        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        attributes[PROV_ATTR_INFLUENCEE] = influencee
+        attributes[PROV_ATTR_INFLUENCER] = influencer
         attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_GENERATION] = generation
-        attributes[PROV_ATTR_USAGE] = usage
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
-class ProvRevision(ProvRelation):
-    def get_type(self):
-        return PROV_REC_REVISION
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        newer = self.required_attribute(attributes, PROV_ATTR_NEWER, ProvEntity) 
-        older = self.required_attribute(attributes, PROV_ATTR_OLDER, ProvEntity)
-        # Optional attributes
-        responsibility = self.optional_attribute(attributes, PROV_ATTR_RESPONSIBILITY, (ProvAgent, ProvEntity))
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_NEWER]= newer
-        attributes[PROV_ATTR_OLDER]= older
-        attributes[PROV_ATTR_RESPONSIBILITY]= responsibility
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
+### Component 4: Bundles
 
+class ProvBundle(ProvEntity):
+    # TODO Define ProvBundle
+    pass
 
-class ProvQuotation(ProvRelation):
-    def get_type(self):
-        return PROV_REC_QUOTATION
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        quote = self.required_attribute(attributes, PROV_ATTR_QUOTE, ProvEntity) 
-        original = self.required_attribute(attributes, PROV_ATTR_ORIGINAL, ProvEntity)
-        # Optional attributes
-        quoterAgent = self.optional_attribute(attributes, PROV_ATTR_QUOTER_AGENT, (ProvAgent, ProvEntity))
-        originalAgent = self.optional_attribute(attributes, PROV_ATTR_ORIGINAL_AGENT, (ProvAgent, ProvEntity))
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_QUOTE]= quote
-        attributes[PROV_ATTR_ORIGINAL]= original
-        attributes[PROV_ATTR_QUOTER_AGENT]= quoterAgent
-        attributes[PROV_ATTR_ORIGINAL_AGENT]= originalAgent
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-class ProvSource(ProvRelation):
-    def get_type(self):
-        return PROV_REC_SOURCE
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        derived = self.required_attribute(attributes, PROV_ATTR_DERIVED, ProvEntity) 
-        source = self.required_attribute(attributes, PROV_ATTR_SOURCE, ProvEntity)
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_DERIVED]= derived
-        attributes[PROV_ATTR_SOURCE]= source
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-### Component 4: Alternate Entities
+### Component 5: Alternate Entities
 
 class ProvSpecialization(ProvRelation):
     def get_type(self):
@@ -806,11 +767,11 @@ class ProvSpecialization(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specializedEntity = self.required_attribute(attributes, PROV_ATTR_SPECIALIZED_ENTITY, ProvEntity) 
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
         generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, ProvEntity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_SPECIALIZED_ENTITY]= specializedEntity
+        attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
         attributes[PROV_ATTR_GENERAL_ENTITY]= generalEntity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
@@ -829,31 +790,64 @@ class ProvAlternate(ProvRelation):
         attributes[PROV_ATTR_ALTERNATE2]= alternate2
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-### Component 5: Collections NOT IMPLEMENTED
-
-### Component 6: Annotations
-
+class ProvMention(ProvSpecialization):
+    def get_type(self):
+        return PROV_REC_MENTION
     
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
+        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, ProvEntity)
+        bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, ProvBundle)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
+        attributes[PROV_ATTR_GENERAL_ENTITY]= generalEntity
+        attributes[PROV_ATTR_BUNDLE]= bundle
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+### Component 6: Collections
+
+class ProvMembership(ProvRelation):
+    def get_type(self):
+        return PROV_REC_MEMBERSHIP
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, ProvEntity) 
+        entity_set = self.required_attribute(attributes, PROV_ATTR_ENTITY_SET, collections.Iterable) # TODO: Check this!!!
+        # Optional attributes
+        complete = self.optional_attribute(attributes, PROV_ATTR_COMPLETE, bool)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_COLLECTION]= collection
+        attributes[PROV_ATTR_ENTITY_SET]= entity_set
+        attributes[PROV_ATTR_COMPLETE]= complete
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+# Class mappings from PROV record type    
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
     PROV_REC_ACTIVITY               : ProvActivity,
     PROV_REC_GENERATION             : ProvGeneration,
     PROV_REC_USAGE                  : ProvUsage,
+    PROV_REC_COMMUNICATION          : ProvCommunication,
     PROV_REC_START                  : ProvStart,
     PROV_REC_END                    : ProvEnd,
     PROV_REC_INVALIDATION           : ProvInvalidation,
-    PROV_REC_COMMUNICATION          : ProvCommunication,
+    PROV_REC_DERIVATION             : ProvDerivation,
     PROV_REC_AGENT                  : ProvAgent,
     PROV_REC_ATTRIBUTION            : ProvAttribution,
     PROV_REC_ASSOCIATION            : ProvAssociation,
-    PROV_REC_RESPONSIBILITY         : ProvResponsibility,
-    PROV_REC_DERIVATION             : ProvDerivation,
-    PROV_REC_REVISION               : ProvRevision,
-    PROV_REC_QUOTATION              : ProvQuotation,
-    PROV_REC_SOURCE                 : ProvSource,
+    PROV_REC_DELEGATION             : ProvDelegation,
+    PROV_REC_INFLUENCE              : ProvInfluence,
+    PROV_REC_BUNDLE                 : ProvBundle,
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
     PROV_REC_ALTERNATE              : ProvAlternate,
-    }
+    PROV_REC_MENTION                : ProvMention,
+    PROV_REC_MEMBERSHIP             : ProvMembership,
+}
 
 
 # Container
@@ -1215,8 +1209,8 @@ class ProvContainer(object):
     def association(self, activity, agent=None, plan=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
     
-    def responsibility(self, subordinate, responsible, activity=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_RESPONSIBILITY, identifier, {PROV_ATTR_SUBORDINATE: subordinate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
+    def delegation(self, delegate, responsible, activity=None, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_DELEGATION, identifier, {PROV_ATTR_DELEGATE: delegate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
         
     def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
@@ -1225,26 +1219,18 @@ class ProvContainer(object):
                       PROV_ATTR_GENERATION: generation,
                       PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
-    
-    def revision(self, newer, older, responsibility=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_REVISION, identifier, {PROV_ATTR_NEWER: newer, PROV_ATTR_OLDER: older, PROV_ATTR_RESPONSIBILITY: responsibility}, other_attributes)
-    
-    def quotation(self, quote, original=None, quoterAgent=None, originalAgent=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_QUOTATION, identifier, 
-                               {PROV_ATTR_QUOTE: quote, PROV_ATTR_ORIGINAL: original,
-                                PROV_ATTR_QUOTER_AGENT: quoterAgent, PROV_ATTR_ORIGINAL_AGENT: originalAgent}, other_attributes)
-    
-    def originalsource(self, derived, source, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_DERIVED: derived, PROV_ATTR_SOURCE: source}, other_attributes)
-    
-    def trace(self, entity, ancestor, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ANCESTOR: ancestor}, other_attributes)
-    
-    def specialization(self, specializedEntity, generalEntity, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIALIZED_ENTITY: specializedEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
+        
+    def specialization(self, specificEntity, generalEntity, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
     
     def alternate(self, alternate1, alternate2, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
+    
+    def mention(self, specificEntity, generalEntity, bundle, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
+    
+    def membership(self, collection, entity_set, complete, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_MEMBERSHIP, identifier, {PROV_ATTR_COLLECTION: collection, PROV_ATTR_ENTITY_SET: entity_set, PROV_ATTR_COMPLETE: complete}, other_attributes)
     
     # Aliases
     wasGeneratedBy = generation
@@ -1255,11 +1241,9 @@ class ProvContainer(object):
     wasInformedBy = communication
     wasAttributedTo = attribution
     wasAssociatedWith = association
-    actedOnBehalfOf = responsibility
+    actedOnBehalfOf = delegation
     wasDerivedFrom = derivation
-    wasRevisionOf = revision
-    wasQuotedFrom = quotation
-    hadOriginalSource = originalsource
-    tracedTo = trace
     alternateOf = alternate
     specializationOf = specialization
+    mentionOf = mention
+    hadMember = membership
