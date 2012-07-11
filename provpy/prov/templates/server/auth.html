@@ -6,15 +6,14 @@
 {% endblock %}
 {% block content %}
 <div class="row">
-	<div class="leaderboard span8 " style="padding-bottom : 10px">  
+	<div class="leaderboard span8 offset2" style="padding-bottom : 10px">  
 		{% if key %}
 		<h2>The Api key you have currently linked to your account is: {{ key }}</h2>
 		<h3>It was generated at {{ date }} </h3>
 		{% else %}
 		<h2>Currently you don't have any generated API key linked to your account.</h2>
 		{% endif %}
-	</div>
-	<input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/>  
+	</div> 
 </div>
 {% if message %}
 	<div class="row">
@@ -23,17 +22,17 @@
 {% endif %}
 <div class="row">
 	<div class="span5">
-	<form action="{% url 'server.views.api_key' %}" method="post" >
+	<form action="{% url 'server.views.auth' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-info offset3" type="submit" onClick="go_to('/prov/home');" value="Generate New"/>
+        <input class="btn btn-info offset3" type="submit" value="Generate New"/>
         <input type="hidden" name="action" value="generate" />
     </form>
     </div>
     <div class="span6">
-    <form action="{% url 'server.views.api_key' %}" method="post" >
+    <form action="{% url 'server.views.auth' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-danger offset1" type="submit" onClick="go_to('/prov/home');" value="Delete"
-         {% if not key %} disabled="true" {% endif %}/>
+        <input class="btn btn-danger offset1" type="submit" value="Delete"
+        {% if not key %} disabled="true" {% endif %}/>
         <input type="hidden" name="action" value="delete" />
     </form>
   	</div>
@@ -43,13 +42,17 @@
     	<div class="span6 offset2">
     	<h3> API key usage</h3>
     	<h5> Here is an example of request made to the API using the API key.</h5>
-    	</br>
+		</div>  
+</div>
+<div class="row">
+		<div class="span6 offset2">
     	<p> Assuming a client with username 'patence' have an API key 
     	'b4702794b52445bab04a51ead73d5adbc554c970' a valid request made
     	to the API should look like this:
-    	</p>
+    	</p> 
     	</div>
-</div>
+    	<input class="btn offset1" type="button" onClick="go_to('/prov/home');" value="Back"/>  
+</div>    	
 <div class="row">
 	<table class="table-bordered span8 offset2">  
         <thead>  

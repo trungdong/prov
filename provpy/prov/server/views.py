@@ -103,7 +103,7 @@ def create(request):
                               context_instance=RequestContext(request))
 
 @login_required
-def api_key(request):
+def auth(request):
     key = None
     date = None
     message = None
@@ -132,8 +132,10 @@ def api_key(request):
         key = api_key.key
         date = api_key.created
         
-    return render_to_response('server/api_key.html',{'logged': True, 'key': key, 'date': date,
+    return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,
                                                      'message': message},
                               context_instance=RequestContext(request))
 
-    
+@login_required
+def auth_help(request):
+    return render_to_response('server/auth_help.html',{'logged': True})

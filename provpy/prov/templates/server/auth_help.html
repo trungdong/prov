@@ -1,0 +1,136 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{%block title %}
+	PROV Server
+{% endblock %}
+{% block content %}
+<div class="row">
+	<div class="leaderboard span4 offset4" style="padding-bottom : 10px">  
+		<h1> Getting started </h1>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset4">
+		<h3>The API Overview</h3>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset2">
+		<p>The PROV-JSON API provides a RESTfull web service for
+		storage and access of provenance bundles in JSON format as specified 
+		<a href="http://users.ecs.soton.ac.uk/tdh/json/">here</a> 
+		for the W3C's Provenance Data Model. Trough the API any client can manipulate bundles
+		stored on a server and explore and retrieve information from other clients.
+		</p>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset4">
+		<h3>Authentication</h3>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset2">
+		<p>The Authentication used for the API is Basic Http Authentication with user credential.
+		For this reason we suggest using the API only with secure connection(https/ssl/...).
+		The user credentials are in the form of username, chosen by the client at registration, 
+		and an auto generated API key*. Those two credential are yours to protect from any 
+		possible abuse. When you log in to the webUI developed for managing the client's accounts
+		you can view your API key by going from the top navigation bar to 'API Key'. For security
+		reasons we have provided a way of generating new API key on request of the client, in case
+		the API key has been compromised. You can and delete your API key which will lead to 
+		"locking out" your account out of the API.
+		 </br></br>
+		* Note that the user credential here mentioned (username and API key) are not the same as 
+		the credential used for the webUI. The username is the same, but on registration the client
+		creates his own separate password for accessing the webUI, which is different from the API key.
+		You can assume that the webUI is like admin panel for managing your account and the API is the 
+		actual RESTfull service on the server. 
+		</p>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset4">
+		<h3>Basic Usage</h3>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset2">
+		<p>The API supports all of the RESTfull methods PUT/POST/GET/DELETE.
+		Whenever trough your application you should query the server at the api
+		url, which normally will be in the form https://'domain'/'API url'/'resource name',
+		where 'domain' is the domain address of the server(www.example.com),
+		the API url is in the form 'api/vX' where X is version used(api/v0),
+		the resource name is the Bundles name chosen by the service provider(account).
+		The example url would form into 'https://www.example.com/api/v0/account'.
+		This query would be to the list of all your bundles (by 'yours' is meant to which
+		you have the appropriate permission dependable on the method type of the request).
+		If you want to access a specific resource you should first acquire it's ID(12) and the 
+		append it at the end of the url with a slash(/) in front:</br>
+		https://www.example.com/api/v0/12</br>
+		Every request should be correctly authenticated in order to receive the desired response.
+		The Authentication is done as specified by the Basic Authentication portocol - setting 
+		the 'Authorization' Header of the request with the correct credential. The format used is 
+		'ApiKey username:key'. Note the first 'ApiKey' stands for the literal 'ApiKey' and it
+		defines the type of authentication you are using. The user credentials are not hashed at all, 
+		rather send in plain form.<br/>
+		The only other requirement is that the data you send to the server to be in correct JSON
+		form as specified by the RPOV-JSON documentation. 
+		</p>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset4">
+		<h3>Example</h3>
+	</div>
+</div>
+<div class="row">
+	<div class="span6 offset2">
+		<p>For this example let's assume you are a client with username 'patence' 
+		and an API key 'b4702794b52445bab04a51ead73d5adbc554c970'. </br>
+		The variable 'bundle' is assumed trough the examples to be any abstract object
+		representation of a provenance bundle. Different languages and implementation 
+		are possible, the only requirement is that it can be serialized accordingly.</br></br>
+		If you want to add a new bundle to your account you should use the 'POST' method on the 
+		resource list url. If the POST is successful the response will contain the new 
+		bundle's information, including it's ID, and its location in a header.</p>
+		<pre>
+var user = 'patence';
+var pass = 'b4702794b52445bab04a51ead73d5adbc554c970';
+var tok = user + ':' + pass;
+var auth = 'ApiKey ' + tok;</pre>
+		<h3>Ajax</h3>
+		<pre>
+$.ajax({
+	type: 'POST',
+	url: 'https://www.example.com/api/v0/account/',
+	data: JSON.stringify(bundle),
+	contentType: 'application/json',
+	beforeSend: function(req) {
+		req.setRequestHeader('Authorization', auth);
+	},
+	success: function(data) {
+		//do something with the data received
+	}
+});</pre>
+<h3>JavaScript</h3> </p>
+		<pre>
+var request = new XMLHttpRequest();
+request.overrideMimeType('applicaton/json');
+request.setRequestHeader('Authorization', auth);
+// Create the callback:
+request.onreadystatechange = function() {
+	if (request.readyState != 4) return; // Not there yet
+	if (request.status != 200) {
+	// Handle request failure here...
+	return;
+	}
+// Request successful, read the response
+var response = request.responseText;
+// ... and use it as needed by your application
+request.open('POST','https://www.example.com/api/v0/account');
+request.send();</pre>
+	</div>
+</div>
+{% endblock %}
