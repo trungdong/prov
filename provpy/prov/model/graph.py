@@ -21,26 +21,26 @@ DOT_PROV_STYLE = {
     PROV_REC_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': 'aliceblue'},
     PROV_REC_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': 'lemonchiffon'},
     PROV_REC_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': 'yellow'},
-#    PROV_REC_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
+#    PROV_REC_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': '10.0'},
     # Relations
-    PROV_REC_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': 10.0, 'color': 'darkgreen', 'fontcolor': 'darkgreen'},
-    PROV_REC_USAGE: {'label': 'used', 'fontsize': 10.0, 'color': 'red4', 'fontcolor': 'red'},
-    PROV_REC_START: {'label': 'wasStartedBy', 'fontsize': 10.0},
-    PROV_REC_END: {'label': 'wasEndedBy', 'fontsize': 10.0},
-    PROV_REC_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': 10.0},
-    PROV_REC_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': 10.0},
-    PROV_REC_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': 10.0},
-    PROV_REC_REVISION: {'label': 'wasRevisionOf', 'fontsize': 10.0},
-    PROV_REC_QUOTATION: {'label': 'wasQuotedFrom', 'fontsize': 10.0},
-    PROV_REC_SOURCE: {'label': 'hadPrimarySource', 'fontsize': 10.0},
-    PROV_REC_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': 10.0, 'color': 'gold'},
-    PROV_REC_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': 10.0, 'color': 'gold'},
-    PROV_REC_RESPONSIBILITY: {'label': 'actedOnBehalfOf', 'fontsize': 10.0, 'color': 'gold'},
-    PROV_REC_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': 10.0, 'color': 'grey'},
-    PROV_REC_ALTERNATE: {'label': 'alternateOf', 'fontsize': 10.0},
-    PROV_REC_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': 10.0},
-    PROV_REC_MENTION: {'label': 'mentionOf', 'fontsize': 10.0},
-    PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': 10.0},
+    PROV_REC_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0', 'color': 'darkgreen', 'fontcolor': 'darkgreen'},
+    PROV_REC_USAGE: {'label': 'used', 'fontsize': '10.0', 'color': 'red4', 'fontcolor': 'red'},
+    PROV_REC_START: {'label': 'wasStartedBy', 'fontsize': '10.0'},
+    PROV_REC_END: {'label': 'wasEndedBy', 'fontsize': '10.0'},
+    PROV_REC_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': '10.0'},
+    PROV_REC_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': '10.0'},
+    PROV_REC_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': '10.0'},
+    PROV_REC_REVISION: {'label': 'wasRevisionOf', 'fontsize': '10.0'},
+    PROV_REC_QUOTATION: {'label': 'wasQuotedFrom', 'fontsize': '10.0'},
+    PROV_REC_SOURCE: {'label': 'hadPrimarySource', 'fontsize': '10.0'},
+    PROV_REC_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': 'gold'},
+    PROV_REC_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': 'gold'},
+    PROV_REC_RESPONSIBILITY: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': 'gold'},
+    PROV_REC_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': '10.0', 'color': 'grey'},
+    PROV_REC_ALTERNATE: {'label': 'alternateOf', 'fontsize': '10.0'},
+    PROV_REC_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': '10.0'},
+    PROV_REC_MENTION: {'label': 'mentionOf', 'fontsize': '10.0'},
+    PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
 }
 
 def prov_to_dot(prov_g):
@@ -83,7 +83,27 @@ def prov_to_dot(prov_g):
                 dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
     return dot
 
-def draw_dot_graph(prov_g, filename):
+
+### Testing code
+if __name__=="__main__":
+    import tempfile, os
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
+    import test.examples as ex
+    
+    path = tempfile.mkdtemp()
+    filepath = os.path.join(path, 'dot-test.png')
+    
+    # Get an example PROV graph
+    prov_g = ex.w3c_publication_1()
+    # Convert it to DOT
     dot = prov_to_dot(prov_g)
-    dot.set_dpi('200')
-    dot.write_png(filename)
+    dot.set_dpi(120)
+    # Write it to a temporary PNG file
+    dot.write_png(filepath)
+    
+    # Display it using matplotlib
+    img=mpimg.imread(filepath)
+    imgplot = plt.imshow(img)
+    plt.show()
+    os.remove(filepath)
