@@ -6,7 +6,7 @@ import collections
 from collections import OrderedDict, defaultdict
 logger = logging.getLogger(__name__)
 
-## PROV record constants - PROV-DM WD5
+## PROV record constants - PROV-DM LC
 # C1. Entities/Activities
 PROV_REC_ENTITY                 = 10
 PROV_REC_ACTIVITY               = 11
@@ -16,29 +16,26 @@ PROV_REC_START                  = 14
 PROV_REC_END                    = 15
 PROV_REC_INVALIDATION           = 16
 PROV_REC_COMMUNICATION          = 17
-# C2. Agents/Responsibility
+# C2. Derivations
+PROV_REC_DERIVATION             = 30
+PROV_REC_REVISION               = 31
+PROV_REC_QUOTATION              = 32
+PROV_REC_SOURCE         = 33
+# C3. Agents/Responsibility
 PROV_REC_AGENT                  = 20
 PROV_REC_ATTRIBUTION            = 21
 PROV_REC_ASSOCIATION            = 22
 PROV_REC_RESPONSIBILITY         = 23
-# C3. Derivations
-PROV_REC_DERIVATION             = 30
-PROV_REC_REVISION               = 31
-PROV_REC_QUOTATION              = 32
-PROV_REC_ORIGINALSOURCE         = 33
-PROV_REC_TRACE                  = 34
-# C4. Alternate
+PROV_REC_INFLUENCE              = 24
+# C4. Bundles
+PROV_REC_BUNDLE                 = 90
+# C5. Alternate
 PROV_REC_ALTERNATE              = 40
 PROV_REC_SPECIALIZATION         = 41
-# C5. Collections
+PROV_REC_MENTION                = 42
+# C6. Collections
 PROV_REC_COLLECTION             = 50
-PROV_REC_DICTIONARY             = 51
-PROV_REC_INSERTION              = 52
-PROV_REC_REMOVAL                = 53
-PROV_REC_MEMBERSHIP             = 54
-# C6. Annotations
-PROV_REC_NOTE                   = 60
-PROV_REC_ANNOTATION             = 61
+PROV_REC_MEMBERSHIP             = 51
 # Non-standard records
 PROV_REC_ACCOUNT                = 100
 
@@ -58,17 +55,11 @@ PROV_RECORD_TYPES = (
     (PROV_REC_DERIVATION,           u'Derivation'),
     (PROV_REC_REVISION,             u'Revision'),
     (PROV_REC_QUOTATION,            u'Quotation'),
-    (PROV_REC_ORIGINALSOURCE,       u'OriginalSource'),
-    (PROV_REC_TRACE,                u'Trace'),
+    (PROV_REC_SOURCE,               u'Source'),
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
     (PROV_REC_COLLECTION,           u'Collection'),
-    (PROV_REC_DICTIONARY,           u'Dictionary'),
-    (PROV_REC_INSERTION,            u'Insertion'),
-    (PROV_REC_REMOVAL,              u'Removal'),
     (PROV_REC_MEMBERSHIP,           u'Membership'),
-    (PROV_REC_NOTE,                 u'Note'),
-    (PROV_REC_ANNOTATION,           u'Annotation'),
     (PROV_REC_ACCOUNT,              u'Account'),
 )
 
@@ -88,17 +79,11 @@ PROV_N_MAP = {
     PROV_REC_DERIVATION:           u'wasDerivedFrom',
     PROV_REC_REVISION:             u'wasRevisionOf',
     PROV_REC_QUOTATION:            u'wasQuotedFrom',
-    PROV_REC_ORIGINALSOURCE:       u'hadOriginalSource',
-    PROV_REC_TRACE:                u'traceTo',
+    PROV_REC_SOURCE:               u'hadPrimarySource',
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
     PROV_REC_COLLECTION:           u'Collection',
-    PROV_REC_DICTIONARY:           u'Dictionary',
-    PROV_REC_INSERTION:            u'derivedByInsertionFrom',
-    PROV_REC_REMOVAL:              u'derivedByRemovalFrom',
     PROV_REC_MEMBERSHIP:           u'memberOf',
-    PROV_REC_NOTE:                 u'note',
-    PROV_REC_ANNOTATION:           u'hasAnnotation',
     PROV_REC_ACCOUNT:              u'account',
 }
 
@@ -505,13 +490,19 @@ class ProvRecord(object):
         
         return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
     
+    def is_element(self):
+        return False
+    
+    def is_relation(self):
+        return False
 
 class ProvElement(ProvRecord):
-    pass
-
+    def is_element(self):
+        return True
 
 class ProvRelation(ProvRecord):
-    pass
+    def is_relation(self):
+        return True
 
 
 ### Component 1: Entities and Activities
@@ -792,9 +783,9 @@ class ProvQuotation(ProvRelation):
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
-class ProvOriginalSource(ProvRelation):
+class ProvSource(ProvRelation):
     def get_type(self):
-        return PROV_REC_ORIGINALSOURCE
+        return PROV_REC_SOURCE
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -806,20 +797,6 @@ class ProvOriginalSource(ProvRelation):
         attributes[PROV_ATTR_SOURCE]= source
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-
-class ProvTrace(ProvRelation):
-    def get_type(self):
-        return PROV_REC_TRACE
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
-        ancestor = self.required_attribute(attributes, PROV_ATTR_ANCESTOR, ProvEntity)
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ENTITY]= entity
-        attributes[PROV_ATTR_ANCESTOR]= ancestor
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 ### Component 4: Alternate Entities
 
@@ -856,25 +833,6 @@ class ProvAlternate(ProvRelation):
 
 ### Component 6: Annotations
 
-class ProvNote(ProvElement):
-    def get_type(self):
-        return PROV_REC_NOTE
-
-    
-class ProvAnnotation(ProvRelation):
-    def get_type(self):
-        return PROV_REC_ALTERNATE
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        something = self.required_attribute(attributes, PROV_ATTR_SOMETHING, ProvRecord) 
-        note = self.required_attribute(attributes, PROV_ATTR_NOTE, ProvEntity)
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_SOMETHING]= something
-        attributes[PROV_ATTR_NOTE]= note
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
     
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
@@ -892,12 +850,9 @@ PROV_REC_CLS = {
     PROV_REC_DERIVATION             : ProvDerivation,
     PROV_REC_REVISION               : ProvRevision,
     PROV_REC_QUOTATION              : ProvQuotation,
-    PROV_REC_ORIGINALSOURCE         : ProvOriginalSource,
-    PROV_REC_TRACE                  : ProvTrace,
+    PROV_REC_SOURCE                 : ProvSource,
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
     PROV_REC_ALTERNATE              : ProvAlternate,
-    PROV_REC_NOTE                   : ProvNote,
-    PROV_REC_ANNOTATION             : ProvAnnotation
     }
 
 
@@ -1291,12 +1246,6 @@ class ProvContainer(object):
     def alternate(self, alternate1, alternate2, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
     
-    def note(self, identifier, other_attributes):
-        return self.add_element(PROV_REC_NOTE, identifier, None, other_attributes)
-        
-    def annotation(self, something, note, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ANNOTATION, identifier, {PROV_ATTR_SOMETHING: something, PROV_ATTR_NOTE: note}, other_attributes)
-    
     # Aliases
     wasGeneratedBy = generation
     used = usage
@@ -1314,4 +1263,3 @@ class ProvContainer(object):
     tracedTo = trace
     alternateOf = alternate
     specializationOf = specialization
-    hasAnnotation = annotation
