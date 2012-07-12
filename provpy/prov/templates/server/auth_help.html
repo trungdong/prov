@@ -6,14 +6,30 @@
 {% endblock %}
 {% block content %}
 <div class="row">
-	<div class="leaderboard span4 offset4" style="padding-bottom : 10px">  
+	<div class="leaderboard span4 offset4" style="padding-bottom : 10px">
+		<div id="Top" class="anchorOffset"></div>  
 		<h1> Getting started </h1>
 	</div>
 </div>
 <div class="row">
-	<div class="span6 offset4">
-		<h3>The API Overview</h3>
+	<div class="span4 offset4">
+		<ul>
+			<li><h4><a href="#Overview">Overview</a></h4></li>
+			<li><h4><a href="#Authentication">Authentication</a></h4></li>
+			<li><h4><a href="#Usage">Basic Usage</a></h4></li>
+			<li><h4><a href="#Example">Example</a></h4>
+				<ul>
+					<li><h4><a href="#js">Javascript</a></h4></li>
+					<li><h4><a href="#ajax">Ajax</a></h4></li>
+				</ul>
+			</li>
+		</ul>
 	</div>
+</div>
+<div class="row">
+	<div class=" span6 offset4">
+		<div id="Overview" class="anchorOffset"></div>
+		<h3>The API Overview</h3></div>
 </div>
 <div class="row">
 	<div class="span6 offset2">
@@ -27,6 +43,7 @@
 </div>
 <div class="row">
 	<div class="span6 offset4">
+		<div id="Authentication" class="anchorOffset"></div>
 		<h3>Authentication</h3>
 	</div>
 </div>
@@ -52,6 +69,7 @@
 </div>
 <div class="row">
 	<div class="span6 offset4">
+		<div id="Usage" class="anchorOffset"></div>
 		<h3>Basic Usage</h3>
 	</div>
 </div>
@@ -82,6 +100,7 @@
 </div>
 <div class="row">
 	<div class="span6 offset4">
+		<div id="Example" class="anchorOffset"></div>
 		<h3>Example</h3>
 	</div>
 </div>
@@ -100,20 +119,7 @@ var user = 'patence';
 var pass = 'b4702794b52445bab04a51ead73d5adbc554c970';
 var tok = user + ':' + pass;
 var auth = 'ApiKey ' + tok;</pre>
-		<h3>Ajax</h3>
-		<pre>
-$.ajax({
-	type: 'POST',
-	url: 'https://www.example.com/api/v0/account/',
-	data: JSON.stringify(bundle),
-	contentType: 'application/json',
-	beforeSend: function(req) {
-		req.setRequestHeader('Authorization', auth);
-	},
-	success: function(data) {
-		//do something with the data received
-	}
-});</pre>
+<div id="js" class="anchorOffset"></div>
 <h3>JavaScript</h3> </p>
 		<pre>
 var request = new XMLHttpRequest();
@@ -131,6 +137,26 @@ var response = request.responseText;
 // ... and use it as needed by your application
 request.open('POST','https://www.example.com/api/v0/account');
 request.send();</pre>
+		<div id="ajax" class="anchorOffset"></div>
+		<h3>Ajax</h3>
+		<pre>
+$.ajax({
+	type: 'POST',
+	url: 'https://www.example.com/api/v0/account/',
+	data: JSON.stringify(bundle),
+	contentType: 'application/json',
+	beforeSend: function(req) {
+		req.setRequestHeader('Authorization', auth);
+	},
+	success: function(data) {
+		//do something with the data received
+	}
+});</pre>
+	</div>
+</div>
+<div class="row">
+	<div class="span2 offset5"
+		<h4><a href="#Top">Back to Top</a></h4>
 	</div>
 </div>
 {% endblock %}
