@@ -76,8 +76,7 @@ def profile(request):
                 PDAccount.objects.get(id=rid).delete()
                 message = 'The bundle with ID ' + rid + ' was successfully deleted.'
             except MultiValueDictKeyError:
-                prov_graph = ProvContainer()
-                prov_graph._decode_JSON_container(json.loads('{' + request.POST['content']+'}'))
+                prov_graph = json.loads(request.POST['content'], cls=ProvContainer.JSONDecoder)
                 account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 account.save_graph(prov_graph)
                 message = 'The bundle was successfully created with ID ' + `account.id` + "."
