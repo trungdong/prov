@@ -21,6 +21,7 @@
 				<ul>
 					<li><h4><a href="#js">Javascript</a></h4></li>
 					<li><h4><a href="#ajax">Ajax</a></h4></li>
+					<li><h4><a href="#php">PHP</a></h4></li>
 				</ul>
 			</li>
 		</ul>
@@ -123,7 +124,7 @@ var auth = 'ApiKey ' + tok;</pre>
 <h3>JavaScript</h3> </p>
 		<pre>
 var request = new XMLHttpRequest();
-request.overrideMimeType('applicaton/json');
+request.setRequestHeader('Content Type', 'applicaton/json');
 request.setRequestHeader('Authorization', auth);
 // Create the callback:
 request.onreadystatechange = function() {
@@ -132,11 +133,11 @@ request.onreadystatechange = function() {
 	// Handle request failure here...
 	return;
 	}
+request.open('POST','https://www.example.com/api/v0/account');
+request.send();
 // Request successful, read the response
 var response = request.responseText;
-// ... and use it as needed by your application
-request.open('POST','https://www.example.com/api/v0/account');
-request.send();</pre>
+// ... and use it as needed by your application</pre>
 		<div id="ajax" class="anchorOffset"></div>
 		<h3>Ajax</h3>
 		<pre>
@@ -151,6 +152,25 @@ $.ajax({
 	success: function(data) {
 		//do something with the data received
 	}
+});</pre>
+		<div id="php" class="anchorOffset"></div>
+		<h3>PHP</h3>
+		<pre>
+// Create Http context details
+$contextData = array ( 
+	'method' => 'POST',
+	'header' => 
+		"Connection: close\r\n".
+		"Content-Length: ".strlen($bundle_serialized)."\r\n".
+		"Content-Type: application/json\r\n".
+		"Authorization: ".$auth."\r\n",
+	'content'=> $bundle_serialized);
+// Create context resource for our request
+$context = stream_context_create (array ( 'http' => $contextData ));
+// Read page rendered as result of your POST request
+$result =  file_get_contents (
+                  'https://www.example.com/api/v0/account/',false, $context);
+// Server response is now stored in $result variable so you can process it
 });</pre>
 	</div>
 </div>
