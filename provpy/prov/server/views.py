@@ -10,6 +10,8 @@ from prov.model import json
 from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
+from prov import model
+from prov.model.graph import prov_to_dot
 
 
 def get_prov_json(request):
@@ -89,7 +91,7 @@ def profile(request):
                                   context_instance=RequestContext(request))
 
 @login_required
-def detail(request, bundle_id):
+def bundle_detail(request, bundle_id):
     pdBundle = get_object_or_404(PDAccount, pk=bundle_id)
     prov_g = pdBundle.get_graph() 
     prov_n = prov_g.get_asn()
@@ -97,6 +99,13 @@ def detail(request, bundle_id):
     return render_to_response('server/detail.html',
                               {'logged': True, 'bundle': pdBundle, 'prov_n': prov_n, 'prov_json': prov_json},
                               context_instance=RequestContext(request))
+    
+def bundle_svg(request, bundle_id):
+    pdBundle = get_object_or_404(PDAccount, pk=bundle_id)
+    prov_g = pdBundle.get_graph()
+    dot = prov_to_dot(prov_g)
+    svg_content = dot.create(format='svg')
+    return HttpResponse(content=svg_content, mimetype='image/svg+xml')
     
 @login_required
 def create(request):
