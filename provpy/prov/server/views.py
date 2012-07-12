@@ -3,7 +3,7 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
 from prov.model import ProvContainer
 from prov.model import json
@@ -90,9 +90,12 @@ def profile(request):
 
 @login_required
 def detail(request, bundle_id):
-    PDAccount.objects.get(id=bundle_id).get_graph().print_records()
+    pdBundle = get_object_or_404(PDAccount, pk=bundle_id)
+    prov_g = pdBundle.get_graph() 
+    prov_n = prov_g.get_asn()
+    prov_json = json.dumps(prov_g, indent=4, cls=ProvContainer.JSONEncoder) 
     return render_to_response('server/detail.html',
-                              {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)},
+                              {'logged': True, 'bundle': pdBundle, 'prov_n': prov_n, 'prov_json': prov_json},
                               context_instance=RequestContext(request))
     
 @login_required
