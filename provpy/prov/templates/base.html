@@ -56,12 +56,10 @@
       </div>
     </div>
     <div id="main" class="container clear-top">
-      <div class="row">
-        <div class="span12">
-          {% block messages %}{% endblock %}
-          {% block content %}{% endblock %}
-        </div>   
+      <div class="row span12">
+        {% block messages %}{% endblock %}
       </div>
+      {% block content %}{% endblock %}
     </div>
     <footer>
       <div class="footer" id="footer">

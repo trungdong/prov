@@ -6,13 +6,13 @@
 {% endblock %}
 {% block content %}
 <div class="row">
-	<div class="leaderboard span4 offset4" style="padding-bottom : 10px">
-		<div id="Top" class="anchorOffset"></div>  
-		<h1> Getting started </h1>
+	<div class="leaderboard offset2" style="padding-bottom : 10px">
+		<h1 id="Top"> Getting started </h1>
 	</div>
 </div>
-<div class="row">
-	<div class="span4 offset4">
+<div class="row span12">
+	<div class="span2">
+	    <h3>Contents</h3>
 		<ul>
 			<li><h4><a href="#Overview">Overview</a></h4></li>
 			<li><h4><a href="#Authentication">Authentication</a></h4></li>
@@ -26,30 +26,16 @@
 			</li>
 		</ul>
 	</div>
-</div>
-<div class="row">
-	<div class=" span6 offset4">
-		<div id="Overview" class="anchorOffset"></div>
-		<h3>The API Overview</h3></div>
-</div>
-<div class="row">
-	<div class="span6 offset2">
+	<div class="span8">
+		<h3 id="Overview">The API Overview</h3>
 		<p>The PROV-JSON API provides a RESTfull web service for
 		storage and access of provenance bundles in JSON format as specified 
 		<a href="http://users.ecs.soton.ac.uk/tdh/json/">here</a> 
 		for the W3C's Provenance Data Model. Trough the API any client can manipulate bundles
 		stored on a server and explore and retrieve information from other clients.
 		</p>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset4">
 		<div id="Authentication" class="anchorOffset"></div>
 		<h3>Authentication</h3>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset2">
 		<p>The Authentication used for the API is Basic Http Authentication with user credential.
 		For this reason we suggest using the API only with secure connection(https/ssl/...).
 		The user credentials are in the form of username, chosen by the client at registration, 
@@ -66,16 +52,8 @@
 		You can assume that the webUI is like admin panel for managing your account and the API is the 
 		actual RESTfull service on the server. 
 		</p>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset4">
 		<div id="Usage" class="anchorOffset"></div>
 		<h3>Basic Usage</h3>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset2">
 		<p>The API supports all of the RESTfull methods PUT/POST/GET/DELETE.
 		Whenever trough your application you should query the server at the api
 		url, which normally will be in the form https://'domain'/'API url'/'resource name',
@@ -97,16 +75,8 @@
 		The only other requirement is that the data you send to the server to be in correct JSON
 		form as specified by the RPOV-JSON documentation. 
 		</p>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset4">
 		<div id="Example" class="anchorOffset"></div>
-		<h3>Example</h3>
-	</div>
-</div>
-<div class="row">
-	<div class="span6 offset2">
+		<h3>Examples</h3>
 		<p>For this example let's assume you are a client with username 'patence' 
 		and an API key 'b4702794b52445bab04a51ead73d5adbc554c970'. </br>
 		The variable 'bundle' is assumed trough the examples to be any abstract object
@@ -172,10 +142,6 @@ $result =  file_get_contents (
                   'https://www.example.com/api/v0/account/',false, $context);
 // Server response is now stored in $result variable so you can process it
 });</pre>
-	</div>
-</div>
-<div class="row">
-	<div class="span2 offset5"
 		<h4><a href="#Top">Back to Top</a></h4>
 	</div>
 </div>
