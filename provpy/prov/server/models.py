@@ -255,8 +255,6 @@ def build_PROVContainer(account):
 def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
-        ApiKey.objects.create(user=instance)
-#        logging.debug(ApiKey.objects.get(user=instance).key)
 
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
     

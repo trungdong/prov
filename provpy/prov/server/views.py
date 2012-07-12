@@ -10,7 +10,6 @@ from prov.model import json
 from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
-from ubuntuone.storageprotocol.errors import DoesNotExistError
 
 
 def get_prov_json(request):

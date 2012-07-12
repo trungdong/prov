@@ -44,15 +44,7 @@
     	<h5> Here is an example of request made to the API using the API key.</h5>
 		</div>  
 </div>
-<div class="row">
-		<div class="span6 offset2">
-    	<p> Assuming a client with username 'patence' have an API key 
-    	'b4702794b52445bab04a51ead73d5adbc554c970' a valid request made
-    	to the API should look like this:
-    	</p> 
-    	</div>
-    	<input class="btn offset1" type="button" onClick="go_to('/prov/home');" value="Back"/>  
-</div>    	
+
 <div class="row">
 	<table class="table-bordered span8 offset2">  
         <thead>  
@@ -76,23 +68,15 @@
         	</tr>
         	<tr>
         		<td>Authorization</td>
-        		<td>ApiKey patence:b4702794b52445bab04a51ead73d5adbc554c970</td>
+        		<td>ApiKey {{ user }}:{{ key }}</td>
         	</tr>
         	<tr>
         		<td>Host</td>
         		<td>www.example.com:443</td>
         	</tr>
         	<tr>
-        		<td>Origin</td>
-        		<td>https://localhost:443</td>
-        	</tr>
-        	<tr>
         		<td>Request Payload</td>
-        		<td>
-{"asserter":"#unknown","rec_id":"#agentswitch-mockup","content":{
-"prefix":{"x": "http://example.org/","xsd":"http://www.w3.org/2001/XMLSchema-datatypes#"},
-"entity":{"e1":{"x:byteSize": "1034^^xsd:positiveInteger","x:compression": "82.5e-2^^xsd:double",
-"x:content": "Y29udGVuJl^^xsd:base64Binary"}}}</td>
+        		<td>The JSON serialized bundle data.</td>
         	</tr>
         </tbody>
      </table>
