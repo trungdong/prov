@@ -4,7 +4,7 @@ Created on Jan 25, 2012
 @author: Dong
 '''
 import unittest
-from prov.model import ProvContainer
+from prov.model import ProvBundle
 import logging
 import json
 import examples
@@ -20,11 +20,11 @@ class Test(unittest.TestCase):
         pass
 
     def runTestOnGraph(self, graph):
-        logger.debug('Original graph in PROV-N\n%s' % graph.get_asn())
-        json_str = json.dumps(graph, cls=ProvContainer.JSONEncoder, indent=4)
+        logger.debug('Original graph in PROV-N\n%s' % graph.get_provn())
+        json_str = json.dumps(graph, cls=ProvBundle.JSONEncoder, indent=4)
         logger.debug('Original graph in PROV-JSON\n%s' % json_str)
-        g2 = json.loads(json_str, cls=ProvContainer.JSONDecoder)
-        logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_asn())
+        g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
+        logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_provn())
         assert(graph == g2)
         
     def testAllExamples(self):
