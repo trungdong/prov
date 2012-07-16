@@ -1,7 +1,7 @@
 """Module docstring to go here"""
 from django.db import models
-from django.contrib.auth.models import User
-from django.db.models.signals import  post_save
+from django.contrib.auth.models import User, Group
+from django.db.models.signals import  post_save, post_syncdb
 from tastypie.models import ApiKey, create_api_key
 from tastypie.authentication import ApiKeyAuthentication
 from collections import defaultdict
@@ -53,6 +53,13 @@ class PDAccount(PDRecord):
     owner = models.ForeignKey(User)
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     namespaces = models.ManyToManyField(PDNamespace, related_name='accounts')
+    
+    class Meta:
+        permissions = (
+            ('view_pdaccount', 'Retrieving bundles'),
+            ('admin_pdaccount', 'Granting/revoking permissions'),
+            ('ownership_pdaccount', 'Permission to change ownership'),
+        )
     
     @staticmethod
     def create(account_id, asserter_id, owner_id):
@@ -255,6 +262,17 @@ def build_PROVContainer(account):
 def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
+        instance.groups.add(Group.objects.get(name='public'))
 
+def _create_public_group(**kwargs):
+    from prov.settings import ANONYMOUS_USER_ID
+    try:
+        public = Group.objects.get(name='public')    
+    except:
+        public = Group.objects.create(name='public')
+    User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
+    
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
+
+post_syncdb.connect(_create_public_group)
     

@@ -11,6 +11,7 @@ from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
 from prov import model
+from guardian.shortcuts import assign
 from prov.model.graph import prov_to_dot
 
 
@@ -78,9 +79,14 @@ def profile(request):
                 PDAccount.objects.get(id=rid).delete()
                 message = 'The bundle with ID ' + rid + ' was successfully deleted.'
             except MultiValueDictKeyError:
-                prov_graph = json.loads(request.POST['content'], cls=ProvContainer.JSONDecoder)
+                prov_graph = json.loads('{' + request.POST['content'] + '}', cls=ProvContainer.JSONDecoder)
                 account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 account.save_graph(prov_graph)
+                assign('view_pdaccount',request.user,account)
+                assign('change_pdaccount',request.user,account)
+                assign('delete_pdaccount',request.user,account)
+                assign('admin_pdaccount',request.user,account)
+                assign('ownership_pdaccount',request.user,account)
                 message = 'The bundle was successfully created with ID ' + `account.id` + "."
             
         return render_to_response('server/profile.html', 
