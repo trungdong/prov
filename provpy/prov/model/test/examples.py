@@ -1,5 +1,135 @@
-from prov.model import ProvContainer, Namespace, Literal, PROV, XSD, Identifier
+from prov.model import ProvBundle, Namespace, Literal, PROV, XSD, Identifier
 import datetime
+
+def bundles1():
+    # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/bundles1.provn
+    #===============================================================================
+    # bundle
+    # 
+    #  prefix ex  <http://example.org/example/>
+    # 
+    #  prefix alice  <http://example.org/alice/>
+    #  prefix bob  <http://example.org/bob/>
+    # 
+    #  entity(bob:bundle1, [prov:type='prov:Bundle'])
+    #  wasGeneratedBy(bob:bundle1, -, 2012-05-24T10:30:00)
+    #  agent(ex:Bob)
+    #  wasAttributedTo(bob:bundle1, ex:Bob)
+    # 
+    #  entity(alice:bundle2, [ prov:type='prov:Bundle' ])
+    #  wasGeneratedBy(alice:bundle2, -, 2012-05-25T11:15:00)
+    #  agent(ex:Alice)
+    #  wasAttributedTo(alice:bundle2, ex:Alice)
+    # 
+    #  bundle bob:bundle1
+    #    entity(ex:report1, [ prov:type="report", ex:version=1 ])
+    #    wasGeneratedBy(ex:report1, -, 2012-05-24T10:00:01)
+    #  endBundle
+    # 
+    #  bundle alice:bundle2
+    #    entity(ex:report1)
+    #    entity(ex:report2, [ prov:type="report", ex:version=2 ])
+    #    wasGeneratedBy(ex:report2, -, 2012-05-25T11:00:01)
+    #    wasDerivedFrom(ex:report2, ex:report1)
+    #  endBundle
+    # 
+    # endBundle    
+    #===============================================================================
+    EX = Namespace("ex","http://www.example.com/")
+    
+    g = ProvBundle()
+    g.add_namespace(EX)
+    g.add_namespace('alice', 'http://example.org/alice/')
+    g.add_namespace('bob', 'http://example.org/bob/')
+    
+    
+    g.entity('bob:bundle1', {'prov:type': PROV['Bundle']})
+    g.wasGeneratedBy('bob:bundle1', time='2012-05-24T10:30:00')
+    g.agent('ex:Bob')
+    g.wasAttributedTo('bob:bundle1', 'ex:Bob')
+    
+    g.entity('alice:bundle2', {'prov:type': PROV['Bundle']})
+    g.wasGeneratedBy('alice:bundle2', time='2012-05-25T11:15:00')
+    g.agent('ex:Alice')
+    g.wasAttributedTo('alice:bundle2', 'ex:Alice')
+    
+    b1 = g.bundle('bob:bundle1')
+    b1.entity('ex:report1', {'prov:type': "report", 'ex:version': 1})
+    b1.wasGeneratedBy('ex:report1', time='2012-05-24T10:00:01')
+    
+    b2 = g.bundle('alice:bundle2')
+    b2.entity('ex:report1')
+    b2.entity('ex:report2', {'prov:type': "report", 'ex:version': 2})
+    b2.wasGeneratedBy('ex:report2', time='2012-05-25T11:00:01')
+    b2.wasDerivedFrom('ex:report2', 'ex:report1')
+      
+    return g
+
+def bundles2():
+    # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/bundles2.provn
+    #===========================================================================
+    # bundle
+    # 
+    #  prefix ex  <http://example.org/example/>
+    # 
+    #  prefix alice  <http://example.org/alice/>
+    #  prefix bob  <http://example.org/bob/>
+    # 
+    #  entity(bob:bundle4, [prov:type='prov:Bundle'])
+    #  wasGeneratedBy(bob:bundle4, -, 2012-05-24T10:30:00)
+    #  agent(ex:Bob)
+    #  wasAttributedTo(bob:bundle4, ex:Bob)
+    # 
+    #  entity(alice:bundle5, [ prov:type='prov:Bundle' ])
+    #  wasGeneratedBy(alice:bundle5, -, 2012-05-25T11:15:00)
+    #  agent(ex:Alice)
+    #  wasAttributedTo(alice:bundle5, ex:Alice)
+    # 
+    #  bundle bob:bundle4
+    #    entity(ex:report1, [ prov:type="report", ex:version=1 ])
+    #    wasGeneratedBy(ex:report1, -, 2012-05-24T10:00:01)
+    #  endBundle
+    # 
+    #  bundle alice:bundle5
+    #    entity(ex:report1bis)
+    #    mentionOf(ex:report1bis, ex:report1, bob:bundle4)
+    #    entity(ex:report2, [ prov:type="report", ex:version=2 ])
+    #    wasGeneratedBy(ex:report2, -, 2012-05-25T11:00:01)
+    #    wasDerivedFrom(ex:report2, ex:report1bis)
+    #  endBundle
+    # 
+    # endBundle
+    #===========================================================================
+   
+    g = ProvBundle()
+    g.add_namespace("ex","http://www.example.com/")
+    g.add_namespace('alice', 'http://example.org/alice/')
+    g.add_namespace('bob', 'http://example.org/bob/')
+    
+    
+    g.entity('bob:bundle4', {'prov:type': PROV['Bundle']})
+    g.wasGeneratedBy('bob:bundle4', time='2012-05-24T10:30:00')
+    g.agent('ex:Bob')
+    g.wasAttributedTo('bob:bundle4', 'ex:Bob')
+    
+    g.entity('alice:bundle5', {'prov:type': PROV['Bundle']})
+    g.wasGeneratedBy('alice:bundle5', time='2012-05-25T11:15:00')
+    g.agent('ex:Alice')
+    g.wasAttributedTo('alice:bundle5', 'ex:Alice')
+    
+    b4 = g.bundle('bob:bundle4')
+    b4.entity('ex:report1', {'prov:type': "report", 'ex:version': 1})
+    b4.wasGeneratedBy('ex:report1', time='2012-05-24T10:00:01')
+    
+    b5 = g.bundle('alice:bundle5')
+    b5.entity('ex:report1bis')
+    b5.mentionOf('ex:report1bis', 'ex:report1', 'bob:bundle4')
+    b5.entity('ex:report2', [ ('prov:type', "report"), ('ex:version', 2) ])
+    b5.wasGeneratedBy('ex:report2', time='2012-05-25T11:00:01')
+    b5.wasDerivedFrom('ex:report2', 'ex:report1bis')
+      
+    return g
+
 
 def example_graph():
     FOAF = Namespace("foaf","http://xmlns.com/foaf/0.1/")
@@ -7,7 +137,7 @@ def example_graph():
     DCTERMS = Namespace("dcterms","http://purl.org/dc/terms/")
     
     # create a provenance _container
-    g = ProvContainer()
+    g = ProvBundle()
     
     # Set the default _namespace name
     g.set_default_namespace(EX.get_uri())
@@ -52,7 +182,7 @@ def primer_graph():
     #prefix ex <http://example/>
     ex = Namespace('ex', 'http://example/')
     
-    g = ProvContainer()
+    g = ProvBundle()
     g.add_namespace(Namespace("dcterms","http://purl.org/dc/terms/"))
     
     #entity(ex:article, [dcterms:title="Crime rises in cities"])
@@ -133,7 +263,7 @@ def w3c_publication_1():
     # prefix trans   <http://www.w3.org/2005/08/01-transitions.html#>
     trans = Namespace('trans', 'http://www.w3.org/2005/08/01-transitions.html#')
     
-    g = ProvContainer()
+    g = ProvBundle()
     g.add_namespace(ex)
     g.add_namespace(w3)
     g.add_namespace(tr)
@@ -198,7 +328,7 @@ def w3c_publication_2():
     hg = Namespace('hg', 'http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/')
     
     
-    g = ProvContainer()
+    g = ProvBundle()
     
     # entity(hg:Overview.html, [ prov:type="file in hg" ])
     g.entity(hg['Overview.html'], {'prov:type': "file in hg"})
@@ -231,7 +361,9 @@ def w3c_publication_2():
     return g
 
 tests = [
-    ('Primer', primer_graph),
-    ('W3C Publication 1', w3c_publication_1),
-    ('W3C Publication 2', w3c_publication_2)
+    ('Bundle1', bundles1),
+    ('Bundle2', bundles2),
+#    ('Primer', primer_graph),
+#    ('W3C Publication 1', w3c_publication_1),
+#    ('W3C Publication 2', w3c_publication_2)
 ]
