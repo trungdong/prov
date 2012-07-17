@@ -1,7 +1,7 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-
+{% load guardian_tags %}
 {% block content %}
       <div class="row span12">
         <h1>Bundle {{ bundle.rec_id }}</h1>
@@ -10,14 +10,22 @@
         <h2>PROV-N</h2>
 		<pre name="content">{{ prov_n }}</pre>
 		<h2>PROV-JSON</h2>
-		<pre name="json">{{ prov_json }}</pre>
+		 {% get_obj_perms user for bundle as 'perms' %}
+		<pre name="json"
+		{% if 'change_pdaccount' in perms %}
+		contentEditable="true"
+		{% endif %}>{{ prov_json }}</pre>
       </div>
       <div class="row">
         <form action="{% url 'server.views.profile' %}" method="post" >
           {% csrf_token %}
-          <button class="btn btn-danger offset4" type="submit" value="Delete">Delete </button>
+          <button class="btn btn-success offset2" type="submit" value="Save"
+          {% if 'change_pdaccount' not in perms %}
+          disabled="true"
+		  {% endif %}>Save</button>
+          <button class="btn btn-danger offset2" type="submit" value="Delete">Delete </button>
           <input type="hidden" name="delete_id" value="{{ bundle.id }}" />
-          <input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/>
+          <input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/> 	
         </form>
       </div>
 {% endblock %}

@@ -11,8 +11,10 @@ from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
 from prov import model
-from guardian.shortcuts import assign
+from guardian.shortcuts import assign, get_perms, get_objects_for_user,\
+    get_perms_for_model
 from prov.model.graph import prov_to_dot
+from guardian.templatetags.guardian_tags import get_obj_perms
 
 
 def get_prov_json(request):
@@ -88,10 +90,14 @@ def profile(request):
                 assign('admin_pdaccount',request.user,account)
                 assign('ownership_pdaccount',request.user,account)
                 message = 'The bundle was successfully created with ID ' + `account.id` + "."
-            
+        perms = get_perms_for_model(PDAccount)
+        l_perm = []
+        for i in range(len(perms)):
+            l_perm.append(perms[i].codename)
         return render_to_response('server/profile.html', 
-                                  {'user': request.user.username,
-                                   'bundles': request.user.pdaccount_set.all(),
+                                  {'bundles': get_objects_for_user
+                                   (user=request.user, 
+                                    perms = l_perm, klass=PDAccount, any_perm=True).order_by('id'),
                                    'message': message,
                                    'logged': True},
                                   context_instance=RequestContext(request))
@@ -155,3 +161,18 @@ def auth(request):
 @login_required
 def auth_help(request):
     return render_to_response('server/auth_help.html',{'logged': True})
+
+def _perms_to_label(user, obj):
+    perms = get_perms(user, obj)
+    if 'ownership_pdaccount' in perms:
+        return 'label-inverse'
+    if 'admin_pdaccount' in perms:
+        return 'label-info'
+    if 'delete_pdaccount' in perms:
+        return 'label-important'
+    if 'change_pdaccount' in perms:
+        return 'label-warning'
+    if get_perms(User.objects.get(id=-1),obj):
+        return ''
+    if 'view_pdaccount' in perms:
+        return 'label-success'

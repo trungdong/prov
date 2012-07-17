@@ -262,17 +262,17 @@ def build_PROVContainer(account):
 def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
-        instance.groups.add(Group.objects.get(name='public'))
+#        instance.groups.add(Group.objects.get(name='public'))
 
 def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID
     try:
-        public = Group.objects.get(name='public')    
+        public = Group.objects.get(name='public') 
     except:
         public = Group.objects.create(name='public')
     User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
     
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 
-post_syncdb.connect(_create_public_group)
+#post_syncdb.connect(_create_public_group)
     
