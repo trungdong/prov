@@ -1,4 +1,14 @@
-"""Module docstring to go here"""
+'''Django app for persisting prov.model.ProvBundle
+
+Save and load provenance bundles from databases 
+
+References:
+
+PROV-DM: http://www.w3.org/TR/prov-dm/
+
+@author: Trung Dong Huynh <trungdong@donggiang.com>
+@copyright: University of Southampton 2012
+'''
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import  post_save
@@ -12,11 +22,11 @@ logger = logging.getLogger(__name__)
 
 
 # Interface functions
-def save_records(prov_graph, identifier=None, asserter='#unknown'):
+def save_bundle(prov_bundle, identifier=None, asserter='#unknown'):
     # Generate a unique id for the new pdbundle to store the provenance graph
     bundle_id = uuid.uuid4().urn if identifier is None else identifier
     pdbundle = PDBundle.create(bundle_id, asserter)
-    pdbundle.save_graph(prov_graph)
+    pdbundle.save_bundle(prov_bundle)
     #Return the pdbundle
     return pdbundle
 
@@ -49,14 +59,14 @@ class LiteralAttribute(models.Model):
 
 
 class PDBundle(PDRecord):
-    owner = models.ForeignKey(User)
+    owner = models.ForeignKey(User, null=True, blank=True, db_index=True)
     asserter = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     namespaces = models.ManyToManyField(PDNamespace, related_name='bundles')
     
     @staticmethod
-    def create(bundle_id, asserter_id, owner_id):
+    def create(bundle_id, asserter_id, owner_id=None):
         return PDBundle.objects.create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE,
-                                       asserter=asserter_id, owner = owner_id)
+                                       asserter=asserter_id, owner=owner_id)
     
     def add_namespace(self, prefix, uri):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri)
@@ -87,7 +97,7 @@ class PDBundle(PDRecord):
         # Getting all the individual records contained in the graph
         records = prov_bundle.get_records()
         # and save them
-        save_bundle(self, records, record_map)
+        _save_bundle(self, records, record_map)
         
     def get_prov_bundle(self):
         logger.debug('Loading bundle id %s' % self.rec_id)
@@ -143,11 +153,11 @@ def _create_pdrecord(prov_record, bundle, record_map):
         record_map[prov_record] = pdrecord
     else:
         # Create an bundle record
-        asserter_uri = prov_record.get_asserter().get_uri()
-        pdrecord = PDBundle.objects.create(rec_id=record_id, rec_type=prov_type, bundle=bundle, asserter=asserter_uri)
+        asserter_uri = None # Bundles do not have asserter as in (previously defined) accounts, consider removing this
+        pdrecord = PDBundle.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserter=asserter_uri)
         record_map[prov_record] = pdrecord
         # Recursive call to save this bundle
-        save_bundle(pdrecord, prov_record.get_records(), record_map)
+        _save_bundle(pdrecord, prov_record.get_records(), record_map)
         
     # TODO add all _attributes here
     prov_attributes, extra_attributes = prov_record.get_attributes()
@@ -156,25 +166,23 @@ def _create_pdrecord(prov_record, bundle, record_map):
             if value is None:
                 # skipping unset attributes
                 continue
-            if attr in prov.PROV_ATTRIBUTE_LITERALS:
+            # Create a linked attribute's record
+            if isinstance(value, prov.ProvRecord):
+                if value not in record_map:
+                    # The record in value needed to be saved first
+                    # Assumption: no bi-directional relationship between records; otherwise, duplicated RecordAttribute will be created
+                    # Recursive call to create the other record
+                    # TODO: Check if the other record is in another bundle
+                    other_record = _create_pdrecord(value, bundle, record_map)
+                else:
+                    other_record = record_map[value]
+                RecordAttribute.objects.create(record=pdrecord, value=other_record, prov_type=attr)
+            else:
                 # Create a literal attribute
                 attr_name = prov.PROV_ID_ATTRIBUTES_MAP[attr]
                 value, datatype = _encode_python_literal(value)
                 LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype)
-            else:
-                # Create a linked attribute's record
-                if isinstance(value, prov.ProvRecord):
-                    if value not in record_map:
-                        # The record in value needed to be saved first
-                        # Assumption: no bi-directional relationship between records; otherwise, duplicated RecordAttribute will be created
-                        # Recursive call to create the other record
-                        # TODO: Check if the other record is in another bundle
-                        other_record = _create_pdrecord(value, bundle, record_map)
-                    else:
-                        other_record = record_map[value]
-                    RecordAttribute.objects.create(record=pdrecord, value=other_record, prov_type=attr)
-                else:
-                    raise Exception('Expected a PROV Record for %s. Got %s.' % str(value))
+                
     if extra_attributes:
         for (attr, value) in extra_attributes:
             # Create a literal attribute
@@ -184,7 +192,7 @@ def _create_pdrecord(prov_record, bundle, record_map):
             
     return pdrecord
 
-def save_bundle(bundle, records, record_map):
+def _save_bundle(bundle, records, record_map):
     logger.debug('Saving bundle %s...' % bundle.rec_id)
     for record in records:
         # if the record is not visited
@@ -223,7 +231,8 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     if record_type == PROV_REC_BUNDLE:
         # Loading records in this sub-bundle
         logger.debug('Loading records for %s' % str(prov_record))
-        build_ProvBundle(prov_record, prov_bundle)
+        pdbundle = PDBundle.objects.get(pk=pk)
+        build_ProvBundle(pdbundle, prov_record)
     
     logger.debug('Loaded PROV record: %s' % str(prov_record))
     return prov_record
