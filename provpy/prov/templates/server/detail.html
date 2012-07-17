@@ -1,29 +1,23 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-{%block title %}
-	PROV Server
-{% endblock %}
+
 {% block content %}
-<div class="row">
-	<div class="leaderboard span8" style="padding-bottom : 10px">  
-		<h1>You are viewing Bundle with ID {{ bundle.id }}.</h1>
-		<h3>Asserter is {{ bundle.asserter }}.<h2>
-		<h3>The record ID is {{ bundle.rec_id }}.<h2>
-	</div>
-	<input class="btn btn-primary offset3" type="button" onClick="go_to('/prov/home');" value="Back"/>  
-</div>
-	<div class="row">
-		<div class="span12">
-		<pre name="content">{{ bundle.get_graph.get_asn }}</pre>
-		</div>
-	</div>
-    <div class="row">		
-    		<form action="{% url 'server.views.profile' %}" method="post" >
-            	{% csrf_token %}
-            	<td><button class="btn btn-danger offset4" type="submit" value="Delete">Delete </button></td>
-            	<input type="hidden" name="delete_id" value="{{ bundle.id }}" />
-            	<input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/> 
-            </form>  
-	</div>
+      <div class="row span12">
+        <h1>Bundle {{ bundle.rec_id }}</h1>
+        <h3>Asserter is {{ bundle.asserter }}.<h3>
+        <a class="btn btn-primary pull-right" onClick="go_to('/prov/home');">Back</a>
+        <h2>PROV-N</h2>
+		<pre name="content">{{ prov_n }}</pre>
+		<h2>PROV-JSON</h2>
+		<pre name="json">{{ prov_json }}</pre>
+      </div>
+      <div class="row">
+        <form action="{% url 'server.views.profile' %}" method="post" >
+          {% csrf_token %}
+          <button class="btn btn-danger offset4" type="submit" value="Delete">Delete </button>
+          <input type="hidden" name="delete_id" value="{{ bundle.id }}" />
+          <input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/>
+        </form>
+      </div>
 {% endblock %}

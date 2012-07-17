@@ -41,7 +41,11 @@
           </a>
           <div class="brand">Provenance Server</div>
           <ul class="nav">
-            <li class="active"><a href="/prov/home">Home</a></li>
+            <li><a href="/prov/home">Home</a></li>
+            {% if logged %}
+            <li><a href="/prov/auth">API Key</a></li>
+             <li><a href="/prov/auth/help">Help</a></li>
+            {% endif %}
             <li><a href="/prov/about">About</a></li>
             <li><a href="/prov/contact">Contact</a></li>
           </ul>  
@@ -52,12 +56,10 @@
       </div>
     </div>
     <div id="main" class="container clear-top">
-      <div class="row">
-        <div class="span12">
-          {% block messages %}{% endblock %}
-          {% block content %}{% endblock %}
-        </div>   
+      <div class="row span12">
+        {% block messages %}{% endblock %}
       </div>
+      {% block content %}{% endblock %}
     </div>
     <footer>
       <div class="footer" id="footer">

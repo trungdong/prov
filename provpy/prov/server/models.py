@@ -12,6 +12,8 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import  post_save
+from tastypie.models import ApiKey, create_api_key
+from tastypie.authentication import ApiKeyAuthentication
 from collections import defaultdict
 import uuid
 import datetime
@@ -107,7 +109,7 @@ class PDBundle(PDRecord):
 class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
 
-
+    
 # Internal functions
 def _encode_python_literal(literal):
     if isinstance(literal, datetime.datetime):
@@ -265,8 +267,7 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
         _create_prov_record(prov_bundle, pk, records, attributes, literals, record_map)
     return prov_bundle
 
-def _create_profile(sender, instance, created, **kwargs):
-    #logging.debug(created)
+def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
 

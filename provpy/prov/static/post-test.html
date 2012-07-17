@@ -194,6 +194,11 @@ data = {
 };
 
 function test() {
+	var user = 'patence';
+	var pass = 'b4702794b52445bab04a51ead73d5adbc554c970';
+	var tok = user + ':' + pass;
+  	var auth = 'ApiKey ' + tok;
+	
 	var account = {
 			"asserter": "#unknown",
 			"rec_id": "#agentswitch-mockup",
@@ -204,6 +209,9 @@ function test() {
 		  url: '/api/v0/account/',
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
+		  beforeSend: function(req) {
+        		req.setRequestHeader('Authorization', auth);
+   	 		},
 		  success: function(data) {
 			  console.log(data);
 			}

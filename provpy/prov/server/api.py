@@ -1,7 +1,6 @@
-from django.contrib.auth.models import User
 from tastypie import fields
 from tastypie.authorization import Authorization
-from tastypie.authentication import BasicAuthentication
+from tastypie.authentication import ApiKeyAuthentication
 from tastypie.resources import ModelResource
 from models import PDBundle
 from prov.model import ProvBundle
@@ -24,7 +23,7 @@ class AccountResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization= Authorization()
-        authentication = BasicAuthentication()
+        authentication = ApiKeyAuthentication()
         
     content = fields.DictField(attribute='content', null=True)
     owner = fields.CharField(attribute='owner', null=True)
@@ -38,7 +37,10 @@ class AccountResource(ModelResource):
 
         bundle.obj = account
         return bundle
-        
+    
+#    def apply_authorization_limits(self, request, object_list):
+#        return object_list.filter(owner=request.user)
+    
     def dehydrate_content(self, bundle):
         if self.get_resource_uri(bundle) == bundle.request.path:
             prov_graph = bundle.obj.get_prov_bundle()

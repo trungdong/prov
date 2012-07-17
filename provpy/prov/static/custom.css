@@ -1,8 +1,12 @@
 html, body {
-			padding-top : 30px;
-			padding-bottom : 30px;
+			margin-top : 30px;
+			margin-bottom : 30px;
         }
-
+.row{;
+	margin-left: -20px;
+  	*zoom: 1;
+  	margin-bottom: 20px;
+}
 #footer
 {
     clear: both;
@@ -17,6 +21,11 @@ html, body {
     position: fixed;
     bottom: 0px;
     width: 100%;
+}
+
+.anchorOffset{
+   position:relative;
+   top:-50px;
 }
 
 table { table-layout: fixed; }

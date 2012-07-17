@@ -60,7 +60,7 @@ def prov_to_dot(prov_g):
         else:
             relations.append(rec)
     for rec in relations:
-        nodes = [node for node in rec._attributes.values() if node is not None and node.is_element()]
+        nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
         if len(nodes) == 2:
             # binary relations
             style = DOT_PROV_STYLE[rec.get_type()]
