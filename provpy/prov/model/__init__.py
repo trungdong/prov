@@ -1,3 +1,15 @@
+'''Python implemetation of the W3C Provenance Data Model (PROV-DM)
+
+Support for PROV-JSON import/export 
+
+References:
+
+PROV-DM: http://www.w3.org/TR/prov-dm/
+
+@author: Trung Dong Huynh <trungdong@donggiang.com>
+@copyright: University of Southampton 2012
+'''
+
 import logging
 import datetime
 import json
@@ -8,59 +20,55 @@ logger = logging.getLogger(__name__)
 
 ## PROV record constants - PROV-DM LC
 # C1. Entities/Activities
-PROV_REC_ENTITY                 = 10
-PROV_REC_ACTIVITY               = 11
-PROV_REC_GENERATION             = 12
-PROV_REC_USAGE                  = 13
+PROV_REC_ENTITY                 = 1
+PROV_REC_ACTIVITY               = 2
+PROV_REC_GENERATION             = 11
+PROV_REC_USAGE                  = 12
+PROV_REC_COMMUNICATION          = 13
 PROV_REC_START                  = 14
 PROV_REC_END                    = 15
 PROV_REC_INVALIDATION           = 16
-PROV_REC_COMMUNICATION          = 17
+
 # C2. Derivations
-PROV_REC_DERIVATION             = 30
-PROV_REC_REVISION               = 31
-PROV_REC_QUOTATION              = 32
-PROV_REC_SOURCE         = 33
+PROV_REC_DERIVATION             = 21
+
 # C3. Agents/Responsibility
-PROV_REC_AGENT                  = 20
-PROV_REC_ATTRIBUTION            = 21
-PROV_REC_ASSOCIATION            = 22
-PROV_REC_RESPONSIBILITY         = 23
-PROV_REC_INFLUENCE              = 24
+PROV_REC_AGENT                  = 3
+PROV_REC_ATTRIBUTION            = 31
+PROV_REC_ASSOCIATION            = 32
+PROV_REC_DELEGATION             = 33
+PROV_REC_INFLUENCE              = 34
 # C4. Bundles
-PROV_REC_BUNDLE                 = 90
+PROV_REC_BUNDLE                 = 4 # This is the lowest value, so bundle(s) in JSON will be decoded first 
 # C5. Alternate
-PROV_REC_ALTERNATE              = 40
-PROV_REC_SPECIALIZATION         = 41
-PROV_REC_MENTION                = 42
+PROV_REC_ALTERNATE              = 51
+PROV_REC_SPECIALIZATION         = 52
+PROV_REC_MENTION                = 53
 # C6. Collections
-PROV_REC_COLLECTION             = 50
-PROV_REC_MEMBERSHIP             = 51
-# Non-standard records
-PROV_REC_ACCOUNT                = 100
+#PROV_REC_COLLECTION             = 6
+PROV_REC_MEMBERSHIP             = 61
 
 PROV_RECORD_TYPES = (
     (PROV_REC_ENTITY,               u'Entity'),
     (PROV_REC_ACTIVITY,             u'Activity'),
     (PROV_REC_GENERATION,           u'Generation'),
     (PROV_REC_USAGE,                u'Usage'),
+    (PROV_REC_COMMUNICATION,        u'Communication'),
     (PROV_REC_START,                u'Start'),
     (PROV_REC_END,                  u'End'),
     (PROV_REC_INVALIDATION,         u'Invalidation'),
-    (PROV_REC_COMMUNICATION,        u'Communication'),
+    (PROV_REC_DERIVATION,           u'Derivation'),
     (PROV_REC_AGENT,                u'Agent'),
     (PROV_REC_ATTRIBUTION,          u'Attribution'),
     (PROV_REC_ASSOCIATION,          u'Association'),
-    (PROV_REC_RESPONSIBILITY,       u'Responsibility'),
-    (PROV_REC_DERIVATION,           u'Derivation'),
-    (PROV_REC_REVISION,             u'Revision'),
-    (PROV_REC_QUOTATION,            u'Quotation'),
-    (PROV_REC_SOURCE,               u'Source'),
+    (PROV_REC_DELEGATION,           u'Delegation'),
+    (PROV_REC_BUNDLE,               u'Bundle'),
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
-    (PROV_REC_COLLECTION,           u'Collection'),
+    (PROV_REC_MENTION,              u'Mention'),
+#    (PROV_REC_COLLECTION,           u'Collection'),
     (PROV_REC_MEMBERSHIP,           u'Membership'),
-    (PROV_REC_ACCOUNT,              u'Account'),
+    (PROV_REC_BUNDLE,               u'Bundle'),
 )
 
 PROV_N_MAP = {
@@ -68,23 +76,21 @@ PROV_N_MAP = {
     PROV_REC_ACTIVITY:             u'activity',
     PROV_REC_GENERATION:           u'wasGeneratedBy',
     PROV_REC_USAGE:                u'used',
+    PROV_REC_COMMUNICATION:        u'wasInformedBy',
     PROV_REC_START:                u'wasStartedBy',
     PROV_REC_END:                  u'wasEndedBy',
     PROV_REC_INVALIDATION:         u'wasInvalidatedBy',
-    PROV_REC_COMMUNICATION:        u'wasInformedBy',
+    PROV_REC_DERIVATION:           u'wasDerivedFrom',
     PROV_REC_AGENT:                u'agent',
     PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
     PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
-    PROV_REC_RESPONSIBILITY:       u'actedOnBehalfOf',
-    PROV_REC_DERIVATION:           u'wasDerivedFrom',
-    PROV_REC_REVISION:             u'wasRevisionOf',
-    PROV_REC_QUOTATION:            u'wasQuotedFrom',
-    PROV_REC_SOURCE:               u'hadPrimarySource',
+    PROV_REC_DELEGATION:           u'actedOnBehalfOf',
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
-    PROV_REC_COLLECTION:           u'Collection',
+    PROV_REC_MENTION:              u'mentionOf',
+#    PROV_REC_COLLECTION:           u'Collection',
     PROV_REC_MEMBERSHIP:           u'memberOf',
-    PROV_REC_ACCOUNT:              u'account',
+    PROV_REC_BUNDLE:               u'bundle',
 }
 
 ## Identifiers for PROV's attributes
@@ -97,28 +103,20 @@ PROV_ATTR_STARTER               = 6
 PROV_ATTR_ENDER                 = 7
 PROV_ATTR_AGENT                 = 8
 PROV_ATTR_PLAN                  = 9
-PROV_ATTR_SUBORDINATE           = 10
+PROV_ATTR_DELEGATE              = 10
 PROV_ATTR_RESPONSIBLE           = 11
 PROV_ATTR_GENERATED_ENTITY      = 12
 PROV_ATTR_USED_ENTITY           = 13
 PROV_ATTR_GENERATION            = 14
 PROV_ATTR_USAGE                 = 15
-PROV_ATTR_NEWER                 = 16
-PROV_ATTR_OLDER                 = 17
-PROV_ATTR_RESPONSIBILITY        = 18
-PROV_ATTR_QUOTE                 = 19
-PROV_ATTR_ORIGINAL              = 20
-PROV_ATTR_QUOTER_AGENT          = 21
-PROV_ATTR_ORIGINAL_AGENT        = 22
-PROV_ATTR_DERIVED               = 23
-PROV_ATTR_SOURCE                = 24
-PROV_ATTR_ANCESTOR              = 25
-PROV_ATTR_SPECIALIZED_ENTITY    = 26
-PROV_ATTR_GENERAL_ENTITY        = 27
-PROV_ATTR_ALTERNATE1            = 28
-PROV_ATTR_ALTERNATE2            = 29
-PROV_ATTR_SOMETHING             = 30
-PROV_ATTR_NOTE                  = 31
+PROV_ATTR_SPECIFIC_ENTITY       = 16
+PROV_ATTR_GENERAL_ENTITY        = 17
+PROV_ATTR_ALTERNATE1            = 18
+PROV_ATTR_ALTERNATE2            = 19
+PROV_ATTR_BUNDLE                = 20
+PROV_ATTR_INFLUENCEE            = 21
+PROV_ATTR_INFLUENCER            = 22
+PROV_ATTR_COLLECTION            = 23
 
 # Literal properties
 PROV_ATTR_TIME                  = 100
@@ -136,28 +134,19 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_ENDER, u'prov:ender'),
     (PROV_ATTR_AGENT, u'prov:agent'),
     (PROV_ATTR_PLAN, u'prov:plan'),
-    (PROV_ATTR_SUBORDINATE, u'prov:subordinate'),
+    (PROV_ATTR_DELEGATE, u'prov:delegate'),
     (PROV_ATTR_RESPONSIBLE, u'prov:responsible'),
     (PROV_ATTR_GENERATED_ENTITY, u'prov:generatedEntity'),
     (PROV_ATTR_USED_ENTITY, u'prov:usedEntity'),
     (PROV_ATTR_GENERATION, u'prov:generation'),
     (PROV_ATTR_USAGE, u'prov:usage'),
-    (PROV_ATTR_NEWER, u'prov:newer'),
-    (PROV_ATTR_OLDER, u'prov:older'),
-    (PROV_ATTR_RESPONSIBILITY, u'prov:responsibility'),
-    (PROV_ATTR_QUOTE, u'prov:quote'),
-    (PROV_ATTR_ORIGINAL, u'prov:original'),
-    (PROV_ATTR_QUOTER_AGENT, u'prov:quoterAgent'),
-    (PROV_ATTR_ORIGINAL_AGENT, u'prov:originalAgent'),
-    (PROV_ATTR_DERIVED, u'prov:derived'),
-    (PROV_ATTR_SOURCE, u'prov:source'),
-    (PROV_ATTR_ANCESTOR, u'prov:ancestor'),
-    (PROV_ATTR_SPECIALIZED_ENTITY, u'prov:specializedEntity'),
+    (PROV_ATTR_SPECIFIC_ENTITY, u'prov:specificEntity'),
     (PROV_ATTR_GENERAL_ENTITY, u'prov:generalEntity'),
     (PROV_ATTR_ALTERNATE1, u'prov:alternate1'),
     (PROV_ATTR_ALTERNATE2, u'prov:alternate2'),
-    (PROV_ATTR_SOMETHING, u'prov:something'),
-    (PROV_ATTR_NOTE, u'prov:note'),
+    (PROV_ATTR_BUNDLE, u'prov:bundle'),
+    (PROV_ATTR_INFLUENCEE, u'prov:influencee'),
+    (PROV_ATTR_INFLUENCER, u'prov:influencer'),
     # Literal properties
     (PROV_ATTR_TIME, u'prov:time'),
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
@@ -182,7 +171,7 @@ _r_typed_literal_uri = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^<(?P
 _r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)$', re.X)
 
 # Datatypes
-def parse_xsd_dateTime(s):
+def _parse_xsd_dateTime(s):
     """Returns datetime or None."""
     m = _r_xsd_dateTime.match(s)
     if m is not None:
@@ -194,13 +183,22 @@ def parse_xsd_dateTime(s):
         values["microsecond"] += "0" * (6 - len(values["microsecond"]))
     values = dict((k, int(v)) for k, v in values.iteritems()
                   if not k.startswith("tz"))
+    
+    return datetime.datetime(**values)
+
+def _ensure_datetime(time):
+    if isinstance(time, basestring):
+        return _parse_xsd_dateTime(time);
+    else:
+        return time
+
+def parse_xsd_dateTime(s):
     try:
-        return datetime.datetime(**values)
+        return _parse_xsd_dateTime(s)
     except ValueError:
         pass
     return None
-
-
+    
 DATATYPE_PARSERS = {
     datetime.datetime: parse_xsd_dateTime,
 }
@@ -219,7 +217,7 @@ class Literal(object):
         self._datatype = datatype
         
     def __str__(self):
-        return self.asn_representation()
+        return self.provn_representation()
     
     def get_value(self):
         return self._value
@@ -227,7 +225,7 @@ class Literal(object):
     def get_datatype(self):
         return self._datatype
     
-    def asn_representation(self):
+    def provn_representation(self):
         return u'%s %%%% %s' % (str(self._value), str(self._datatype))
         
     def json_representation(self):
@@ -253,7 +251,7 @@ class Identifier(object):
     def __hash__(self):
         return hash(self.get_uri())
     
-    def asn_representation(self):
+    def provn_representation(self):
         return self._uri + u' %% xsd:anyURI'
     
     def json_representation(self):
@@ -278,8 +276,8 @@ class QName(Identifier):
     def __str__(self):
         return self._str
     
-    def asn_representation(self):
-        return self._str
+    def provn_representation(self):
+        return u"'%s'" % self._str
     
     def json_representation(self):
         return u'"%s"^^%s' % (str(self), u'xsd:QName')
@@ -332,13 +330,20 @@ class ProvExceptionNotValidAttribute(ProvException):
         self.record_type = record_type
         self.attribute = attribute
         self.attribute_types = attribute_types
+        
+class ProvExceptionContraint(ProvException):
+    def __init__(self, record_type, attribute1, attribute2, msg):
+        self.record_type = record_type
+        self.attribute1 = attribute1
+        self.attribute2 = attribute2
+        self.msg = msg
 
         
 # PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, container, identifier, attributes=None, other_attributes=None):
-        self._container = container
+    def __init__(self, bundle, identifier, attributes=None, other_attributes=None):
+        self._bundle = bundle
         self._identifier = identifier
         self._attributes = None
         self._extra_attributes = None
@@ -362,7 +367,7 @@ class ProvRecord(object):
             except:
                 # Do nothing if it did not work, expect the variable is already a list
                 pass
-            attr_list = ((self._container.valid_identifier(attribute), value) for attribute, value in extra_attributes)
+            attr_list = ((self._bundle.valid_identifier(attribute), value) for attribute, value in extra_attributes)
             # Check attributes for valid qualified names
             self._extra_attributes.extend(attr_list)
             
@@ -377,18 +382,28 @@ class ProvRecord(object):
     def get_attributes(self):
         return (self._attributes, self._extra_attributes)
     
-    def get_prov_graph(self):
-        return self._container
+    def get_bundle(self):
+        return self._bundle
+    
+    def _parse_identifier(self, value):
+        try:
+            return value.get_identifier()
+        except:
+            return self._bundle.valid_identifier(value)
     
     def _parse_record(self, attribute, attribute_types):
         # check to see if there is an existing record matching the attribute (as the record's identifier)
-        existing_record = self._container.get_record(attribute)
+        existing_record = self._bundle.get_record(attribute)
+        if existing_record is None:
+            existing_record = self._bundle.get_bundle(attribute)
         if existing_record and isinstance(existing_record, attribute_types):
             return existing_record
         else:
             return None
-        
+    
     def _parse_attribute(self, attribute, attribute_types):
+        if attribute_types is Identifier:
+            return self._parse_identifier(attribute)
         # attempt to find an existing record
         record = self._parse_record(attribute, attribute_types)
         if record:
@@ -403,9 +418,10 @@ class ProvRecord(object):
             else:
                 # only one datatype provided
                 datatype = attribute_types
-                data = parse_datatype(attribute, datatype)
-                if data:
-                    return data
+                try:
+                    return parse_datatype(attribute, datatype)
+                except:
+                    return None
         return None        
     
     def _validate_attribute(self, attribute, attribute_types):
@@ -420,6 +436,7 @@ class ProvRecord(object):
             if parsed_value is None:
                 raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
             return parsed_value
+        
                 
     def required_attribute(self, attributes, attribute_id, attribute_types):
         if attribute_id not in attributes:
@@ -439,6 +456,7 @@ class ProvRecord(object):
             return None
         # Validate its type
         return self._validate_attribute(attribute, attribute_types)
+    
                 
     def __eq__(self, other):
         if self.__class__ <> other.__class__:
@@ -453,7 +471,7 @@ class ProvRecord(object):
                 if isinstance(value_a, ProvRecord) and value_a._identifier:
                     if not (value_a._identifier == value_b._identifier):
                         return False
-                elif value_a <> value_b:
+                elif not (value_a == value_b):
                     return False
         elif self._attributes <> other._attributes:
             return False
@@ -462,29 +480,35 @@ class ProvRecord(object):
         return True 
           
     def __str__(self):
-        return self.get_asn()
+        return self.get_provn()
     
-    def get_asn(self):
+    def get_provn(self, _indent_level=0):
         items = []
         if self._identifier:
             items.append(str(self._identifier))
         if self._attributes:
             for (attr, value) in self._attributes.items():
-                if isinstance(value, ProvRecord):
-                    record_id = value.get_identifier()
-                    items.append(str(record_id))
+                if value is None:
+                    items.append('-')
                 else:
-                    # Assuming this is a datetime value
-                    items.append(value.isoformat() if value is not None else '-')
+                    if isinstance(value, ProvRecord):
+                        record_id = value.get_identifier()
+                        items.append(str(record_id))
+                    else:
+                        # Assuming this is a datetime or QName value
+                        items.append(value.isoformat() if isinstance(value, datetime.datetime) else str(value))
         
         if self._extra_attributes:
             extra = []
             for (attr, value) in self._extra_attributes:
                 try:
-                    asn_represenation = value.asn_representation()
+                    provn_represenation = value.provn_representation()
                 except:
-                    asn_represenation = '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
-                extra.append('%s="%s"' % (str(attr), asn_represenation))
+                    if isinstance(value, basestring):
+                        provn_represenation = '"%s"' % value
+                    else:
+                        provn_represenation = '"%s %%%% xsd:dateTime"' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                extra.append('%s=%s' % (str(attr), provn_represenation))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
         
@@ -541,8 +565,8 @@ class ProvGeneration(ProvRelation):
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
-        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
@@ -560,14 +584,28 @@ class ProvUsage(ProvRelation):
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
         # Optional attributes
+        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY] = activity
         attributes[PROV_ATTR_ENTITY] = entity
         attributes[PROV_ATTR_TIME] = time
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+class ProvCommunication(ProvRelation):
+    def get_type(self):
+        return PROV_REC_COMMUNICATION
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
+        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, ProvActivity)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_INFORMED] = informed
+        attributes[PROV_ATTR_INFORMANT] = informant
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 class ProvStart(ProvRelation):
@@ -581,7 +619,7 @@ class ProvStart(ProvRelation):
         trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
         starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-        
+
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY] = activity
         attributes[PROV_ATTR_TRIGGER] = trigger
@@ -630,23 +668,32 @@ class ProvInvalidation(ProvRelation):
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
-class ProvCommunication(ProvRelation):
+### Component 2: Derivations
+
+class ProvDerivation(ProvRelation):
     def get_type(self):
-        return PROV_REC_COMMUNICATION
+        return PROV_REC_DERIVATION
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
-        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, ProvActivity)
+        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
+        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        # Optional attributes
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
+        generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
+        usage = self.optional_attribute(attributes, PROV_ATTR_USAGE, ProvUsage)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_INFORMED] = informed
-        attributes[PROV_ATTR_INFORMANT] = informant
+        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
+        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        attributes[PROV_ATTR_ACTIVITY]= activity
+        attributes[PROV_ATTR_GENERATION] = generation
+        attributes[PROV_ATTR_USAGE] = usage
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
+### Component 3: Agents, Responsibility, and Influence
 
-##### Component 2: Agents and Responsibility
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_REC_AGENT
@@ -683,7 +730,7 @@ class ProvAssociation(ProvRelation):
         attributes[PROV_ATTR_PLAN]= plan
         ProvRelation.add_attributes(self, attributes, extra_attributes)
         
-    def get_asn(self):
+    def get_provn(self, _indent_level=0):
         items = []
         if self._attributes:
             items.append(str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier()))
@@ -703,102 +750,46 @@ class ProvAssociation(ProvRelation):
         return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
 
 
-class ProvResponsibility(ProvRelation):
+class ProvDelegation(ProvRelation):
     def get_type(self):
-        return PROV_REC_RESPONSIBILITY
+        return PROV_REC_DELEGATION
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        subordinate = self.required_attribute(attributes, PROV_ATTR_SUBORDINATE, (ProvAgent, ProvEntity)) 
+        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, (ProvAgent, ProvEntity)) 
         responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, (ProvAgent, ProvEntity))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_SUBORDINATE] = subordinate
+        attributes[PROV_ATTR_DELEGATE] = delegate
         attributes[PROV_ATTR_RESPONSIBLE] = responsible
         attributes[PROV_ATTR_ACTIVITY]= activity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-
-### Component 3: Derivations
-
-class ProvDerivation(ProvRelation):
+class ProvInfluence(ProvRelation):
     def get_type(self):
-        return PROV_REC_DERIVATION
+        return PROV_REC_INFLUENCE
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
-        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, (ProvAgent, ProvEntity)) 
+        influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, (ProvAgent, ProvEntity))
         # Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
-        generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
-        usage = self.optional_attribute(attributes, PROV_ATTR_USAGE, ProvUsage)
+        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_GENERATED_ENTITY]= generatedEntity
-        attributes[PROV_ATTR_USED_ENTITY]= usedEntity
+        attributes[PROV_ATTR_INFLUENCEE] = influencee
+        attributes[PROV_ATTR_INFLUENCER] = influencer
         attributes[PROV_ATTR_ACTIVITY]= activity
-        attributes[PROV_ATTR_GENERATION] = generation
-        attributes[PROV_ATTR_USAGE] = usage
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
-class ProvRevision(ProvRelation):
-    def get_type(self):
-        return PROV_REC_REVISION
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        newer = self.required_attribute(attributes, PROV_ATTR_NEWER, ProvEntity) 
-        older = self.required_attribute(attributes, PROV_ATTR_OLDER, ProvEntity)
-        # Optional attributes
-        responsibility = self.optional_attribute(attributes, PROV_ATTR_RESPONSIBILITY, (ProvAgent, ProvEntity))
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_NEWER]= newer
-        attributes[PROV_ATTR_OLDER]= older
-        attributes[PROV_ATTR_RESPONSIBILITY]= responsibility
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
+### Component 4: Bundles
 
+# See below
 
-class ProvQuotation(ProvRelation):
-    def get_type(self):
-        return PROV_REC_QUOTATION
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        quote = self.required_attribute(attributes, PROV_ATTR_QUOTE, ProvEntity) 
-        original = self.required_attribute(attributes, PROV_ATTR_ORIGINAL, ProvEntity)
-        # Optional attributes
-        quoterAgent = self.optional_attribute(attributes, PROV_ATTR_QUOTER_AGENT, (ProvAgent, ProvEntity))
-        originalAgent = self.optional_attribute(attributes, PROV_ATTR_ORIGINAL_AGENT, (ProvAgent, ProvEntity))
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_QUOTE]= quote
-        attributes[PROV_ATTR_ORIGINAL]= original
-        attributes[PROV_ATTR_QUOTER_AGENT]= quoterAgent
-        attributes[PROV_ATTR_ORIGINAL_AGENT]= originalAgent
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-class ProvSource(ProvRelation):
-    def get_type(self):
-        return PROV_REC_SOURCE
-    
-    def add_attributes(self, attributes, extra_attributes):
-        # Required attributes
-        derived = self.required_attribute(attributes, PROV_ATTR_DERIVED, ProvEntity) 
-        source = self.required_attribute(attributes, PROV_ATTR_SOURCE, ProvEntity)
-        
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_DERIVED]= derived
-        attributes[PROV_ATTR_SOURCE]= source
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-### Component 4: Alternate Entities
+### Component 5: Alternate Entities
 
 class ProvSpecialization(ProvRelation):
     def get_type(self):
@@ -806,11 +797,11 @@ class ProvSpecialization(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specializedEntity = self.required_attribute(attributes, PROV_ATTR_SPECIALIZED_ENTITY, ProvEntity) 
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
         generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, ProvEntity)
         
         attributes = OrderedDict()
-        attributes[PROV_ATTR_SPECIALIZED_ENTITY]= specializedEntity
+        attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
         attributes[PROV_ATTR_GENERAL_ENTITY]= generalEntity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
@@ -829,34 +820,70 @@ class ProvAlternate(ProvRelation):
         attributes[PROV_ATTR_ALTERNATE2]= alternate2
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
-### Component 5: Collections NOT IMPLEMENTED
-
-### Component 6: Annotations
-
+class ProvMention(ProvSpecialization):
+    def get_type(self):
+        return PROV_REC_MENTION
     
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
+        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, Identifier)
+        bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, Identifier)
+        #=======================================================================
+        # # This is disabled so that mentionOf can refer to bundle that is not defined in the same place
+        # bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, ProvBundle)
+        # # Check if generalEntity is in the bundle
+        # if generalEntity.get_bundle() is not bundle:
+        #    raise ProvExceptionContraint(PROV_REC_MENTION, generalEntity, bundle, 'The generalEntity must belong to the bundle')
+        #=======================================================================
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
+        attributes[PROV_ATTR_GENERAL_ENTITY]= generalEntity
+        attributes[PROV_ATTR_BUNDLE]= bundle
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+
+### Component 6: Collections
+
+class ProvMembership(ProvRelation):
+    def get_type(self):
+        return PROV_REC_MEMBERSHIP
+    
+    def add_attributes(self, attributes, extra_attributes):
+        # Required attributes
+        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, ProvEntity) 
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        
+        attributes = OrderedDict()
+        attributes[PROV_ATTR_COLLECTION]= collection
+        attributes[PROV_ATTR_ENTITY]= entity
+        ProvRelation.add_attributes(self, attributes, extra_attributes)
+
+# Class mappings from PROV record type    
 PROV_REC_CLS = {
     PROV_REC_ENTITY                 : ProvEntity,
     PROV_REC_ACTIVITY               : ProvActivity,
     PROV_REC_GENERATION             : ProvGeneration,
     PROV_REC_USAGE                  : ProvUsage,
+    PROV_REC_COMMUNICATION          : ProvCommunication,
     PROV_REC_START                  : ProvStart,
     PROV_REC_END                    : ProvEnd,
     PROV_REC_INVALIDATION           : ProvInvalidation,
-    PROV_REC_COMMUNICATION          : ProvCommunication,
+    PROV_REC_DERIVATION             : ProvDerivation,
     PROV_REC_AGENT                  : ProvAgent,
     PROV_REC_ATTRIBUTION            : ProvAttribution,
     PROV_REC_ASSOCIATION            : ProvAssociation,
-    PROV_REC_RESPONSIBILITY         : ProvResponsibility,
-    PROV_REC_DERIVATION             : ProvDerivation,
-    PROV_REC_REVISION               : ProvRevision,
-    PROV_REC_QUOTATION              : ProvQuotation,
-    PROV_REC_SOURCE                 : ProvSource,
+    PROV_REC_DELEGATION             : ProvDelegation,
+    PROV_REC_INFLUENCE              : ProvInfluence,
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
     PROV_REC_ALTERNATE              : ProvAlternate,
-    }
+    PROV_REC_MENTION                : ProvMention,
+    PROV_REC_MEMBERSHIP             : ProvMembership,
+}
 
 
-# Container
+# Bundle
 class NamespaceManager(dict):
     def __init__(self, default_namespaces={}, default=None):
         self._default_namespaces = {}
@@ -955,21 +982,32 @@ class NamespaceManager(dict):
                 return new_prefix
         
 
-class ProvContainer(object):
-    def __init__(self):
+class ProvBundle(ProvEntity):
+    def __init__(self, bundle=None, identifier=None, attributes=None, other_attributes=None):
+        # Initializing bundle-specific attributes
         self._records = list()
         self._id_map = dict()
-        self._namespaces = NamespaceManager({ PROV.get_prefix(): PROV, XSD.get_prefix(): XSD})
+        self._bundles = dict()
+        if bundle is None:
+            self._namespaces = NamespaceManager({ PROV.get_prefix(): PROV, XSD.get_prefix(): XSD})
+        else:
+            self._namespaces = bundle._namespaces
         
-    # Container configurations
+        # Initializing record-specific attributes
+        super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes)
+        
+    # Bundle configurations
     def set_default_namespace(self, uri):
         self._namespaces.set_default_namespace(uri)
         
     def get_default_namespace(self):
         return self._namespaces.get_default_namespace()
         
-    def add_namespace(self, namespace):
-        self._namespaces.add_namespace(namespace)
+    def add_namespace(self, namespace_or_prefix, uri=None):
+        if uri is None:
+            self._namespaces.add_namespace(namespace_or_prefix)
+        else:
+            self._namespaces.add_namespace(Namespace(namespace_or_prefix, uri))
 
     def get_registered_namespaces(self):
         return self._namespaces.get_registered_namespaces()
@@ -989,12 +1027,27 @@ class ProvContainer(object):
             valid_id = self.valid_identifier(identifier)
             return self._id_map[valid_id]
         except:
-            return None
+            # looking up the parent bundle
+            if self._bundle is not None:
+                return self._bundle.get_record(valid_id)
+            else:
+                return None
+    
+    def get_bundle(self, identifier):
+        try:
+            valid_id = self.valid_identifier(identifier)
+            return self._bundles[valid_id]
+        except:
+            # looking up the parent bundle
+            if self._bundle is not None:
+                return self._bundle.get_bundle(valid_id)
+            else:
+                return None
         
     # PROV-JSON serialization/deserialization    
     class JSONEncoder(json.JSONEncoder):
         def default(self, o):
-            if isinstance(o, ProvContainer):
+            if isinstance(o, ProvBundle):
                 return o._encode_JSON_container()
             else:
                 # Use the default encoder instead
@@ -1003,7 +1056,7 @@ class ProvContainer(object):
     class JSONDecoder(json.JSONDecoder):
         def decode(self, s):
             json_container = json.JSONDecoder.decode(self, s)
-            result = ProvContainer()
+            result = ProvBundle()
             result._decode_JSON_container(json_container)
             return result
     
@@ -1014,7 +1067,7 @@ class ProvContainer(object):
             if isinstance(value, datetime.datetime):
                 return u'"%s"^^%s' % (value.isoformat(), u'xsd:dateTime')
             else:
-                return str(value)
+                return value
     
     def _decode_json_representation(self, value):
         try:
@@ -1048,46 +1101,55 @@ class ProvContainer(object):
         
     def _encode_JSON_container(self):
         container = defaultdict(dict)
-        prefixes = {}
-        for namespace in self._namespaces.get_registered_namespaces():
-            prefixes[namespace.get_prefix()] = namespace.get_uri()
-        if self._namespaces._default:
-            prefixes['$'] = self._namespaces._default.get_uri()
-        container[u'prefix'] = prefixes
+        
+        if self._bundle is None:
+            # This is the top-level bundle, we need to define namespaces
+            prefixes = {}
+            for namespace in self._namespaces.get_registered_namespaces():
+                prefixes[namespace.get_prefix()] = namespace.get_uri()
+            if self._namespaces._default:
+                prefixes['$'] = self._namespaces._default.get_uri()
+            container[u'prefix'] = prefixes
+            
         ids = {}
         # generating/mapping all record identifiers 
         for record in self._records:
             ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
         for record in self._records:
-            rec_type = PROV_N_MAP[record.get_type()]
+            rec_type = record.get_type()
+            rec_label = PROV_N_MAP[rec_type]
             identifier = str(ids[record])
             
-            record_json = {}
-            if record._attributes:
-                for (attr, value) in record._attributes.items():
-                    if isinstance(value, ProvRecord):
-                        attr_record_id = ids[value]
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id) 
-                    elif value is not None:
-                        # Assuming this is a datetime value
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat()
-            if record._extra_attributes:
-                for (attr, value) in record._extra_attributes:
-                    attr_id = str(attr)
-                    value_json = self._encode_json_representation(value)
-                    if attr_id in record_json:
-                        # Multi-value attribute
-                        existing_value = record_json[attr_id]
-                        try:
-                            # Add the value to the current list of values
-                            existing_value.add(value_json)
-                        except:
-                            # But if the existing value is not a list, it'll fail
-                            # create the list for the existing value and the second value
-                            record_json[attr_id] = [existing_value, value_json]
-                    else:
-                        record_json[attr_id] = value_json
-            container[rec_type][identifier] = record_json
+            if rec_type == PROV_REC_BUNDLE:
+                # encoding the sub-bundle
+                record_json = record._encode_JSON_container()
+            else:
+                record_json = {}
+                if record._attributes:
+                    for (attr, value) in record._attributes.items():
+                        if isinstance(value, ProvRecord):
+                            attr_record_id = ids[value]
+                            record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id) 
+                        elif value is not None:
+                            # Assuming this is a datetime value
+                            record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                if record._extra_attributes:
+                    for (attr, value) in record._extra_attributes:
+                        attr_id = str(attr)
+                        value_json = self._encode_json_representation(value)
+                        if attr_id in record_json:
+                            # Multi-value attribute
+                            existing_value = record_json[attr_id]
+                            try:
+                                # Add the value to the current list of values
+                                existing_value.add(value_json)
+                            except:
+                                # But if the existing value is not a list, it'll fail
+                                # create the list for the existing value and the second value
+                                record_json[attr_id] = [existing_value, value_json]
+                        else:
+                            record_json[attr_id] = value_json
+            container[rec_label][identifier] = record_json
         
         return container
     
@@ -1102,50 +1164,72 @@ class ProvContainer(object):
         records = sorted([(PROV_RECORD_IDS_MAP[rec_type], rec_id, jc[rec_type][rec_id])
                           for rec_type in jc if rec_type <> u'prefix'
                           for rec_id in jc[rec_type]],
-                         key=lambda record: record[0])
+                         key=lambda tuple_rec: tuple_rec[0])
         
         record_map = {}
-        for (record_type, identifier, _) in records:
-            record_map[identifier] = self.add_record(record_type, identifier, None, None)
-        for (_, identifier, attributes) in records:
-            record = record_map[identifier]
-            prov_attributes = {}
-            extra_attributes = []
-            # Splitting PROV attributes and the others
-            for attr, value in attributes.items():
-                if attr in PROV_ATTRIBUTES_ID_MAP:
-                    prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
-                else:
-                    attr_id = self.valid_identifier(attr)
-                    if isinstance(value, list):
-                        # Parsing multi-value attribute
-                        extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+        # Create all the records before setting their attributes
+        for (record_type, identifier, content) in records:
+            if record_type == PROV_REC_BUNDLE:
+                bundle = self.bundle(identifier)
+                bundle._decode_JSON_container(content)
+            else:
+                record_map[identifier] = self.add_record(record_type, identifier, None, None)
+        for (record_type, identifier, attributes) in records:
+            if record_type <> PROV_REC_BUNDLE:
+                record = record_map[identifier]
+                prov_attributes = {}
+                extra_attributes = []
+                # Splitting PROV attributes and the others
+                for attr, value in attributes.items():
+                    if attr in PROV_ATTRIBUTES_ID_MAP:
+                        prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                     else:
-                        # add the single-value attribute
-                        extra_attributes.append((attr_id, self._decode_json_representation(value)))
-#            logger.debug('Adding attributes for record %s' % str(record))
-            record.add_attributes(prov_attributes, extra_attributes)
-#            logger.debug('Resulting record: %s' % str(record))
+                        attr_id = self.valid_identifier(attr)
+                        if isinstance(value, list):
+                            # Parsing multi-value attribute
+                            extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                        else:
+                            # add the single-value attribute
+                            extra_attributes.append((attr_id, self._decode_json_representation(value)))
+                record.add_attributes(prov_attributes, extra_attributes)
         
     # Miscellaneous functions
-    def get_asn(self):
-        records = ['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()]
-        records.append('')
-        records.extend([str(record) for record in self._records]) 
-        return '\n'.join(records)
+    def get_type(self):
+        return PROV_REC_BUNDLE
+    
+    def get_provn(self, _indent_level=0):
+        indentation = '' +  ('  ' * _indent_level)
+        newline = '\n' + ('  ' * (_indent_level + 1))
+        if self._bundle is None:
+            records = ['bundle']
+            # print out prefixes in the top-level bundle
+            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
+            # a blank line between the prefixes and the assertions
+            records.append('')
+        else:
+            records = ['bundle %s' % self._identifier]
         
-    def print_records(self):
-        print self.get_asn()
-            
+        records.extend([record.get_provn(_indent_level + 1) for record in self._records])
+        provn_str = newline.join(records) + '\n' + \
+                    indentation + 'endBundle'
+        return provn_str
+        
     def __eq__(self, other):
+        try:
+            other_records = set(other._records)
+        except:
+            # other is not a bundle
+            return False
         this_records = set(self._records)
-        other_records = set(other._records)
         if len(this_records) <> len(other_records):
             return False
         # check if all records for equality
         for record_a in this_records:
             if record_a._identifier:
-                record_b = other.get_record(record_a._identifier)
+                if record_a.get_type() == PROV_REC_BUNDLE:
+                    record_b = other.get_bundle(record_a._identifier)
+                else:
+                    record_b = other.get_record(record_a._identifier)
                 if record_b: 
                     if record_a == record_b:
                         other_records.remove(record_b)
@@ -1176,7 +1260,11 @@ class ProvContainer(object):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
         self._records.append(new_record)
         if new_record._identifier:
-            self._id_map[new_record._identifier] = new_record
+            if record_type == PROV_REC_BUNDLE:
+                # Don't mix bunle ids with normal record ids.
+                self._bundles[new_record._identifier] = new_record
+            else:
+                self._id_map[new_record._identifier] = new_record
         return new_record
     
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
@@ -1186,27 +1274,27 @@ class ProvContainer(object):
         return self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
     
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        return self.add_element(PROV_REC_ACTIVITY, identifier, {PROV_ATTR_STARTTIME: startTime, PROV_ATTR_ENDTIME: endTime}, other_attributes)
+        return self.add_element(PROV_REC_ACTIVITY, identifier, {PROV_ATTR_STARTTIME: _ensure_datetime(startTime), PROV_ATTR_ENDTIME: _ensure_datetime(endTime)}, other_attributes)
     
     def generation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_GENERATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: time}, other_attributes)
+        return self.add_record(PROV_REC_GENERATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
     
-    def usage(self, activity, entity, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: time}, other_attributes)
+    def usage(self, activity, entity=None, time=None, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
     
     def start(self, activity, trigger=None, starter=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_STARTER: starter, PROV_ATTR_TIME: time}, other_attributes)
+        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_STARTER: starter, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
     
     def end(self, activity, trigger=None, ender=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_ENDER: ender, PROV_ATTR_TIME: time}, other_attributes)
+        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_ENDER: ender, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
     
     def invalidation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_INVALIDATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: time}, other_attributes)
+        return self.add_record(PROV_REC_INVALIDATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
     
     def communication(self, informed, informant, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_COMMUNICATION, identifier, {PROV_ATTR_INFORMED: informed, PROV_ATTR_INFORMANT: informant}, other_attributes)
     
-    def agent(self, identifier, other_attributes):
+    def agent(self, identifier, other_attributes=None):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes)
     
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
@@ -1215,8 +1303,8 @@ class ProvContainer(object):
     def association(self, activity, agent=None, plan=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
     
-    def responsibility(self, subordinate, responsible, activity=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_RESPONSIBILITY, identifier, {PROV_ATTR_SUBORDINATE: subordinate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
+    def delegation(self, delegate, responsible, activity=None, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_DELEGATION, identifier, {PROV_ATTR_DELEGATE: delegate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
         
     def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
@@ -1225,26 +1313,34 @@ class ProvContainer(object):
                       PROV_ATTR_GENERATION: generation,
                       PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
-    
-    def revision(self, newer, older, responsibility=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_REVISION, identifier, {PROV_ATTR_NEWER: newer, PROV_ATTR_OLDER: older, PROV_ATTR_RESPONSIBILITY: responsibility}, other_attributes)
-    
-    def quotation(self, quote, original=None, quoterAgent=None, originalAgent=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_QUOTATION, identifier, 
-                               {PROV_ATTR_QUOTE: quote, PROV_ATTR_ORIGINAL: original,
-                                PROV_ATTR_QUOTER_AGENT: quoterAgent, PROV_ATTR_ORIGINAL_AGENT: originalAgent}, other_attributes)
-    
-    def originalsource(self, derived, source, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_DERIVED: derived, PROV_ATTR_SOURCE: source}, other_attributes)
-    
-    def trace(self, entity, ancestor, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ANCESTOR: ancestor}, other_attributes)
-    
-    def specialization(self, specializedEntity, generalEntity, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIALIZED_ENTITY: specializedEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
+        
+    def specialization(self, specificEntity, generalEntity, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
     
     def alternate(self, alternate1, alternate2, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
+    
+    def mention(self, specificEntity, generalEntity, bundle, identifier=None, other_attributes=None):
+        # Special case for mention: if generalEntity is not already a ProvRecord (e.g. a string identifier),
+        # then it might need to be looked up in the bundle provided, not the current bundle
+        if isinstance(generalEntity, basestring):
+            # try to look for an existing record first:
+            existing_record = self.get_record(generalEntity)
+            if existing_record:
+                # stop looking
+                generalEntity = existing_record
+            else:
+                # looking in the target bundle
+                if isinstance(bundle, basestring):
+                    bundle = self.get_bundle(bundle)
+                generalEntity = bundle.get_record(generalEntity)
+        return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
+    
+    def membership(self, collection, entity, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_MEMBERSHIP, identifier, {PROV_ATTR_COLLECTION: collection, PROV_ATTR_ENTITY: entity}, other_attributes)
+    
+    def bundle(self, identifier, other_attributes=None):
+        return self.add_element(PROV_REC_BUNDLE, identifier, None, other_attributes)
     
     # Aliases
     wasGeneratedBy = generation
@@ -1255,11 +1351,12 @@ class ProvContainer(object):
     wasInformedBy = communication
     wasAttributedTo = attribution
     wasAssociatedWith = association
-    actedOnBehalfOf = responsibility
+    actedOnBehalfOf = delegation
     wasDerivedFrom = derivation
-    wasRevisionOf = revision
-    wasQuotedFrom = quotation
-    hadOriginalSource = originalsource
-    tracedTo = trace
     alternateOf = alternate
     specializationOf = specialization
+    mentionOf = mention
+    hadMember = membership
+
+# Add the newly defined ProvBundle into the PROV class dictionary    
+PROV_REC_CLS[PROV_REC_BUNDLE] = ProvBundle

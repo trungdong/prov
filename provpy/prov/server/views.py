@@ -1,4 +1,4 @@
-from models import PDAccount, PDRecord
+from models import PDBundle, PDRecord
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth.models import User
 from django.contrib.auth import login, authenticate
@@ -6,8 +6,7 @@ from django.contrib.auth.decorators import login_required
 import json
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from prov.model import ProvContainer
-from prov.model import json
+from prov.model import ProvBundle
 from prov.server.forms import ProfileForm
 from django.utils.datastructures import MultiValueDictKeyError
 
@@ -28,10 +27,10 @@ def get_prov_json(request):
             return HttpResponse(content='{id : %s}' % entity_id, mimetype='application/json')
         return HttpResponse(content='{Not found}', mimetype='application/json')
     else:
-        account = PDAccount.objects.get(id=1)
+        account = PDBundle.objects.get(id=1)
         g2 = account.get_graph()
-        return render_to_response('server/test.html', {'json_1' : json.dumps(g1, cls=ProvContainer.JSONEncoder, indent=4),
-                                                       'json_2' : json.dumps(g2, cls=ProvContainer.JSONEncoder, indent=4),
+        return render_to_response('server/test.html', {'json_1' : json.dumps(g1, cls=ProvBundle.JSONEncoder, indent=4),
+                                                       'json_2' : json.dumps(g2, cls=ProvBundle.JSONEncoder, indent=4),
                                                        'asn_1': g1.get_asn(),
                                                        'asn_2': g2.get_asn()},
                                   context_instance=RequestContext(request))
@@ -73,13 +72,13 @@ def profile(request):
         elif request.method == 'POST':
             try:
                 rid = request.POST['delete_id']
-                PDAccount.objects.get(id=rid).delete()
+                PDBundle.objects.get(id=rid).delete()
                 message = 'The bundle with ID ' + rid + ' was successfully deleted.'
             except MultiValueDictKeyError:
-                prov_graph = ProvContainer()
-                prov_graph._decode_JSON_container(json.loads(request.POST['content']))
-                account = PDAccount.create(request.POST['rec_id'], request.POST['asserter'], request.user)
-                account.save_graph(prov_graph)
+                prov_bundle = ProvBundle()
+                prov_bundle._decode_JSON_container(json.loads(request.POST['content']))
+                account = PDBundle.create(request.POST['rec_id'], request.POST['asserter'], request.user)
+                account.save_bundle(prov_bundle)
                 message = 'The bundle was successfully created with ID ' + `account.id` + "."
             
         return render_to_response('server/profile.html', 
@@ -91,9 +90,9 @@ def profile(request):
 
 @login_required
 def detail(request, bundle_id):
-    PDAccount.objects.get(id=bundle_id).get_graph().print_records()
+    PDBundle.objects.get(id=bundle_id).get_graph().print_records()
     return render_to_response('server/detail.html',
-                              {'logged': True, 'bundle': PDAccount.objects.get(id=bundle_id)},
+                              {'logged': True, 'bundle': PDBundle.objects.get(id=bundle_id)},
                               context_instance=RequestContext(request))
     
 @login_required()
