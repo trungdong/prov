@@ -278,7 +278,7 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
 def _create_profile(sender, created, instance, **kwargs):
     if(created):
         UserProfile.objects.create(user=instance)
-#        instance.groups.add(Group.objects.get(name='public'))
+        instance.groups.add(Group.objects.get(name='public'))
 
 def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID
