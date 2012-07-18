@@ -287,6 +287,7 @@ class Namespace(object):
     def __init__(self, prefix, uri):
         self._prefix = prefix
         self._uri = uri
+        self._cache = dict()
 
     def get_prefix(self):
         return self._prefix
@@ -309,7 +310,12 @@ class Namespace(object):
         return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
     
     def __getitem__(self, localpart):
-        return QName(self, localpart)
+        if localpart in self._cache:
+            return self._cache[localpart]
+        else:
+            qname = QName(self, localpart)
+            self._cache[localpart] = qname
+            return qname
     
 XSD = Namespace("xsd",'http://www.w3.org/2001/XMLSchema-datatypes#')
 PROV = Namespace("prov",'http://www.w3.org/ns/prov#')
@@ -352,6 +358,22 @@ class ProvRecord(object):
         
     def get_type(self):
         pass
+    
+    def get_prov_type(self):
+        pass
+    
+    def get_asserted_types(self):
+        if self._extra_attributes:
+            prov_type = PROV['type']
+            return set([value for attr, value in self._extra_attributes if attr == prov_type])
+        return set()
+    
+    def add_asserted_type(self, type_identifier):
+        asserted_types = self.get_asserted_types()
+        if type_identifier not in asserted_types:
+            if self._extra_attributes is None:
+                self._extra_attributes = []
+            self._extra_attributes.append((PROV['type'], type_identifier))
     
     def get_identifier(self):
         return self._identifier
@@ -535,10 +557,16 @@ class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_REC_ENTITY
     
+    def get_prov_type(self):
+        return PROV['Entity']
+    
 
 class ProvActivity(ProvElement):
     def get_type(self):
         return PROV_REC_ACTIVITY
+    
+    def get_prov_type(self):
+        return PROV['Activity']
     
     def add_attributes(self, attributes, extra_attributes):
         startTime = self.optional_attribute(attributes, PROV_ATTR_STARTTIME, datetime.datetime)
@@ -562,6 +590,9 @@ class ProvGeneration(ProvRelation):
     def get_type(self):
         return PROV_REC_GENERATION
     
+    def get_prov_type(self):
+        return PROV['Generation']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
@@ -581,6 +612,9 @@ class ProvUsage(ProvRelation):
     def get_type(self):
         return PROV_REC_USAGE
     
+    def get_prov_type(self):
+        return PROV['Usage']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
@@ -598,6 +632,9 @@ class ProvCommunication(ProvRelation):
     def get_type(self):
         return PROV_REC_COMMUNICATION
     
+    def get_prov_type(self):
+        return PROV['Communication']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, ProvActivity)
@@ -611,6 +648,9 @@ class ProvCommunication(ProvRelation):
 class ProvStart(ProvRelation):
     def get_type(self):
         return PROV_REC_START
+    
+    def get_prov_type(self):
+        return PROV['Start']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -631,6 +671,9 @@ class ProvEnd(ProvRelation):
     def get_type(self):
         return PROV_REC_END
     
+    def get_prov_type(self):
+        return PROV['End']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
@@ -650,6 +693,9 @@ class ProvEnd(ProvRelation):
 class ProvInvalidation(ProvRelation):
     def get_type(self):
         return PROV_REC_INVALIDATION
+    
+    def get_prov_type(self):
+        return PROV['Invalidation']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -674,6 +720,9 @@ class ProvDerivation(ProvRelation):
     def get_type(self):
         return PROV_REC_DERIVATION
     
+    def get_prov_type(self):
+        return PROV['Derivation']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
@@ -697,11 +746,17 @@ class ProvDerivation(ProvRelation):
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_REC_AGENT
+    
+    def get_prov_type(self):
+        return PROV['Agent']
 
     
 class ProvAttribution(ProvRelation):
     def get_type(self):
         return PROV_REC_ATTRIBUTION
+    
+    def get_prov_type(self):
+        return PROV['Attribution']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -716,6 +771,9 @@ class ProvAttribution(ProvRelation):
 class ProvAssociation(ProvRelation):
     def get_type(self):
         return PROV_REC_ASSOCIATION
+    
+    def get_prov_type(self):
+        return PROV['Association']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -754,6 +812,9 @@ class ProvDelegation(ProvRelation):
     def get_type(self):
         return PROV_REC_DELEGATION
     
+    def get_prov_type(self):
+        return PROV['Delegation']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, (ProvAgent, ProvEntity)) 
@@ -770,6 +831,9 @@ class ProvDelegation(ProvRelation):
 class ProvInfluence(ProvRelation):
     def get_type(self):
         return PROV_REC_INFLUENCE
+    
+    def get_prov_type(self):
+        return PROV['Influence']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -795,6 +859,9 @@ class ProvSpecialization(ProvRelation):
     def get_type(self):
         return PROV_REC_SPECIALIZATION
     
+    def get_prov_type(self):
+        return PROV['Specialization']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
@@ -810,6 +877,9 @@ class ProvAlternate(ProvRelation):
     def get_type(self):
         return PROV_REC_ALTERNATE
     
+    def get_prov_type(self):
+        return PROV['Alternate']
+    
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
         alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, ProvEntity) 
@@ -823,6 +893,9 @@ class ProvAlternate(ProvRelation):
 class ProvMention(ProvSpecialization):
     def get_type(self):
         return PROV_REC_MENTION
+    
+    def get_prov_type(self):
+        return PROV['Mention']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -849,6 +922,9 @@ class ProvMention(ProvSpecialization):
 class ProvMembership(ProvRelation):
     def get_type(self):
         return PROV_REC_MEMBERSHIP
+    
+    def get_prov_type(self):
+        return PROV['Membership']
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
@@ -1313,7 +1389,22 @@ class ProvBundle(ProvEntity):
                       PROV_ATTR_GENERATION: generation,
                       PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
-        
+    
+    def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
+        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+        record.add_asserted_type(PROV['Revision'])
+        return record
+    
+    def quotation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
+        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+        record.add_asserted_type(PROV['Quotation'])
+        return record
+    
+    def primary_source(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
+        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+        record.add_asserted_type(PROV['PrimarySource'])
+        return record
+    
     def specialization(self, specificEntity, generalEntity, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
     
@@ -1353,6 +1444,9 @@ class ProvBundle(ProvEntity):
     wasAssociatedWith = association
     actedOnBehalfOf = delegation
     wasDerivedFrom = derivation
+    wasRevisionOf = revision
+    wasQuotedFrom = quotation
+    hadPrimarySource = primary_source
     alternateOf = alternate
     specializationOf = specialization
     mentionOf = mention
