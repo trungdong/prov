@@ -74,11 +74,13 @@ def profile(request):
                 
         elif request.method == 'POST':
             try:
-                rid = request.POST['delete_id']
-                PDBundle.objects.get(id=rid).delete()
-                message = 'The bundle with ID ' + rid + ' was successfully deleted.'
+                bundle_id = request.POST['delete_id']
+                pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
+                if not request.user.has_perm('delete_pdbundle', pdBundle):
+                    return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+                message = 'The bundle with ID ' + bundle_id + ' was successfully deleted.'
             except MultiValueDictKeyError:
-                prov_bundle = json.loads('{'+request.POST['content']+'}', cls=ProvBundle.JSONDecoder)
+                prov_bundle = json.loads(request.POST['content'], cls=ProvBundle.JSONDecoder)
                 pdbundle = PDBundle.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 pdbundle.save_bundle(prov_bundle)
                 message = 'The bundle was successfully created with ID ' + `pdbundle.id` + "."
@@ -103,8 +105,9 @@ def profile(request):
 
 @login_required
 def bundle_detail(request, bundle_id):
-    
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
+    if not request.user.has_perm('view_pdbundle', pdBundle):
+        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
     prov_g = pdBundle.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
@@ -114,6 +117,8 @@ def bundle_detail(request, bundle_id):
     
 def bundle_svg(request, bundle_id):
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
+    if not request.user.has_perm('view_pdbundle', pdBundle):
+        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
     prov_g = pdBundle.get_prov_bundle()
     dot = prov_to_dot(prov_g)
     svg_content = dot.create(format='svg')
@@ -161,18 +166,3 @@ def auth(request):
 @login_required
 def auth_help(request):
     return render_to_response('server/auth_help.html',{'logged': True})
-
-def _perms_to_label(user, obj):
-    perms = get_perms(user, obj)
-    if 'ownership_pdaccount' in perms:
-        return 'label-inverse'
-    if 'admin_pdaccount' in perms:
-        return 'label-info'
-    if 'delete_pdaccount' in perms:
-        return 'label-important'
-    if 'change_pdaccount' in perms:
-        return 'label-warning'
-    if get_perms(User.objects.get(id=-1),obj):
-        return ''
-    if 'view_pdaccount' in perms:
-        return 'label-success'

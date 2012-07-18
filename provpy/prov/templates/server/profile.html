@@ -32,10 +32,10 @@
             <td>{{ bundle.asserter }}</td>  
             <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' bundle.id %}">View</a></td>  
             <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' bundle.id %}">SVG</a></td>
-            <td>{% if 'admin_pdaccount' in perms %}
+            <td>{% if 'admin_pdbundle' in perms %}
             <a class="btn btn-success" type="button" href="{% url 'server.views.bundle_detail' bundle.id %}">Admin</a></td>
             {% endif %}
-            {% if 'delete_pdaccount' in perms %} 
+            {% if 'delete_pdbundle' in perms %} 
             <form action="{% url 'server.views.profile' %}" method="post" >
             	{% csrf_token %}
             	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
