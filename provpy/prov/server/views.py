@@ -78,15 +78,15 @@ def profile(request):
                 PDBundle.objects.get(id=rid).delete()
                 message = 'The bundle with ID ' + rid + ' was successfully deleted.'
             except MultiValueDictKeyError:
-                prov_bundle = json.loads(request.POST['content'], cls=ProvBundle.JSONDecoder)
+                prov_bundle = json.loads('{'+request.POST['content']+'}', cls=ProvBundle.JSONDecoder)
                 pdbundle = PDBundle.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 pdbundle.save_bundle(prov_bundle)
                 message = 'The bundle was successfully created with ID ' + `pdbundle.id` + "."
-                assign('view_pdaccount',request.user,pdbundle)
-                assign('change_pdaccount',request.user,pdbundle)
-                assign('delete_pdaccount',request.user,pdbundle)
-                assign('admin_pdaccount',request.user,pdbundle)
-                assign('ownership_pdaccount',request.user,pdbundle)
+                assign('view_pdbundle',request.user,pdbundle)
+                assign('change_pdbundle',request.user,pdbundle)
+                assign('delete_pdbundle',request.user,pdbundle)
+                assign('admin_pdbundle',request.user,pdbundle)
+                assign('ownership_pdbundle',request.user,pdbundle)
                 
         perms = get_perms_for_model(PDBundle)
         l_perm = []
@@ -97,8 +97,6 @@ def profile(request):
                                   {'bundles': get_objects_for_user
                                    (user=request.user, 
                                     perms = l_perm, klass=PDBundle, any_perm=True).order_by('id'),
-                                   'user': request.user.username,
-                                   'bundles': request.user.pdbundle_set.all(),
                                    'message': message,
                                    'logged': True },
                                   context_instance=RequestContext(request))

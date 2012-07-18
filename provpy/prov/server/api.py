@@ -1,5 +1,6 @@
 from tastypie import fields
-from tastypie.authentication import ApiKeyAuthentication, MultiAuthentication
+from tastypie.authentication import Authentication, ApiKeyAuthentication, MultiAuthentication
+from tastypie.authorization import Authorization
 from prov.server.auth import CustomAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
@@ -23,7 +24,7 @@ class AccountResource(ModelResource):
         list_allowed_methods = ['get', 'post', 'delete']
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
-        authorization= CustomAuthorization()
+        authorization = CustomAuthorization()
         authentication = MultiAuthentication(ApiKeyAuthentication(), CustomAuthentication())
         
     content = fields.DictField(attribute='content', null=True)
@@ -35,11 +36,11 @@ class AccountResource(ModelResource):
         
         account = PDBundle.create(bundle.data['rec_id'], bundle.data['asserter'], request.user)
         account.save_bundle(prov_bundle)
-        assign('view_pdaccount',request.user,account)
-        assign('change_pdaccount',request.user,account)
-        assign('delete_pdaccount',request.user,account)
-        assign('admin_pdaccount',request.user,account)
-        assign('ownership_pdaccount',request.user,account)
+        assign('view_pdbundle',request.user,account)
+        assign('change_pdbundle',request.user,account)
+        assign('delete_pdbundle',request.user,account)
+        assign('admin_pdbundle',request.user,account)
+        assign('ownership_pdbundle',request.user,account)
         
         bundle.obj = account
         return bundle

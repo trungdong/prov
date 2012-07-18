@@ -25,7 +25,7 @@ urlpatterns = patterns('server.views',
     (r'auth/help$', 'auth_help')
 )
 urlpatterns+= patterns('',
-                (r'^login$', 'django.contrib.auth.views.login', 
+                (r'login$', 'django.contrib.auth.views.login', 
                  {'template_name': 'server/login.html'}),
                  (r'^logout$', 'django.contrib.auth.views.logout_then_login')
                 )

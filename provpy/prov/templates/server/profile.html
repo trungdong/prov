@@ -24,7 +24,7 @@
           </tr>  
         </thead>  
         <tbody>
-        {% for bundle in bundles reversed %}  
+         {% for bundle in bundles reversed %}  
           <tr>
             {% get_obj_perms user for bundle as 'perms' %}
           	<td>{% status_label perms bundle%}</td>

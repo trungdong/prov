@@ -12,8 +12,6 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.db.models.signals import  post_save, post_syncdb
-from tastypie.models import ApiKey, create_api_key
-from tastypie.authentication import ApiKeyAuthentication
 from collections import defaultdict
 import uuid
 import datetime
@@ -67,9 +65,9 @@ class PDBundle(PDRecord):
     
     class Meta:
         permissions = (
-            ('view_pdaccount', 'Retrieving bundles'),
-            ('admin_pdaccount', 'Granting/revoking permissions'),
-            ('ownership_pdaccount', 'Permission to change ownership'),
+            ('view_pdbundle', 'Retrieving bundles'),
+            ('admin_pdbundle', 'Granting/revoking permissions'),
+            ('ownership_pdbundle', 'Permission to change ownership'),
         )
 
     

@@ -194,8 +194,8 @@ data = {
 };
 
 function test() {
-	var user = 'patence';
-	var pass = 'b4702794b52445bab04a51ead73d5adbc554c970';
+	var user = 'port';
+	var pass = '3b61df7e8fffdef6813fdc7e88bb3dd1ea57eccf';
 	var tok = user + ':' + pass;
   	var auth = 'ApiKey ' + tok;
 	
@@ -206,7 +206,7 @@ function test() {
 		};
 	$.ajax({
 		  type: 'POST',
-		  url: '/api/v0/account/',
+		  url: '/api/v0/bundle/',
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
 		  beforeSend: function(req) {

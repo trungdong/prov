@@ -1,7 +1,6 @@
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
-from prov.server.models import PDAccount
-
+from models import PDBundle
 class CustomAuthentication(Authentication):
     """
     Authenticates only Anonymous users 
@@ -33,18 +32,18 @@ class CustomAuthorization(Authorization):
         path = request.path.split('/');
         if self.checkRequest(path=path):
             try:
-                return request.user.has_perm(request.method, PDAccount.objects.get(id=int(path[-2])))
+                return request.user.has_perm(request.method, PDBundle.objects.get(id=int(path[-2])))
             except:
                 pass
         return True
     
     def methodToPerms(self, method):
         if method == 'GET':
-            return 'server.view_pdaccount'
+            return 'server.view_pdbundle'
         if method == 'POST' or method == 'PUT':
-            return 'server.change_pdaccount'
+            return 'server.change_pdbundle'
         if method == 'DELETE':
-            return 'server.delete_pdaccount'
+            return 'server.delete_pdbundle'
         return None
     
     def checkRequest(self, path):
