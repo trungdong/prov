@@ -178,71 +178,89 @@ def example_graph():
 
     return g
 
-def primer_graph():
-    #prefix ex <http://example/>
+def primer_example():
+    # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/primer.pn
+    #===========================================================================
+    # bundle
+    # 
+    #   prefix ex <http://example/>
+    # 
+    #   entity(ex:article, [dcterms:title="Crime rises in cities"])
+    #   entity(ex:dataSet1)
+    #   entity(ex:dataSet2)
+    #   entity(ex:regionList)
+    #   entity(ex:composition)
+    #   entity(ex:chart1)
+    #   entity(ex:chart2)
+    # 
+    # 
+    #   activity(ex:compile)
+    #   activity(ex:compose)
+    #   activity(ex:illustrate)
+    # 
+    # 
+    #   used(ex:compose, ex:dataSet1, -)
+    #   used(ex:compose, ex:regionList, -)
+    #   wasGeneratedBy(ex:composition, ex:compose, -)
+    # 
+    #   used(ex:illustrate, ex:composition, -)
+    #   wasGeneratedBy(ex:chart1, ex:illustrate, -)
+    # 
+    # 
+    #   agent(ex:derek, [ prov:type="prov:Person", foaf:givenName = "Derek", 
+    #          foaf:mbox= "<mailto:derek@example.org>"])
+    #   wasAssociatedWith(ex:compose, ex:derek, -)
+    #   wasAssociatedWith(ex:illustrate, ex:derek, -)
+    # 
+    #   agent(ex:chartgen, [ prov:type="prov:Organization",
+    #          foaf:name = "Chart Generators Inc"])
+    #   actedOnBehalfOf(ex:derek, ex:chartgen, ex:compose)
+    # 
+    #   wasAttributedTo(ex:chart1, ex:derek)
+    # 
+    # 
+    #   used(ex:compose, ex:dataSet1, -,   [ prov:role = "ex:dataToCompose"])
+    #   used(ex:compose, ex:regionList, -, [ prov:role = "ex:regionsToAggregteBy"])
+    # 
+    # 
+    #   wasRevisionOf(ex:dataSet2, ex:dataSet1, -)
+    #   wasDerivedFrom(ex:chart2, ex:dataSet2)
+    # 
+    # endBundle
+    #===========================================================================
     ex = Namespace('ex', 'http://example/')
     
     g = ProvBundle()
-    g.add_namespace(Namespace("dcterms","http://purl.org/dc/terms/"))
+    g.add_namespace("dcterms","http://purl.org/dc/terms/")
     
-    #entity(ex:article, [dcterms:title="Crime rises in cities"])
     g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})
-    #entity(ex:dataSet1)
     g.entity(ex['dataSet1'])
-    #entity(ex:dataSet2)
     g.entity(ex['dataSet2'])
-    #entity(ex:regionList)
     g.entity(ex['regionList'])
-    #entity(ex:composition)
     g.entity(ex['composition'])
-    #entity(ex:chart1)
     g.entity(ex['chart1'])
-    #entity(ex:chart2)
     g.entity(ex['chart2'])
 
-    #activity(ex:compile)
     g.activity(ex['compile'])
-    #activity(ex:compose)
     g.activity(ex['compose'])
-    #activity(ex:illustrate)
     g.activity(ex['illustrate'])
 
-    #used(ex:compose, ex:dataSet1, -)
-    g.used(ex['compose'], ex['dataSet1'])
-    #used(ex:compose, ex:regionList, -)
-    g.used(ex['compose'], ex['regionList'])
-    #wasGeneratedBy(ex:composition, ex:compose, -)
+    g.used('ex:compose', 'ex:dataSet1', other_attributes={'prov:role' : "ex:dataToCompose"})
+    g.used('ex:compose', 'ex:regionList', other_attributes={'prov:role' : "ex:regionsToAggregateBy"})
     g.wasGeneratedBy('ex:composition', 'ex:compose')
     
-    #used(ex:illustrate, ex:composition, -)
     g.used('ex:illustrate', 'ex:composition')
-    #wasGeneratedBy(ex:chart1, ex:illustrate, -)
     g.wasGeneratedBy('ex:chart1', 'ex:illustrate')
-    #
-    #
-    #agent(ex:derek, [ prov:type="prov:Person", foaf:givenName = "Derek", 
-    #       foaf:mbox= "<mailto:derek@example.org>"])
+    
     g.agent('ex:derek', {'prov:type': "prov:Person", 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
-    #wasAssociatedWith(ex:compose, ex:derek, -)
     g.wasAssociatedWith('ex:compose', 'ex:derek')
-    #wasAssociatedWith(ex:illustrate, ex:derek, -)
     g.wasAssociatedWith('ex:illustrate', 'ex:derek')
     
-    # agent(ex:chartgen, [ prov:type="prov:Organization", foaf:name = "Chart Generators Inc"])
     g.agent('ex:chartgen', {'prov:type': "prov:Organization", 'foaf:name' : "Chart Generators Inc"})
-    # actedOnBehalfOf(ex:derek, ex:chartgen, ex:compose)
     g.actedOnBehalfOf('ex:derek', 'ex:chartgen', 'ex:compose')
-    # wasAttributedTo(ex:chart1, ex:derek)
     g.wasAttributedTo('ex:chart1', 'ex:derek')
 
-    # used(ex:compose, ex:dataSet1, -,   [ prov:role = "ex:dataToCompose"])
-    g.used('ex:compose', 'ex:dataSet1', other_attributes={'prov:role' : "ex:dataToCompose"})
-    # used(ex:compose, ex:regionList, -, [ prov:role = "ex:regionsToAggregteBy"])
-    g.used('ex:compose', 'ex:regionList', other_attributes={'prov:role' : "ex:regionsToAggregteBy"})
-
-    # wasRevisionOf(ex:dataSet2, ex:dataSet1, -)
     g.wasRevisionOf('ex:dataSet2', 'ex:dataSet1')
-    # wasDerivedFrom(ex:chart2, ex:dataSet2)
     g.wasDerivedFrom('ex:chart2', 'ex:dataSet2')
     
     return g
@@ -398,7 +416,7 @@ def w3c_publication_2():
 tests = [
     ('Bundle1', bundles1),
     ('Bundle2', bundles2),
-#    ('Primer', primer_graph),
+    ('Primer', primer_example),
     ('W3C Publication 1', w3c_publication_1),
     ('W3C Publication 2', w3c_publication_2)
 ]
