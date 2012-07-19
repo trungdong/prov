@@ -12,7 +12,7 @@
 		<h2>PROV-JSON</h2>
 		 {% get_obj_perms user for bundle as 'perms' %}
 		<pre name="json"
-		{% if 'change_pdaccount' in perms %}
+		{% if 'change_pdbundle' in perms %}
 		contentEditable="true"
 		{% endif %}>{{ prov_json }}</pre>
       </div>

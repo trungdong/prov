@@ -22,7 +22,8 @@ urlpatterns = patterns('server.views',
     (r'bundles/(?P<bundle_id>\d+).svg$', 'bundle_svg'),
     (r'create$', 'create'),
     (r'auth$', 'auth'),
-    (r'auth/help$', 'auth_help')
+    (r'auth/help$', 'auth_help'),
+    (r'admin/(?P<bundle_id>\d+)/$', 'admin_bundle')
 )
 urlpatterns+= patterns('',
                 (r'login$', 'django.contrib.auth.views.login', 

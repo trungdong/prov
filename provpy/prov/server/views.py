@@ -8,7 +8,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
-from guardian.shortcuts import assign, get_perms_for_model, get_objects_for_user, get_perms
+from guardian.shortcuts import * #assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
@@ -78,6 +78,8 @@ def profile(request):
                 pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
                 if not request.user.has_perm('delete_pdbundle', pdBundle):
                     return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+                bundle_id = pdBundle.rec_id
+                pdBundle.delete()
                 message = 'The bundle with ID ' + bundle_id + ' was successfully deleted.'
             except MultiValueDictKeyError:
                 prov_bundle = json.loads(request.POST['content'], cls=ProvBundle.JSONDecoder)
@@ -166,3 +168,69 @@ def auth(request):
 @login_required
 def auth_help(request):
     return render_to_response('server/auth_help.html',{'logged': True})
+
+def _update_perms(target, role, pdBundle):
+        perms = get_perms_for_model(PDBundle)
+        l_perm = []
+        for i in range(len(perms)):
+            l_perm.append(perms[i].codename)
+        for permission in l_perm:
+                remove_perm(permission, target, pdBundle)
+        if role == 'none':
+            return
+        assign('view_pdbundle', target, pdBundle)
+        if role == 'Reader':
+            return
+        assign('change_pdbundle', target, pdBundle)
+        if role == 'Contributor':
+            return
+        assign('delete_pdbundle', target, pdBundle)
+        if role == 'Operator':
+            return
+        assign('admin_pdbundle', target, pdBundle)
+            
+@login_required
+def admin_bundle(request, bundle_id):
+    pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
+    if not request.user.has_perm('admin_pdbundle', pdBundle):
+        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+    message = None
+    if request.method == 'POST':
+        try:
+            name = request.POST['name']
+            role = request.POST['role']
+            type = request.POST['type']
+            if role not in ('none','Reader','Contributor','Operator','Administrator'):
+                raise Exception
+            if type == 'user':
+                target = User.objects.get(username=name)
+                _update_perms(target, role, pdBundle)
+            elif type == 'group':
+                target = Group.objects.get(name=name)
+                _update_perms(target, role, pdBundle)
+        except User.DoesNotExist:
+            message = 'User does not exist!'
+        except Group.DoesNotExist:
+            message = 'Group does not exist!'
+        except Exception:
+            pass
+
+    initial_list = get_users_with_perms(pdBundle, attach_perms = True, with_group_users=False)
+    users={}
+    for user in initial_list:
+        users[user] = len(initial_list[user])
+    initial_list = get_groups_with_perms(pdBundle, attach_perms=True)
+    public = False
+    groups={}
+    for group in initial_list:
+        groups[group] = len(initial_list[group])
+        import logging
+        logging.debug(group.name)
+        logging.debug(groups[group])
+        if group.name == 'public':
+            public = True
+            
+    return render_to_response('server/admin.html',
+                              {'logged': True, 'bundle': pdBundle, 'public': public,
+                               'users': users, 'groups': groups, 'message': message},
+                              context_instance=RequestContext(request))
