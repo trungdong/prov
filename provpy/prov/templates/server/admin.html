@@ -21,8 +21,8 @@ jQuery(function($) {
     });
   });
 });
-</script>
-      	<span class="span3">
+</script>	
+      	<div class="span3">
         	<h2>Bundle {{ bundle.rec_id }}</h2>
         	</br>
         	<h4>Currently the bundle is {% if public %}Public.{% else %}Private.{% endif %}</h4>
@@ -34,8 +34,8 @@ jQuery(function($) {
          	<input type="hidden" name="type" value="group" />  
          	<input type="hidden" name="role" value="{% if public %}none{% else %}Reader{% endif %}" />
          	</form>
-        </span>
-        <span class="span3">
+        </div>
+        <span class="span4">
         <form class="form-horizontal" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
          	{% csrf_token %}
          	<div class="control-group">  
@@ -55,16 +55,16 @@ jQuery(function($) {
                  	</select>
                 	<button type="submit" value="submit" class="btn btn-primary">Add</button>
                 	{% if message %}
-				<h3>{{ message }}</h3></div>
-				{% endif %}  	
+					<h3>{{ message }}</h3>
+					{% endif %}  	
           		</div>
           	</div>      
           </form>
       </span>
-      <span class="span5">
+      <span class="span4">
       <a class="btn btn-primary pull-right" onClick="go_to('/prov/home');">Back</a>
       </span>
-      <span class="span11">
+<span class="span11">
       <table class="table">  
         <thead>  
           <tr><th><h3>Owner</h3></th></tr>  
@@ -73,333 +73,9 @@ jQuery(function($) {
           <tr><td>{{ bundle.owner }}</td></tr>  
         </tbody>  
       </table>
-      <table class="table">  
-        <thead>  
-          <tr>
-          <th style="width:30%"><h3>Administrators</h3></th>
-          <th>Type</th>
-          <th style="width:20%"></th>
-          <th style="width:20%"></th>
-          </tr>  
-        </thead>  
-        <tbody>  
-          {% for user,perms in users.items %}
-          {% if perms == 4 %} 
-          <tr>
-          <td>{{ user.username }}</td>
-          <td>User</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">
-              	<option>Administrator</option>  
-                <option>Operator</option>   
-                <option>Contributor</option>  
-                <option>Reader</option>   
-              </select>
-              <button type="submit" value="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ user.username }}" />
-              <input type="hidden" name="type" value="user" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ user.username }}" />
-          <input type="hidden" name="type" value="user" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-          {% for group,perms in groups.items %}
-          {% if perms == 4 %} 
-          <tr>
-          <td>{{ group.name }}</td>
-          <td>Group</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %}  
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">  
-                <option>Administrator</option>
-                <option>Operator</option>    
-                <option>Contributor</option>  
-                <option>Reader</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ group.name }}" />
-              <input type="hidden" name="type" value="group" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ group.name }}" />
-          <input type="hidden" name="type" value="group" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}   
-        </tbody>  
-      </table>
-      <table class="table">  
-        <thead>  
-          <tr>
-          <th style="width:30%"><h3>Operators</h3></th>
-          <th>Type</th>
-          <th style="width:20%"></th>
-          <th style="width:20%"></th>
-          </tr>  
-        </thead>  
-        <tbody>  
-          {% for user,perms in users.items %}
-          {% if perms == 3 %} 
-          <tr>
-          <td>{{ user.username }}</td>
-          <td>User</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %} 
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">  
-                <option>Operator</option>  
-                <option>Administrator</option>  
-                <option>Contributor</option>  
-                <option>Reader</option>   
-              </select>
-              <button type="submit" value="submit" class="btn btn-success">Assign</button>   
-              <input type="hidden" name="name" value="{{ user.username }}" />
-              <input type="hidden" name="type" value="user" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ user.username }}" />
-          <input type="hidden" name="type" value="user" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-          </td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-          {% for group,perms in groups.items %}
-          {% if perms == 3 %} 
-          <tr>
-          <td>{{ group.name }}</td>
-          <td>Group</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %}  
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">  
-                <option>Operator</option>  
-                <option>Administrator</option>  
-                <option>Contributor</option>  
-                <option>Reader</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ group.name }}" />
-              <input type="hidden" name="type" value="group" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ group.name }}" />
-          <input type="hidden" name="type" value="group" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}   
-        </tbody>  
-      </table>
-      <table class="table">  
-        <thead>  
-          <tr>
-          <th style="width:30%"><h3>Contributors</h3></th>
-          <th>Type</th>
-          <th style="width:20%"></th>
-          <th style="width:20%"></th>
-          </tr>   
-        </thead>  
-        <tbody>  
-          {% for user,perms in users.items %}
-          {% if perms == 2 %} 
-          <tr>
-          <td>{{ user.username }}</td>
-          <td>User</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %} 
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">
-                <option>Contributor</option>   
-                <option>Administrator</option>
-                <option>Operator</option>
-                <option>Reader</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ user.username }}" />
-              <input type="hidden" name="type" value="user" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ user.username }}" />
-          <input type="hidden" name="type" value="user" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-          {% for group,perms in groups.items %}
-          {% if perms == 2 %} 
-          <tr>
-          <td>{{ group.name }}</td>
-          <td>Group</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %} 
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">  
-                <option>Contributor</option>  
-                <option>Administrator</option>
-                <option>Operator</option>  
-                <option>Reader</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ group.name }}" />
-              <input type="hidden" name="type" value="group" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ group.name }}" />
-          <input type="hidden" name="type" value="group" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}   
-        </tbody>  
-      </table>
-      <table class="table">  
-        <thead>  
-          <tr>
-          <th style="width:30%"><h3>Readers</h3></th>
-          <th>Type</th>
-          <th style="width:20%"></th>
-          <th style="width:20%"></th>
-          </tr>  
-        </thead>  
-        <tbody>  
-          {% for user,perms in users.items %}
-          {% if perms == 1 %} 
-          <tr>
-          <td>{{ user.username }}</td>
-          <td>User</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %}  
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">
-                <option>Reader</option>    
-                <option>Administrator</option>  
-                <option>Contributor</option>
-                <option>Operator</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>
-              <input type="hidden" name="name" value="{{ user.username }}" />
-              <input type="hidden" name="type" value="user" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ user.username }}" />
-          <input type="hidden" name="type" value="user" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-          </td>
-          </tr>
-          {% endif %}
-          {% endfor %}
-          {% for group,perms in groups.items %}
-          {% if perms == 1 and group.name != 'public'%} 
-          <tr>
-          <td>{{ group.name }}</td>
-          <td>Group</td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="POST">
-          {% csrf_token %}  
-          <div class="control-group">  
-            <div class="controls">  
-              <select name="role" style="width:120px">
-                <option>Reader</option>  
-                <option>Administrator</option>
-                <option>Operator</option>  
-                <option>Contributor</option>   
-              </select>
-              <button type="submit" class="btn btn-success">Assign</button>  
-              <input type="hidden" name="name" value="{{ group.name }}" />
-              <input type="hidden" name="type" value="group" />   
-            </div>  
-          </div>
-          </form>
-          </td>
-          <td>
-          <form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-          {% csrf_token %}
-          <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
-          <input type="hidden" name="name" value="{{ group.name }}" />
-          <input type="hidden" name="type" value="group" /> 
-          <input type="hidden" name="role" value="none" />
-          </form>
-           </td>
-          </tr>
-          {% endif %}
-          {% endfor %}   
-        </tbody> 
-      </table> 
-      </span>
+{% include 'server/perm_table.html' with op1='Administrator' op2='Operator' op3='Contributor' op4='Reader' p_number=4 %}
+{% include 'server/perm_table.html' with op1='Operator' op2='Administrator' op3='Contributor' op4='Reader' p_number=3 %}
+{% include 'server/perm_table.html' with op1='Contributor' op2='Administrator' op3='Operator' op4='Reader' p_number=2 %}
+{% include 'server/perm_table.html' with op1='Reader' op2='Administrator' op3='Operator' op4='Contributor' p_number=1 %}
+</span>
 {% endblock %}

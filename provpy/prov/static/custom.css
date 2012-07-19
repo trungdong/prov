@@ -28,5 +28,5 @@ html, body {
    top:-50px;
 }
 
-table { table-layout: fixed; }
-table th, table td { overflow: hidden; }
+.table { table-layout: fixed; margin-bottom:0px;}
+.table th, table td { overflow: hidden; }
