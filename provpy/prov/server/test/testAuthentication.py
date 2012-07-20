@@ -7,6 +7,7 @@ from guardian.shortcuts import assign, remove_perm
 from prov.model.test import examples
 from prov.model import json
 from prov.server.models import PDBundle
+from django.db.utils import IntegrityError, DatabaseError
 logger = logging.getLogger(__name__)
 USER_COUNT = 2
 
@@ -27,7 +28,7 @@ class AuthenticationTest(unittest.TestCase):
             logging.debug('Creating users...')
             for u in range(USER_COUNT):
                 self.users[u] = User.objects.create_user(username='test'+`u`, password='pass')
-        except Exception:
+        except IntegrityError, DatabaseError:
             sys.exit('Users already exist!')
 
     def tearDown(self):

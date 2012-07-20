@@ -1,7 +1,7 @@
 from tastypie import fields
-from tastypie.authentication import Authentication, ApiKeyAuthentication, MultiAuthentication
+from tastypie.authentication import Authentication, ApiKeyAuthentication
 from tastypie.authorization import Authorization
-from prov.server.auth import CustomAuthentication, CustomAuthorization
+from prov.server.auth import AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from models import PDBundle
@@ -25,7 +25,7 @@ class AccountResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete', 'put']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication(ApiKeyAuthentication(), CustomAuthentication())
+        authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
         
     content = fields.DictField(attribute='content', null=True)
     owner = fields.CharField(attribute='owner', null=True)

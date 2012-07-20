@@ -1,7 +1,9 @@
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
+from tastypie.authentication import HttpUnauthorized
 from models import PDBundle
-class CustomAuthentication(Authentication):
+
+class AnnonymousAuthentication(Authentication):
     """
     Authenticates only Anonymous users 
     """
@@ -54,4 +56,44 @@ class CustomAuthorization(Authorization):
 #                final_list.append(obj)
 #        return final_list
         return filter(lambda obj: request.user.has_perm(self.methodToPerms(request.method),obj), object_list)
+
+class MultiAuthentication(object):
+    """
+    An authentication backend that tries a number of backends in order.
+    """
+    def __init__(self, *backends, **kwargs):
+        super(MultiAuthentication, self).__init__(**kwargs)
+        self.backends = backends
+
+    def is_authenticated(self, request, **kwargs):
+        """
+        Identifies if the user is authenticated to continue or not.
+
+        Should return either ``True`` if allowed, ``False`` if not or an
+        ``HttpResponse`` if you need something custom.
+        """
+        unauthorized = False
+
+        for backend in self.backends:
+            check = backend.is_authenticated(request, **kwargs)
+
+            if check:
+                if isinstance(check, HttpUnauthorized):
+                    unauthorized = unauthorized or check
+                else:
+                    request._authentication_backend = backend
+                    return check
+
+        return unauthorized
+
+    def get_identifier(self, request):
+        """
+        Provides a unique string identifier for the requestor.
+
+        This implementation returns a combination of IP address and hostname.
+        """
+        try:
+            return request._authentication_backend.get_identifier(request)
+        except AttributeError:
+            return 'nouser'
         

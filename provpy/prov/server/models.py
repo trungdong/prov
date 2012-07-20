@@ -9,7 +9,7 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 @author: Trung Dong Huynh <trungdong@donggiang.com>
 @copyright: University of Southampton 2012
 '''
-from django.db import models
+from django.db import models, IntegrityError, DatabaseError
 from django.contrib.auth.models import User, Group
 from django.db.models.signals import  post_save, post_syncdb
 from collections import defaultdict
@@ -282,11 +282,11 @@ def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID
     try:
         public = Group.objects.get(name='public') 
-    except:
+    except IntegrityError, DatabaseError:
         public = Group.objects.create(name='public')
     try:
         User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
-    except:
+    except IntegrityError, DatabaseError:
         User.objects.create(id=ANONYMOUS_USER_ID).groups.add(public)
     
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
