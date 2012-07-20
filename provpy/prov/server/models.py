@@ -284,7 +284,10 @@ def _create_public_group(**kwargs):
         public = Group.objects.get(name='public') 
     except:
         public = Group.objects.create(name='public')
-    User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
+    try:
+        User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
+    except:
+        User.objects.create(id=ANONYMOUS_USER_ID).groups.add(public)
     
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 
