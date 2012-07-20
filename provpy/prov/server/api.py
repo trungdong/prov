@@ -21,8 +21,8 @@ class AccountResource(ModelResource):
         queryset = PDBundle.objects.all()
         resource_name = 'bundle'
         excludes = ['rec_type']
-        list_allowed_methods = ['get', 'post', 'delete']
-        detail_allowed_methods = ['get', 'post', 'delete']
+        list_allowed_methods = ['get', 'post', 'delete', 'put']
+        detail_allowed_methods = ['get', 'post', 'delete', 'put']
         always_return_data = True
         authorization = CustomAuthorization()
         authentication = MultiAuthentication(ApiKeyAuthentication(), CustomAuthentication())
