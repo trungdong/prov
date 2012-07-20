@@ -205,8 +205,8 @@ function test() {
 			"content": data		
 		};
 	$.ajax({
-		  type: 'DELETE',
-		  url: '/api/v0/bundle/787/',
+		  type: 'POST',
+		  url: '/api/v0/bundle/',
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
 		  beforeSend: function(req) {
