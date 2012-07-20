@@ -77,7 +77,7 @@ def profile(request):
                 bundle_id = request.POST['delete_id']
                 pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
                 if not request.user.has_perm('delete_pdbundle', pdBundle):
-                    return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+                    return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
                 bundle_id = pdBundle.rec_id
                 pdBundle.delete()
                 message = 'The bundle with ID ' + bundle_id + ' was successfully deleted.'
@@ -109,7 +109,7 @@ def profile(request):
 def bundle_detail(request, bundle_id):
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
     if not request.user.has_perm('view_pdbundle', pdBundle):
-        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     prov_g = pdBundle.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
@@ -120,7 +120,7 @@ def bundle_detail(request, bundle_id):
 def bundle_svg(request, bundle_id):
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
     if not request.user.has_perm('view_pdbundle', pdBundle):
-        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     prov_g = pdBundle.get_prov_bundle()
     dot = prov_to_dot(prov_g)
     svg_content = dot.create(format='svg')
@@ -193,7 +193,7 @@ def _update_perms(target, role, pdBundle):
 def admin_bundle(request, bundle_id):
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
     if not request.user.has_perm('admin_pdbundle', pdBundle):
-        return render_to_response('server/401.html', {'logged': True}, context_instance=RequestContext(request))
+        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     message = None
     if request.method == 'POST':
         try:
