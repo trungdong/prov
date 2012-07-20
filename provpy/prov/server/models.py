@@ -282,12 +282,12 @@ def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID
     try:
         public = Group.objects.get(name='public') 
-    except IntegrityError, DatabaseError:
+    except Group.DoesNotExist:
         public = Group.objects.create(name='public')
     try:
         User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
-    except IntegrityError, DatabaseError:
-        User.objects.create(id=ANONYMOUS_USER_ID).groups.add(public)
+    except User.DoesNotExist:
+        User.objects.create(id=ANONYMOUS_USER_ID, username='AnonymousUser').groups.add(public)
     
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 
