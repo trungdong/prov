@@ -42,44 +42,59 @@ DOT_PROV_STYLE = {
 }
 
 def prov_to_dot(prov_g):
-    dot = pydot.Dot(graph_type='digraph', rankdir='BT')
-    records = prov_g.get_records()
-    relations = []
+    maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
+    
     node_map = {}
-    count = 0
-    bcount = 0
-    for rec in records:
-        if rec.is_element():
-            count += 1
-            node_id = 'n%d' % count
-            node_label = '"%s"' % str(rec.get_identifier())
-            style = DOT_PROV_STYLE[rec.get_type()]
-            node = pydot.Node(node_id, label=node_label, **style)
-            node_map[rec] = node
-            dot.add_node(node)
-        else:
-            relations.append(rec)
-    for rec in relations:
-        nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
-        if len(nodes) == 2:
-            # binary relations
-            style = DOT_PROV_STYLE[rec.get_type()]
-            dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
-        else:
-            # n-ary relations
-            style = DOT_PROV_STYLE[rec.get_type()]
-            # add a blank node
-            bcount += 1
-            bnode_id = 'b%d' % bcount
-            bnode = pydot.Node(bnode_id, label='""', shape='point')
-            dot.add_node(bnode)
-            
-            dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))
-            style = dict(style)
-            del style['label']
-            for node in nodes[1:]:
-                dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
-    return dot
+    count = [0, 0, 0]
+    
+    def _bundle_to_dot(dot, bundle):
+        records = bundle.get_records()
+        relations = []
+        for rec in records:
+            if rec.is_element():
+                if isinstance(rec, ProvBundle):
+                    count[2] = count[2] + 1 
+                    subdot = pydot.Cluster(graph_name='c%d' % count[2])
+                    subdot.set_label('"%s"' % str(rec.get_identifier()))
+                    _bundle_to_dot(subdot, rec)
+                    dot.add_subgraph(subdot)
+                else:
+                    count[0] = count[0] + 1
+                    node_id = 'n%d' % count[0]
+                    node_label = '"%s"' % str(rec.get_identifier())
+                    style = DOT_PROV_STYLE[rec.get_type()]
+                    node = pydot.Node(node_id, label=node_label, **style)
+                    node_map[rec] = node
+                    dot.add_node(node)
+            else:
+                relations.append(rec)
+        for rec in relations:
+            nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
+            if len(nodes) < 2:
+              # Cannot draw this
+              pass  
+            elif len(nodes) == 2:
+                # binary relations
+                style = DOT_PROV_STYLE[rec.get_type()]
+                dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
+            else:
+                # n-ary relations
+                style = DOT_PROV_STYLE[rec.get_type()]
+                # add a blank node
+                count[1] = count[1] + 1
+                bnode_id = 'b%d' % count[1]
+                bnode = pydot.Node(bnode_id, label='""', shape='point')
+                dot.add_node(bnode)
+                
+                dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))
+                style = dict(style)
+                del style['label']
+                for node in nodes[1:]:
+                    dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
+                    style['color'] = 'gray'
+    
+    _bundle_to_dot(maindot, prov_g)
+    return maindot
 
 
 ### Testing code
