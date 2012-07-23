@@ -10,7 +10,7 @@ html, body {
 #footer
 {
     clear: both;
-    border: 15px groove black;
+    border: 15px solid black;
     background: black;
     color: White;
     padding: 0;
