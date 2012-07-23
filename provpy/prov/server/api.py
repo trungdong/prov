@@ -6,6 +6,8 @@ from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from models import PDBundle
 from prov.model import ProvBundle
+from tastypie.exceptions import ImmediateHttpResponse
+from tastypie.http import HttpBadRequest
 
 #===============================================================================
 # class UserResource(ModelResource):
@@ -32,9 +34,11 @@ class AccountResource(ModelResource):
     
     def obj_create(self, bundle, request=None, **kwargs):
         prov_bundle = ProvBundle()
-        prov_bundle._decode_JSON_container(bundle.data['content'])
-        
-        account = PDBundle.create(bundle.data['rec_id'], bundle.data['asserter'], request.user)
+        try:
+            prov_bundle._decode_JSON_container(bundle.data['content'])
+            account = PDBundle.create(bundle.data['rec_id'], bundle.data['asserter'], request.user)
+        except:
+            raise ImmediateHttpResponse(HttpBadRequest())
         account.save_bundle(prov_bundle)
         assign('view_pdbundle',request.user,account)
         assign('change_pdbundle',request.user,account)

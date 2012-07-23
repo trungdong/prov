@@ -1,7 +1,9 @@
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
 from tastypie.authentication import HttpUnauthorized
+from tastypie.http import HttpForbidden
 from models import PDBundle
+from tastypie.exceptions import ImmediateHttpResponse
 
 class AnnonymousAuthentication(Authentication):
     """
@@ -38,12 +40,12 @@ class CustomAuthorization(Authorization):
     
     def is_authorized(self, request, object=None): #@ReservedAssignment
         path = request.path.split('/');
-        if self.checkRequest(path=path):
-            try:
-                return request.user.has_perm(self.methodToPerms(request.method), PDBundle.objects.get(id=int(path[-2])))
-            except:
-                pass
-        return True
+        if not self.checkRequest(path=path):
+            return True
+        if request.user.has_perm(self.methodToPerms(request.method), PDBundle.objects.get(id=int(path[-2]))):
+            return True
+        else:    
+            raise ImmediateHttpResponse(HttpForbidden())
     
     def apply_limits(self, request, object_list):
         #return get_objects_for_user(user= request.user, perms=self.methodToPerms(request.method))
