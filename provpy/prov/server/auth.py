@@ -10,6 +10,8 @@ class AnnonymousAuthentication(Authentication):
     Authenticates only Anonymous users 
     """
     def is_authenticated(self, request, **kwargs):
+        if request.META.get('HTTP_AUTHORIZATION'):
+            return False
         if request.user and request.user.is_anonymous():
             return True
         return False
@@ -48,15 +50,6 @@ class CustomAuthorization(Authorization):
             raise ImmediateHttpResponse(HttpForbidden())
     
     def apply_limits(self, request, object_list):
-        #return get_objects_for_user(user= request.user, perms=self.methodToPerms(request.method))
-#         Does a per-object check that "can't" be expressed as part of a
-#         ``QuerySet``. This helps test that all objects in the ``QuerySet``
-#         aren't loaded & evaluated, only results that match the request.
-#        final_list = []
-#        for obj in object_list:
-#            if request.user.has_perm(request.method,obj):
-#                final_list.append(obj)
-#        return final_list
         return filter(lambda obj: request.user.has_perm(self.methodToPerms(request.method),obj), object_list)
 
 class MultiAuthentication(object):

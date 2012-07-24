@@ -1,6 +1,6 @@
 html, body {
 			margin-top : 30px;
-			margin-bottom : 30px;
+			margin-bottom : 50px;
         }
 .row{;
 	margin-left: -20px;
@@ -28,5 +28,9 @@ html, body {
    top:-50px;
 }
 
+.btn-group{
+	margin:10px;
+	margin-left:0px;
+}
 .table { table-layout: fixed; margin-bottom:0px;}
 .table th, table td { overflow: hidden; }

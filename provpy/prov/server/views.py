@@ -185,7 +185,7 @@ def _update_perms(target, role, pdBundle):
         if role == 'Contributor':
             return
         assign('delete_pdbundle', target, pdBundle)
-        if role == 'Operator':
+        if role == 'Editor':
             return
         assign('admin_pdbundle', target, pdBundle)
             
@@ -200,7 +200,7 @@ def admin_bundle(request, bundle_id):
             name = request.POST['name']
             role = request.POST['role']
             type = request.POST['type']
-            if role not in ('none','Reader','Contributor','Operator','Administrator'):
+            if role not in ('none','Reader','Contributor','Editor','Administrator'):
                 raise Exception
             if type == 'user':
                 target = User.objects.get(username=name)
@@ -222,15 +222,25 @@ def admin_bundle(request, bundle_id):
     initial_list = get_groups_with_perms(pdBundle, attach_perms=True)
     public = False
     groups={}
+    import logging
     for group in initial_list:
         groups[group] = len(initial_list[group])
-        import logging
         logging.debug(group.name)
         logging.debug(groups[group])
         if group.name == 'public':
             public = True
-            
+    all_users=[]
+    for user in User.objects.all():
+        if user.id != -1:
+            all_users.append(user.username)
+    all_users.sort()
+    all_groups=[]
+    for group in Group.objects.all():
+        if group.name != 'public':
+            all_groups.append(group.username)
+    all_groups.sort()    
     return render_to_response('server/admin.html',
                               {'logged': True, 'bundle': pdBundle, 'public': public,
-                               'users': users, 'groups': groups, 'message': message},
+                               'users': users, 'groups': groups, 'message': message,
+                               'all_users': all_users, 'all_groups': all_groups},
                               context_instance=RequestContext(request))

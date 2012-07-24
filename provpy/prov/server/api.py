@@ -26,11 +26,12 @@ class AccountResource(ModelResource):
         list_allowed_methods = ['get', 'post', 'delete', 'put']
         detail_allowed_methods = ['get', 'post', 'delete', 'put']
         always_return_data = True
-        authorization = CustomAuthorization()
+        authorization = Authorization() #CustomAuthorization()
         authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
         
     content = fields.DictField(attribute='content', null=True)
     owner = fields.CharField(attribute='owner', null=True)
+    editable = fields.BooleanField()
     
     def obj_create(self, bundle, request=None, **kwargs):
         prov_bundle = ProvBundle()
@@ -58,3 +59,6 @@ class AccountResource(ModelResource):
             return prov_graph._encode_JSON_container()
         else:
             return None
+        
+    def dehydrate_editable(self, bundle):
+        return bundle.request.user.has_perm('change_pdbundle', bundle)

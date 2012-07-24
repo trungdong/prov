@@ -4,6 +4,8 @@
 {% load guardian_tags %}
 {% block content %}
 <script type="text/javascript">
+var userTags = [{% for u in all_users %}"{{ u }}" {% if not forloop.last %},{% endif %}{% endfor %}];
+var groupTags = [{% for g in all_groups %}"{{ g }}" {% if not forloop.last %},{% endif %}{% endfor %}];
 jQuery(function($) {
   $('div.btn-group[data-toggle-name=*]').each(function(){
     var group   = $(this);
@@ -14,6 +16,16 @@ jQuery(function($) {
       var button = $(this);
       button.live('click', function(){
           hidden.val($(this).val());
+          if($(this).val() == "user"){
+          		$( "#name_add" ).autocomplete({
+					source: userTags
+				});
+          }
+          else {
+          		$( "#name_add" ).autocomplete({
+					source: groupTags
+				});
+          }
       });
       if(button.val() == hidden.val()) {
         button.addClass('active');
@@ -21,6 +33,11 @@ jQuery(function($) {
     });
   });
 });
+$(function() {
+		$( "#name_add" ).autocomplete({
+			source: userTags
+		});
+	});
 </script>	
       	<div class="span3">
         	<h2>Bundle {{ bundle.rec_id }}</h2>
@@ -35,21 +52,21 @@ jQuery(function($) {
          	<input type="hidden" name="role" value="{% if public %}none{% else %}Reader{% endif %}" />
          	</form>
         </div>
-        <span class="span4">
+        <span class="span6">
         <form class="form-horizontal" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
          	{% csrf_token %}
          	<div class="control-group">  
-            	<label class="control-label">Name</label>  
-            	<div class="controls">  
-              		<input type="text" class="input-xlarge" name="name">
+            	<div class="controls"> 
+            	    <h3>Add New</h3> 
 					<div class="btn-group" data-toggle-name="type" data-toggle="buttons-radio" >
 					  <button type="button" value="user" class="btn" data-toggle="button">User</button>
 					  <button type="button" value="group" class="btn" data-toggle="button">Group</button>
 					</div>
 					<input type="hidden" name="type" value="user" />
+					<input type="text" class="input-xlarge span2" name="name" id="name_add">
 					<select name="role" style="width:120px">
 					    <option>Administrator</option>   
-		                <option>Operator</option>   
+		                <option>Editor</option>   
 		                <option>Contributor</option>  
 		                <option>Reader</option>   
                  	</select>
@@ -61,7 +78,7 @@ jQuery(function($) {
           	</div>      
           </form>
       </span>
-      <span class="span4">
+      <span class="span2">
       <a class="btn btn-primary pull-right" onClick="go_to('/prov/home');">Back</a>
       </span>
 <span class="span11">
@@ -73,9 +90,9 @@ jQuery(function($) {
           <tr><td>{{ bundle.owner }}</td></tr>  
         </tbody>  
       </table>
-{% include 'server/perm_table.html' with op1='Administrator' op2='Operator' op3='Contributor' op4='Reader' p_number=4 %}
-{% include 'server/perm_table.html' with op1='Operator' op2='Administrator' op3='Contributor' op4='Reader' p_number=3 %}
-{% include 'server/perm_table.html' with op1='Contributor' op2='Administrator' op3='Operator' op4='Reader' p_number=2 %}
-{% include 'server/perm_table.html' with op1='Reader' op2='Administrator' op3='Operator' op4='Contributor' p_number=1 %}
+{% include 'server/perm_table.html' with op1='Administrator' op2='Editor' op3='Contributor' op4='Reader' desc='All permissions' p_number=4 %}
+{% include 'server/perm_table.html' with op1='Editor' op2='Administrator' op3='Contributor' op4='Reader' desc='Read,Write and Delete' p_number=3 %}
+{% include 'server/perm_table.html' with op1='Contributor' op2='Administrator' op3='Editor' op4='Reader' desc='Read and Write' p_number=2 %}
+{% include 'server/perm_table.html' with op1='Reader' op2='Administrator' op3='Editor' op4='Contributor' desc='Read only' p_number=1 %}
 </span>
 {% endblock %}

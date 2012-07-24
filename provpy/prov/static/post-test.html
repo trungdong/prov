@@ -200,12 +200,12 @@ function test() {
   	var auth = 'ApiKey ' + tok;
 	
 	var account = {
-		
+		    "asserter": "#unknown",
 			"rec_id": "#agentswitch-mockup",
 			"content": data		
 		};
 	$.ajax({
-		  type: 'POST',
+		  type: 'GET',
 		  url: '/api/v0/bundle/',
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
