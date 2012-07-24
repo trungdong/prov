@@ -222,11 +222,8 @@ def admin_bundle(request, bundle_id):
     initial_list = get_groups_with_perms(pdBundle, attach_perms=True)
     public = False
     groups={}
-    import logging
     for group in initial_list:
         groups[group] = len(initial_list[group])
-        logging.debug(group.name)
-        logging.debug(groups[group])
         if group.name == 'public':
             public = True
     all_users=[]
