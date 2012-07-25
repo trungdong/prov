@@ -20,6 +20,7 @@
     <script src="/static/jquery-ui-1.8.21.custom.js"></script>
    	<script type="text/javascript" src="/static/webUI.js"></script>
 	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-button.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-alert.js"></script>
     <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -60,9 +61,14 @@
       </div>
     </div>
     <div id="main" class="container clear-top">
-      <div class="row span12">
-        {% block messages %}{% endblock %}
-      </div>
+      {% if messages %}<div class="row span12" id="messages">
+        {% for message in messages %}
+        <div class="span8 offset2 alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">
+          <a class="close" data-dismiss="alert" href="#">×</a>
+          {% if message.tags %}<h4 class="alert-heading">{{ message.tags|capfirst }}!</h4>{% endif %}
+          <p>{{ message }}</p>
+        </div>{% endfor %}
+      </div>{% endif %}
       {% block content %}{% endblock %}
     </div>
     <footer>

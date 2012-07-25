@@ -1,9 +1,6 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-{%block title %}
-	PROV Server
-{% endblock %}
 {% block content %}
 <div class="row">
 	<div class="leaderboard span8 offset2" style="padding-bottom : 10px">  
@@ -15,11 +12,6 @@
 		{% endif %}
 	</div> 
 </div>
-{% if message %}
-	<div class="row">
-		<div class="span8 offset4"> <h4>{{ message }}</h4></div>
-	</div>
-{% endif %}
 <div class="row">
 	<div class="span5">
 	<form action="{% url 'server.views.auth' %}" method="post" >

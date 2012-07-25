@@ -3,6 +3,7 @@ from models import PDBundle, PDRecord
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
@@ -66,13 +67,7 @@ def registration(request):
     
 @login_required
 def profile(request):
-        if request.method == 'GET':
-            try:
-                message = request.GET['message']
-            except MultiValueDictKeyError:
-                message = None
-                
-        elif request.method == 'POST':
+        if request.method == 'POST':
             try:
                 bundle_id = request.POST['delete_id']
                 pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
@@ -80,12 +75,12 @@ def profile(request):
                     return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
                 bundle_id = pdBundle.rec_id
                 pdBundle.delete()
-                message = 'The bundle with ID ' + bundle_id + ' was successfully deleted.'
+                messages.success(request, 'The bundle with ID ' + bundle_id + ' was successfully deleted.')
             except MultiValueDictKeyError:
                 prov_bundle = json.loads(request.POST['content'], cls=ProvBundle.JSONDecoder)
                 pdbundle = PDBundle.create(request.POST['rec_id'], request.POST['asserter'], request.user)
                 pdbundle.save_bundle(prov_bundle)
-                message = 'The bundle was successfully created with ID ' + `pdbundle.id` + "."
+                messages.success(request, 'The bundle was successfully created with ID ' + `pdbundle.id` + ".")
                 assign('view_pdbundle',request.user,pdbundle)
                 assign('change_pdbundle',request.user,pdbundle)
                 assign('delete_pdbundle',request.user,pdbundle)
@@ -101,7 +96,6 @@ def profile(request):
                                   {'bundles': get_objects_for_user
                                    (user=request.user, 
                                     perms = l_perm, klass=PDBundle, any_perm=True).order_by('id'),
-                                   'message': message,
                                    'logged': True },
                                   context_instance=RequestContext(request))
 
@@ -135,7 +129,6 @@ def create(request):
 def auth(request):
     key = None
     date = None
-    message = None
     try:
         api_key = ApiKey.objects.get(user=request.user)
     except ApiKey.DoesNotExist:
@@ -147,13 +140,13 @@ def auth(request):
             if action == 'delete' and api_key:
                 api_key.delete()
                 api_key = None
-                message = 'The API key was successfully deleted.'
+                messages.success(request, 'The API key was successfully deleted.')
             elif action == 'generate':
                 if not api_key:
                     api_key = ApiKey.objects.create(user=request.user)
                 else:
                     api_key.key = ApiKey.generate_key(api_key)
-                message = 'The API key was successfully generated.'
+                messages.success(request, 'The API key was successfully generated.')
         except MultiValueDictKeyError:
             pass
 
@@ -161,8 +154,7 @@ def auth(request):
         key = api_key.key
         date = api_key.created
         
-    return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,
-                                                     'message': message},
+    return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,},
                               context_instance=RequestContext(request))
 
 @login_required
@@ -194,7 +186,6 @@ def admin_bundle(request, bundle_id):
     pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
     if not request.user.has_perm('admin_pdbundle', pdBundle):
         return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-    message = None
     if request.method == 'POST':
         try:
             name = request.POST['name']
@@ -209,9 +200,9 @@ def admin_bundle(request, bundle_id):
                 target = Group.objects.get(name=name)
                 _update_perms(target, role, pdBundle)
         except User.DoesNotExist:
-            message = 'User does not exist!'
+            messages.error(request, 'User does not exist!')
         except Group.DoesNotExist:
-            message = 'Group does not exist!'
+            messages.error(request, 'Group does not exist!')
         except Exception:
             pass
 
@@ -238,6 +229,6 @@ def admin_bundle(request, bundle_id):
     all_groups.sort()    
     return render_to_response('server/admin.html',
                               {'logged': True, 'bundle': pdBundle, 'public': public,
-                               'users': users, 'groups': groups, 'message': message,
+                               'users': users, 'groups': groups,
                                'all_users': all_users, 'all_groups': all_groups},
                               context_instance=RequestContext(request))

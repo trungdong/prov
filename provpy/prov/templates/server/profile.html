@@ -4,14 +4,9 @@
 {% load guardian_tags %}
 {% load server_tags %}
 {% block content %}
-	<h1>Welcome {{ user.username }}, this is your PROV-JSON Repistory!</h1>
+	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
 	<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
-	{% if message %}
-	<div class="row">
-		<div class="span8"> <h3>{{ message }}</h3></div>
-	</div>
-	{% endif %}
 	<table class="table">  
         <thead>  
           <tr>
