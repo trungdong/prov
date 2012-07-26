@@ -33,6 +33,7 @@ def save_bundle(prov_bundle, identifier=None):
 class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
     uri  = models.CharField(max_length=255, db_index=True)
+    bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
 
 
 class PDRecord(models.Model):
@@ -57,15 +58,14 @@ class LiteralAttribute(models.Model):
 
 
 class PDBundle(PDRecord):
-    namespaces = models.ManyToManyField(PDNamespace, related_name='bundles')
     
     @staticmethod
     def create(bundle_id):
         return PDBundle.objects.create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE)
     
     def add_namespace(self, prefix, uri):
-        namespace = PDNamespace.objects.create(prefix=prefix, uri=uri)
-        self.namespaces.add(namespace)
+        namespace = PDNamespace.objects.create(prefix=prefix, uri=uri, bundle=self)
+        return namespace
         
     def add_sub_bundle(self, pdbundle):
         pass
