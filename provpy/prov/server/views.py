@@ -3,7 +3,7 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
@@ -42,22 +42,25 @@ def registration(request):
 @login_required
 def profile(request):
         if request.method == 'POST':
-            try:
+            if 'delete_id' in request.POST:
                 container_id = request.POST['delete_id']
                 container = get_object_or_404(Container, pk=container_id)
                 if not request.user.has_perm('delete_container', container):
                     return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-                bundle_id = container.rec_id
+                messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
-                messages.success(request, 'The bundle with ID ' + bundle_id + ' was successfully deleted.')
-            except MultiValueDictKeyError:
-                container = Container.create(request.POST['rec_id'], request.POST['content'], request.user)
-                messages.success(request, 'The bundle was successfully created with ID ' + `container.content.rec_id` + ".")
-                assign('view_container',request.user, container)
-                assign('change_container',request.user, container)
-                assign('delete_container',request.user, container)
-                assign('admin_container',request.user, container)
-                assign('ownership_container',request.user, container)
+            elif 'rec_id' and 'content' in request.POST:
+                try:
+                    container = Container.create(request.POST['rec_id'], request.POST['content'], request.user)
+                    messages.success(request, 'The bundle was successfully created with ID ' + `container.content.rec_id` + ".")
+                    assign('view_container',request.user, container)
+                    assign('change_container',request.user, container)
+                    assign('delete_container',request.user, container)
+                    assign('admin_container',request.user, container)
+                    assign('ownership_container',request.user, container)
+                except:
+                    messages.error(request, 'The bundle provided has wrong syntax.')
+                    return redirect(create)
                 
         perms = get_perms_for_model(Container)
         l_perm = []

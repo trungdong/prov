@@ -23,7 +23,7 @@
           disabled="true"
 		  {% endif %}>Save</button>
           <button class="btn btn-danger offset2" type="submit" value="Delete"
-          {% if 'delete_container' not in perms %}
+          {% if 'save_container' not in perms %}
           disabled="true"
 		  {% endif %}>Delete </button>
           <input type="hidden" name="delete_id" value="{{ bundle.id }}" />
