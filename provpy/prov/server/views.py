@@ -1,5 +1,4 @@
 import json
-from models import PDBundle, PDRecord
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -10,33 +9,9 @@ from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
+from prov.persistence.models import PDBundle 
 from prov.server.forms import ProfileForm
 
-
-def get_prov_json(request):
-    from prov.model.test import examples 
-    g1 = examples.w3c_publication_1()
-#    account = save_records(g1)
-    
-    if 'id' in request.GET:
-        entity_id = request.GET.get('id')
-        records = PDRecord.objects.filter(rec_id=entity_id)
-        accounts = set()
-        for record in records:
-            accounts.add(record.account)
-        # TODO Deal with records from multiple account
-        if accounts:
-            return HttpResponse(content='{id : %s}' % entity_id, mimetype='application/json')
-        return HttpResponse(content='{Not found}', mimetype='application/json')
-    else:
-        account = PDBundle.objects.get(id=1)
-        g2 = account.get_prov_bundle()
-        return render_to_response('server/test.html', {'json_1' : json.dumps(g1, cls=ProvBundle.JSONEncoder, indent=4),
-                                                       'json_2' : json.dumps(g2, cls=ProvBundle.JSONEncoder, indent=4),
-                                                       'asn_1': g1.get_asn(),
-                                                       'asn_2': g2.get_asn()},
-                                  context_instance=RequestContext(request))
-#        return HttpResponse(content=simplejson.dumps(graph.to_provJSON(), indent=4), mimetype='application/json')
 
 def registration(request):
     if(request.user.is_authenticated()):
