@@ -10,7 +10,6 @@ admin.autodiscover()
 v0_api = Api(api_name='v0')
 v0_api.register(ContainerResource())
 
-
 urlpatterns = patterns('',
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
