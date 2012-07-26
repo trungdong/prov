@@ -10,9 +10,7 @@ class AnnonymousAuthentication(Authentication):
     Authenticates only Anonymous users 
     """
     def is_authenticated(self, request, **kwargs):
-        if request.META.get('HTTP_AUTHORIZATION'):
-            return False
-        if request.user and request.user.is_anonymous():
+        if not request.META.get('HTTP_AUTHORIZATION'):
             return True
         return False
     

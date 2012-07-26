@@ -10,10 +10,12 @@ provenance graphs from a server
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.db.models.signals import  post_save, post_syncdb
+from django.contrib.auth.signals import user_logged_in, user_logged_out
+from tastypie.models import ApiKey
 import logging, json
 from prov.model import ProvBundle
-logger = logging.getLogger(__name__)
 from prov.persistence.models import PDBundle
+logger = logging.getLogger(__name__)
 
 class UserProfile(models.Model):
     user = models.ForeignKey(User, unique=True)
@@ -34,10 +36,10 @@ def _create_public_group(**kwargs):
         User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
     except User.DoesNotExist:
         User.objects.create(id=ANONYMOUS_USER_ID, username='AnonymousUser').groups.add(public)
-    
+ 
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 post_syncdb.connect(_create_public_group)
-    
+
 class Container(models.Model):
     '''
     

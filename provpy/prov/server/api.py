@@ -14,7 +14,7 @@ class ContainerResource(ModelResource):
     
     class Meta:
         queryset = Container.objects.all()
-        resource_name = 'container'
+        resource_name = 'bundle'
         excludes = ['content']
         list_allowed_methods = ['get', 'post', 'delete', 'put']
         detail_allowed_methods = ['get', 'post', 'delete', 'put']
