@@ -495,8 +495,16 @@ class ProvRecord(object):
                         return False
                 elif not (value_a == value_b):
                     return False
-        elif self._attributes <> other._attributes:
-            return False
+        elif other._attributes and not self._attributes:
+            other_attrs = [(key, value) for key, value in other._attributes.items() if value is not None]
+            if other_attrs:
+                # the other's attributes set is not empty.
+                return False
+        elif self._attributes and not other._attributes:
+            my_attrs = [(key, value) for key, value in self._attributes.items() if value is not None]
+            if my_attrs:
+                # my attributes set is not empty.
+                return False
         if self._extra_attributes <> other._extra_attributes:
             return False
         return True 
