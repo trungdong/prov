@@ -34,7 +34,12 @@ class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
     uri  = models.CharField(max_length=255, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
+    
+    class Meta:
+        verbose_name = 'namespace'
 
+    def __unicode__(self):
+        return u'(%s: <%s>)' % (self.prefix, self.uri)
 
 class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
@@ -58,7 +63,12 @@ class LiteralAttribute(models.Model):
 
 
 class PDBundle(PDRecord):
+    class Meta:
+        verbose_name = 'bundle'
     
+    def __unicode__(self):
+        return unicode(self.rec_id)
+        
     @staticmethod
     def create(bundle_id):
         return PDBundle.objects.create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE)
