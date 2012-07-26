@@ -19,7 +19,7 @@ class ContainerResource(ModelResource):
         list_allowed_methods = ['get', 'post', 'delete', 'put']
         detail_allowed_methods = ['get', 'post', 'delete', 'put']
         always_return_data = True
-        authorization = Authorization() #CustomAuthorization()
+        authorization = CustomAuthorization()
         authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
         
     prov_json = fields.DictField(attribute='prov_json', null=True)

@@ -32,7 +32,7 @@ class SaveLoadTest(unittest.TestCase):
             self.bundles[bundle_id] = create_bundle()
 
             logger.debug('Saving bundle: %s...' % bundle_id)
-            pdbundle = save_bundle(self.bundles[bundle_id], bundle_id, __name__)
+            pdbundle = save_bundle(self.bundles[bundle_id], bundle_id)
             self.bundle_db_id_map[bundle_id]= pdbundle.pk
 
     def tearDown(self):

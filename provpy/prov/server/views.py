@@ -1,6 +1,5 @@
 import json
 from django.contrib.auth import login, authenticate
-from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, HttpResponseRedirect
@@ -8,7 +7,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
-from guardian.shortcuts import * #assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
+from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
