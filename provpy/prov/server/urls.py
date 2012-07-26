@@ -15,15 +15,14 @@ urlpatterns = patterns('server.views',
     # Uncomment the next line to enable the admin:
     # url(r'^admin/', include(admin.site.urls)),
     
-    (r'^get$', 'get_prov_json'),
     (r'register$', 'registration'),
     (r'home$', 'profile'),
-    (r'bundles/(?P<bundle_id>\d+)/$', 'bundle_detail'),
-    (r'bundles/(?P<bundle_id>\d+).svg$', 'bundle_svg'),
+    (r'bundles/(?P<container_id>\d+)/$', 'bundle_detail'),
+    (r'bundles/(?P<container_id>\d+).svg$', 'bundle_svg'),
     (r'create$', 'create'),
     (r'auth$', 'auth'),
     (r'auth/help$', 'auth_help'),
-    (r'admin/(?P<bundle_id>\d+)/$', 'admin_bundle')
+    (r'admin/(?P<container_id>\d+)/$', 'admin_bundle')
 )
 urlpatterns+= patterns('',
                 (r'login$', 'django.contrib.auth.views.login', 

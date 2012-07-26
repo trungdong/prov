@@ -2,7 +2,7 @@ from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
 from tastypie.authentication import HttpUnauthorized
 from tastypie.http import HttpForbidden
-from models import PDBundle
+from models import Container
 from tastypie.exceptions import ImmediateHttpResponse
 
 class AnnonymousAuthentication(Authentication):
@@ -25,11 +25,11 @@ class CustomAuthorization(Authorization):
     
     def methodToPerms(self, method):
         if method == 'GET':
-            return 'server.view_pdbundle'
+            return 'server.view_container'
         if method == 'POST' or method == 'PUT':
-            return 'server.change_pdbundle'
+            return 'server.change_container'
         if method == 'DELETE':
-            return 'server.delete_pdbundle'
+            return 'server.delete_container'
         return None
     
     def checkRequest(self, path):
@@ -44,7 +44,7 @@ class CustomAuthorization(Authorization):
         path = request.path.split('/');
         if not self.checkRequest(path=path):
             return True
-        if request.user.has_perm(self.methodToPerms(request.method), PDBundle.objects.get(id=int(path[-2]))):
+        if request.user.has_perm(self.methodToPerms(request.method), Container.objects.get(id=int(path[-2]))):
             return True
         else:    
             raise ImmediateHttpResponse(HttpForbidden())

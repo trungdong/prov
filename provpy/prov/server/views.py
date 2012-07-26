@@ -12,9 +12,8 @@ from guardian.shortcuts import * #assign, remove_perm, get_perms_for_model, get_
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
-from prov.persistence.models import PDBundle 
-
-
+from models import Container
+#from prov.persistence.models import PDBundle 
 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -45,25 +44,23 @@ def registration(request):
 def profile(request):
         if request.method == 'POST':
             try:
-                bundle_id = request.POST['delete_id']
-                pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
-                if not request.user.has_perm('delete_pdbundle', pdBundle):
+                container_id = request.POST['delete_id']
+                container = get_object_or_404(Container, pk=container_id)
+                if not request.user.has_perm('delete_container', container):
                     return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-                bundle_id = pdBundle.rec_id
-                pdBundle.delete()
+                bundle_id = container.rec_id
+                container.delete()
                 messages.success(request, 'The bundle with ID ' + bundle_id + ' was successfully deleted.')
             except MultiValueDictKeyError:
-                prov_bundle = json.loads(request.POST['content'], cls=ProvBundle.JSONDecoder)
-                pdbundle = PDBundle.create(request.POST['rec_id'], request.POST['asserter'], request.user)
-                pdbundle.save_bundle(prov_bundle)
-                messages.success(request, 'The bundle was successfully created with ID ' + `pdbundle.id` + ".")
-                assign('view_pdbundle',request.user,pdbundle)
-                assign('change_pdbundle',request.user,pdbundle)
-                assign('delete_pdbundle',request.user,pdbundle)
-                assign('admin_pdbundle',request.user,pdbundle)
-                assign('ownership_pdbundle',request.user,pdbundle)
+                container = Container.create(request.POST['rec_id'], request.POST['content'], request.user)
+                messages.success(request, 'The bundle was successfully created with ID ' + `container.content.rec_id` + ".")
+                assign('view_container',request.user, container)
+                assign('change_container',request.user, container)
+                assign('delete_container',request.user, container)
+                assign('admin_container',request.user, container)
+                assign('ownership_container',request.user, container)
                 
-        perms = get_perms_for_model(PDBundle)
+        perms = get_perms_for_model(Container)
         l_perm = []
         for i in range(len(perms)):
             l_perm.append(perms[i].codename)
@@ -71,27 +68,27 @@ def profile(request):
         return render_to_response('server/profile.html', 
                                   {'bundles': get_objects_for_user
                                    (user=request.user, 
-                                    perms = l_perm, klass=PDBundle, any_perm=True).order_by('id'),
+                                    perms = l_perm, klass=Container, any_perm=True).order_by('id'),
                                    'logged': True },
                                   context_instance=RequestContext(request))
 
 @login_required
-def bundle_detail(request, bundle_id):
-    pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
-    if not request.user.has_perm('view_pdbundle', pdBundle):
+def bundle_detail(request, container_id):
+    container = get_object_or_404(Container, pk=container_id)
+    if not request.user.has_perm('view_container', container):
         return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-    prov_g = pdBundle.get_prov_bundle() 
+    prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
     return render_to_response('server/detail.html',
-                              {'logged': True, 'bundle': pdBundle, 'prov_n': prov_n, 'prov_json': prov_json},
+                              {'logged': True, 'bundle': container, 'prov_n': prov_n, 'prov_json': prov_json},
                               context_instance=RequestContext(request))
     
-def bundle_svg(request, bundle_id):
-    pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
-    if not request.user.has_perm('view_pdbundle', pdBundle):
+def bundle_svg(request, container_id):
+    container = get_object_or_404(Container, pk=container_id)
+    if not request.user.has_perm('view_container', container):
         return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-    prov_g = pdBundle.get_prov_bundle()
+    prov_g = container.content.get_prov_bundle()
     dot = prov_to_dot(prov_g)
     svg_content = dot.create(format='svg')
     return HttpResponse(content=svg_content, mimetype='image/svg+xml')
@@ -137,30 +134,36 @@ def auth(request):
 def auth_help(request):
     return render_to_response('server/auth_help.html',{'logged': True})
 
-def _update_perms(target, role, pdBundle):
-        perms = get_perms_for_model(PDBundle)
+def _update_perms(target, role, container):
+        perms = get_perms_for_model(Container)
         l_perm = []
         for i in range(len(perms)):
             l_perm.append(perms[i].codename)
         for permission in l_perm:
-                remove_perm(permission, target, pdBundle)
+                remove_perm(permission, target, container)
         if role == 'none':
+            if target == Group.objects.get(name='public'):
+                container.public = False
+                container.save()
             return
-        assign('view_pdbundle', target, pdBundle)
+        assign('view_container', target, container)
         if role == 'Reader':
+            if target == Group.objects.get(name='public'):
+                container.public = True
+                container.save()
             return
-        assign('change_pdbundle', target, pdBundle)
+        assign('change_container', target, container)
         if role == 'Contributor':
             return
-        assign('delete_pdbundle', target, pdBundle)
+        assign('delete_container', target, container)
         if role == 'Editor':
             return
-        assign('admin_pdbundle', target, pdBundle)
+        assign('admin_container', target, container)
             
 @login_required
-def admin_bundle(request, bundle_id):
-    pdBundle = get_object_or_404(PDBundle, pk=bundle_id)
-    if not request.user.has_perm('admin_pdbundle', pdBundle):
+def admin_bundle(request, container_id):
+    container = get_object_or_404(Container, pk=container_id)
+    if not request.user.has_perm('admin_container', container):
         return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     if request.method == 'POST':
         try:
@@ -171,10 +174,10 @@ def admin_bundle(request, bundle_id):
                 raise Exception
             if type == 'user':
                 target = User.objects.get(username=name)
-                _update_perms(target, role, pdBundle)
+                _update_perms(target, role, container)
             elif type == 'group':
                 target = Group.objects.get(name=name)
-                _update_perms(target, role, pdBundle)
+                _update_perms(target, role, container)
         except User.DoesNotExist:
             messages.error(request, 'User does not exist!')
         except Group.DoesNotExist:
@@ -182,11 +185,11 @@ def admin_bundle(request, bundle_id):
         except Exception:
             pass
 
-    initial_list = get_users_with_perms(pdBundle, attach_perms = True, with_group_users=False)
+    initial_list = get_users_with_perms(container, attach_perms = True, with_group_users=False)
     users={}
     for user in initial_list:
         users[user] = len(initial_list[user])
-    initial_list = get_groups_with_perms(pdBundle, attach_perms=True)
+    initial_list = get_groups_with_perms(container, attach_perms=True)
     public = False
     groups={}
     for group in initial_list:
@@ -204,7 +207,7 @@ def admin_bundle(request, bundle_id):
             all_groups.append(group.username)
     all_groups.sort()    
     return render_to_response('server/admin.html',
-                              {'logged': True, 'bundle': pdBundle, 'public': public,
+                              {'logged': True, 'bundle': container, 'public': public,
                                'users': users, 'groups': groups,
                                'all_users': all_users, 'all_groups': all_groups},
                               context_instance=RequestContext(request))

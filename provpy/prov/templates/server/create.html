@@ -9,10 +9,6 @@
 	<div class="offset1 span10" >
 	<form class="well" action="{% url 'server.views.profile' %}" method="post">
 		{% csrf_token %}
-		<div class="control-group">  
-            <label class="control-label" for="rec_id">Asserter</label>  
-            <input type="text" class="input-xlarge" name="asserter">   
-        </div>
         <div class="control-group">  
             <label class="control-label" for="rec_id">Record ID</label>  
             <input type="text" class="input-xlarge" name="rec_id">   
