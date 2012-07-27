@@ -3,6 +3,7 @@
 {% load url from future %}
 {% load guardian_tags %}
 {% load server_tags %}
+{% block title %}PROVServer Profile{% endblock %}
 {% block content %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
