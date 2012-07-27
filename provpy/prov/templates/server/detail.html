@@ -9,25 +9,34 @@
         <h2>PROV-N</h2>
 		<pre name="content">{{ prov_n }}</pre>
 		<h2>PROV-JSON</h2>
-		 {% get_obj_perms user for bundle as 'perms' %}
-		<pre name="json"
+		{% get_obj_perms user for bundle as 'perms' %}
+		<pre name="json" id="json"
 		{% if 'change_container' in perms %}
 		contentEditable="true"
 		{% endif %}>{{ prov_json }}</pre>
       </div>
-      <div class="row">
+      <span class="span4">
+	      <form action="{% url 'server.views.bundle_detail' bundle.id %}" method="post" id="PUT_form"
+	      onSubmit="return (function(){document.getElementById('input_json').value = document.getElementById('json').firstChild.data;})()">
+	          {% csrf_token %}
+	       	  <button class="btn btn-success offset2" type="submit" value="Save" 
+	          {% if 'change_container' not in perms %}
+	          disabled="true"
+			  {% endif %}>Save</button>
+			  <input type="hidden" name="json" id="input_json" value=""/>
+		  </form>
+	  </span>
+      <span class="span3">
         <form action="{% url 'server.views.profile' %}" method="post" >
           {% csrf_token %}
-          <button class="btn btn-success offset2" type="submit" value="Save"
-          {% if 'change_container' not in perms %}
-          disabled="true"
-		  {% endif %}>Save</button>
-          <button class="btn btn-danger offset2" type="submit" value="Delete"
-          {% if 'save_container' not in perms %}
+          <button class="btn btn-danger offset1" type="submit" value="Delete"
+          {% if 'delete_container' not in perms %}
           disabled="true"
 		  {% endif %}>Delete </button>
-          <input type="hidden" name="delete_id" value="{{ bundle.id }}" />
-          <input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/> 	
+          <input type="hidden" name="delete_id" value="{{ bundle.id }}" />	
         </form>
-      </div>
+      </span>
+      <span class="span4">
+      	<input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/> 
+      </span>
 {% endblock %}

@@ -79,6 +79,19 @@ def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
     if not request.user.has_perm('view_container', container):
         return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
+    if request.method == 'POST' and 'json' in request.POST:
+        prov_bundle = ProvBundle();
+        try:
+            prov_bundle._decode_JSON_container(request.POST['json'])
+        except TypeError:
+            try: 
+                prov_bundle = json.loads(request.POST['json'], cls=ProvBundle.JSONDecoder)
+            except:
+                messages.error(request, 'The bundle provided has wrong syntax.')
+                prov_bundle = None
+        if prov_bundle:
+            container.content.save_bundle(prov_bundle)
+            messages.success(request, 'The bundle was successfully saved.')
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
