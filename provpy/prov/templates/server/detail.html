@@ -2,33 +2,38 @@
 {% extends "base.html" %}
 {% load url from future %}
 {% load guardian_tags %}
+{% block title %}PROVServer Detail{% endblock %}
 {% block content %}
       <div class="row span12">
-        <h1>Bundle {{ bundle.rec_id }}</h1>
-        <h3>Asserter is {{ bundle.asserter }}.<h3>
+        <h1>Bundle {{ bundle.content.rec_id }}</h1>
         <a class="btn btn-primary pull-right" onClick="go_to('/prov/home');">Back</a>
         <h2>PROV-N</h2>
 		<pre name="content">{{ prov_n }}</pre>
 		<h2>PROV-JSON</h2>
-		 {% get_obj_perms user for bundle as 'perms' %}
-		<pre name="json"
-		{% if 'change_pdbundle' in perms %}
-		contentEditable="true"
-		{% endif %}>{{ prov_json }}</pre>
+		{% get_obj_perms user for bundle as 'perms' %}
+		<pre name="json" id="json">{{ prov_json }}</pre>
+		<!-- {% if 'change_container' in perms %} contentEditable="true" {% endif %}-->
       </div>
-      <div class="row">
+      <span class="span4">
+	      <form action="{% url 'server.views.bundle_detail' bundle.id %}" method="post" id="PUT_form"
+	      onSubmit="return (function(){document.getElementById('input_json').value = document.getElementById('json').firstChild.data;})()">
+	          {% csrf_token %}
+	       	  <button class="btn btn-success offset2" type="submit" value="Save"  disabled="true">Save</button>
+	          <!-- {% if 'change_container' not in perms %} disabled="true" {% endif %} -->
+			  <input type="hidden" name="json" id="input_json" value=""/>
+		  </form>
+	  </span>
+      <span class="span3">
         <form action="{% url 'server.views.profile' %}" method="post" >
           {% csrf_token %}
-          <button class="btn btn-success offset2" type="submit" value="Save"
-          {% if 'change_pdbundle' not in perms %}
-          disabled="true"
-		  {% endif %}>Save</button>
-          <button class="btn btn-danger offset2" type="submit" value="Delete"
-          {% if 'delete_pdbundle' not in perms %}
+          <button class="btn btn-danger offset1" type="submit" value="Delete"
+          {% if 'delete_container' not in perms %}
           disabled="true"
 		  {% endif %}>Delete </button>
-          <input type="hidden" name="delete_id" value="{{ bundle.id }}" />
-          <input class="btn btn-primary offset2" type="button" onClick="go_to('/prov/home');" value="Back"/> 	
+          <input type="hidden" name="delete_id" value="{{ bundle.id }}" />	
         </form>
-      </div>
+      </span>
+      <span class="span4">
+      	<input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/> 
+      </span>
 {% endblock %}

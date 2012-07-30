@@ -3,6 +3,7 @@
 {% load url from future %}
 {% load guardian_tags %}
 {% load server_tags %}
+{% block title %}PROVServer Profile{% endblock %}
 {% block content %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
@@ -12,7 +13,6 @@
           <tr>
           	<th style="widht: 5%">Role</th>
             <th style="width: 20%">Bundle-ID</th>  
-            <th>Asserter</th>
             <th style="width: 10%"></th>
             <th style="width: 10%"></th>
             <th style="width: 10%"></th>   
@@ -23,14 +23,13 @@
           <tr>
             {% get_obj_perms user for bundle as 'perms' %}
           	<td>{% status_label perms bundle%}</td>
-            <td>{{ bundle.rec_id }}</td>  
-            <td>{{ bundle.asserter }}</td>  
+            <td>{{ bundle.content.rec_id }}</td>  
             <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' bundle.id %}">View</a></td>  
             <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' bundle.id %}">SVG</a></td>
-            <td>{% if 'admin_pdbundle' in perms %}
+            <td>{% if 'admin_container' in perms %}
             <a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' bundle.id %}">Admin</a></td>
             {% endif %}
-            {% if 'delete_pdbundle' in perms %} 
+            {% if 'delete_container' in perms %} 
             <form action="{% url 'server.views.profile' %}" method="post" >
             	{% csrf_token %}
             	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>

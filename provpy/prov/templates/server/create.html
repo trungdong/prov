@@ -1,6 +1,7 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
+{% block title %}PROVServer CreateNew{% endblock %}
 {% block content %}
 <div class="leaderboard" style="padding-bottom : 10px">  
 	<h1>Input the bundle you wish to upload.</h1>  
@@ -9,10 +10,6 @@
 	<div class="offset1 span10" >
 	<form class="well" action="{% url 'server.views.profile' %}" method="post">
 		{% csrf_token %}
-		<div class="control-group">  
-            <label class="control-label" for="rec_id">Asserter</label>  
-            <input type="text" class="input-xlarge" name="asserter">   
-        </div>
         <div class="control-group">  
             <label class="control-label" for="rec_id">Record ID</label>  
             <input type="text" class="input-xlarge" name="rec_id">   
