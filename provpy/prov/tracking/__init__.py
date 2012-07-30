@@ -263,7 +263,7 @@ class Manager(object):
 
 class ProvTracker(object):
     def __init__(self):
-        self.prov = ProvContainer()
+        self.prov = ProvBundle()
         self.counters = defaultdict(int)
         self.entity_id_map = dict()
         self.handlers = []
@@ -521,11 +521,11 @@ class ProvJSONMiddleware:
             data['prov'] = root.prov._encode_JSON_container()
             response.content = json.dumps(data)
         else:
-            prov_json = json.dumps(root.prov, cls=ProvContainer.JSONEncoder)
+            prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
             response['prov_json'] = prov_json
         return response
     
     def process_template_response(self, request, response):
-        prov_json = json.dumps(root.prov, cls=ProvContainer.JSONEncoder)
+        prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
         response.context_data['prov_json'] = prov_json 
         return response
