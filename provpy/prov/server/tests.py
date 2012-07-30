@@ -17,24 +17,27 @@ from django.test.client import Client
 logger = logging.getLogger(__name__)       
 
 class AuthenticationTest(unittest.TestCase):
+    USER_COUNT = 2
+    users = {}
+    client = Client()
     def __init__(self, methodName='runTest'):
-        self.USER_COUNT = 2
-        self.users = {}
-        self.client = Client()
         unittest.TestCase.__init__(self, methodName=methodName)
     
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+        super(AuthenticationTest, cls).setUpClass()
         try:
             logging.debug('Creating users...')
-            for u in range(self.USER_COUNT):
-                self.users[u] = User.objects.create_user(username='test'+`u`, password='pass')
+            for u in range(cls.USER_COUNT):
+                cls.users[u] = User.objects.create_user(username='test'+`u`, password='pass')
         except IntegrityError, DatabaseError:
             sys.exit('Users already exist!')
-
-    def tearDown(self):
+    
+    @classmethod
+    def tearDownClass(cls):
         logging.debug('Deleting users...')
-        for u in range(self.USER_COUNT):
-            self.users[u].delete()
+        for u in range(cls.USER_COUNT):
+            cls.users[u].delete()
     
     def testApiKeyAuth(self):
         logging.debug('Creating API Key for user test0...')
@@ -89,10 +92,14 @@ class AuthenticationTest(unittest.TestCase):
         self.assertEqual(self.users[0].has_perm('admin_container', bundle), False)
         self.assertEqual(self.users[0].has_perm('ownership_container', bundle), False)
         
-        fakeauth = 'ApiKey ' + self.users[0].username + ':' + ApiKey.objects.create(user=self.users[0]).key
+        try:
+            fake_key = ApiKey.objects.get(user=self.users[0]).key
+        except ApiKey.DoesNotExist:
+            fake_key = ApiKey.objects.create(user=self.users[0]).key
+        fakeauth = 'ApiKey ' + self.users[0].username + ':' + fake_key
         logging.debug('Checking API permissions for other user...')
         response = self.client.get(destination, **{'HTTP_AUTHORIZATION': fakeauth})
-        self.assertNotEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
         
         logging.debug('Checking group permissions...')
         public = Group.objects.get(name='public')
@@ -102,6 +109,9 @@ class AuthenticationTest(unittest.TestCase):
         self.assertEqual(self.users[0].has_perm('delete_container', bundle), False)
         self.assertEqual(self.users[0].has_perm('admin_container', bundle), False)
         self.assertEqual(self.users[0].has_perm('ownership_container', bundle), False)
+        response = self.client.get(destination, **{'HTTP_AUTHORIZATION': fakeauth})
+        self.assertEqual(response.status_code, 200)
+        
         remove_perm('view_container', public, bundle)
         self.assertEqual(self.users[0].has_perm('view_container', bundle), False)
         self.assertEqual(self.users[0].has_perm('change_container', bundle), False)
