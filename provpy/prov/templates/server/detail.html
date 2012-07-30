@@ -11,19 +11,15 @@
 		<pre name="content">{{ prov_n }}</pre>
 		<h2>PROV-JSON</h2>
 		{% get_obj_perms user for bundle as 'perms' %}
-		<pre name="json" id="json"
-		{% if 'change_container' in perms %}
-		contentEditable="true"
-		{% endif %}>{{ prov_json }}</pre>
+		<pre name="json" id="json">{{ prov_json }}</pre>
+		<!-- {% if 'change_container' in perms %} contentEditable="true" {% endif %}-->
       </div>
       <span class="span4">
 	      <form action="{% url 'server.views.bundle_detail' bundle.id %}" method="post" id="PUT_form"
 	      onSubmit="return (function(){document.getElementById('input_json').value = document.getElementById('json').firstChild.data;})()">
 	          {% csrf_token %}
-	       	  <button class="btn btn-success offset2" type="submit" value="Save" 
-	          {% if 'change_container' not in perms %}
-	          disabled="true"
-			  {% endif %}>Save</button>
+	       	  <button class="btn btn-success offset2" type="submit" value="Save"  disabled="true">Save</button>
+	          <!-- {% if 'change_container' not in perms %} disabled="true" {% endif %} -->
 			  <input type="hidden" name="json" id="input_json" value=""/>
 		  </form>
 	  </span>

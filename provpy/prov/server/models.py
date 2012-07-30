@@ -40,7 +40,7 @@ def _create_public_group(**kwargs):
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 post_syncdb.connect(_create_public_group)
 
-class Container(models.Model):
+class   Container(models.Model):
     '''
     
     '''

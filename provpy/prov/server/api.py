@@ -16,8 +16,8 @@ class ContainerResource(ModelResource):
         queryset = Container.objects.all()
         resource_name = 'bundle'
         excludes = ['content']
-        list_allowed_methods = ['get', 'post', 'delete', 'put']
-        detail_allowed_methods = ['get', 'post', 'delete', 'put']
+        list_allowed_methods = ['get', 'post', 'delete']
+        detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
         authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
@@ -42,7 +42,6 @@ class ContainerResource(ModelResource):
         assign('ownership_container',request.user, container)
         bundle.obj = container
         return bundle
-    
     
     def dehydrate_prov_json(self, bundle):
         if self.get_resource_uri(bundle) == bundle.request.path:

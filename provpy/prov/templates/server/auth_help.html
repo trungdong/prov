@@ -22,6 +22,7 @@
 					<li><h4><a href="#php">PHP</a></h4></li>
 				</ul>
 			</li>
+			<li><h4><a href="#Responses">API Responses</a></h4></li>
 		</ul>
 	</div>
 	<div class="span8">
@@ -141,6 +142,63 @@ $result =  file_get_contents (
                   'https://www.example.com/api/v0/account/',false, $context);
 // Server response is now stored in $result variable so you can process it
 });</pre>
+		<div id="Responses" class="anchorOffset"></div>
+		<h3>API Responses</h3>
+		<table class="table">  
+	        <thead>  
+	          <tr>
+	          <th style="width:10%"><h5>Method</h3></th>
+	          <th style="width:30%"><h5>Response Code</h3></th>
+	          <th style="width:60%"><h5>Response Description</h3></th>
+	          </tr>  
+	        </thead>  
+	        <tbody>
+	        	<tr>
+	        		<td>Any</td>
+	        		<td>401 Unauthorized</h3>
+	        		<td>There is a problem with the Authentication provided in the HTTP Header.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>Any</td>
+	        		<td>403 Forbidden</h3>
+	        		<td>You do not have the access permissions requested for the resource.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>Any</td>
+	        		<td>404 Not Found</h3>
+	        		<td>The resource/url you have requested does not exist.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>Any</td>
+	        		<td>500 Internal Server Error</h3>
+	        		<td>Something went wrong on the server. We are going to look in to it, 
+	        		but you can mail us with the condition in which you met this code.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>POST</td>
+	        		<td>405 Bad Request</h3>
+	        		<td>A problem occurred while parsing the JSON. Check syntax.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>GET</td>
+	        		<td>200 OK</h3>
+	        		<td>The resource was successfully retrieved.</td>
+	        	</tr>
+	        	<tr>
+	        		<td>POST</td>
+	        		<td>201 Created</td>
+	        		<td>The resource was successfully created. A detailed information 
+	        		of the resource will be held in the body.</td>
+	        	</tr>	
+	        	<tr>
+	        		<td>DELETE</td>
+	        		<td>205 No Content</td>
+	        		<td>The resource was successfully deleted.</td>
+	        	</tr>
+	        </tbody>
+	    </table>
+	    <p> *Note: If no 'Authorization' Header is provided 
+	    in the request you will be treated as Anonymous User.</p>
 		<h4><a href="#Top">Back to Top</a></h4>
 	</div>
 </div>
