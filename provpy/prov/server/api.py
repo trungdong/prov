@@ -1,6 +1,5 @@
 from tastypie import fields
-from tastypie.authentication import ApiKeyAuthentication
-from tastypie.authorization import Authorization
+from tastypie.authentication import ApiKeyAuthentication, OAuthAuthentication
 from prov.server.auth import AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
@@ -20,8 +19,7 @@ class ContainerResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
-        
+        authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(), AnnonymousAuthentication())        
     prov_json = fields.DictField(attribute='prov_json', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):

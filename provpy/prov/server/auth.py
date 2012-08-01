@@ -81,7 +81,7 @@ class MultiAuthentication(object):
             if check:
                 if isinstance(check, HttpUnauthorized):
                     unauthorized = unauthorized or check
-                else:
+                elif check is True:
                     request._authentication_backend = backend
                     return check
 
