@@ -35,11 +35,7 @@ class ContainerResource(ModelResource):
                 
         except: 
             raise ImmediateHttpResponse(HttpBadRequest())
-        assign('view_container',request.user, container)
-        assign('change_container',request.user, container)
-        assign('delete_container',request.user, container)
-        assign('admin_container',request.user, container)
-        assign('ownership_container',request.user, container)
+
         bundle.obj = container
         return bundle
     
