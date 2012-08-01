@@ -10,11 +10,9 @@ provenance graphs from a server
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.db.models.signals import  post_save, post_syncdb
-from django.contrib.auth.signals import user_logged_in, user_logged_out
-from tastypie.models import ApiKey
-import logging, json
 from prov.model import ProvBundle
 from prov.persistence.models import PDBundle
+import logging
 logger = logging.getLogger(__name__)
 
 class UserProfile(models.Model):
@@ -40,12 +38,23 @@ def _create_public_group(**kwargs):
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 post_syncdb.connect(_create_public_group)
 
+
+class Submission(models.Model):
+    '''
+    
+    '''
+    timestap = models.DateTimeField(auto_now_add = True)
+    format = models.CharField(max_length=255)
+    content = models.FileField(upload_to='submissions')
+    
+
 class   Container(models.Model):
     '''
     
     '''
     owner = models.ForeignKey(User, blank=True, null=True)
     content = models.ForeignKey(PDBundle, unique=True)
+    submission = models.ForeignKey(Submission, blank=True, null=True)
     public = models.BooleanField(default=False)
     
     class Meta:
@@ -61,12 +70,9 @@ class   Container(models.Model):
         super(Container, self).delete()
 
     @staticmethod
-    def create(rec_id, raw_json, owner, public=False):
+    def create(rec_id, json_dict, owner, public=False):
         prov_bundle = ProvBundle();
-        try:
-            prov_bundle._decode_JSON_container(raw_json)
-        except TypeError:
-            prov_bundle = json.loads(raw_json, cls=ProvBundle.JSONDecoder)
+        prov_bundle._decode_JSON_container(json_dict)
         pdbundle = PDBundle.create(rec_id)
         pdbundle.save_bundle(prov_bundle)
         return Container.objects.create(owner=owner, content=pdbundle, public=public)

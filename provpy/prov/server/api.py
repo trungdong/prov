@@ -1,4 +1,5 @@
 from tastypie import fields
+from tastypie.resources import *
 from tastypie.authentication import Authentication
 from tastypie.authorization import Authorization
 from prov.server.auth import ApiKeyAuthentication,AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
@@ -6,7 +7,7 @@ from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
 from tastypie.http import HttpBadRequest
-from models import Container
+from models import Container, Submission
 from django.contrib.auth.models import Group
 from prov.settings import PUBLIC_GROUP_ID
 
@@ -23,6 +24,7 @@ class ContainerResource(ModelResource):
         authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
         
     prov_json = fields.DictField(attribute='prov_json', null=True)
+    original_file = fields.FileField(attribute='original', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):
         try:
@@ -32,6 +34,14 @@ class ContainerResource(ModelResource):
                 container.save()
                 if bundle.data['public']:
                     assign('view_container', Group.objects.get(id=PUBLIC_GROUP_ID), container)
+            #===================================================================
+            # if 'file_id' in bundle.data:
+            #    file_sub = request.FILES['file_id']
+            #    sub = Submission.objects.create()
+            #    sub.content.save(sub.timestap.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
+            #    container.submission = sub
+            #    container.save()
+            #===================================================================
                 
         except: 
             raise ImmediateHttpResponse(HttpBadRequest())
@@ -52,3 +62,18 @@ class ContainerResource(ModelResource):
         
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
+    
+    def deserialize(self, request, data, format=None):
+        if not format:
+            format = request.META.get('CONTENT_TYPE', 'application/json')
+
+        if format == 'application/x-www-form-urlencoded':
+            return request.POST
+
+        if format.startswith('multipart'):
+            data = request.POST.copy()
+            data.update(request.FILES)
+
+            return data
+
+        return super(ModelResource, self).deserialize(request, data, format)

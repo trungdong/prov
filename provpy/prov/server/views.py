@@ -11,7 +11,7 @@ from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_o
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
-from models import Container
+from models import Container, Submission
 #from prov.persistence.models import PDBundle 
 
 def registration(request):
@@ -49,15 +49,22 @@ def profile(request):
                     return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
-            elif 'rec_id' and 'content' in request.POST:
+            elif 'rec_id' and 'content' in request.POST:                
                 try:
-                    container = Container.create(request.POST['rec_id'], request.POST['content'], request.user)
-                    messages.success(request, 'The bundle was successfully created with ID ' + `container.content.rec_id` + ".")
+                    bundle_dict = json.loads(request.POST['content'])
+                    container = Container.create(request.POST['rec_id'], bundle_dict, request.user)
+                    if 'file_id' in request.FILES:
+                        file_sub = request.FILES['file_id']
+                        sub = Submission.objects.create()
+                        sub.content.save(sub.timestap.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
+                        container.submission = sub
+                        container.save()
+                    messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
                     assign('view_container',request.user, container)
                     assign('change_container',request.user, container)
                     assign('delete_container',request.user, container)
                     assign('admin_container',request.user, container)
-                    assign('ownership_container',request.user, container)
+                    assign('ownership_container',request.user, container)                    
                 except:
                     messages.error(request, 'The bundle provided has wrong syntax.')
                     return redirect(create)
@@ -148,9 +155,13 @@ def auth(request):
     return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,},
                               context_instance=RequestContext(request))
 
-@login_required
+
 def auth_help(request):
-    return render_to_response('server/auth_help.html',{'logged': True})
+    if request.user.is_anonymous():
+        logged = False
+    else:
+        logged = True
+    return render_to_response('server/auth_help.html',{'logged': logged})
 
 def _update_perms(target, role, container):
         perms = get_perms_for_model(Container)
