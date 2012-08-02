@@ -2,13 +2,15 @@ from django.conf.urls.defaults import patterns
 from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('server.views',
-    (r'register$', 'registration'),
+    (r'^register$', 'registration'),
     (r'home$', 'profile'),
     (r'bundles/(?P<container_id>\d+)/$', 'bundle_detail'),
     (r'bundles/(?P<container_id>\d+).svg$', 'bundle_svg'),
     (r'create$', 'create'),
     (r'auth$', 'auth'),
     (r'auth/help$', direct_to_template, {'template': 'server/auth_help.html'}),
+    (r'apps/$', 'manage_apps'),
+    (r'apps/register/$', 'register_app'),
     (r'admin/(?P<container_id>\d+)/$', 'admin_bundle')
 )
 urlpatterns+= patterns('',

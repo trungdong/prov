@@ -10,10 +10,12 @@ from tastypie.models import ApiKey
 from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm
+from prov.server.forms import ProfileForm, AppForm
 from models import Container, Submission
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
+from django.core.urlresolvers import reverse
+from oauth_provider.models import Consumer
 #from prov.persistence.models import PDBundle 
 
 def registration(request):
@@ -216,3 +218,38 @@ def admin_bundle(request, container_id):
                                'users': users, 'groups': groups,
                                'all_users': all_users, 'all_groups': all_groups},
                               context_instance=RequestContext(request))
+
+@login_required
+def register_app(request):
+    if request.method == 'POST':
+        form = AppForm(request.POST)
+        if form.is_valid():
+            consumer = form.save()
+            consumer.user = request.user
+            consumer.generate_random_codes()
+            return HttpResponseRedirect('/prov/apps')
+    else:
+        form = AppForm()
+    return render_to_response('server/register_app.html',
+                              {'logged': True, 'form': form},
+                              context_instance=RequestContext(request))
+    
+@login_required
+def manage_apps(request):
+    if request.method == 'POST':
+        consumer = get_object_or_404(Consumer, pk=request.POST['app_id'])
+        if request.POST['status'] == 'Pending':
+            status = 1
+        elif request.POST['status'] == 'Accepted':
+            status = 2
+        elif request.POST['status'] == 'Canceled':
+            status = 3
+        elif request.POST['status'] == 'Rejected':
+            status = 4
+        consumer.status = status
+        consumer.save()
+        
+    apps = request.user.consumer_set.all()
+    return render_to_response('server/manage_apps.html', 
+                              {'logged': True, 'apps': apps}, context_instance=RequestContext(request))
+    

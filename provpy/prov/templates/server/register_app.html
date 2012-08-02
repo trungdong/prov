@@ -1,0 +1,28 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% block title %}PROVServer CreateNew{% endblock %}
+{% block content %}
+<div class="leaderboard" style="padding-bottom : 10px">  
+	<h1>Register a new client app.</h1>  
+</div>
+<div class="row">
+	<div class="offset4 span3" >
+	<form class="well" action="{% url 'server.views.register_app' %}" method="post">
+		{% csrf_token %}
+		{{ form.non_field_errors }}
+		{% for field in form %}
+			<div class="control-group">
+				{{ field.label_tag }}
+				{{ field }}
+		  		{% for error in field.errors %}
+		  		<span class="help-inline">{{error}}</span>
+		  		{% endfor %} 
+	  		</div>
+  		{% endfor %}
+  		<button type="submit" class="btn btn-primary" value="submit">Submit</button>
+		<button class="btn offset" type="button" onClick="go_to('{% url 'server.views.manage_apps' %}');">Back</button> 
+	</form>
+	</div>
+</div>
+{% endblock %}
