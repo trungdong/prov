@@ -43,13 +43,13 @@ $(function() {
       	<div class="span3">
         	<h2>Bundle {{ bundle.rec_id }}</h2>
         	</br>
-        	<h4>Currently the bundle is {% if public %}Public.{% else %}Private.{% endif %}</h4>
+        	<h4>The bundle is {% if public %}Public.{% else %}Private.{% endif %}</h4>
         	<form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
          	{% csrf_token %}
          	<button type="submit" value="submit" class="btn btn-info">
           	Make {% if public %}Private{% else %}Public{% endif %}</button>  
          	<input type="hidden" name="name" value="public" />
-         	<input type="hidden" name="type" value="group" />  
+         	<input type="hidden" name="perm_type" value="group" />  
          	<input type="hidden" name="role" value="{% if public %}none{% else %}Reader{% endif %}" />
          	</form>
         </div>
@@ -59,11 +59,11 @@ $(function() {
          	<div class="control-group">  
             	<div class="controls"> 
             	    <h3>Add New</h3> 
-					<div class="btn-group" data-toggle-name="type" data-toggle="buttons-radio" >
+					<div class="btn-group" data-toggle-name="perm_type" data-toggle="buttons-radio" >
 					  <button type="button" value="user" class="btn" data-toggle="button">User</button>
 					  <button type="button" value="group" class="btn" data-toggle="button">Group</button>
 					</div>
-					<input type="hidden" name="type" value="user" />
+					<input type="hidden" name="perm_type" value="user" />
 					<input type="text" class="input-xlarge span2" name="name" id="name_add">
 					<select name="role" style="width:120px">
 					    <option>Administrator</option>   

@@ -1,8 +1,6 @@
 from tastypie import fields
-from tastypie.resources import *
-from tastypie.authentication import Authentication
-from tastypie.authorization import Authorization
-from prov.server.auth import ApiKeyAuthentication,AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
+from tastypie.authentication import ApiKeyAuthentication, OAuthAuthentication
+from prov.server.auth import AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
@@ -21,8 +19,7 @@ class ContainerResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication(ApiKeyAuthentication(), AnnonymousAuthentication())
-        
+        authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(), AnnonymousAuthentication())        
     prov_json = fields.DictField(attribute='prov_json', null=True)
     original_file = fields.FileField(attribute='original', null=True)
     
@@ -45,11 +42,7 @@ class ContainerResource(ModelResource):
                 
         except: 
             raise ImmediateHttpResponse(HttpBadRequest())
-        assign('view_container',request.user, container)
-        assign('change_container',request.user, container)
-        assign('delete_container',request.user, container)
-        assign('admin_container',request.user, container)
-        assign('ownership_container',request.user, container)
+
         bundle.obj = container
         return bundle
     

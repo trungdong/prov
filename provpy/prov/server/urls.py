@@ -1,4 +1,5 @@
 from django.conf.urls.defaults import patterns
+from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('server.views',
     (r'register$', 'registration'),
@@ -7,7 +8,7 @@ urlpatterns = patterns('server.views',
     (r'bundles/(?P<container_id>\d+).svg$', 'bundle_svg'),
     (r'create$', 'create'),
     (r'auth$', 'auth'),
-    (r'auth/help$', 'auth_help'),
+    (r'auth/help$', direct_to_template, {'template': 'server/auth_help.html'}),
     (r'admin/(?P<container_id>\d+)/$', 'admin_bundle')
 )
 urlpatterns+= patterns('',

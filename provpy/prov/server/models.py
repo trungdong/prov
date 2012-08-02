@@ -7,12 +7,17 @@ provenance graphs from a server
 @copyright: University of Southampton 2012
 '''
 
+import logging, json
 from django.db import models
 from django.contrib.auth.models import User, Group
-from django.db.models.signals import  post_save, post_syncdb
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import Q
+from django.db.models.signals import  post_save, post_syncdb, pre_delete
+from guardian.shortcuts import assign
+from guardian.models import UserObjectPermission, GroupObjectPermission
 from prov.model import ProvBundle
 from prov.persistence.models import PDBundle
-import logging
+
 logger = logging.getLogger(__name__)
 
 class UserProfile(models.Model):
@@ -26,17 +31,24 @@ def _create_profile(sender, created, instance, **kwargs):
 
 def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
-    try:
-        public = Group.objects.get(name='public') 
-    except Group.DoesNotExist:
-        public = Group.objects.create(id=PUBLIC_GROUP_ID,name='public')
-    try:
-        User.objects.get(id=ANONYMOUS_USER_ID).groups.add(public)
-    except User.DoesNotExist:
-        User.objects.create(id=ANONYMOUS_USER_ID, username='AnonymousUser').groups.add(public)
+    public_group, _ = Group.objects.get_or_create(id=PUBLIC_GROUP_ID, name='public') 
+    user, _ = User.objects.get_or_create(id=ANONYMOUS_USER_ID, username='AnonymousUser')
+    user.groups.add(public_group)
+        
  
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
+
 post_syncdb.connect(_create_public_group)
+
+def remove_obj_perms_connected_with_user(sender, instance, **kwargs):
+    ''' Remove all permissions connected with the user to avoid orphan permissions
+    '''
+    filters = Q(content_type=ContentType.objects.get_for_model(instance),
+        object_pk=instance.pk)
+    UserObjectPermission.objects.filter(filters).delete()
+    GroupObjectPermission.objects.filter(filters).delete()
+
+pre_delete.connect(remove_obj_perms_connected_with_user, sender=User)
 
 
 class Submission(models.Model):
@@ -48,7 +60,7 @@ class Submission(models.Model):
     content = models.FileField(upload_to='submissions')
     
 
-class   Container(models.Model):
+class Container(models.Model):
     '''
     
     '''
@@ -75,4 +87,12 @@ class   Container(models.Model):
         prov_bundle._decode_JSON_container(json_dict)
         pdbundle = PDBundle.create(rec_id)
         pdbundle.save_bundle(prov_bundle)
-        return Container.objects.create(owner=owner, content=pdbundle, public=public)
+        container = Container.objects.create(owner=owner, content=pdbundle, public=public)
+        
+        assign('view_container', owner, container)
+        assign('change_container', owner, container)
+        assign('delete_container', owner, container)
+        assign('admin_container', owner, container)
+        assign('ownership_container', owner, container)
+
+        return container

@@ -12,6 +12,8 @@ from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
 from models import Container, Submission
+from guardian.decorators import permission_required_or_403
+from prov.settings import ANONYMOUS_USER_ID
 #from prov.persistence.models import PDBundle 
 
 def registration(request):
@@ -81,26 +83,9 @@ def profile(request):
                                    'logged': True },
                                   context_instance=RequestContext(request))
 
-@login_required
+@permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
 def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
-    if not request.user.has_perm('view_container', container):
-        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-    #===========================================================================
-    # if request.method == 'POST' and 'json' in request.POST:
-    #    prov_bundle = ProvBundle();
-    #    try:
-    #        prov_bundle._decode_JSON_container(request.POST['json'])
-    #    except TypeError:
-    #        try: 
-    #            prov_bundle = json.loads(request.POST['json'], cls=ProvBundle.JSONDecoder)
-    #        except:
-    #            messages.error(request, 'The bundle provided has wrong syntax.')
-    #            prov_bundle = None
-    #    if prov_bundle:
-    #        container.content.save_bundle(prov_bundle)
-    #        messages.success(request, 'The bundle was successfully saved.')
-    #===========================================================================
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
@@ -108,10 +93,9 @@ def bundle_detail(request, container_id):
                               {'logged': True, 'bundle': container, 'prov_n': prov_n, 'prov_json': prov_json},
                               context_instance=RequestContext(request))
     
+@permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
 def bundle_svg(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
-    if not request.user.has_perm('view_container', container):
-        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     prov_g = container.content.get_prov_bundle()
     dot = prov_to_dot(prov_g)
     svg_content = dot.create(format='svg')
@@ -189,22 +173,20 @@ def _update_perms(target, role, container):
             return
         assign('admin_container', target, container)
             
-@login_required
+@permission_required_or_403('admin_container', (Container, 'pk', 'container_id'))
 def admin_bundle(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
-    if not request.user.has_perm('admin_container', container):
-        return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
     if request.method == 'POST':
         try:
             name = request.POST['name']
             role = request.POST['role']
-            type = request.POST['type']
+            perm_type = request.POST['perm_type']
             if role not in ('none','Reader','Contributor','Editor','Administrator'):
                 raise Exception
-            if type == 'user':
+            if perm_type == 'user':
                 target = User.objects.get(username=name)
                 _update_perms(target, role, container)
-            elif type == 'group':
+            elif perm_type == 'group':
                 target = Group.objects.get(name=name)
                 _update_perms(target, role, container)
         except User.DoesNotExist:
@@ -225,15 +207,9 @@ def admin_bundle(request, container_id):
         groups[group] = len(initial_list[group])
         if group.name == 'public':
             public = True
-    all_users=[]
-    for user in User.objects.all():
-        if user.id != -1:
-            all_users.append(user.username)
+    all_users = [user.username for user in User.objects.all() if user.id != ANONYMOUS_USER_ID]
     all_users.sort()
-    all_groups=[]
-    for group in Group.objects.all():
-        if group.name != 'public':
-            all_groups.append(group.username)
+    all_groups=[group.username for group in Group.objects.all() if group.name != 'public']
     all_groups.sort()    
     return render_to_response('server/admin.html',
                               {'logged': True, 'bundle': container, 'public': public,
