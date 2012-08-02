@@ -71,7 +71,7 @@ class AuthenticationTest(unittest.TestCase):
         bundle = Container.objects.get(id=json.JSONDecoder().decode(response.content)['id'])
         logging.debug('Bundle created with id '+`bundle.id`)
         logging.debug('Checking all raw permissions...')
-        self.assertTrue(self.users[1].has_perm('view_container', bundle))
+        self.assertTrue(self.users[1].has_perm('server.view_container', bundle))
         self.assertTrue(self.users[1].has_perm('change_container', bundle))
         self.assertTrue(self.users[1].has_perm('delete_container', bundle))
         self.assertTrue(self.users[1].has_perm('admin_container', bundle))
@@ -142,7 +142,6 @@ class OAuthAuthenticationTestCase(unittest.TestCase):
                 'description': 'Testing...'
         })
         self.bundle = Container.create('test_bundle', '', self.user)
-
         
     def testOAuthAccess(self):
         c = Client()
@@ -212,11 +211,12 @@ class OAuthAuthenticationTestCase(unittest.TestCase):
             'oauth_nonce': 'accessresourcenonce',
             'oauth_version': '1.0',
         }
-        oauth_request = oauth.Request.from_token_and_callback(access_token, http_url='http://testserver/api/v0/bundle/1/', parameters=parameters)
+        url_path = "/api/v0/bundle/%d/" % self.bundle.id
+        oauth_request = oauth.Request.from_token_and_callback(access_token, http_url='http://testserver' + url_path, parameters=parameters)
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         signature = signature_method.sign(oauth_request, self.consumer, access_token)
         parameters['oauth_signature'] = signature
-        response = c.get("/api/v0/bundle/1/?format=json", parameters)
+        response = c.get(url_path + '?format=json', parameters)
         self.assertEqual(response.status_code, 200)
         
 if __name__ == "__main__":

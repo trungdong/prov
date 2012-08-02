@@ -31,8 +31,8 @@ def _create_profile(sender, created, instance, **kwargs):
 
 def _create_public_group(**kwargs):
     from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
-    public_group, _ = Group.objects.get_or_create(id=PUBLIC_GROUP_ID, name='public') 
-    user, _ = User.objects.get_or_create(id=ANONYMOUS_USER_ID, username='AnonymousUser')
+    public_group, _ = Group.objects.get_or_create(id=PUBLIC_GROUP_ID, defaults={'name': 'public'}) 
+    user, _ = User.objects.get_or_create(id=ANONYMOUS_USER_ID, defaults={'username': 'AnonymousUser'})
     user.groups.add(public_group)
         
  
