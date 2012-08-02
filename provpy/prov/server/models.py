@@ -55,7 +55,7 @@ class Submission(models.Model):
     '''
     
     '''
-    timestap = models.DateTimeField(auto_now_add = True)
+    timestamp = models.DateTimeField(auto_now_add = True)
     format = models.CharField(max_length=255)
     content = models.FileField(upload_to='submissions')
     
