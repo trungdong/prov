@@ -5,7 +5,7 @@ from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
 from tastypie.http import HttpBadRequest
-from models import Container, Submission
+from models import Container
 from django.contrib.auth.models import Group
 from prov.settings import PUBLIC_GROUP_ID
 
@@ -21,7 +21,7 @@ class ContainerResource(ModelResource):
         authorization = CustomAuthorization()
         authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(), AnnonymousAuthentication())        
     prov_json = fields.DictField(attribute='prov_json', null=True)
-    original_file = fields.FileField(attribute='original', null=True)
+ #   original_file = fields.FileField(attribute='original', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):
         try:
@@ -56,17 +56,19 @@ class ContainerResource(ModelResource):
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
     
-    def deserialize(self, request, data, format=None):
-        if not format:
-            format = request.META.get('CONTENT_TYPE', 'application/json')
-
-        if format == 'application/x-www-form-urlencoded':
-            return request.POST
-
-        if format.startswith('multipart'):
-            data = request.POST.copy()
-            data.update(request.FILES)
-
-            return data
-
-        return super(ModelResource, self).deserialize(request, data, format)
+#===============================================================================
+#    def deserialize(self, request, data, format=None):
+#        if not format:
+#            format = request.META.get('CONTENT_TYPE', 'application/json')
+# 
+#        if format == 'application/x-www-form-urlencoded':
+#            return request.POST
+# 
+#        if format.startswith('multipart'):
+#            data = request.POST.copy()
+#            data.update(request.FILES)
+# 
+#            return data
+# 
+#        return super(ModelResource, self).deserialize(request, data, format)
+#===============================================================================

@@ -13,6 +13,8 @@ class AnnonymousAuthentication(Authentication):
     Authenticates only Anonymous users 
     """
     def is_authenticated(self, request, **kwargs):
+        if 'HTTP_AUTHORIZATION' in request.META:
+            return False
         request.user = User.objects.get(id=ANONYMOUS_USER_ID)
         return True
     
