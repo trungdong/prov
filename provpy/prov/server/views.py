@@ -11,7 +11,7 @@ from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_o
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm
-from models import Container
+from models import Container, Submission
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 #from prov.persistence.models import PDBundle 
@@ -43,34 +43,45 @@ def registration(request):
     
 @login_required
 def profile(request):
-    if request.method == 'POST':
-        if 'delete_id' in request.POST:
-            container_id = request.POST['delete_id']
-            container = get_object_or_404(Container, pk=container_id)
-            if not request.user.has_perm('delete_container', container):
-                return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
-            messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
-            container.delete()
-        elif 'rec_id' and 'content' in request.POST:
-            try:
-                container = Container.create(request.POST['rec_id'], request.POST['content'], request.user)
-                messages.success(request, 'The bundle was successfully created with ID ' + `container.content.rec_id` + ".")
-            except:
-                messages.error(request, 'The bundle provided has wrong syntax.')
-                return redirect(create)
-            
-    perms = get_perms_for_model(Container)
-    l_perm = []
-    for i in range(len(perms)):
-        l_perm.append(perms[i].codename)
-    
-    return render_to_response(
-        'server/profile.html',
-        {'bundles': get_objects_for_user(user=request.user, perms=l_perm, klass=Container, any_perm=True).order_by('id'),
-         'logged': True
-        },
-        context_instance=RequestContext(request)
-    )
+        if request.method == 'POST':
+            if 'delete_id' in request.POST:
+                container_id = request.POST['delete_id']
+                container = get_object_or_404(Container, pk=container_id)
+                if not request.user.has_perm('delete_container', container):
+                    return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
+                messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
+                container.delete()
+            elif 'rec_id' and 'content' in request.POST:                
+                try:
+                    bundle_dict = json.loads(request.POST['content'])
+                    container = Container.create(request.POST['rec_id'], bundle_dict, request.user)
+                    if 'file_id' in request.FILES:
+                        file_sub = request.FILES['file_id']
+                        sub = Submission.objects.create()
+                        sub.content.save(sub.timestap.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
+                        container.submission = sub
+                        container.save()
+                    messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+                    assign('view_container',request.user, container)
+                    assign('change_container',request.user, container)
+                    assign('delete_container',request.user, container)
+                    assign('admin_container',request.user, container)
+                    assign('ownership_container',request.user, container)                    
+                except:
+                    messages.error(request, 'The bundle provided has wrong syntax.')
+                    return redirect(create)
+                
+        perms = get_perms_for_model(Container)
+        l_perm = []
+        for i in range(len(perms)):
+            l_perm.append(perms[i].codename)
+        
+        return render_to_response('server/profile.html', 
+                                  {'bundles': get_objects_for_user
+                                   (user=request.user, 
+                                    perms = l_perm, klass=Container, any_perm=True).order_by('id'),
+                                   'logged': True },
+                                  context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
 def bundle_detail(request, container_id):
@@ -128,6 +139,13 @@ def auth(request):
     return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,},
                               context_instance=RequestContext(request))
 
+
+def auth_help(request):
+    if request.user.is_anonymous():
+        logged = False
+    else:
+        logged = True
+    return render_to_response('server/auth_help.html',{'logged': logged})
 
 def _update_perms(target, role, container):
         perms = get_perms_for_model(Container)

@@ -37,6 +37,7 @@ def _create_public_group(**kwargs):
         
  
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
+
 post_syncdb.connect(_create_public_group)
 
 def remove_obj_perms_connected_with_user(sender, instance, **kwargs):
@@ -49,12 +50,23 @@ def remove_obj_perms_connected_with_user(sender, instance, **kwargs):
 
 pre_delete.connect(remove_obj_perms_connected_with_user, sender=User)
 
+
+class Submission(models.Model):
+    '''
+    
+    '''
+    timestap = models.DateTimeField(auto_now_add = True)
+    format = models.CharField(max_length=255)
+    content = models.FileField(upload_to='submissions')
+    
+
 class Container(models.Model):
     '''
     
     '''
     owner = models.ForeignKey(User, blank=True, null=True)
     content = models.ForeignKey(PDBundle, unique=True)
+    submission = models.ForeignKey(Submission, blank=True, null=True)
     public = models.BooleanField(default=False)
     
     class Meta:
@@ -70,12 +82,9 @@ class Container(models.Model):
         super(Container, self).delete()
 
     @staticmethod
-    def create(rec_id, raw_json, owner, public=False):
+    def create(rec_id, json_dict, owner, public=False):
         prov_bundle = ProvBundle();
-        try:
-            prov_bundle._decode_JSON_container(raw_json)
-        except TypeError:
-            prov_bundle = json.loads(raw_json, cls=ProvBundle.JSONDecoder)
+        prov_bundle._decode_JSON_container(json_dict)
         pdbundle = PDBundle.create(rec_id)
         pdbundle.save_bundle(prov_bundle)
         container = Container.objects.create(owner=owner, content=pdbundle, public=public)
