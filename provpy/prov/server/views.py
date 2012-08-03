@@ -2,7 +2,7 @@ import json
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
@@ -10,77 +10,55 @@ from tastypie.models import ApiKey
 from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm
-from models import Container, Submission
+from prov.server.forms import ProfileForm, AppForm, BundleForm
+from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
+from oauth_provider.models import Consumer
 #from prov.persistence.models import PDBundle 
-
 def registration(request):
     if(request.user.is_authenticated()):
-        return HttpResponseRedirect('/prov/home')
+        return redirect(list_bundles)
     if request.method == 'POST':
         form = ProfileForm(request.POST)
         if form.is_valid():
-            User.objects.create_user(username=form.cleaned_data['username'],
-                                            password=form.cleaned_data['password'])
-            user = authenticate(username=form.cleaned_data['username'],
-                                password=form.cleaned_data['password'])
+            form.save()
+            user = authenticate(username=form.cleaned_data['username'], password=form.cleaned_data['password'])
             login(request,user)
+            messages.success(request, 'You have successfully registered!')
             if form.data['next']:
-                return HttpResponseRedirect(form.data['next'])
-            return HttpResponseRedirect('/prov/home')
+                return redirect(form.data['next'])
+            return redirect(list_bundles)
         else:
+            for error in form.non_field_errors():
+                messages.error(request,error)
             return render_to_response('server/register.html',{'form': form, 'next': form.data['next']}, 
                                       context_instance=RequestContext(request))
     form = ProfileForm()
-    try:
-        next_page = request.GET['next']
-    except MultiValueDictKeyError:
-        next_page = ''
+    next_page = request.GET.pop('next', '')
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
     
 @login_required
-def profile(request):
+def list_bundles(request):
         if request.method == 'POST':
             if 'delete_id' in request.POST:
                 container_id = request.POST['delete_id']
                 container = get_object_or_404(Container, pk=container_id)
                 if not request.user.has_perm('delete_container', container):
-                    return render_to_response('server/403.html', {'logged': True}, context_instance=RequestContext(request))
+                    return render_to_response('server/403.html', context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
-            elif 'rec_id' and 'content' in request.POST:                
-                try:
-                    bundle_dict = json.loads(request.POST['content'])
-                    container = Container.create(request.POST['rec_id'], bundle_dict, request.user)
-                    if 'file_id' in request.FILES:
-                        file_sub = request.FILES['file_id']
-                        sub = Submission.objects.create()
-                        sub.content.save(sub.timestap.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
-                        container.submission = sub
-                        container.save()
-                    messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
-                    assign('view_container',request.user, container)
-                    assign('change_container',request.user, container)
-                    assign('delete_container',request.user, container)
-                    assign('admin_container',request.user, container)
-                    assign('ownership_container',request.user, container)                    
-                except:
-                    messages.error(request, 'The bundle provided has wrong syntax.')
-                    return redirect(create)
                 
         perms = get_perms_for_model(Container)
         l_perm = []
         for i in range(len(perms)):
             l_perm.append(perms[i].codename)
         
-        return render_to_response('server/profile.html', 
+        return render_to_response('server/private/list_bundles.html', 
                                   {'bundles': get_objects_for_user
                                    (user=request.user, 
-                                    perms = l_perm, klass=Container, any_perm=True).order_by('id'),
-                                   'logged': True },
+                                    perms = l_perm, klass=Container, any_perm=True).order_by('id')},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -89,8 +67,8 @@ def bundle_detail(request, container_id):
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
-    return render_to_response('server/detail.html',
-                              {'logged': True, 'bundle': container, 'prov_n': prov_n, 'prov_json': prov_json},
+    return render_to_response('server/private/bundle_detail.html',
+                              {'bundle': container, 'prov_n': prov_n, 'prov_json': prov_json},
                               context_instance=RequestContext(request))
     
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -102,12 +80,23 @@ def bundle_svg(request, container_id):
     return HttpResponse(content=svg_content, mimetype='image/svg+xml')
     
 @login_required
-def create(request):
-    return render_to_response('server/create.html',{'logged': True},
+def create_bundle(request):
+    if request.method == 'POST':
+        form = BundleForm(request.POST, request.FILES or None)
+        if form.is_valid():
+            container = form.save(owner=request.user)
+            messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+            return redirect(list_bundles)
+        else:
+            for error in form.non_field_errors():
+                messages.error(request,error)
+            return render_to_response('server/private/create_bundle.html',{'form': form}, 
+                                      context_instance=RequestContext(request))
+    return render_to_response('server/private/create_bundle.html', {'form': BundleForm()},
                               context_instance=RequestContext(request))
 
 @login_required
-def auth(request):
+def api_key(request):
     key = None
     date = None
     try:
@@ -136,16 +125,8 @@ def auth(request):
         key = api_key.key
         date = api_key.created
         
-    return render_to_response('server/auth.html',{'logged': True, 'key': key, 'date': date,},
+    return render_to_response('server/private/api_key.html',{'key': key, 'date': date,},
                               context_instance=RequestContext(request))
-
-
-def auth_help(request):
-    if request.user.is_anonymous():
-        logged = False
-    else:
-        logged = True
-    return render_to_response('server/auth_help.html',{'logged': logged})
 
 def _update_perms(target, role, container):
         perms = get_perms_for_model(Container)
@@ -211,8 +192,44 @@ def admin_bundle(request, container_id):
     all_users.sort()
     all_groups=[group.username for group in Group.objects.all() if group.name != 'public']
     all_groups.sort()    
-    return render_to_response('server/admin.html',
-                              {'logged': True, 'bundle': container, 'public': public,
+    return render_to_response('server/private/admin_bundle.html',
+                              {'bundle': container, 'public': public,
                                'users': users, 'groups': groups,
                                'all_users': all_users, 'all_groups': all_groups},
                               context_instance=RequestContext(request))
+
+@login_required
+def register_app(request):
+    if request.method == 'POST':
+        form = AppForm(request.POST)
+        if form.is_valid():
+            consumer = form.save()
+            consumer.user = request.user
+            consumer.generate_random_codes()
+            messages.success(request, 'The app ' + consumer.name + ' was successfully added to your list.')
+            return redirect(manage_apps)
+    else:
+        form = AppForm()
+    return render_to_response('server/private/register_app.html',
+                              {'form': form},
+                              context_instance=RequestContext(request))
+    
+@login_required
+def manage_apps(request):
+    if request.method == 'POST':
+        consumer = get_object_or_404(Consumer, pk=request.POST['app_id'])
+        if request.POST['status'] == 'Pending':
+            status = 1
+        elif request.POST['status'] == 'Accepted':
+            status = 2
+        elif request.POST['status'] == 'Canceled':
+            status = 3
+        elif request.POST['status'] == 'Rejected':
+            status = 4
+        consumer.status = status
+        consumer.save()
+        
+    apps = request.user.consumer_set.all()
+    return render_to_response('server/private/manage_apps.html', 
+                              {'apps': apps}, context_instance=RequestContext(request))
+    

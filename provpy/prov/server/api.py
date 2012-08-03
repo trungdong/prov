@@ -1,11 +1,12 @@
 from tastypie import fields
-from tastypie.authentication import ApiKeyAuthentication, OAuthAuthentication
-from prov.server.auth import AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
+from tastypie.authentication import OAuthAuthentication
+from prov.server.auth import ApiKeyAuthentication, AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
 from tastypie.http import HttpBadRequest
 from models import Container
+from prov.model import ProvBundle
 from django.contrib.auth.models import Group
 from prov.settings import PUBLIC_GROUP_ID
 
@@ -25,7 +26,9 @@ class ContainerResource(ModelResource):
     
     def obj_create(self, bundle, request=None, **kwargs):
         try:
-            container = Container.create(bundle.data['rec_id'], bundle.data['content'], request.user)
+            prov_bundle = ProvBundle()
+            prov_bundle._decode_JSON_container(bundle.data['content'])
+            container = Container.create(bundle.data['rec_id'], prov_bundle, request.user)
             if 'public' in bundle.data: 
                 container.public = bundle.data['public']
                 container.save()

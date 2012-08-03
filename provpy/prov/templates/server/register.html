@@ -16,7 +16,6 @@
 	<div class="offset4 span4" >
 	<form method="post" action="{% url 'server.views.registration' %}" class="well">
 	{% csrf_token %}
-	{{ form.non_field_errors }}
 	{% for field in form %}
 		<div class="control-group">
 		{{ field.label_tag }}

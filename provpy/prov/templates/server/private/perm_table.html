@@ -1,6 +1,5 @@
 {% load url from future %}
 {% load guardian_tags %}
-
 <table class="table">  
         <thead>  
           <tr>
@@ -29,7 +28,7 @@
               </select>
               <button type="submit" value="submit" class="btn btn-success">Assign</button>  
               <input type="hidden" name="name" value="{{ user.username }}" />
-              <input type="hidden" name="type" value="user" />   
+              <input type="hidden" name="perm_type" value="user" />   
             </div>  
           </div>
           </form>
@@ -39,7 +38,7 @@
           {% csrf_token %}
           <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
           <input type="hidden" name="name" value="{{ user.username }}" />
-          <input type="hidden" name="type" value="user" /> 
+          <input type="hidden" name="perm_type" value="user" /> 
           <input type="hidden" name="role" value="none" />
           </form>
            </td>
@@ -65,7 +64,7 @@
               </select>
               <button type="submit" class="btn btn-success">Assign</button>  
               <input type="hidden" name="name" value="{{ group.name }}" />
-              <input type="hidden" name="type" value="group" />   
+              <input type="hidden" name="perm_type" value="group" />   
             </div>  
           </div>
           </form>
@@ -75,7 +74,7 @@
           {% csrf_token %}
           <button type="submit" value="submit" class="btn btn-danger pull-right">Revoke</button>
           <input type="hidden" name="name" value="{{ group.name }}" />
-          <input type="hidden" name="type" value="group" /> 
+          <input type="hidden" name="perm_type" value="group" /> 
           <input type="hidden" name="role" value="none" />
           </form>
            </td>
