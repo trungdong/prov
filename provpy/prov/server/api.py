@@ -1,6 +1,6 @@
 from tastypie import fields
-from tastypie.authentication import ApiKeyAuthentication, OAuthAuthentication
-from prov.server.auth import AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
+from tastypie.authentication import OAuthAuthentication
+from prov.server.auth import ApiKeyAuthentication, AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
