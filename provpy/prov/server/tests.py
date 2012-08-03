@@ -13,6 +13,7 @@ from prov.server.models import Container
 from django.db import IntegrityError,DatabaseError
 from guardian.shortcuts import assign, remove_perm
 from django.test.client import Client
+from prov.model import ProvBundle
 
 logger = logging.getLogger(__name__)       
 
@@ -141,7 +142,9 @@ class OAuthAuthenticationTestCase(unittest.TestCase):
                 'name': 'Test',
                 'description': 'Testing...'
         })
-        self.bundle = Container.create('test_bundle', '', self.user)
+        pb = ProvBundle()
+        pb._decode_JSON_container('')
+        self.bundle = Container.create('test_bundle', pb, self.user)
         
     def testOAuthAccess(self):
         c = Client()

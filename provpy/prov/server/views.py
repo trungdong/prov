@@ -11,7 +11,7 @@ from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_o
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm, AppForm, BundleForm
-from models import Container, Submission
+from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
