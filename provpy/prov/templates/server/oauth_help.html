@@ -1,6 +1,172 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-{% block title %}PROVServer Help{% endblock %}
+{%block title %}PROVServer Help{% endblock %}
 {% block content %}
+<div class="row">
+	<div class="leaderboard offset2" style="padding-bottom : 10px">
+		<h1 id="Top">OAuth</h1>
+	</div>
+</div>
+<div class="row span12">
+	<div class="span2">
+	    <h3>Contents</h3>
+		<ul>
+			<li><h4><a href="#Overview">Overview</a></h4></li>
+			<li><h4><a href="#OAuth">OAuth</a></h4></li>
+			<li><h4><a href="#Registration">Registering an App</a></h4></li>
+			<li><h4><a href="#workflow">Workflow</a></h4>
+				<ul>
+					<li><h4><a href="#Request">Request Token</a></h4></li>
+					<li><h4><a href="#UserAuth">User Authorization</a></h4></li>
+					<li><h4><a href="#Access">Access Token</a></h4></li>
+					<li><h4><a href="#Example">Example Request</a></h4></li>
+				</ul>
+			</li>
+		</ul>
+	</div>
+	<div class="span8">
+		<div id="Overview" class="anchorOffset"></div>
+		<h3>The API Overview</h3>
+		<p>The PROV-JSON API provides a RESTfull web service for
+		storage and access of provenance bundles in JSON format as specified 
+		<a href="http://users.ecs.soton.ac.uk/tdh/json/">here</a> 
+		for the W3C's Provenance Data Model. Trough the API any client can manipulate bundles
+		stored on a server and explore and retrieve information from other clients.
+		</p>
+		<div id="OAuth" class="anchorOffset"></div>
+		<h3>OAuth</h3>
+		<p>The PROV-JSON API supports OAuth protocol for authentication and authorization. 
+		The API supports the common web server application flow for using the protocol. In it's core
+		the OAuth would be registering an application with the web service and when needed to access 
+		you redirect the browser to a given URL, parse the token from the response and use it to 
+		for accessing the resource. For a more detail information of the flow of the protocol and 
+		the security framework we suggest to read the official <a href="http://hueniverse.com/oauth/">
+		OAuth Guide</a>. This guide will explain how to use the protocol for authentication and 
+		authorization of the PROV-JSON web service.
+		</p>
+		<div id="Registration" class="anchorOffset"></div>
+		<h3>Registering an App</h3>
+		<p>The first thing in order to register an App is to create an account, if you have not done so already.
+		This will give you access to the PROV-JSON webUI where you can very easily manage and see
+		all the resources and application linked to your account. When you are logged in you can go to the
+		Apps panel and select Add New to open the registration form for an app. After the registration is complete
+		in the Apps panel you are going to see all the application currently registered to your account
+		together with the Client Key and Client Secret associated with them which you are going to need
+		for accessing the API with OAuth.
+		</p>
+		<div id="workflow" class="anchorOffset"></div>
+		<h3>Workflow</h3>
+		<p>The flow of obtaining Access Token is well defined by the OAuth specifications
+		and we will demonstrate it here in practice with the PROV-JSON API. Let's assume 
+		that John is a developer which wants to use the OAuth protocol to access user
+		resources and he has a web application. He registers his application on the 
+		webUI site, and the result of the registration would look like this:
+		</p>
+<pre>
+Name : John's App
+Description : A friendly application for displaying resources.
+Consumer_Key : dpf43f3p2l4k3l03
+Consumer_Secret : kd94hf93k423kf44
+</pre>
+		<div id="Request" class="anchorOffset"></div>
+		<h3>Obtaining Request Token</h3>
+		<p>
+		On his application John now have to create a function to obtain a Request Token
+		from the PROV-JSON Server. This is done by either a GET or POST request to
+		http://www.example.com/oauth/request_token with the following parameters included
+		in the request:
+<pre>
+oauth_consumer_key : dpf43f3p2l4k3l03
+oauth_signature_method : PLAINTEXT
+oauth_signature : kd94hf93k423kf44,
+oauth_timestamp : 1191242096
+oauth_nonce : kllo9940pd9333jh
+oauth_version : 1.0
+oauth_callback : http://johns_domain/request_token_ready
+scope: api
+</pre>
+		These parameters can be included in different places in the request according to
+		the OAuth Specifications - "The parameters are collected from three locations: 
+		the URL query element (as defined by RFC 3986 section 3), the OAuth 'Authorization' 
+		header (excluding the 'realm' parameter), and parameters included in a single-part 
+		'application/x-www-form-urlencoded' POST body (as defined by HTML4)."</br>
+		Assuming Jane visits Johns App and decides that she wants to check out Johns
+		visualization of the provenance, when she clicks to connect to her account 
+		obtaining the Request Token is the first thing to do. A corespoding response would
+		contain the following information:
+		</p>
+<pre>
+oauth_token_secret : Qc7bPafBTku2yT7X
+oauth_token : 6e63d062712c4381a559eaf5887a64ef
+oauth_callback_confirmed : true
+</pre>	
+		<div id="UserAuth" class="anchorOffset"></div>
+		<h3>Obtain User Authorization</h3>
+		<p>
+		After obtaining the Request Token now John's App have to get Jane's permission to
+		access her resources. This happens by calling with GET or POST request the authorization
+		URL www.example.com/oauth/authorize/ with only the ouath_token as parameter.
+<pre>
+oauth_token : 6e63d062712c4381a559eaf5887a64ef
+</pre>
+		The response returned from the server would be a redirect and the 'Location' header will
+		contain the URL to which Johns App have to redirect Jane. When this happen Jane would be
+		presented with the login to the webUI server and when she logged in she would be given a 
+		choice to grant access to her data to John's App. When she grants that access she will be 
+		redirected back to the oauth_callback URL (http://johns_domain/request_token_ready) with 
+		attached two extra arguments - oauth_token and oauth_verifier, and John's Reques Token 
+		will be approved.
+		</p>
+<pre>
+http://johns_domain/request_token_ready?oauth_verifier=8449664522&oauth_token=916197bbb7224e3facd7133c0ead7f52
+</pre> 
+		<div id="Access" class="anchorOffset"></div>
+		<h3>Obtain Access Token</h3>
+		<p>
+		Now all that is left to do for John is to exchange the Request Token for an Access Token 
+		which is the Token used for the actual data. This can be done again by either GET or POST method
+		to the URL www.example.com/oauth/access_token/ with the following parameters:
+<pre>
+oauth_consumer_key : dpf43f3p2l4k3l03
+oauth_token : 6e63d062712c4381a559eaf5887a64ef
+oauth_signature_method : PLAINTEXT
+oauth_signature : kd94hf93k423kf44&Qc7bPafBTku2yT7X
+oauth_timestamp : 1191242096
+oauth_nonce : kllo9940pd9333jh
+oauth_version : 1.0
+oauth_verifier : 8449664522
+scope : api
+</pre>
+		This will result in response from the server containing the Access Token given all the information
+		provided was correct and flow of the protocol was followed. An example response body may look like this:
+<pre>
+oauth_token_secret : UUy9xz2b2YafykRJ
+oauth_token : b7c21ff3256447078a2de2a9572be44a
+</pre>
+		Now when John's App have acuired the Access Token it can access Jane's provenance resources.
+		</p>
+		<div id="Example" class="anchorOffset"></div>
+		<h3>Example Request with Access Token</h3>
+		<p>
+		An example request to the API using such Access Token:
+<pre>
+oauth_consumer_key : dpf43f3p2l4k3l03
+oauth_token : b7c21ff3256447078a2de2a9572be44a
+oauth_signature_method : 'HMAC-SHA1',
+oauth_timestamp : now
+oauth_nonce : accessresourcenonce
+oauth_version :  1.0
+</pre>
+		The URL path of the request would be 'www.example.com/api/bundle/X/' asssuming Jane is
+		the owner of bundle with ID 'X'. Don't forget that you have to add one more parameter ot the request - 
+		the oauth_signature which is a digest using the given signature_method of a special oauth Request object.
+		Most languages have support of already build libraries for creating such object given the Access Token,
+		the URL and the parameters above. After adding the oauth_signature to the parameter list John is ready
+		to make a request to 'www.example.com/api/bundle/X/?format=json' (don't forget the format=json argument)
+		and successfully retrieve Jane's resource.
+		</p>
+		<h4><a href="#Top">Back to Top</a></h4>
+	</div>
+</div>
 {% endblock %}

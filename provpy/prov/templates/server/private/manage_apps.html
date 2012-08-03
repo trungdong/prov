@@ -8,7 +8,7 @@
         	<h2>Registered Apps</h2>
         </div>
       <span class="span10">
-       <input class="btn btn-primary offset8" type="button" onClick="go_to('/prov/apps/register')" value="Add New" />
+       <input class="btn btn-primary offset8" type="button" onClick="go_to('{% url 'server.views.register_app' %}')" value="Add New" />
       </span>
 <span class="span11">
 	<table class="table">  
@@ -44,6 +44,9 @@
           </td>
         {% endfor %}
         </tbody>
-	</table> 
+	</table>
+	{% if apps|length > 10 %}
+	<input class="btn btn-primary offset8" type="button" onClick="go_to('{% url 'server.views.register_app' %}')" value="Add New" /> 
+	{% endif %}
 </span>
 {% endblock %}

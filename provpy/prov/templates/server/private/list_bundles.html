@@ -41,6 +41,6 @@
         </tbody>  
       </table>
       {% if bundles|length > 10 %}
-	  <input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />  
+	  <input class="btn btn-primary offset10" type="button" onClick="go_to('{% url 'server.views.create_bundle' %}')" value="Add New" />  
 	  {% endif %}
 {% endblock %}
