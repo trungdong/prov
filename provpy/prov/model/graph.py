@@ -41,7 +41,7 @@ DOT_PROV_STYLE = {
     PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
 }
 
-def prov_to_dot(prov_g):
+def prov_to_dot(prov_g, show_nary=False):
     maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
     
     node_map = {}
@@ -73,7 +73,7 @@ def prov_to_dot(prov_g):
             if len(nodes) < 2:
               # Cannot draw this
               pass  
-            elif len(nodes) == 2:
+            elif len(nodes) == 2 or not show_nary:
                 # binary relations
                 style = DOT_PROV_STYLE[rec.get_type()]
                 dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
