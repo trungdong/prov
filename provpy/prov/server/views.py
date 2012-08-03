@@ -10,7 +10,7 @@ from tastypie.models import ApiKey
 from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm, AppForm
+from prov.server.forms import ProfileForm, AppForm, BundleForm
 from models import Container, Submission
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
@@ -35,10 +35,7 @@ def registration(request):
             return render_to_response('server/register.html',{'form': form, 'next': form.data['next']}, 
                                       context_instance=RequestContext(request))
     form = ProfileForm()
-    if 'next' in request.GET:
-        next_page = request.GET['next']
-    else:
-        next_page = ''
+    next_page = request.GET.pop('next', '')
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
     
@@ -52,25 +49,6 @@ def list_bundles(request):
                     return render_to_response('server/403.html', context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
-            elif 'rec_id' and 'content' in request.POST:                
-                try:
-                    bundle_dict = json.loads(request.POST['content'])
-                    container = Container.create(request.POST['rec_id'], bundle_dict, request.user)
-                    if 'file_id' in request.FILES:
-                        file_sub = request.FILES['file_id']
-                        sub = Submission.objects.create()
-                        sub.content.save(sub.timestap.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
-                        container.submission = sub
-                        container.save()
-                    messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
-                    assign('view_container',request.user, container)
-                    assign('change_container',request.user, container)
-                    assign('delete_container',request.user, container)
-                    assign('admin_container',request.user, container)
-                    assign('ownership_container',request.user, container)                    
-                except:
-                    messages.error(request, 'The bundle provided has wrong syntax.')
-                    return redirect(create_bundle)
                 
         perms = get_perms_for_model(Container)
         l_perm = []
@@ -103,7 +81,18 @@ def bundle_svg(request, container_id):
     
 @login_required
 def create_bundle(request):
-    return render_to_response('server/private/create_bundle.html',
+    if request.method == 'POST':
+        form = BundleForm(request.POST, request.FILES or None)
+        if form.is_valid():
+            container = form.save(owner=request.user)
+            messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+            return redirect(list_bundles)
+        else:
+            for error in form.non_field_errors():
+                messages.error(request,error)
+            return render_to_response('server/private/create_bundle.html',{'form': form}, 
+                                      context_instance=RequestContext(request))
+    return render_to_response('server/private/create_bundle.html', {'form': BundleForm()},
                               context_instance=RequestContext(request))
 
 @login_required

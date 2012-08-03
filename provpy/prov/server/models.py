@@ -83,17 +83,16 @@ class Container(models.Model):
         super(Container, self).delete()
 
     @staticmethod
-    def create(rec_id, json_dict, owner, public=False):
-        prov_bundle = ProvBundle();
-        prov_bundle._decode_JSON_container(json_dict)
+    def create(rec_id, prov_bundle, owner, public=False):
         pdbundle = PDBundle.create(rec_id)
         pdbundle.save_bundle(prov_bundle)
         container = Container.objects.create(owner=owner, content=pdbundle, public=public)
-        
+
         assign('view_container', owner, container)
         assign('change_container', owner, container)
         assign('delete_container', owner, container)
         assign('admin_container', owner, container)
         assign('ownership_container', owner, container)
-
+        if public == True:
+            assign('view_container', Group.objects.get(name='public'), container)
         return container

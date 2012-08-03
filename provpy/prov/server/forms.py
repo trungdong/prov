@@ -1,8 +1,10 @@
-from django.forms import ModelForm
+from django.forms import ModelForm, Textarea, Form
 from django import forms
-from prov.server.models import UserProfile, Container
-from django.contrib.auth.models import User, Group
+from prov.server.models import UserProfile, Container, Submission
+from django.contrib.auth.models import User
 from oauth_provider.models import Consumer
+from prov.model import ProvBundle
+import json
 
 class ProfileForm(ModelForm):
     username = forms.CharField(label=("Username"), min_length=3)
@@ -36,12 +38,36 @@ class ProfileForm(ModelForm):
 class AppForm(ModelForm):
     class Meta:
         model = Consumer
-        exclude = ('user', 'key', 'secret')
+        fields = ('name', 'status', 'description')
+        widgets ={'description': Textarea(attrs={'class': 'span6'}),}
 
 
-class BundleForm(ModelForm):
-    class Meta:
-        model = Container
+class BundleForm(Form):
+    rec_id = forms.CharField(label=('Record ID'))
+    submission = forms.FileField(label=('Original File'), required = False)
+    public = forms.BooleanField(label=('Public'), required = False)
+    content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span9'}))
         
+    def clean(self):
+        if 'content' in self.cleaned_data:
+            try:
+                self.bundle = ProvBundle()
+                self.bundle._decode_JSON_container(json.loads(self.cleaned_data['content']))
+            except ValueError:
+                raise forms.ValidationError(u'Wrong syntax in the JSON content.')
+        return self.cleaned_data
+    
+    def save(self, owner, commit=True):
+        if self.errors:
+            raise ValueError("The %s could not be %s because the data didn't"
+                         " validate." % ('UserProfile', 'created'))
+        container = Container.create(self.cleaned_data['rec_id'], self.bundle, owner, self.cleaned_data['public'])
+        if 'submission' in self.files:
+            file_sub = self.files['submission']
+            sub = Submission.objects.create()
+            sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
+            container.submission = sub
+            container.save()
+        return container
         
     

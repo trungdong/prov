@@ -7,10 +7,8 @@
 	<h1>Register a new client app.</h1>  
 </div>
 <div class="row">
-	<div class="offset4 span3" >
-	<form class="well" action="{% url 'server.views.register_app' %}" method="post">
+	<form class="well span6 offset3" action="{% url 'server.views.register_app' %}" method="post">
 		{% csrf_token %}
-		{{ form.non_field_errors }}
 		{% for field in form %}
 			<div class="control-group">
 				{{ field.label_tag }}
@@ -21,8 +19,7 @@
 	  		</div>
   		{% endfor %}
   		<button type="submit" class="btn btn-primary" value="submit">Submit</button>
-		<button class="btn offset" type="button" onClick="go_to('{% url 'server.views.manage_apps' %}');">Back</button> 
+		<button class="btn offset pull-right" type="button" onClick="go_to('{% url 'server.views.manage_apps' %}');">Back</button> 
 	</form>
-	</div>
 </div>
 {% endblock %}
