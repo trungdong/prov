@@ -35,7 +35,10 @@ def registration(request):
             return render_to_response('server/register.html',{'form': form, 'next': form.data['next']}, 
                                       context_instance=RequestContext(request))
     form = ProfileForm()
-    next_page = request.GET.pop('next', '')
+    if 'next' in request.GET:
+        next_page = request.GET['next']
+    else:
+        next_page = ''
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
     
