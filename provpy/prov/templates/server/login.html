@@ -1,7 +1,7 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-{%block title %}PROVServer Login{% endblock %}
+{% block title %}PROVServer Login{% endblock %}
 {% block content %}
 <div class="leaderboard">  
 	<h1>Welcome to the Provenance Repository Web UI</h1>  
@@ -10,7 +10,7 @@
 <div class="row">
 	<div class="offset4 span4" >
 	{%if form.errors %}
-		<div class="label"> Your username and password did not match! </div>
+		<div class="label"><h5>The username and password did not match!</h5></div>
 	{% endif %}
 	<form  class="well" method="post" action="{% url 'django.contrib.auth.views.login' %}" name="myform">
 		{% csrf_token %}

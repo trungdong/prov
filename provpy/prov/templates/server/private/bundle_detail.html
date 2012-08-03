@@ -2,11 +2,11 @@
 {% extends "base.html" %}
 {% load url from future %}
 {% load guardian_tags %}
-{% block title %}PROVServer Detail{% endblock %}
+{% block title %}PROVServer Bundle{% endblock %}
 {% block content %}
       <div class="row span12">
         <h1>Bundle {{ bundle.content.rec_id }}</h1>
-        <a class="btn btn-primary pull-right" onClick="go_to('/prov/home');">Back</a>
+        <a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.list_bundles' %}');">Back</a>
         <h2>PROV-N</h2>
 		<pre name="content">{{ prov_n }}</pre>
 		<h2>PROV-JSON</h2>
@@ -24,7 +24,7 @@
 		  </form>
 	  </span>
       <span class="span3">
-        <form action="{% url 'server.views.profile' %}" method="post" >
+        <form action="{% url 'server.views.list_bundles' %}" method="post" >
           {% csrf_token %}
           <button class="btn btn-danger offset1" type="submit" value="Delete"
           {% if 'delete_container' not in perms %}
@@ -34,6 +34,6 @@
         </form>
       </span>
       <span class="span4">
-      	<input class="btn btn-primary offset1" type="button" onClick="go_to('/prov/home');" value="Back"/> 
+      	<input class="btn btn-primary offset1" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/> 
       </span>
 {% endblock %}

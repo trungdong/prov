@@ -1,14 +1,14 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% load url from future %}
-{% block title %}PROVServer CreateNew{% endblock %}
+{% block title %}PROVServer NewBundle{% endblock %}
 {% block content %}
 <div class="leaderboard" style="padding-bottom : 10px">  
 	<h1>Input the bundle you wish to upload.</h1>  
 </div>
 <div class="row">
 	<div class="offset1 span10" >
-	<form class="well" action="{% url 'server.views.profile' %}" enctype="multipart/form-data" method="post">
+	<form class="well" action="{% url 'server.views.list_bundles' %}" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
         <div class="control-group">  
             <label class="control-label" for="rec_id">Record ID</label>  
@@ -23,7 +23,7 @@
             <textarea class="span9" name="content" id="content" rows="10"></textarea>  
         </div>    	  		
 		<input type="submit" class="btn btn-primary offset4" value="Submit" />
-		<input class="btn offset3" type="button" onClick="go_to('/prov/home');" value="Back"/> 
+		<input class="btn offset3" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/> 
 	</form>
 	</div>
 </div>

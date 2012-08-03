@@ -22,6 +22,7 @@
 	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-button.js"></script>
 	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-alert.js"></script>
 	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-typeahead.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-dropdown.js"></script>
     <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
     <!--[if lt IE 9]>
       <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
@@ -33,7 +34,6 @@
     <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/static/images/provserver-114.png">
     <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/static/images/provserver-72.png">
     <link rel="apple-touch-icon-precomposed" href="/static/images/provserver-57.png">
-    
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -48,17 +48,23 @@
           <div class="brand">Provenance Server</div>
           <ul class="nav">
             <li><a href="/prov/home">Home</a></li>
-            {% if logged %}
-            <li><a href="/prov/auth">API Key</a></li>
-            <li><a href="/prov/apps">Apps</a></li>
+            {% if user.is_authenticated %}
+            <li><a href="{% url 'server.views.list_bundles' %}">Bundles</a></li>
+            <li><a href="{% url 'server.views.manage_apps' %}">Apps</a></li>
+            <li><a href="{% url 'server.views.api_key' %}">API Key</a></li>
+            <li><a href="/prov/logout">Logout</a></li>
             {% endif %}
-            <li><a href="/prov/auth/help">Help</a></li>
+             </ul>  
+            <ul class="nav pull-right">
+            <li class="dropdown">
+			    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
+			    <ul class="dropdown-menu">
+			      <li><a href="/prov/help/apikey">API Key</a></li>
+			      <li><a href="/prov/help/oauth">OAuth</a></li>
+			    </ul>
             <li><a href="/prov/about">About</a></li>
             <li><a href="/prov/contact">Contact</a></li>
           </ul>  
-          {% if logged %}<ul class="nav pull-right">
-            <li><a href="/prov/logout">Logout</a></li>
-          </ul>{% endif %}
         </div>
       </div>
     </div>

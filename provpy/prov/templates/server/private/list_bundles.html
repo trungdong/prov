@@ -3,11 +3,11 @@
 {% load url from future %}
 {% load guardian_tags %}
 {% load server_tags %}
-{% block title %}PROVServer Profile{% endblock %}
+{% block title %}PROVServer Bundles{% endblock %}
 {% block content %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
-	<input class="btn btn-primary offset10" type="button" onClick="go_to('/prov/create')" value="Add New" />
+	<input class="btn btn-primary offset10" type="button" onClick="go_to('{% url 'server.views.create_bundle' %}')" value="Add New" />
 	<table class="table">  
         <thead>  
           <tr>
@@ -30,7 +30,7 @@
             <a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' bundle.id %}">Admin</a></td>
             {% endif %}
             {% if 'delete_container' in perms %} 
-            <form action="{% url 'server.views.profile' %}" method="post" >
+            <form action="{% url 'server.views.list_bundles' %}" method="post" >
             	{% csrf_token %}
             	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
             	<input type="hidden" name="delete_id" value="{{ bundle.id }}" />

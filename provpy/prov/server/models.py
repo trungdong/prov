@@ -7,10 +7,11 @@ provenance graphs from a server
 @copyright: University of Southampton 2012
 '''
 
-import logging, json
+import logging
 from django.db import models
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
+from django.contrib import messages
 from django.db.models import Q
 from django.db.models.signals import  post_save, post_syncdb, pre_delete
 from guardian.shortcuts import assign
