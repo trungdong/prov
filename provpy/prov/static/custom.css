@@ -32,5 +32,5 @@ html, body {
 	margin:10px;
 	margin-left:0px;
 }
-.table { table-layout: fixed; margin-bottom:0px;}
+.table {margin-bottom:0px;}
 .table th, table td { overflow: hidden; }

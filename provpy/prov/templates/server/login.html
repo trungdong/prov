@@ -3,12 +3,11 @@
 {% load url from future %}
 {% block title %}PROVServer Login{% endblock %}
 {% block content %}
-<div class="leaderboard">  
+<div class="leaderboard offset1">  
 	<h1>Welcome to the Provenance Repository Web UI</h1>  
 	<p>This is a web UI developed for testing PROV-JSON API</p>   
 </div>
-<div class="row">
-	<div class="offset4 span4" >
+<div class="offset3 span4">
 	{%if form.errors %}
 		<div class="label"><h5>The username and password did not match!</h5></div>
 	{% endif %}
@@ -26,6 +25,5 @@
         <input class="btn offset1" type="button" onClick="register(myform.next.value)" value="Register" />  
 		<input type="hidden" name="next" value="{{ next }}" />
 	</form>
-	</div>
-</div> 
+</div>
 {% endblock %}

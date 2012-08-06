@@ -3,49 +3,40 @@
 {% load url from future %}
 {% block title %}PROVServer ApiKey{% endblock %}
 {% block content %}
-<div class="row">
-	<div class="leaderboard span8 offset2" style="padding-bottom : 10px">  
+<div class="leaderboard offset1 span8" style="padding-bottom : 10px">  
 		{% if key %}
 		<h2>The Api key you have currently linked to your account is: {{ key }}</h2>
 		<h3>It was generated at {{ date }} </h3>
 		{% else %}
 		<h2>Currently you don't have any generated API key linked to your account.</h2>
 		{% endif %}
-	</div> 
-</div>
-<div class="row">
-	<div class="span5">
+</div> 
+<div class="span5">
 	<form action="{% url 'server.views.api_key' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-info offset3" type="submit" value="Generate New"/>
+        <input class="btn btn-info offset2" type="submit" value="Generate New"/>
         <input type="hidden" name="action" value="generate" />
     </form>
-    </div>
-    <div class="span6">
+</div>
+<div class="span3">
     <form action="{% url 'server.views.api_key' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-danger offset1" type="submit" value="Delete"
+        <input class="btn btn-danger" type="submit" value="Delete"
         {% if not key %} disabled="true" {% endif %}/>
         <input type="hidden" name="action" value="delete" />
     </form>
-  	</div>
- </div>
-
-<div class="row">
-    	<div class="span6 offset2">
-    	<h3> API key usage</h3>
-    	<h5> Here is an example of request made to the API using the API key.</h5>
-		</div>  
 </div>
-
-<div class="row">
-	<table class="table-bordered span8 offset2">  
-        <thead>  
+<div class="span8 offset1">
+	<h3> API key usage</h3>
+	<h5> Here is an example of request made to the API using the API key.</h5>
+</div>
+<table class="table-bordered offset1">  
+     <thead>  
           <tr>  
             <th style="width: 40%">Header</th>  
             <th>Value</th>
           </tr>  
-        </thead>
+     </thead>
         <tbody>
         	<tr>
         		<td>URL</td>
@@ -72,11 +63,8 @@
         		<td>The JSON serialized bundle data.</td>
         	</tr>
         </tbody>
-     </table>
-</div>
-	<div class="span6 offset2">
-    	<p>For more information how to use the PROV-JSON API, the services it provides
-    	and all the mechanisms involved in the authentication you can read the <a href="/prov/help/apikey"> Help page </a>
-    	</p>
-    </div>
+</table>
+<p class="offset1">For more information how to use the PROV-JSON API, the services it provides
+and all the mechanisms involved in the authentication you can read the <a href="/prov/help/apikey"> Help page </a>
+</p>
 {% endblock %}

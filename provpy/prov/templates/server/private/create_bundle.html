@@ -4,10 +4,9 @@
 {% block title %}PROVServer NewBundle{% endblock %}
 {% block content %}
 <div class="leaderboard" style="padding-bottom : 10px">  
-	<h1>Input the bundle you wish to upload.</h1>  
+	<h2>Input the bundle you wish to upload.</h2>  
 </div>
-<div class="row">
-	<div class="offset1 span10" >
+<div class="offset2" >
 	<form class="well" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
         {% for field in form %}
@@ -19,9 +18,8 @@
 		  		{% endfor %} 
 	  		</div>
   		{% endfor %}  	  		
-		<input type="submit" class="btn btn-primary offset4" value="Submit" />
-		<input class="btn offset3" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
+		<input type="submit" class="btn btn-primary offset2" value="Submit" />
+		<input class="btn offset1" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
 	</form>
-	</div>
 </div>
 {% endblock %}

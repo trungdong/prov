@@ -46,7 +46,7 @@ class BundleForm(Form):
     rec_id = forms.CharField(label=('Record ID'))
     submission = forms.FileField(label=('Original File'), required = False)
     public = forms.BooleanField(label=('Public'), required = False)
-    content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span9'}))
+    content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span6'}))
         
     def clean(self):
         if 'content' in self.cleaned_data:

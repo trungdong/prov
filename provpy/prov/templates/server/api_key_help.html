@@ -3,12 +3,9 @@
 {% load url from future %}
 {%block title %}PROVServer Help{% endblock %}
 {% block content %}
-<div class="row">
-	<div class="leaderboard offset2" style="padding-bottom : 10px">
+	<div class="leaderboard offset2 span7" style="padding-bottom : 10px">
 		<h1 id="Top"> Getting started </h1>
 	</div>
-</div>
-<div class="row span12">
 	<div class="span2">
 	    <h3>Contents</h3>
 		<ul>
@@ -25,7 +22,7 @@
 			<li><h4><a href="#Responses">API Responses</a></h4></li>
 		</ul>
 	</div>
-	<div class="span8">
+	<div class="span6">
 		<div id="Overview" class="anchorOffset"></div>
 		<h3 id="Overview">The API Overview</h3>
 		<p>The PROV-JSON API provides a RESTfull web service for
@@ -201,5 +198,5 @@ $result =  file_get_contents (
 	    in the request you will be treated as Anonymous User.</p>
 		<h4><a href="#Top">Back to Top</a></h4>
 	</div>
-</div>
+
 {% endblock %}

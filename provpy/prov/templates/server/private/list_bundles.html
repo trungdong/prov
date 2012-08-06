@@ -7,15 +7,15 @@
 {% block content %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
-	<input class="btn btn-primary offset10" type="button" onClick="go_to('{% url 'server.views.create_bundle' %}')" value="Add New" />
+	<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.create_bundle' %}');">Add New</a>
 	<table class="table">  
         <thead>  
           <tr>
-          	<th style="widht: 5%">Role</th>
-            <th style="width: 20%">Bundle-ID</th>  
-            <th style="width: 10%"></th>
-            <th style="width: 10%"></th>
-            <th style="width: 10%"></th>   
+          	<th style="widht: 14%">Role</th>
+            <th style="width: 50%">Bundle-ID</th>  
+            <th style="width: 12%"></th>
+            <th style="width: 12%"></th>
+            <th style="width: 12%"></th>   
           </tr>  
         </thead>  
         <tbody>

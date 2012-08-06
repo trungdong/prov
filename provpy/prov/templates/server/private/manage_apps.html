@@ -4,49 +4,44 @@
 {% load server_tags %}
 {% block title %}PROVServer Apps{% endblock %}
 {% block content %}
-		<div class="span11">
-        	<h2>Registered Apps</h2>
-        </div>
-      <span class="span10">
-       <input class="btn btn-primary offset8" type="button" onClick="go_to('{% url 'server.views.register_app' %}')" value="Add New" />
-      </span>
-<span class="span11">
-	<table class="table">  
-        <thead>  
-          <tr>
-          <th style="width:10%">Name</th>
-          <th style="width:30%">Description</th>
-          <th style="width:20%">Consumer Key</th>
-          <th style="width:15%">Consumer Secret</th>
-          <th style="width:15%">Status</th>
-          </tr>  
-        </thead>
-        <tbody>
-        {% for app in apps %}
-        <tr>
-        	<td>{{ app.name }}</td>
-        	<td>{{ app.description }}</td>
-        	<td>{{ app.key }}</td>
-        	<td>{{ app.secret }}</td>
-        	<td>
-        		<form class="form-inline" action="{% url 'server.views.manage_apps' %}" method="post">
-         	 	{% csrf_token %}
-          		<div class="control-group">  
-            	<div class="controls">  
-              		<select name="status" style="width:120px">
-              		{% status_to_options app.status %}
-		            </select>
-              <button type="submit" value="submit" class="btn btn-success">Save</button>  
-              <input type="hidden" name="app_id" value="{{ app.id }}" /> 
-            </div>  
-          </div>
-          </form>
-          </td>
+<h2>Registered Apps</h2>
+<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.register_app' %}');">Add New</a>
+<table class="table">  
+	<thead>  
+		<tr>
+			<th style="width:15%">Name</th>
+			<th style="width:30%">Description</th>
+			<th style="width:25%">Consumer Key</th>
+			<th style="width:15%">Consumer Secret</th>
+			<th style="width:15%">Status</th>
+		</tr>  
+	</thead>
+	<tbody>
+		{% for app in apps %}
+		<tr>
+			<td>{{ app.name }}</td>
+			<td>{{ app.description }}</td>
+			<td>{{ app.key }}</td>
+			<td>{{ app.secret }}</td>
+			<td>
+				<form class="form-inline" action="{% url 'server.views.manage_apps' %}" method="post">
+	         	 	{% csrf_token %}
+	          		<div class="control-group">  
+						<div class="controls">  
+							<select name="status" style="width:120px">
+								{% status_to_options app.status %}
+							</select>
+							<button type="submit" value="submit" class="btn btn-success">Save</button>  
+							<input type="hidden" name="app_id" value="{{ app.id }}" /> 
+						</div>  
+          			</div>
+          		</form>
+			</td>
+		</tr>
         {% endfor %}
         </tbody>
-	</table>
-	{% if apps|length > 10 %}
+</table>
+{% if apps|length > 6 %}
 	<input class="btn btn-primary offset8" type="button" onClick="go_to('{% url 'server.views.register_app' %}')" value="Add New" /> 
-	{% endif %}
-</span>
+{% endif %}
 {% endblock %}

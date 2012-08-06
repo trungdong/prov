@@ -133,8 +133,6 @@ class ApiKeyAuthentication(Authentication):
         Should return either ``True`` if allowed, ``False`` if not or an
         ``HttpResponse`` if you need something custom.
         """
-        from django.contrib.auth.models import User
-
         try:
             username, api_key = self.extract_credentials(request)
         except ValueError:
@@ -148,8 +146,8 @@ class ApiKeyAuthentication(Authentication):
         except (User.DoesNotExist, User.MultipleObjectsReturned):
             return self._unauthorized()
 
-        if not self.check_active(user):
-            return False
+#        if not self.check_active(user):
+#            return False
 
         request.user = user
         return self.get_key(user, api_key)

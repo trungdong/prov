@@ -20,7 +20,7 @@ class ContainerResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(), AnnonymousAuthentication())        
+        authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(require_active=False), AnnonymousAuthentication())        
     prov_json = fields.DictField(attribute='prov_json', null=True)
  #   original_file = fields.FileField(attribute='original', null=True)
     

@@ -3,58 +3,60 @@
 {% load url from future %}
 {% load guardian_tags %}
 {% block title %}PROVServer Admin{% endblock %}
-{% block content %}
+{% block head %}
 <script type="text/javascript">
-var userTags = [{% for u in all_users %}"{{ u }}" {% if not forloop.last %},{% endif %}{% endfor %}];
-var groupTags = [{% for g in all_groups %}"{{ g }}" {% if not forloop.last %},{% endif %}{% endfor %}];
-jQuery(function($) {
-  $('div.btn-group[data-toggle-name=*]').each(function(){
-    var group   = $(this);
-    var form    = group.parents('form').eq(0);
-    var name    = group.attr('data-toggle-name');
-    var hidden  = $('input[name="' + name + '"]', form);
-    $('button', group).each(function(){
-      var button = $(this);
-      button.live('click', function(){
-          hidden.val($(this).val());
-          if($(this).val() == "user"){
-          		$( "#name_add" ).autocomplete({
-					source: userTags
-				});
-          }
-          else {
-          		$( "#name_add" ).autocomplete({
-					source: groupTags
-				});
-          }
-      });
-      if(button.val() == hidden.val()) {
-        button.addClass('active');
-      }
-    });
-  });
-});
-$(function() {
-		$( "#name_add" ).autocomplete({
-			source: userTags
-		});
+	var userTags = [{% for u in all_users %}"{{ u }}" {% if not forloop.last %},{% endif %}{% endfor %}];
+	var groupTags = [{% for g in all_groups %}"{{ g }}" {% if not forloop.last %},{% endif %}{% endfor %}];
+	jQuery(function($) {
+	  $('div.btn-group[data-toggle-name=*]').each(function(){
+	    var group   = $(this);
+	    var form    = group.parents('form').eq(0);
+	    var name    = group.attr('data-toggle-name');
+	    var hidden  = $('input[name="' + name + '"]', form);
+	    $('button', group).each(function(){
+	      var button = $(this);
+	      button.live('click', function(){
+	          hidden.val($(this).val());
+	          if($(this).val() == "user"){
+	          		$( "#name_add" ).autocomplete({
+						source: userTags
+					});
+	          }
+	          else {
+	          		$( "#name_add" ).autocomplete({
+						source: groupTags
+					});
+	          }
+	      });
+	      if(button.val() == hidden.val()) {
+	        button.addClass('active');
+	      }
+	    });
+	  });
 	});
-</script>	
-      	<div class="span3">
-        	<h2>Bundle {{ bundle.rec_id }}</h2>
-        	</br>
-        	<h4>The bundle is {% if public %}Public.{% else %}Private.{% endif %}</h4>
-        	<form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
-         	{% csrf_token %}
-         	<button type="submit" value="submit" class="btn btn-info">
+	$(function() {
+			$( "#name_add" ).autocomplete({
+				source: userTags
+			});
+		});
+	</script>	
+{% endblock %}
+{% block content %}
+<div class="span3">
+ 	<h2>Bundle {{ bundle.rec_id }}</h2>
+   	</br>
+  	<h4>The bundle is {% if public %}Public.{% else %}Private.{% endif %}</h4>
+   	<form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
+   		{% csrf_token %}
+     	<button type="submit" value="submit" class="btn btn-info">
           	Make {% if public %}Private{% else %}Public{% endif %}</button>  
          	<input type="hidden" name="name" value="public" />
          	<input type="hidden" name="perm_type" value="group" />  
          	<input type="hidden" name="role" value="{% if public %}none{% else %}Reader{% endif %}" />
-         	</form>
-        </div>
-        <span class="span6">
-        <form class="form-horizontal" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
+   	</form>
+</div>
+<div class="span5">
+        <form class="form" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
          	{% csrf_token %}
          	<div class="control-group">  
             	<div class="controls"> 
@@ -71,26 +73,22 @@ $(function() {
 		                <option>Contributor</option>  
 		                <option>Reader</option>   
                  	</select>
-                	<button type="submit" value="submit" class="btn btn-primary">Add</button>
+                 	<input type="submit" value="Add" class="btn btn-primary"/>
           		</div>
           	</div>      
           </form>
-      </span>
-      <span class="span2">
-      <a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.list_bundles' %}');">Back</a>
-      </span>
-<span class="span11">
-      <table class="table">  
-        <thead>  
-          <tr><th><h3>Owner</h3></th></tr>  
-        </thead>  
-        <tbody>  
-          <tr><td>{{ bundle.owner }}</td></tr>  
-        </tbody>  
-      </table>
+</div>
+<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.list_bundles' %}');">Back</a>
+<table class="table">  
+    <thead>  
+    	<tr><th><h3>Owner</h3></th></tr>  
+    </thead>  
+    <tbody>  
+       <tr><td>{{ bundle.owner }}</td></tr>  
+    </tbody>  
+</table>
 {% include 'server/private/perm_table.html' with op1='Administrator' op2='Editor' op3='Contributor' op4='Reader' desc='All permissions' p_number=4 %}
 {% include 'server/private/perm_table.html' with op1='Editor' op2='Administrator' op3='Contributor' op4='Reader' desc='Read,Write and Delete' p_number=3 %}
 {% include 'server/private/perm_table.html' with op1='Contributor' op2='Administrator' op3='Editor' op4='Reader' desc='Read and Write' p_number=2 %}
 {% include 'server/private/perm_table.html' with op1='Reader' op2='Administrator' op3='Editor' op4='Contributor' desc='Read only' p_number=1 %}
-</span>
 {% endblock %}

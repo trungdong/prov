@@ -68,7 +68,7 @@
         </div>
       </div>
     </div>
-    <div id="main" class="container clear-top">
+    <div id="main" class="container-fluid clear-top">
       {% if messages %}<div class="row span12" id="messages">
         {% for message in messages %}
         <div class="span8 offset2 alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">
@@ -77,8 +77,19 @@
           <p>{{ message }}</p>
         </div>{% endfor %}
       </div>{% endif %}
-      {% block content %}{% endblock %}
-    </div>
+	  <div class="span9">
+			{% block content %}{% endblock %}
+	  </div>
+		{% if user.is_authenticated %}<div class="span3">
+		  	<pre>
+		  	Navigation Bar
+		  	
+		  	
+		  	
+		  	</pre>
+		  </div>
+	    </div>{% endif %}
+	</div>
     <footer>
       <div class="footer" id="footer">
         <h4>&copy; University of Southampton 2012</h4>
