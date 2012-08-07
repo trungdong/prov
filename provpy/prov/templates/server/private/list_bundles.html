@@ -5,9 +5,11 @@
 {% load server_tags %}
 {% block title %}PROVServer Bundles{% endblock %}
 {% block content %}
+	{% if user.is_authenticated %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
 	<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.create_bundle' %}');">Add New</a>
+	{% endif %}
 	<table class="table">  
         <thead>  
           <tr>
@@ -40,7 +42,7 @@
         {% endfor %}
         </tbody>  
       </table>
-      {% if bundles|length > 10 %}
+      {% if user.is_authenticated and bundles|length > 10 %}
 	  <input class="btn btn-primary offset10" type="button" onClick="go_to('{% url 'server.views.create_bundle' %}')" value="Add New" />  
 	  {% endif %}
 {% endblock %}

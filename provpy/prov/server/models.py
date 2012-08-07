@@ -61,6 +61,15 @@ class Submission(models.Model):
     content = models.FileField(upload_to='submissions')
     
 
+class License(models.Model):
+    '''
+    
+    '''
+    title = models.CharField(max_length=30)
+    description = models.CharField(max_length=255)
+    url = models.URLField()
+    
+    
 class Container(models.Model):
     '''
     
@@ -68,6 +77,7 @@ class Container(models.Model):
     owner = models.ForeignKey(User, blank=True, null=True)
     content = models.ForeignKey(PDBundle, unique=True)
     submission = models.ForeignKey(Submission, blank=True, null=True)
+    license = models.ManyToManyRel(License)
     public = models.BooleanField(default=False)
     
     class Meta:

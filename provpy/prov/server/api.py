@@ -59,19 +59,6 @@ class ContainerResource(ModelResource):
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
     
-#===============================================================================
-#    def deserialize(self, request, data, format=None):
-#        if not format:
-#            format = request.META.get('CONTENT_TYPE', 'application/json')
-# 
-#        if format == 'application/x-www-form-urlencoded':
-#            return request.POST
-# 
-#        if format.startswith('multipart'):
-#            data = request.POST.copy()
-#            data.update(request.FILES)
-# 
-#            return data
-# 
-#        return super(ModelResource, self).deserialize(request, data, format)
-#===============================================================================
+    
+
+    

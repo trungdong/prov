@@ -146,8 +146,8 @@ class ApiKeyAuthentication(Authentication):
         except (User.DoesNotExist, User.MultipleObjectsReturned):
             return self._unauthorized()
 
-#        if not self.check_active(user):
-#            return False
+        if not self.check_active(user):
+            return False
 
         request.user = user
         return self.get_key(user, api_key)

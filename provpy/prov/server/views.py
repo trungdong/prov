@@ -42,7 +42,7 @@ def registration(request):
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
     
-@login_required
+
 def list_bundles(request):
         if request.method == 'POST':
             if 'delete_id' in request.POST:
@@ -58,10 +58,12 @@ def list_bundles(request):
         for i in range(len(perms)):
             l_perm.append(perms[i].codename)
         
+        if request.user.is_anonymous() or request.user.id == ANONYMOUS_USER_ID:
+            bundles = Container.objects.filter(public = True)
+        else:
+            bundles = get_objects_for_user(user=request.user, perms = l_perm, klass=Container, any_perm=True).order_by('id')
         return render_to_response('server/private/list_bundles.html', 
-                                  {'bundles': get_objects_for_user
-                                   (user=request.user, 
-                                    perms = l_perm, klass=Container, any_perm=True).order_by('id')},
+                                  {'bundles': bundles},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
