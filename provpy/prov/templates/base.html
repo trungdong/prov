@@ -52,7 +52,10 @@
             {% if user.is_authenticated %}
             <li><a href="{% url 'server.views.manage_apps' %}">Apps</a></li>
             <li><a href="{% url 'server.views.api_key' %}">API Key</a></li>
-            <li><a href="/prov/logout">Logout</a></li>
+            <li><a href="{% url 'django.contrib.auth.views.logout_then_login' %}">Logout</a></li>
+            {% endif %}
+            {% if not user.is_authenticated %}
+            <li><a href="{% url 'django.contrib.auth.views.login' %}">Login</a></li>
             {% endif %}
              </ul>  
             <ul class="nav pull-right">
