@@ -1,4 +1,4 @@
-from tastypie.authentication import Authentication
+from tastypie.authentication import Authentication, OAuthAuthentication
 from tastypie.authorization import Authorization
 from tastypie.authentication import HttpUnauthorized
 from tastypie.http import HttpForbidden
@@ -56,51 +56,8 @@ class CustomAuthorization(Authorization):
 
 
 """
-Authentication classes imported from tastypie developers version
-for compatibility with official one.
+Authentication classes back-ported from tastypie dev version (0.9.12 alpha).
 """
-
-class MultiAuthentication(object):
-    """
-    An authentication backend that tries a number of backends in order.
-    """
-    def __init__(self, *backends, **kwargs):
-        super(MultiAuthentication, self).__init__(**kwargs)
-        self.backends = backends
-
-    def is_authenticated(self, request, **kwargs):
-        """
-        Identifies if the user is authenticated to continue or not.
-
-        Should return either ``True`` if allowed, ``False`` if not or an
-        ``HttpResponse`` if you need something custom.
-        """
-        unauthorized = False
-
-        for backend in self.backends:
-            check = backend.is_authenticated(request, **kwargs)
-
-            if check:
-                if isinstance(check, HttpUnauthorized):
-                    unauthorized = unauthorized or check
-                elif check is True:
-                    request._authentication_backend = backend
-                    return check
-
-        return unauthorized
-
-    def get_identifier(self, request):
-        """
-        Provides a unique string identifier for the requestor.
-
-        This implementation returns a combination of IP address and hostname.
-        """
-        try:
-            return request._authentication_backend.get_identifier(request)
-        except AttributeError:
-            return 'nouser'
-        
-
 class ApiKeyAuthentication(Authentication):
     """
     Handles API key auth, in which a user provides a username & API key.
@@ -125,6 +82,21 @@ class ApiKeyAuthentication(Authentication):
             api_key = request.GET.get('api_key') or request.POST.get('api_key')
 
         return username, api_key
+    
+    def is_valid_request(self, request):
+        """
+        Checks whether the required parameters are either in the HTTP
+        ``Authorization`` header sent by some clients or fall back to ``GET/POST``.
+        """
+        if request.META.get('HTTP_AUTHORIZATION') and request.META['HTTP_AUTHORIZATION'].lower().startswith('apikey '):
+            (auth_type, data) = request.META['HTTP_AUTHORIZATION'].split()
+
+            if auth_type.lower() != 'apikey':
+                return False
+
+            return data.find(':') >= 0
+        else:
+            return 'username' in request.REQUEST and 'api_key' in request.REQUEST
 
     def is_authenticated(self, request, **kwargs):
         """
@@ -146,8 +118,9 @@ class ApiKeyAuthentication(Authentication):
         except (User.DoesNotExist, User.MultipleObjectsReturned):
             return self._unauthorized()
 
-        if not self.check_active(user):
-            return False
+        # This is disabled because the version 0.9.11 does not support check user yet
+#        if not self.check_active(user):
+#            return False
 
         request.user = user
         return self.get_key(user, api_key)
@@ -172,5 +145,51 @@ class ApiKeyAuthentication(Authentication):
 
         This implementation returns the user's username.
         """
-        username, api_key = self.extract_credentials(request)
+        username, _ = self.extract_credentials(request)
         return username or 'nouser'
+
+class MultiAuthentication(object):
+    """
+    A custom authentication backend that supports anonymous access, OAuth authentication, and API key authentication.
+    """
+    def __init__(self, **kwargs):
+        super(MultiAuthentication, self).__init__(**kwargs)
+        self.ApiKeyBackend = ApiKeyAuthentication()
+        self.OAuthBackend = OAuthAuthentication()
+
+    def is_authenticated(self, request, **kwargs):
+        """
+        Identifies if the user is authenticated to continue or not.
+
+        Should return either ``True`` if allowed, ``False`` if not or an
+        ``HttpResponse`` if you need something custom.
+        """
+        
+        if self.ApiKeyBackend.is_valid_request(request):
+            check = self.ApiKeyBackend.is_authenticated(request, **kwargs)
+            if check is True:
+                request._authentication_backend = self.ApiKeyBackend
+            return check
+        if self.OAuthBackend.is_valid_request(request):
+            check = self.OAuthBackend.is_authenticated(request, **kwargs)
+            if check is True:
+                request._authentication_backend = self.OAuthBackend 
+            return check
+        else:
+            # Authenticate the request as the anonymous user
+            request.user = User.objects.get(id=ANONYMOUS_USER_ID)
+            return True
+        
+
+    def get_identifier(self, request):
+        """
+        Provides a unique string identifier for the requestor.
+
+        This implementation returns a combination of IP address and hostname.
+        """
+        try:
+            return request._authentication_backend.get_identifier(request)
+        except AttributeError:
+            return 'nouser'
+        
+

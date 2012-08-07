@@ -129,9 +129,7 @@ from oauth_provider.models import Consumer, Token, Resource
 import oauth2 as oauth
 
 class OAuthAuthenticationTestCase(unittest.TestCase):
-    def setUp(self):
-        super(OAuthAuthenticationTestCase, self).setUp()
-        
+    def testOAuthAccess(self):
         self.user = User.objects.create_user('jane', 'jane@example.com', 'toto')
         self.resource = Resource.objects.get_or_create(name='api', url='/api/')
         self.CONSUMER_KEY = 'dpf43f3p2l4k3l03'
@@ -146,7 +144,6 @@ class OAuthAuthenticationTestCase(unittest.TestCase):
         pb._decode_JSON_container('')
         self.bundle = Container.create('test_bundle', pb, self.user)
         
-    def testOAuthAccess(self):
         c = Client()
         response = c.get("/oauth/request_token/")
         self.assertEqual(response.status_code, 401)

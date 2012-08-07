@@ -1,6 +1,5 @@
 from tastypie import fields
-from tastypie.authentication import OAuthAuthentication
-from prov.server.auth import ApiKeyAuthentication, AnnonymousAuthentication, MultiAuthentication, CustomAuthorization
+from prov.server.auth import MultiAuthentication, CustomAuthorization
 from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
@@ -20,9 +19,9 @@ class ContainerResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication(OAuthAuthentication(), ApiKeyAuthentication(require_active=False), AnnonymousAuthentication())        
+        authentication = MultiAuthentication()        
     prov_json = fields.DictField(attribute='prov_json', null=True)
- #   original_file = fields.FileField(attribute='original', null=True)
+#    original_file = fields.FileField(attribute='original', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):
         try:
