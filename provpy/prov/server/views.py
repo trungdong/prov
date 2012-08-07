@@ -15,6 +15,7 @@ from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
+from oauth_provider.forms import AuthorizeRequestTokenForm
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -41,7 +42,11 @@ def registration(request):
         next_page = ''
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
-    
+
+@login_required
+def oauth_authorize(request, token, callback, params):
+    return render_to_response('server/oauth_authorize.html', {'token': token}, 
+                              context_instance=RequestContext(request))
 
 def list_bundles(request):
         if request.method == 'POST':

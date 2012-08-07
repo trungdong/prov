@@ -1,0 +1,18 @@
+{# Copyright (C) 2012 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% block title %}PROVServer App Authorization{% endblock %}
+{% block content %}
+<div class="leaderboard offset1">  
+	<h1>PROVServer App Authorization</h1>  
+	<p>You will </p>   
+</div>
+<div class="offset3 span4">
+	<form  class="well" method="post" action="{% url 'oauth_provider.views.user_authorization' %}" name="authorization_form">
+		{% csrf_token %}
+		<input type="hidden" name="oauth_token" value="{{ token.key }}" />
+		<button type="submit" class="btn btn-danger btn-large pull-left" name="authorize_access" value="False">No</button>
+		<button type="submit" class="btn btn-success btn-large pull-right" name="authorize_access" value="True">Yes</button>
+	</form>
+</div>
+{% endblock %}

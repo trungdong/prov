@@ -185,7 +185,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # OAuth Settings
-# OAUTH_AUTHORIZE_VIEW = 'server.views.oauth_authorize'
+OAUTH_AUTHORIZE_VIEW = 'server.views.oauth_authorize'
 OAUTH_REALM_KEY_NAME = 'http://provenance.orchid.ac.uk'
 # OAUTH_BLACKLISTED_HOSTNAMES = ['localhost', '127.0.0.1']
 OAUTH_SIGNATURE_METHODS = ['hmac-sha1',]
