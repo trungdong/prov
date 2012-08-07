@@ -6,6 +6,12 @@
 {% block content %}
 <h1>Bundle {{ bundle.content.rec_id }}</h1>
 <a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.list_bundles' %}');">Back</a>
+{% if license %}<h3>Licenses:</h3>{% endif %}
+{% for l in license %}
+	<h4>{{ l.title }}</h4>
+		<a href="{{ l.url }}">{{ l.url }}</a>
+	<p>{{ l.description }}</p>
+{% endfor %}
 <h2>PROV-N</h2>
 <pre name="content">{{ prov_n }}</pre>
 <h2>PROV-JSON</h2>

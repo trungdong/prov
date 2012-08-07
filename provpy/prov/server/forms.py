@@ -1,6 +1,6 @@
-from django.forms import ModelForm, Textarea, Form
+from django.forms import ModelForm, Textarea, Form, CheckboxSelectMultiple
 from django import forms
-from prov.server.models import UserProfile, Container, Submission
+from prov.server.models import UserProfile, Container, Submission, License
 from django.contrib.auth.models import User
 from oauth_provider.models import Consumer
 from prov.model import ProvBundle
@@ -41,13 +41,18 @@ class AppForm(ModelForm):
         fields = ('name', 'status', 'description')
         widgets ={'description': Textarea(attrs={'class': 'span6'}),}
 
+class LicenseMultipleChoiceField(forms.ModelMultipleChoiceField):
+    def label_from_instance(self, obj):
+        from django.utils.safestring import mark_safe
+        return mark_safe('{t}({d})</br><a href="{u}">{u}</a>'.format(t=obj.title, d=obj.description,u=obj.url))
 
 class BundleForm(Form):
     rec_id = forms.CharField(label=('Record ID'))
     submission = forms.FileField(label=('Original File'), required = False)
     public = forms.BooleanField(label=('Public'), required = False)
+    license = LicenseMultipleChoiceField(License.objects, widget=CheckboxSelectMultiple, required=False)
     content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span6'}))
-        
+     
     def clean(self):
         if 'content' in self.cleaned_data:
             try:
@@ -62,11 +67,17 @@ class BundleForm(Form):
             raise ValueError("The %s could not be %s because the data didn't"
                          " validate." % ('UserProfile', 'created'))
         container = Container.create(self.cleaned_data['rec_id'], self.bundle, owner, self.cleaned_data['public'])
+        save = False
         if 'submission' in self.files:
             file_sub = self.files['submission']
             sub = Submission.objects.create()
             sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
             container.submission = sub
+            save = True
+        for l in self.cleaned_data['license']:
+            container.license.add(l)
+            save = True
+        if save:
             container.save()
         return container
         

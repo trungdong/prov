@@ -71,9 +71,11 @@ def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
-    prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder) 
+    prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
+    licenses = container.license.all() 
     return render_to_response('server/private/bundle_detail.html',
-                              {'bundle': container, 'prov_n': prov_n, 'prov_json': prov_json},
+                              {'bundle': container, 'prov_n': prov_n, 
+                               'prov_json': prov_json, 'license': licenses},
                               context_instance=RequestContext(request))
     
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))

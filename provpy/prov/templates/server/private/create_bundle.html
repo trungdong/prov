@@ -13,6 +13,7 @@
 			<div class="control-group">
 				{{ field.label_tag }}
 				{{ field }}
+				{{ field.help_text }}
 		  		{% for error in field.errors %}
 		  		<span class="help-inline">{{error}}</span>
 		  		{% endfor %} 
