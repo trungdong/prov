@@ -7,18 +7,14 @@
 	<h2>Input the bundle you wish to upload.</h2>  
 </div>
 <div class="offset2" >
-	<form class="well" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
+	<form class="well form-inline" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
-        {% for field in form %}
-			<div class="control-group">
-				{{ field.label_tag }}
-				{{ field }}
-				{{ field.help_text }}
-		  		{% for error in field.errors %}
-		  		<span class="help-inline">{{error}}</span>
-		  		{% endfor %} 
-	  		</div>
-  		{% endfor %}  	  		
+  			{% for field in form %}
+  			<div class="cotnrol-group">
+	  			{{ field.label_tag }}
+	  			{{ field }}
+  			 </div>
+  			{% endfor %}
 		<input type="submit" class="btn btn-primary offset2" value="Submit" />
 		<input class="btn offset1" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
 	</form>
