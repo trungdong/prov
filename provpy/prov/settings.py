@@ -116,6 +116,8 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    # Debug toolbar
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
 ROOT_URLCONF = 'prov.urls'
@@ -142,6 +144,8 @@ INSTALLED_APPS = (
     'tastypie',
     'guardian',
     'oauth_provider',
+    # Debug toolbar
+    'debug_toolbar',
 )
 
 AUTHENTICATION_BACKENDS = (
@@ -190,4 +194,5 @@ OAUTH_REALM_KEY_NAME = 'http://provenance.orchid.ac.uk'
 # OAUTH_BLACKLISTED_HOSTNAMES = ['localhost', '127.0.0.1']
 OAUTH_SIGNATURE_METHODS = ['hmac-sha1',]
 
-
+# Debug toolbar
+INTERNAL_IPS = ('127.0.0.1',)
