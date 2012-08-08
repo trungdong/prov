@@ -7,8 +7,13 @@ import org.scribe.services.PlaintextSignatureService;
 
 public class ProvServer extends DefaultApi10a {
 	final static String HOST = "http://localhost:8000";
-//	final static String HOST "http://iamvm-collabmap2.ecs.soton.ac.uk";
+//	final static String HOST = "http://iamvm-collabmap2.ecs.soton.ac.uk";
 	
+//	@Override
+//	public SignatureService getSignatureService() {
+//		return new UpperCasePlaintextSignatureService();
+//	}
+
 	@Override
 	public Verb getRequestTokenVerb() {
 		return Verb.GET;
