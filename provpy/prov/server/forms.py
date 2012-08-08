@@ -4,6 +4,7 @@ from prov.server.models import UserProfile, Container, Submission, License
 from django.contrib.auth.models import User
 from oauth_provider.models import Consumer
 from prov.model import ProvBundle
+from django.utils.safestring import mark_safe
 import json
 
 class ProfileForm(ModelForm):
@@ -43,16 +44,15 @@ class AppForm(ModelForm):
 
 class LicenseMultipleChoiceField(forms.ModelMultipleChoiceField):
     def label_from_instance(self, obj):
-        from django.utils.safestring import mark_safe
         return mark_safe('{t}({d})</br><a href="{u}">{u}</a>'.format(t=obj.title, d=obj.description,u=obj.url))
 
 class BundleForm(Form):
     rec_id = forms.CharField(label=('Record ID'))
-    submission = forms.FileField(label=('Original File'), required = False)
     public = forms.BooleanField(label=('Public'), required = False)
+    submission = forms.FileField(label=('Original File'), required = False)
     license = LicenseMultipleChoiceField(License.objects, widget=CheckboxSelectMultiple, required=False)
     content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span6'}))
-     
+    
     def clean(self):
         if 'content' in self.cleaned_data:
             try:
