@@ -83,18 +83,18 @@ data = {
 
 function test() {
 	var user = 'port';
-	var pass = '828e0c5f3076bf98eb88ec41e0884ae60b6b8653';
+	var pass = '5efa8db01dc6f97a60b224bfc93c81d771478eb4';
 	var tok = user + ':' + pass;
   	var auth = 'ApiKey ' + tok;
 	
 	var account = {
 			"rec_id": "#agentswitch-mockup",
 			"public": "True",
-			"prov_json": data		
+			"content": data		
 		};
 	$.ajax({
 		  type: 'POST',
-		  url: '/api/v0/container/',
+		  url: '/api/v0/bundle/',
 		  data: JSON.stringify(account),
 		  contentType: 'application/json',
 		  beforeSend: function(req) {

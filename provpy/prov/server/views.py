@@ -15,6 +15,7 @@ from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
+from tastypie import resources
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
