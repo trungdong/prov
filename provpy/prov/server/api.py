@@ -64,12 +64,14 @@ class ContainerResource(ModelResource):
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
     
-    def strip_multiForm(self, raw_data):
-        start = raw_data.find('{')
-        end = raw_data.rfind('}')
-        import logging
-        logging.debug(raw_data[end:])
-        return raw_data[start:end+1]
+    #===========================================================================
+    # def strip_multiForm(self, raw_data):
+    #    start = raw_data.find('{')
+    #    end = raw_data.rfind('}')
+    #    import logging
+    #    logging.debug(raw_data[end:])
+    #    return raw_data[start:end+1]
+    #===========================================================================
     
     def post_list(self, request, **kwargs):
         from tastypie import http
