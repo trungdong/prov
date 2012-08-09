@@ -15,24 +15,24 @@ MANAGERS = ADMINS
 
 DATABASES = {
 'default': {
-   'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-   'NAME': os.path.join(PROJECT_DIR, 'db.sqlite'),                      # Or path to database file if using sqlite3.
-   'USER': '',                      # Not used with sqlite3.
-   'PASSWORD': '',                  # Not used with sqlite3.
-   'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-   'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+  'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+  'NAME': os.path.join(PROJECT_DIR, 'db.sqlite'),                      # Or path to database file if using sqlite3.
+  'USER': '',                      # Not used with sqlite3.
+  'PASSWORD': '',                  # Not used with sqlite3.
+  'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+  'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
 }
 }
 
 #===============================================================================
 # DATABASES = {
 # 'default': {
-#    'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
-#    'NAME': 'prov',                      # Or path to database file if using sqlite3.
-#    'USER': 'postgres',                      # Not used with sqlite3.
-#    'PASSWORD': '122',                  # Not used with sqlite3.
-#    'HOST': '/tmp/',                      # Set to empty string for localhost. Not used with sqlite3.
-#    'PORT': '5433',                      # Set to empty string for default. Not used with sqlite3.
+#   'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'postgresql', 'mysql', 'sqlite3' or 'oracle'.
+#   'NAME': 'prov',                      # Or path to database file if using sqlite3.
+#   'USER': 'postgres',                      # Not used with sqlite3.
+#   'PASSWORD': '122',                  # Not used with sqlite3.
+#   'HOST': '/tmp/',                      # Set to empty string for localhost. Not used with sqlite3.
+#   'PORT': '5433',                      # Set to empty string for default. Not used with sqlite3.
 # }
 # }
 #===============================================================================
@@ -185,7 +185,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # OAuth Settings
-# OAUTH_AUTHORIZE_VIEW = 'server.views.oauth_authorize'
+OAUTH_AUTHORIZE_VIEW = 'server.views.oauth_authorize'
 OAUTH_REALM_KEY_NAME = 'http://provenance.orchid.ac.uk'
 # OAUTH_BLACKLISTED_HOSTNAMES = ['localhost', '127.0.0.1']
 OAUTH_SIGNATURE_METHODS = ['hmac-sha1',]

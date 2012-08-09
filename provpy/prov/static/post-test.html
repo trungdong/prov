@@ -86,10 +86,11 @@ function test() {
 	var pass = '5efa8db01dc6f97a60b224bfc93c81d771478eb4';
 	var tok = user + ':' + pass;
   	var auth = 'ApiKey ' + tok;
-	var licenses = ['mi', 'mine'];
+	var l = ['mi'];
 	var account = {
 			"rec_id": "#agentswitch-mockup",
 			"public": "True",
+			"licenses": l,
 			"content": data		
 		};
 	$.ajax({

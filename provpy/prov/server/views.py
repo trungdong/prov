@@ -15,7 +15,6 @@ from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
-from tastypie import resources
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -240,4 +239,12 @@ def manage_apps(request):
     apps = request.user.consumer_set.all()
     return render_to_response('server/private/manage_apps.html', 
                               {'apps': apps}, context_instance=RequestContext(request))
+
+@login_required   
+def oauth_authorize(request, token, callback, params):
+    from oauth_provider.forms import AuthorizeRequestTokenForm
+    return render_to_response('server/oauth_authorize.html',
+                              {'name': token.consumer.name, 'description': token.consumer.description, 
+                               'form': AuthorizeRequestTokenForm(), 'oauth_token': token.key},
+                              context_instance=RequestContext(request))
     

@@ -1,0 +1,23 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% block title %}PROVServer OAuth{% endblock %}
+{% block content %}
+<div class="leaderboard offset1">  
+	<h2>{{ name }} has requested your permission to access your resources.</h2>
+	<h5>Info: {{ description }} </h5>    
+</div>
+<div class="offset3 span5">
+	</br>
+	{%if form.errors %}
+		<div class="label"><h5>The username and password did not match!</h5></div>
+	{% endif %}
+	<form  class="form-inline" method="post" action="{% url 'oauth_provider.views.user_authorization' %}" name="oauth_form">
+		{% csrf_token %}
+		<input class="btn btn-primary" type="submit" value="Grant" onClick="document.getElementById('authorize_access').value = 1;"/>
+		<input class="btn btn-primary offset1" type="submit" value="Forbid" onClick="document.getElementById('authorize_access').value = 0;"/>
+		<input type="hidden" name="authorize_access" id="authorize_access" value="0"/>
+		<input type="hidden" name="oauth_token" id="oauth_token" value="{{ oauth_token }}" />
+	</form>
+</div>
+{% endblock %}

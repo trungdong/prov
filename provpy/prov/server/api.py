@@ -4,9 +4,10 @@ from tastypie.resources import ModelResource
 from guardian.shortcuts import assign
 from tastypie.exceptions import ImmediateHttpResponse
 from tastypie.http import HttpBadRequest
-from models import Container,Submission
+from models import Container,Submission, License
 from prov.model import ProvBundle
 from django.contrib.auth.models import Group
+import oauth_provider.views
 from prov.settings import PUBLIC_GROUP_ID
 
 class ContainerResource(ModelResource):
@@ -36,9 +37,13 @@ class ContainerResource(ModelResource):
                     assign('view_container', Group.objects.get(id=PUBLIC_GROUP_ID), container)
             
             if 'licenses' in bundle.data:
-                for l in bundle.data['licenses']:
-                    import logging
-                    logging.debug(l)
+                for title in bundle.data['licenses']:
+                    try:
+                        lic = License.objects.get(title=title)
+                        container.license.add(lic)
+                        save = True
+                    except License.DoesNotExist:
+                        pass
             if 'submission' in request.FILES:
                 file_sub = request.FILES['submission']
                 sub = Submission.objects.create()
