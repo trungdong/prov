@@ -4,7 +4,7 @@
 <body>
 <script src="/static/jquery.js"></script>
 <script>
-data = {
+prov_json = {
     "wasAttributedTo": {
         "_:id4": {
             "prov:entity": "alice:bundle2", 
@@ -81,7 +81,6 @@ data = {
     }
 };
 function upload(){
-	console.log(data);	
 	var user = 'port';
 	var pass = '5efa8db01dc6f97a60b224bfc93c81d771478eb4';
 	var tok = user + ':' + pass;
@@ -90,10 +89,14 @@ function upload(){
     var account = {
 			"rec_id": "#agentswitch-mockup",
 			"public": "True",
-			"content": data		
+			"content": prov_json	
 		};
     formData.append("data", JSON.stringify(account))
+    var f = document.getElementById('submission').files[0];
+    var s = {"data" : JSON.stringify(account), "file" : f};
+    console.log(f);
     console.log(formData);
+    console.log(s);
     $.ajax({
         url: '/api/v0/bundle/',  //server script to process data
         type: 'POST',
@@ -103,14 +106,20 @@ function upload(){
         //Options to tell JQuery not to process data or worry about content-type
         cache: false,
         contentType: false,
-        processData: false
+        processData: false,
+        beforeSend: function(req) {
+        		req.setRequestHeader('Authorization', auth);
+   	 	},
+		success: function(data) {
+			  console.log(data);
+		}
     });
 };
 </script>
 <h1>Testing submiting PROV-JSON to server</h1>
 <p>Run test() in the JavaScript console to test the POST request.</p>
 <form id="form" enctype="multipart/form-data">
-<input name="submission" type="file"/>
+<input id="submission" name="submission" type="file"/>
 <input type="button" id="button" name-"button" value="Upload" onClick="upload();"/>
 </form>
 </body>

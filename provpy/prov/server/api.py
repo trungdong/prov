@@ -35,13 +35,17 @@ class ContainerResource(ModelResource):
                 if bundle.data['public']:
                     assign('view_container', Group.objects.get(id=PUBLIC_GROUP_ID), container)
             
-
+            if 'licenses' in bundle.data:
+                for l in bundle.data['licenses']:
+                    import logging
+                    logging.debug(l)
             if 'submission' in request.FILES:
                 file_sub = request.FILES['submission']
                 sub = Submission.objects.create()
                 sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
                 container.submission = sub
                 save = True
+                
             if save:
                 container.save()
         except: 
@@ -60,6 +64,13 @@ class ContainerResource(ModelResource):
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
     
+    def strip_multiForm(self, raw_data):
+        start = raw_data.find('{')
+        end = raw_data.rfind('}')
+        import logging
+        logging.debug(raw_data[end:])
+        return raw_data[start:end+1]
+    
     def post_list(self, request, **kwargs):
         from tastypie import http
         from tastypie.utils import dict_strip_unicode_keys
@@ -73,8 +84,20 @@ class ContainerResource(ModelResource):
         If ``Meta.always_return_data = True``, there will be a populated body
         of serialized data.
         """
+        import logging
+        logging.debug(request.FILES)
         if request.META.get('CONTENT_TYPE').startswith('multipart'):
             request.META['CONTENT_TYPE'] = 'application/json'
+            #===================================================================
+            # if ' name' in request.POST:
+            #    data = self.strip_multiForm(request.POST[' name'])
+            #    logging.debug('SDADSA')
+            #    #logging.debug(data[1098] + data[1099] + data[1100] + data[1101])
+            # else:
+            #    data = request.POST['data']
+            #===================================================================
+            if not 'data' in request.POST:
+                return ImmediateHttpResponse(HttpBadRequest)
             deserialized = self.deserialize(request, request.POST['data'], format=request.META.get('CONTENT_TYPE', 'application/json'))
             
         else:
@@ -89,4 +112,5 @@ class ContainerResource(ModelResource):
         else:
             updated_bundle = self.full_dehydrate(updated_bundle)
             updated_bundle = self.alter_detail_data_to_serialize(request, updated_bundle)
-            return self.create_response(request, updated_bundle, response_class=http.HttpCreated, location=location)
+            return self.create_response(request, updated_bundle, response_class=http.HttpCreated, location=location)
+        
