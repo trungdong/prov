@@ -5,11 +5,15 @@
 '''
 from django.contrib import admin
 from guardian.admin import GuardedModelAdmin
-from prov.server.models import Container
+from prov.server.models import Container, License
 
 
 class ContainerAdmin(GuardedModelAdmin):
     pass
 
+class LicenseAdmin(admin.ModelAdmin):
+    list_display = ('title', 'url')
+
 admin.site.register(Container, ContainerAdmin)
+admin.site.register(License, LicenseAdmin)
         

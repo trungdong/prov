@@ -7,17 +7,17 @@ provenance graphs from a server
 @copyright: University of Southampton 2012
 '''
 
-import logging
+import logging, os
 from django.db import models
+from django.contrib import admin
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
-from django.contrib import messages
 from django.db.models import Q
 from django.db.models.signals import  post_save, post_syncdb, pre_delete
 from guardian.shortcuts import assign
 from guardian.models import UserObjectPermission, GroupObjectPermission
-from prov.model import ProvBundle
 from prov.persistence.models import PDBundle
+from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID, MEDIA_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -31,15 +31,19 @@ def _create_profile(sender, created, instance, **kwargs):
         instance.groups.add(Group.objects.get(name='public'))
 
 def _create_public_group(**kwargs):
-    from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
     public_group, _ = Group.objects.get_or_create(id=PUBLIC_GROUP_ID, defaults={'name': 'public'}) 
     user, _ = User.objects.get_or_create(id=ANONYMOUS_USER_ID, defaults={'username': 'AnonymousUser'})
     user.groups.add(public_group)
         
- 
+def _create_submission_folder(**kwargs):
+    if not os.path.exists(MEDIA_ROOT+'submissions/'):
+        os.makedirs(MEDIA_ROOT+'submissions/')
+        
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 
 post_syncdb.connect(_create_public_group)
+
+post_syncdb.connect(_create_submission_folder)
 
 def remove_obj_perms_connected_with_user(sender, instance, **kwargs):
     ''' Remove all permissions connected with the user to avoid orphan permissions
@@ -68,6 +72,7 @@ class License(models.Model):
     title = models.CharField(max_length=30)
     description = models.CharField(max_length=255)
     url = models.URLField()
+
     
 class Container(models.Model):
     '''

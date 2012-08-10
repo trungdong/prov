@@ -14,9 +14,8 @@
 	{% endif %}
 	<form  class="form-inline" method="post" action="{% url 'oauth_provider.views.user_authorization' %}" name="oauth_form">
 		{% csrf_token %}
-		<input class="btn btn-primary" type="submit" value="Grant" onClick="document.getElementById('authorize_access').value = 1;"/>
-		<input class="btn btn-primary offset1" type="submit" value="Forbid" onClick="document.getElementById('authorize_access').value = 0;"/>
-		<input type="hidden" name="authorize_access" id="authorize_access" value="0"/>
+		<button class="btn btn-primary" type="submit" value="1" name="authorize_access">Grant</button>
+		<button class="btn btn-primary offset1" type="submit" value="0" name="authorize_access">Forbid</button>
 		<input type="hidden" name="oauth_token" id="oauth_token" value="{{ oauth_token }}" />
 	</form>
 </div>

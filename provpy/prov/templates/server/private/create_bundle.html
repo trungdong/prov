@@ -3,20 +3,26 @@
 {% load url from future %}
 {% block title %}PROVServer NewBundle{% endblock %}
 {% block content %}
-<div class="leaderboard" style="padding-bottom : 10px">  
-	<h2>Input the bundle you wish to upload.</h2>  
+<div class="leaderboard span8">  
+	<h2>Input the bundle you wish to upload.</h2>
 </div>
-<div class="offset2" >
-	<form class="well form-inline" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
+<input class="btn" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
+<form class="well form-inline offset1" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
+	{% csrf_token %}
+	{{ alter_form.url.label_tag}}  {{ alter_form.url }}
+	<input type="submit" class="btn btn-primary" value="Upload" />
+	{{ alter_form.url.errors }}
+</form>
+	<form class="well form-inline offset1" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
   			{% for field in form %}
   			<div class="cotnrol-group">
 	  			{{ field.label_tag }}
+	  			{{ field.errors }}
 	  			{{ field }}
   			 </div>
   			{% endfor %}
+  		</br>
 		<input type="submit" class="btn btn-primary offset2" value="Submit" />
-		<input class="btn offset1" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
 	</form>
-</div>
 {% endblock %}

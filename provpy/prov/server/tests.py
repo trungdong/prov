@@ -3,7 +3,7 @@
 @author: Trung Dong Huynh <trungdong@donggiang.com>
 @copyright: University of Southampton 2012
 '''
-import unittest, logging, sys, json
+import unittest, logging, sys, json, os
 from prov.model.test import examples
 
 
@@ -14,6 +14,7 @@ from django.db import IntegrityError,DatabaseError
 from guardian.shortcuts import assign, remove_perm
 from django.test.client import Client
 from prov.model import ProvBundle
+from apport.report import Report
 
 logger = logging.getLogger(__name__)       
 
@@ -218,7 +219,46 @@ class OAuthAuthenticationTestCase(unittest.TestCase):
         parameters['oauth_signature'] = signature
         response = c.get(url_path + '?format=json', parameters)
         self.assertEqual(response.status_code, 200)
+
+class FileSubmissionTest(unittest.TestCase):
+    def setUp(self):
+        logging.debug('Setting up user and temp file...')
+        self.check_u = User.objects.get_or_create(username='FileTesting')
+        self.user = self.check_u[0]
+        self.check_k = ApiKey.objects.get_or_create(user=self.user)
+        self.key = self.check_k[0]
+        self.auth = 'ApiKey' + self.user.username + ':' + self.key.key
+        self.path = '/tmp/prov_test.tmp'
+        self.check_u = self.check_u[1]
+        self.check_k = self.check_k[1]
+    
+    def tearDown(self):
+        logging.debug('Removing user and temp file...')
+        os.remove(self.path)
+        if self.check_k:
+            self.key.delete()
+        if self.check_u:
+            self.user.delete()
         
+    def testFileSubmit(self):
+        client = Client()
+        bundle = examples.bundles2()
+        content = bundle.JSONEncoder().encode(bundle)
+        file_tmp = open(self.path, 'w+')
+        file_tmp.write(content)
+        file_tmp.close()
+        file_tmp = open(self.path)
+        data="""{"rec_id": "#mockup","content": """+bundle.JSONEncoder().encode(bundle)+'}'
+        logging.debug('Executing POST method with the submission attached...')
+        response = client.post('/api/v0/bundle/',data={'data' : data, 'submission': file_tmp},
+                                    **{'HTTP_AUTHORIZATION': self.auth})
+        file_tmp.close()
+        self.assertEqual(response.status_code, 201)
+        bundle = Container.objects.get(id=json.JSONDecoder().decode(response.content)['id'])
+        file_tmp = open(bundle.submission.content.path)
+        self.assertEqual(content, file_tmp.read())
+        file_tmp.close()
+
 if __name__ == "__main__":
     from django.test.utils import setup_test_environment
     setup_test_environment()

@@ -10,7 +10,7 @@ from tastypie.models import ApiKey
 from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm, AppForm, BundleForm
+from prov.server.forms import ProfileForm, AppForm, BundleForm, UrlBundleForm
 from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
@@ -89,17 +89,28 @@ def bundle_svg(request, container_id):
 @login_required
 def create_bundle(request):
     if request.method == 'POST':
-        form = BundleForm(request.POST, request.FILES or None)
-        if form.is_valid():
-            container = form.save(owner=request.user)
-            messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
-            return redirect(list_bundles)
+        if 'url' in request.POST:
+            alter_form = UrlBundleForm(request.POST)
+            if alter_form.is_valid():
+                alter_form.save(request.user)
+            else:
+                return render_to_response('server/private/create_bundle.html',
+                                      {'form': BundleForm, 'alter_form': alter_form}, 
+                                          context_instance=RequestContext(request))
         else:
-            for error in form.non_field_errors():
-                messages.error(request,error)
-            return render_to_response('server/private/create_bundle.html',{'form': form}, 
-                                      context_instance=RequestContext(request))
-    return render_to_response('server/private/create_bundle.html', {'form': BundleForm()},
+            form = BundleForm(request.POST, request.FILES or None)
+            if form.is_valid():
+                container = form.save(owner=request.user)
+                messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+                return redirect(list_bundles)
+            else:
+                for error in form.non_field_errors():
+                    messages.error(request,error)
+                return render_to_response('server/private/create_bundle.html',
+                                          {'form': form, 'alter_form': UrlBundleForm()}, 
+                                          context_instance=RequestContext(request))
+    return render_to_response('server/private/create_bundle.html',
+                              {'form': BundleForm(), 'alter_form': UrlBundleForm()},
                               context_instance=RequestContext(request))
 
 @login_required
