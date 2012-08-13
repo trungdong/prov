@@ -89,15 +89,15 @@ def bundle_svg(request, container_id):
 @login_required
 def create_bundle(request):
     if request.method == 'POST':
-        if 'url' in request.POST:
-            alter_form = UrlBundleForm(request.POST)
-            if alter_form.is_valid():
-                alter_form.save(request.user)
-            else:
-                return render_to_response('server/private/create_bundle.html',
-                                      {'form': BundleForm, 'alter_form': alter_form}, 
-                                          context_instance=RequestContext(request))
-        else:
+#        if 'url' in request.POST:
+#            alter_form = UrlBundleForm(request.POST)
+#            if alter_form.is_valid():
+#                alter_form.save(request.user)
+#            else:
+#                return render_to_response('server/private/create_bundle.html',
+#                                      {'form': BundleForm, 'alter_form': alter_form}, 
+#                                          context_instance=RequestContext(request))
+#        else:
             form = BundleForm(request.POST, request.FILES or None)
             if form.is_valid():
                 container = form.save(owner=request.user)
@@ -107,10 +107,10 @@ def create_bundle(request):
                 for error in form.non_field_errors():
                     messages.error(request,error)
                 return render_to_response('server/private/create_bundle.html',
-                                          {'form': form, 'alter_form': UrlBundleForm()}, 
+                                          {'form': form}, 
                                           context_instance=RequestContext(request))
     return render_to_response('server/private/create_bundle.html',
-                              {'form': BundleForm(), 'alter_form': UrlBundleForm()},
+                              {'form': BundleForm()},
                               context_instance=RequestContext(request))
 
 @login_required

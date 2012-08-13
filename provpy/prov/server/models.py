@@ -82,6 +82,7 @@ class Container(models.Model):
     content = models.ForeignKey(PDBundle, unique=True)
     submission = models.ForeignKey(Submission, blank=True, null=True)
     license = models.ManyToManyField(License)
+    url = models.URLField(blank=True, null=True)
     public = models.BooleanField(default=False)
     
     class Meta:

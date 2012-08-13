@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from oauth_provider.models import Consumer
 from prov.model import ProvBundle
 from django.utils.safestring import mark_safe
-from django.core.files import File
+from urllib2 import URLError, urlopen
 import json
 
 class ProfileForm(ModelForm):
@@ -52,15 +52,31 @@ class BundleForm(Form):
     public = forms.BooleanField(label=('Public'), required = False)
     submission = forms.FileField(label=('Original File'), required = False)
     license = LicenseMultipleChoiceField(License.objects, widget=CheckboxSelectMultiple, required=False)
-    content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span7'}))
+    url = forms.URLField(label='URL to the bundle file:', required=False)
+    content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span7'}), required=False)
     
     def clean(self):
-        if 'content' in self.cleaned_data:
+        if self.cleaned_data['url']:
+            try:
+                source = urlopen(self.cleaned_data['url'])
+                self.content = source.read()
+                source.close()
+            except URLError:
+                raise forms.ValidationError(u'There was a problem accessing the URL.')
+        if self.cleaned_data['content']:
             try:
                 self.bundle = ProvBundle()
                 self.bundle._decode_JSON_container(json.loads(self.cleaned_data['content']))
             except ValueError:
                 raise forms.ValidationError(u'Wrong syntax in the JSON content.')
+        elif self.content:
+            try:
+                self.bundle = ProvBundle()
+                self.bundle._decode_JSON_container(json.loads(self.content))
+            except ValueError:
+                raise forms.ValidationError(u'Wrong syntax in the JSON content at the URL.')
+        else:
+            raise forms.ValidationError(u'No content or URL provided.')
         return self.cleaned_data
     
     def save(self, owner, commit=True):
@@ -82,24 +98,3 @@ class BundleForm(Form):
             container.save()
         return container
         
-class UrlBundleForm(Form):
-    url = forms.URLField(label='Alternatively provide a URL to the bundle file:')
-    
-    def clean(self):
-        if 'url' in self.cleaned_data:
-            import urllib2, logging
-            source = urllib2.urlopen(self.cleaned_data['url'])
-            bundle = source.read()
-            source.close()
-            data = json.loads(bundle)
-            #name = self.cleaned_data['url'].split('/')[-1]
-            logging.debug(data)
-            #===================================================================
-            # sub = Submission.objects.create()
-            # sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+name, source)
-            #===================================================================
-            
-    def save(self, owner, commit=True):
-        if self.errors:
-            raise ValueError("The %s could not be %s because the data didn't"
-                         " validate." % ('Bundle from URL', 'created'))
