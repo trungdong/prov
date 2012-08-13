@@ -1,4 +1,4 @@
-import json
+from json import dumps
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -7,10 +7,12 @@ from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
 from tastypie.models import ApiKey
-from guardian.shortcuts import *#assign, remove_perm, get_perms_for_model, get_objects_for_user, get_users_with_perms
+from django.contrib.auth.models import Group, User
+from guardian.shortcuts import assign, remove_perm, get_perms_for_model
+from guardian.shortcuts import get_groups_with_perms, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm, AppForm, BundleForm, UrlBundleForm
+from prov.server.forms import ProfileForm, AppForm, BundleForm
 from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
@@ -71,7 +73,7 @@ def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
-    prov_json = json.dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
+    prov_json = dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
     licenses = container.license.all() 
     return render_to_response('server/private/bundle_detail.html',
                               {'bundle': container, 'prov_n': prov_n, 

@@ -260,6 +260,42 @@ class FileSubmissionTest(unittest.TestCase):
         file_tmp.close()
         os.remove(bundle.submission.content.path)
 
+from urllib2 import urlopen
+
+class URLSubmissionTest(unittest.TestCase):
+    def setUp(self):
+        logging.debug('Setting up user and checking the URL file...')
+        self.check_u = User.objects.get_or_create(username='FileTesting')
+        self.user = self.check_u[0]
+        self.check_k = ApiKey.objects.get_or_create(user=self.user)
+        self.key = self.check_k[0]
+        self.auth = 'ApiKey' + self.user.username + ':' + self.key.key
+        self.check_u = self.check_u[1]
+        self.check_k = self.check_k[1]
+        self.url = 'http://199.91.154.133/m59154s9e0qg/d6xrjdqs090e1a9/test.json'
+        source = urlopen(self.url)
+        self.content = source.read()
+        source.close()
+    
+    def tearDown(self):
+        logging.debug('Removing user and temp file...')
+        if self.check_k:
+            self.key.delete()
+        if self.check_u:
+            self.user.delete()
+            
+    def testURLSubmission(self):
+        client = Client()
+        data='''{"rec_id": "#mockup","content": "", "public": "True", "url": "''' + self.url + '''"}'''
+        response = client.post('/api/v0/bundle/',data=data,content_type='application/json',
+                                    **{'HTTP_AUTHORIZATION': self.auth})
+        self.assertEqual(response.status_code, 201)
+        bundle = Container.objects.get(id=json.JSONDecoder().decode(response.content)['id'])
+        self.assertEqual(self.url, bundle.url)
+        logging.debug(self.content)
+        logging.debug(json.dumps(bundle.content.get_prov_bundle(), indent=4, cls=ProvBundle.JSONEncoder))
+
+        
 if __name__ == "__main__":
     from django.test.utils import setup_test_environment
     setup_test_environment()

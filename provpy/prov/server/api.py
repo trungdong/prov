@@ -7,15 +7,16 @@ from tastypie.http import HttpBadRequest
 from models import Container,Submission, License
 from prov.model import ProvBundle
 from django.contrib.auth.models import Group
-import oauth_provider.views
 from prov.settings import PUBLIC_GROUP_ID
+from urllib2 import urlopen
+from json import loads
 
 class ContainerResource(ModelResource):
     
     class Meta:
         queryset = Container.objects.all()
         resource_name = 'bundle'
-        excludes = ['content']
+        excludes = ['content', 'url']
         list_allowed_methods = ['get', 'post', 'delete']
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
@@ -27,7 +28,13 @@ class ContainerResource(ModelResource):
     def obj_create(self, bundle, request=None, **kwargs):
         try:
             prov_bundle = ProvBundle()
-            prov_bundle._decode_JSON_container(bundle.data['content'])
+            if bundle.data['content']:
+                prov_bundle._decode_JSON_container(bundle.data['content'])
+            else:
+                source = urlopen(bundle.data['url'])
+                content = source.read()
+                source.close()
+                prov_bundle._decode_JSON_container(loads(content))
             container = Container.create(bundle.data['rec_id'], prov_bundle, request.user)
             save = False
             if 'public' in bundle.data: 
@@ -50,7 +57,9 @@ class ContainerResource(ModelResource):
                 sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
                 container.submission = sub
                 save = True
-                
+            if 'url' in bundle.data:
+                container.url = bundle.data['url']
+                save = True
             if save:
                 container.save()
         except: 

@@ -6,7 +6,7 @@ from oauth_provider.models import Consumer
 from prov.model import ProvBundle
 from django.utils.safestring import mark_safe
 from urllib2 import URLError, urlopen
-import json
+from json import loads
 
 class ProfileForm(ModelForm):
     username = forms.CharField(label=("Username"), min_length=3)
@@ -56,23 +56,21 @@ class BundleForm(Form):
     content = forms.CharField(label=('Content (in JSON format)'), widget=Textarea(attrs={'class': 'span7'}), required=False)
     
     def clean(self):
-        if self.cleaned_data['url']:
+        self.bundle = ProvBundle()
+        if self.cleaned_data['content']:
+            try:
+                self.bundle._decode_JSON_container(loads(self.cleaned_data['content']))
+            except ValueError:
+                raise forms.ValidationError(u'Wrong syntax in the JSON content.')
+        elif self.cleaned_data['url']:
             try:
                 source = urlopen(self.cleaned_data['url'])
-                self.content = source.read()
+                url_content = source.read()
                 source.close()
             except URLError:
                 raise forms.ValidationError(u'There was a problem accessing the URL.')
-        if self.cleaned_data['content']:
             try:
-                self.bundle = ProvBundle()
-                self.bundle._decode_JSON_container(json.loads(self.cleaned_data['content']))
-            except ValueError:
-                raise forms.ValidationError(u'Wrong syntax in the JSON content.')
-        elif self.content:
-            try:
-                self.bundle = ProvBundle()
-                self.bundle._decode_JSON_container(json.loads(self.content))
+                self.bundle._decode_JSON_container(loads(url_content))
             except ValueError:
                 raise forms.ValidationError(u'Wrong syntax in the JSON content at the URL.')
         else:
