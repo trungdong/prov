@@ -100,6 +100,12 @@ class ContainerResource(ModelResource):
         If ``Meta.always_return_data = True``, there will be a populated body
         of serialized data.
         """
+        
+        '''
+        For some reason without accessing the variable request it fails,
+        so without the debugging line it won't work
+        '''
+        
         import logging
         logging.debug(request.FILES)
         if request.META.get('CONTENT_TYPE').startswith('multipart'):
