@@ -5,13 +5,13 @@ from django.db.models import Q
 from sets import Set
 
 def _get_containers(rec_set):
-        final_list = Set(rec_set.filter(bundle=None).values_list('id', flat=True))
-        temp_list = Set(rec_set.filter(~Q(bundle=None)).values_list('bundle', flat=True))
-        while len(temp_list) > 0:
-            temp_list = PDRecord.objects.filter(id__in=temp_list)
-            final_list = final_list.union(Set(temp_list.filter(bundle=None).values_list('id', flat=True)))
-            temp_list = Set(temp_list.filter(~Q(bundle=None)).values_list('bundle', flat=True))
-        return Container.objects.filter(content__id__in=final_list)
+    final_list = Set(rec_set.filter(bundle=None).values_list('id', flat=True))
+    temp_list = Set(rec_set.filter(~Q(bundle=None)).values_list('bundle', flat=True))
+    while len(temp_list) > 0:
+        temp_list = PDRecord.objects.filter(id__in=temp_list)
+        final_list = final_list.union(Set(temp_list.filter(bundle=None).values_list('id', flat=True)))
+        temp_list = Set(temp_list.filter(~Q(bundle=None)).values_list('bundle', flat=True))
+    return Container.objects.filter(content__id__in=final_list)
     
 def search_name(q_str=None, exact=False):
     if not q_str:
@@ -32,6 +32,8 @@ def search_id(q_str=None, exact=False):
 def search_literal(q_str, literal='prov:type', exact=False):
     if not q_str:
         return None
+#    for a in LiteralAttribute.objects.all():
+#        print 'Name: ' + a.name + ' V: ' + a.value 
     if exact:
         lit_set = LiteralAttribute.objects.filter(name=literal, value=q_str)
     else:

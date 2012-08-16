@@ -15,6 +15,7 @@ from guardian.shortcuts import assign, remove_perm
 from django.test.client import Client
 from prov.model import ProvBundle
 from apport.report import Report
+from prov.persistence.models import PDBundle
 
 logger = logging.getLogger(__name__)       
 
@@ -263,6 +264,7 @@ class FileSubmissionTest(unittest.TestCase):
 from urllib2 import urlopen
 
 class URLSubmissionTest(unittest.TestCase):
+    
     def setUp(self):
         logging.debug('Setting up user and checking the URL file...')
         self.check_u = User.objects.get_or_create(username='FileTesting')
@@ -272,10 +274,14 @@ class URLSubmissionTest(unittest.TestCase):
         self.auth = 'ApiKey' + self.user.username + ':' + self.key.key
         self.check_u = self.check_u[1]
         self.check_k = self.check_k[1]
-        self.url = 'http://199.91.154.133/m59154s9e0qg/d6xrjdqs090e1a9/test.json'
+        self.url = 'http://users.ecs.soton.ac.uk/ab9g10/test.json'
         source = urlopen(self.url)
-        self.content = source.read()
+        url_content = ProvBundle()
+        url_content._decode_JSON_container(json.loads(source.read()))
         source.close()
+        self.content = PDBundle.create('url_test')
+        self.content.save_bundle(url_content)
+        self.content = self.content.get_prov_bundle()
     
     def tearDown(self):
         logging.debug('Removing user and temp file...')
@@ -292,10 +298,74 @@ class URLSubmissionTest(unittest.TestCase):
         self.assertEqual(response.status_code, 201)
         bundle = Container.objects.get(id=json.JSONDecoder().decode(response.content)['id'])
         self.assertEqual(self.url, bundle.url)
-        logging.debug(self.content)
-        logging.debug(json.dumps(bundle.content.get_prov_bundle(), indent=4, cls=ProvBundle.JSONEncoder))
 
+
+from prov.server.search import search_name, search_id, search_literal, search_timeframe
+
+class SearchTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        logging.debug('Clearing the db...')
+        Container.objects.all().delete()
+        logging.debug('Creating user...')
+        user = User.objects.get_or_create(username='search_test')[0]
+        logging.debug('Adding to the DB two bundles...')
+        cls.ids = [Container.create('search_test_1', examples.bundles1(), user, False).id,
+                   Container.create('search_test_1_other', examples.bundles2(), user, False).id]
+    
+    @classmethod
+    def tearDownClass(cls):
+        logging.debug('Deleting user...')
+        User.objects.get(username='search_test').delete()
         
+    def testSearchName(self):
+        logging.debug('Testing different searches on name...')
+        containers = search_name('search_test_1', exact=True)
+        self.assertEqual(len(containers), 1)
+        self.assertEqual(containers.get(content__rec_id='search_test_1').id, self.ids[0])
+        containers = search_name('search_test')
+        self.assertEqual(len(containers), 2)
+        containers = search_name('other')
+        self.assertEqual(len(containers), 1)
+        self.assertEqual(containers.get(content__rec_id='search_test_1_other').id, self.ids[1])
+        containers = search_name('other', exact=True)
+        self.assertEqual(len(containers), 0)
+        containers = search_name('bundle1')
+        self.assertEqual(len(containers), 0)
+    
+    def testSearchId(self):
+        logging.debug('Testing different searches on ids...')
+        containers = search_id('report1bis')
+        self.assertEqual(len(containers), 1)
+        self.assertEqual(containers.get(content__rec_id='search_test_1_other').id, self.ids[1])
+        containers = search_id('bundle1', exact=True)
+        self.assertEqual(len(containers), 0)
+        containers = search_id('alice')
+        self.assertEqual(len(containers), 2)
+        self.assertEqual(containers.get(content__rec_id='search_test_1').id, self.ids[0])
+        
+    def testSearchLiteral(self):
+        pass
+#        logging.debug('Testing different searches on prov:type...')
+#        containers = search_literal('report')
+#        self.assertEqual(len(containers), 2)
+#        containers = search_literal('rep')
+#        self.assertEqual(len(containers), 2)
+#        containers = search_literal('rep', exact=True)
+#        self.assertEqual(len(containers), 0)
+    
+    def testSearchTime(self):
+        logging.debug('Testing different searches on time...')
+        containers = search_timeframe(start='2012-05-24')
+        self.assertEqual(len(containers), 2)
+        containers = search_timeframe(end='2012-05-24')
+        self.assertEqual(len(containers), 0)
+        containers = search_timeframe(start='2012-05-24', end='2012-05-25')
+        self.assertEqual(len(containers), 2)
+        containers = search_timeframe(start='2012-05-25T12:00:00')
+        self.assertEqual(len(containers), 0)
+
+                
 if __name__ == "__main__":
     from django.test.utils import setup_test_environment
     setup_test_environment()
