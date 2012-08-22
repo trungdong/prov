@@ -1,4 +1,4 @@
-from django.forms import ModelForm, Textarea, Form, CheckboxSelectMultiple
+from django.forms import ModelForm, Textarea, Form, CheckboxSelectMultiple, RadioSelect
 from django import forms
 from prov.server.models import UserProfile, Container, Submission, License
 from django.contrib.auth.models import User
@@ -95,4 +95,13 @@ class BundleForm(Form):
         if save:
             container.save()
         return container
-        
+    
+class SearchForm(Form):
+    string = forms.CharField(label='Search:', required=False)
+    choice = forms.ChoiceField(label='for', required=False, choices = 
+                               (('Name', 'Name'), ('Identifier','Identifier'), 
+                                ('prov:type', 'prov:type'), ('Timeframe', 'Timeframe')))
+    start_time = forms.DateTimeField(label='From:', required=False)
+    end_time = forms.DateTimeField(label='To:', required=False)
+    
+

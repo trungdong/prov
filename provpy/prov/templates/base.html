@@ -49,6 +49,7 @@
           <ul class="nav">
             <li><a href="/prov/home">Home</a></li>
             <li><a href="{% url 'server.views.list_bundles' %}">Bundles</a></li>
+            <li><a href="{% url 'server.views.search' %}">Search</a></li>
             {% if user.is_authenticated %}
             <li><a href="{% url 'server.views.manage_apps' %}">Apps</a></li>
             <li><a href="{% url 'server.views.api_key' %}">API Key</a></li>

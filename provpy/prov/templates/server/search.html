@@ -1,0 +1,58 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base.html" %}
+{% load url from future %}
+{% load guardian_tags %}
+{% load server_tags %}
+{% block title %}PROVServer Search{% endblock %}
+{% block content %}
+	<form class="well offset1 span7" action="{% url 'server.views.search' %}" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+		<div class="cotnrol-group span3">
+	  			{{ form.string.label_tag }} {{ form.string }}
+	  			{{ form.string.errors }}
+	  			{{ form.choice.label_tag }} {{ form.choice }}
+	  			{{ form.choice.errors }}
+  		</div>
+  		<div class="control-group span3">
+  				{{ form.start_time.label_tag }} {{ form.start_time }}
+	  			{{ form.start_time.errors }}
+	  			{{ form.end_time.label_tag }} {{ form.end_time }}
+	  			{{ form.end_time.errors }}
+	  	</div>
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+  		</br>
+	</form>
+	{% for a in b %}{{ a.id }} {% endfor %}
+		<table class="table">  
+        <thead>  
+          <tr>
+          	<th style="widht: 14%">Role</th>
+            <th style="width: 50%">Bundle-ID</th>  
+            <th style="width: 12%"></th>
+            <th style="width: 12%"></th>
+            <th style="width: 12%"></th>   
+          </tr>  
+        </thead>  
+        <tbody>
+         {% for bundle in bundles reversed %}  
+          <tr>
+            {% get_obj_perms user for bundle as 'perms' %}
+          	<td>{% status_label perms bundle%}</td>
+            <td>{{ bundle.content.rec_id }}</td>  
+            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' bundle.id %}">View</a></td>  
+            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' bundle.id %}">SVG</a></td>
+            <td>{% if 'admin_container' in perms %}
+            <a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' bundle.id %}">Admin</a></td>
+            {% endif %}
+            {% if 'delete_container' in perms %} 
+            <form action="{% url 'server.views.list_bundles' %}" method="post" >
+            	{% csrf_token %}
+            	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
+            	<input type="hidden" name="delete_id" value="{{ bundle.id }}" />
+            </form>
+            {% else %}<td></td>{% endif %}
+          </tr>  
+        {% endfor %}
+        </tbody>  
+      </table>	
+{% endblock %}

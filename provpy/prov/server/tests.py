@@ -345,14 +345,13 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(containers.get(content__rec_id='search_test_1').id, self.ids[0])
         
     def testSearchLiteral(self):
-        pass
-#        logging.debug('Testing different searches on prov:type...')
-#        containers = search_literal('report')
-#        self.assertEqual(len(containers), 2)
-#        containers = search_literal('rep')
-#        self.assertEqual(len(containers), 2)
-#        containers = search_literal('rep', exact=True)
-#        self.assertEqual(len(containers), 0)
+        logging.debug('Testing different searches on prov:type...')
+        containers = search_literal('report')
+        self.assertEqual(len(containers), 2)
+        containers = search_literal('rep')
+        self.assertEqual(len(containers), 2)
+        containers = search_literal('rep', exact=True)
+        self.assertEqual(len(containers), 0)
     
     def testSearchTime(self):
         logging.debug('Testing different searches on time...')
@@ -362,7 +361,7 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(len(containers), 0)
         containers = search_timeframe(start='2012-05-24', end='2012-05-25')
         self.assertEqual(len(containers), 2)
-        containers = search_timeframe(start='2012-05-25T12:00:00')
+        containers = search_timeframe(start='2012-05-25T20:00:00')
         self.assertEqual(len(containers), 0)
 
                 

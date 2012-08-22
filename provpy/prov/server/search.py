@@ -30,20 +30,26 @@ def search_id(q_str=None, exact=False):
     return _get_containers(init_set)
 
 def search_literal(q_str, literal='prov:type', exact=False):
+    literal = literal.replace(':', '#')
     if not q_str:
         return None
 #    for a in LiteralAttribute.objects.all():
 #        print 'Name: ' + a.name + ' V: ' + a.value 
     if exact:
-        lit_set = LiteralAttribute.objects.filter(name=literal, value=q_str)
+        lit_set = LiteralAttribute.objects.filter(name__contains=literal, value=q_str)
     else:
-        lit_set = LiteralAttribute.objects.filter(name=literal, value__contains=q_str)
+        lit_set = LiteralAttribute.objects.filter(name__contains=literal, value__contains=q_str)
     rec_set = Set(lit_set.values_list('record', flat=True))
     return _get_containers(PDRecord.objects.filter(id__in=rec_set))
 
 def search_timeframe(start=None, end=None):
     if not start and not end:
         return None
+    from datetime import datetime
+    if isinstance(start, datetime):
+        start = str(start).replace(" ", "T")
+    if isinstance(end, datetime):
+        end = str(end).replace(" ", "T")
     if start and end:
         lit_set = LiteralAttribute.objects.filter(Q(prov_type__in=[PROV_ATTR_TIME,PROV_ATTR_STARTTIME,PROV_ATTR_ENDTIME]), 
                                                   Q(value__gte=start) & Q(value__lte=end))                                  

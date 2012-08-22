@@ -12,11 +12,13 @@ from guardian.shortcuts import assign, remove_perm, get_perms_for_model
 from guardian.shortcuts import get_groups_with_perms, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm, AppForm, BundleForm
+from prov.server.forms import ProfileForm, AppForm, BundleForm, SearchForm
 from models import Container
 from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
+from prov.server.search import search_name, search_id, search_literal,\
+    search_timeframe
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -260,4 +262,26 @@ def oauth_authorize(request, token, callback, params):
                               {'name': token.consumer.name, 'description': token.consumer.description, 
                                'form': AuthorizeRequestTokenForm(), 'oauth_token': token.key},
                               context_instance=RequestContext(request))
+
+def search(request):
+    items = []
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data['choice'] == 'Name':
+                result = search_name(form.cleaned_data['string'])
+            elif form.cleaned_data['choice'] == 'Identifier':
+                result = search_id(form.cleaned_data['string'])
+            elif form.cleaned_data['choice'] == 'prov:type':
+                result = search_literal(form.cleaned_data['string'])
+            elif form.cleaned_data['choice'] == 'Timeframe': 
+                result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
+            for bundle in result.all():
+                if request.user.has_perm('view_container', bundle):
+                    items.append(bundle)
+    else:
+        form = SearchForm()
+    return render_to_response('server/search.html', {'form': form, 'bundles': items},
+                              context_instance=RequestContext(request))
+    
     
