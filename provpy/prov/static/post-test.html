@@ -83,7 +83,7 @@ data = {
 
 function test() {
 	var user = 'port';
-	var pass = '5efa8db01dc6f97a60b224bfc93c81d771478eb4';
+	var pass = '367d958cfa9fc375dbdfdd114cf66fc2f8838774';
 	var tok = user + ':' + pass;
   	var auth = 'ApiKey ' + tok;
 	var l = ['mi'];
@@ -92,12 +92,12 @@ function test() {
 			"public": "True",
 			"licenses": l,
 			"content": "",
-			"url": "http://199.91.154.133/m59154s9e0qg/d6xrjdqs090e1a9/test.json"		
+			"url": "http://users.ecs.soton.ac.uk/ab9g10/test.json"		
 		};
 	$.ajax({
-		  type: 'POST',
+		  type: 'GET',
 		  url: '/api/v0/bundle/',
-		  data: JSON.stringify(account),
+		  data: 'search_type=Name&q_str=top',
 		  contentType: 'application/json',
 		  beforeSend: function(req) {
         		req.setRequestHeader('Authorization', auth);

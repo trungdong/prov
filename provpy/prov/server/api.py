@@ -10,6 +10,7 @@ from django.contrib.auth.models import Group
 from prov.settings import PUBLIC_GROUP_ID
 from urllib2 import urlopen
 from json import loads
+from search import search_id, search_literal, search_name, search_timeframe
 
 class ContainerResource(ModelResource):
     
@@ -78,6 +79,24 @@ class ContainerResource(ModelResource):
     def dehydrate_editable(self, bundle):
         return bundle.request.user.has_perm('change_container', bundle)
     
+    def get_object_list(self, request):
+        search_type = request.GET.get('search_type', None)
+        if not search_type:    
+            return ModelResource.get_object_list(self, request)
+        try:
+            if search_type == 'Name':
+                result = search_name(request.GET.get('q_str', None))
+            elif search_type == 'Identifier':
+                result = search_id(request.GET.get('q_str', None))
+            elif search_type == 'prov:type':
+                result = search_literal(request.GET.get('q_str', None))
+            elif search_type == 'Timeframe': 
+                result = search_timeframe(request.GET.get('start', None), request.GET.get('end', None))
+            else:
+                raise ImmediateHttpResponse(HttpBadRequest())
+            return result
+        except:
+            raise ImmediateHttpResponse(HttpBadRequest())
     #===========================================================================
     # def strip_multiForm(self, raw_data):
     #    start = raw_data.find('{')
