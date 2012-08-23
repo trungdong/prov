@@ -308,10 +308,10 @@ class SearchTest(unittest.TestCase):
         logging.debug('Clearing the db...')
         Container.objects.all().delete()
         logging.debug('Creating user...')
-        user = User.objects.get_or_create(username='search_test')[0]
+        cls.user = User.objects.get_or_create(username='search_test')[0]
         logging.debug('Adding to the DB two bundles...')
-        cls.ids = [Container.create('search_test_1', examples.bundles1(), user, False).id,
-                   Container.create('search_test_1_other', examples.bundles2(), user, False).id]
+        cls.ids = [Container.create('search_test_1', examples.bundles1(), cls.user, False).id,
+                   Container.create('search_test_1_other', examples.bundles2(), cls.user, False).id]
     
     @classmethod
     def tearDownClass(cls):
@@ -363,8 +363,63 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(len(containers), 2)
         containers = search_timeframe(start='2012-05-25T20:00:00')
         self.assertEqual(len(containers), 0)
+    
+    def testSearchAPI(self):
+        client = Client()
+        logging.debug('Testing API search...')
+        api_key = ApiKey.objects.create(user=self.user).key
+        auth = 'ApiKey ' + self.user.username + ':' + api_key
+        data='&search_type={t}&q_str={s}'
+        
+        logging.debug('Testing API Name search...')
+        type = 'Name'
+        q_str = 'search_test_1'
+        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
+                              **{'HTTP_AUTHORIZATION': auth})
+        self.assertEqual(response.status_code, 200)
+        list = json.JSONDecoder().decode(response.content)['objects']
+        for bundle in list:
+            self.assertTrue(bundle['id'] in self.ids)
+        type = 'Name'
+        q_str = 'search_test_1_other'
+        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
+                              **{'HTTP_AUTHORIZATION': auth})
+        self.assertEqual(response.status_code, 200)
+        list = json.JSONDecoder().decode(response.content)['objects']
+        self.assertEqual(list[0]['id'], self.ids[1])
+        
+        logging.debug('Testing API Id search...')
+        type = 'Identifier'
+        q_str = 'report1bis'
+        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
+                              **{'HTTP_AUTHORIZATION': auth})
+        self.assertEqual(response.status_code, 200)
+        list = json.JSONDecoder().decode(response.content)['objects']
+        self.assertEqual(len(list), 1)
+        self.assertEqual(list[0]['id'], self.ids[1])
+        
+        logging.debug('Testing API prov:type search...')
+        type = 'prov:type'
+        q_str = 'report'
+        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
+                              **{'HTTP_AUTHORIZATION': auth})
+        self.assertEqual(response.status_code, 200)
+        list = json.JSONDecoder().decode(response.content)['objects']
+        self.assertEqual(len(list), 2)
+        for bundle in list:
+            self.assertTrue(bundle['id'] in self.ids)
+            
+        logging.debug('Testing API Timeframe search...')
+        data_time = '&search_type=Timeframe&start=2012-05-24&end=2012-05-25'
+        response = client.get('/api/v0/bundle/?fromat=json'+data_time, 
+                              **{'HTTP_AUTHORIZATION': auth})
+        self.assertEqual(response.status_code, 200)
+        list = json.JSONDecoder().decode(response.content)['objects']
+        self.assertEqual(len(list), 2)
+        for bundle in list:
+            self.assertTrue(bundle['id'] in self.ids)
 
-                
+
 if __name__ == "__main__":
     from django.test.utils import setup_test_environment
     setup_test_environment()
