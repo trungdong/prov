@@ -18,7 +18,7 @@ from guardian.decorators import permission_required_or_403
 from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
 from prov.server.search import search_name, search_id, search_literal,\
-    search_timeframe
+    search_timeframe, search_any_text_field
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -276,6 +276,8 @@ def search(request):
                 result = search_literal(form.cleaned_data['string'])
             elif form.cleaned_data['choice'] == 'Timeframe': 
                 result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
+            elif form.cleaned_data['choice'] == 'Any':
+                result = search_any_text_field(form.cleaned_data['string'])
             for bundle in result.all():
                 if request.user.has_perm('view_container', bundle):
                     items.append(bundle)

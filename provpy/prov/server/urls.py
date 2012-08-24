@@ -13,6 +13,7 @@ urlpatterns = patterns('server.views',
     (r'^apikey/$', 'api_key'),
     (r'^help/apikey/$', direct_to_template, {'template': 'server/api_key_help.html'}),
     (r'^help/oauth/$', direct_to_template, {'template': 'server/oauth_help.html'}),
+    (r'^help/search/$', direct_to_template, {'template': 'server/search_help.html'}),
     (r'^apps/$', 'manage_apps'),
     (r'^apps/register/$', 'register_app'),
 )

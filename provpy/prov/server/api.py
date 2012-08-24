@@ -11,6 +11,7 @@ from prov.settings import PUBLIC_GROUP_ID
 from urllib2 import urlopen
 from json import loads
 from search import search_id, search_literal, search_name, search_timeframe
+from prov.server.search import search_any_text_field
 
 class ContainerResource(ModelResource):
     
@@ -92,6 +93,8 @@ class ContainerResource(ModelResource):
                 result = search_literal(request.GET.get('q_str', None))
             elif search_type == 'Timeframe': 
                 result = search_timeframe(request.GET.get('start', None), request.GET.get('end', None))
+            elif search_type == 'Any':
+                result = search_any_text_field(request.GET.get('q_str', None))
             else:
                 raise ImmediateHttpResponse(HttpBadRequest())
             return result
