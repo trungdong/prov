@@ -110,7 +110,8 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
     _bundle_to_dot(maindot, prov_g)
     return maindot
 
-def provjson_to_filename(prov_g, filepath, use_labels=False, format='png', dpi=150):
+def provjson_to_filename(prov_g, filepath, use_labels=False, format='png',
+                         dpi=150):
     """Write a prov json object to an image file
     """
     # Convert it to DOT
