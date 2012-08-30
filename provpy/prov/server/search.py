@@ -65,22 +65,28 @@ def search_any_text_field(q_str, exact=False):
     if not q_str:
         return None
     if exact:
-        namepsace_set = PDNamespace.objects.filter(Q(prefix=q_str), Q(uri=q_str))
-        record_set = PDRecord.objects.filter(Q(rec_id=q_str), Q(rec_type=q_str))
-        attribute_set = RecordAttribute.objects.filter(prov_type=q_str)
-        literal_set = LiteralAttribute.objects.filter(Q(prov_type=q_str), Q(name=q_str), 
-                                                      Q(value=q_str), Q(data_type=q_str))
+#        namepsace_set = PDNamespace.objects.filter(Q(prefix=q_str), Q(uri=q_str))
+#        record_set = PDRecord.objects.filter(Q(rec_id=q_str), Q(rec_type=q_str))
+#        attribute_set = RecordAttribute.objects.filter(prov_type=q_str)
+#        literal_set = LiteralAttribute.objects.filter(Q(prov_type=q_str), Q(name=q_str), 
+#                                                      Q(value=q_str), Q(data_type=q_str))
+        record_set = PDRecord.objects.filter(rec_id=q_str)
+        literal_set = LiteralAttribute.objects.filter(value=q_str)
     else: 
-        namepsace_set = PDNamespace.objects.filter(Q(prefix__contains=q_str), Q(uri__contains=q_str))
-        record_set = PDRecord.objects.filter(Q(rec_id__contains=q_str), Q(rec_type__contains=q_str))
-        attribute_set = RecordAttribute.objects.filter(prov_type__contains=q_str)
-        literal_set = LiteralAttribute.objects.filter(Q(prov_type__contains=q_str), Q(name__contains=q_str), 
-                                                      Q(value__contains=q_str), Q(data_type__contains=q_str))
-    rec_set = Set(namepsace_set.values.list('pdbundle', flat=True))
-    rec_set = rec_set.union(Set(record_set))
-    rec_set = rec_set.union(Set(attribute_set.values_list('record', flat=True)))
-    rec_set = rec_set.union(Set(attribute_set.values_list('value', flat=True)))
-    rec_set = rec_set.union(Set(literal_set.values_list('record', flat=True)))
+#        namepsace_set = PDNamespace.objects.filter(Q(prefix__contains=q_str), Q(uri__contains=q_str))
+#        record_set = PDRecord.objects.filter(Q(rec_id__contains=q_str), Q(rec_type__contains=q_str))
+#        attribute_set = RecordAttribute.objects.filter(prov_type__contains=q_str)
+#        literal_set = LiteralAttribute.objects.filter(Q(prov_type__contains=q_str), Q(name__contains=q_str), 
+#                                                      Q(value__contains=q_str), Q(data_type__contains=q_str))
+        record_set = PDRecord.objects.filter(rec_id__contains=q_str)
+        literal_set = LiteralAttribute.objects.filter(value__contains=q_str)
+#    rec_set = Set(namepsace_set.values.list('pdbundle', flat=True))
+#    rec_set = rec_set.union(Set(record_set))
+#    rec_set = rec_set.union(Set(attribute_set.values_list('record', flat=True)))
+#    rec_set = rec_set.union(Set(attribute_set.values_list('value', flat=True)))
+#    rec_set = rec_set.union(Set(literal_set.values_list('record', flat=True)))
+    rec_set = Set(record_set)
+    rec_set.union(Set(literal_set.values_list('record', flat=True)))
     return _get_containers(PDRecord.objects.filter(id__in=rec_set))
     
     
