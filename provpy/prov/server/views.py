@@ -61,11 +61,37 @@ def list_bundles(request):
         l_perm = []
         for i in range(len(perms)):
             l_perm.append(perms[i].codename)
-        
+        bundles = {}
+        bundles_q = []
         if request.user.is_anonymous() or request.user.id == ANONYMOUS_USER_ID:
-            bundles = Container.objects.filter(public = True)
+            bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
         else:
-            bundles = get_objects_for_user(user=request.user, perms = l_perm, klass=Container, any_perm=True).order_by('id')
+            bundles_q.append(('v', get_objects_for_user(user=request.user, 
+                                                        perms = ['view_container'], 
+                                                        klass=Container, any_perm=True).
+                              select_related('content__rec_id')))
+            bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+            bundles_q.append(('c', get_objects_for_user(user=request.user, 
+                                                        perms = ['change_container'], 
+                                                        klass=Container, any_perm=True).
+                              select_related('content__rec_id')))
+            bundles_q.append(('d', get_objects_for_user(user=request.user, 
+                                                        perms = ['delete_container'], 
+                                                        klass=Container, any_perm=True).
+                              select_related('content__rec_id')))
+            bundles_q.append(('a', get_objects_for_user(user=request.user, 
+                                                        perms = ['admin_container'], 
+                                                        klass=Container, any_perm=True).
+                              select_related('content__rec_id')))
+            bundles_q.append(('o', get_objects_for_user(user=request.user, 
+                                                        perms = ['ownership_container'], 
+                                                        klass=Container, any_perm=True).
+                              select_related('content__rec_id')))
+        for i in bundles_q:
+            for j in i[1]:
+                bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
+        bundles = bundles.values()
+        bundles.sort(reverse=True)
         return render_to_response('server/private/list_bundles.html', 
                                   {'bundles': bundles},
                                   context_instance=RequestContext(request))
