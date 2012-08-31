@@ -88,7 +88,7 @@ def search_any_text_field(q_str, exact=False):
 #    rec_set = rec_set.union(Set(attribute_set.values_list('record', flat=True)))
 #    rec_set = rec_set.union(Set(attribute_set.values_list('value', flat=True)))
 #    rec_set = rec_set.union(Set(literal_set.values_list('record', flat=True)))
-    rec_set = Set(record_set)
+    rec_set = Set(record_set.values_list('id', flat=True))
     rec_set.union(Set(literal_set.values_list('record', flat=True)))
     return _get_containers(PDRecord.objects.filter(id__in=rec_set))
     
