@@ -303,9 +303,7 @@ def search(request):
                 result = search_any_text_field(form.cleaned_data['string'])
             all_bundles = _get_list_with_perms(request.user)
             result = result.values_list('id', flat=True)
-            for bundle in all_bundles:
-                if bundle[0] in result:
-                    bundles.append(bundle)
+            bundles = filter(lambda row: row[0] in result, all_bundles)
     else:
         form = SearchForm()
     return render_to_response('server/search.html', {'form': form, 'bundles': bundles},

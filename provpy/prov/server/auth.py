@@ -6,6 +6,7 @@ from tastypie.exceptions import ImmediateHttpResponse
 from django.contrib.auth.models import User
 from prov.settings import ANONYMOUS_USER_ID
 from models import Container
+from guardian.shortcuts import get_objects_for_user
 
 
 class AnnonymousAuthentication(Authentication):
@@ -52,7 +53,10 @@ class CustomAuthorization(Authorization):
             raise ImmediateHttpResponse(HttpForbidden())
     
     def apply_limits(self, request, object_list):
-        return filter(lambda obj: request.user.has_perm(self.methodToPerms(request.method),obj), object_list)
+        allowed = get_objects_for_user(user=request.user, 
+                                       perms = [self.methodToPerms(request.method)], 
+                                       klass=Container, any_perm=True)
+        return filter(lambda obj: obj in allowed, object_list)
 
 
 """

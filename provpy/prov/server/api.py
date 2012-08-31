@@ -23,7 +23,8 @@ class ContainerResource(ModelResource):
         detail_allowed_methods = ['get', 'post', 'delete']
         always_return_data = True
         authorization = CustomAuthorization()
-        authentication = MultiAuthentication()        
+        authentication = MultiAuthentication()
+        #limit = 0        
     prov_json = fields.DictField(attribute='prov_json', null=True)
 #    original_file = fields.FileField(attribute='original', null=True)
     
