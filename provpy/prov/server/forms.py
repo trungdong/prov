@@ -9,6 +9,8 @@ from urllib2 import URLError, urlopen
 from json import loads
 
 class ProfileForm(ModelForm):
+    ''' Form representing the UserProfile Model '''
+    
     username = forms.CharField(label=("Username"), min_length=3)
     password = forms.CharField(label=("Password"), widget=forms.PasswordInput, min_length=3)
     confirm_password =  forms.CharField(label=("Confirm password"), widget=forms.PasswordInput, min_length=3)
@@ -38,6 +40,8 @@ class ProfileForm(ModelForm):
         return self.instance
     
 class AppForm(ModelForm):
+    '''Form representing the Consumer Model for OAuth '''
+    
     class Meta:
         model = Consumer
         fields = ('name', 'status', 'description')
@@ -48,6 +52,8 @@ class LicenseMultipleChoiceField(forms.ModelMultipleChoiceField):
         return mark_safe('{t}({d})</br><a href="{u}">{u}</a>'.format(t=obj.title, d=obj.description,u=obj.url))
 
 class BundleForm(Form):
+    ''' Form for creating a Bundle '''
+    
     rec_id = forms.CharField(label=('Record ID'))
     public = forms.BooleanField(label=('Public'), required = False)
     submission = forms.FileField(label=('Original File'), required = False)
@@ -97,6 +103,8 @@ class BundleForm(Form):
         return container
     
 class SearchForm(Form):
+    ''' Form for searching for a bundle '''
+    
     string = forms.CharField(label='Search:', required=False)
     choice = forms.ChoiceField(label='for', required=False, choices = 
                                (('Name', 'Name'), ('Identifier','Identifier'), 

@@ -47,6 +47,20 @@ def registration(request):
                               context_instance=RequestContext(request))
     
 def _get_list_with_perms(user):
+    ''' A function returning a list containing entries which are 3-tuples representing
+    basic information about each bundle including the 'top level' permission.
+    Format of entry is: (BundleID, BundleName, PERMISSION_KEY)
+    Where PERMISSION_KEY takes values in between the First letter of each of the possible
+    permission for the Container model and 'p' which represent public.
+    PERMISSION_KEY takes the value of the top-level permission - ordered in increasing order:
+    'v'(view),'p'(public),'c'(change),'d'(delete),'a'(admin),'o'(own) it would take the value
+    of the 'biggest' permission that the user has for that bundle.
+    Example:
+    if user has view, change and delete and the Bundle is public - 'd'
+    if user has only view and Bundle is public - 'p'
+    if user has only view and Bundle is private - 'v'
+    '''
+    
     bundles = {}
     bundles_q = []
     if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
@@ -116,15 +130,6 @@ def bundle_svg(request, container_id):
 @login_required
 def create_bundle(request):
     if request.method == 'POST':
-#        if 'url' in request.POST:
-#            alter_form = UrlBundleForm(request.POST)
-#            if alter_form.is_valid():
-#                alter_form.save(request.user)
-#            else:
-#                return render_to_response('server/private/create_bundle.html',
-#                                      {'form': BundleForm, 'alter_form': alter_form}, 
-#                                          context_instance=RequestContext(request))
-#        else:
             form = BundleForm(request.POST, request.FILES or None)
             if form.is_valid():
                 container = form.save(owner=request.user)
@@ -174,31 +179,40 @@ def api_key(request):
                               context_instance=RequestContext(request))
 
 def _update_perms(target, role, container):
-        perms = get_perms_for_model(Container)
-        l_perm = []
-        for i in range(len(perms)):
-            l_perm.append(perms[i].codename)
-        for permission in l_perm:
-                remove_perm(permission, target, container)
-        if role == 'none':
-            if target == Group.objects.get(name='public'):
-                container.public = False
-                container.save()
-            return
-        assign('view_container', target, container)
-        if role == 'Reader':
-            if target == Group.objects.get(name='public'):
-                container.public = True
-                container.save()
-            return
-        assign('change_container', target, container)
-        if role == 'Contributor':
-            return
-        assign('delete_container', target, container)
-        if role == 'Editor':
-            return
-        assign('admin_container', target, container)
-            
+    ''' Function to update the permissions of the 'target'(User or Group)
+    for a given container in correspondence to a given role.
+    role can take several values corresponding to the following permissions:
+        none - no permissions
+        Reader - 'view'
+        Contributor - 'view' + 'change'
+        Editor - 'view' + 'change' + 'delete'
+        Administrator - 'view' + 'change' + 'delete' + 'admin'
+    '''
+    perms = get_perms_for_model(Container)
+    l_perm = []
+    for i in range(len(perms)):
+        l_perm.append(perms[i].codename)
+    for permission in l_perm:
+            remove_perm(permission, target, container)
+    if role == 'none':
+        if target == Group.objects.get(name='public'):
+            container.public = False
+            container.save()
+        return
+    assign('view_container', target, container)
+    if role == 'Reader':
+        if target == Group.objects.get(name='public'):
+            container.public = True
+            container.save()
+        return
+    assign('change_container', target, container)
+    if role == 'Contributor':
+        return
+    assign('delete_container', target, container)
+    if role == 'Editor':
+        return
+    assign('admin_container', target, container)
+        
 @permission_required_or_403('admin_container', (Container, 'pk', 'container_id'))
 def admin_bundle(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
@@ -301,8 +315,8 @@ def search(request):
                 result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
             elif form.cleaned_data['choice'] == 'Any':
                 result = search_any_text_field(form.cleaned_data['string'])
-            all_bundles = _get_list_with_perms(request.user)
             result = result.values_list('id', flat=True)
+            all_bundles = _get_list_with_perms(request.user)
             bundles = filter(lambda row: row[0] in result, all_bundles)
     else:
         form = SearchForm()

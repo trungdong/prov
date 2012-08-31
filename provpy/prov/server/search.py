@@ -1,11 +1,14 @@
 from prov.server.models import Container    
-from prov.persistence.models import PDRecord, LiteralAttribute, PDNamespace,\
-    RecordAttribute
+from prov.persistence.models import PDRecord, LiteralAttribute
 from prov.model import PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME
 from django.db.models import Q
 from sets import Set
 
 def _get_containers(rec_set):
+    ''' Function returning a django Query_Set of Containers given a Set of record ids.
+    The Query_Set is composed of the Containers which contain any of the records in the 'rec_set'
+    '''
+    
     final_list = Set(rec_set.filter(bundle=None).values_list('id', flat=True))
     temp_list = Set(rec_set.filter(~Q(bundle=None)).values_list('bundle', flat=True))
     while len(temp_list) > 0:

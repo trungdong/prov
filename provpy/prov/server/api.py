@@ -24,11 +24,25 @@ class ContainerResource(ModelResource):
         always_return_data = True
         authorization = CustomAuthorization()
         authentication = MultiAuthentication()
-        #limit = 0        
+#        limit = 0        
     prov_json = fields.DictField(attribute='prov_json', null=True)
 #    original_file = fields.FileField(attribute='original', null=True)
     
     def obj_create(self, bundle, request=None, **kwargs):
+        '''
+        Function to create a bundle via the API.
+        Arguments (in JSON) are as follows:
+            rec_id - the name for the Bundle (REQUIRED)
+            content - the content in JSON format (or URL REQUIRDE)
+            URL - a URL reference to the JSON content of the bundle * (OR content REQUIRED)
+            public - indicator whether the Bundle to be made public, False if not provided
+            licenses - a list of names corresponding to License objects in the DB
+            submission - a file submitted which represents the Bundle **
+        
+        * - The URL is only opened and it's content parsed if and only if 'content' is empty
+        ** - The file content is not parsed at all, it is just saved for later usage and
+             if file is submitted the HTTP call should be in 'multipart' encoding format.
+        '''
         try:
             prov_bundle = ProvBundle()
             if bundle.data['content']:
@@ -72,6 +86,8 @@ class ContainerResource(ModelResource):
         return bundle
     
     def dehydrate_prov_json(self, bundle):
+        ''' Sets the prov_json field to the appropriate JSON content of the bundle '''
+        
         if self.get_resource_uri(bundle) == bundle.request.path:
             prov_bundle = bundle.obj.content.get_prov_bundle()
             return prov_bundle._encode_JSON_container()
@@ -79,9 +95,26 @@ class ContainerResource(ModelResource):
             return None
         
     def dehydrate_editable(self, bundle):
+        ''' Sets the editable field to the permission rule '''
         return bundle.request.user.has_perm('change_container', bundle)
     
     def get_object_list(self, request):
+        ''' Method to return the list of objects via GET method to the Resource (not concrete).
+        If the variable 'search_type' is present returns the appropriate bundles
+        which match the searching query. 'search_type' can have several values:
+            'Name' - accompanied by 'q_str' variable containing the search string
+                     returns all Bundles containing the q_str in their name.
+            'Identifier' - accompanied by 'q_str' variable containing the search string
+                           returns all Bundles containing a record that contains the q_str in their name.
+            'prov:type' - accompanied by 'q_str' variable containing the search string
+                          returns all Bundles containing a literal attribute with type prov:type
+                          and value containing q_str.
+            'Timeframe' - accompanied by 'start' and/or 'end' variable containing the times
+                          returns all Bundles with within the time frame [strat:end]
+            'Any' - accompanied by 'q_str' variable containing the search string
+                     returns all Bundles containing anything matching q_str.
+        '''
+        
         search_type = request.GET.get('search_type', None)
         if not search_type:    
             return ModelResource.get_object_list(self, request)
@@ -101,14 +134,6 @@ class ContainerResource(ModelResource):
             return result
         except:
             raise ImmediateHttpResponse(HttpBadRequest())
-    #===========================================================================
-    # def strip_multiForm(self, raw_data):
-    #    start = raw_data.find('{')
-    #    end = raw_data.rfind('}')
-    #    import logging
-    #    logging.debug(raw_data[end:])
-    #    return raw_data[start:end+1]
-    #===========================================================================
     
     def post_list(self, request, **kwargs):
         from tastypie import http
@@ -123,12 +148,17 @@ class ContainerResource(ModelResource):
         If ``Meta.always_return_data = True``, there will be a populated body
         of serialized data.
         """
+        '''
+        This method is overridden only for the purpose of accepting a 'multipart'
+        request for the purpose of receiving a 'submission' file.
+        Changes of the original method are enclosed in <--- CHANGE ---> tags. (commented)
+        '''
         
+        '''<--- CHANGE ---> '''
         '''
         For some reason without accessing the variable request it fails,
         so without the debugging line it won't work
         '''
-        
         import logging
         logging.debug(request.FILES)
         if request.META.get('CONTENT_TYPE').startswith('multipart'):
@@ -147,6 +177,8 @@ class ContainerResource(ModelResource):
             
         else:
             deserialized = self.deserialize(request, request.raw_post_data, format=request.META.get('CONTENT_TYPE', 'application/json'))
+        ''' <--- CHANGE ---> '''
+        
         deserialized = self.alter_deserialized_detail_data(request, deserialized)
         bundle = self.build_bundle(data=dict_strip_unicode_keys(deserialized), request=request)
         updated_bundle = self.obj_create(bundle, request=request, **self.remove_api_resource_names(kwargs))
