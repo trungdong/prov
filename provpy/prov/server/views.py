@@ -46,6 +46,39 @@ def registration(request):
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
     
+def _get_list_with_perms(user):
+    bundles = {}
+    bundles_q = []
+    if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
+        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+    else:
+        bundles_q.append(('v', get_objects_for_user(user=user, 
+                                                    perms = ['view_container'], 
+                                                    klass=Container, any_perm=True).
+                          select_related('content__rec_id')))
+        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+        bundles_q.append(('c', get_objects_for_user(user=user, 
+                                                    perms = ['change_container'], 
+                                                    klass=Container, any_perm=True).
+                          select_related('content__rec_id')))
+        bundles_q.append(('d', get_objects_for_user(user=user, 
+                                                    perms = ['delete_container'], 
+                                                    klass=Container, any_perm=True).
+                          select_related('content__rec_id')))
+        bundles_q.append(('a', get_objects_for_user(user=user, 
+                                                    perms = ['admin_container'], 
+                                                    klass=Container, any_perm=True).
+                          select_related('content__rec_id')))
+        bundles_q.append(('o', get_objects_for_user(user=user, 
+                                                    perms = ['ownership_container'], 
+                                                    klass=Container, any_perm=True).
+                          select_related('content__rec_id')))
+    for i in bundles_q:
+        for j in i[1]:
+            bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
+    bundles = bundles.values()
+    bundles.sort(reverse=True)
+    return bundles
 
 def list_bundles(request):
         if request.method == 'POST':
@@ -56,44 +89,8 @@ def list_bundles(request):
                     return render_to_response('server/403.html', context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
-                
-        perms = get_perms_for_model(Container)
-        l_perm = []
-        for i in range(len(perms)):
-            l_perm.append(perms[i].codename)
-        bundles = {}
-        bundles_q = []
-        if request.user.is_anonymous() or request.user.id == ANONYMOUS_USER_ID:
-            bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-        else:
-            bundles_q.append(('v', get_objects_for_user(user=request.user, 
-                                                        perms = ['view_container'], 
-                                                        klass=Container, any_perm=True).
-                              select_related('content__rec_id')))
-            bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-            bundles_q.append(('c', get_objects_for_user(user=request.user, 
-                                                        perms = ['change_container'], 
-                                                        klass=Container, any_perm=True).
-                              select_related('content__rec_id')))
-            bundles_q.append(('d', get_objects_for_user(user=request.user, 
-                                                        perms = ['delete_container'], 
-                                                        klass=Container, any_perm=True).
-                              select_related('content__rec_id')))
-            bundles_q.append(('a', get_objects_for_user(user=request.user, 
-                                                        perms = ['admin_container'], 
-                                                        klass=Container, any_perm=True).
-                              select_related('content__rec_id')))
-            bundles_q.append(('o', get_objects_for_user(user=request.user, 
-                                                        perms = ['ownership_container'], 
-                                                        klass=Container, any_perm=True).
-                              select_related('content__rec_id')))
-        for i in bundles_q:
-            for j in i[1]:
-                bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
-        bundles = bundles.values()
-        bundles.sort(reverse=True)
         return render_to_response('server/private/list_bundles.html', 
-                                  {'bundles': bundles},
+                                  {'bundles': _get_list_with_perms(request.user)},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -290,7 +287,7 @@ def oauth_authorize(request, token, callback, params):
                               context_instance=RequestContext(request))
 
 def search(request):
-    items = []
+    bundles = []
     if request.method == 'POST':
         form = SearchForm(request.POST)
         if form.is_valid():
@@ -304,12 +301,16 @@ def search(request):
                 result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
             elif form.cleaned_data['choice'] == 'Any':
                 result = search_any_text_field(form.cleaned_data['string'])
-            for bundle in result.all():
-                if request.user.has_perm('view_container', bundle):
-                    items.append(bundle)
+            all_bundles = _get_list_with_perms(request.user)
+            result = result.values_list('id', flat=True)
+            for bundle in all_bundles:
+                if bundle[0] in result:
+                    bundles.append(bundle)
     else:
         form = SearchForm()
-    return render_to_response('server/search.html', {'form': form, 'bundles': items},
+    return render_to_response('server/search.html', {'form': form, 'bundles': bundles},
                               context_instance=RequestContext(request))
+    
+
     
     
