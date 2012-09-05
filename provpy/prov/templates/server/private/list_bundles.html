@@ -26,7 +26,7 @@
           	<td>{% status_label vars.2 %}</td>
             <td>{{ vars.1 }}</td>  
             <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' vars.0 %}">View</a></td>  
-            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' vars.0 %}">SVG</a></td>
+            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' vars.0 %}" target="_blank">SVG</a></td>
             <td>{% if vars.2 == 'o' or vars.2 == 'a' %}
             <a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' vars.0 %}">Admin</a></td>
             {% endif %}
