@@ -29,16 +29,16 @@ def search_name(q_str=None, exact=False):
     if not q_str:
         return None
     if exact:
-        return Container.objects.filter(content__rec_id=q_str)
-    return Container.objects.filter(content__rec_id__contains=q_str)
+        return Container.objects.filter(content__rec_id__iexact=q_str)
+    return Container.objects.filter(content__rec_id__icontains=q_str)
     
 def search_id(q_str=None, exact=False):
     if not q_str:
         return None
     if exact:
-        init_set = PDRecord.objects.filter(rec_id=q_str)
+        init_set = PDRecord.objects.filter(rec_id__iexact=q_str)
     else:
-        init_set = PDRecord.objects.filter(rec_id__contains=q_str)
+        init_set = PDRecord.objects.filter(rec_id__icontains=q_str)
     return _get_containers(init_set)
 
 def search_literal(literal, q_str, exact=False):
@@ -48,10 +48,10 @@ def search_literal(literal, q_str, exact=False):
     ''' Get all the records who are attached to LiteralAttributes with the constraints:
         LiteralAttribute.name = literal, LiteralAttribute.value matches q_str '''
     if exact:
-        lit_set = PDRecord.objects.filter(literals__name=literal, literals__value=q_str)
+        lit_set = PDRecord.objects.filter(literals__name__iexact=literal, literals__value__iexact=q_str)
 #        lit_set = LiteralAttribute.objects.filter(name__contains=literal, value=q_str)
     else:
-        lit_set = PDRecord.objects.filter(literals__name=literal, literals__value__contains=q_str)
+        lit_set = PDRecord.objects.filter(literals__name__iexact=literal, literals__value__icontains=q_str)
 #        lit_set = LiteralAttribute.objects.filter(name__contains=literal, value__contains=q_str)
 #    rec_set = Set(lit_set.values_list('record', flat=True))
     return _get_containers(lit_set)
@@ -102,7 +102,7 @@ def search_any_text_field(q_str, exact=False):
 #                                                      Q(value=q_str), Q(data_type=q_str))
 #        record_set = PDRecord.objects.filter(rec_id=q_str)
 #        literal_set = LiteralAttribute.objects.filter(value=q_str)
-        rec_set = PDRecord.objects.filter(Q(rec_id=q_str) | Q(literals__value=q_str))
+        rec_set = PDRecord.objects.filter(Q(rec_id__iexact=q_str) | Q(literals__value__iexact=q_str))
     else: 
 #        namepsace_set = PDNamespace.objects.filter(Q(prefix__contains=q_str), Q(uri__contains=q_str))
 #        record_set = PDRecord.objects.filter(Q(rec_id__contains=q_str), Q(rec_type__contains=q_str))
@@ -111,7 +111,7 @@ def search_any_text_field(q_str, exact=False):
 #                                                      Q(value__contains=q_str), Q(data_type__contains=q_str))
 #        record_set = PDRecord.objects.filter(rec_id__contains=q_str)
 #        literal_set = LiteralAttribute.objects.filter(value__contains=q_str)
-        rec_set = PDRecord.objects.filter(Q(rec_id=q_str) | Q(literals__value=q_str))
+        rec_set = PDRecord.objects.filter(Q(rec_id__icontains=q_str) | Q(literals__value__icontains=q_str))
 #    rec_set = Set(namepsace_set.values.list('pdbundle', flat=True))
 #    rec_set = rec_set.union(Set(record_set))
 #    rec_set = rec_set.union(Set(attribute_set.values_list('record', flat=True)))

@@ -14,6 +14,8 @@ from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q
 from django.db.models.signals import  post_save, post_syncdb, pre_delete
+from django.contrib.auth.signals import user_logged_out
+from django.core.cache import cache
 from guardian.shortcuts import assign
 from guardian.models import UserObjectPermission, GroupObjectPermission
 from prov.persistence.models import PDBundle
@@ -38,12 +40,18 @@ def _create_public_group(**kwargs):
 def _create_submission_folder(**kwargs):
     if not os.path.exists(MEDIA_ROOT+'submissions/'):
         os.makedirs(MEDIA_ROOT+'submissions/')
-        
+
+def _clear_user_cache(user, **kwargs):
+    cache.delete(user.username+'_l')
+    cache.delete(user.username+'_s')
+
 post_save.connect(_create_profile, sender=User, dispatch_uid=__file__)
 
 post_syncdb.connect(_create_public_group)
 
 post_syncdb.connect(_create_submission_folder)
+
+user_logged_out.connect(_clear_user_cache)
 
 def remove_obj_perms_connected_with_user(sender, instance, **kwargs):
     ''' Remove all permissions connected with the user to avoid orphan permissions

@@ -4,7 +4,8 @@
 {% load server_tags %}
 {% block title %}PROVServer Search{% endblock %}
 {% block content %}
-	<form class="well offset1 span7" action="{% url 'server.views.search' %}" enctype="multipart/form-data" method="post">
+	<h4 id="#top"></h4>
+	<form class="well offset1 span7" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
 		<div class="cotnrol-group span3">
 	  			{{ form.string.label_tag }} {{ form.string }}
@@ -21,8 +22,8 @@
 	  	<input type="submit" class="btn btn-primary" value="Search" />
   		</br>
 	</form>
-	{% for a in b %}{{ a.id }} {% endfor %}
-		<table class="table">  
+{% if bundles|length > 0 %}
+	<table class="table">  
         <thead>  
           <tr>
           	<th style="widht: 14%">Role</th>
@@ -52,5 +53,22 @@
           </tr>  
         {% endfor %}
         </tbody>  
-      </table>	
+      </table>
+<div class="pagination pagination-centered">
+	<ul>
+        <li {% if not bundles.has_previous %} class="disabled"><a><<</a>
+        	{% else %}><a href="?page={{ bundles.previous_page_number }}"><<</a>{% endif %}
+		{% for page in page_list %}
+			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
+			{% elif page == -2 %}<li class="disabled"><a>...</a>
+			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
+			{% endif %}</li>
+		{% endfor %}
+		<li {% if not bundles.has_next %} class="disabled"><a>>></a>
+        	{% else %}><a href="?page={{ bundles.next_page_number }}">>></a>{% endif %}</li>
+    </ul>
+</div>
+<h4 align="center">Total of {{bundles.paginator.count}} bundles.</h4>
+<h4 align="center"><a href="#top">Back to Top</a></h4>
+{% endif %}
 {% endblock %}

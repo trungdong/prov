@@ -4,12 +4,13 @@
 {% load server_tags %}
 {% block title %}PROVServer Bundles{% endblock %}
 {% block content %}
+	<h1 id="top" class="anchorOffset"></h1>
 	{% if user.is_authenticated %}
 	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>
 	<p>You can browse all available bundles here.</p>
 	<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.create_bundle' %}');">Add New</a>
 	{% endif %}
-	<table class="table">  
+	<table id="top" class="table">  
         <thead>  
           <tr>
           	<th style="widht: 14%">Role</th>
@@ -40,7 +41,20 @@
         {% endfor %}
         </tbody>  
       </table>
-      {% if user.is_authenticated and bundles|length > 10 %}
-	  <input class="btn btn-primary offset10" type="button" onClick="go_to('{% url 'server.views.create_bundle' %}')" value="Add New" />  
-	  {% endif %}
+<div class="pagination pagination-centered">
+	<ul>
+        <li {% if not bundles.has_previous %} class="disabled"><a><<</a>
+        	{% else %}><a href="?page={{ bundles.previous_page_number }}"><<</a>{% endif %}
+		{% for page in page_list %}
+			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
+			{% elif page == -2 %}<li class="disabled"><a>...</a>
+			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
+			{% endif %}</li>
+		{% endfor %}
+		<li {% if not bundles.has_next %} class="disabled"><a>>></a>
+        	{% else %}><a href="?page={{ bundles.next_page_number }}">>></a>{% endif %}</li>
+    </ul>
+</div>
+<h4 align="center">Total of {{bundles.paginator.count}} bundles.</h4>
+<h4 align="center"><a href="#top">Back to Top</a></h4>
 {% endblock %}

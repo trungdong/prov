@@ -19,6 +19,9 @@ from prov.settings import ANONYMOUS_USER_ID
 from oauth_provider.models import Consumer
 from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from django.core.cache import cache
+PAGINATION_THRESHOLD = 20
 #from prov.persistence.models import PDBundle 
 def registration(request):
     if(request.user.is_authenticated()):
@@ -83,16 +86,33 @@ def _get_list_with_perms(user):
                                                     perms = ['admin_container'], 
                                                     klass=Container, any_perm=True).
                           select_related('content__rec_id')))
-        bundles_q.append(('o', get_objects_for_user(user=user, 
-                                                    perms = ['ownership_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
+        bundles_q.append(('o', Container.objects.filter(owner=user).select_related('content__rec_id')))
     for i in bundles_q:
         for j in i[1]:
             bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
     bundles = bundles.values()
     bundles.sort(reverse=True)
     return bundles
+
+def _pagnition(paginator, page):
+    interval_size = 3
+    page = int(page)
+    if paginator.num_pages <= 2 * interval_size + 1:
+        page_list = [-1 for i in paginator.page_range]
+        page_list[page-1] = 0
+        return page_list
+    page_list = paginator.page_range
+    for i in range(interval_size):
+        page_list[i] = -1
+        page_list[paginator.num_pages - 1 - i] = -1
+    page_list[interval_size] = -2
+    page_list[paginator.num_pages - interval_size] = -2
+    start = page - interval_size if page - interval_size > 0 else 1
+    end = page + interval_size if page + interval_size < paginator.num_pages else paginator.num_pages
+    for i in range(start,end + 1):
+        page_list[i-1] = -1
+    page_list[page-1] = 0
+    return page_list
 
 def list_bundles(request):
         if request.method == 'POST':
@@ -103,8 +123,22 @@ def list_bundles(request):
                     return render_to_response('server/403.html', context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
+        bundles = cache.get(request.user.username+'_l')
+        if not bundles:
+            bundles = _get_list_with_perms(request.user)
+            cache.set(request.user.username+'_l', bundles, 120)
+        paginator = Paginator(bundles, PAGINATION_THRESHOLD)
+        page = request.GET.get('page')
+        try:
+            bundles = paginator.page(page)
+        except PageNotAnInteger:
+            bundles = paginator.page(1)
+            page = 1
+        except EmptyPage:
+            bundles = paginator.page(paginator.num_pages)
+            page = paginator.num_pages
         return render_to_response('server/private/list_bundles.html', 
-                                  {'bundles': _get_list_with_perms(request.user)},
+                                  {'bundles': bundles, 'page_list': _pagnition(paginator, page)},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -132,7 +166,8 @@ def create_bundle(request):
     if request.method == 'POST':
             form = BundleForm(request.POST, request.FILES or None)
             if form.is_valid():
-                container = form.save(owner=request.user)
+                for i in range(20):
+                    container = form.save(owner=request.user)
                 messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
                 return redirect(list_bundles)
             else:
@@ -318,9 +353,25 @@ def search(request):
             result = result.values_list('id', flat=True)
             all_bundles = _get_list_with_perms(request.user)
             bundles = filter(lambda row: row[0] in result, all_bundles)
+            cache.set(request.user.username+'_s', bundles)
     else:
         form = SearchForm()
-    return render_to_response('server/search.html', {'form': form, 'bundles': bundles},
+    page = request.GET.get('page', None)
+    if page:
+        bundles = cache.get(request.user.username+'_s', [])
+    else:
+        cache.delete(request.user.username+'_s')
+    paginator = Paginator(bundles, PAGINATION_THRESHOLD)
+    try:
+        bundles = paginator.page(page)
+    except PageNotAnInteger:
+        bundles = paginator.page(1)
+        page = 1
+    except EmptyPage:
+        bundles = paginator.page(paginator.num_pages)
+        page = paginator.num_pages
+    return render_to_response('server/search.html', {'form': form, 'bundles': bundles,
+                                                     'page_list':_pagnition(paginator, page)},
                               context_instance=RequestContext(request))
     
 
