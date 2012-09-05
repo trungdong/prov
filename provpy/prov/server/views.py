@@ -305,15 +305,15 @@ def search(request):
     if request.method == 'POST':
         form = SearchForm(request.POST)
         if form.is_valid():
-            if form.cleaned_data['choice'] == 'Name':
+            if form.cleaned_data['choice'] == 'name':
                 result = search_name(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'Identifier':
+            elif form.cleaned_data['choice'] == 'id':
                 result = search_id(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'prov:type':
+            elif form.cleaned_data['choice'] == 'type':
                 result = search_literal(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'Timeframe': 
+            elif form.cleaned_data['choice'] == 'time': 
                 result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
-            elif form.cleaned_data['choice'] == 'Any':
+            elif form.cleaned_data['choice'] == 'any':
                 result = search_any_text_field(form.cleaned_data['string'])
             result = result.values_list('id', flat=True)
             all_bundles = _get_list_with_perms(request.user)

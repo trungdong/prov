@@ -10,8 +10,7 @@ from django.contrib.auth.models import Group
 from prov.settings import PUBLIC_GROUP_ID
 from urllib2 import urlopen
 from json import loads
-from search import search_id, search_literal, search_name, search_timeframe
-from prov.server.search import search_any_text_field
+from prov.server.search import search_id, search_literal, search_name, search_timeframe, search_any_text_field
 
 class ContainerResource(ModelResource):
     
@@ -119,15 +118,15 @@ class ContainerResource(ModelResource):
         if not search_type:    
             return ModelResource.get_object_list(self, request)
         try:
-            if search_type == 'Name':
+            if search_type == 'name':
                 result = search_name(request.GET.get('q_str', None))
-            elif search_type == 'Identifier':
+            elif search_type == 'id':
                 result = search_id(request.GET.get('q_str', None))
-            elif search_type == 'prov:type':
-                result = search_literal(request.GET.get('q_str', None))
-            elif search_type == 'Timeframe': 
+            elif search_type == 'type':
+                result = search_literal(request.GET.get('literal', None) + 'prov#type', request.GET.get('q_str', None))
+            elif search_type == 'time': 
                 result = search_timeframe(request.GET.get('start', None), request.GET.get('end', None))
-            elif search_type == 'Any':
+            elif search_type == 'any':
                 result = search_any_text_field(request.GET.get('q_str', None))
             else:
                 raise ImmediateHttpResponse(HttpBadRequest())

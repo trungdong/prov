@@ -107,9 +107,9 @@ class SearchForm(Form):
     
     string = forms.CharField(label='Search:', required=False)
     choice = forms.ChoiceField(label='for', required=False, choices = 
-                               (('Name', 'Name'), ('Identifier','Identifier'), 
-                                ('prov:type', 'prov:type'), ('Timeframe', 'Timeframe'),
-                                ('Any', 'Any')))
+                               (('name', 'Name'), ('id','Identifier'), 
+                                ('type', 'Type'), ('time', 'Time frame'),
+                                ('any', 'Any')))
     start_time = forms.DateTimeField(label='From:', required=False)
     end_time = forms.DateTimeField(label='To:', required=False)
     

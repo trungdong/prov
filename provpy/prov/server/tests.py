@@ -15,7 +15,8 @@ from guardian.shortcuts import assign, remove_perm
 from django.test.client import Client
 from prov.model import ProvBundle
 from apport.report import Report
-from prov.persistence.models import PDBundle
+from prov.persistence.models import PDBundle, LiteralAttribute
+from twisted.test.test_amp import LiteralAmp
 
 logger = logging.getLogger(__name__)       
 
@@ -346,11 +347,11 @@ class SearchTest(unittest.TestCase):
         
     def testSearchLiteral(self):
         logging.debug('Testing different searches on prov:type...')
-        containers = search_literal('report')
+        containers = search_literal('http://www.w3.org/ns/prov#type','report')
         self.assertEqual(len(containers), 2)
-        containers = search_literal('rep')
+        containers = search_literal('http://www.w3.org/ns/prov#type','rep')
         self.assertEqual(len(containers), 2)
-        containers = search_literal('rep', exact=True)
+        containers = search_literal('http://www.w3.org/ns/prov#type','rep', exact=True)
         self.assertEqual(len(containers), 0)
     
     def testSearchTime(self):
@@ -372,7 +373,7 @@ class SearchTest(unittest.TestCase):
         data='&search_type={t}&q_str={s}'
         
         logging.debug('Testing API Name search...')
-        type = 'Name'
+        type = 'name'
         q_str = 'search_test_1'
         response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
                               **{'HTTP_AUTHORIZATION': auth})
@@ -380,7 +381,7 @@ class SearchTest(unittest.TestCase):
         list = json.JSONDecoder().decode(response.content)['objects']
         for bundle in list:
             self.assertTrue(bundle['id'] in self.ids)
-        type = 'Name'
+        type = 'name'
         q_str = 'search_test_1_other'
         response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
                               **{'HTTP_AUTHORIZATION': auth})
@@ -389,7 +390,7 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(list[0]['id'], self.ids[1])
         
         logging.debug('Testing API Id search...')
-        type = 'Identifier'
+        type = 'id'
         q_str = 'report1bis'
         response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
                               **{'HTTP_AUTHORIZATION': auth})
@@ -399,9 +400,10 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(list[0]['id'], self.ids[1])
         
         logging.debug('Testing API prov:type search...')
-        type = 'prov:type'
+        type = 'type'
         q_str = 'report'
-        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str), 
+        literal='http://www.w3.org/ns/'
+        response = client.get('/api/v0/bundle/?fromat=json'+data.format(t=type, s=q_str)+'&literal='+literal, 
                               **{'HTTP_AUTHORIZATION': auth})
         self.assertEqual(response.status_code, 200)
         list = json.JSONDecoder().decode(response.content)['objects']
@@ -410,7 +412,7 @@ class SearchTest(unittest.TestCase):
             self.assertTrue(bundle['id'] in self.ids)
             
         logging.debug('Testing API Timeframe search...')
-        data_time = '&search_type=Timeframe&start=2012-05-24&end=2012-05-25'
+        data_time = '&search_type=time&start=2012-05-24&end=2012-05-25'
         response = client.get('/api/v0/bundle/?fromat=json'+data_time, 
                               **{'HTTP_AUTHORIZATION': auth})
         self.assertEqual(response.status_code, 200)
