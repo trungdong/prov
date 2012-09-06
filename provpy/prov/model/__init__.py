@@ -1361,6 +1361,15 @@ class ProvBundle(ProvEntity):
                 self._id_map[new_record._identifier] = new_record
         return new_record
     
+        
+    def add_bundle(self, identifier, bundle):
+        '''Add a sub-bundle to the current bundle
+        '''
+        valid_id = self.valid_identifier(identifier)
+        self._bundles[valid_id] = bundle
+        bundle._bundle = self
+        # TODO: Check namespace duplications, existing identifier
+    
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
         return self.add_record(record_type, identifier, attributes, other_attributes)
         
