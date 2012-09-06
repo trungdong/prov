@@ -1,4 +1,4 @@
-from django.forms import ModelForm, Textarea, Form, CheckboxSelectMultiple, RadioSelect
+from django.forms import ModelForm, Textarea, Form, CheckboxSelectMultiple
 from django import forms
 from prov.server.models import UserProfile, Container, Submission, License
 from django.contrib.auth.models import User

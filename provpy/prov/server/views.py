@@ -166,8 +166,7 @@ def create_bundle(request):
     if request.method == 'POST':
             form = BundleForm(request.POST, request.FILES or None)
             if form.is_valid():
-                for i in range(20):
-                    container = form.save(owner=request.user)
+                container = form.save(owner=request.user)
                 messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
                 return redirect(list_bundles)
             else:

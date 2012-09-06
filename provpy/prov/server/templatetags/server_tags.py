@@ -1,5 +1,4 @@
 from django import template
-from django.contrib.auth.models import User
 from oauth_provider.consts import CONSUMER_STATES
 from django.utils.translation import ugettext
 
