@@ -85,8 +85,8 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
         for rec in relations:
             nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
             if len(nodes) < 2:
-              # Cannot draw this
-              pass  
+                # Cannot draw this
+                pass  
             elif len(nodes) == 2 or not show_nary:
                 # binary relations
                 style = DOT_PROV_STYLE[rec.get_type()]

@@ -384,10 +384,9 @@ class ProvRecord(object):
             if attribute[0]:
                 if attribute[0] == PROV['label']:
                     label = attribute[1]
-        if label is None:
-            return self._identifier
-        else:
-            return label
+                    # use the first label found
+                    break
+        return label if label else self._identifier 
 
     def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
