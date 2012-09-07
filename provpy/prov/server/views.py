@@ -123,6 +123,7 @@ def list_bundles(request):
                     return render_to_response('server/403.html', context_instance=RequestContext(request))
                 messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
                 container.delete()
+                cache.delete(request.user.username+'_l')
         bundles = cache.get(request.user.username+'_l')
         if not bundles:
             bundles = _get_list_with_perms(request.user)
@@ -137,8 +138,9 @@ def list_bundles(request):
         except EmptyPage:
             bundles = paginator.page(paginator.num_pages)
             page = paginator.num_pages
-        return render_to_response('server/private/list_bundles.html', 
-                                  {'bundles': bundles, 'page_list': _pagnition(paginator, page)},
+        return render_to_response('server/list_bundles.html', 
+                                  {'bundles': bundles, 'page_list': _pagnition(paginator, page),
+                                   'form': SearchForm()},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -166,9 +168,9 @@ def create_bundle(request):
     if request.method == 'POST':
             form = BundleForm(request.POST, request.FILES or None)
             if form.is_valid():
-                for i in range(20):
-                    container = form.save(owner=request.user)
+                container = form.save(owner=request.user)
                 messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+                cache.delete(request.user.username+'_l')
                 return redirect(list_bundles)
             else:
                 for error in form.non_field_errors():
@@ -322,6 +324,7 @@ def manage_apps(request):
             status = 4
         consumer.status = status
         consumer.save()
+        messages.success(request, 'The Key ' + consumer.key + ' status was successfully updated.')
         
     apps = request.user.consumer_set.all()
     return render_to_response('server/private/manage_apps.html', 

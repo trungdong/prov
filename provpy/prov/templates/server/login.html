@@ -1,5 +1,5 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer Login{% endblock %}
 {% block content %}
@@ -8,6 +8,9 @@
 	<p>This is a web UI developed for testing PROV-JSON API</p>   
 </div>
 <div class="offset3 span4">
+	<div class="leaderboard">  
+		<h3>Login</h3>    
+	</div>
 	{%if form.errors %}
 		<div class="label"><h5>The username and password did not match!</h5></div>
 	{% endif %}
@@ -16,13 +19,12 @@
 		<div class="control-group">
 			<label class="control-label" for="id_username">Username: </label>
 			{{ form.username }}  
-		</div>
-		<div class="control-group">
+
 			<label class="control-label" for="id_password">Password: </label>
 			{{ form.password }} 
 		</div>
         <input type="submit" class="btn btn-primary" value="Login" />
-        <input class="btn offset1" type="button" onClick="register(myform.next.value)" value="Register" />  
+        <input class="btn pull-right" type="button" onClick="register(myform.next.value)" value="Register" />  
 		<input type="hidden" name="next" value="{{ next }}" />
 	</form>
 </div>

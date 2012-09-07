@@ -1,5 +1,5 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
 {% load server_tags %}
 {% block title %}PROVServer Search{% endblock %}
@@ -8,8 +8,8 @@
 	<form class="well offset1 span7" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
 		<div class="cotnrol-group span3">
-	  			{{ form.string.label_tag }} {{ form.string }}
-	  			{{ form.string.errors }}
+	  			{{ form.string1.label_tag }} {{ form.string1 }}
+	  			{{ form.string1.errors }}
 	  			{{ form.choice.label_tag }} {{ form.choice }}
 	  			{{ form.choice.errors }}
   		</div>
@@ -22,6 +22,62 @@
 	  	<input type="submit" class="btn btn-primary" value="Search" />
   		</br>
 	</form>
+<div class="tabbable">
+  <ul class="nav nav-tabs">
+    <li class="active"><a href="#name" data-toggle="tab">Name</a></li>
+    <li><a href="#id" data-toggle="tab">Id</a></li>
+    <li><a href="#type" data-toggle="tab">Type</a></li>
+    <li><a href="#time" data-toggle="tab">Time</a></li>
+    <li><a href="#any" data-toggle="tab">Any</a></li>
+  </ul>
+  <div class="tab-content">
+    <div id="name" class="tab-pane active">
+      <form class="well-form" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+	  	{{ form.string1 }}
+	  	{{ form.string1.errors }}
+  		<input type="hidden" name="choice" value="name" />
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+	  </form>
+	</div>
+    <div id="id" class="tab-pane">
+      <form class="navbar-form" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+	  	{{ form.string1 }}
+	  	{{ form.string1.errors }}
+  		<input type="hidden" name="choice" value="id" />
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+	  </form>
+    </div>
+    <div id="type" class="tab-pane">
+      <form class="navbar-form" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+	  	<label>Literal</label> {{ form.string1 }} {{ form.string1.errors }}
+	  	<label>Value</label> {{ form.string2 }} {{ form.string2.errors }}
+  		<input type="hidden" name="choice" value="type" />
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+	  </form>
+    </div>
+    <div id="time" class="tab-pane">
+      <form class="navbar-form" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+	  	{{ form.start_time }}{{ form.start_time.errors }}
+	  	{{ form.end_time }}{{ form.end_time.errors }}
+  		<input type="hidden" name="choice" value="time" />
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+	  </form>
+    </div>
+    <div id="any" class="tab-pane">
+      <form class="navbar-form" action="{% url 'server.views.search' %}?page=1" enctype="multipart/form-data" method="post">
+		{% csrf_token %}
+	  	{{ form.string1 }}
+	  	{{ form.string1.errors }}
+  		<input type="hidden" name="choice" value="any" />
+	  	<input type="submit" class="btn btn-primary" value="Search" />
+	  </form>
+    </div>
+  </div><!-- /.tab-content -->
+</div><!-- /.tabbable -->
 {% if bundles|length > 0 %}
 	<table class="table">  
         <thead>  

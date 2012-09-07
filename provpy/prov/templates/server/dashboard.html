@@ -1,7 +1,17 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer Dashboard{% endblock %}
 {% block content %}
-hi
+<div class="offset1">
+{% if user.is_authenticated %}
+	<h1>Welcome {{ user.username }}, this is your Provenance Repository!</h1>	
+{% else %}
+	<h1>Welcome to the Provenance Repository!</h1>
+	<p class="lead span8">You can use it to store, browse and administraite your bundles together with
+	lots of other people. You can either register as a User or browse all public bundles to get
+	a look and feel of how it is. If you need help or any information you can find it in the 
+	help menu in the upper right corner. Have fun!<p>
+{% endif %}
+</div>
 {% endblock %}

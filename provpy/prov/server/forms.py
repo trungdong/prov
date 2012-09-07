@@ -105,11 +105,12 @@ class BundleForm(Form):
 class SearchForm(Form):
     ''' Form for searching for a bundle '''
     
-    string = forms.CharField(label='Search:', required=False)
-    choice = forms.ChoiceField(label='for', required=False, choices = 
-                               (('name', 'Name'), ('id','Identifier'), 
-                                ('type', 'Type'), ('time', 'Time frame'),
-                                ('any', 'Any')))
+    string1 = forms.CharField(required=False)
+    string2 = forms.CharField(required=False)
+    choice = forms.ChoiceField(required=True, choices = 
+                               (('name', 'name'), ('id','id'), 
+                                ('type', 'type'), ('time', 'time'),
+                                ('any', 'any')))
     start_time = forms.DateTimeField(label='From:', required=False)
     end_time = forms.DateTimeField(label='To:', required=False)
     

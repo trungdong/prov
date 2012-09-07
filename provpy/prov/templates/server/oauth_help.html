@@ -1,28 +1,13 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_nav.html" %}
 {% load url from future %}
 {%block title %}PROVServer Help{% endblock %}
 {% block content %}
-<div class="leaderboard offset2" style="padding-bottom : 10px">
-	<h1 id="Top">OAuth</h1>
+<div class="leaderboard offset1">
+	<div id="top" class="anchorOffset"></div>
+	<h1>OAuth</h1>
 </div>
-	<div class="span2">
-	    <h3>Contents</h3>
-		<ul>
-			<li><h4><a href="#Overview">Overview</a></h4></li>
-			<li><h4><a href="#OAuth">OAuth</a></h4></li>
-			<li><h4><a href="#Registration">Registering an App</a></h4></li>
-			<li><h4><a href="#workflow">Workflow</a></h4>
-				<ul>
-					<li><h4><a href="#Request">Request Token</a></h4></li>
-					<li><h4><a href="#UserAuth">User Authorization</a></h4></li>
-					<li><h4><a href="#Access">Access Token</a></h4></li>
-					<li><h4><a href="#Example">Example Request</a></h4></li>
-				</ul>
-			</li>
-		</ul>
-	</div>
-	<div class="span6">
+	<div class="offset1 span6">
 		<div id="Overview" class="anchorOffset"></div>
 		<h3>The API Overview</h3>
 		<p>The PROV-JSON API provides a RESTfull web service for
@@ -163,6 +148,23 @@ oauth_version :  1.0
 		to make a request to 'www.example.com/api/bundle/X/?format=json' (don't forget the format=json argument)
 		and successfully retrieve Jane's resource.
 		</p>
-		<h4><a href="#Top">Back to Top</a></h4>
 	</div>
+{% endblock %}
+
+{% block nav_bar %}
+ <h3>Contents</h3>
+<ul>
+	<li><h5><a href="#Overview">Overview</a></h5></li>
+	<li><h5><a href="#OAuth">OAuth</a></h5></li>
+	<li><h5><a href="#Registration">Registering an App</a></h5></li>
+	<li><h5><a href="#workflow">Workflow</a></h5>
+		<ul>
+			<li><h5><a href="#Request">Request Token</a></h5></li>
+			<li><h5><a href="#UserAuth">User Authorization</a></h5></li>
+			<li><h5><a href="#Access">Access Token</a></h5></li>
+			<li><h5><a href="#Example">Example Request</a></h5></li>
+		</ul>
+	</li>
+	<li><h5><a href="#top">Back to Top</a></h5></li>
+</ul>
 {% endblock %}

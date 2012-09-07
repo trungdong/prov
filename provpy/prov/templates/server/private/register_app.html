@@ -1,12 +1,12 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer NewApp{% endblock %}
 {% block content %}
-<div class="leaderboard">  
+<div class="leaderboard offset1">  
 	<h2>Register a new client app.</h2>  
 </div>
-<form class="well offset2" action="{% url 'server.views.register_app' %}" method="post">
+<form class="well offset1 span6" action="{% url 'server.views.register_app' %}" method="post">
 	{% csrf_token %}
 	{% for field in form %}
 	<div class="control-group">

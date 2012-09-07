@@ -1,25 +1,27 @@
-html, body {
-			margin-top : 30px;
-			margin-bottom : 50px;
+body {
+			padding-top : 50px;
+			padding-bottom : 50px;
         }
+}
+
 .row{;
 	margin-left: -20px;
   	*zoom: 1;
   	margin-bottom: 20px;
 }
-#footer
+.footer
 {
     clear: both;
-    border: 15px solid black;
+    border: 5px solid black;
     background: black;
     color: White;
-    padding: 0;
-    text-align: middle;
+    padding: 50;
     vertical-align: middle;
     line-height: normal;
-    margin: 20;
+    margin: 50;
     position: fixed;
     bottom: 0px;
+    left: 0px;
     width: 100%;
 }
 
@@ -32,9 +34,11 @@ html, body {
 	margin:10px;
 	margin-left:0px;
 }
-.table {margin-bottom:0px;}
-.table th, table td { overflow: hidden; }
-
-form{
-	margin-top:20px;
+.table {
+	margin-bottom:0px; 
+	width:100%; 
+	table-layout: fixed;
 }
+
+.table th, table td {word-wrap: break-word}
+
