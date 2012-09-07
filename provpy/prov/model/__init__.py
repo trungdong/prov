@@ -377,7 +377,17 @@ class ProvRecord(object):
     
     def get_identifier(self):
         return self._identifier
-    
+
+    def get_label(self):
+        label = None
+        for attribute in self._extra_attributes:
+            if attribute[0]:
+                if attribute[0] == PROV['label']:
+                    label = attribute[1]
+                    # use the first label found
+                    break
+        return label if label else self._identifier 
+
     def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
             if self._extra_attributes is None:
@@ -1350,6 +1360,15 @@ class ProvBundle(ProvEntity):
             else:
                 self._id_map[new_record._identifier] = new_record
         return new_record
+    
+        
+    def add_bundle(self, identifier, bundle):
+        '''Add a sub-bundle to the current bundle
+        '''
+        valid_id = self.valid_identifier(identifier)
+        self._bundles[valid_id] = bundle
+        bundle._bundle = self
+        # TODO: Check namespace duplications, existing identifier
     
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
         return self.add_record(record_type, identifier, attributes, other_attributes)

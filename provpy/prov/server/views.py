@@ -21,8 +21,10 @@ from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
+
 PAGINATION_THRESHOLD = 20
-#from prov.persistence.models import PDBundle 
+
+
 def registration(request):
     if(request.user.is_authenticated()):
         return redirect(list_bundles)

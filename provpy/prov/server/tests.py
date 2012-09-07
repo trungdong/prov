@@ -14,9 +14,7 @@ from django.db import IntegrityError,DatabaseError
 from guardian.shortcuts import assign, remove_perm
 from django.test.client import Client
 from prov.model import ProvBundle
-from apport.report import Report
-from prov.persistence.models import PDBundle, LiteralAttribute
-from twisted.test.test_amp import LiteralAmp
+from prov.persistence.models import PDBundle
 
 logger = logging.getLogger(__name__)       
 
