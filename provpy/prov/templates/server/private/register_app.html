@@ -18,6 +18,6 @@
 	  	</div>
   	{% endfor %}
   	<button type="submit" class="btn btn-primary" value="submit">Submit</button>
-  	<a class="btn pull-right" onClick="go_to('{% url 'server.views.manage_apps' %}');">Back</a>
+  	<a class="btn pull-right" href="{% url 'server.views.manage_apps' %}">Back</a>
 </form>
 {% endblock %}

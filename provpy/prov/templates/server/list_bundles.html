@@ -90,7 +90,7 @@
 	  	{{ form.string1 }}{{ form.string1.errors }}
   		<input type="hidden" name="choice" value="name" />
 	  	<input type="submit" class="btn btn-primary" value="Search" />
-	  	<a class="btn btn-primary offset1" onClick="go_to('{% url 'server.views.list_bundles' %}');">Reset</a>
+	  	<a class="btn btn-primary offset1" href="{% url 'server.views.list_bundles' %}">Reset</a>
 	  </form>
 	</div>
     <div id="id" class="tab-pane">
@@ -100,7 +100,7 @@
 	  	{{ form.string1 }}{{ form.string1.errors }}
   		<input type="hidden" name="choice" value="id" />
 	  	<input type="submit" class="btn btn-primary" value="Search" />
-	  	<a class="btn btn-primary offset1" onClick="go_to('{% url 'server.views.list_bundles' %}');">Reset</a>
+	  	<a class="btn btn-primary offset1" href="{% url 'server.views.list_bundles' %}">Reset</a>
 	  </form>
     </div>
     <div id="type" class="tab-pane">
@@ -112,7 +112,7 @@
 	  	{{ form.string2 }}{{ form.string2.errors }}
   		<input type="hidden" name="choice" value="type" />
 	  	<input type="submit" class="btn btn-primary" value="Search" />
-	  	<a class="btn btn-primary offset1" onClick="go_to('{% url 'server.views.list_bundles' %}');">Reset</a>
+	  	<a class="btn btn-primary offset1" href="{% url 'server.views.list_bundles' %}">Reset</a>
 	  </form>
     </div>
     <div id="time" class="tab-pane">
@@ -124,7 +124,7 @@
 	  	{{ form.end_time }}{{ form.end_time.errors }}
   		<input type="hidden" name="choice" value="time" />
 	  	<input type="submit" class="btn btn-primary" value="Search" />
-	  	<a class="btn btn-primary offset1" onClick="go_to('{% url 'server.views.list_bundles' %}');">Reset</a>
+	  	<a class="btn btn-primary offset1" href="{% url 'server.views.list_bundles' %}">Reset</a>
 	  </form>
     </div>
     <div id="any" class="tab-pane">
@@ -134,7 +134,7 @@
 	  	{{ form.string1 }}{{ form.string1.errors }}
   		<input type="hidden" name="choice" value="any" />
 	  	<input type="submit" class="btn btn-primary" value="Search" />
-	  	<a class="btn btn-primary offset1" onClick="go_to('{% url 'server.views.list_bundles' %}');">Reset</a>
+	  	<a class="btn btn-primary offset1" href="{% url 'server.views.list_bundles' %}">Reset</a>
 	  </form>
     </div>
   </div><!-- /.tab-content -->

@@ -5,7 +5,7 @@
 {% block title %}PROVServer Apps{% endblock %}
 {% block content %}
 <h2>Registered Apps</h2>
-<a class="btn btn-primary pull-left" onClick="go_to('{% url 'server.views.register_app' %}');">Add New</a>
+<a class="btn btn-primary pull-left" href="{% url 'server.views.register_app' %}">Add New</a>
 <table class="table" style="table-layout: fixed; width: 100%">  
 	<thead>  
 		<tr>
@@ -42,6 +42,6 @@
         </tbody>
 </table>
 {% if apps|length > 6 %}
-	<input class="btn btn-primary offset8" type="button" onClick="go_to('{% url 'server.views.register_app' %}')" value="Add New" /> 
+	<a class="btn btn-primary offset8" href="{% url 'server.views.register_app' %}">Add New</a> 
 {% endif %}
 {% endblock %}

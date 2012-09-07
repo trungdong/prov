@@ -4,11 +4,16 @@ body {
         }
 }
 
+input{ 
+	max-width: 100%; 
+}
+ 
 .row{;
 	margin-left: -20px;
   	*zoom: 1;
   	margin-bottom: 20px;
 }
+
 .footer
 {
     clear: both;
@@ -40,5 +45,8 @@ body {
 	table-layout: fixed;
 }
 
-.table th, table td {word-wrap: break-word}
+.table th, table td {
+	word-wrap: break-word
+}
+
 
