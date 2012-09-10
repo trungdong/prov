@@ -4,10 +4,6 @@ body {
         }
 }
 
-input{ 
-	max-width: 100%; 
-}
- 
 .row{;
 	margin-left: -20px;
   	*zoom: 1;
@@ -49,4 +45,8 @@ input{
 	word-wrap: break-word
 }
 
-
+input{ 
+	max-width: 100%; 
+}
+ 
+ 

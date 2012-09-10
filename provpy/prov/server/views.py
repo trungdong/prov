@@ -2,7 +2,7 @@ from json import dumps
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
@@ -37,7 +37,7 @@ def registration(request):
             messages.success(request, 'You have successfully registered!')
             if form.data['next']:
                 return redirect(form.data['next'])
-            return redirect(list_bundles)
+            return redirect('/prov/home')
         else:
             for error in form.non_field_errors():
                 messages.error(request,error)
@@ -117,37 +117,63 @@ def _pagnition(paginator, page):
     return page_list
 
 def list_bundles(request):
-        if request.method == 'POST':
-            if 'delete_id' in request.POST:
-                container_id = request.POST['delete_id']
-                container = get_object_or_404(Container, pk=container_id)
-                if not request.user.has_perm('delete_container', container):
-                    return render_to_response('server/403.html', context_instance=RequestContext(request))
-                messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
-                container.delete()
-                cache.delete(request.user.username+'_l')
-        bundles = cache.get(request.user.username+'_l')
+    bundles = None
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            if form.cleaned_data['choice'] == 'name':
+                result = search_name(form.cleaned_data['string1'])
+            elif form.cleaned_data['choice'] == 'id':
+                result = search_id(form.cleaned_data['string1'])
+            elif form.cleaned_data['choice'] == 'type':
+                result = search_literal(form.cleaned_data['string1']+'prov#type', form.cleaned_data['string2'])
+            elif form.cleaned_data['choice'] == 'time': 
+                result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
+            elif form.cleaned_data['choice'] == 'any':
+                result = search_any_text_field(form.cleaned_data['string1'])
+            result = result.values_list('id', flat=True)
+            all_bundles = _get_list_with_perms(request.user)
+            bundles = filter(lambda row: row[0] in result, all_bundles)
+            cache.set(request.user.username+'_s', bundles)
+            page = 1
+            form = SearchForm()
+        else:
+            bundles = cache.get(request.user.username+'_s')
+    else:
+        form = SearchForm()
+        page = request.GET.get('page', None)
+        if page:
+            bundles = cache.get(request.user.username+'_s', [])
+        else:
+            cache.delete(request.user.username+'_s')    
         if not bundles:
             bundles = _get_list_with_perms(request.user)
-            cache.set(request.user.username+'_l', bundles, 120)
-        paginator = Paginator(bundles, PAGINATION_THRESHOLD)
-        page = request.GET.get('page')
-        try:
-            bundles = paginator.page(page)
-        except PageNotAnInteger:
-            bundles = paginator.page(1)
-            page = 1
-        except EmptyPage:
-            bundles = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-        return render_to_response('server/list_bundles.html', 
+            cache.set(request.user.username+'_s', bundles)
+            
+    paginator = Paginator(bundles, PAGINATION_THRESHOLD)
+    try:
+        bundles = paginator.page(page)
+    except PageNotAnInteger:
+        bundles = paginator.page(1)
+        page = 1
+    except EmptyPage:
+        bundles = paginator.page(paginator.num_pages)
+        page = paginator.num_pages
+    return render_to_response('server/list_bundles.html', 
                                   {'bundles': bundles, 'page_list': _pagnition(paginator, page),
-                                   'form': SearchForm()},
+                                   'form': form},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
 def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
+    if request.method == 'POST':
+            if not request.user.has_perm('delete_container', container):
+                return HttpResponseForbidden()
+            container.delete()
+            messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
+            cache.delete(request.user.username+'_l')
+            return redirect(list_bundles)
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
