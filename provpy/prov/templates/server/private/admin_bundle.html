@@ -18,12 +18,12 @@
 	      button.live('click', function(){
 	          hidden.val($(this).val());
 	          if($(this).val() == "user"){
-	          		$( "#name_add" ).autocomplete({
+	          		$( "#name_add" ).typeahead({
 						source: userTags
 					});
 	          }
 	          else {
-	          		$( "#name_add" ).autocomplete({
+	          		$( "#name_add" ).typeahead({
 						source: groupTags
 					});
 	          }
@@ -35,11 +35,11 @@
 	  });
 	});
 	$(function() {
-			$( "#name_add" ).autocomplete({
+			$( "#name_add" ).typeahead({
 				source: userTags
 			});
 		});
-	</script>	
+</script>
 {% endblock %}
 {% block content %}
 <div class="span3">
@@ -66,7 +66,7 @@
 					  <button type="button" value="group" class="btn" data-toggle="button">Group</button>
 					</div>
 					<input type="hidden" name="perm_type" value="user" />
-					<input type="text" class="input-xlarge span2" name="name" id="name_add">
+					<input type="text" class="span2" id="name_add" data-provide="typeahead">	
 					<select name="role" style="width:120px">
 					    <option>Administrator</option>   
 		                <option>Editor</option>   
