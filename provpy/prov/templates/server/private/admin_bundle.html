@@ -18,14 +18,10 @@
 	      button.live('click', function(){
 	          hidden.val($(this).val());
 	          if($(this).val() == "user"){
-	          		$( "#name_add" ).typeahead({
-						source: userTags
-					});
+	          		$('#name_add').typeahead().data('typeahead').source = userTags;
 	          }
 	          else {
-	          		$( "#name_add" ).typeahead({
-						source: groupTags
-					});
+					$('#name_add').typeahead().data('typeahead').source = groupTags;
 	          }
 	      });
 	      if(button.val() == hidden.val()) {

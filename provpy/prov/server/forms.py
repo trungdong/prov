@@ -7,6 +7,9 @@ from prov.model import ProvBundle
 from django.utils.safestring import mark_safe
 from urllib2 import URLError, urlopen
 from json import loads
+from django.core.mail import send_mail
+from prov.settings import ADMINS
+
 
 class ProfileForm(ModelForm):
     ''' Form representing the UserProfile Model '''
@@ -86,7 +89,7 @@ class BundleForm(Form):
     def save(self, owner, commit=True):
         if self.errors:
             raise ValueError("The %s could not be %s because the data didn't"
-                         " validate." % ('BundleContainer', 'created'))
+                         " validate." % ('Container', 'created'))
         container = Container.create(self.cleaned_data['rec_id'], self.bundle, owner, self.cleaned_data['public'])
         save = False
         if 'submission' in self.files:
@@ -113,5 +116,15 @@ class SearchForm(Form):
                                 ('any', 'any')))
     start_time = forms.DateTimeField(label='From:', required=False)
     end_time = forms.DateTimeField(label='To:', required=False)
-    
 
+class ContactForm(Form):
+    subject = forms.CharField(label=('Subject'), required=True)
+    message = forms.CharField(label=('Message'), required=True, widget=Textarea(attrs={'class': 'span5'}))
+    sender = forms.EmailField(label=('Sender'), required=True)
+    
+    def save(self):
+        if self.errors:
+            raise ValueError("The %s could not be %s because the data didn't"
+                         " validate." % ('Email', 'send'))
+        send_mail(self.cleaned_data['subject'], self.cleaned_data['message'], 
+                  self.cleaned_data['sender'], [a[1] for a in ADMINS])

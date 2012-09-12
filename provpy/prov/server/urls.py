@@ -15,6 +15,7 @@ urlpatterns = patterns('server.views',
     (r'^help/search/$', direct_to_template, {'template': 'server/search_help.html'}),
     (r'^apps/$', 'manage_apps'),
     (r'^apps/register/$', 'register_app'),
+    (r'^contact/$', 'contact'),
 )
 urlpatterns+= patterns('',
                 (r'^login/$', 'django.contrib.auth.views.login', 

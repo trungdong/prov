@@ -3,6 +3,9 @@
 {% load url from future %}
 {% load server_tags %}
 {% block title %}PROVServer Bundles{% endblock %}
+{% block head %}
+
+{% endblock %}
 {% block content %}
 	<h4 id="top" class="anchorOffset"></h4>
 	<h4>Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }}<br/>
@@ -119,6 +122,7 @@
 		{% csrf_token %}
 		<label>Starting time</label>
 	  	{{ form.start_time }}{{ form.start_time.errors }}
+	  	
 	  	<label>Ending time</label>
 	  	{{ form.end_time }}{{ form.end_time.errors }}
   		<input type="hidden" name="choice" value="time" />
