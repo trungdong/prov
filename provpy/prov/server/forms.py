@@ -107,15 +107,33 @@ class BundleForm(Form):
     
 class SearchForm(Form):
     ''' Form for searching for a bundle '''
-    
-    string1 = forms.CharField(required=False)
-    string2 = forms.CharField(required=False)
+    name = forms.CharField(label=('Name'), required=False, 
+                           widget=forms.TextInput(attrs={'class':'input-medium'}))
+    id = forms.CharField(label=('Identifier'), required=False, 
+                         widget=forms.TextInput(attrs={'class':'input-medium'}))
+    literal = forms.CharField(label=('Literal'), required=False, 
+                              widget=forms.TextInput(attrs={'class':'input-medium'}))
+    value = forms.CharField(label=('Value'), required=False, 
+                            widget=forms.TextInput(attrs={'class':'input-medium'}))
+    any = forms.CharField(label=('Any Field'), required=False, 
+                          widget=forms.TextInput(attrs={'class':'input-medium'}))
+    start_time_date = forms.DateField(label=('Starting time'), required=False,
+                                      widget=forms.TextInput(attrs={'class':'input-small',
+                                                                    'readonly' : '' ,}))
+    start_time_time = forms.TimeField(required=False,
+                                      widget=forms.TextInput(attrs={'class':'timepicker-1 input-small',
+                                                                    'readonly' : '' ,}))
+    end_time_date = forms.DateField(label=('End time'), required=False,
+                                      widget=forms.TextInput(attrs={'class':'input-small',
+                                                                    'readonly' : '' ,}))
+    end_time_time = forms.TimeField(required=False,
+                                      widget=forms.TextInput(attrs={'class':'timepicker-1 input-small', 
+                                                                    'readonly' : '' ,}))
     choice = forms.ChoiceField(required=True, choices = 
                                (('name', 'name'), ('id','id'), 
                                 ('type', 'type'), ('time', 'time'),
                                 ('any', 'any')))
-    start_time = forms.DateTimeField(label='From:', required=False)
-    end_time = forms.DateTimeField(label='To:', required=False)
+
 
 class ContactForm(Form):
     subject = forms.CharField(label=('Subject'), required=True)

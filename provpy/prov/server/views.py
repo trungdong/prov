@@ -21,7 +21,6 @@ from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 from django.core.cache import cache
-from smtplib import SMTPException
 
 PAGINATION_THRESHOLD = 20
 
@@ -123,21 +122,35 @@ def list_bundles(request):
         form = SearchForm(request.POST)
         if form.is_valid():
             if form.cleaned_data['choice'] == 'name':
-                result = search_name(form.cleaned_data['string1'])
+                result = search_name(form.cleaned_data['name'])
             elif form.cleaned_data['choice'] == 'id':
-                result = search_id(form.cleaned_data['string1'])
+                result = search_id(form.cleaned_data['id'])
             elif form.cleaned_data['choice'] == 'type':
-                result = search_literal(form.cleaned_data['string1']+'prov#type', form.cleaned_data['string2'])
-            elif form.cleaned_data['choice'] == 'time': 
-                result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
+                result = search_literal(form.cleaned_data['literal']+'prov#type', form.cleaned_data['value'])
+            elif form.cleaned_data['choice'] == 'time':
+                start_date = form.cleaned_data['start_time_date']
+                start_time = form.cleaned_data['start_time_time']
+                if start_date:
+                    start = str(start_date) + 'T' + str(start_time)
+                else:
+                    start = None
+                end_date = form.cleaned_data['end_time_date']
+                end_time = form.cleaned_data['end_time_time']
+                if end_date:
+                    end = str(end_date) + 'T' + str(end_time)
+                else:
+                    end = None
+                result = search_timeframe(start, end)
             elif form.cleaned_data['choice'] == 'any':
-                result = search_any_text_field(form.cleaned_data['string1'])
-            result = result.values_list('id', flat=True)
-            all_bundles = _get_list_with_perms(request.user)
-            bundles = filter(lambda row: row[0] in result, all_bundles)
+                result = search_any_text_field(form.cleaned_data['any'])
+            if result:
+                result = result.values_list('id', flat=True)
+                all_bundles = _get_list_with_perms(request.user)
+                bundles = filter(lambda row: row[0] in result, all_bundles)
+            else:
+                bundles = []
             cache.set(request.user.username+'_s', bundles)
             page = 1
-            form = SearchForm()
         else:
             bundles = cache.get(request.user.username+'_s')
     else:

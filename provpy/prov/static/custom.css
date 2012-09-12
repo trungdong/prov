@@ -48,4 +48,9 @@ body {
 input{ 
 	max-width: 100%; 
 }
- 
+
+.datepicker{
+	z-index: 1;
+}
+
+

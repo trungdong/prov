@@ -1,0 +1,20 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base_clean.html" %}
+{% load url from future %}
+{% block title %}PROVServer Contact{% endblock %}
+{% block content %}
+<div class="leaderboard offset1 span6">  
+	<h2>Contact us.</h2>
+</div>
+<form class="well offset1 span5" action="{% url 'server.views.contact' %}" enctype="multipart/form-data" method="post">
+	{% csrf_token %}
+  		{% for field in form %}
+  		<div class="cotnrol-group">
+	  		{{ field.label_tag }}
+	  		{{ field }}
+	  	    {{ field.errors }}
+  		</div>
+  		{% endfor %}
+  		<div align="center"><input type="submit" class="btn btn-primary pull-right" value="Send"/></div>
+</form>
+{% endblock %}
