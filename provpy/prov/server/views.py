@@ -118,16 +118,21 @@ def _pagnition(paginator, page):
 
 def list_bundles(request):
     bundles = None
+    choice = 0
     if request.method == 'POST':
         form = SearchForm(request.POST)
         if form.is_valid():
-            if form.cleaned_data['choice'] == 'name':
+            choice = form.cleaned_data['choice']
+            if choice == 'name':
                 result = search_name(form.cleaned_data['name'])
-            elif form.cleaned_data['choice'] == 'id':
+                choice = 0
+            elif choice == 'id':
                 result = search_id(form.cleaned_data['id'])
-            elif form.cleaned_data['choice'] == 'type':
+                choice = 1
+            elif choice == 'type':
                 result = search_literal(form.cleaned_data['literal']+'prov#type', form.cleaned_data['value'])
-            elif form.cleaned_data['choice'] == 'time':
+                choice = 2
+            elif choice == 'time':
                 start_date = form.cleaned_data['start_time_date']
                 start_time = form.cleaned_data['start_time_time']
                 if start_date:
@@ -141,8 +146,10 @@ def list_bundles(request):
                 else:
                     end = None
                 result = search_timeframe(start, end)
+                choice = 3
             elif form.cleaned_data['choice'] == 'any':
                 result = search_any_text_field(form.cleaned_data['any'])
+                choice = 4
             if result:
                 result = result.values_list('id', flat=True)
                 all_bundles = _get_list_with_perms(request.user)
@@ -175,7 +182,7 @@ def list_bundles(request):
         page = paginator.num_pages
     return render_to_response('server/list_bundles.html', 
                                   {'bundles': bundles, 'page_list': _pagnition(paginator, page),
-                                   'form': form},
+                                   'form': form, 'choice': choice},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))

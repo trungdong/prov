@@ -24,6 +24,7 @@
                 showMeridian: false,
 				defaultTime: '23:59:59',
 			});
+			$('#filter_tab a:eq({{choice}})').tab('show');
 		});	
 </script>
 {% endblock %}
@@ -97,7 +98,6 @@
 {% block nav_bar %}
 <div class="span3">
 	<h3>Filter by:</h3>
-	<p> {{ form.choice.value }}</p>
 <div class="tabbable">
   <ul class="nav nav-tabs" id="filter_tab" style="margin-bottom: 10px">
     <li class="active"><a href="#name" data-toggle="tab">Name</a></li>
@@ -171,10 +171,10 @@
     </div>
   </div><!-- /.tab-content -->
 </div><!-- /.tabbable -->
+<br/>
 {% if user.is_authenticated %}
-<br/><br/>
 <a class="btn btn-primary" href="{% url 'server.views.create_bundle' %}">Add New Bundle</a>
-<br/><br/>
-<h4><a href="#top">Back to Top</a></h4>
+<br/>
 {% endif %}
+<h4><a href="#top">Back to Top</a></h4>
 {% endblock %}

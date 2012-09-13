@@ -73,7 +73,7 @@ class BundleForm(Form):
                 raise forms.ValidationError(u'Wrong syntax in the JSON content.')
         elif self.cleaned_data['url']:
             try:
-                source = urlopen(self.cleaned_data['url'])
+                source = urlopen(self.cleaned_data['url'], timeout=5)
                 url_content = source.read()
                 source.close()
             except URLError:
