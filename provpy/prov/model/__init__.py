@@ -45,7 +45,7 @@ PROV_REC_ALTERNATE              = 51
 PROV_REC_SPECIALIZATION         = 52
 PROV_REC_MENTION                = 53
 # C6. Collections
-#PROV_REC_COLLECTION             = 6
+PROV_REC_COLLECTION             = 6
 PROV_REC_MEMBERSHIP             = 61
 
 PROV_RECORD_TYPES = (
@@ -88,7 +88,7 @@ PROV_N_MAP = {
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
     PROV_REC_MENTION:              u'mentionOf',
-#    PROV_REC_COLLECTION:           u'Collection',
+    PROV_REC_COLLECTION:           u'collection',
     PROV_REC_MEMBERSHIP:           u'memberOf',
     PROV_REC_BUNDLE:               u'bundle',
 }
@@ -147,6 +147,7 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_BUNDLE, u'prov:bundle'),
     (PROV_ATTR_INFLUENCEE, u'prov:influencee'),
     (PROV_ATTR_INFLUENCER, u'prov:influencer'),
+    (PROV_ATTR_COLLECTION, u'prov:collection'),
     # Literal properties
     (PROV_ATTR_TIME, u'prov:time'),
     (PROV_ATTR_STARTTIME, u'prov:startTime'),
@@ -937,6 +938,13 @@ class ProvMention(ProvSpecialization):
 
 ### Component 6: Collections
 
+class ProvCollection(ProvEntity):
+    def get_type(self):
+        return PROV_REC_COLLECTION
+    
+    def get_prov_type(self):
+        return PROV['Collection']
+
 class ProvMembership(ProvRelation):
     def get_type(self):
         return PROV_REC_MEMBERSHIP
@@ -973,6 +981,7 @@ PROV_REC_CLS = {
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
     PROV_REC_ALTERNATE              : ProvAlternate,
     PROV_REC_MENTION                : ProvMention,
+    PROV_REC_COLLECTION             : ProvCollection,
     PROV_REC_MEMBERSHIP             : ProvMembership,
 }
 
@@ -1453,6 +1462,9 @@ class ProvBundle(ProvEntity):
                     bundle = self.get_bundle(bundle)
                 generalEntity = bundle.get_record(generalEntity)
         return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
+    
+    def collection(self, identifier, other_attributes=None):
+        return self.add_element(PROV_REC_COLLECTION, identifier, None, other_attributes)
     
     def membership(self, collection, entity, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_MEMBERSHIP, identifier, {PROV_ATTR_COLLECTION: collection, PROV_ATTR_ENTITY: entity}, other_attributes)
