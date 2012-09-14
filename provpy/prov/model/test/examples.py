@@ -413,10 +413,21 @@ def w3c_publication_2():
         
     return g
 
+def collections():
+    g = ProvBundle()
+    ex = Namespace('ex', 'http://example.org/')
+    
+    c1 = g.collection(ex['c1'])
+    e1 = g.entity('ex:e1')
+    g.hadMember(c1, e1)
+    
+    return g
+    
 tests = [
     ('Bundle1', bundles1),
     ('Bundle2', bundles2),
     ('Primer', primer_example),
     ('W3C Publication 1', w3c_publication_1),
-    ('W3C Publication 2', w3c_publication_2)
+    ('W3C Publication 2', w3c_publication_2),
+    ('collections', collections),
 ]
