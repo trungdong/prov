@@ -15,13 +15,16 @@ from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm, AppForm, BundleForm, SearchForm,ContactForm
 from models import Container
 from guardian.decorators import permission_required_or_403
-from prov.settings import ANONYMOUS_USER_ID
+from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
 from oauth_provider.models import Consumer
 from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.core.cache import cache
+#from django.core.cache import cache
 
+from django.contrib.contenttypes.models import ContentType
+from guardian.models import GroupObjectPermission, UserObjectPermission
+from django.db.models import Count
 PAGINATION_THRESHOLD = 20
 
 
@@ -50,51 +53,100 @@ def registration(request):
         next_page = ''
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
+
+def _get_permission_count(user, query_set):
+    ''' For a given user and some QuerySet of containers returns 
+    the number of permissions the user have on each bundle. 
+    This corresponds to his role. '''
     
-def _get_list_with_perms(user):
-    ''' A function returning a list containing entries which are 3-tuples representing
-    basic information about each bundle including the 'top level' permission.
-    Format of entry is: (BundleID, BundleName, PERMISSION_KEY)
-    Where PERMISSION_KEY takes values in between the First letter of each of the possible
-    permission for the Container model and 'p' which represent public.
-    PERMISSION_KEY takes the value of the top-level permission - ordered in increasing order:
-    'v'(view),'p'(public),'c'(change),'d'(delete),'a'(admin),'o'(own) it would take the value
-    of the 'biggest' permission that the user has for that bundle.
-    Example:
-    if user has view, change and delete and the Bundle is public - 'd'
-    if user has only view and Bundle is public - 'p'
-    if user has only view and Bundle is private - 'v'
-    '''
-    
-    bundles = {}
-    bundles_q = []
-    if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
-        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-    else:
-        bundles_q.append(('v', get_objects_for_user(user=user, 
-                                                    perms = ['view_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-        bundles_q.append(('c', get_objects_for_user(user=user, 
-                                                    perms = ['change_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('d', get_objects_for_user(user=user, 
-                                                    perms = ['delete_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('a', get_objects_for_user(user=user, 
-                                                    perms = ['admin_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('o', Container.objects.filter(owner=user).select_related('content__rec_id')))
-    for i in bundles_q:
-        for j in i[1]:
-            bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
-    bundles = bundles.values()
-    bundles.sort(reverse=True)
-    return bundles
+    content = ContentType.objects.get(app_label='server', model='container')
+    '''His normal user permissions '''
+    user_perm = UserObjectPermission.objects.filter(user_id=user.id, object_pk__in=query_set,content_type=content)\
+                    .values('object_pk').annotate(Count('user')).order_by()
+    groups = user.groups.exclude(id=PUBLIC_GROUP_ID)
+    '''All his groups permissions except from the public group'''
+    group_perm = GroupObjectPermission.objects.filter(group_id__in=groups, object_pk__in=query_set,content_type=content)\
+                    .values('object_pk').annotate(Count('group')).order_by()
+    '''All his public permissions '''
+    public_perm = GroupObjectPermission.objects.filter(group_id=PUBLIC_GROUP_ID, object_pk__in=query_set,content_type=content)\
+                    .values('object_pk').annotate(Count('group')).order_by()
+    '''Using dictionary to overwrite permissions the user have over the same bundle'''
+    count_dict = {}
+    for i in public_perm:
+        count_dict[int(i['object_pk'])] = 0
+    for i in user_perm:
+        count_dict[int(i['object_pk'])] = i['user__count']
+    for i in group_perm:
+        if i['group__count'] > dict[i['object_pk']]:
+            count_dict[int(i['object_pk'])] = i['group__count']
+    return count_dict
+
+#===============================================================================
+# def get_perms_list(user,q_set):
+#    content = ContentType.objects.get(app_label='server', model='container')
+#    user_perm = UserObjectPermission.objects.filter(user_id=user.id, object_pk__in=q_set,content_type=content)\
+#            .values('object_pk')
+#    groups = user.groups.exclude(id=PUBLIC_GROUP_ID)
+#    group_perm = GroupObjectPermission.objects.filter(group_id__in=groups, object_pk__in=q_set,content_type=content)\
+#        .values('object_pk')
+#    public_perm = GroupObjectPermission.objects.filter(group_id=PUBLIC_GROUP_ID, object_pk__in=q_set,content_type=content)\
+#        .values('object_pk')
+#    dict = {}
+#    for i in public_perm:
+#        dict[int(i['object_pk'])] = 0
+#    for i in user_perm:
+#        dict[int(i['object_pk'])] = i['user__count']
+#    for i in group_perm:
+#        if i['group__count'] > dict[i['object_pk']]:
+#            dict[int(i['object_pk'])] = i['group__count']
+#    return dict
+#===============================================================================
+#===============================================================================
+# def _get_list_with_perms(user):
+#    ''' A function returning a list containing entries which are 3-tuples representing
+#    basic information about each bundle including the 'top level' permission.
+#    Format of entry is: (BundleID, BundleName, PERMISSION_KEY)
+#    Where PERMISSION_KEY takes values in between the First letter of each of the possible
+#    permission for the Container model and 'p' which represent public.
+#    PERMISSION_KEY takes the value of the top-level permission - ordered in increasing order:
+#    'v'(view),'p'(public),'c'(change),'d'(delete),'a'(admin),'o'(own) it would take the value
+#    of the 'biggest' permission that the user has for that bundle.
+#    Example:
+#    if user has view, change and delete and the Bundle is public - 'd'
+#    if user has only view and Bundle is public - 'p'
+#    if user has only view and Bundle is private - 'v'
+#    '''
+#    
+#    bundles = {}
+#    bundles_q = []
+#    if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
+#        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+#    else:
+#        bundles_q.append(('v', get_objects_for_user(user=user, 
+#                                                    perms = ['view_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+#        bundles_q.append(('c', get_objects_for_user(user=user, 
+#                                                    perms = ['change_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('d', get_objects_for_user(user=user, 
+#                                                    perms = ['delete_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('a', get_objects_for_user(user=user, 
+#                                                    perms = ['admin_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('o', Container.objects.filter(owner=user).select_related('content__rec_id')))
+#    for i in bundles_q:
+#        for j in i[1]:
+#            bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
+#    bundles = bundles.values()
+#    bundles.sort(reverse=True)
+#    return bundles
+#===============================================================================
 
 def _pagnition(paginator, page):
     interval_size = 3
@@ -117,6 +169,10 @@ def _pagnition(paginator, page):
     return page_list
 
 def list_bundles(request):
+    if request.user.is_anonymous():
+        user = User.objects.get(id=ANONYMOUS_USER_ID)
+    else:
+        user = request.user
     bundles = None
     choice = 0
     if request.method == 'POST':
@@ -150,28 +206,34 @@ def list_bundles(request):
             elif form.cleaned_data['choice'] == 'any':
                 result = search_any_text_field(form.cleaned_data['any'])
                 choice = 4
-            if result:
-                result = result.values_list('id', flat=True)
-                all_bundles = _get_list_with_perms(request.user)
-                bundles = filter(lambda row: row[0] in result, all_bundles)
-            else:
-                bundles = []
-            cache.set(request.user.username+'_s', bundles)
+            #if result:
+            result = result.values_list('id', flat=True)
+            bundles = get_objects_for_user(user=user, perms = ['view_container'],
+                                           klass=Container, any_perm=True).filter(id__in=result).\
+                                           order_by('-id')
+            #else:
+            #    bundles = []
+            #cache.set(request.user.username+'_s', bundles)
             page = 1
         else:
-            bundles = cache.get(request.user.username+'_s')
+            pass
+            #bundles = cache.get(request.user.username+'_s')
     else:
         form = SearchForm()
         page = request.GET.get('page', None)
         if page:
-            bundles = cache.get(request.user.username+'_s', [])
+            pass
+            #bundles = cache.get(request.user.username+'_s', Container.objects.none())
         else:
-            cache.delete(request.user.username+'_s')    
+            pass
+            #cache.delete(request.user.username+'_s')    
         if not bundles:
-            bundles = _get_list_with_perms(request.user)
-            cache.set(request.user.username+'_s', bundles)
+            bundles = get_objects_for_user(user=user, perms = ['view_container'],
+                                           klass=Container, use_groups=True,any_perm=True).\
+                                           order_by('-id')
+            #cache.set(request.user.username+'_s', bundles)
             
-    paginator = Paginator(bundles, PAGINATION_THRESHOLD)
+    paginator = Paginator(bundles.select_related('content__rec_id'), PAGINATION_THRESHOLD)
     try:
         bundles = paginator.page(page)
     except PageNotAnInteger:
@@ -180,9 +242,18 @@ def list_bundles(request):
     except EmptyPage:
         bundles = paginator.page(paginator.num_pages)
         page = paginator.num_pages
+    if bundles.object_list:
+        bundles_permissions = _get_permission_count(user, bundles.object_list)
+        bundles_permissions = bundles_permissions.items()
+        bundles_permissions.sort(reverse=True)
+    else:
+        bundles_permissions = []
+    perms = []
+    for i in range(len(bundles_permissions)):
+        perms.append(bundles_permissions[i][1])
     return render_to_response('server/list_bundles.html', 
                                   {'bundles': bundles, 'page_list': _pagnition(paginator, page),
-                                   'form': form, 'choice': choice},
+                                   'form': form, 'choice': choice, 'perms': perms},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -193,15 +264,16 @@ def bundle_detail(request, container_id):
                 return HttpResponseForbidden()
             container.delete()
             messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
-            cache.delete(request.user.username+'_l')
+            #cache.delete(request.user.username+'_l')
             return redirect(list_bundles)
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
-    licenses = container.license.all() 
+    licenses = container.license.all()
+    del_perm = request.user.has_perm('delete_container', container)
     return render_to_response('server/private/bundle_detail.html',
                               {'bundle': container, 'prov_n': prov_n, 
-                               'prov_json': prov_json, 'license': licenses},
+                               'prov_json': prov_json, 'license': licenses, 'del_perm': del_perm},
                               context_instance=RequestContext(request))
     
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -219,7 +291,7 @@ def create_bundle(request):
             if form.is_valid():
                 container = form.save(owner=request.user)
                 messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
-                cache.delete(request.user.username+'_l')
+                #cache.delete(request.user.username+'_l')
                 return redirect(list_bundles)
             else:
                 for error in form.non_field_errors():

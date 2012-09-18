@@ -57,17 +57,17 @@
           </tr>  
         </thead>  
         <tbody>
-         {% for vars in bundles %}  
+         {% for b in bundles %}  
           <tr>   
-          	<td>{% status_label vars.2 %}</td>
-            <td style="text-align: center;">{{ vars.1 }}</td>  
-            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' vars.0 %}">View</a></td>  
-            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' vars.0 %}" target="_blank">SVG</a></td>
-            <td>{% if vars.2 == 'o' or vars.2 == 'a' %}
-            <a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' vars.0 %}">Admin</a></td>
-            {% endif %}
-            {% if vars.2 == 'o' or vars.2 == 'a' or vars.2 == 'd' %} 
-            <form action="{% url 'server.views.bundle_detail' vars.0%}" method="post" >
+          	<td>{% status_label perms forloop.counter0 %}</td>
+            <td style="text-align: center;">{{ b.content.rec_id }}</td>  
+            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' b.id %}">View</a></td>  
+            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' b.id %}" target="_blank">SVG</a></td>
+            {% if perms|get_at_index:forloop.counter0 > 3 %}
+            <td><a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' b.id %}">Admin</a></td>
+            {% else %}<td></td>{% endif %}
+            {% if perms|get_at_index:forloop.counter0 > 2 %}
+            <form action="{% url 'server.views.bundle_detail' b.id%}" method="post" >
             	{% csrf_token %}
             	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
             </form>

@@ -1,7 +1,6 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_nav.html" %}
 {% load url from future %}
-{% load guardian_tags %}
 {% block title %}PROVServer Bundle{% endblock %}
 {% block content %}
 <h3 style="word-wrap: break-word">Bundle {{ bundle.content.rec_id }}</h3>
@@ -14,7 +13,6 @@
 <h2>PROV-N</h2>
 <pre name="content">{{ prov_n }}</pre>
 <h2>PROV-JSON</h2>
-{% get_obj_perms user for bundle as "perms" %}
 <pre name="json" id="json">{{ prov_json }}</pre>
 {% endblock %}
 
@@ -33,6 +31,6 @@
 <form action="{% url 'server.views.bundle_detail'  bundle.id %}" method="post" >
 		{% csrf_token %}
 		<button class="btn btn-danger" type="submit" value="Delete"
-		{% if not 'delete_container' in perms %}disabled="true"{% endif %}>Delete </button>
+		{% if not del_perm%}disabled="true"{% endif %}>Delete </button>
 </form>
 {% endblock %}

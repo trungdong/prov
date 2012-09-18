@@ -1,7 +1,6 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_clean.html" %}
 {% load url from future %}
-{% load guardian_tags %}
 {% block title %}PROVServer Admin{% endblock %}
 {% block head %}
 <script type="text/javascript">
@@ -62,7 +61,7 @@
 					  <button type="button" value="group" class="btn" data-toggle="button">Group</button>
 					</div>
 					<input type="hidden" name="perm_type" value="user" />
-					<input type="text" class="span2" id="name_add" data-provide="typeahead">	
+					<input type="text" class="span2" id="name_add" name="name" data-provide="typeahead">	
 					<select name="role" style="width:120px">
 					    <option>Administrator</option>   
 		                <option>Editor</option>   
