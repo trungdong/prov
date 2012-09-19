@@ -15,7 +15,11 @@ import datetime
 import json
 import re
 import collections
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 logger = logging.getLogger(__name__)
 
 ## PROV record constants - PROV-DM LC
