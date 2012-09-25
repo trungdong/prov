@@ -47,31 +47,23 @@
     </ul>
 </div>
 	<table id="top" class="table">  
-        <thead>  
-          <tr>
-          	<th style="widht: 14%">Role</th>
-            <th style="width: 50%; text-align: center;">Bundle-ID</th>  
-            <th style="width: 12%"></th>
-            <th style="width: 12%"></th>
-            <th style="width: 12%"></th>   
-          </tr>  
-        </thead>  
         <tbody>
          {% for b in bundles %}  
           <tr>   
-          	<td>{% status_label perms forloop.counter0 %}</td>
-            <td style="text-align: center;">{{ b.content.rec_id }}</td>  
-            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_detail' b.id %}">View</a></td>  
-            <td><a class="btn btn-info" type="button" href="{% url 'server.views.bundle_svg' b.id %}" target="_blank">SVG</a></td>
-            {% if perms|get_at_index:forloop.counter0 > 3 %}
-            <td><a class="btn btn-success" type="button" href="{% url 'server.views.admin_bundle' b.id %}">Admin</a></td>
-            {% else %}<td></td>{% endif %}
-            {% if perms|get_at_index:forloop.counter0 > 2 %}
+            <td>
+              <a href="{% url 'server.views.bundle_detail' b.id %}">{{ b.content.rec_id }}</a>
+              {% if b.public %}<i class="icon-eye-open" title="Public"></i>{% else %}<i class="icon-lock" title="Private"></i>{% endif %}
+          	  {% ifequal b.owner user %}<i class="icon-user" title="Owned by me"></i>{% endifequal %}
+              <a href="{% url 'server.views.bundle_svg' b.id %}" title="View SVG" target="_blank"><i class="icon-picture"></i></a>
+            </td>  
+            {% ifequal b.owner user %}<td>
+              <a href="{% url 'server.views.admin_bundle' b.id %}"><i class="icon-pencil"></i> Edit Permissions</a>
+            </td>
             <form action="{% url 'server.views.bundle_detail' b.id%}" method="post" >
             	{% csrf_token %}
-            	<td><button class="btn btn-danger" type="submit" value="Delete">Delete</button></td>
+            	<td><button type="submit" value="Delete"><i class="icon-remove"></i></button></td>
             </form>
-            {% else %}<td></td>{% endif %}
+            {% else %}<td></td><td></td>{% endifequal %}
           </tr>  
         {% endfor %}
         </tbody>  

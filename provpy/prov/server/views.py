@@ -56,33 +56,6 @@ def registration(request):
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
 
-def _get_permission_count(user, query_set):
-    ''' For a given user and some QuerySet of containers returns 
-    the number of permissions the user have on each bundle. 
-    This corresponds to his role. '''
-    
-    content = ContentType.objects.get(app_label='server', model='container')
-    '''His normal user permissions '''
-    user_perm = UserObjectPermission.objects.filter(user_id=user.id, object_pk__in=query_set,content_type=content)\
-                    .values('object_pk').annotate(Count('user')).order_by()
-    groups = user.groups.exclude(id=PUBLIC_GROUP_ID)
-    '''All his groups permissions except from the public group'''
-    group_perm = GroupObjectPermission.objects.filter(group_id__in=groups, object_pk__in=query_set,content_type=content)\
-                    .values('object_pk').annotate(Count('group')).order_by()
-    '''All his public permissions '''
-    public_perm = GroupObjectPermission.objects.filter(group_id=PUBLIC_GROUP_ID, object_pk__in=query_set,content_type=content)\
-                    .values('object_pk').annotate(Count('group')).order_by()
-    '''Using dictionary to overwrite permissions the user have over the same bundle'''
-    count_dict = {}
-    for i in public_perm:
-        count_dict[int(i['object_pk'])] = 0
-    for i in user_perm:
-        count_dict[int(i['object_pk'])] = i['user__count']
-    for i in group_perm:
-        if i['group__count'] > dict[i['object_pk']]:
-            count_dict[int(i['object_pk'])] = i['group__count']
-    return count_dict
-
 #===============================================================================
 # def get_perms_list(user,q_set):
 #    content = ContentType.objects.get(app_label='server', model='container')
@@ -229,7 +202,7 @@ def list_bundles(request):
             #bundles = cache.get(request.user.username+'_s')
     else:
         form = SearchForm()
-        page = request.GET.get('page', None)
+        page = request.GET.get('page', 1)
 #        if page:
 #            pass
 #            bundles = cache.get(request.user.username+'_s', Container.objects.none())
@@ -237,12 +210,12 @@ def list_bundles(request):
 #            pass
 #            cache.delete(request.user.username+'_s')    
 #        if not bundles:
-        bundles = get_objects_for_user(user=user, perms = ['view_container'],
+        bundle_list = get_objects_for_user(user=user, perms = ['view_container'],
                                        klass=Container, use_groups=True,any_perm=True).\
-                                       order_by('-id')
+                                       order_by('-id').select_related('content__rec_id', 'owner')
             #cache.set(request.user.username+'_s', bundles)
             
-    paginator = Paginator(bundles.select_related('content__rec_id'), PAGINATION_THRESHOLD)
+    paginator = Paginator(bundle_list, PAGINATION_THRESHOLD)
     
     ''' Change 'bundles to the actual page object'''
     try:
@@ -253,23 +226,9 @@ def list_bundles(request):
     except EmptyPage:
         bundles = paginator.page(paginator.num_pages)
         page = paginator.num_pages
-    ''' 
-        bundles_permissions is a raw list of the count of permissions(corresponding to role)
-        of the user for each bundle showed on the page. Index 'x' of bundles_permissions
-        is the count for 'x'-th bundle listed in the Page object 'bundles'.
-    '''
-    if bundles.object_list:
-        bundles_permissions = _get_permission_count(user, bundles.object_list)
-        bundles_permissions = bundles_permissions.items()
-        bundles_permissions.sort(reverse=True)
-    else:
-        bundles_permissions = []
-    perms = []
-    for i in range(len(bundles_permissions)):
-        perms.append(bundles_permissions[i][1])
     return render_to_response('server/list_bundles.html', 
                                   {'bundles': bundles, 'page_list': _pagination(paginator, page),
-                                   'form': form, 'choice': choice, 'perms': perms},
+                                   'form': form, 'choice': choice, 'user': user},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
