@@ -65,7 +65,7 @@ pre_delete.connect(remove_obj_perms_connected_with_user, sender=User)
 
 class Submission(models.Model):
     '''
-    
+    Model to represent a file submitted together with the bundle to be stored
     '''
     timestamp = models.DateTimeField(auto_now_add = True)
     format = models.CharField(max_length=255)
@@ -74,7 +74,7 @@ class Submission(models.Model):
 
 class License(models.Model):
     '''
-    
+    Model for different Licenses 
     '''
     title = models.CharField(max_length=30)
     description = models.CharField(max_length=255)
@@ -83,7 +83,7 @@ class License(models.Model):
     
 class Container(models.Model):
     '''
-    
+    Model for a container of the top level bundles
     '''
     owner = models.ForeignKey(User, blank=True, null=True)
     content = models.ForeignKey(PDBundle, unique=True)

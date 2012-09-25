@@ -31,6 +31,7 @@ PAGINATION_THRESHOLD = 20
 def registration(request):
     if(request.user.is_authenticated()):
         return redirect(list_bundles)
+    
     if request.method == 'POST':
         form = ProfileForm(request.POST)
         if form.is_valid():
@@ -46,6 +47,7 @@ def registration(request):
                 messages.error(request,error)
             return render_to_response('server/register.html',{'form': form, 'next': form.data['next']}, 
                                       context_instance=RequestContext(request))
+            
     form = ProfileForm()
     if 'next' in request.GET:
         next_page = request.GET['next']
@@ -148,7 +150,13 @@ def _get_permission_count(user, query_set):
 #    return bundles
 #===============================================================================
 
-def _pagnition(paginator, page):
+def _pagination(paginator, page):
+    ''' 
+    Generates a list with size equal to the links that are displayed on the 
+    pagination bar. Each element is interpreted as a flag of whether the link is 
+    to be active(other pages) flag '-1', inactive(current page) flag '0' or 
+    '...'(between long intervals) flag '-2'.
+    '''
     interval_size = 3
     page = int(page)
     if paginator.num_pages <= 2 * interval_size + 1:
@@ -206,14 +214,15 @@ def list_bundles(request):
             elif form.cleaned_data['choice'] == 'any':
                 result = search_any_text_field(form.cleaned_data['any'])
                 choice = 4
-            #if result:
-            result = result.values_list('id', flat=True)
+#            if result:
+#            result = result.values_list('id', flat=True)
+            '''Filter the result by the user permissions '''
             bundles = get_objects_for_user(user=user, perms = ['view_container'],
                                            klass=Container, any_perm=True).filter(id__in=result).\
                                            order_by('-id')
-            #else:
-            #    bundles = []
-            #cache.set(request.user.username+'_s', bundles)
+#            else:
+#                bundles = []
+#            cache.set(request.user.username+'_s', bundles)
             page = 1
         else:
             pass
@@ -221,19 +230,21 @@ def list_bundles(request):
     else:
         form = SearchForm()
         page = request.GET.get('page', None)
-        if page:
-            pass
-            #bundles = cache.get(request.user.username+'_s', Container.objects.none())
-        else:
-            pass
-            #cache.delete(request.user.username+'_s')    
-        if not bundles:
-            bundles = get_objects_for_user(user=user, perms = ['view_container'],
-                                           klass=Container, use_groups=True,any_perm=True).\
-                                           order_by('-id')
+#        if page:
+#            pass
+#            bundles = cache.get(request.user.username+'_s', Container.objects.none())
+#        else:
+#            pass
+#            cache.delete(request.user.username+'_s')    
+#        if not bundles:
+        bundles = get_objects_for_user(user=user, perms = ['view_container'],
+                                       klass=Container, use_groups=True,any_perm=True).\
+                                       order_by('-id')
             #cache.set(request.user.username+'_s', bundles)
             
     paginator = Paginator(bundles.select_related('content__rec_id'), PAGINATION_THRESHOLD)
+    
+    ''' Change 'bundles to the actual page object'''
     try:
         bundles = paginator.page(page)
     except PageNotAnInteger:
@@ -242,6 +253,11 @@ def list_bundles(request):
     except EmptyPage:
         bundles = paginator.page(paginator.num_pages)
         page = paginator.num_pages
+    ''' 
+        bundles_permissions is a raw list of the count of permissions(corresponding to role)
+        of the user for each bundle showed on the page. Index 'x' of bundles_permissions
+        is the count for 'x'-th bundle listed in the Page object 'bundles'.
+    '''
     if bundles.object_list:
         bundles_permissions = _get_permission_count(user, bundles.object_list)
         bundles_permissions = bundles_permissions.items()
@@ -252,7 +268,7 @@ def list_bundles(request):
     for i in range(len(bundles_permissions)):
         perms.append(bundles_permissions[i][1])
     return render_to_response('server/list_bundles.html', 
-                                  {'bundles': bundles, 'page_list': _pagnition(paginator, page),
+                                  {'bundles': bundles, 'page_list': _pagination(paginator, page),
                                    'form': form, 'choice': choice, 'perms': perms},
                                   context_instance=RequestContext(request))
 

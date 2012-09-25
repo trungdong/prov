@@ -66,6 +66,7 @@ class BundleForm(Form):
     
     def clean(self):
         self.bundle = ProvBundle()
+        ''' Try to parse content or download and parse URL - one at least needed'''
         if self.cleaned_data['content']:
             try:
                 self.bundle._decode_JSON_container(loads(self.cleaned_data['content']))
@@ -90,17 +91,21 @@ class BundleForm(Form):
         if self.errors:
             raise ValueError("The %s could not be %s because the data didn't"
                          " validate." % ('Container', 'created'))
+            
         container = Container.create(self.cleaned_data['rec_id'], self.bundle, owner, self.cleaned_data['public'])
         save = False
+        
         if 'submission' in self.files:
             file_sub = self.files['submission']
             sub = Submission.objects.create()
             sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
             container.submission = sub
             save = True
+            
         for l in self.cleaned_data['license']:
             container.license.add(l)
             save = True
+            
         if save:
             container.save()
         return container
@@ -141,6 +146,7 @@ class ContactForm(Form):
     sender = forms.EmailField(label=('Sender'), required=True)
     
     def save(self):
+        ''' Sends an email to the ADMINS in settings.py'''
         if self.errors:
             raise ValueError("The %s could not be %s because the data didn't"
                          " validate." % ('Email', 'send'))
