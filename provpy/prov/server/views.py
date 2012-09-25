@@ -2,7 +2,7 @@ from json import dumps
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
@@ -12,22 +12,26 @@ from guardian.shortcuts import assign, remove_perm, get_perms_for_model
 from guardian.shortcuts import get_groups_with_perms, get_objects_for_user, get_users_with_perms
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
-from prov.server.forms import ProfileForm, AppForm, BundleForm, SearchForm
+from prov.server.forms import ProfileForm, AppForm, BundleForm, SearchForm,ContactForm
 from models import Container
 from guardian.decorators import permission_required_or_403
-from prov.settings import ANONYMOUS_USER_ID
+from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
 from oauth_provider.models import Consumer
 from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
 from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
-from django.core.cache import cache
+#from django.core.cache import cache
 
+from django.contrib.contenttypes.models import ContentType
+from guardian.models import GroupObjectPermission, UserObjectPermission
+from django.db.models import Count
 PAGINATION_THRESHOLD = 20
 
 
 def registration(request):
     if(request.user.is_authenticated()):
         return redirect(list_bundles)
+    
     if request.method == 'POST':
         form = ProfileForm(request.POST)
         if form.is_valid():
@@ -37,12 +41,13 @@ def registration(request):
             messages.success(request, 'You have successfully registered!')
             if form.data['next']:
                 return redirect(form.data['next'])
-            return redirect(list_bundles)
+            return redirect('/prov/home')
         else:
             for error in form.non_field_errors():
                 messages.error(request,error)
             return render_to_response('server/register.html',{'form': form, 'next': form.data['next']}, 
                                       context_instance=RequestContext(request))
+            
     form = ProfileForm()
     if 'next' in request.GET:
         next_page = request.GET['next']
@@ -50,53 +55,81 @@ def registration(request):
         next_page = ''
     return render_to_response('server/register.html', {'form': form, 'next': next_page}, 
                               context_instance=RequestContext(request))
-    
-def _get_list_with_perms(user):
-    ''' A function returning a list containing entries which are 3-tuples representing
-    basic information about each bundle including the 'top level' permission.
-    Format of entry is: (BundleID, BundleName, PERMISSION_KEY)
-    Where PERMISSION_KEY takes values in between the First letter of each of the possible
-    permission for the Container model and 'p' which represent public.
-    PERMISSION_KEY takes the value of the top-level permission - ordered in increasing order:
-    'v'(view),'p'(public),'c'(change),'d'(delete),'a'(admin),'o'(own) it would take the value
-    of the 'biggest' permission that the user has for that bundle.
-    Example:
-    if user has view, change and delete and the Bundle is public - 'd'
-    if user has only view and Bundle is public - 'p'
-    if user has only view and Bundle is private - 'v'
-    '''
-    
-    bundles = {}
-    bundles_q = []
-    if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
-        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-    else:
-        bundles_q.append(('v', get_objects_for_user(user=user, 
-                                                    perms = ['view_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
-        bundles_q.append(('c', get_objects_for_user(user=user, 
-                                                    perms = ['change_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('d', get_objects_for_user(user=user, 
-                                                    perms = ['delete_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('a', get_objects_for_user(user=user, 
-                                                    perms = ['admin_container'], 
-                                                    klass=Container, any_perm=True).
-                          select_related('content__rec_id')))
-        bundles_q.append(('o', Container.objects.filter(owner=user).select_related('content__rec_id')))
-    for i in bundles_q:
-        for j in i[1]:
-            bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
-    bundles = bundles.values()
-    bundles.sort(reverse=True)
-    return bundles
 
-def _pagnition(paginator, page):
+#===============================================================================
+# def get_perms_list(user,q_set):
+#    content = ContentType.objects.get(app_label='server', model='container')
+#    user_perm = UserObjectPermission.objects.filter(user_id=user.id, object_pk__in=q_set,content_type=content)\
+#            .values('object_pk')
+#    groups = user.groups.exclude(id=PUBLIC_GROUP_ID)
+#    group_perm = GroupObjectPermission.objects.filter(group_id__in=groups, object_pk__in=q_set,content_type=content)\
+#        .values('object_pk')
+#    public_perm = GroupObjectPermission.objects.filter(group_id=PUBLIC_GROUP_ID, object_pk__in=q_set,content_type=content)\
+#        .values('object_pk')
+#    dict = {}
+#    for i in public_perm:
+#        dict[int(i['object_pk'])] = 0
+#    for i in user_perm:
+#        dict[int(i['object_pk'])] = i['user__count']
+#    for i in group_perm:
+#        if i['group__count'] > dict[i['object_pk']]:
+#            dict[int(i['object_pk'])] = i['group__count']
+#    return dict
+#===============================================================================
+#===============================================================================
+# def _get_list_with_perms(user):
+#    ''' A function returning a list containing entries which are 3-tuples representing
+#    basic information about each bundle including the 'top level' permission.
+#    Format of entry is: (BundleID, BundleName, PERMISSION_KEY)
+#    Where PERMISSION_KEY takes values in between the First letter of each of the possible
+#    permission for the Container model and 'p' which represent public.
+#    PERMISSION_KEY takes the value of the top-level permission - ordered in increasing order:
+#    'v'(view),'p'(public),'c'(change),'d'(delete),'a'(admin),'o'(own) it would take the value
+#    of the 'biggest' permission that the user has for that bundle.
+#    Example:
+#    if user has view, change and delete and the Bundle is public - 'd'
+#    if user has only view and Bundle is public - 'p'
+#    if user has only view and Bundle is private - 'v'
+#    '''
+#    
+#    bundles = {}
+#    bundles_q = []
+#    if user.is_anonymous() or user.id == ANONYMOUS_USER_ID:
+#        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+#    else:
+#        bundles_q.append(('v', get_objects_for_user(user=user, 
+#                                                    perms = ['view_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('p', Container.objects.filter(public = True).select_related('content__rec_id')))
+#        bundles_q.append(('c', get_objects_for_user(user=user, 
+#                                                    perms = ['change_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('d', get_objects_for_user(user=user, 
+#                                                    perms = ['delete_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('a', get_objects_for_user(user=user, 
+#                                                    perms = ['admin_container'], 
+#                                                    klass=Container, any_perm=True).
+#                          select_related('content__rec_id')))
+#        bundles_q.append(('o', Container.objects.filter(owner=user).select_related('content__rec_id')))
+#    for i in bundles_q:
+#        for j in i[1]:
+#            bundles[j.id] = [j.id, j.content.rec_id, i[0]]        
+#    bundles = bundles.values()
+#    bundles.sort(reverse=True)
+#    return bundles
+#===============================================================================
+
+def _pagination(paginator, page):
+    ''' 
+    Generates a list with size equal to the links that are displayed on the 
+    pagination bar. Each element is interpreted as a flag of whether the link is 
+    to be active(other pages) flag '-1', inactive(current page) flag '0' or 
+    '...'(between long intervals) flag '-2'.
+    '''
     interval_size = 3
     page = int(page)
     if paginator.num_pages <= 2 * interval_size + 1:
@@ -117,42 +150,105 @@ def _pagnition(paginator, page):
     return page_list
 
 def list_bundles(request):
-        if request.method == 'POST':
-            if 'delete_id' in request.POST:
-                container_id = request.POST['delete_id']
-                container = get_object_or_404(Container, pk=container_id)
-                if not request.user.has_perm('delete_container', container):
-                    return render_to_response('server/403.html', context_instance=RequestContext(request))
-                messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
-                container.delete()
-        bundles = cache.get(request.user.username+'_l')
-        if not bundles:
-            bundles = _get_list_with_perms(request.user)
-            cache.set(request.user.username+'_l', bundles, 120)
-        paginator = Paginator(bundles, PAGINATION_THRESHOLD)
-        page = request.GET.get('page')
-        try:
-            bundles = paginator.page(page)
-        except PageNotAnInteger:
-            bundles = paginator.page(1)
+    if request.user.is_anonymous():
+        user = User.objects.get(id=ANONYMOUS_USER_ID)
+    else:
+        user = request.user
+    bundles = None
+    choice = 0
+    if request.method == 'POST':
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            choice = form.cleaned_data['choice']
+            if choice == 'name':
+                result = search_name(form.cleaned_data['name'])
+                choice = 0
+            elif choice == 'id':
+                result = search_id(form.cleaned_data['id'])
+                choice = 1
+            elif choice == 'type':
+                result = search_literal(form.cleaned_data['literal']+'prov#type', form.cleaned_data['value'])
+                choice = 2
+            elif choice == 'time':
+                start_date = form.cleaned_data['start_time_date']
+                start_time = form.cleaned_data['start_time_time']
+                if start_date:
+                    start = str(start_date) + 'T' + str(start_time)
+                else:
+                    start = None
+                end_date = form.cleaned_data['end_time_date']
+                end_time = form.cleaned_data['end_time_time']
+                if end_date:
+                    end = str(end_date) + 'T' + str(end_time)
+                else:
+                    end = None
+                result = search_timeframe(start, end)
+                choice = 3
+            elif form.cleaned_data['choice'] == 'any':
+                result = search_any_text_field(form.cleaned_data['any'])
+                choice = 4
+#            if result:
+#            result = result.values_list('id', flat=True)
+            '''Filter the result by the user permissions '''
+            bundles = get_objects_for_user(user=user, perms = ['view_container'],
+                                           klass=Container, any_perm=True).filter(id__in=result).\
+                                           order_by('-id')
+#            else:
+#                bundles = []
+#            cache.set(request.user.username+'_s', bundles)
             page = 1
-        except EmptyPage:
-            bundles = paginator.page(paginator.num_pages)
-            page = paginator.num_pages
-        return render_to_response('server/private/list_bundles.html', 
-                                  {'bundles': bundles, 'page_list': _pagnition(paginator, page)},
+        else:
+            pass
+            #bundles = cache.get(request.user.username+'_s')
+    else:
+        form = SearchForm()
+        page = request.GET.get('page', 1)
+#        if page:
+#            pass
+#            bundles = cache.get(request.user.username+'_s', Container.objects.none())
+#        else:
+#            pass
+#            cache.delete(request.user.username+'_s')    
+#        if not bundles:
+        bundle_list = get_objects_for_user(user=user, perms = ['view_container'],
+                                       klass=Container, use_groups=True,any_perm=True).\
+                                       order_by('-id').select_related('content__rec_id', 'owner')
+            #cache.set(request.user.username+'_s', bundles)
+            
+    paginator = Paginator(bundle_list, PAGINATION_THRESHOLD)
+    
+    ''' Change 'bundles to the actual page object'''
+    try:
+        bundles = paginator.page(page)
+    except PageNotAnInteger:
+        bundles = paginator.page(1)
+        page = 1
+    except EmptyPage:
+        bundles = paginator.page(paginator.num_pages)
+        page = paginator.num_pages
+    return render_to_response('server/list_bundles.html', 
+                                  {'bundles': bundles, 'page_list': _pagination(paginator, page),
+                                   'form': form, 'choice': choice, 'user': user},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
 def bundle_detail(request, container_id):
     container = get_object_or_404(Container, pk=container_id)
+    if request.method == 'POST':
+            if not request.user.has_perm('delete_container', container):
+                return HttpResponseForbidden()
+            container.delete()
+            messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
+            #cache.delete(request.user.username+'_l')
+            return redirect(list_bundles)
     prov_g = container.content.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
-    licenses = container.license.all() 
+    licenses = container.license.all()
+    del_perm = request.user.has_perm('delete_container', container)
     return render_to_response('server/private/bundle_detail.html',
                               {'bundle': container, 'prov_n': prov_n, 
-                               'prov_json': prov_json, 'license': licenses},
+                               'prov_json': prov_json, 'license': licenses, 'del_perm': del_perm},
                               context_instance=RequestContext(request))
     
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -170,6 +266,7 @@ def create_bundle(request):
             if form.is_valid():
                 container = form.save(owner=request.user)
                 messages.success(request, 'The bundle was successfully created with ID ' + str(container.content.rec_id) + ".")
+                #cache.delete(request.user.username+'_l')
                 return redirect(list_bundles)
             else:
                 for error in form.non_field_errors():
@@ -323,6 +420,7 @@ def manage_apps(request):
             status = 4
         consumer.status = status
         consumer.save()
+        messages.success(request, 'The Key ' + consumer.key + ' status was successfully updated.')
         
     apps = request.user.consumer_set.all()
     return render_to_response('server/private/manage_apps.html', 
@@ -336,43 +434,63 @@ def oauth_authorize(request, token, callback, params):
                                'form': AuthorizeRequestTokenForm(), 'oauth_token': token.key},
                               context_instance=RequestContext(request))
 
-def search(request):
-    bundles = []
+#===============================================================================
+# def search(request):
+#    bundles = []
+#    if request.method == 'POST':
+#        form = SearchForm(request.POST)
+#        if form.is_valid():
+#            if form.cleaned_data['choice'] == 'name':
+#                result = search_name(form.cleaned_data['string'])
+#            elif form.cleaned_data['choice'] == 'id':
+#                result = search_id(form.cleaned_data['string'])
+#            elif form.cleaned_data['choice'] == 'type':
+#                result = search_literal(form.cleaned_data['string'])
+#            elif form.cleaned_data['choice'] == 'time': 
+#                result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
+#            elif form.cleaned_data['choice'] == 'any':
+#                result = search_any_text_field(form.cleaned_data['string'])
+#            result = result.values_list('id', flat=True)
+#            all_bundles = _get_list_with_perms(request.user)
+#            bundles = filter(lambda row: row[0] in result, all_bundles)
+#            cache.set(request.user.username+'_s', bundles)
+#    else:
+#        form = SearchForm()
+#    page = request.GET.get('page', None)
+#    if page:
+#        bundles = cache.get(request.user.username+'_s', [])
+#    else:
+#        cache.delete(request.user.username+'_s')
+#    paginator = Paginator(bundles, PAGINATION_THRESHOLD)
+#    try:
+#        bundles = paginator.page(page)
+#    except PageNotAnInteger:
+#        bundles = paginator.page(1)
+#        page = 1
+#    except EmptyPage:
+#        bundles = paginator.page(paginator.num_pages)
+#        page = paginator.num_pages
+#    return render_to_response('server/search.html', {'form': form, 'bundles': bundles,
+#                                                     'page_list':_pagnition(paginator, page)},
+#                              context_instance=RequestContext(request))
+#===============================================================================
+
+def contact(request):
     if request.method == 'POST':
-        form = SearchForm(request.POST)
+        form = ContactForm(request.POST)
         if form.is_valid():
-            if form.cleaned_data['choice'] == 'name':
-                result = search_name(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'id':
-                result = search_id(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'type':
-                result = search_literal(form.cleaned_data['string'])
-            elif form.cleaned_data['choice'] == 'time': 
-                result = search_timeframe(form.cleaned_data['start_time'], form.cleaned_data['end_time'])
-            elif form.cleaned_data['choice'] == 'any':
-                result = search_any_text_field(form.cleaned_data['string'])
-            result = result.values_list('id', flat=True)
-            all_bundles = _get_list_with_perms(request.user)
-            bundles = filter(lambda row: row[0] in result, all_bundles)
-            cache.set(request.user.username+'_s', bundles)
+            try:
+                form.save()
+                messages.success(request, 'Thank you for your email. We will get back to you soon.')
+                form = ContactForm()
+            except:
+                messages.error(request, 'We are sorry, but there was a problem with the email server. '\
+                              + 'Please try again later.')
     else:
-        form = SearchForm()
-    page = request.GET.get('page', None)
-    if page:
-        bundles = cache.get(request.user.username+'_s', [])
-    else:
-        cache.delete(request.user.username+'_s')
-    paginator = Paginator(bundles, PAGINATION_THRESHOLD)
-    try:
-        bundles = paginator.page(page)
-    except PageNotAnInteger:
-        bundles = paginator.page(1)
-        page = 1
-    except EmptyPage:
-        bundles = paginator.page(paginator.num_pages)
-        page = paginator.num_pages
-    return render_to_response('server/search.html', {'form': form, 'bundles': bundles,
-                                                     'page_list':_pagnition(paginator, page)},
+        form = ContactForm()
+        if not request.user.is_anonymous() or request.user.id == -1:
+            form.fields['sender'].initial = request.user.email
+    return render_to_response('server/contact.html', {'form': form}, 
                               context_instance=RequestContext(request))
     
 

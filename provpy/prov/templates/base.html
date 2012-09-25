@@ -9,31 +9,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="keywords" content="">
-    <meta name="author" content="">
+    <meta name="author" content=""> 
+   	
 
-    <link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
-    <link href="/static/bootstrap/css/bootstrap-responsive.css" rel="stylesheet">
+	<link href="/static/bootstrap/css/bootstrap.css" rel="stylesheet">
+	<link href="/static/datepicker.css" rel="stylesheet">
+	<link href="/static/timepicker.css" rel="stylesheet">
     <link href="/static/custom.css" rel="stylesheet">
-    <link href="/static/jquery-ui-1.8.21.custom.css" rel="stylesheet">
-    
+     
     <script src="/static/jquery.js"></script>
-    <script src="/static/jquery-ui-1.8.21.custom.js"></script>
-   	<script type="text/javascript" src="/static/webUI.js"></script>
-	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-button.js"></script>
-	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-alert.js"></script>
-	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-typeahead.js"></script>
-	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-dropdown.js"></script>
-    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-
-    <!-- Le fav and touch icons -->
-    <link rel="shortcut icon" href="/static/images/provserver-64.ico">
-    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/static/images/provserver-144.png">
-    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/static/images/provserver-114.png">
-    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/static/images/provserver-72.png">
-    <link rel="apple-touch-icon-precomposed" href="/static/images/provserver-57.png">
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-datepicker.js"></script>
+	<script type="text/javascript" src="/static/bootstrap/js/bootstrap-timepicker.js"></script>
     {% block head %}{% endblock %}
   </head>
   <body>
@@ -49,7 +36,6 @@
           <ul class="nav">
             <li><a href="/prov/home">Home</a></li>
             <li><a href="{% url 'server.views.list_bundles' %}">Bundles</a></li>
-            <li><a href="{% url 'server.views.search' %}">Search</a></li>
             {% if user.is_authenticated %}
             <li><a href="{% url 'server.views.manage_apps' %}">Apps</a></li>
             <li><a href="{% url 'server.views.api_key' %}">API Key</a></li>
@@ -59,7 +45,7 @@
             <li><a href="{% url 'django.contrib.auth.views.login' %}">Login</a></li>
             {% endif %}
              </ul>  
-            <ul class="nav pull-right">
+            <ul class="nav pull-right nav-collapse">
             <li class="dropdown">
 			    <a href="#" class="dropdown-toggle" data-toggle="dropdown">Help<b class="caret"></b></a>
 			    <ul class="dropdown-menu">
@@ -79,26 +65,18 @@
         <div class="span8 offset2 alert alert-block{% if message.tags %} alert-{{ message.tags }}{% endif %}">
           <a class="close" data-dismiss="alert" href="#">×</a>
           {% if message.tags %}<h4 class="alert-heading">{{ message.tags|capfirst }}!</h4>{% endif %}
-          <p>{{ message }}</p>
+          <p style="word-wrap: break-word">{{ message }}</p>
         </div>{% endfor %}
       </div>{% endif %}
-	  <div class="span9">
-			{% block content %}{% endblock %}
-	  </div>
-		{% if user.is_authenticated %}<div class="span3">
-		  	<pre>
-		  	Navigation Bar
-		  	
-		  	
-		  	
-		  	</pre>
-		  </div>
-	    </div>{% endif %}
-	</div>
-    <footer>
-      <div class="footer" id="footer">
-        <h4>&copy; University of Southampton 2012</h4>
-      </div>
-    </footer>
+      {% block pane %}{% endblock %}
+    </div>
+  </div>
+  <footer class="footer">
+     <div class="footer" id="footer">
+     	<div class="pull-right" style="margin-right: 20px">
+        <h5>&copy; University of Southampton 2012</h5>
+        </div>
+     </div>
+  </footer>
   </body>
 </html>

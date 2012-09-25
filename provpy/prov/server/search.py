@@ -27,14 +27,14 @@ def _get_containers(rec_set):
     
 def search_name(q_str=None, exact=False):
     if not q_str:
-        return None
+        return Container.objects.none()
     if exact:
         return Container.objects.filter(content__rec_id__iexact=q_str)
     return Container.objects.filter(content__rec_id__icontains=q_str)
     
 def search_id(q_str=None, exact=False):
     if not q_str:
-        return None
+        init_set = PDRecord.objects.none()
     if exact:
         init_set = PDRecord.objects.filter(rec_id__iexact=q_str)
     else:
@@ -44,7 +44,7 @@ def search_id(q_str=None, exact=False):
 def search_literal(literal, q_str, exact=False):
     #literal = literal.replace(':', '#')
     if not q_str:
-        return None
+        lit_set = PDRecord.objects.none()
     ''' Get all the records who are attached to LiteralAttributes with the constraints:
         LiteralAttribute.name = literal, LiteralAttribute.value matches q_str '''
     if exact:
@@ -58,7 +58,7 @@ def search_literal(literal, q_str, exact=False):
 
 def search_timeframe(start=None, end=None):
     if not start and not end:
-        return None
+        return PDRecord.objects.none()
     ''' The fact that dates are kept as strings in the DB require this step if you pass datetime object '''
     from datetime import datetime
     if isinstance(start, datetime):
@@ -93,7 +93,7 @@ def search_any_text_field(q_str, exact=False):
     ''' Search in the record id and all LiteralAttribute.values to find bundles matching q_str'''
     
     if not q_str:
-        return None
+        PDRecord.objects.none()
     if exact:
 #        namepsace_set = PDNamespace.objects.filter(Q(prefix=q_str), Q(uri=q_str))
 #        record_set = PDRecord.objects.filter(Q(rec_id=q_str), Q(rec_type=q_str))

@@ -1,7 +1,6 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
-{% load guardian_tags %}
 {% block title %}PROVServer Admin{% endblock %}
 {% block head %}
 <script type="text/javascript">
@@ -18,14 +17,10 @@
 	      button.live('click', function(){
 	          hidden.val($(this).val());
 	          if($(this).val() == "user"){
-	          		$( "#name_add" ).autocomplete({
-						source: userTags
-					});
+	          		$('#name_add').typeahead().data('typeahead').source = userTags;
 	          }
 	          else {
-	          		$( "#name_add" ).autocomplete({
-						source: groupTags
-					});
+					$('#name_add').typeahead().data('typeahead').source = groupTags;
 	          }
 	      });
 	      if(button.val() == hidden.val()) {
@@ -35,11 +30,11 @@
 	  });
 	});
 	$(function() {
-			$( "#name_add" ).autocomplete({
+			$( "#name_add" ).typeahead({
 				source: userTags
 			});
 		});
-	</script>	
+</script>
 {% endblock %}
 {% block content %}
 <div class="span3">
@@ -66,7 +61,7 @@
 					  <button type="button" value="group" class="btn" data-toggle="button">Group</button>
 					</div>
 					<input type="hidden" name="perm_type" value="user" />
-					<input type="text" class="input-xlarge span2" name="name" id="name_add">
+					<input type="text" class="span2" id="name_add" name="name" data-provide="typeahead">	
 					<select name="role" style="width:120px">
 					    <option>Administrator</option>   
 		                <option>Editor</option>   
@@ -78,7 +73,7 @@
           	</div>      
           </form>
 </div>
-<a class="btn btn-primary pull-right" onClick="go_to('{% url 'server.views.list_bundles' %}');">Back</a>
+<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Back</a>
 <table class="table">  
     <thead>  
     	<tr><th><h3>Owner</h3></th></tr>  

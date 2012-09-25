@@ -42,45 +42,50 @@ class ContainerResource(ModelResource):
         ** - The file content is not parsed at all, it is just saved for later usage and
              if file is submitted the HTTP call should be in 'multipart' encoding format.
         '''
+        
         try:
+            '''Try to read the content else download and parse the URL file '''
             prov_bundle = ProvBundle()
             if bundle.data['content']:
                 prov_bundle._decode_JSON_container(bundle.data['content'])
             else:
-                source = urlopen(bundle.data['url'])
+                source = urlopen(bundle.data['url'], timeout=5)
                 content = source.read()
                 source.close()
                 prov_bundle._decode_JSON_container(loads(content))
             container = Container.create(bundle.data['rec_id'], prov_bundle, request.user)
-            save = False
-            if 'public' in bundle.data: 
-                container.public = bundle.data['public']
-                save = True
-                if bundle.data['public']:
-                    assign('view_container', Group.objects.get(id=PUBLIC_GROUP_ID), container)
-            
-            if 'licenses' in bundle.data:
-                for title in bundle.data['licenses']:
-                    try:
-                        lic = License.objects.get(title=title)
-                        container.license.add(lic)
-                        save = True
-                    except License.DoesNotExist:
-                        pass
-            if 'submission' in request.FILES:
-                file_sub = request.FILES['submission']
-                sub = Submission.objects.create()
-                sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
-                container.submission = sub
-                save = True
-            if 'url' in bundle.data:
-                container.url = bundle.data['url']
-                save = True
-            if save:
-                container.save()
         except: 
             raise ImmediateHttpResponse(HttpBadRequest())
 
+        save = False
+        if 'public' in bundle.data: 
+            container.public = bundle.data['public']
+            save = True
+            if bundle.data['public']:
+                assign('view_container', Group.objects.get(id=PUBLIC_GROUP_ID), container) 
+                           
+        if 'licenses' in bundle.data:
+            for title in bundle.data['licenses']:
+                try:
+                    lic = License.objects.get(title=title)
+                    container.license.add(lic)
+                    save = True
+                except License.DoesNotExist:
+                    pass
+        
+        if 'submission' in request.FILES:
+            file_sub = request.FILES['submission']
+            sub = Submission.objects.create()
+            sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
+            container.submission = sub
+            save = True
+            
+        if 'url' in bundle.data:
+            container.url = bundle.data['url']
+            save = True
+            
+        if save:
+            container.save()
         bundle.obj = container
         return bundle
     
@@ -101,16 +106,16 @@ class ContainerResource(ModelResource):
         ''' Method to return the list of objects via GET method to the Resource (not concrete).
         If the variable 'search_type' is present returns the appropriate bundles
         which match the searching query. 'search_type' can have several values:
-            'Name' - accompanied by 'q_str' variable containing the search string
+            'name' - accompanied by 'q_str' variable containing the search string
                      returns all Bundles containing the q_str in their name.
-            'Identifier' - accompanied by 'q_str' variable containing the search string
+            'id' - accompanied by 'q_str' variable containing the search string
                            returns all Bundles containing a record that contains the q_str in their name.
-            'prov:type' - accompanied by 'q_str' variable containing the search string
+            'type' - accompanied by 'q_str' variable containing the search string
                           returns all Bundles containing a literal attribute with type prov:type
                           and value containing q_str.
-            'Timeframe' - accompanied by 'start' and/or 'end' variable containing the times
+            'time' - accompanied by 'start' and/or 'end' variable containing the times
                           returns all Bundles with within the time frame [strat:end]
-            'Any' - accompanied by 'q_str' variable containing the search string
+            'any' - accompanied by 'q_str' variable containing the search string
                      returns all Bundles containing anything matching q_str.
         '''
         
@@ -147,6 +152,7 @@ class ContainerResource(ModelResource):
         If ``Meta.always_return_data = True``, there will be a populated body
         of serialized data.
         """
+        
         '''
         This method is overridden only for the purpose of accepting a 'multipart'
         request for the purpose of receiving a 'submission' file.
@@ -156,7 +162,7 @@ class ContainerResource(ModelResource):
         '''<--- CHANGE ---> '''
         '''
         For some reason without accessing the variable request it fails,
-        so without the debugging line it won't work
+        so without the debugging line print it won't work
         '''
         import logging
         logging.debug(request.FILES)

@@ -4,14 +4,9 @@ from django.utils.translation import ugettext
 
 register = template.Library()
 
-@register.simple_tag
-def status_label(perm):
-    if perm == 'o':
-        return '<span class="label label-inverse">Owned</span>'
-    elif perm == 'p':
-        return '<span class="label label-info">Public</span>'
-    else:
-        return '<span class="label label-success">Delegated</span>'
+@register.filter
+def get_at_index(list, index):
+    return list[index]
 
 @register.simple_tag
 def status_to_options(status):

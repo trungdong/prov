@@ -7,6 +7,9 @@ from prov.model import ProvBundle
 from django.utils.safestring import mark_safe
 from urllib2 import URLError, urlopen
 from json import loads
+from django.core.mail import send_mail
+from prov.settings import ADMINS
+
 
 class ProfileForm(ModelForm):
     ''' Form representing the UserProfile Model '''
@@ -63,6 +66,7 @@ class BundleForm(Form):
     
     def clean(self):
         self.bundle = ProvBundle()
+        ''' Try to parse content or download and parse URL - one at least needed'''
         if self.cleaned_data['content']:
             try:
                 self.bundle._decode_JSON_container(loads(self.cleaned_data['content']))
@@ -70,7 +74,7 @@ class BundleForm(Form):
                 raise forms.ValidationError(u'Wrong syntax in the JSON content.')
         elif self.cleaned_data['url']:
             try:
-                source = urlopen(self.cleaned_data['url'])
+                source = urlopen(self.cleaned_data['url'], timeout=5)
                 url_content = source.read()
                 source.close()
             except URLError:
@@ -86,31 +90,65 @@ class BundleForm(Form):
     def save(self, owner, commit=True):
         if self.errors:
             raise ValueError("The %s could not be %s because the data didn't"
-                         " validate." % ('BundleContainer', 'created'))
+                         " validate." % ('Container', 'created'))
+            
         container = Container.create(self.cleaned_data['rec_id'], self.bundle, owner, self.cleaned_data['public'])
         save = False
+        
         if 'submission' in self.files:
             file_sub = self.files['submission']
             sub = Submission.objects.create()
             sub.content.save(sub.timestamp.strftime('%Y-%m-%d%H-%M-%S')+file_sub._name, file_sub)
             container.submission = sub
             save = True
+            
         for l in self.cleaned_data['license']:
             container.license.add(l)
             save = True
+            
         if save:
             container.save()
         return container
     
 class SearchForm(Form):
     ''' Form for searching for a bundle '''
-    
-    string = forms.CharField(label='Search:', required=False)
-    choice = forms.ChoiceField(label='for', required=False, choices = 
-                               (('name', 'Name'), ('id','Identifier'), 
-                                ('type', 'Type'), ('time', 'Time frame'),
-                                ('any', 'Any')))
-    start_time = forms.DateTimeField(label='From:', required=False)
-    end_time = forms.DateTimeField(label='To:', required=False)
-    
+    name = forms.CharField(label=('Name'), required=False, 
+                           widget=forms.TextInput(attrs={'class':'input-medium'}))
+    id = forms.CharField(label=('Identifier'), required=False, 
+                         widget=forms.TextInput(attrs={'class':'input-medium'}))
+    literal = forms.CharField(label=('Literal'), required=False, 
+                              widget=forms.TextInput(attrs={'class':'input-medium'}))
+    value = forms.CharField(label=('Value'), required=False, 
+                            widget=forms.TextInput(attrs={'class':'input-medium'}))
+    any = forms.CharField(label=('Any Field'), required=False, 
+                          widget=forms.TextInput(attrs={'class':'input-medium'}))
+    start_time_date = forms.DateField(label=('Starting time'), required=False,
+                                      widget=forms.TextInput(attrs={'class':'input-small',
+                                                                    'readonly' : '' ,}))
+    start_time_time = forms.TimeField(required=False,
+                                      widget=forms.TextInput(attrs={'class':'timepicker-1 input-small',
+                                                                    'readonly' : '' ,}))
+    end_time_date = forms.DateField(label=('End time'), required=False,
+                                      widget=forms.TextInput(attrs={'class':'input-small',
+                                                                    'readonly' : '' ,}))
+    end_time_time = forms.TimeField(required=False,
+                                      widget=forms.TextInput(attrs={'class':'timepicker-1 input-small', 
+                                                                    'readonly' : '' ,}))
+    choice = forms.ChoiceField(required=True, choices = 
+                               (('name', 'name'), ('id','id'), 
+                                ('type', 'type'), ('time', 'time'),
+                                ('any', 'any')))
 
+
+class ContactForm(Form):
+    subject = forms.CharField(label=('Subject'), required=True)
+    message = forms.CharField(label=('Message'), required=True, widget=Textarea(attrs={'class': 'span5'}))
+    sender = forms.EmailField(label=('Sender'), required=True)
+    
+    def save(self):
+        ''' Sends an email to the ADMINS in settings.py'''
+        if self.errors:
+            raise ValueError("The %s could not be %s because the data didn't"
+                         " validate." % ('Email', 'send'))
+        send_mail(self.cleaned_data['subject'], self.cleaned_data['message'], 
+                  self.cleaned_data['sender'], [a[1] for a in ADMINS])

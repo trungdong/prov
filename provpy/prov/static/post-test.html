@@ -82,8 +82,8 @@ data = {
 };
 
 function test() {
-	var user = 'port';
-	var pass = '367d958cfa9fc375dbdfdd114cf66fc2f8838774';
+	var user = 'top';
+	var pass = '32b867c10b5af2887a66efc99d7bf94a94cf78dc';
 	var tok = user + ':' + pass;
   	var auth = 'ApiKey ' + tok;
 	var l = ['mi'];
@@ -91,13 +91,13 @@ function test() {
 			"rec_id": "#agentswitch-mockup",
 			"public": "True",
 			"licenses": l,
-			"content": "",
+			"content": data,
 			"url": "http://users.ecs.soton.ac.uk/ab9g10/test.json"		
 		};
 	$.ajax({
-		  type: 'GET',
+		  type: 'POST',
 		  url: '/api/v0/bundle/',
-		  data: 'search_type=Name&q_str=sad',
+		  data: JSON.stringify(account),
 		  contentType: 'application/json',
 		  beforeSend: function(req) {
         		req.setRequestHeader('Authorization', auth);

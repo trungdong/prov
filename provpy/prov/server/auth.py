@@ -45,8 +45,10 @@ class CustomAuthorization(Authorization):
     
     def is_authorized(self, request, object=None): #@ReservedAssignment
         path = request.path.split('/');
+        '''If agent is calling api/vX/bundles/ (the list view)'''
         if not self.checkRequest(path=path):
             return True
+        '''If agent is calling concrete bundle '''
         if request.user.has_perm(self.methodToPerms(request.method), Container.objects.get(id=int(path[-2]))):
             return True
         else:    

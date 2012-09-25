@@ -1,13 +1,15 @@
 {# Copyright (C) 2011 University of Southampton #}
-{% extends "base.html" %}
+{% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer NewBundle{% endblock %}
 {% block content %}
-<div class="leaderboard span8">  
+<div class="leaderboard offset1 span7">  
 	<h2>Input the bundle you wish to upload.</h2>
 </div>
-<input class="btn" type="button" onClick="go_to('{% url 'server.views.list_bundles' %}');" value="Back"/>
-	<form class="well form-inline offset1" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
+<div class="pull-left span3" style="margin-bottom: 10px">
+<a class="btn" href="{% url 'server.views.list_bundles' %}">Back</a>
+</div>
+	<form class="well form-inline offset1 span7" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
   			{% for field in form %}
   			<div class="cotnrol-group">
@@ -15,8 +17,7 @@
 	  			{{ field.errors }}
 	  			{{ field }}
   			 </div>
-  			{% endfor %}
-  		</br>
-		<input type="submit" class="btn btn-primary offset2" value="Submit" />
+  			{% endfor %}<br/>
+  			<div align="center"><input type="submit" class="btn btn-primary span2" value="Submit"/></div>
 	</form>
 {% endblock %}
