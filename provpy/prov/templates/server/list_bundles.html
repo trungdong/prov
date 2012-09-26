@@ -29,21 +29,20 @@
 </script>
 {% endblock %}
 {% block content %}
-	<h4 id="top" class="anchorOffset"></h4>
 	<h4>Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }}<br/>
 	out of total {{ bundles.paginator.count }} bundle{{ bundles.paginator.count|pluralize}}.</h4>
-<div class="pagination pagination-centered">
+  <div class="pagination pagination-centered">
 	<ul>
-        <li {% if not bundles.has_previous %} class="disabled"><a><<</a>
-        	{% else %}><a href="?page={{ bundles.previous_page_number }}"><<</a>{% endif %}
+      <li {% if not bundles.has_previous %} class="disabled"><a><i class="icon-backward"></i></a>
+      	{% else %}><a href="?page={{ bundles.previous_page_number }}"><a><i class="icon-backward"></i></a>{% endif %}
 		{% for page in page_list %}
 			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
 			{% elif page == -2 %}<li class="disabled"><a>...</a>
 			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
 			{% endif %}</li>
 		{% endfor %}
-		<li {% if not bundles.has_next %} class="disabled"><a>>></a>
-        	{% else %}><a href="?page={{ bundles.next_page_number }}">>></a>{% endif %}</li>
+		<li {% if not bundles.has_next %} class="disabled"><a><i class="icon-forward"></i></a>
+        	{% else %}><a href="?page={{ bundles.next_page_number }}"><i class="icon-forward"></i></a>{% endif %}</li>
     </ul>
 </div>
 	<table id="top" class="table">  
@@ -54,14 +53,14 @@
               <a href="{% url 'server.views.bundle_detail' b.id %}">{{ b.content.rec_id }}</a>
               {% if b.public %}<i class="icon-eye-open" title="Public"></i>{% else %}<i class="icon-lock" title="Private"></i>{% endif %}
           	  {% ifequal b.owner user %}<i class="icon-user" title="Owned by me"></i>{% endifequal %}
-              <a href="{% url 'server.views.bundle_svg' b.id %}" title="View SVG" target="_blank"><i class="icon-picture"></i></a>
-            </td>  
+            </td>
+            <td><a href="{% url 'server.views.bundle_svg' b.id %}" title="View SVG" target="_blank"><i class="icon-picture"></i> View SVG</a></td>  
             {% ifequal b.owner user %}<td>
-              <a href="{% url 'server.views.admin_bundle' b.id %}"><i class="icon-pencil"></i> Edit Permissions</a>
+              <a href="{% url 'server.views.admin_bundle' b.id %}"><i class="icon-pencil"></i> Edit Permissions</a>              
             </td>
             <form action="{% url 'server.views.bundle_detail' b.id%}" method="post" >
             	{% csrf_token %}
-            	<td><button type="submit" value="Delete"><i class="icon-remove"></i></button></td>
+            	<td><button class="btn btn-small btn-danger" type="submit" value="Delete"><i class="icon-trash icon-white"></i> Delete</button></td>
             </form>
             {% else %}<td></td><td></td>{% endifequal %}
           </tr>  
@@ -71,16 +70,16 @@
 {% if bundles|length > 10 %}
 <div class="pagination pagination-centered">
 	<ul>
-        <li {% if not bundles.has_previous %} class="disabled"><a><<</a>
-        	{% else %}><a href="?page={{ bundles.previous_page_number }}"><<</a>{% endif %}
+        <li {% if not bundles.has_previous %} class="disabled"><a>&lt;&lt;</a>
+        	{% else %}><a href="?page={{ bundles.previous_page_number }}">&lt;&lt;</a>{% endif %}
 		{% for page in page_list %}
 			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
 			{% elif page == -2 %}<li class="disabled"><a>...</a>
 			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
 			{% endif %}</li>
 		{% endfor %}
-		<li {% if not bundles.has_next %} class="disabled"><a>>></a>
-        	{% else %}><a href="?page={{ bundles.next_page_number }}">>></a>{% endif %}</li>
+		<li {% if not bundles.has_next %} class="disabled"><a>&gt;&gt;</a>
+        	{% else %}><a href="?page={{ bundles.next_page_number }}">&gt;&gt;</a>{% endif %}</li>
     </ul>
 </div>
 {% endif %}
@@ -88,8 +87,11 @@
 
 
 {% block nav_bar %}
-<div class="span3">
-	<h3>Filter by:</h3>
+{% if user.is_authenticated %}
+<a class="btn btn-success" href="{% url 'server.views.create_bundle' %}"><i class="icon-plus icon-white"></i> Add New Bundle</a>
+<br/>
+{% endif %}
+<h3>Filter by:</h3>
 <div class="tabbable">
   <ul class="nav nav-tabs" id="filter_tab" style="margin-bottom: 10px">
     <li class="active"><a href="#name" data-toggle="tab">Name</a></li>
@@ -105,8 +107,8 @@
 	  	{{ form.name.label_tag }}
 	  	{{ form.name }}{{ form.name.errors }}
 	  	<br/>
-  		<button class="btn btn-primary" type="submit" name="choice" value="name">Filter</button>
-	  	<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Reset</a>
+  		<button class="btn btn-primary" type="submit" name="choice" value="name"><i class="icon-filter icon-white"></i> Filter</button>
+	  	<a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-refresh"></i> Reset</a>
 	  </form>
 	</div>
     <div id="id" class="tab-pane">
@@ -115,8 +117,8 @@
 		{{ form.id.label_tag }}
 	  	{{ form.id }}{{ form.id.errors }}
 	  	<br/>
-  		<button class="btn btn-primary" type="submit" name="choice" value="id">Filter</button>
-	  	<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Reset</a>
+  		<button class="btn btn-primary" type="submit" name="choice" value="id"><i class="icon-filter icon-white"></i> Filter</button>
+	  	<a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-refresh"></i> Reset</a>
 	  </form>
     </div>
     <div id="type" class="tab-pane">
@@ -127,28 +129,36 @@
 	  	{{ form.value.label_tag }}
 	  	{{ form.value }}{{ form.value.errors }}
 	  	<br/>
-  		<button class="btn btn-primary" type="submit" name="choice" value="type">Filter</button>
-	  	<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Reset</a>
+  		<button class="btn btn-primary" type="submit" name="choice" value="type"><i class="icon-filter icon-white"></i> Filter</button>
+	  	<a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-refresh"></i> Reset</a>
 	  </form>
     </div>
     <div id="time" class="tab-pane">
       <form class="well-form" action="{% url 'server.views.list_bundles' %}?page=1" enctype="multipart/form-data" method="post">
 		{% csrf_token %}
-	  	{{ form.start_time_date.label_tag }}
-	  	{{ form.start_time_date }}{{ form.start_time_date.errors}}
-	  	<div class="input-append bootstrap-timepicker-component">
+		<div class="control-group">
+    	  {{ form.start_time_date.label_tag }}
+		  <span class="input-append date" data-date-format="dd-mm-yyyy">
+		  	{{ form.start_time_date }}<span class="add-on"><i class="icon-calendar"></i></span>{{ form.start_time_date.errors}}
+		  </span>&nbsp;
+	  	  <span class="input-append bootstrap-timepicker-component">
         	{{ form.start_time_time }}
         	<span class="add-on"><i class="icon-time"></i></span>{{ form.start_time_time.errors}}
-        </div>
-        {{ form.end_time_date.label_tag }}
-	  	{{ form.end_time_date }}{{ form.end_time_date.errors}}
-	  	<div class="input-append bootstrap-timepicker-component">
+          </span>
+         </div>
+         <div class="control-group">
+          {{ form.end_time_date.label_tag }}
+          <span class="input-append date" data-date-format="dd-mm-yyyy">
+	  		{{ form.end_time_date }}<span class="add-on"><i class="icon-calendar"></i></span>{{ form.end_time_date.errors}}
+	  	  </span>&nbsp;
+	  	  <span class="input-append bootstrap-timepicker-component">
         	{{ form.end_time_time }}
         	<span class="add-on"><i class="icon-time"></i></span>{{ form.end_time_time.errors}}
+          </span>
         </div>
 	  	<br/>
-  		<button class="btn btn-primary" type="submit" name="choice" value="time">Filter</button>
-	  	<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Reset</a>
+  		<button class="btn btn-primary" type="submit" name="choice" value="time"><i class="icon-filter icon-white"></i> Filter</button>
+	  	<a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-refresh"></i> Reset</a>
 	  </form>
     </div>
     <div id="any" class="tab-pane">
@@ -157,16 +167,11 @@
 		{{ form.any.label_tag }}
 	  	{{ form.any}}{{ form.any.errors }}
 	  	<br/>
-  		<button class="btn btn-primary" type="submit" name="choice" value="any">Filter</button>
-	  	<a class="btn btn-primary pull-right" href="{% url 'server.views.list_bundles' %}">Reset</a>
+  		<button class="btn btn-primary" type="submit" name="choice" value="any"><i class="icon-filter icon-white"></i> Filter</button>
+  		<a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-refresh"></i> Reset</a>
 	  </form>
     </div>
   </div><!-- /.tab-content -->
 </div><!-- /.tabbable -->
 <br/>
-{% if user.is_authenticated %}
-<a class="btn btn-primary" href="{% url 'server.views.create_bundle' %}">Add New Bundle</a>
-<br/>
-{% endif %}
-<h4><a href="#top">Back to Top</a></h4>
 {% endblock %}

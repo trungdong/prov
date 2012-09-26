@@ -11,12 +11,11 @@
 {% endblock %}
 
 {% block nav_bar %}
-<a class="btn" href="{% url 'server.views.list_bundles' %}"><i class="icon-chevron-left"></i> Back</a>
-
 <form action="{% url 'server.views.bundle_detail'  bundle.id %}" method="post" >
-		{% csrf_token %}
-		<button class="btn btn-danger" type="submit" value="Delete"
-		{% if not can_delete %}disabled="true"{% endif %}><i class="icon-trash icon-white"></i> Delete </button>
+  {% csrf_token %}
+  <button class="btn btn-danger" type="submit" value="Delete"
+  {% if not can_delete %}disabled="true"{% endif %}><i class="icon-trash icon-white"></i> Delete </button>
+  <a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-chevron-left"></i> Back</a>
 </form>
 <h3>Information</h3>
 <p>Assertion statistics:</p>
