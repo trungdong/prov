@@ -1,4 +1,5 @@
 from json import dumps
+from django.db.models import Count
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -6,25 +7,23 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render_to_response, get_object_or_404, redirect
 from django.template.context import RequestContext
 from django.utils.datastructures import MultiValueDictKeyError
-from tastypie.models import ApiKey
 from django.contrib.auth.models import Group, User
+from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
+from tastypie.models import ApiKey
 from guardian.shortcuts import assign, remove_perm, get_perms_for_model
 from guardian.shortcuts import get_groups_with_perms, get_objects_for_user, get_users_with_perms
+from guardian.decorators import permission_required_or_403
+from oauth_provider.models import Consumer
 from prov.model import ProvBundle
 from prov.model.graph import prov_to_dot
 from prov.server.forms import ProfileForm, AppForm, BundleForm, SearchForm,ContactForm
-from models import Container
-from guardian.decorators import permission_required_or_403
-from prov.settings import ANONYMOUS_USER_ID, PUBLIC_GROUP_ID
-from oauth_provider.models import Consumer
+from prov.settings import ANONYMOUS_USER_ID
+from prov.server.models import Container
 from prov.server.search import search_name, search_id, search_literal,\
     search_timeframe, search_any_text_field
-from django.core.paginator import Paginator, PageNotAnInteger, EmptyPage
 #from django.core.cache import cache
 
-from django.contrib.contenttypes.models import ContentType
-from guardian.models import GroupObjectPermission, UserObjectPermission
-from django.db.models import Count
+
 PAGINATION_THRESHOLD = 20
 
 
@@ -241,14 +240,17 @@ def bundle_detail(request, container_id):
             messages.success(request, 'The bundle with ID ' + container.content.rec_id + ' was successfully deleted.')
             #cache.delete(request.user.username+'_l')
             return redirect(list_bundles)
-    prov_g = container.content.get_prov_bundle() 
+    pdbundle = container.content
+    counters = count_records_type(pdbundle)
+    prov_g = pdbundle.get_prov_bundle() 
     prov_n = prov_g.get_provn()
     prov_json = dumps(prov_g, indent=4, cls=ProvBundle.JSONEncoder)
     licenses = container.license.all()
-    del_perm = request.user.has_perm('delete_container', container)
+    can_delete = request.user.has_perm('delete_container', container)
     return render_to_response('server/private/bundle_detail.html',
                               {'bundle': container, 'prov_n': prov_n, 
-                               'prov_json': prov_json, 'license': licenses, 'del_perm': del_perm},
+                               'prov_json': prov_json, 'license': licenses,
+                               'counters': counters, 'can_delete': can_delete},
                               context_instance=RequestContext(request))
     
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))
@@ -495,4 +497,19 @@ def contact(request):
     
 
     
-    
+# Analytic functions - TODO: Moved to a separate module
+from prov.persistence.models import PDRecord
+from prov.model import PROV_RECORD_TYPES, PROV_REC_BUNDLE
+from collections import Counter
+
+PROV_RECORD_MAP = dict(PROV_RECORD_TYPES)
+
+def count_records_type(pdbundle):
+    query = PDRecord.objects.filter(bundle=pdbundle).values('rec_type').annotate(count=Count('id')).values_list('rec_type', 'count')
+    counter = Counter(dict(query))
+    if PROV_REC_BUNDLE in counter:
+        sub_bundles = PDRecord.objects.filter(bundle=pdbundle, rec_type=PROV_REC_BUNDLE)
+        query = PDRecord.objects.filter(bundle__in=sub_bundles).values('rec_type').annotate(count=Count('id')).values_list('rec_type', 'count')
+        counter.update(dict(query))
+    result = [(PROV_RECORD_MAP[key], value) for key, value in counter.items()]
+    return result

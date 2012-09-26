@@ -4,12 +4,6 @@
 {% block title %}PROVServer Bundle{% endblock %}
 {% block content %}
 <h3 style="word-wrap: break-word">Bundle {{ bundle.content.rec_id }}</h3>
-{% if license %}<h3>Licenses:</h3>{% endif %}
-{% for l in license %}
-	<h4>{{ l.title }}</h4>
-		<a href="{{ l.url }}">{{ l.url }}</a>
-	<p>{{ l.description }}</p>
-{% endfor %}
 <h2>PROV-N</h2>
 <pre name="content">{{ prov_n }}</pre>
 <h2>PROV-JSON</h2>
@@ -17,20 +11,26 @@
 {% endblock %}
 
 {% block nav_bar %}
-<a class="btn btn-primary" href="{% url 'server.views.list_bundles' %}">Back</a>
-<br/><br/><br/><br/><br/>
-<!-- {% if 'change_container' in perms %} contentEditable="true" {% endif %}-->
-<form action="{% url 'server.views.bundle_detail' bundle.id %}" method="post" id="PUT_form"
-	onSubmit="return (function(){document.getElementById('input_json').value = document.getElementById('json').firstChild.data;})()">
-		{% csrf_token %}
-		<button class="btn btn-success" type="submit" value="Save"  disabled="true">Save</button>
-		<!-- {% if 'change_container' not in perms %} disabled="true" {% endif %} -->
-		<input type="hidden" name="json" id="input_json" value=""/>
-</form>
-<br/><br/><br/><br/>
+<a class="btn" href="{% url 'server.views.list_bundles' %}"><i class="icon-chevron-left"></i> Back</a>
+
 <form action="{% url 'server.views.bundle_detail'  bundle.id %}" method="post" >
 		{% csrf_token %}
 		<button class="btn btn-danger" type="submit" value="Delete"
-		{% if not del_perm%}disabled="true"{% endif %}>Delete </button>
+		{% if not can_delete %}disabled="true"{% endif %}><i class="icon-trash icon-white"></i> Delete </button>
 </form>
+<h3>Information</h3>
+<p>Assertion statistics:</p>
+<table class="table table-bordered">
+  <thead>
+    <tr><th>Assertion</th><th>Occurrences</th></tr>
+    {% for count in counters%}<tr><td>{{count.0}}</td><td>{{count.1}}</td></tr>{% endfor %}
+  </thead>
+</table>
+<hr>
+{% if license %}<h3>Licenses:</h3>{% endif %}
+{% for l in license %}
+	<h4>{{ l.title }}</h4>
+		<a href="{{ l.url }}">{{ l.url }}</a>
+	<p>{{ l.description }}</p>
+{% endfor %}
 {% endblock %}
