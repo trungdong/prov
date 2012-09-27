@@ -34,7 +34,7 @@
           </a>
           <div class="brand">Provenance Server</div>
           <ul class="nav">
-            <li><a href="/prov/home">Home</a></li>
+            <li><a href="/prov">Home</a></li>
             <li><a href="{% url 'server.views.list_bundles' %}">Bundles</a></li>
             {% if user.is_authenticated %}
             <li><a href="{% url 'server.views.manage_apps' %}">Apps</a></li>

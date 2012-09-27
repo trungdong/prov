@@ -3,7 +3,6 @@ from django.views.generic.simple import direct_to_template
 
 urlpatterns = patterns('server.views',
     (r'^register/$', 'registration'),
-    (r'^home/$', direct_to_template, {'template': 'server/dashboard.html'}),
     (r'^bundles/$', 'list_bundles'),
     (r'^bundles/(?P<container_id>\d+)/$', 'bundle_detail'),
     (r'^bundles/(?P<container_id>\d+).svg$', 'bundle_svg'),
@@ -16,6 +15,7 @@ urlpatterns = patterns('server.views',
     (r'^apps/$', 'manage_apps'),
     (r'^apps/register/$', 'register_app'),
     (r'^contact/$', 'contact'),
+    (r'^$', direct_to_template, {'template': 'server/dashboard.html'}),
 )
 urlpatterns+= patterns('',
                 (r'^login/$', 'django.contrib.auth.views.login', 

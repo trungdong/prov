@@ -21,4 +21,5 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     (r'^api/', include(v0_api.urls)),
     (r'^prov/', include('server.urls')),
+    (r'^$', 'django.views.generic.simple.redirect_to', {'url': '/prov'}),
 )
