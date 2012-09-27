@@ -3,21 +3,20 @@
 {% load url from future %}
 {% block title %}PROVServer NewBundle{% endblock %}
 {% block content %}
-<div class="leaderboard offset1 span7">  
-	<h2>Input the bundle you wish to upload.</h2>
-</div>
-<div class="pull-left span3" style="margin-bottom: 10px">
-<a class="btn" href="{% url 'server.views.list_bundles' %}">Back</a>
-</div>
-	<form class="well form-inline offset1 span7" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
-		{% csrf_token %}
-  			{% for field in form %}
-  			<div class="cotnrol-group">
-	  			{{ field.label_tag }}
-	  			{{ field.errors }}
-	  			{{ field }}
-  			 </div>
-  			{% endfor %}<br/>
-  			<div align="center"><input type="submit" class="btn btn-primary span2" value="Submit"/></div>
-	</form>
+<h2>Add bundle</h2>
+<p><a class="btn pull-right" href="{% url 'server.views.list_bundles' %}"><i class="icon-chevron-left"></i> Back</a></p>
+<form class="form-horizontal" action="{% url 'server.views.create_bundle' %}" enctype="multipart/form-data" method="post">
+  <legend>Add a new bundle</legend>
+  {% csrf_token %}
+  {% for field in form %}<div class="control-group{% if field.errors %} error{% endif %}">
+    <label class="control-label" for="{{ field.html_name }}">{{ field.label }}</label>
+    <div class="controls">
+      {{ field }}
+      {% if field.errors %}<span class="help-block">{{ field.errors }}</span>{% endif %}
+    </div>
+  </div>{% endfor %}
+  <div class="form-actions">
+    <button type="submit" class="btn btn-success"><i class="icon-plus icon-white"></i> Add</button>
+  </div>
+</form>
 {% endblock %}

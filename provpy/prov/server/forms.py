@@ -52,12 +52,12 @@ class AppForm(ModelForm):
 
 class LicenseMultipleChoiceField(forms.ModelMultipleChoiceField):
     def label_from_instance(self, obj):
-        return mark_safe('{t}({d})</br><a href="{u}">{u}</a>'.format(t=obj.title, d=obj.description,u=obj.url))
+        return mark_safe('<a href="{u}">{t}</a>'.format(t=obj.title, u=obj.url))
 
 class BundleForm(Form):
     ''' Form for creating a Bundle '''
     
-    rec_id = forms.CharField(label=('Record ID'))
+    rec_id = forms.CharField(label=('Bundle ID'))
     public = forms.BooleanField(label=('Public'), required = False)
     submission = forms.FileField(label=('Original File'), required = False)
     license = LicenseMultipleChoiceField(License.objects, widget=CheckboxSelectMultiple, required=False)
