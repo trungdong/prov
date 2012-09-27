@@ -76,8 +76,8 @@ class License(models.Model):
     '''
     Model for different Licenses 
     '''
-    title = models.CharField(max_length=30)
-    description = models.CharField(max_length=255)
+    title = models.CharField(max_length=255)
+    description = models.TextField()
     url = models.URLField()
 
     
