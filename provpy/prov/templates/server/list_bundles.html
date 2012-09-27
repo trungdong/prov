@@ -29,22 +29,8 @@
 </script>
 {% endblock %}
 {% block content %}
-	<h4>Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }}<br/>
-	out of total {{ bundles.paginator.count }} bundle{{ bundles.paginator.count|pluralize}}.</h4>
-  <div class="pagination pagination-centered">
-	<ul>
-      <li {% if not bundles.has_previous %} class="disabled"><a><i class="icon-backward"></i></a>
-      	{% else %}><a href="?page={{ bundles.previous_page_number }}"><a><i class="icon-backward"></i></a>{% endif %}
-		{% for page in page_list %}
-			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
-			{% elif page == -2 %}<li class="disabled"><a>...</a>
-			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
-			{% endif %}</li>
-		{% endfor %}
-		<li {% if not bundles.has_next %} class="disabled"><a><i class="icon-forward"></i></a>
-        	{% else %}><a href="?page={{ bundles.next_page_number }}"><i class="icon-forward"></i></a>{% endif %}</li>
-    </ul>
-</div>
+	<h4>Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }} out of total {{ bundles.paginator.count }} bundle{{ bundles.paginator.count|pluralize}}.</h4>
+    {% include "server/pagination.html" %}
 	<table id="top" class="table">  
         <tbody>
          {% for b in bundles %}  
@@ -67,22 +53,7 @@
         {% endfor %}
         </tbody>  
       </table>
-{% if bundles|length > 10 %}
-<div class="pagination pagination-centered">
-	<ul>
-        <li {% if not bundles.has_previous %} class="disabled"><a>&lt;&lt;</a>
-        	{% else %}><a href="?page={{ bundles.previous_page_number }}">&lt;&lt;</a>{% endif %}
-		{% for page in page_list %}
-			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
-			{% elif page == -2 %}<li class="disabled"><a>...</a>
-			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
-			{% endif %}</li>
-		{% endfor %}
-		<li {% if not bundles.has_next %} class="disabled"><a>&gt;&gt;</a>
-        	{% else %}><a href="?page={{ bundles.next_page_number }}">&gt;&gt;</a>{% endif %}</li>
-    </ul>
-</div>
-{% endif %}
+  {% if bundles|length > 10 %}{% include "server/pagination.html" %}{% endif %}
 {% endblock %}
 
 

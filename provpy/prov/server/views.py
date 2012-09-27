@@ -40,7 +40,7 @@ def registration(request):
             messages.success(request, 'You have successfully registered!')
             if form.data['next']:
                 return redirect(form.data['next'])
-            return redirect('/prov/home')
+            return redirect('/')
         else:
             for error in form.non_field_errors():
                 messages.error(request,error)
@@ -227,7 +227,7 @@ def list_bundles(request):
         page = paginator.num_pages
     return render_to_response('server/list_bundles.html', 
                                   {'bundles': bundles, 'page_list': _pagination(paginator, page),
-                                   'form': form, 'choice': choice, 'user': user},
+                                   'form': form, 'choice': choice},
                                   context_instance=RequestContext(request))
 
 @permission_required_or_403('view_container', (Container, 'pk', 'container_id'))

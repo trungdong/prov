@@ -1,0 +1,15 @@
+{# Copyright (C) 2011 University of Southampton #}
+  <div class="pagination pagination-centered">
+	<ul>
+      <li {% if not bundles.has_previous %} class="disabled"><a><i class="icon-backward"></i></a>
+      	{% else %}><a href="?page={{ bundles.previous_page_number }}"><a><i class="icon-backward"></i></a>{% endif %}
+		{% for page in page_list %}
+			{% if page == -1 %}<li><a href=?page={{forloop.counter}}>{{forloop.counter}}</a>
+			{% elif page == -2 %}<li class="disabled"><a>...</a>
+			{% elif page == 0 %}<li class="disabled"><a>{{forloop.counter}}</a> 
+			{% endif %}</li>
+		{% endfor %}
+		<li {% if not bundles.has_next %} class="disabled"><a><i class="icon-forward"></i></a>
+        	{% else %}><a href="?page={{ bundles.next_page_number }}"><i class="icon-forward"></i></a>{% endif %}</li>
+    </ul>
+  </div>

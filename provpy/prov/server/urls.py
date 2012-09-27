@@ -18,7 +18,6 @@ urlpatterns = patterns('server.views',
     (r'^$', direct_to_template, {'template': 'server/dashboard.html'}),
 )
 urlpatterns+= patterns('',
-                (r'^login/$', 'django.contrib.auth.views.login', 
-                {'template_name': 'server/login.html'}),
-                 (r'^logout/$', 'django.contrib.auth.views.logout_then_login')
+                (r'^login/$', 'django.contrib.auth.views.login', {'template_name': 'server/login.html'}),
+                 (r'^logout/$', 'django.contrib.auth.views.logout', {'next_page': '/'})
                 )
