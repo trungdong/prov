@@ -17,7 +17,7 @@
 		{% endfor %} 
 	  	</div>
   	{% endfor %}
-  	<button type="submit" class="btn btn-primary" value="submit">Submit</button>
-  	<a class="btn pull-right" href="{% url 'server.views.manage_apps' %}">Back</a>
+  	<button type="submit" class="btn btn-primary" value="submit"><i class="icon-plus icon-white"></i> Add</button>
+  	<a class="btn pull-right" href="{% url 'server.views.manage_apps' %}"><i class="icon-chevron-left"></i> Back</a>
 </form>
 {% endblock %}

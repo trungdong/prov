@@ -5,27 +5,27 @@
 {% block content %}
 <div class="leaderboard offset1 span8" style="padding-bottom : 10px">  
 		{% if key %}
-		<h3>The Api key you have currently linked to your account is: {{ key }}</h3>
-		<h4>It was generated at {{ date }} </h4>
+		<p class="lead">Your current API key: <strong>{{ key }}</strong>, <br>
+		generated at {{ date }}</p>
 		{% else %}
-		<h3>Currently you don't have any generated API key linked to your account.</h3>
+		<p class="lead">No API key linked to your account.</p>
 		{% endif %}
 </div> 
 <div class="span5">
 	<form action="{% url 'server.views.api_key' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-info offset2" type="submit" value="Generate New"/>
+        {% if key %}<button class="btn btn-info offset2" type="submit"><i class="icon-refresh icon-white"></i> Generate New</button>
+        {% else %}<button class="btn btn-success offset2" type="submit"><i class="icon-plus icon-white"></i> Generate</button>{% endif %}
         <input type="hidden" name="action" value="generate" />
     </form>
 </div>
-<div class="span5">
+{% if key %}<div class="span5">
     <form action="{% url 'server.views.api_key' %}" method="post" >
 		{% csrf_token %}
-        <input class="btn btn-danger" type="submit" value="Delete"
-        {% if not key %} disabled="true" {% endif %}/>
+        <button class="btn btn-danger" type="submit" value="Delete"><i class="icon-trash icon-white"></i> Delete </button>
         <input type="hidden" name="action" value="delete" />
     </form>
-</div>
+</div>{% endif %}
 <div class="span8 offset1">
 	<h3> API key usage</h3>
 	<h5> Here is an example of request made to the API using the API key.</h5>

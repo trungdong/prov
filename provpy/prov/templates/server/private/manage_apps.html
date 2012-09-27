@@ -5,8 +5,8 @@
 {% block title %}PROVServer Apps{% endblock %}
 {% block content %}
 <h2>Registered Apps</h2>
-<a class="btn btn-primary pull-left" href="{% url 'server.views.register_app' %}">Add New</a>
-<table class="table" style="table-layout: fixed; width: 100%">  
+<a class="btn btn-success pull-left" href="{% url 'server.views.register_app' %}"><i class="icon-plus icon-white"></i> New App</a>
+<table class="table table-striped" style="table-layout: fixed; width: 100%">  
 	<thead>  
 		<tr>
 			<th style="width:15%">Name</th>
@@ -17,9 +17,8 @@
 		</tr>  
 	</thead>
 	<tbody>
-		{% for app in apps %}
-		<tr>
-			<td >{{ app.name }}</td>
+		{% for app in apps %}<tr>
+			<td>{{ app.name }}</td>
 			<td>{{ app.description }}</td>
 			<td>{{ app.key }}</td>
 			<td>{{ app.secret }}</td>
@@ -31,7 +30,7 @@
 							<select name="status" style="width:120px">
 								{% status_to_options app.status %}
 							</select>
-							<button type="submit" value="submit" class="btn btn-success">Save</button>  
+							<button type="submit" value="submit" class="btn btn-info"><i class="icon-ok icon-white"></i> Change</button>  
 							<input type="hidden" name="app_id" value="{{ app.id }}" /> 
 						</div>  
           			</div>

@@ -1,27 +1,26 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_clean.html" %}
 {% load url from future %}
-{% block title %}PROVServer Contact{% endblock %}
+{% block title %}PROVServer: Contact us{% endblock %}
 {% block content %}
-<div class="leaderboard offset1 span6">  
-	<h2>Contact us.</h2>
-</div>
-<form class="well offset1 span5" action="{% url 'server.views.contact' %}" enctype="multipart/form-data" method="post">
+<h2>Contact us</h2>
+<form class="span5" action="{% url 'server.views.contact' %}" enctype="multipart/form-data" method="post">
+  <legend>Your message</legend>
 	{% csrf_token %}
-  		{% for field in form %}
-  		<div class="cotnrol-group">
-	  		{{ field.label_tag }}
-	  		{{ field }}
-	  	    {{ field.errors }}
-  		</div>
-  		{% endfor %}
-  		<div align="center"><input type="submit" class="btn btn-primary pull-right" value="Send"/></div>
+	{% for field in form %}
+	<div class="control-group">
+		{{ field.label_tag }}
+		{{ field }}
+	    {{ field.errors }}
+	</div>
+	{% endfor %}
+	<button type="submit" class="btn btn-primary pull-right" value="Send"><i class="icon-share-alt icon-white"></i> Send</button>
 </form>
 <div class="offset1 span3">
-	<h5>Write to us</h5>
+	<p><span class="label label-inverse"><i class="icon-envelope icon-white"></i> Write to us</span></p>
 	<address>
-		<h5>Dr Trung Dong Huynh</h6>
-		School of Electronics and Computer Science<br/>
+		<strong>Dr Trung Dong Huynh</strong>
+		Electronics and Computer Science<br/>
 		University of Southampton<br/>
 		Southampton<br/>
 		SO17 1BJ<br/>
