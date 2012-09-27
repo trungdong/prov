@@ -217,9 +217,10 @@ def parse_datatype(value, datatype):
         raise Exception(u'No parser found for the data type <%s>' % str(datatype))
         
 class Literal(object):
-    def __init__(self, value, datatype):
+    def __init__(self, value, datatype=None, langtag=None):
         self._value = value
         self._datatype = datatype
+        self._langtag = langtag
         
     def __str__(self):
         return self.provn_representation()
@@ -231,14 +232,22 @@ class Literal(object):
         return self._datatype
     
     def provn_representation(self):
-        return u'%s %%%% %s' % (str(self._value), str(self._datatype))
+        if self._langtag:
+            # a langtag can only goes with string
+            return u'"%s"@%s' % (str(self._value), str(self._langtag))
+        else:
+            return u'"%s" %%%% %s' % (str(self._value), str(self._datatype))
         
     def json_representation(self):
-        if isinstance(self._datatype, QName):
-            return u'"%s"^^%s' % (str(self._value), str(self._datatype))
+        if self._langtag:
+            # a langtag can only goes with string
+            return { '$': str(self._value), 'lang': self._langtag}
         else:
-            # Assuming it is a valid identifier
-            return u'"%s"^^<%s>' % (str(self._value), self._datatype.get_uri())
+            if isinstance(self._datatype, QName):
+                return { '$': str(self._value), 'type': str(self._datatype)}
+            else:
+                # Assuming it is a valid identifier
+                return { '$': str(self._value), 'type': self._datatype.get_uri()}
 
 class Identifier(object):
     def __init__(self, uri):
@@ -257,10 +266,10 @@ class Identifier(object):
         return hash(self.get_uri())
     
     def provn_representation(self):
-        return self._uri + u' %% xsd:anyURI'
+        return u'"%s" %%%% xsd:anyURI' % self._uri
     
     def json_representation(self):
-        return u'"%s"^^%s' % (self._uri, u'xsd:anyURI')
+        return { '$': self._uri, 'type': u'xsd:anyURI'}
     
 
 class QName(Identifier):
@@ -285,7 +294,7 @@ class QName(Identifier):
         return u"'%s'" % self._str
     
     def json_representation(self):
-        return u'"%s"^^%s' % (str(self), u'xsd:QName')
+        return { '$': self._str, 'type': u'xsd:QName'}
     
 
 class Namespace(object):
@@ -547,12 +556,14 @@ class ProvRecord(object):
             extra = []
             for (attr, value) in self._extra_attributes:
                 try:
+                    # try if there is a prov-n representation defined
                     provn_represenation = value.provn_representation()
                 except:
                     if isinstance(value, basestring):
                         provn_represenation = '"%s"' % value
                     else:
-                        provn_represenation = '"%s %%%% xsd:dateTime"' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                        # asssuming it is datetime, otherwise, fallback to str
+                        provn_represenation = '"%s" %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
                 extra.append('%s=%s' % (str(attr), provn_represenation))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
@@ -810,25 +821,6 @@ class ProvAssociation(ProvRelation):
         attributes[PROV_ATTR_AGENT]= agent
         attributes[PROV_ATTR_PLAN]= plan
         ProvRelation.add_attributes(self, attributes, extra_attributes)
-        
-    def get_provn(self, _indent_level=0):
-        items = []
-        if self._attributes:
-            items.append(str(self._attributes[PROV_ATTR_ACTIVITY].get_identifier()))
-            agent_id = self._attributes[PROV_ATTR_AGENT].get_identifier()
-            if PROV_ATTR_PLAN in self._attributes and self._attributes[PROV_ATTR_PLAN]:
-                plan_id = self._attributes[PROV_ATTR_PLAN].get_identifier()
-                items.append('%s @ %s' % (str(agent_id), str(plan_id)))
-            else:
-                items.append(str(agent_id))
-        if self._extra_attributes:
-            extra = []
-            for (attr, value) in self._extra_attributes:
-                extra.append('%s="%s"' % (str(attr), '%s %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)))
-            if extra:
-                items.append('[%s]' % ', '.join(extra))
-        
-        return '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
 
 
 class ProvDelegation(ProvRelation):
@@ -1172,39 +1164,29 @@ class ProvBundle(ProvEntity):
             return value.json_representation()
         except AttributeError:
             if isinstance(value, datetime.datetime):
-                return u'"%s"^^%s' % (value.isoformat(), u'xsd:dateTime')
+                return { '$': value.isoformat(), 'type': u'xsd:dateTime'}
             else:
                 return value
     
-    def _decode_json_representation(self, value):
+    def _decode_json_representation(self, literal):
         try:
-            # If the value is a string
-            # try matching a typed literal with uri pattern 
-            m = _r_typed_literal_uri.match(value)
-            if m is None:
-                # try matching a typed literal with qname pattern
-                m = _r_typed_literal_qname.match(value)
-            if m is not None:
-                # found one of the typed literal patterns
-                component = m.groupdict()
-                value_str = component['value']
-                datatype = component['datatype']
-                # Check for common data types
-                # TODO Add a proper XSD datatype converter to replace this
-                if datatype == u'xsd:anyURI':
-                    return Identifier(value_str)
-                elif datatype == u'xsd:QName':
-                    return self.valid_identifier(value_str)
-                elif datatype == u'xsd:dateTime':
-                    return parse_xsd_dateTime(value_str)
-                else:
-                    return Literal(value_str, self.valid_identifier(datatype))
+            value = literal['$']
+            if 'lang' in literal:
+                return Literal(value, langtag=literal['lang'])
             else:
-                # cannot match the patterns, just return the string
-                return value
+                datatype = literal['type']
+                # TODO Add a proper XSD datatype converter to replace this, e.g. for integers or floats
+                if datatype == u'xsd:anyURI':
+                    return Identifier(value)
+                elif datatype == u'xsd:QName':
+                    return self.valid_identifier(value)
+                elif datatype == u'xsd:dateTime':
+                    return parse_xsd_dateTime(value)
+                else:
+                    return Literal(value, self.valid_identifier(datatype))
         except:
-            # not a string, just return it
-            return value
+            # simple type, just return it
+            return literal
         
     def _encode_JSON_container(self):
         container = defaultdict(dict)
