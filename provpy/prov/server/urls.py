@@ -15,6 +15,7 @@ urlpatterns = patterns('server.views',
     (r'^apps/$', 'manage_apps'),
     (r'^apps/register/$', 'register_app'),
     (r'^contact/$', 'contact'),
+    (r'^about/$', direct_to_template, {'template': 'server/about.html'}),
     (r'^$', direct_to_template, {'template': 'server/dashboard.html'}),
 )
 urlpatterns+= patterns('',

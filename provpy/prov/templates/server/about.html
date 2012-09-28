@@ -1,0 +1,23 @@
+{# Copyright (C) 2011 University of Southampton #}
+{% extends "base_clean.html" %}
+{% load url from future %}
+{% block title %}PROVServer: About{% endblock %}
+{% block header %}<h1>About the Provenance Server</h1>{% endblock %}
+{% block content %}
+  <div class="span8">
+	<p class="lead"> The Provenance Server is a web service that allows you to store, browse
+	and manage your provenance bundles. The server can be accessed via this Web interface or via
+	the REST API (using <a href="/prov/help/apikey/">an API key</a> or
+	<a href="/prov/help/oauth/">OAuth authentication</a>).<p>
+	<h2>Technology</h2>
+	<p class="lead">This service was built upon the <a href="https://github.com/trungdong/w3-prov">ProvPy</a>
+	package, which provides an Python
+	implementation of the PROV specifications being standardised at the <a href="w3.org/2011/prov/">
+	W3C Prov Working Group</a>. <br>
+	The web server is built on <a href="http://www.djangoproject.com/">Django
+	Web framework</a>.<p>
+	<h2>Acknowledgements</h2>
+	<p class="lead">The ProvPy package and this service are funded by an EPSRC grant (EP/H500243/1)
+	and by the <a href="http://www.orchid.ac.uk">ORCHID Programme</a>.<p>
+  </div>
+{% endblock %}

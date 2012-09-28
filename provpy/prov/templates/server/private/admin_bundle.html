@@ -2,44 +2,10 @@
 {% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer Admin{% endblock %}
-{% block head %}
-<script type="text/javascript">
-	var userTags = [{% for u in all_users %}"{{ u }}" {% if not forloop.last %},{% endif %}{% endfor %}];
-	var groupTags = [{% for g in all_groups %}"{{ g }}" {% if not forloop.last %},{% endif %}{% endfor %}];
-	jQuery(function($) {
-	  $("#perm_type_group").each(function(){
-	    var group   = $(this);
-	    var form    = group.parents('form').eq(0);
-	    var name    = group.attr('data-toggle-name');
-	    var hidden  = $('input[name="' + name + '"]', form);
-	    $('button', group).each(function(){
-	      var button = $(this);
-	      button.live('click', function(){
-	          hidden.val($(this).val());
-	          if($(this).val() == "user"){
-	          		$('#name_add').typeahead().data('typeahead').source = userTags;
-	          }
-	          else {
-					$('#name_add').typeahead().data('typeahead').source = groupTags;
-	          }
-	      });
-	      if(button.val() == hidden.val()) {
-	        button.addClass('active');
-	      }
-	    });
-	  });
-	});
-	$(function() {
-			$( "#name_add" ).typeahead({
-				source: userTags
-			});
-		});
-</script>
-{% endblock %}
+{% block header %}<h1>Bundle Permissions</h1>{% endblock %}
 {% block content %}
 <div class="span4">
- 	<h2>Bundle {{ bundle.content.rec_id }}</h2>
-   	</br>
+ 	<h2>{{ bundle.content.rec_id }}</h2>
    	<p><strong>Owner: {{ bundle.owner }}</strong></p>
    	<p><strong>Visibility: {% if public %}<i class="icon-eye-open"></i> Public{% else %}<i class="icon-lock"></i> Private{% endif %}</strong></p>
    	<form class="form-inline" action="{% url 'server.views.admin_bundle' bundle.id %}" method="post">
@@ -87,4 +53,39 @@
 {% include 'server/private/perm_table.html' with op1='Editor' op2='Administrator' op3='Contributor' op4='Reader' desc='Read,Write and Delete' p_number=3 %}
 {% include 'server/private/perm_table.html' with op1='Contributor' op2='Administrator' op3='Editor' op4='Reader' desc='Read and Write' p_number=2 %}
 {% include 'server/private/perm_table.html' with op1='Reader' op2='Administrator' op3='Editor' op4='Contributor' desc='Read only' p_number=1 %}
+{% endblock %}
+
+{% block lastscripts %}
+<script type="text/javascript">
+	var userTags = [{% for u in all_users %}"{{ u }}" {% if not forloop.last %},{% endif %}{% endfor %}];
+	var groupTags = [{% for g in all_groups %}"{{ g }}" {% if not forloop.last %},{% endif %}{% endfor %}];
+	jQuery(function($) {
+	  $("#perm_type_group").each(function(){
+	    var group   = $(this);
+	    var form    = group.parents('form').eq(0);
+	    var name    = group.attr('data-toggle-name');
+	    var hidden  = $('input[name="' + name + '"]', form);
+	    $('button', group).each(function(){
+	      var button = $(this);
+	      button.live('click', function(){
+	          hidden.val($(this).val());
+	          if($(this).val() == "user"){
+	          		$('#name_add').typeahead().data('typeahead').source = userTags;
+	          }
+	          else {
+					$('#name_add').typeahead().data('typeahead').source = groupTags;
+	          }
+	      });
+	      if(button.val() == hidden.val()) {
+	        button.addClass('active');
+	      }
+	    });
+	  });
+	});
+	$(function() {
+			$( "#name_add" ).typeahead({
+				source: userTags
+			});
+		});
+</script>
 {% endblock %}

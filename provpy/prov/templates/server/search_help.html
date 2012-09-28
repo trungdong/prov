@@ -1,13 +1,9 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_nav.html" %}
 {% load url from future %}
-{%block title %}PROVServer Help{% endblock %}
+{% block title %}PROVServer: Search Help{% endblock %}
+{% block header %}<h1>Documentation: Search and Filtering</h1>{% endblock %}
 {% block content %}
-<div class="leaderboard offset1">
-	<div id="top" class="anchorOffset"></div>
-	<h1 id="top">Search</h1>
-</div>
-	<div class="offset1 span6">
 		<div id="Overview" class="anchorOffset"></div>
 		<h3>The API Overview</h3>
 		<p>The PROV-JSON API provides a RESTfull web service for
@@ -154,10 +150,9 @@ headers: [('Authorization' : auth)]
 		<p>Searching for a string in any text field would return all the bundles which contain any information
 		that would match the given string, no matter record ID, type, direct names of entities etc. 
 		</p>
-	</div>
 {% endblock %}
 
-{% block nav_bar %}
+{% block sidebar %}
 <h3>Contents</h3>
 <ul>
 	<li><h5><a href="#Overview">Overview</a></h5></li>

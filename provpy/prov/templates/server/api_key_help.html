@@ -1,19 +1,15 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_nav.html" %}
 {% load url from future %}
-{%block title %}PROVServer Help{% endblock %}
+{% block title %}PROVServer: API Key Help{% endblock %}
+{% block header %}<h1>Documentation: API Key</h1>{% endblock %}
 {% block content %}
-	<div class="leaderboard offset1 span7">
-		<div id="top" class="anchorOffset"></div>
-		<h1> Getting started </h1>
-	</div>
-	<div class="offset1 span6">
 		<div id="Overview" class="anchorOffset"></div>
-		<h3 id="Overview">The API Overview</h3>
-		<p>The PROV-JSON API provides a RESTfull web service for
+		<h3 id="Overview">API Overview</h3>
+		<p>The Provenance Server's API provides a RESTfull web service for
 		storage and access of provenance bundles in JSON format as specified 
 		<a href="http://users.ecs.soton.ac.uk/tdh/json/">here</a> 
-		for the W3C's Provenance Data Model. Trough the API any client can manipulate bundles
+		for the W3C's Provenance Data Model. Via the API, any client can manipulate bundles
 		stored on a server and explore and retrieve information from other clients.
 		</p>
 		<div id="Authentication" class="anchorOffset"></div>
@@ -181,11 +177,10 @@ $result =  file_get_contents (
 	    </table>
 	    <p> *Note: If no 'Authorization' Header is provided 
 	    in the request you will be treated as Anonymous User.</p>
-	</div>
 {% endblock %}
 
-{% block nav_bar %}
-<h3>Contents</h3>
+{% block sidebar %}
+<h2>Contents</h2>
 <ul>
 	<li><h5><a href="#Overview">Overview</a></h5></li>
 	<li><h5><a href="#Authentication">API Key</a></h5></li>

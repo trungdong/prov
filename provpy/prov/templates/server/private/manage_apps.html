@@ -2,9 +2,9 @@
 {% extends "base_clean.html" %}
 {% load url from future %}
 {% load server_tags %}
-{% block title %}PROVServer Apps{% endblock %}
+{% block title %}PROVServer: Registered Apps{% endblock %}
+{% block header %}<h1>Registered Apps</h1>{% endblock %}
 {% block content %}
-<h2>Registered Apps</h2>
 <a class="btn btn-success pull-left" href="{% url 'server.views.register_app' %}"><i class="icon-plus icon-white"></i> New App</a>
 <table class="table table-striped" style="table-layout: fixed; width: 100%">  
 	<thead>  
@@ -40,7 +40,4 @@
         {% endfor %}
         </tbody>
 </table>
-{% if apps|length > 6 %}
-	<a class="btn btn-primary offset8" href="{% url 'server.views.register_app' %}">Add New</a> 
-{% endif %}
 {% endblock %}

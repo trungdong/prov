@@ -1,10 +1,11 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_clean.html" %}
 {% load url from future %}
-{% block title %}PROVServer OAuth{% endblock %}
+{% block title %}PROVServer: App Authentication{% endblock %}
+{% block header %}<h1>App Authentication</h1>{% endblock %}
 {% block content %}
 <div class="leaderboard offset1">  
-	<h2>{{ name }} has requested your permission to access your resources.</h2>
+	<h2>{{ name }} has requested your permission to access your provenance bundles.</h2>
 	<h5>Info: {{ description }} </h5>    
 </div>
 <div class="offset3 span5">

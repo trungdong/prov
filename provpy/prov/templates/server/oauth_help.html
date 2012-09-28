@@ -1,19 +1,15 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_nav.html" %}
 {% load url from future %}
-{%block title %}PROVServer Help{% endblock %}
+{%block title %}PROVServer: OAuth Help{% endblock %}
+{% block header %}<h1>Documentation: OAuth</h1>{% endblock %}
 {% block content %}
-<div class="leaderboard offset1">
-	<div id="top" class="anchorOffset"></div>
-	<h1>OAuth</h1>
-</div>
-	<div class="offset1 span6">
 		<div id="Overview" class="anchorOffset"></div>
 		<h3>The API Overview</h3>
-		<p>The PROV-JSON API provides a RESTfull web service for
+		<p>The Provenance Server's API provides a RESTfull web service for
 		storage and access of provenance bundles in JSON format as specified 
 		<a href="http://users.ecs.soton.ac.uk/tdh/json/">here</a> 
-		for the W3C's Provenance Data Model. Trough the API any client can manipulate bundles
+		for the W3C's Provenance Data Model. Via the API, any client can manipulate bundles
 		stored on a server and explore and retrieve information from other clients.
 		</p>
 		<div id="OAuth" class="anchorOffset"></div>
@@ -68,11 +64,11 @@ oauth_version : 1.0
 oauth_callback : http://johns_domain/request_token_ready
 scope: api
 </pre>
-		These parameters can be included in different places in the request according to
+		<p>These parameters can be included in different places in the request according to
 		the OAuth Specifications - "The parameters are collected from three locations: 
 		the URL query element (as defined by RFC 3986 section 3), the OAuth 'Authorization' 
 		header (excluding the 'realm' parameter), and parameters included in a single-part 
-		'application/x-www-form-urlencoded' POST body (as defined by HTML4)."</br>
+		'application/x-www-form-urlencoded' POST body (as defined by HTML4)."<br>
 		Assuming Jane visits Johns App and decides that she wants to check out Johns
 		visualization of the provenance, when she clicks to connect to her account 
 		obtaining the Request Token is the first thing to do. A corespoding response would
@@ -92,7 +88,7 @@ oauth_callback_confirmed : true
 <pre>
 oauth_token : 6e63d062712c4381a559eaf5887a64ef
 </pre>
-		The response returned from the server would be a redirect and the 'Location' header will
+		<p>The response returned from the server would be a redirect and the 'Location' header will
 		contain the URL to which Johns App have to redirect Jane. When this happen Jane would be
 		presented with the login to the webUI server and when she logged in she would be given a 
 		choice to grant access to her data to John's App. When she grants that access she will be 
@@ -126,7 +122,7 @@ scope : api
 oauth_token_secret : UUy9xz2b2YafykRJ
 oauth_token : b7c21ff3256447078a2de2a9572be44a
 </pre>
-		Now when John's App have acuired the Access Token it can access Jane's provenance resources.
+		<p>Now when John's App have acuired the Access Token it can access Jane's provenance resources.
 		</p>
 		<div id="Example" class="anchorOffset"></div>
 		<h3>Example Request with Access Token</h3>
@@ -140,7 +136,7 @@ oauth_timestamp : now
 oauth_nonce : accessresourcenonce
 oauth_version :  1.0
 </pre>
-		The URL path of the request would be 'www.example.com/api/bundle/X/' asssuming Jane is
+		<p>The URL path of the request would be 'www.example.com/api/bundle/X/' asssuming Jane is
 		the owner of bundle with ID 'X'. Don't forget that you have to add one more parameter ot the request - 
 		the oauth_signature which is a digest using the given signature_method of a special oauth Request object.
 		Most languages have support of already build libraries for creating such object given the Access Token,
@@ -148,10 +144,9 @@ oauth_version :  1.0
 		to make a request to 'www.example.com/api/bundle/X/?format=json' (don't forget the format=json argument)
 		and successfully retrieve Jane's resource.
 		</p>
-	</div>
 {% endblock %}
 
-{% block nav_bar %}
+{% block sidebar %}
  <h3>Contents</h3>
 <ul>
 	<li><h5><a href="#Overview">Overview</a></h5></li>

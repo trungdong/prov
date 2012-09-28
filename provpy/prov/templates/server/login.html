@@ -2,19 +2,13 @@
 {% extends "base_clean.html" %}
 {% load url from future %}
 {% block title %}PROVServer Login{% endblock %}
+{% block header %}<h2 class="offset3">Log in to the Provenance Server</h2>{% endblock %}
 {% block content %}
-<div class="leaderboard offset1">  
-	<h1>Welcome to the Provenance Repository Web UI</h1>  
-	<p>This is a web UI developed for testing PROV-JSON API</p>   
-</div>
 <div class="offset3 span4">
-	<div class="leaderboard">  
-		<h3>Login</h3>    
-	</div>
 	{%if form.errors %}
 		<div class="label"><h5>The username and password did not match!</h5></div>
 	{% endif %}
-	<form  class="well" method="post" action="{% url 'django.contrib.auth.views.login' %}" name="myform">
+	  <form  class="well" method="post" action="{% url 'django.contrib.auth.views.login' %}" name="myform">
 		{% csrf_token %}
 		<div class="control-group">
 			<label class="control-label" for="id_username">Username: </label>
@@ -23,8 +17,8 @@
 			<label class="control-label" for="id_password">Password: </label>
 			{{ form.password }} 
 		</div>
-        <input type="submit" class="btn btn-primary" value="Login" />
-        <a class="btn pull-right" href="{% url 'server.views.registration' %}">Register</a> 
+        <button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Login</button>
+        <a class="btn pull-right" href="{% url 'server.views.registration' %}"><i class="icon-pencil"></i> Register</a> 
 		<input type="hidden" name="next" value="{{ next }}" />
 	</form>
 </div>

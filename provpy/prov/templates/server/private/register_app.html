@@ -1,11 +1,9 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_clean.html" %}
 {% load url from future %}
-{% block title %}PROVServer NewApp{% endblock %}
+{% block title %}PROVServer: App registration{% endblock %}
+{% block header %}<h1 class="offset1">Register a new app</h1>{% endblock %}
 {% block content %}
-<div class="leaderboard offset1">  
-	<h2>Register a new client app.</h2>  
-</div>
 <form class="well offset1 span6" action="{% url 'server.views.register_app' %}" method="post">
 	{% csrf_token %}
 	{% for field in form %}
@@ -17,7 +15,7 @@
 		{% endfor %} 
 	  	</div>
   	{% endfor %}
-  	<button type="submit" class="btn btn-primary" value="submit"><i class="icon-plus icon-white"></i> Add</button>
+  	<button type="submit" class="btn btn-success" value="submit"><i class="icon-plus icon-white"></i> Add</button>
   	<a class="btn pull-right" href="{% url 'server.views.manage_apps' %}"><i class="icon-chevron-left"></i> Back</a>
 </form>
 {% endblock %}

@@ -1,16 +1,16 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_nav.html" %}
 {% load url from future %}
-{% block title %}PROVServer Bundle{% endblock %}
+{% block title %}PROVServer: Bundle {{ bundle.content.rec_id }}{% endblock %}
+{% block header %}<h1>Bundle {{ bundle.content.rec_id }}</h1>{% endblock %}
 {% block content %}
-<h3 style="word-wrap: break-word">Bundle {{ bundle.content.rec_id }}</h3>
 <h2>PROV-N</h2>
 <pre name="content">{{ prov_n }}</pre>
 <h2>PROV-JSON</h2>
 <pre name="json" id="json">{{ prov_json }}</pre>
 {% endblock %}
 
-{% block nav_bar %}
+{% block sidebar %}
 <form action="{% url 'server.views.bundle_detail'  bundle.id %}" method="post" >
   {% csrf_token %}
   <button class="btn btn-danger" type="submit" value="Delete"

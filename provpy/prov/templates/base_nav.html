@@ -1,14 +1,12 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base.html" %}
 {% block pane %}
-<div class="row">
-  <div class="span9" id="content">
+  <div class="span9" id="main-pane">
 	{% block content %}{% endblock %} 	
   </div>
   <div class="span3">
-    <div class="span3 affix">
-      {% block nav_bar %}{% endblock %}
+    <div class="span3 affix" id="sidebar">
+      {% block sidebar %}{% endblock %}
      </div>
   </div>
- </div>
 {% endblock %}

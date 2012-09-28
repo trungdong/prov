@@ -4,32 +4,12 @@
 {% load server_tags %}
 {% block title %}PROVServer Bundles{% endblock %}
 {% block head %}
-<script>
-		$(function(){
-			$('#id_start_time_date').datepicker({
-				autoclose: 'True',
-			});
-			$('#id_end_time_date').datepicker({
-				autoclose: 'True',
-			});
-            $('#id_start_time_time').timepicker({
-            	minuteStep: 1,
-                showSeconds: true,
-                showMeridian: false,
-				defaultTime: '00:00:00',
-			});
-			$('#id_end_time_time').timepicker({
-				minuteStep: 1,
-                showSeconds: true,
-                showMeridian: false,
-				defaultTime: '23:59:59',
-			});
-			$('#filter_tab a:eq({{choice}})').tab('show');
-		});	
-</script>
+    <link href="/static/datepicker.css" rel="stylesheet">
+    <link href="/static/timepicker.css" rel="stylesheet">
 {% endblock %}
+{% block header %}<h1>Provenance Bundles</h1>{% endblock %}
 {% block content %}
-	<h4>Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }} out of total {{ bundles.paginator.count }} bundle{{ bundles.paginator.count|pluralize}}.</h4>
+	<p class="lead">Showing bundles {{ bundles.start_index }} to {{ bundles.end_index }} out of total {{ bundles.paginator.count }} bundle{{ bundles.paginator.count|pluralize}}.</p>
     {% include "server/pagination.html" %}
 	<table id="top" class="table">  
         <tbody>
@@ -57,7 +37,7 @@
 {% endblock %}
 
 
-{% block nav_bar %}
+{% block sidebar %}
 {% if user.is_authenticated %}
 <a class="btn btn-success" href="{% url 'server.views.create_bundle' %}"><i class="icon-plus icon-white"></i> Add New Bundle</a>
 <br/>
@@ -145,4 +125,31 @@
   </div><!-- /.tab-content -->
 </div><!-- /.tabbable -->
 <br/>
+{% endblock %}
+{% block lastscripts %}
+      <script type="text/javascript" src="/static/bootstrap/js/bootstrap-datepicker.js"></script>
+      <script type="text/javascript" src="/static/bootstrap/js/bootstrap-timepicker.js"></script>
+      <script>
+		$(function(){
+			$('#id_start_time_date').datepicker({
+				autoclose: 'True',
+			});
+			$('#id_end_time_date').datepicker({
+				autoclose: 'True',
+			});
+            $('#id_start_time_time').timepicker({
+            	minuteStep: 1,
+                showSeconds: true,
+                showMeridian: false,
+				defaultTime: '00:00:00',
+			});
+			$('#id_end_time_time').timepicker({
+				minuteStep: 1,
+                showSeconds: true,
+                showMeridian: false,
+				defaultTime: '23:59:59',
+			});
+			$('#filter_tab a:eq({{choice}})').tab('show');
+		});
+      </script>
 {% endblock %}

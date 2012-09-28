@@ -1,16 +1,10 @@
 {# Copyright (C) 2011 University of Southampton #}
 {% extends "base_clean.html" %}
 {% load url from future %}
-{% block title %}PROVServer Registeration{% endblock %}
+{% block title %}PROVServer: User Registeration{% endblock %}
+{% block header %}<h2 class="offset3">User Registration</h2>{% endblock %}
 {% block content %}
-<div class="leaderboard offset1">  
-	<h1>Welcome to the Provenance Repository Web UI</h1>  
-	<p>This is a web UI developed for testing PROV-JSON API</p>   
-</div>
 <div class="offset3 span4">
-	<div class="leaderboard">  
-		<h3>Registration</h3>    
-	</div>
 	<form method="post" action="{% url 'server.views.registration' %}" class="well">
 	{% csrf_token %}
 	{% for field in form %}
@@ -22,7 +16,7 @@
   		{% endfor %} 
   		</div>
   	{% endfor %}
-	<button type="submit" class="btn btn-primary" value="submit">Submit</button>
+	<button type="submit" class="btn btn-primary"><i class="icon-ok icon-white"></i> Register</button>
 	<input type="hidden" name="next" value="{{ next }}" />
 	</form>
 </div>
