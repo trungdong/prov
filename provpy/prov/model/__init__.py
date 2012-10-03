@@ -66,6 +66,7 @@ PROV_RECORD_TYPES = (
     (PROV_REC_ATTRIBUTION,          u'Attribution'),
     (PROV_REC_ASSOCIATION,          u'Association'),
     (PROV_REC_DELEGATION,           u'Delegation'),
+    (PROV_REC_INFLUENCE,            u'Influence'),
     (PROV_REC_BUNDLE,               u'Bundle'),
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
@@ -89,6 +90,7 @@ PROV_N_MAP = {
     PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
     PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
     PROV_REC_DELEGATION:           u'actedOnBehalfOf',
+    PROV_REC_INFLUENCE:            u'wasInfluencedBy',
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
     PROV_REC_MENTION:              u'mentionOf',
@@ -737,9 +739,6 @@ class ProvInvalidation(ProvRelation):
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-        # Constraint: activity, time, and extra_attributes cannot be missing at the same time
-        if (activity is None) and (time is None) and (not extra_attributes):
-            raise ProvException(u'At least one of "actitivy", "time", or "extra_attributes" must be present in an Invalidation assertion.') 
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ENTITY] = entity
@@ -1266,21 +1265,32 @@ class ProvBundle(ProvEntity):
         for (record_type, identifier, attributes) in records:
             if record_type <> PROV_REC_BUNDLE:
                 record = record_map[identifier]
-                prov_attributes = {}
-                extra_attributes = []
-                # Splitting PROV attributes and the others
-                for attr, value in attributes.items():
-                    if attr in PROV_ATTRIBUTES_ID_MAP:
-                        prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
-                    else:
-                        attr_id = self.valid_identifier(attr)
-                        if isinstance(value, list):
-                            # Parsing multi-value attribute
-                            extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                
+                if hasattr(attributes, 'items'): # it is a dict
+                    # There is only one element, create a singleton list
+                    elements = [attributes] 
+                else: # expect it to be a list
+                    # There are more than one element
+                    # TODO: Fix this, we only accept one element (the first one)
+                    elements = [attributes[0]]
+                    
+                for element in elements:    
+                    prov_attributes = {}
+                    extra_attributes = []
+                    # Splitting PROV attributes and the others
+                    for attr, value in element.items():
+                        if attr in PROV_ATTRIBUTES_ID_MAP:
+                            prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                         else:
-                            # add the single-value attribute
-                            extra_attributes.append((attr_id, self._decode_json_representation(value)))
-                record.add_attributes(prov_attributes, extra_attributes)
+                            attr_id = self.valid_identifier(attr)
+                            if isinstance(value, list):
+                                # Parsing multi-value attribute
+                                extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                            else:
+                                # add the single-value attribute
+                                extra_attributes.append((attr_id, self._decode_json_representation(value)))
+                    # TODO: This won't work when there are more than one element
+                    record.add_attributes(prov_attributes, extra_attributes)
         
     # Miscellaneous functions
     def get_type(self):
@@ -1404,6 +1414,9 @@ class ProvBundle(ProvEntity):
     def delegation(self, delegate, responsible, activity=None, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_DELEGATION, identifier, {PROV_ATTR_DELEGATE: delegate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
         
+    def influence(self, influencee, influencer, identifier=None, other_attributes=None):
+        return self.add_record(PROV_REC_INFLUENCE, identifier, {PROV_ATTR_INFLUENCEE: influencee, PROV_ATTR_INFLUENCER: influencer}, other_attributes)
+        
     def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
                       PROV_ATTR_USED_ENTITY: usedEntity,
@@ -1468,6 +1481,7 @@ class ProvBundle(ProvEntity):
     wasAttributedTo = attribution
     wasAssociatedWith = association
     actedOnBehalfOf = delegation
+    wasInfluencedBy = influence
     wasDerivedFrom = derivation
     wasRevisionOf = revision
     wasQuotedFrom = quotation
