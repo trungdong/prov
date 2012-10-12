@@ -1285,7 +1285,7 @@ class ProvBundle(ProvEntity):
                             attr_id = self.valid_identifier(attr)
                             if isinstance(value, list):
                                 # Parsing multi-value attribute
-                                extra_attributes.append((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                                extra_attributes.extend((attr_id, self._decode_json_representation(value_single)) for value_single in value)
                             else:
                                 # add the single-value attribute
                                 extra_attributes.append((attr_id, self._decode_json_representation(value)))
