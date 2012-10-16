@@ -364,9 +364,10 @@ class ProvExceptionContraint(ProvException):
 # PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, bundle, identifier, attributes=None, other_attributes=None):
+    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True):
         self._bundle = bundle
         self._identifier = identifier
+        self._asserted = asserted
         self._attributes = None
         self._extra_attributes = None
         if attributes or other_attributes:
@@ -443,9 +444,14 @@ class ProvRecord(object):
         # check to see if there is an existing record matching the attribute (as the record's identifier)
         existing_record = self._bundle.get_record(attribute)
         if existing_record is None:
+            # try to see if there is a bundle with the id
             existing_record = self._bundle.get_bundle(attribute)
         if existing_record and isinstance(existing_record, attribute_types):
             return existing_record
+        elif issubclass(attribute_types, ProvRecord):
+            # Create an inferred record for the id given:
+            record_id = self._bundle.valid_identifier(attribute)
+            return attribute_types(self._bundle, record_id, asserted=False)
         else:
             return None
     
@@ -1355,8 +1361,8 @@ class ProvBundle(ProvEntity):
         return True
             
     # Provenance statements
-    def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
-        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
+    def add_record(self, record_type, identifier, attributes=None, other_attributes=None, asserted=True):
+        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes, asserted)
         self._records.append(new_record)
         if new_record._identifier:
             if record_type == PROV_REC_BUNDLE:
