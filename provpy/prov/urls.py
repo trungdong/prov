@@ -1,4 +1,5 @@
 from django.conf.urls.defaults import patterns, include, url
+from django.views.generic.base import RedirectView
 from tastypie.api import Api
 from server.api import ContainerResource
 
@@ -21,5 +22,5 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     (r'^api/', include(v0_api.urls)),
     (r'^prov/', include('server.urls')),
-    (r'^$', 'django.views.generic.simple.redirect_to', {'url': '/prov'}),
+    (r'^$', RedirectView.as_view(url='/prov')),
 )
