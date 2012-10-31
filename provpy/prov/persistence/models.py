@@ -45,6 +45,7 @@ class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=prov.PROV_RECORD_TYPES, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='_records', null=True, blank=True, db_index=True)
+    asserted = models.BooleanField(default=True)
     attributes = models.ManyToManyField('self', through='RecordAttribute', symmetrical=False, related_name='references')
 
 
@@ -150,11 +151,11 @@ def _create_pdrecord(prov_record, bundle, record_map):
     record_uri = None if record_id is None else record_id.get_uri()
     if prov_type <> prov.PROV_REC_BUNDLE:
         # Create a normal record
-        pdrecord = PDRecord.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle)
+        pdrecord = PDRecord.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
     else:
         # Create an bundle record
-        pdrecord = PDBundle.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle)
+        pdrecord = PDBundle.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
         # Recursive call to save this bundle
         _save_bundle(pdrecord, prov_record.get_records(), record_map)
@@ -207,6 +208,7 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     
     record_type = records[pk]['rec_type']
     record_id = prov_bundle.valid_identifier(records[pk]['rec_id'])
+    asserted = records[pk]['asserted']
     
     # Prepare record-attributes, this map will return None for non-existent key request
     prov_attributes = defaultdict()
@@ -225,7 +227,7 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     prov_attributes.update(prov_literals)
             
     # Create the record by its type
-    prov_record = prov_bundle.add_record(record_type, record_id, prov_attributes, other_literals)
+    prov_record = prov_bundle.add_record(record_type, record_id, prov_attributes, other_literals, asserted=asserted)
     record_map[pk] = prov_record
     
     if record_type == prov.PROV_REC_BUNDLE:
@@ -249,10 +251,11 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
     
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
-    records = defaultdict(dict) 
-    for pk, rec_id, rec_type in PDRecord.objects.select_related().filter(bundle=pdbundle).values_list('pk', 'rec_id', 'rec_type').order_by('rec_type'):
-        records[pk]['rec_id'] = rec_id
-        records[pk]['rec_type'] = rec_type
+    records = dict()
+    for pk, rec_id, rec_type, asserted in PDRecord.objects.select_related().filter(bundle=pdbundle).values_list('pk', 'rec_id', 'rec_type', 'asserted').order_by('rec_type'):
+        records[pk] = {'rec_id': rec_id,
+                       'rec_type': rec_type,
+                       'asserted': asserted}
         
     attributes = defaultdict(list)
     for rec_id, value_id, attr_id in RecordAttribute.objects.filter(record__bundle=pdbundle).values_list('record__pk', 'value__pk', 'prov_type'):
