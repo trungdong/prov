@@ -516,6 +516,8 @@ class ProvRecord(object):
             return False
         if self._identifier and not (self._identifier == other._identifier):
             return False
+        if self._asserted != other._asserted:
+            return False
         if self._attributes and other._attributes:
             if len(self._attributes) <> len(other._attributes):
                 return False
@@ -576,6 +578,9 @@ class ProvRecord(object):
                 items.append('[%s]' % ', '.join(extra))
         prov_n = '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
         return prov_n if self._asserted else '// ' + prov_n
+    
+    def is_asserted(self):
+        return self._asserted
     
     def is_element(self):
         return False
