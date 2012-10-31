@@ -1,2 +1,3 @@
 include *.txt
+exclude prov/manage.py prov/settings.py prov/urls.py prov/wsgi.py
 recursive-include docs *.txt
