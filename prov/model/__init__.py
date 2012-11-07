@@ -1127,8 +1127,12 @@ class ProvBundle(ProvEntity):
         #TODO Implement a dict of self-generated anon ids for records without identifier
         return self._namespaces.get_anonymous_identifier()
     
-    def get_records(self):
-        return self._records
+    def get_records(self, class_or_type_or_tuple=None):
+        if class_or_type_or_tuple is None:
+            return self._records
+        else:
+            return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), self._records)
+
     
     def get_record(self, identifier):
         try:
