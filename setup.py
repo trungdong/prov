@@ -8,12 +8,12 @@ with open('LICENCE.txt') as f:
         
 setup(
     name='prov',
-    version='0.4.0',
+    version='0.4.1',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
     scripts=[],
-    url='http://github.com/trungdong/w3-prov/tree/master/provpy',
+    url='https://github.com/trungdong/prov',
     license=licence,
     description='A Python implementation of PROV data model providing simple provenance tracking and persistence using Django.',
     long_description=long_description,
@@ -29,6 +29,7 @@ setup(
           'License :: OSI Approved :: BSD License',
           'Operating System :: OS Independent',
           'Programming Language :: Python :: 2.6',
+          'Programming Language :: Python :: 2.7',
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Security',
           'Topic :: System :: Logging',
