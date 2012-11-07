@@ -1,5 +1,0 @@
-Folder structure:
-- specs/json: The PROV-JSON specification document, a JSON representation for the PROV Data Model (http://www.w3.org/TR/prov-dm/)
-- examples: containing PROV-JSON examples (*.json)
-- utile: a small JavaScript utility for indexing PROV-JSON JS objects to facility looking up data therein.
-- provpy: A suites of Python modules for encoding, tracking, storing, and serving provenance. (See the provpy/prov sub-folder for more information)
