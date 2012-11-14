@@ -26,9 +26,9 @@ import pydot
 # see http://graphviz.org/content/attrs
 DOT_PROV_STYLE = {
     # Elements
-    PROV_REC_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': 'aliceblue'},
-    PROV_REC_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': 'lemonchiffon'},
-    PROV_REC_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': 'yellow'},
+    PROV_REC_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': '#FFFC87', 'color': '#808080'},
+    PROV_REC_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': '#9FB1FC', 'color': '#0000FF'},
+    PROV_REC_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
     #    PROV_REC_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
     PROV_REC_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
     # Relations
@@ -39,9 +39,9 @@ DOT_PROV_STYLE = {
     PROV_REC_END: {'label': 'wasEndedBy', 'fontsize': '10.0'},
     PROV_REC_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': '10.0'},
     PROV_REC_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': '10.0'},
-    PROV_REC_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': 'gold'},
-    PROV_REC_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': 'gold'},
-    PROV_REC_DELEGATION: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': 'gold'},
+    PROV_REC_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': '#FED37F'},
+    PROV_REC_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': '#FED37F'},
+    PROV_REC_DELEGATION: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': '#FED37F'},
     PROV_REC_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': '10.0', 'color': 'grey'},
     PROV_REC_ALTERNATE: {'label': 'alternateOf', 'fontsize': '10.0'},
     PROV_REC_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': '10.0'},
@@ -111,7 +111,7 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
     return maindot
 
 def prov_to_file(prov_g, filepath, use_labels=False, format='png',
-                         dpi=150):
+                         dpi='150'):
     """Write a prov json object to an image file
     """
     # Convert it to DOT
