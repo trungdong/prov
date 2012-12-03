@@ -1083,7 +1083,7 @@ class NamespaceManager(dict):
             return original_prefix
         count = 1
         while True:
-            new_prefix = '_'.join((original_prefix, count))
+            new_prefix = '_'.join((original_prefix, str(count)))
             if new_prefix in self:
                 count += 1
             else:
@@ -1313,18 +1313,23 @@ class ProvBundle(ProvEntity):
     def get_provn(self, _indent_level=0):
         indentation = '' +  ('  ' * _indent_level)
         newline = '\n' + ('  ' * (_indent_level + 1))
-        if self._bundle is None:
-            records = ['bundle']
-            # print out prefixes in the top-level bundle
-            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
-            # a blank line between the prefixes and the assertions
-            records.append('')
-        else:
-            records = ['bundle %s' % self._identifier]
         
+        # if this is the document, start the document; otherwise, start the bundle
+        records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
+        
+        if self._bundle is None:
+            # print out prefixes in the top-level document
+            # TODO: Add support for bundle-level namespace declarations
+            # TODO: Add support for the default namespace
+            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
+        
+        # a blank line between the prefixes and the assertions
+        records.append('')
+        # adding all the records
         records.extend([record.get_provn(_indent_level + 1) for record in self._records])
-        provn_str = newline.join(records) + '\n' + \
-                    indentation + 'endBundle'
+        provn_str = newline.join(records) + '\n'
+        # closing the structure
+        provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
         return provn_str
         
     def __eq__(self, other):
