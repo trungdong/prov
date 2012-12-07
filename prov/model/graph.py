@@ -83,6 +83,9 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
             else:
                 relations.append(rec)
         for rec in relations:
+            # skipping empty records
+            if not rec._attributes: continue
+            # picking element nodes
             nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
             if len(nodes) < 2:
                 # Cannot draw this
