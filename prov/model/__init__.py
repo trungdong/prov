@@ -16,6 +16,9 @@ import json
 import re
 import collections
 from collections import defaultdict
+from rdflib.term import URIRef
+from rdflib.graph import ConjunctiveGraph, Graph
+from rdflib.namespace import RDF
 try:
     from collections import OrderedDict
 except ImportError:
@@ -279,6 +282,9 @@ class Identifier(object):
     
     def json_representation(self):
         return { '$': self._uri, 'type': u'xsd:anyURI'}
+    
+    def rdf(self):
+        return URIRef(self.get_uri())
     
 
 class QName(Identifier):
@@ -609,6 +615,9 @@ class ProvRecord(object):
         prov_n = '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
         return prov_n if self._asserted else '// ' + prov_n
     
+    def rdf(self, graph):
+        pass
+        
     def is_asserted(self):
         return self._asserted
     
@@ -621,6 +630,11 @@ class ProvRecord(object):
 class ProvElement(ProvRecord):
     def is_element(self):
         return True
+    
+    def rdf(self, graph):
+        uri = self.get_identifier().rdf()
+        type_uri = self.get_prov_type().rdf()
+        graph.add((uri, RDF.type, type_uri))
 
 class ProvRelation(ProvRecord):
     def is_relation(self):
@@ -635,6 +649,9 @@ class ProvEntity(ProvElement):
     
     def get_prov_type(self):
         return PROV['Entity']
+    
+#    def rdf(self, graph, context_id):
+#        pass
     
 
 class ProvActivity(ProvElement):
@@ -1354,6 +1371,24 @@ class ProvBundle(ProvEntity):
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
         return provn_str
         
+    def rdf(self, graph=None):
+        if self._bundle is None:
+            # top bundle
+            if graph is None:
+                graph = ConjunctiveGraph()
+        else:
+            # graph should not None here
+            uri = self.get_identifier().rdf()
+            graph = Graph(graph.store, uri)
+        
+        for prefix, namespace in self._namespaces.items():
+            graph.bind(prefix, namespace.get_uri())
+        
+        for record in self._records:
+            if record.is_asserted():
+                record.rdf(graph)    
+        return graph
+    
     def __eq__(self, other):
         try:
             other_records = set(other._records)
