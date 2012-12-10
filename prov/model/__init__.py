@@ -17,6 +17,7 @@ import re
 import collections
 from collections import defaultdict
 from rdflib.term import URIRef
+from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
 from rdflib.namespace import RDF
 try:
@@ -283,7 +284,7 @@ class Identifier(object):
     def json_representation(self):
         return { '$': self._uri, 'type': u'xsd:anyURI'}
     
-    def rdf(self):
+    def rdf_representation(self):
         return URIRef(self.get_uri())
     
 
@@ -615,8 +616,22 @@ class ProvRecord(object):
         prov_n = '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
         return prov_n if self._asserted else '// ' + prov_n
     
-    def rdf(self, graph):
-        pass
+    def rdf(self, graph=None, subj=None):
+        if graph is None:
+            graph = Graph()
+        if subj is None:
+            # this method need a subject as relations may not have identifiers
+            return graph
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes:
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        return graph
         
     def is_asserted(self):
         return self._asserted
@@ -631,10 +646,14 @@ class ProvElement(ProvRecord):
     def is_element(self):
         return True
     
-    def rdf(self, graph):
-        uri = self.get_identifier().rdf()
-        type_uri = self.get_prov_type().rdf()
+    def rdf(self, graph=None):
+        if graph is None:
+            graph = Graph()
+        uri = self.get_identifier().rdf_representation()
+        type_uri = self.get_prov_type().rdf_representation()
         graph.add((uri, RDF.type, type_uri))
+        ProvRecord.rdf(self, graph, uri)
+        return graph
 
 class ProvRelation(ProvRecord):
     def is_relation(self):
@@ -1378,7 +1397,7 @@ class ProvBundle(ProvEntity):
                 graph = ConjunctiveGraph()
         else:
             # graph should not None here
-            uri = self.get_identifier().rdf()
+            uri = self.get_identifier().rdf_representation()
             graph = Graph(graph.store, uri)
         
         for prefix, namespace in self._namespaces.items():
