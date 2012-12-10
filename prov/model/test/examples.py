@@ -54,12 +54,12 @@ def bundles1():
     g.wasAttributedTo('alice:bundle2', 'ex:Alice')
     
     b1 = g.bundle('bob:bundle1')
-    b1.entity('ex:report1', {'prov:type': "report", 'ex:version': 1})
+    b1.entity('ex:report1', {'prov:type': "ex:Report", 'ex:version': 1})
     b1.wasGeneratedBy('ex:report1', time='2012-05-24T10:00:01')
     
     b2 = g.bundle('alice:bundle2')
     b2.entity('ex:report1')
-    b2.entity('ex:report2', {'prov:type': "report", 'ex:version': 2})
+    b2.entity('ex:report2', {'prov:type': "ex:Report", 'ex:version': 2})
     b2.wasGeneratedBy('ex:report2', time='2012-05-25T11:00:01')
     b2.wasDerivedFrom('ex:report2', 'ex:report1')
       
@@ -118,13 +118,13 @@ def bundles2():
     g.wasAttributedTo('alice:bundle5', 'ex:Alice')
     
     b4 = g.bundle('bob:bundle4')
-    b4.entity('ex:report1', {'prov:type': "report", 'ex:version': 1})
+    b4.entity('ex:report1', {'prov:type': "ex:Report", 'ex:version': 1})
     b4.wasGeneratedBy('ex:report1', time='2012-05-24T10:00:01')
     
     b5 = g.bundle('alice:bundle5')
     b5.entity('ex:report1bis')
     b5.mentionOf('ex:report1bis', 'ex:report1', 'bob:bundle4')
-    b5.entity('ex:report2', [ ('prov:type', "report"), ('ex:version', 2) ])
+    b5.entity('ex:report2', [ ('prov:type', "ex:Report"), ('ex:version', 2) ])
     b5.wasGeneratedBy('ex:report2', time='2012-05-25T11:00:01')
     b5.wasDerivedFrom('ex:report2', 'ex:report1bis')
       
@@ -252,11 +252,11 @@ def primer_example():
     g.used('ex:illustrate', 'ex:composition')
     g.wasGeneratedBy('ex:chart1', 'ex:illustrate')
     
-    g.agent('ex:derek', {'prov:type': "prov:Person", 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
+    g.agent('ex:derek', {'prov:type': PROV["Person"], 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
     g.wasAssociatedWith('ex:compose', 'ex:derek')
     g.wasAssociatedWith('ex:illustrate', 'ex:derek')
     
-    g.agent('ex:chartgen', {'prov:type': "prov:Organization", 'foaf:name' : "Chart Generators Inc"})
+    g.agent('ex:chartgen', {'prov:type': PROV["Organization"], 'foaf:name' : "Chart Generators Inc"})
     g.actedOnBehalfOf('ex:derek', 'ex:chartgen', 'ex:compose')
     g.wasAttributedTo('ex:chart1', 'ex:derek')
 

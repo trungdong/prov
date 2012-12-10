@@ -412,18 +412,31 @@ class ProvRecord(object):
                     break
         return label if label else self._identifier 
 
+    def try_qname(self, value):
+        identifier = self._bundle.valid_identifier(value)
+        if isinstance(identifier, QName):
+            # this is a valid QName, return the QName
+            return identifier
+        else:
+            # otherwise, do nothing, return the original value
+            return value
+        
+    def parse_extra_attributes(self, extra_attributes):
+        try:
+            # This will only work if extra_attributes is a dictionary
+            # Converting the dictionary into a list of tuples (i.e. attribute-value pairs) 
+            extra_attributes = extra_attributes.items()
+        except:
+            # Do nothing if it did not work, expect the variable is already a list
+            pass
+        attr_list = ((self._bundle.valid_identifier(attribute), self.try_qname(value)) for attribute, value in extra_attributes)
+        return attr_list
+    
     def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
             if self._extra_attributes is None:
                 self._extra_attributes = []
-            try:
-                # This will only work if extra_attributes is a dictionary
-                # Converting the dictionary into a list of tuples (i.e. attribute-value pairs) 
-                extra_attributes = extra_attributes.items()
-            except:
-                # Do nothing if it did not work, expect the variable is already a list
-                pass
-            attr_list = ((self._bundle.valid_identifier(attribute), value) for attribute, value in extra_attributes)
+            attr_list = self.parse_extra_attributes(extra_attributes)
             # Check attributes for valid qualified names
             self._extra_attributes.extend(attr_list)
             
