@@ -392,6 +392,12 @@ class ProvRecord(object):
                 self._extra_attributes = []
             self._extra_attributes.append((PROV['type'], type_identifier))
     
+    def get_attribute(self, attr_name):
+        if not self._extra_attributes:
+            return None
+        results = [value for attr, value in self._extra_attributes if attr == attr_name]
+        return results
+        
     def get_identifier(self):
         return self._identifier
 
@@ -405,6 +411,9 @@ class ProvRecord(object):
                     break
         return label if label else self._identifier 
 
+    def get_value(self):
+        return self.get_attribute(PROV['value'])
+        
     def try_qname(self, value):
         identifier = self._bundle.valid_identifier(value)
         if isinstance(identifier, QName):
