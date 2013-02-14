@@ -133,7 +133,8 @@ DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
                           "<type 'str'>": str,
                           "<type 'unicode'>": unicode,
-                          "<type 'int'>": int}
+                          "<type 'int'>": int,
+                          "<type 'float'>": float}
 
 def _decode_python_literal(value, datatype, graph):
     if datatype in DATATYPE_FUNCTIONS_MAP:
