@@ -215,6 +215,16 @@ def parse_datatype(value, datatype):
         # No parser found for the given data type
         raise Exception(u'No parser found for the data type <%s>' % str(datatype))
         
+def encoding_PROV_N_value(value):
+    if isinstance(value, basestring):
+        return '"%s"' % value
+    elif isinstance(value, datetime.datetime):
+        return value.isoformat()
+    elif isinstance(value, float):
+        return '"%f" %%%% xsd:float' % value
+    else:
+        return str(value)
+
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
         self._value = value
@@ -587,11 +597,7 @@ class ProvRecord(object):
                     # try if there is a prov-n representation defined
                     provn_represenation = value.provn_representation()
                 except:
-                    if isinstance(value, basestring):
-                        provn_represenation = '"%s"' % value
-                    else:
-                        # asssuming it is datetime, otherwise, fallback to str
-                        provn_represenation = '"%s" %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                    provn_represenation = encoding_PROV_N_value(value)
                 extra.append('%s=%s' % (str(attr), provn_represenation))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
