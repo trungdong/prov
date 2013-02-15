@@ -666,7 +666,7 @@ class ProvGeneration(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent)) 
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
@@ -690,7 +690,7 @@ class ProvUsage(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
+        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent)) 
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
@@ -727,7 +727,7 @@ class ProvStart(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, (ProvEntity, ProvAgent))
         starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
 
@@ -749,7 +749,7 @@ class ProvEnd(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, (ProvEntity, ProvAgent))
         ender = self.optional_attribute(attributes, PROV_ATTR_ENDER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
@@ -770,7 +770,7 @@ class ProvInvalidation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
@@ -793,8 +793,8 @@ class ProvDerivation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
-        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, (ProvEntity, ProvAgent))
+        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, (ProvEntity, ProvAgent))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
         generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
@@ -828,8 +828,8 @@ class ProvAttribution(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
-        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, ProvAgent)
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
+        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ENTITY] = entity
@@ -847,8 +847,8 @@ class ProvAssociation(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
         # Optional attributes
-        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, ProvAgent)
-        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, ProvEntity)
+        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
+        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY]= activity
@@ -866,8 +866,8 @@ class ProvDelegation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, ProvAgent) 
-        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, ProvAgent)
+        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, (ProvAgent, ProvEntity)) 
+        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, (ProvAgent, ProvEntity))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
@@ -913,8 +913,8 @@ class ProvSpecialization(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
-        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, ProvEntity)
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, (ProvEntity, ProvAgent)) 
+        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
@@ -931,8 +931,8 @@ class ProvAlternate(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, ProvEntity) 
-        alternate2 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE2, ProvEntity)
+        alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, (ProvEntity, ProvAgent)) 
+        alternate2 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE2, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ALTERNATE1]= alternate1
@@ -948,7 +948,7 @@ class ProvMention(ProvSpecialization):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, (ProvEntity, ProvAgent)) 
         generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, Identifier)
         bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, Identifier)
         #=======================================================================
@@ -977,8 +977,8 @@ class ProvMembership(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, ProvEntity) 
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, (ProvEntity, ProvAgent)) 
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_COLLECTION]= collection
