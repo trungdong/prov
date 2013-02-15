@@ -653,9 +653,12 @@ class ProvActivity(ProvElement):
 
     # Convenient methods
     def set_time(self, startTime=None, endTime=None):
-        # The _attributes dict should be initialised
-        self._attributes[PROV_ATTR_STARTTIME] = startTime
-        self._attributes[PROV_ATTR_ENDTIME] = endTime
+        # The _attributes dict should have been initialised
+        if startTime is not None:
+            self._attributes[PROV_ATTR_STARTTIME] = startTime
+        if endTime is not None:
+            self._attributes[PROV_ATTR_ENDTIME] = endTime
+
 
 class ProvGeneration(ProvRelation):
     def get_type(self):
