@@ -8,7 +8,7 @@ with open('LICENCE.txt') as f:
         
 setup(
     name='prov',
-    version='0.4.4',
+    version='0.4.5',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
