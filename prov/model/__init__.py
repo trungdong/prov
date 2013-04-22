@@ -477,11 +477,16 @@ class ProvRecord(object):
             existing_record = self._bundle.get_bundle(attribute)
         if existing_record and isinstance(existing_record, attribute_types):
             return existing_record
-        elif issubclass(attribute_types, ProvRecord):
-            # Create an inferred record for the id given:
-            return self._bundle.add_inferred_record(attribute_types, attribute)
         else:
-            return None
+            if hasattr(attribute_types, '__getitem__'):
+                # it is a list
+                klass = attribute_types[0] # get the first class
+            else:
+                klass = attribute_types # only one class provided
+            if issubclass(klass, ProvRecord):
+                # Create an inferred record for the id given:
+                return self._bundle.add_inferred_record(klass, attribute)
+        return None
     
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
