@@ -896,13 +896,10 @@ class ProvInfluence(ProvRelation):
         # Required attributes
         influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, ProvElement) 
         influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, ProvElement)
-        # Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_INFLUENCEE] = influencee
         attributes[PROV_ATTR_INFLUENCER] = influencer
-        attributes[PROV_ATTR_ACTIVITY]= activity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
