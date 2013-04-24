@@ -1,3 +1,7 @@
+v0.4.6, 24/04/2013 -- Bug fixes
+- Fixed: Removed the 'activity' attribute from Influence expression
+- Fixed: Inferred records couldn't be created when the expected types provided as a list
+
 v0.4.5, 13/03/2013 -- Minor fixes
 - Changed: ProvActivity.set_time() can now accept just one argument. It previously sets the time of the missing argument to None.
 - Changed: ProvAgent is now eligible for entity arguments and ProvEntity for agent ones
