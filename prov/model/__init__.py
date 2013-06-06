@@ -624,6 +624,18 @@ class ProvRecord(object):
         if subj is None:
             # this method need a subject as relations may not have identifiers
             return graph
+        if self._attributes:
+            for (attr, value) in self._attributes.items():
+                print attr, value
+                if value is None:
+                    continue
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
                 pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
@@ -661,6 +673,27 @@ class ProvRelation(ProvRecord):
     def is_relation(self):
         return True
 
+    def rdf(self, graph=None):
+        if graph is None:
+            graph = Graph()
+        for idx, (attr, value) in enumerate(self._attributes.items()):
+            if idx == 0:
+                subj = value.get_identifier().rdf_representation()
+            elif idx == 1:
+                obj = value.get_identifier().rdf_representation()
+        pred = PROV[PROV_N_MAP[self.get_type()]].rdf_representation()
+        graph.add((subj, pred, obj))
+        subj = pred
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes:
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        return graph
 
 ### Component 1: Entities and Activities
 
@@ -1407,7 +1440,7 @@ class ProvBundle(ProvEntity):
         
         for record in self._records:
             if record.is_asserted():
-                record.rdf(graph)    
+                record.rdf(graph)
         return graph
     
     def __eq__(self, other):
