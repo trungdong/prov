@@ -626,10 +626,9 @@ class ProvRecord(object):
             return graph
         if self._attributes:
             for (attr, value) in self._attributes.items():
-                print attr, value
                 if value is None:
                     continue
-                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                pred = PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
                 try:
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
