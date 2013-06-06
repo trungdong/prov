@@ -17,7 +17,7 @@ import re
 import collections
 from collections import defaultdict
 
-from rdflib.term import URIRef
+from rdflib.term import URIRef, BNode
 from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
 from rdflib.namespace import RDF
@@ -179,6 +179,8 @@ _r_xsd_dateTime = re.compile(""" ^
     $ """, re.X)
 _r_typed_literal_uri = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^<(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)>$', re.X)
 _r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)$', re.X)
+
+attr2rdf = lambda attr: PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
 
 # Datatypes
 def _parse_xsd_dateTime(s):
@@ -628,7 +630,7 @@ class ProvRecord(object):
             for (attr, value) in self._attributes.items():
                 if value is None:
                     continue
-                pred = PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
+                pred = attr2rdf(attr)
                 try:
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
@@ -675,23 +677,46 @@ class ProvRelation(ProvRecord):
     def rdf(self, graph=None):
         if graph is None:
             graph = Graph()
+        pred = PROV[PROV_N_MAP[self.get_type()]].rdf_representation()
+        items = []
+        subj=None
+        obj=None
         for idx, (attr, value) in enumerate(self._attributes.items()):
             if idx == 0:
                 subj = value.get_identifier().rdf_representation()
             elif idx == 1:
-                obj = value.get_identifier().rdf_representation()
-        pred = PROV[PROV_N_MAP[self.get_type()]].rdf_representation()
-        graph.add((subj, pred, obj))
-        subj = pred
+                if value:
+                    obj = value.get_identifier().rdf_representation()
+                    items.append((attr2rdf(attr), obj))
+            elif value:
+                try:
+                    # try if there is a RDF representation defined
+                    otherobj = value.rdf_representation()
+                except:
+                    otherobj = RDFLiteral(value)
+                items.append((attr2rdf(attr), otherobj))
+        if subj and obj:
+            graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
+                if not value:
+                    continue
                 pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
                 try:
                     # try if there is a RDF representation defined
-                    obj = value.rdf_representation()
+                    otherobj = value.rdf_representation()
                 except:
-                    obj = RDFLiteral(value)
-                graph.add((subj, pred, obj))
+                    otherobj = RDFLiteral(value)
+                items.append((pred, otherobj))
+        if obj and len(items) == 1:
+            items = []
+        if items:
+            QRole = PROV['qualified' + str(self.get_prov_type()).split('prov:')[1]].rdf_representation()
+            bnode = URIRef(BNode())
+            graph.add((subj, QRole, bnode))
+            graph.add((bnode, RDF.type, self.get_prov_type().rdf_representation()))
+            for attr, value in items:
+                graph.add((bnode, attr, value))
         return graph
 
 ### Component 1: Entities and Activities
