@@ -16,10 +16,12 @@ import json
 import re
 import collections
 from collections import defaultdict
+
 from rdflib.term import URIRef
 from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
 from rdflib.namespace import RDF
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -53,7 +55,6 @@ PROV_REC_ALTERNATE              = 51
 PROV_REC_SPECIALIZATION         = 52
 PROV_REC_MENTION                = 53
 # C6. Collections
-PROV_REC_COLLECTION             = 6
 PROV_REC_MEMBERSHIP             = 61
 
 PROV_RECORD_TYPES = (
@@ -75,7 +76,6 @@ PROV_RECORD_TYPES = (
     (PROV_REC_ALTERNATE,            u'Alternate'),
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
     (PROV_REC_MENTION,              u'Mention'),
-    (PROV_REC_COLLECTION,           u'Collection'),
     (PROV_REC_MEMBERSHIP,           u'Membership'),
     (PROV_REC_BUNDLE,               u'Bundle'),
 )
@@ -98,7 +98,6 @@ PROV_N_MAP = {
     PROV_REC_ALTERNATE:            u'alternateOf',
     PROV_REC_SPECIALIZATION:       u'specializationOf',
     PROV_REC_MENTION:              u'mentionOf',
-    PROV_REC_COLLECTION:           u'collection',
     PROV_REC_MEMBERSHIP:           u'hadMember',
     PROV_REC_BUNDLE:               u'bundle',
 }
@@ -222,6 +221,16 @@ def parse_datatype(value, datatype):
         # No parser found for the given data type
         raise Exception(u'No parser found for the data type <%s>' % str(datatype))
         
+def encoding_PROV_N_value(value):
+    if isinstance(value, basestring):
+        return '"%s"' % value
+    elif isinstance(value, datetime.datetime):
+        return value.isoformat()
+    elif isinstance(value, float):
+        return '"%f" %%%% xsd:float' % value
+    else:
+        return str(value)
+
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
         self._value = value
@@ -399,6 +408,12 @@ class ProvRecord(object):
                 self._extra_attributes = []
             self._extra_attributes.append((PROV['type'], type_identifier))
     
+    def get_attribute(self, attr_name):
+        if not self._extra_attributes:
+            return None
+        results = [value for attr, value in self._extra_attributes if attr == attr_name]
+        return results
+        
     def get_identifier(self):
         return self._identifier
 
@@ -412,6 +427,9 @@ class ProvRecord(object):
                     break
         return label if label else self._identifier 
 
+    def get_value(self):
+        return self.get_attribute(PROV['value'])
+        
     def try_qname(self, value):
         identifier = self._bundle.valid_identifier(value)
         if isinstance(identifier, QName):
@@ -468,11 +486,16 @@ class ProvRecord(object):
             existing_record = self._bundle.get_bundle(attribute)
         if existing_record and isinstance(existing_record, attribute_types):
             return existing_record
-        elif issubclass(attribute_types, ProvRecord):
-            # Create an inferred record for the id given:
-            return self._bundle.add_inferred_record(attribute_types, attribute)
         else:
-            return None
+            if hasattr(attribute_types, '__getitem__'):
+                # it is a list
+                klass = attribute_types[0] # get the first class
+            else:
+                klass = attribute_types # only one class provided
+            if issubclass(klass, ProvRecord):
+                # Create an inferred record for the id given:
+                return self._bundle.add_inferred_record(klass, attribute)
+        return None
     
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
@@ -588,11 +611,7 @@ class ProvRecord(object):
                     # try if there is a prov-n representation defined
                     provn_represenation = value.provn_representation()
                 except:
-                    if isinstance(value, basestring):
-                        provn_represenation = '"%s"' % value
-                    else:
-                        # asssuming it is datetime, otherwise, fallback to str
-                        provn_represenation = '"%s" %%%% xsd:dateTime' % value.isoformat() if isinstance(value, datetime.datetime) else str(value)
+                    provn_represenation = encoding_PROV_N_value(value)
                 extra.append('%s=%s' % (str(attr), provn_represenation))
             if extra:
                 items.append('[%s]' % ', '.join(extra))
@@ -605,6 +624,17 @@ class ProvRecord(object):
         if subj is None:
             # this method need a subject as relations may not have identifiers
             return graph
+        if self._attributes:
+            for (attr, value) in self._attributes.items():
+                if value is None:
+                    continue
+                pred = PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
                 pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
@@ -642,6 +672,27 @@ class ProvRelation(ProvRecord):
     def is_relation(self):
         return True
 
+    def rdf(self, graph=None):
+        if graph is None:
+            graph = Graph()
+        for idx, (attr, value) in enumerate(self._attributes.items()):
+            if idx == 0:
+                subj = value.get_identifier().rdf_representation()
+            elif idx == 1:
+                obj = value.get_identifier().rdf_representation()
+        pred = PROV[PROV_N_MAP[self.get_type()]].rdf_representation()
+        graph.add((subj, pred, obj))
+        subj = pred
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes:
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        return graph
 
 ### Component 1: Entities and Activities
 
@@ -677,9 +728,12 @@ class ProvActivity(ProvElement):
 
     # Convenient methods
     def set_time(self, startTime=None, endTime=None):
-        # The _attributes dict should be initialised
-        self._attributes[PROV_ATTR_STARTTIME] = startTime
-        self._attributes[PROV_ATTR_ENDTIME] = endTime
+        # The _attributes dict should have been initialised
+        if startTime is not None:
+            self._attributes[PROV_ATTR_STARTTIME] = startTime
+        if endTime is not None:
+            self._attributes[PROV_ATTR_ENDTIME] = endTime
+
 
 class ProvGeneration(ProvRelation):
     def get_type(self):
@@ -690,7 +744,7 @@ class ProvGeneration(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent)) 
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
@@ -714,7 +768,7 @@ class ProvUsage(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity) 
+        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent)) 
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
         attributes = OrderedDict()
@@ -751,7 +805,7 @@ class ProvStart(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, (ProvEntity, ProvAgent))
         starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
 
@@ -773,7 +827,7 @@ class ProvEnd(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         # Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, ProvEntity)
+        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, (ProvEntity, ProvAgent))
         ender = self.optional_attribute(attributes, PROV_ATTR_ENDER, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
         
@@ -794,7 +848,7 @@ class ProvInvalidation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
@@ -817,8 +871,8 @@ class ProvDerivation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, ProvEntity)
-        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, ProvEntity)
+        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, (ProvEntity, ProvAgent))
+        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, (ProvEntity, ProvAgent))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
         generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, ProvGeneration)
@@ -852,8 +906,8 @@ class ProvAttribution(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
-        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, ProvAgent)
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
+        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ENTITY] = entity
@@ -871,8 +925,8 @@ class ProvAssociation(ProvRelation):
         # Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity) 
         # Optional attributes
-        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, ProvAgent)
-        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, ProvEntity)
+        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, (ProvAgent, ProvEntity))
+        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ACTIVITY]= activity
@@ -890,8 +944,8 @@ class ProvDelegation(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, ProvAgent) 
-        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, ProvAgent)
+        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, (ProvAgent, ProvEntity)) 
+        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, (ProvAgent, ProvEntity))
         # Optional attributes
         activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
@@ -912,13 +966,10 @@ class ProvInfluence(ProvRelation):
         # Required attributes
         influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, ProvElement) 
         influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, ProvElement)
-        # Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, ProvActivity)
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_INFLUENCEE] = influencee
         attributes[PROV_ATTR_INFLUENCER] = influencer
-        attributes[PROV_ATTR_ACTIVITY]= activity
         ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 
@@ -937,8 +988,8 @@ class ProvSpecialization(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
-        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, ProvEntity)
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, (ProvEntity, ProvAgent)) 
+        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_SPECIFIC_ENTITY]= specificEntity
@@ -955,8 +1006,8 @@ class ProvAlternate(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, ProvEntity) 
-        alternate2 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE2, ProvEntity)
+        alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, (ProvEntity, ProvAgent)) 
+        alternate2 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE2, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_ALTERNATE1]= alternate1
@@ -972,7 +1023,7 @@ class ProvMention(ProvSpecialization):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, ProvEntity) 
+        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, (ProvEntity, ProvAgent)) 
         generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, Identifier)
         bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, Identifier)
         #=======================================================================
@@ -992,13 +1043,6 @@ class ProvMention(ProvSpecialization):
 
 ### Component 6: Collections
 
-class ProvCollection(ProvEntity):
-    def get_type(self):
-        return PROV_REC_COLLECTION
-    
-    def get_prov_type(self):
-        return PROV['Collection']
-
 class ProvMembership(ProvRelation):
     def get_type(self):
         return PROV_REC_MEMBERSHIP
@@ -1008,8 +1052,8 @@ class ProvMembership(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, ProvEntity) 
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, ProvEntity)
+        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, (ProvEntity, ProvAgent)) 
+        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, (ProvEntity, ProvAgent))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_COLLECTION]= collection
@@ -1035,7 +1079,6 @@ PROV_REC_CLS = {
     PROV_REC_SPECIALIZATION         : ProvSpecialization,
     PROV_REC_ALTERNATE              : ProvAlternate,
     PROV_REC_MENTION                : ProvMention,
-    PROV_REC_COLLECTION             : ProvCollection,
     PROV_REC_MEMBERSHIP             : ProvMembership,
 }
 
@@ -1396,7 +1439,7 @@ class ProvBundle(ProvEntity):
         
         for record in self._records:
             if record.is_asserted():
-                record.rdf(graph)    
+                record.rdf(graph)
         return graph
     
     def __eq__(self, other):
@@ -1557,7 +1600,9 @@ class ProvBundle(ProvEntity):
         return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
     
     def collection(self, identifier, other_attributes=None):
-        return self.add_element(PROV_REC_COLLECTION, identifier, None, other_attributes)
+        record = self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
+        record.add_asserted_type(PROV['Collection'])
+        return record
     
     def membership(self, collection, entity, identifier=None, other_attributes=None):
         return self.add_record(PROV_REC_MEMBERSHIP, identifier, {PROV_ATTR_COLLECTION: collection, PROV_ATTR_ENTITY: entity}, other_attributes)

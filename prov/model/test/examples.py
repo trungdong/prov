@@ -1,3 +1,4 @@
+# coding: utf8
 from prov.model import ProvBundle, Namespace, Literal, PROV, XSD, Identifier
 import datetime
 
@@ -422,6 +423,19 @@ def collections():
     g.hadMember(c1, e1)
     
     return g
+
+def datatypes():
+    g = ProvBundle()
+    ex = Namespace('ex', 'http://example.org/')
+    
+    attributes = {'ex:int': 100,
+                  'ex:float': 100.123456,
+                  'ex:str': 'Some string',
+                  'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
+                  'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48)}
+    
+    e1 = g.entity('ex:e1', attributes)
+    return g
     
 tests = [
     ('Bundle1', bundles1),
@@ -430,4 +444,5 @@ tests = [
     ('W3C Publication 1', w3c_publication_1),
     ('W3C Publication 2', w3c_publication_2),
     ('collections', collections),
+    ('datatypes', datatypes)
 ]

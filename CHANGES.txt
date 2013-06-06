@@ -1,1 +1,29 @@
+v0.4.6, 24/04/2013 -- Bug fixes
+- Fixed: Removed the 'activity' attribute from Influence expression
+- Fixed: Inferred records couldn't be created when the expected types provided as a list
+
+v0.4.5, 13/03/2013 -- Minor fixes
+- Changed: ProvActivity.set_time() can now accept just one argument. It previously sets the time of the missing argument to None.
+- Changed: ProvAgent is now eligible for entity arguments and ProvEntity for agent ones
+- Fixed: Producing the right PROV-N representation for float values
+
+v0.4.4
+- Added float data type support for prov.persistence
+- Removed ProvCollection class since collections should be instantiated as entities
+- Added get_attribute() and get_value() to ProvRecord
+- Changed: Check if an attribute's value is a valid QName and return the QName
+- Fixed exception rendering graphs with empty records
+
+v0.4.3
+- Fixed: PROV-N export - top-level bundle -> document
+- Fixed: Bug when renaming prefixes
+
+v0.4.2
+- Updated graph colors to the PROV style
+
+v0.4.1
+- Restructured package folder
+- Moved to a new repo.
+- Fixed: 'memberof' -> 'hadMember'
+
 v0.4.0, 31/10/2012 -- Initial release.
