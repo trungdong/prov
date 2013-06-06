@@ -16,6 +16,12 @@ import json
 import re
 import collections
 from collections import defaultdict
+
+from rdflib.term import URIRef
+from rdflib.term import Literal as RDFLiteral
+from rdflib.graph import ConjunctiveGraph, Graph
+from rdflib.namespace import RDF
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -279,6 +285,9 @@ class Identifier(object):
     
     def json_representation(self):
         return { '$': self._uri, 'type': u'xsd:anyURI'}
+    
+    def rdf_representation(self):
+        return URIRef(self.get_uri())
     
 
 class QName(Identifier):
@@ -609,6 +618,34 @@ class ProvRecord(object):
         prov_n = '%s(%s)' % (PROV_N_MAP[self.get_type()], ', '.join(items))
         return prov_n if self._asserted else '// ' + prov_n
     
+    def rdf(self, graph=None, subj=None):
+        if graph is None:
+            graph = Graph()
+        if subj is None:
+            # this method need a subject as relations may not have identifiers
+            return graph
+        if self._attributes:
+            for (attr, value) in self._attributes.items():
+                if value is None:
+                    continue
+                pred = PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes:
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        return graph
+        
     def is_asserted(self):
         return self._asserted
     
@@ -621,11 +658,41 @@ class ProvRecord(object):
 class ProvElement(ProvRecord):
     def is_element(self):
         return True
+    
+    def rdf(self, graph=None):
+        if graph is None:
+            graph = Graph()
+        uri = self.get_identifier().rdf_representation()
+        type_uri = self.get_prov_type().rdf_representation()
+        graph.add((uri, RDF.type, type_uri))
+        ProvRecord.rdf(self, graph, uri)
+        return graph
 
 class ProvRelation(ProvRecord):
     def is_relation(self):
         return True
 
+    def rdf(self, graph=None):
+        if graph is None:
+            graph = Graph()
+        for idx, (attr, value) in enumerate(self._attributes.items()):
+            if idx == 0:
+                subj = value.get_identifier().rdf_representation()
+            elif idx == 1:
+                obj = value.get_identifier().rdf_representation()
+        pred = PROV[PROV_N_MAP[self.get_type()]].rdf_representation()
+        graph.add((subj, pred, obj))
+        subj = pred
+        if self._extra_attributes:
+            for (attr, value) in self._extra_attributes:
+                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except:
+                    obj = RDFLiteral(value)
+                graph.add((subj, pred, obj))
+        return graph
 
 ### Component 1: Entities and Activities
 
@@ -635,6 +702,9 @@ class ProvEntity(ProvElement):
     
     def get_prov_type(self):
         return PROV['Entity']
+    
+#    def rdf(self, graph, context_id):
+#        pass
     
 
 class ProvActivity(ProvElement):
@@ -1354,6 +1424,24 @@ class ProvBundle(ProvEntity):
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
         return provn_str
         
+    def rdf(self, graph=None):
+        if self._bundle is None:
+            # top bundle
+            if graph is None:
+                graph = ConjunctiveGraph()
+        else:
+            # graph should not None here
+            uri = self.get_identifier().rdf_representation()
+            graph = Graph(graph.store, uri)
+        
+        for prefix, namespace in self._namespaces.items():
+            graph.bind(prefix, namespace.get_uri())
+        
+        for record in self._records:
+            if record.is_asserted():
+                record.rdf(graph)
+        return graph
+    
     def __eq__(self, other):
         try:
             other_records = set(other._records)
