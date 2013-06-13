@@ -271,7 +271,7 @@ class Literal(object):
             # a langtag can only goes with string
             return RDFLiteral(self._value, lang=str(self._langtag))
         else:
-            return RDFLiteral(self._value, datatype=self._datatype)
+            return RDFLiteral(self._value, datatype=self._datatype.get_uri())
 
 class Identifier(object):
     def __init__(self, uri):
@@ -650,7 +650,7 @@ class ProvRecord(object):
                 try:
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
-                except:
+                except Exception, e:
                     obj = RDFLiteral(value)
                 graph.add((subj, pred, obj))
         return graph
