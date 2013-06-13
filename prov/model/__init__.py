@@ -266,6 +266,9 @@ class Literal(object):
                 # Assuming it is a valid identifier
                 return { '$': str(self._value), 'type': self._datatype.get_uri()}
 
+    def rdf_representation(self):
+        return self.provn_representation()
+
 class Identifier(object):
     def __init__(self, uri):
         self._uri = uri
