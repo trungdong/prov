@@ -267,7 +267,11 @@ class Literal(object):
                 return { '$': str(self._value), 'type': self._datatype.get_uri()}
 
     def rdf_representation(self):
-        return self.provn_representation()
+        if self._langtag:
+            # a langtag can only goes with string
+            return RDFLiteral(self._value, lang=str(self._langtag))
+        else:
+            return RDFLiteral(self._value, datatype=self._datatype)
 
 class Identifier(object):
     def __init__(self, uri):
