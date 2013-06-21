@@ -234,6 +234,9 @@ class Literal(object):
     def __str__(self):
         return self.provn_representation()
     
+    def __eq__(self, other):
+        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag
+    
     def get_value(self):
         return self._value
     
