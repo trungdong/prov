@@ -240,6 +240,9 @@ class Literal(object):
     def get_datatype(self):
         return self._datatype
     
+    def get_langtag(self):
+        return self._langtag
+    
     def provn_representation(self):
         if self._langtag:
             # a langtag can only goes with string
