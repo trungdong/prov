@@ -235,7 +235,7 @@ class Literal(object):
         return self.provn_representation()
     
     def __eq__(self, other):
-        return self.provn_representation() == other.provn_representation() if isinstance(other, Literal) else False
+        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
     
     def get_value(self):
         return self._value
