@@ -575,7 +575,9 @@ class ProvRecord(object):
             if my_attrs:
                 # my attributes set is not empty.
                 return False
-        if self._extra_attributes <> other._extra_attributes:
+        sattr = sorted(self._extra_attributes, key=lambda attr: str(attr[0])+str(attr[1])) if self._extra_attributes else None
+        oattr = sorted(other._extra_attributes, key=lambda attr: str(attr[0])+str(attr[1])) if other._extra_attributes else None
+        if sattr <> oattr:
             return False
         return True 
           
