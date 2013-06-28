@@ -235,7 +235,7 @@ class Literal(object):
         return self.provn_representation()
     
     def __eq__(self, other):
-        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag
+        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
     
     def get_value(self):
         return self._value
@@ -578,7 +578,9 @@ class ProvRecord(object):
             if my_attrs:
                 # my attributes set is not empty.
                 return False
-        if self._extra_attributes <> other._extra_attributes:
+        sattr = sorted(self._extra_attributes, key=lambda attr: str(attr[0])+str(attr[1])) if self._extra_attributes else None
+        oattr = sorted(other._extra_attributes, key=lambda attr: str(attr[0])+str(attr[1])) if other._extra_attributes else None
+        if sattr <> oattr:
             return False
         return True 
           
