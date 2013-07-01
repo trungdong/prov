@@ -1,0 +1,23 @@
+{
+  "derivedByInsertionFrom": {
+    "ex:deriv4": {
+      "prov:before": "ex:d1",
+      "prov:after": "ex:d2",
+      "prov:key-entity-set": [
+        {
+          "key": "a",
+          "$": "ex:e0"
+        },
+        {
+          "key": 1,
+          "$": "ex:e1"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

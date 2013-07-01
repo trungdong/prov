@@ -1,0 +1,29 @@
+{
+  "hadDictionaryMember": {
+    "_:hDM6": {
+      "prov:dictionary": "ex:d",
+      "prov:key-entity-set": [
+        {
+          "key": "a",
+          "$": "ex:e0"
+        },
+        {
+          "key": 1,
+          "$": "ex:e1"
+        },
+        {
+          "key": {
+            "$": "ex:a",
+            "type": "xsd:QName"
+          },
+          "$": "ex:e2"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

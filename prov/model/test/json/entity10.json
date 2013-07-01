@@ -1,0 +1,101 @@
+{
+  "entity": {
+    "ex:e10": {
+      "prov:type": [
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-06-25T12:48:01.413+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "ex:tag1": {
+        "$": "hello",
+        "type": "xsd:string"
+      },
+      "ex:tag2": {
+        "$": "bye",
+        "type": "xsd:string"
+      },
+      "ex2:tag3": {
+        "$": "hi",
+        "type": "xsd:string"
+      },
+      "prov:location": [
+        {
+          "$": "London",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "ex:london",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-06-25T12:48:01.413+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/london",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "2002",
+          "type": "xsd:gYear"
+        }
+      ],
+      "prov:label": [
+        "entity10",
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}
