@@ -71,7 +71,6 @@ PROV_RECORD_TYPES = (
     (PROV_REC_SPECIALIZATION,       u'Specialization'),
     (PROV_REC_MENTION,              u'Mention'),
     (PROV_REC_MEMBERSHIP,           u'Membership'),
-    (PROV_REC_BUNDLE,               u'Bundle'),
 )
 
 PROV_N_MAP = {
