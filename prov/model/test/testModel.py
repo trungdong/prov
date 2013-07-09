@@ -32,8 +32,9 @@ class Test(unittest.TestCase):
             logger.debug('Original graph in PROV-JSON\n%s' % json_str)
             g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
             logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_provn())
-            self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed with graph %s.' % name )
- 
+            self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed with graph %s.' % name)
+
+
 class TestLoadingProvToolboxJSON(unittest.TestCase):
 
     def testLoadAllJSON(self):
@@ -54,7 +55,6 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
 #             os.rename(json_path + filename, json_path + filename + '-fail')
 #             with open(json_path + filename) as json_file:
 #                 json.load(json_file, cls=ProvBundle.JSONDecoder)
-            
 
 
 if __name__ == "__main__":
