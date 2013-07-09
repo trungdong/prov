@@ -473,7 +473,7 @@ class ProvRecord(object):
             return value.get_identifier()
         except:
             return self._bundle.valid_identifier(value)
-    
+
     def _parse_record(self, attribute, attribute_types):
         # check to see if there is an existing record matching the attribute (as the record's identifier)
         existing_record = self._bundle.get_record(attribute)
@@ -485,14 +485,14 @@ class ProvRecord(object):
         else:
             if hasattr(attribute_types, '__getitem__'):
                 # it is a list
-                klass = attribute_types[0] # get the first class
+                klass = attribute_types[0]  # get the first class
             else:
-                klass = attribute_types # only one class provided
+                klass = attribute_types  # only one class provided
             if issubclass(klass, ProvRecord):
                 # Create an inferred record for the id given:
                 return self._bundle.add_inferred_record(klass, attribute)
         return None
-    
+
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
             return self._parse_identifier(attribute)
@@ -901,8 +901,8 @@ class ProvInfluence(ProvRelation):
     
     def add_attributes(self, attributes, extra_attributes):
         # Required attributes
-        influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, ProvElement) 
-        influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, ProvElement)
+        influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, (ProvEntity, ProvActivity, ProvAgent))
+        influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, (ProvAgent, ProvEntity, ProvActivity))
         
         attributes = OrderedDict()
         attributes[PROV_ATTR_INFLUENCEE] = influencee
@@ -1382,7 +1382,7 @@ class ProvBundle(ProvEntity):
                         other_records.remove(record_b)
                         continue
                     else:
-                        logger.debug("Inequal PROV records:")
+                        logger.debug("Unequal PROV records:")
                         logger.debug("%s" % str(record_a))
                         logger.debug("%s" % str(record_b))
                         return False
