@@ -399,6 +399,8 @@ def datatypes():
 
     attributes = {'ex:int': 100,
                   'ex:float': 100.123456,
+                  'ex:long': 123456789000,
+                  'ex:bool': True,
                   'ex:str': 'Some string',
                   'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
                   'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48)}

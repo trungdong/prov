@@ -231,6 +231,8 @@ XSD_DATATYPE_PARSERS = {
 
 
 def parse_xsd_types(value, datatype):
+    # if the datatype is a QName, convert it to a Unicode string
+    datatype = unicode(datatype)
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 
@@ -1268,13 +1270,9 @@ class ProvBundle(ProvEntity):
                 elif datatype == u'xsd:QName':
                     return self.valid_identifier(value)
                 else:
-                    # Try the standard XSD datatype parsers
-                    result = parse_xsd_types(value, datatype)
-                    if result is not None:
-                        # the XSD datatype is supported, return the parsed value
-                        return result
-                    # No datatype parsing was possible, fall back to the generic Literal class
-                    Literal(value, self.valid_identifier(datatype))
+                    # The literal of standard Python types is not converted here
+                    # It will be automatically converted when added to a record by _auto_literal_conversion()
+                    return Literal(value, self.valid_identifier(datatype))
         except:
             #  simple type, just return it
             return literal
