@@ -5,10 +5,10 @@ with open('README.rst') as f:
 
 with open('LICENCE.txt') as f:
     licence = f.read()
-        
+
 setup(
     name='prov',
-    version='0.4.6',
+    version='0.4.7',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
@@ -17,7 +17,7 @@ setup(
     license=licence,
     description='A Python implementation of PROV data model providing simple provenance tracking and persistence using Django.',
     long_description=long_description,
-    extras_require = {
+    extras_require={
         'graph-export': ['pydot'],
         'persistence': ['Django'],
         'py26-support': ['ordereddict'],

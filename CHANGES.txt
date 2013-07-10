@@ -1,3 +1,13 @@
+v0.4.7, 10/07/2013 -- Bug fixes and minor improvements
+- Changed: Removed out-dated example_graph()
+- Changed: Improved mappings between default Python and XSD data types
+- Changed: Removed ProvElement as the inferred record for influence
+- Changed: Updated examples (primer, bundles1, bundles2)
+- Fixed: Removed the duplicated Bundle definition in PROV_RECORD_TYPES
+- Added JSON test files from ProvToolbox and a test for loading these
+- Changed: Improved Literal equality test
+- Added langtag getter to Literal
+
 v0.4.6, 24/04/2013 -- Bug fixes
 - Fixed: Removed the 'activity' attribute from Influence expression
 - Fixed: Inferred records couldn't be created when the expected types provided as a list
