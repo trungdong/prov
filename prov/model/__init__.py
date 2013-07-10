@@ -219,6 +219,21 @@ def parse_datatype(value, datatype):
         raise Exception(u'No parser found for the data type <%s>' % str(datatype))
 
 
+# Mappings for XSD datatypes to Python standard types
+XSD_DATATYPE_PARSERS = {
+    u"xsd:string": unicode,
+    u"xsd:double": float,
+    u"xsd:long": long,
+    u"xsd:int": int,
+    u"xsd:boolean": bool,
+    u"xsd:dateTime": parse_xsd_dateTime,
+}
+
+
+def parse_xsd_types(value, datatype):
+    return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
+
+
 def encoding_PROV_N_value(value):
     if isinstance(value, basestring):
         return '"%s"' % value
@@ -250,6 +265,9 @@ class Literal(object):
 
     def get_langtag(self):
         return self._langtag
+
+    def has_no_langtag(self):
+        return self._langtag is None
 
     def provn_representation(self):
         if self._langtag:
@@ -436,14 +454,26 @@ class ProvRecord(object):
     def get_value(self):
         return self.get_attribute(PROV['value'])
 
-    def try_qname(self, value):
-        identifier = self._bundle.valid_identifier(value)
-        if isinstance(identifier, QName):
-            #  this is a valid QName, return the QName
-            return identifier
-        else:
-            #  otherwise, do nothing, return the original value
-            return value
+    def _auto_literal_conversion(self, literal):
+        '''This method normalise datatype for literals
+        '''
+        if isinstance(literal, basestring):
+            # try if this is a QName
+            qname = self._bundle.valid_identifier(literal)
+            if isinstance(qname, QName):
+                return qname
+            # if not a QName, convert all strings to unicode
+            return unicode(literal)
+
+        if isinstance(literal, Literal) and literal.has_no_langtag():
+            # try convert generic Literal object to Python standard type if possible
+            # this is to match JSON decoding's literal conversion
+            value = parse_xsd_types(literal.value, literal.datatype)
+            if value is not None:
+                return value
+
+        # No conversion here, return the original value
+        return literal
 
     def parse_extra_attributes(self, extra_attributes):
         try:
@@ -453,7 +483,7 @@ class ProvRecord(object):
         except:
             #  Do nothing if it did not work, expect the variable is already a list
             pass
-        attr_list = ((self._bundle.valid_identifier(attribute), self.try_qname(value)) for attribute, value in extra_attributes)
+        attr_list = ((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
         return attr_list
 
     def add_extra_attributes(self, extra_attributes):
@@ -1233,15 +1263,18 @@ class ProvBundle(ProvEntity):
                 return Literal(value, langtag=literal['lang'])
             else:
                 datatype = literal['type']
-                #  TODO Add a proper XSD datatype converter to replace this, e.g. for integers or floats
                 if datatype == u'xsd:anyURI':
                     return Identifier(value)
                 elif datatype == u'xsd:QName':
                     return self.valid_identifier(value)
-                elif datatype == u'xsd:dateTime':
-                    return parse_xsd_dateTime(value)
                 else:
-                    return Literal(value, self.valid_identifier(datatype))
+                    # Try the standard XSD datatype parsers
+                    result = parse_xsd_types(value, datatype)
+                    if result is not None:
+                        # the XSD datatype is supported, return the parsed value
+                        return result
+                    # No datatype parsing was possible, fall back to the generic Literal class
+                    Literal(value, self.valid_identifier(datatype))
         except:
             #  simple type, just return it
             return literal

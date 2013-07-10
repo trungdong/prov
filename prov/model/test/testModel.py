@@ -32,7 +32,7 @@ class Test(unittest.TestCase):
             logger.debug('Original graph in PROV-JSON\n%s' % json_str)
             g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
             logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_provn())
-            self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed with graph %s.' % name)
+            self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
 
 
 class TestLoadingProvToolboxJSON(unittest.TestCase):
