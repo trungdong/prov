@@ -468,7 +468,7 @@ class ProvRecord(object):
         if isinstance(literal, Literal) and literal.has_no_langtag():
             # try convert generic Literal object to Python standard type if possible
             # this is to match JSON decoding's literal conversion
-            value = parse_xsd_types(literal.value, literal.datatype)
+            value = parse_xsd_types(literal.get_value(), literal.get_datatype())
             if value is not None:
                 return value
 
