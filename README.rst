@@ -7,3 +7,6 @@ This package provides an implementation of the `PROV Data Model <http://www.w3.o
 * prov.persistence: A Django app for storing and loading `ProvBundle` instances to/from databases using Django ORM
 
 * prov.tracking: a logging-like module to facilitate tracking provenance in Python programs
+
+
+See `prov/model/test/examples.py <https://github.com/trungdong/prov/blob/master/prov/model/test/examples.py>`_ for example usages.
