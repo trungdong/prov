@@ -45,7 +45,10 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
             if filename.endswith('.json'):
                 with open(json_path + filename) as json_file:
                     try:
-                        json.load(json_file, cls=ProvBundle.JSONDecoder)
+                        g1 = json.load(json_file, cls=ProvBundle.JSONDecoder)
+                        json_str = json.dumps(g1, cls=ProvBundle.JSONEncoder, indent=4)
+                        g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
+                        self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
                     except:
                         fails.append(filename)
         self.assertFalse(fails, 'Failed to load %d JSON files (%s)' % (len(fails), ', '.join(fails)))

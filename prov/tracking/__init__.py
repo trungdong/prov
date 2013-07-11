@@ -23,16 +23,18 @@ try:
     import threading
 except ImportError:
     thread = None
-    
+
 if thread:
     _lock = threading.RLock()
 else:
     _lock = None
-    
+
+
 def _acquireLock():
     if _lock:
         _lock.acquire()
-        
+
+
 def _releaseLock():
     if _lock:
         _lock.release()
@@ -41,8 +43,9 @@ def _releaseLock():
 #   Handler classes and functions
 #---------------------------------------------------------------------------
 
-_handlers = weakref.WeakValueDictionary()  #map of handler names to handlers
-_handlerList = [] # added to allow handlers to be removed in reverse of order initialized
+_handlers = weakref.WeakValueDictionary()  # map of handler names to handlers
+_handlerList = []  # added to allow handlers to be removed in reverse of order initialized
+
 
 def _removeHandlerRef(wr):
     """
@@ -59,6 +62,7 @@ def _removeHandlerRef(wr):
         finally:
             _releaseLock()
 
+
 def _addHandlerRef(handler):
     """
     Add a handler to the internal cleanup list using a weak reference.
@@ -68,7 +72,8 @@ def _addHandlerRef(handler):
         _handlerList.append(weakref.ref(handler, _removeHandlerRef))
     finally:
         _releaseLock()
-        
+
+
 class Handler(object):
     """
     Handler instances dispatch logging events to specific destinations.
@@ -172,7 +177,7 @@ class Handler(object):
         """
         #get the module data lock, as we're updating a shared structure.
         _acquireLock()
-        try:    #unlikely to raise an exception, but you never know...
+        try:  # unlikely to raise an exception, but you never know...
             if self._name and self._name in _handlers:
                 del _handlers[self._name]
         finally:
@@ -200,7 +205,7 @@ class Handler(object):
             except IOError:
                 pass    # see issue 5971
             finally:
-                del ei    
+                del ei
 
 
 class StreamHandler(Handler):
@@ -248,8 +253,8 @@ class StreamHandler(Handler):
             raise
         except:
             self.handleError(record)
-            
-            
+
+
 class Manager(object):
     def __init__(self, rootnode):
         self.root = rootnode
@@ -257,9 +262,10 @@ class Manager(object):
         self.emittedNoHandlerWarning = 0
         self.trackerDict = {}
         self.trackerClass = None
-        
+
     def getTracker(self, name):
         return self.root
+
 
 class ProvTracker(object):
     def __init__(self):
@@ -269,7 +275,7 @@ class ProvTracker(object):
         self.handlers = []
         self.disabled = 0
         self.default_agent_id = None
-    
+
     def handle(self, record):
         """
         Call the handlers for the specified record.
@@ -320,13 +326,13 @@ class ProvTracker(object):
             sys.stderr.write("No handlers could be found for tracker"
                              " \"%s\"\n" % self.name)
             self.manager.emittedNoHandlerWarning = 1
-    
+
     def get_identifier(self, entity_type):
         current_count = self.counters[entity_type] + 1
         self.counters[entity_type] = current_count
         identifier = '%s_%d' % (entity_type, current_count) 
         return self.prov.valid_identifier(identifier)
-    
+
     def get_object_identifier(self, entity, template=None, identifier=None):
         identity = id(entity)
         if identity in self.entity_id_map:
@@ -340,28 +346,32 @@ class ProvTracker(object):
                 entity_id = identifier
             self.entity_id_map[identity] = entity_id
             return entity_id
-    
+
     def register_namespace(self, prefix, uri):
         self.prov.add_namespace(Namespace(prefix, uri))
-    
+
     def set_default_agent(self, agent_id):
         self.default_agent_id = agent_id
-        
+
     def activity(self, activity_type, startTime=None, endTime=None, extra_attributes=None):
         record = self.prov.activity(self.get_identifier(activity_type), startTime, endTime, extra_attributes)
         return record
 
+
 class RootTracker(ProvTracker):
     pass
 
+
 root = RootTracker()
 ProvTracker.root = root
-ProvTracker.manager = Manager(root) 
+ProvTracker.manager = Manager(root)
+
 
 def getTracker(asserter=None):
     return ProvTracker.manager.getTracker(asserter)
 
 root.addHandler(StreamHandler())
+
 
 class ActivityLogRecord(object):
     def __init__(self, activity, provtracker):
@@ -369,33 +379,33 @@ class ActivityLogRecord(object):
         self.prov_graph = provtracker.prov
         self.records = [activity]
         self.provtracker = provtracker
-        
+
     def __str__(self):
         return '\n'.join(map(str, self.records))
-    
+
     def get_activity(self):
         return self.activity
-    
+
     def set_time(self, startTime, endTime):
         self.activity.set_time(startTime, endTime)
-        
+
     def add_attributes(self, attributes):
         self.activity.add_extra_attributes(attributes)
-        
+
     def entity(self, identifier, attributes={}):
         entity_record = self.prov_graph.get_record(identifier)
         if entity_record is None:
             entity_record = self.prov_graph.entity(identifier, attributes)
             self.records.append(entity_record)
         return entity_record
-    
+
     def agent(self, identifier, attributes={}):
         agent_record = self.prov_graph.get_record(identifier)
         if agent_record is None:
             agent_record = self.prov_graph.agent(identifier, attributes)
             self.records.append(agent_record)
         return agent_record
-    
+
     def get_entity_id(self, entity, attributes={}, template=None, identifier=None):
         entity_id = self.provtracker.get_object_identifier(entity, template, identifier)
         if self.prov_graph.get_record(entity_id) is None:
@@ -408,22 +418,22 @@ class ActivityLogRecord(object):
         usage_record = self.prov_graph.used(self.activity, entity, time, other_attributes=attributes)
         self.records.append(usage_record)
         return usage_record
-    
+
     def uses_object(self, entity, attributes={}, entity_attributes={}, template=None, identifier=None):
         entity_id = self.get_entity_id(entity, entity_attributes, template, identifier)
         return self.uses(entity_id, attributes)
-        
+
     def generates(self, entity_id, attributes={}):
         time = datetime.datetime.now()
         entity = self.entity(entity_id)
         generation_record = self.prov_graph.wasGeneratedBy(entity, self.activity, time, other_attributes=attributes)
         self.records.append(generation_record)
         return generation_record
-    
+
     def generates_object(self, entity, attributes={}, entity_attributes={}, template=None, identifier=None):
         entity_id = self.get_entity_id(entity, entity_attributes, template, identifier)
         return self.generates(entity_id, attributes)
-        
+
     def derives(self, generated_entity_id, used_entity_id, attributes={}):
         time = datetime.datetime.now()
         generated_entity = self.entity(generated_entity_id)
@@ -431,32 +441,32 @@ class ActivityLogRecord(object):
         derivation_record = self.prov_graph.wasDerivedFrom(generated_entity, used_entity_id, self.activity, time=time, other_attributes=attributes)
         self.records.append(derivation_record)
         return derivation_record
-    
+
     def derives_object(self, generated_entity, used_entity, attributes={}, gen_entity_attributes={}, used_entity_attributes={}, gen_template=None, used_template=None, gen_identifier=None, used_identifier=None):
         generated_entity_id = self.get_entity_id(generated_entity, gen_entity_attributes, gen_template, gen_identifier)
         used_entity_id = self.get_entity_id(used_entity, used_entity_attributes, used_template, used_identifier)
         return self.derives(generated_entity_id, used_entity_id, attributes)
-    
+
     def started_by(self, trigger=None, starter=None, time=None, attributes={}):
         start_record = self.prov_graph.start(self.activity, trigger, starter, time, attributes)
         self.records.append(start_record)
         return start_record
-        
+
     def ended_by(self, trigger=None, ender=None, time=None, attributes={}):
         end_record = self.prov_graph.wasEndedBy(self.activity, trigger, ender, time, attribute)
         self.records.append(end_record)
         return end_record
-    
+
     def associated_with(self, agent):
         if not isinstance(agent, ProvAgent):
             # if it is not already an agent record, create a new one
             agent = self.agent(agent)
         association_record = self.prov_graph.wasAssociatedWith(self.activity, agent)
-        return association_record 
+        return association_record
 
 
 def current_activity():
-    frame = inspect.currentframe().f_back.f_back;
+    frame = inspect.currentframe().f_back.f_back
     try:
         # TODO Check for cases where the activity cannot be found
         # (e.g. the main function is wrapped multiple times)
@@ -466,7 +476,7 @@ def current_activity():
                 return None
             if 'prov_tracking_activity' in frame.f_locals:
                 return frame.f_locals.get('prov_tracking_activity')
-            frame = frame.f_back;
+            frame = frame.f_back
     finally:
         # Delete the frame object to break the reference cycle
         # (allowing it to be garbage collected and avoiding memory leak)
@@ -479,11 +489,11 @@ class Activity(object):
         self.extra_attributes = extra_attributes
         self.agent = agent if agent is not None else provtracker.default_agent_id
         self.provtracker = provtracker
-        
+
     def __call__(self, fn):
         if self.activity_type is None:
             self.activity_type = fn.func_name
-        
+
         def activity_wrapper(*args, **kwargs):
             # Create an generic activity log record from the template
             prov_tracking_activity = self.new_activity_log_record()
@@ -506,14 +516,15 @@ class Activity(object):
                 prov_tracking_activity.set_time(startTime, endTime)
                 # Handle the activity record
                 self.provtracker.handle(prov_tracking_activity)
-                
+
         return activity_wrapper
-    
+
     def new_activity_log_record(self):
         # Create an generic activity from the template
         activity = self.provtracker.activity(self.activity_type, extra_attributes=self.extra_attributes)
         return ActivityLogRecord(activity, self.provtracker)
-                
+
+
 class ProvJSONMiddleware:
     def process_response(self, request, response):
         if response.has_header('content-type') and response['content-type'] == 'application/json':
@@ -524,8 +535,8 @@ class ProvJSONMiddleware:
             prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
             response['prov_json'] = prov_json
         return response
-    
+
     def process_template_response(self, request, response):
         prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
-        response.context_data['prov_json'] = prov_json 
+        response.context_data['prov_json'] = prov_json
         return response
