@@ -78,8 +78,11 @@ class PDBundle(PDRecord):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri, bundle=self)
         return namespace
         
-    def add_sub_bundle(self, pdbundle):
-        pass
+    def add_bundle(self, bundle):
+        pdbundle = PDBundle.create(bundle.get_identifier())
+        pdbundle.bundle = self
+        pdbundle.save_bundle(bundle)
+        pdbundle.save()
     
     def get_namespaces(self):
         results = {}
