@@ -1071,12 +1071,14 @@ PROV_REC_CLS = {
 
 #  Bundle
 class NamespaceManager(dict):
-    def __init__(self, default_namespaces={}, default=None):
+    def __init__(self, default_namespaces={PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, default=None, parent=None):
         self._default_namespaces = {}
         self._default_namespaces.update(default_namespaces)
         self._namespaces = {}
         self.update(self._default_namespaces)
         self._default = default
+
+        self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
         self._rename_map = {}
@@ -1143,8 +1145,12 @@ class NamespaceManager(dict):
                         if identifier.startswith(namespace.get_uri()):
                             #  create a QName with the namespace
                             return namespace[identifier.replace(namespace.get_uri(), '')]
-                    #  return an Identifier with the given URI
-                    return Identifier(identifier)
+                    if self.parent is not None:
+                        # try the parent namespace manager
+                        return self.parent.get_valid_identifier(identifier)
+                    else:
+                        #  return an Identifier with the given URI
+                        return Identifier(identifier)
             elif self._default:
                 #  create and return an identifier in the default namespace
                 return self._default[identifier]
@@ -1175,9 +1181,9 @@ class ProvBundle(ProvEntity):
         self._id_map = dict()
         self._bundles = dict()
         if bundle is None:
-            self._namespaces = NamespaceManager({PROV.get_prefix(): PROV, XSD.get_prefix(): XSD})
+            self._namespaces = NamespaceManager()
         else:
-            self._namespaces = bundle._namespaces
+            self._namespaces = NamespaceManager(parent=bundle._namespaces)
 
         #  Initializing record-specific attributes
         super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes, asserted)
@@ -1280,13 +1286,12 @@ class ProvBundle(ProvEntity):
     def _encode_JSON_container(self):
         container = defaultdict(dict)
 
-        if self._bundle is None:
-            #  This is the top-level bundle, we need to define namespaces
-            prefixes = {}
-            for namespace in self._namespaces.get_registered_namespaces():
-                prefixes[namespace.get_prefix()] = namespace.get_uri()
-            if self._namespaces._default:
-                prefixes['$'] = self._namespaces._default.get_uri()
+        prefixes = {}
+        for namespace in self._namespaces.get_registered_namespaces():
+            prefixes[namespace.get_prefix()] = namespace.get_uri()
+        if self._namespaces._default:
+            prefixes['$'] = self._namespaces._default.get_uri()
+        if prefixes:
             container[u'prefix'] = prefixes
 
         ids = {}
