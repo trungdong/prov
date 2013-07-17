@@ -79,7 +79,14 @@ class PDBundle(PDRecord):
         return namespace
         
     def add_bundle(self, bundle):
-        pdbundle = PDBundle.create(bundle.get_identifier())
+        uri = bundle.get_identifier().get_uri()
+        
+        prov_record = self.get_prov_bundle()
+        
+        if uri in prov_record._bundles:
+            raise prov.ProvException(u"Non unique bundle identifier")
+        
+        pdbundle = PDBundle.create(uri)
         pdbundle.bundle = self
         pdbundle.save_bundle(bundle)
         pdbundle.save()
