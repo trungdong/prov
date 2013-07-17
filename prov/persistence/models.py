@@ -79,18 +79,15 @@ class PDBundle(PDRecord):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri, bundle=self)
         return namespace
 
-    def add_bundle(self, bundle):
+    def add_prov_bundle(self, bundle):
         uri = bundle.get_identifier().get_uri()
-
-        prov_record = self.get_prov_bundle()
-
-        if uri in prov_record._bundles:
+        # TODO check if bundle contain another bundle
+        if self.bundle_set.filter(rec_id=uri).exist():
             raise prov.ProvException(u"Non unique bundle identifier")
 
         pdbundle = PDBundle.create(uri)
         pdbundle.bundle = self
         pdbundle.save_bundle(bundle)
-        pdbundle.save()
 
     def get_namespaces(self):
         results = {}
