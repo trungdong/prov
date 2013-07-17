@@ -80,9 +80,7 @@ class PDBundle(PDRecord):
         return namespace
 
     def add_prov_bundle(self, bundle):
-        namespace_manager = self.get_namespace_manager()
-
-        uri = namespace_manager.get_valid_identifier(bundle.get_identifier()).get_uri()
+        uri = bundle.get_identifier().get_uri()
 
         if self._records.filter(rec_type=prov.PROV_REC_BUNDLE, rec_id=uri).exists():
             raise prov.ProvException(u"Non unique bundle identifier")
@@ -125,16 +123,16 @@ class PDBundle(PDRecord):
         return prov_bundle
 
     def get_namespace_manager(self):
-        prov_bundle = prov.ProvBundle()
+        namespace_manager = prov.NamespaceManager()
 
         namespaces = self.get_namespaces()
         for (prefix, uri) in namespaces.items():
             if prefix == '':
-                prov_bundle.set_default_namespace(uri)
+                namespace_manager.set_default_namespace(uri)
             else:
-                prov_bundle.add_namespace(prov.Namespace(prefix, uri))
+                namespace_manager.add_namespace(prov.Namespace(prefix, uri))
 
-        return prov_bundle._namespaces
+        return namespace_manager
 
 
 # Internal functions
