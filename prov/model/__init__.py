@@ -1398,11 +1398,9 @@ class ProvBundle(ProvEntity):
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
-        if self._bundle is None:
-            #  print out prefixes in the top-level document
-            #  TODO: Add support for bundle-level namespace declarations
-            #  TODO: Add support for the default namespace
-            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
+        #  print out prefixes in the document/bundle
+        #  TODO: Add support for the default namespace
+        records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
 
         #  a blank line between the prefixes and the assertions
         records.append('')

@@ -100,22 +100,12 @@ class PDBundle(PDRecord):
         return results
 
     def save_bundle(self, prov_bundle):
-        # Save all the namespaces for future QName recreation
-        logger.debug('Saving namespaces...')
-        namespaces = prov_bundle.get_registered_namespaces()
-        for namespace in namespaces:
-            self.add_namespace(namespace.get_prefix(), namespace.get_uri())
-        # and the default namespace as well
-        default_namespace = prov_bundle.get_default_namespace()
-        if default_namespace:
-            self.add_namespace('', default_namespace.get_uri())
-
         # An empty map to keep track of the visited records
         record_map = {}
         # Getting all the individual records contained in the graph
         records = prov_bundle.get_records()
         # and save them
-        _save_bundle(self, records, record_map)
+        _save_bundle(self, records, record_map, prov_bundle)
 
     def get_prov_bundle(self):
         logger.debug('Loading bundle id %s' % self.rec_id)
@@ -174,7 +164,7 @@ def _decode_python_literal(value, datatype, graph):
         return prov.Literal(value, literal_type)
 
 
-def _create_pdrecord(prov_record, bundle, record_map):
+def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
     logger.debug('Saving PROV record: %s' % str(prov_record))
     prov_type = prov_record.get_type()
     record_id = prov_record.get_identifier()
@@ -188,7 +178,7 @@ def _create_pdrecord(prov_record, bundle, record_map):
         pdrecord = PDBundle.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
         # Recursive call to save this bundle
-        _save_bundle(pdrecord, prov_record.get_records(), record_map)
+        _save_bundle(pdrecord, prov_record.get_records(), record_map, prov_bundle)
 
     # TODO add all _attributes here
     prov_attributes, extra_attributes = prov_record.get_attributes()
@@ -224,13 +214,23 @@ def _create_pdrecord(prov_record, bundle, record_map):
     return pdrecord
 
 
-def _save_bundle(bundle, records, record_map):
+def _save_bundle(bundle, records, record_map, prov_bundle):
+    # Save all the namespaces for future QName recreation
+    logger.debug('Saving namespaces...')
+    namespaces = prov_bundle.get_registered_namespaces()
+    for namespace in namespaces:
+        bundle.add_namespace(namespace.get_prefix(), namespace.get_uri())
+    # and the default namespace as well
+    default_namespace = prov_bundle.get_default_namespace()
+    if default_namespace:
+        bundle.add_namespace('', default_namespace.get_uri())
+
     logger.debug('Saving bundle %s...' % bundle.rec_id)
     for record in records:
         # if the record is not visited
         if record not in record_map:
             # visit it and create the corresponding PDRecord
-            _create_pdrecord(record, bundle, record_map)
+            _create_pdrecord(record, bundle, record_map, prov_bundle)
 
 
 def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_map):
