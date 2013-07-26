@@ -1,0 +1,16 @@
+{
+  "derivedByRemovalFrom": {
+    "ex:removal3": {
+      "prov:key-set": [
+        "a"
+      ],
+      "prov:before": "ex:d1",
+      "prov:after": "ex:d2"
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

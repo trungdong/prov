@@ -9,14 +9,16 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+
 @prov.Activity('TestActivity', {'prov:type': 'TestIncrease'})
 def increase(x):
     activity = prov.current_activity()
     activity.uses_object(x)
-    y = x + 1;
+    y = x + 1
     activity.generates_object(y)
     activity.derives_object(x, y, {'prov:type': 'ex:PlusOne'})
-    return y;
+    return y
+
 
 class Test(unittest.TestCase):
     def setUp(self):

@@ -1,0 +1,27 @@
+{
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "actedOnBehalfOf": {
+    "ex:del6": {
+      "prov:activity": "ex:a",
+      "prov:delegate": "ex:e1",
+      "prov:responsible": "ex:ag1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  }
+}

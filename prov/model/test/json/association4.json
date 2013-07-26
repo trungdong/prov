@@ -1,0 +1,14 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc4": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:plan": "ex:plan1"
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

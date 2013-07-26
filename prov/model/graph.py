@@ -49,6 +49,7 @@ DOT_PROV_STYLE = {
     PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
     }
 
+
 def prov_to_dot(prov_g, show_nary=False, use_labels=False):
     maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
 
@@ -84,12 +85,13 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
                 relations.append(rec)
         for rec in relations:
             # skipping empty records
-            if not rec._attributes: continue
+            if not rec._attributes:
+                continue
             # picking element nodes
             nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
             if len(nodes) < 2:
                 # Cannot draw this
-                pass  
+                pass
             elif len(nodes) == 2 or not show_nary:
                 # binary relations
                 style = DOT_PROV_STYLE[rec.get_type()]
@@ -113,6 +115,7 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
     _bundle_to_dot(maindot, prov_g)
     return maindot
 
+
 def prov_to_file(prov_g, filepath, use_labels=False, format='png',
                          dpi='150'):
     """Write a prov json object to an image file
@@ -123,9 +126,10 @@ def prov_to_file(prov_g, filepath, use_labels=False, format='png',
     dot.write(filepath, format=format)
     return dot
 
-### Testing code
-if __name__=="__main__":
-    import tempfile, os
+# ## Testing code
+if __name__ == "__main__":
+    import tempfile
+    import os
     import matplotlib.pyplot as plt
     import matplotlib.image as mpimg
     import test.examples as ex
@@ -139,7 +143,7 @@ if __name__=="__main__":
     dot = prov_to_file(prov_g, filepath)
 
     # Display it using matplotlib
-    img=mpimg.imread(filepath)
+    img = mpimg.imread(filepath)
     imgplot = plt.imshow(img)
     plt.show()
     os.remove(filepath)
