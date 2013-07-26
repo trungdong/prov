@@ -1299,6 +1299,9 @@ class ProvBundle(ProvEntity):
         for record in self._records:
             ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
         for record in self._records:
+            if not record.is_asserted():
+                pass  # skipping inferred records
+
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
             identifier = str(ids[record])
@@ -1391,23 +1394,22 @@ class ProvBundle(ProvEntity):
     def get_type(self):
         return PROV_REC_BUNDLE
 
-    def get_provn(self, _indent_level=0):
+    def get_provn(self, _indent_level=0, asserted_only=True):
         indentation = '' + ('  ' * _indent_level)
         newline = '\n' + ('  ' * (_indent_level + 1))
 
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
-        if self._bundle is None:
-            #  print out prefixes in the top-level document
-            #  TODO: Add support for bundle-level namespace declarations
+        registered_namespaces = self._namespaces.get_registered_namespaces()
+        if registered_namespaces:
             #  TODO: Add support for the default namespace
-            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in self._namespaces.get_registered_namespaces()])
+            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+            #  a blank line between the prefixes and the assertions
+            records.append('')
 
-        #  a blank line between the prefixes and the assertions
-        records.append('')
         #  adding all the records
-        records.extend([record.get_provn(_indent_level + 1) for record in self._records])
+        records.extend([record.get_provn(_indent_level + 1) for record in self._records if record.is_asserted() or not asserted_only])
         provn_str = newline.join(records) + '\n'
         #  closing the structure
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
