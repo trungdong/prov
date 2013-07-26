@@ -1,0 +1,20 @@
+{
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "wasDerivedFrom": {
+    "ex:quo1": {
+      "prov:activity": "ex:a",
+      "prov:generatedEntity": "ex:e2",
+      "prov:type": {
+        "$": "prov:Quotation",
+        "type": "xsd:QName"
+      },
+      "prov:usage": "ex:u",
+      "prov:generation": "ex:g",
+      "prov:usedEntity": "ex:e1"
+    }
+  }
+}

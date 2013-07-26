@@ -1,6 +1,6 @@
 '''Django app for persisting prov.model.ProvBundle
 
-Save and load provenance bundles from databases 
+Save and load provenance bundles from databases
 
 References:
 
@@ -32,14 +32,15 @@ def save_bundle(prov_bundle, identifier=None):
 # Classes
 class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
-    uri  = models.CharField(max_length=255, db_index=True)
+    uri = models.CharField(max_length=255, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
-    
+
     class Meta:
         verbose_name = 'namespace'
 
     def __unicode__(self):
         return u'(%s: <%s>)' % (self.prefix, self.uri)
+
 
 class PDRecord(models.Model):
     rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
@@ -66,27 +67,27 @@ class LiteralAttribute(models.Model):
 class PDBundle(PDRecord):
     class Meta:
         verbose_name = 'bundle'
-    
+
     def __unicode__(self):
         return unicode(self.rec_id)
-        
+
     @staticmethod
     def create(bundle_id):
         return PDBundle.objects.create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE)
-    
+
     def add_namespace(self, prefix, uri):
         namespace = PDNamespace.objects.create(prefix=prefix, uri=uri, bundle=self)
         return namespace
-        
+
     def add_sub_bundle(self, pdbundle):
         pass
-    
+
     def get_namespaces(self):
         results = {}
         for namespace in self.namespaces.all():
             results[namespace.prefix] = namespace.uri
         return results
-        
+
     def save_bundle(self, prov_bundle):
         # Save all the namespaces for future QName recreation
         logger.debug('Saving namespaces...')
@@ -97,18 +98,19 @@ class PDBundle(PDRecord):
         default_namespace = prov_bundle.get_default_namespace()
         if default_namespace:
             self.add_namespace('', default_namespace.get_uri())
-         
+
         # An empty map to keep track of the visited records
         record_map = {}
         # Getting all the individual records contained in the graph
         records = prov_bundle.get_records()
         # and save them
         _save_bundle(self, records, record_map)
-        
+
     def get_prov_bundle(self):
         logger.debug('Loading bundle id %s' % self.rec_id)
         prov_bundle = build_ProvBundle(self)
         return prov_bundle
+
 
 # Internal functions
 def _encode_python_literal(literal):
@@ -119,11 +121,11 @@ def _encode_python_literal(literal):
     elif isinstance(literal, prov.Literal):
         value, _ = _encode_python_literal(literal.get_value())
         datatype = literal.get_datatype()
-        xsd_type = prov.XSD.qname(datatype);
+        xsd_type = prov.XSD.qname(datatype)
         if xsd_type:
             xsd_type_str = str(xsd_type)
 #            if xsd_type_str in ('xsd:anyURI', 'xsd:QName'):
-            return value, xsd_type_str 
+            return value, xsd_type_str
         else:
             return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype
     else:
@@ -131,10 +133,13 @@ def _encode_python_literal(literal):
 
 DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
-                          "<type 'str'>": str,
+                          "<type 'str'>": unicode,
                           "<type 'unicode'>": unicode,
+                          "<type 'bool'>": bool,
                           "<type 'int'>": int,
+                          "<type 'long'>": long,
                           "<type 'float'>": float}
+
 
 def _decode_python_literal(value, datatype, graph):
     if datatype in DATATYPE_FUNCTIONS_MAP:
@@ -143,14 +148,15 @@ def _decode_python_literal(value, datatype, graph):
         return graph.valid_identifier(value)
     else:
         literal_type = graph.valid_identifier(datatype)
-        return prov.Literal(value, literal_type) 
-    
+        return prov.Literal(value, literal_type)
+
+
 def _create_pdrecord(prov_record, bundle, record_map):
     logger.debug('Saving PROV record: %s' % str(prov_record))
     prov_type = prov_record.get_type()
     record_id = prov_record.get_identifier()
     record_uri = None if record_id is None else record_id.get_uri()
-    if prov_type <> prov.PROV_REC_BUNDLE:
+    if prov_type != prov.PROV_REC_BUNDLE:
         # Create a normal record
         pdrecord = PDRecord.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
@@ -160,7 +166,7 @@ def _create_pdrecord(prov_record, bundle, record_map):
         record_map[prov_record] = pdrecord
         # Recursive call to save this bundle
         _save_bundle(pdrecord, prov_record.get_records(), record_map)
-        
+
     # TODO add all _attributes here
     prov_attributes, extra_attributes = prov_record.get_attributes()
     if prov_attributes:
@@ -184,15 +190,16 @@ def _create_pdrecord(prov_record, bundle, record_map):
                 attr_name = prov.PROV_ID_ATTRIBUTES_MAP[attr]
                 value, datatype = _encode_python_literal(value)
                 LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype)
-                
+
     if extra_attributes:
         for (attr, value) in extra_attributes:
             # Create a literal attribute
             attr_name = attr.get_uri() if isinstance(attr, prov.Identifier) else attr
             value, datatype = _encode_python_literal(value)
             LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype)
-            
+
     return pdrecord
+
 
 def _save_bundle(bundle, records, record_map):
     logger.debug('Saving bundle %s...' % bundle.rec_id)
@@ -201,22 +208,23 @@ def _save_bundle(bundle, records, record_map):
         if record not in record_map:
             # visit it and create the corresponding PDRecord
             _create_pdrecord(record, bundle, record_map)
-    
+
+
 def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_map):
     if pk in record_map:
         # skip this record
         return record_map[pk]
-    
+
     record_type = records[pk]['rec_type']
     record_id = prov_bundle.valid_identifier(records[pk]['rec_id'])
     asserted = records[pk]['asserted']
-    
+
     # Prepare record-attributes, this map will return None for non-existent key request
     prov_attributes = defaultdict()
     for attr_id, value_id in attributes[pk]:
-        # If the other PROV record has been created, use it; otherwise, create it before use 
-        other_prov_record = record_map[value_id] if value_id in record_map else _create_prov_record(prov_bundle, value_id, records, attributes, literals, record_map) 
-        prov_attributes[attr_id] = other_prov_record 
+        # If the other PROV record has been created, use it; otherwise, create it before use
+        other_prov_record = record_map[value_id] if value_id in record_map else _create_prov_record(prov_bundle, value_id, records, attributes, literals, record_map)
+        prov_attributes[attr_id] = other_prov_record
     # Prepare literal-_attributes
     prov_literals = defaultdict()
     other_literals = []
@@ -226,20 +234,21 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
         else:
             other_literals.append((prov_bundle.valid_identifier(attr.name), _decode_python_literal(attr.value, attr.datatype, prov_bundle)))
     prov_attributes.update(prov_literals)
-            
+
     # Create the record by its type
     prov_record = prov_bundle.add_record(record_type, record_id, prov_attributes, other_literals, asserted=asserted)
     record_map[pk] = prov_record
-    
+
     if record_type == prov.PROV_REC_BUNDLE:
         # Loading records in this sub-bundle
         logger.debug('Loading records for %s' % str(prov_record))
         pdbundle = PDBundle.objects.get(pk=pk)
         build_ProvBundle(pdbundle, prov_record)
-    
+
     logger.debug('Loaded PROV record: %s' % str(prov_record))
     return prov_record
-    
+
+
 def build_ProvBundle(pdbundle, prov_bundle=None):
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
@@ -249,7 +258,7 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
             prov_bundle.set_default_namespace(uri)
         else:
             prov_bundle.add_namespace(prov.Namespace(prefix, uri))
-    
+
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
     records = dict()
@@ -257,11 +266,11 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
         records[pk] = {'rec_id': rec_id,
                        'rec_type': rec_type,
                        'asserted': asserted}
-        
+
     attributes = defaultdict(list)
     for rec_id, value_id, attr_id in RecordAttribute.objects.filter(record__bundle=pdbundle).values_list('record__pk', 'value__pk', 'prov_type'):
         attributes[rec_id].append((attr_id, value_id))
-        
+
     literals = defaultdict(list)
     for literal_attr in LiteralAttribute.objects.filter(record__bundle=pdbundle):
         literals[literal_attr.record_id].append(literal_attr)

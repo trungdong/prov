@@ -1,0 +1,69 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc9": {
+      "prov:activity": "ex:a1",
+      "prov:type": [
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-06-25T12:48:01.729+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "ex:tag1": {
+        "$": "hello",
+        "type": "xsd:string"
+      },
+      "prov:agent": "ex:ag1",
+      "ex:tag2": {
+        "$": "bye",
+        "type": "xsd:string"
+      },
+      "ex2:tag3": {
+        "$": "hi",
+        "type": "xsd:string"
+      },
+      "prov:plan": "ex:plan1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

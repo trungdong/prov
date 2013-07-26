@@ -1,0 +1,26 @@
+{
+  "wasAttributedTo": {
+    "ex:attr6": {
+      "prov:agent": "ex:ag1",
+      "prov:entity": "ex:e1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

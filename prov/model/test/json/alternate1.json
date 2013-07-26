@@ -1,0 +1,13 @@
+{
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "alternateOf": {
+    "_:aO1": {
+      "prov:alternate2": "ex:e2",
+      "prov:alternate1": "ex:e1"
+    }
+  }
+}

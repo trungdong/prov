@@ -1,0 +1,12 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc2": {
+      "prov:agent": "ex:ag1"
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}

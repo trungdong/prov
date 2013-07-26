@@ -1,0 +1,20 @@
+{
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "agent": {
+    "ex:ag2": {
+      "prov:label": [
+        "agent2",
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        }
+      ]
+    }
+  }
+}
