@@ -767,7 +767,7 @@ class ProvRelation(ProvRecord):
             items = []
         if items:
             QRole = PROV['qualified' + str(self.get_prov_type()).split('prov:')[1]].rdf_representation()
-            bnode = URIRef(BNode())
+            bnode = BNode()
             graph.add((subj, QRole, bnode))
             graph.add((bnode, RDF.type, self.get_prov_type().rdf_representation()))
             for attr, value in items:
