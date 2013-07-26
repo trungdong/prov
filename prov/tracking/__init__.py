@@ -532,11 +532,11 @@ class ProvJSONMiddleware:
             data['prov'] = root.prov._encode_JSON_container()
             response.content = json.dumps(data)
         else:
-            prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
+            prov_json = root.prov.get_provjson()
             response['prov_json'] = prov_json
         return response
 
     def process_template_response(self, request, response):
-        prov_json = json.dumps(root.prov, cls=ProvBundle.JSONEncoder)
+        prov_json = root.prov.get_provjson()
         response.context_data['prov_json'] = prov_json
         return response

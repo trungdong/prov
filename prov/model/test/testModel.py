@@ -28,9 +28,9 @@ class Test(unittest.TestCase):
             logger.info('%d. Testing the %s example' % (counter, name))
             g1 = graph()
             logger.debug('Original graph in PROV-N\n%s' % g1.get_provn())
-            json_str = json.dumps(g1, cls=ProvBundle.JSONEncoder, indent=4)
+            json_str = g1.get_provjson(indent=4)
             logger.debug('Original graph in PROV-JSON\n%s' % json_str)
-            g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
+            g2 = ProvBundle.from_provjson(json_str)
             logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_provn())
             self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
 
@@ -46,8 +46,8 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                 with open(json_path + filename) as json_file:
                     try:
                         g1 = json.load(json_file, cls=ProvBundle.JSONDecoder)
-                        json_str = json.dumps(g1, cls=ProvBundle.JSONEncoder, indent=4)
-                        g2 = json.loads(json_str, cls=ProvBundle.JSONDecoder)
+                        json_str = g1.get_provjson(indent=4)
+                        g2 = ProvBundle.from_provjson(json_str)
                         self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
                     except:
                         fails.append(filename)

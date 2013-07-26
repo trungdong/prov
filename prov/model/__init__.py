@@ -1415,6 +1415,27 @@ class ProvBundle(ProvEntity):
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
         return provn_str
 
+    def get_provjson(self, **kw):
+        """Return the `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ representation for the bundle/document.
+
+        Parameters for `json.dumps <http://docs.python.org/2/library/json.html#json.dumps>`_ like `indent=4` can be also passed as keyword arguments.
+        """
+        # Prevent overwriting the encoder class
+        if 'cls' in kw:
+            del kw['cls']
+        json_content = json.dumps(self, cls=ProvBundle.JSONEncoder, **kw)
+        return json_content
+
+    @staticmethod
+    def from_provjson(json_content, **kw):
+        """Construct the bundle/document from the given `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ representation.
+
+        Parameters for `json.loads <http://docs.python.org/2/library/json.html#json.loads>`_ can be also passed as keyword arguments.
+        """  # Prevent overwriting the decoder class
+        if 'cls' in kw:
+            del kw['cls']
+        return json.loads(json_content, cls=ProvBundle.JSONDecoder, **kw)
+
     def __eq__(self, other):
         try:
             other_records = set(other._records)
