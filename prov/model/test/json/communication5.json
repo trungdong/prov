@@ -1,0 +1,26 @@
+{
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "wasInformedBy": {
+    "ex:inf5": {
+      "prov:informant": "ex:a1",
+      "prov:informed": "ex:a2",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  }
+}

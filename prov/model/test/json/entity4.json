@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "ex:e4": {
+      "prov:label": [
+        "entity4",
+        "hello",
+        {
+          "$": "bye",
+          "type": "xsd:string",
+          "lang": "EN"
+        },
+        {
+          "$": "bonjour",
+          "type": "xsd:string",
+          "lang": "FR"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "_": "http://example3.org/",
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  }
+}
