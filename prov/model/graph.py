@@ -1,16 +1,17 @@
-'''Graphical visualisation support for prov.model.
+"""Graphical visualisation support for prov.model.
 
 This module produces graphical visualisation for provenanve graphs.
 Requires pydot module and Graphviz.
 
 References:
 
-pydot Homepage: http://code.google.com/p/pydot/
-Graphviz:       http://www.graphviz.org/
-DOT Language:   http://www.graphviz.org/doc/info/lang.html
+* pydot Homepage: http://code.google.com/p/pydot/
+* Graphviz:       http://www.graphviz.org/
+* DOT Language:   http://www.graphviz.org/doc/info/lang.html
 
-@author: Dong Huynh <trungdong@donggiang.com>
-'''
+.. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
+"""
+import cgi
 from prov.model import (ProvBundle, ProvElement,
                    PROV_REC_ACTIVITY, PROV_REC_AGENT,
                    PROV_REC_ALTERNATE, PROV_REC_ASSOCIATION,
@@ -51,15 +52,50 @@ DOT_PROV_STYLE = {
 
 ANNOTATION_STYLE = {'shape': 'note', 'color': 'gray', 'fontcolor': 'black', 'fontsize': '10'}
 ANNOTATION_LINK_STYLE = {'arrowhead': 'none', 'style': 'dashed', 'color': 'gray'}
+ANNOTATION_START_ROW = '<<TABLE cellpadding=\"0\" border=\"0\">'
+ANNOTATION_ROW_TEMPLATE = """    <TR>
+        <TD align=\"left\">%s</TD>
+        <TD align=\"left\">%s</TD>
+    </TR>"""
+ANNOTATION_END_ROW = '    </TABLE>>'
 
 
-def prov_to_dot(prov_g, show_nary=False, use_labels=False, show_nodes_attributes=True):
+def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attributes=True, show_relation_attributes=True):
+    """
+    Convert a provenance bundle/document into a DOT graphical representation.
+
+    :param bundle: The provenance bundle/document to be converted.
+    :type name: :class:`ProvBundle`
+    :param show_nary: shows all elements in n-ary relations.
+    :type show_nary: bool
+    :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
+    :type use_labels: bool
+    :param show_element_attributes: shows attributes of elements.
+    :type show_element_attributes: bool
+    :param show_relation_attributes: shows attributes of relations.
+    :type show_relation_attributes: bool
+    :returns:  :class:`pydot.Dot` -- the Dot object.
+    """
     maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
 
     node_map = {}
-    count = [0, 0, 0]
+    count = [0, 0, 0, 0]  # counters for node ids
 
     def _bundle_to_dot(dot, bundle):
+
+        def _attach_attribute_annotation(node, record):
+            # Adding a node to show all attributes
+            if not record._extra_attributes:
+                return  # No attribute to display
+
+            ann_rows = [ANNOTATION_START_ROW]
+            ann_rows.extend(ANNOTATION_ROW_TEMPLATE % (cgi.escape(str(attr)), cgi.escape(str(value))) for attr, value in record._extra_attributes)
+            ann_rows.append(ANNOTATION_END_ROW)
+            count[3] += 1
+            annotations = pydot.Node('ann%d' % count[3], label='\n'.join(ann_rows), **ANNOTATION_STYLE)
+            dot.add_node(annotations)
+            dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
+
         records = bundle.get_records()
         relations = []
         for rec in records:
@@ -85,56 +121,52 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False, show_nodes_attributes
                     node_map[rec] = node
                     dot.add_node(node)
 
-                    if show_nodes_attributes and rec._extra_attributes:
-                    # Adding a node to show all attributes
-                        ann_rows = ['<<TABLE cellpadding=\"0\" border=\"0\">']
-                        row_template = """    <TR>
-        <TD align=\"left\">%s</TD>
-        <TD align=\"left\">%s</TD>
-    </TR>"""
-                        ann_rows.extend(row_template % (attr, value) for attr, value in rec._extra_attributes)
-                        ann_rows.append("    </TABLE>>")
-                        annotations = pydot.Node(node_id + '_ann', label='\n'.join(ann_rows), **ANNOTATION_STYLE)
-                        dot.add_node(annotations)
-                        dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
+                    if show_element_attributes and rec._extra_attributes:
+                        _attach_attribute_annotation(node, rec)
             else:
+                # Saving the relations for later processing
                 relations.append(rec)
+
         for rec in relations:
             # skipping empty records
             if not rec._attributes:
                 continue
             # picking element nodes
             nodes = [node for node in rec._attributes.values() if node is not None and isinstance(node, ProvElement)]
-            if len(nodes) < 2:
-                # Cannot draw this
-                pass
-            elif len(nodes) == 2 or not show_nary:
-                # binary relations
-                style = DOT_PROV_STYLE[rec.get_type()]
-                dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
-            else:
-                # n-ary relations
-                style = DOT_PROV_STYLE[rec.get_type()]
+
+            add_attribute_annotation = show_relation_attributes and rec._extra_attributes
+            add_nary_elements = len(nodes) > 2 and show_nary
+            style = DOT_PROV_STYLE[rec.get_type()]
+            if len(nodes) < 2:  # too few elements for a relation?
+                pass  # cannot draw this
+            elif add_nary_elements or add_attribute_annotation:
+                # need a blank node for n-ary relations or the attribute annotation
                 # add a blank node
                 count[1] = count[1] + 1
                 bnode_id = 'b%d' % count[1]
                 bnode = pydot.Node(bnode_id, label='""', shape='point', color='gray')
                 dot.add_node(bnode)
 
-                dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))
-                style = dict(style)
-                del style['label']
-                for node in nodes[1:]:
-                    dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
-                    style['color'] = 'gray'
+                dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))  # the first segment
+                style = dict(style)  # copy the style
+                del style['label']  # not showing label in the second segment
+                dot.add_edge(pydot.Edge(bnode, node_map[nodes[1]], **style))  # the second segment
+                if add_nary_elements:
+                    style['color'] = 'gray'  # all remaining segment to be gray
+                    for node in nodes[2:]:
+                        dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
+                if add_attribute_annotation:
+                    _attach_attribute_annotation(bnode, rec)
+            else:
+                # show a simple binary relations with no annotation
+                dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
 
-    _bundle_to_dot(maindot, prov_g)
+    _bundle_to_dot(maindot, bundle)
     return maindot
 
 
-def prov_to_file(prov_g, filepath, format='png',
-                         dpi='150', **kw):
-    """Write a prov json object to an image file
+def prov_to_file(prov_g, filepath, format='png', dpi='150', **kw):
+    """Write a PROV-JSON object to an image file
     """
     # Convert it to DOT
     dot = prov_to_dot(prov_g, **kw)
@@ -154,7 +186,7 @@ if __name__ == "__main__":
     filepath = os.path.join(path, 'dot-test.png')
 
     # Get an example PROV graph
-    prov_g = ex.w3c_publication_1()
+    prov_g = ex.primer_example()
     # Convert it to DOT
     dot = prov_to_file(prov_g, filepath, show_nary=True)
 
