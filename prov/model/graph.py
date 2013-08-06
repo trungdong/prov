@@ -49,8 +49,11 @@ DOT_PROV_STYLE = {
     PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
     }
 
+ANNOTATION_STYLE = {'shape': 'note', 'color': 'gray', 'fontcolor': 'black', 'fontsize': '10'}
+ANNOTATION_LINK_STYLE = {'arrowhead': 'none', 'style': 'dashed', 'color': 'gray'}
 
-def prov_to_dot(prov_g, show_nary=False, use_labels=False):
+
+def prov_to_dot(prov_g, show_nary=False, use_labels=False, show_nodes_attributes=True):
     maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
 
     node_map = {}
@@ -81,6 +84,19 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
                     node = pydot.Node(node_id, label=node_label, **style)
                     node_map[rec] = node
                     dot.add_node(node)
+
+                    if show_nodes_attributes and rec._extra_attributes:
+                    # Adding a node to show all attributes
+                        ann_rows = ['<<TABLE cellpadding=\"0\" border=\"0\">']
+                        row_template = """    <TR>
+        <TD align=\"left\">%s</TD>
+        <TD align=\"left\">%s</TD>
+    </TR>"""
+                        ann_rows.extend(row_template % (attr, value) for attr, value in rec._extra_attributes)
+                        ann_rows.append("    </TABLE>>")
+                        annotations = pydot.Node(node_id + '_ann', label='\n'.join(ann_rows), **ANNOTATION_STYLE)
+                        dot.add_node(annotations)
+                        dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
             else:
                 relations.append(rec)
         for rec in relations:
@@ -102,7 +118,7 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
                 # add a blank node
                 count[1] = count[1] + 1
                 bnode_id = 'b%d' % count[1]
-                bnode = pydot.Node(bnode_id, label='""', shape='point')
+                bnode = pydot.Node(bnode_id, label='""', shape='point', color='gray')
                 dot.add_node(bnode)
 
                 dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))
@@ -116,12 +132,12 @@ def prov_to_dot(prov_g, show_nary=False, use_labels=False):
     return maindot
 
 
-def prov_to_file(prov_g, filepath, use_labels=False, format='png',
-                         dpi='150'):
+def prov_to_file(prov_g, filepath, format='png',
+                         dpi='150', **kw):
     """Write a prov json object to an image file
     """
     # Convert it to DOT
-    dot = prov_to_dot(prov_g, use_labels=use_labels)
+    dot = prov_to_dot(prov_g, **kw)
     dot.set_dpi(dpi)
     dot.write(filepath, format=format)
     return dot
@@ -140,7 +156,7 @@ if __name__ == "__main__":
     # Get an example PROV graph
     prov_g = ex.w3c_publication_1()
     # Convert it to DOT
-    dot = prov_to_file(prov_g, filepath)
+    dot = prov_to_file(prov_g, filepath, show_nary=True)
 
     # Display it using matplotlib
     img = mpimg.imread(filepath)
