@@ -1,3 +1,12 @@
+v0.4.8, 06/08/2013 -- Bug fixes and minor improvements
+- Added: Option to show attributes of relations in DOT graph generation
+- Added: option to show attributes of nodes in DOT graph representation
+- Added: Convenient methods for (de)serialising PROV-JSON (closes #17)
+- Fixed: No longer output inferred records in PROV-N and PROV-JSON
+- Fixed: Bundles now can have own namespaces
+- Fixed: missing return Literal(...)
+- Fixed: Error getting the value and datatype of Literal
+
 v0.4.7, 10/07/2013 -- Bug fixes and minor improvements
 - Changed: Removed out-dated example_graph()
 - Changed: Improved mappings between default Python and XSD data types
