@@ -1,3 +1,6 @@
+v0.4.9, 09/08/2013 -- Added support for appending a named bundle to a document
+- Fixed: Cannot get_label() when self._extra_attributes is None
+
 v0.4.8, 06/08/2013 -- Bug fixes and minor improvements
 - Added: Option to show attributes of relations in DOT graph generation
 - Added: option to show attributes of nodes in DOT graph representation
