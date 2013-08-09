@@ -1499,13 +1499,28 @@ class ProvBundle(ProvEntity):
         self._add_record(record)
         return record
 
-    def add_bundle(self, identifier, bundle):
-        '''Add a sub-bundle to the current bundle
+    def add_bundle(self, bundle, identifier=None):
+        '''Add a bundle to the current document
         '''
+
+        if identifier == None:
+            identifier = bundle.get_identifier()
+
+        if not identifier:
+            raise ProvException(u"The added bundle has no identifier")
+
         valid_id = self.valid_identifier(identifier)
+        bundle._identifier = valid_id
+
+        if valid_id in self._bundles:
+            raise ProvException(u"A bundle with that identifier already exists")
+
+        if len(bundle._bundles) > 0:
+            raise ProvException(u"A bundle may not contain bundles")
+
         self._bundles[valid_id] = bundle
+        self._records.append(bundle)
         bundle._bundle = self
-        #  TODO: Check namespace duplications, existing identifier
 
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
         return self.add_record(record_type, identifier, attributes, other_attributes)
