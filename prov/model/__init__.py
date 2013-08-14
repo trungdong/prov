@@ -1077,8 +1077,7 @@ class NamespaceManager(dict):
         self._default_namespaces.update(default_namespaces)
         self._namespaces = {}
         self.update(self._default_namespaces)
-        self._default = default
-
+        self.set_default_namespace(default)
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
@@ -1291,7 +1290,7 @@ class ProvBundle(ProvEntity):
         for namespace in self._namespaces.get_registered_namespaces():
             prefixes[namespace.get_prefix()] = namespace.get_uri()
         if self._namespaces._default:
-            prefixes['$'] = self._namespaces._default.get_uri()
+            prefixes['default'] = self._namespaces._default.get_uri()
         if prefixes:
             container[u'prefix'] = prefixes
 
@@ -1344,7 +1343,7 @@ class ProvBundle(ProvEntity):
         if u'prefix' in jc:
             prefixes = jc[u'prefix']
             for prefix, uri in prefixes.items():
-                if prefix != '$':
+                if prefix != 'default':
                     self.add_namespace(Namespace(prefix, uri))
                 else:
                     self.set_default_namespace(uri)
@@ -1402,10 +1401,15 @@ class ProvBundle(ProvEntity):
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
+        default_namespace = self._namespaces.get_default_namespace()
+        if default_namespace:
+            records.append('default <%s>' % default_namespace.get_uri())
+
         registered_namespaces = self._namespaces.get_registered_namespaces()
         if registered_namespaces:
-            #  TODO: Add support for the default namespace
             records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+
+        if default_namespace or registered_namespaces:
             #  a blank line between the prefixes and the assertions
             records.append('')
 
