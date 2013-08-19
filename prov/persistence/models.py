@@ -92,6 +92,7 @@ class PDBundle(PDRecord):
         pdbundle.bundle = self
         pdbundle.save_bundle(bundle)
         pdbundle.save()
+        return pdbundle
 
     def get_namespaces(self):
         results = {}
