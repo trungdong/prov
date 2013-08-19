@@ -276,12 +276,23 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
 def build_ProvBundle(pdbundle, prov_bundle=None):
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
-    namespaces = pdbundle.get_namespaces()
-    for (prefix, uri) in namespaces.items():
-        if prefix == '':
-            prov_bundle.set_default_namespace(uri)
-        else:
-            prov_bundle.add_namespace(prov.Namespace(prefix, uri))
+
+    if not prov_bundle._bundle and pdbundle.bundle:
+        # If this is a bundle, not a document, but is being displayed as a standalone document
+        namespaces = pdbundle.bundle.get_namespaces()
+        for (prefix, uri) in namespaces.items():
+            if prefix == '':
+                prov_bundle.set_default_namespace(uri)
+            else:
+                prov_bundle.add_namespace(prov.Namespace(prefix, uri))
+    else:
+        # If this is a bundle within a document or a document itself
+        namespaces = pdbundle.get_namespaces()
+        for (prefix, uri) in namespaces.items():
+            if prefix == '':
+                prov_bundle.set_default_namespace(uri)
+            else:
+                prov_bundle.add_namespace(prov.Namespace(prefix, uri))
 
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
