@@ -1183,7 +1183,7 @@ class ProvBundle(ProvEntity):
         if bundle is None:
             self._namespaces = NamespaceManager()
         else:
-            self._namespaces = NamespaceManager(parent=bundle._namespaces)
+            self._namespaces = bundle._namespaces
 
         #  Initializing record-specific attributes
         super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes, asserted)
