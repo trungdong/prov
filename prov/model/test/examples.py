@@ -292,10 +292,6 @@ def bundles1():
 
     #   bundle bob:bundle1
     b1 = g.bundle('bob:bundle1')
-    #     prefix bob  <http://example.org/bob/>
-    #     prefix ex  <http://example.org/example/>
-    b1.add_namespace('bob', 'http://example.org/bob/')
-    b1.add_namespace('ex', 'http://example.org/example/')
     #     entity(ex:report1, [ prov:type="report", ex:version=1 ])
     b1.entity('ex:report1', {'prov:type': "report", 'ex:version': 1})
     #     wasGeneratedBy(ex:report1, -, 2012-05-24T10:00:01)
@@ -304,11 +300,6 @@ def bundles1():
 
     #   bundle alice:bundle2
     b2 = g.bundle('alice:bundle2')
-    #     prefix alice  <http://example.org/alice/>
-    #     prefix ex  <http://example.org/example/>
-    b2.add_namespace('alice', 'http://example.org/alice/')
-    b2.add_namespace('ex', 'http://example.org/example/')
-    #
     #     entity(ex:report1)
     b2.entity('ex:report1')
     #     entity(ex:report2, [ prov:type="report", ex:version=2 ])
