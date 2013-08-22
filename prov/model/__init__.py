@@ -1408,6 +1408,12 @@ class ProvBundle(ProvEntity):
                     record.add_attributes(prov_attributes, extra_attributes)
 
     #  Miscellaneous functions
+    def is_document(self):
+        return self._bundle is None
+
+    def is_bundle(self):
+        return self._bundle is not None
+
     def get_type(self):
         return PROV_REC_BUNDLE
 
