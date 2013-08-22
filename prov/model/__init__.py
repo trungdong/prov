@@ -251,18 +251,12 @@ class AnonymousIDGenerator():
     def __init__(self):
         self._cache = {}
         self._count = 0
-    
+
     def get_anon_id(self, obj, local_prefix="id"):
-        if obj in self._cache:
-            return self._cache
-        else:
+        if obj not in self._cache:
             self._count += 1
-            self._cache = Identifier('_:%s%d' % (local_prefix, self._count))
-        return self._cache
-
-
-def get_real_or_anon_id(record, id_generator):
-    return record._identifier if record._identifier else id_generator.get_anon_id(record)
+            self._cache[obj] = Identifier('_:%s%d' % (local_prefix, self._count))
+        return self._cache[obj]
 
 
 class Literal(object):
@@ -557,24 +551,21 @@ class ProvRecord(object):
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
             return self._parse_identifier(attribute)
-        #  attempt to find an existing record
-        record = self._parse_record(attribute, attribute_types)
-        if record:
-            return record
-        else:
-            #  It is not a record, try to parse it with known datatype parsers
-            if isinstance(attribute_types, collections.Iterable):
-                for datatype in attribute_types:
-                    data = parse_datatype(attribute, datatype)
-                    if data:
-                        return data
-            else:
-                #  only one datatype provided
-                datatype = attribute_types
-                try:
-                    return parse_datatype(attribute, datatype)
-                except:
-                    return None
+
+        # putting all the types in to a tuple:
+        if not isinstance(attribute_types, collections.Iterable):
+            attribute_types = (attribute_types,)
+
+        # attempt to find an existing record having the same identifier
+        if any(map(lambda x: issubclass(x, ProvRecord), attribute_types)):
+            record = self._parse_record(attribute, attribute_types)
+            if record:
+                return record
+        #  Try to parse it with known datatype parsers
+        for datatype in attribute_types:
+            data = parse_datatype(attribute, datatype)
+            if data is not None:
+                return data
         return None
 
     def _validate_attribute(self, attribute, attribute_types):
@@ -1095,7 +1086,10 @@ class NamespaceManager(dict):
         self._default_namespaces.update(default_namespaces)
         self._namespaces = {}
         self.update(self._default_namespaces)
-        self.set_default_namespace(default)
+        if default is not None:
+            self.set_default_namespace(default)
+        else:
+            self._default = None
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
@@ -1236,8 +1230,10 @@ class ProvBundle(ProvEntity):
             return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), self._records)
 
     def get_record(self, identifier):
+        if identifier is None:
+            return None
+        valid_id = self.valid_identifier(identifier)
         try:
-            valid_id = self.valid_identifier(identifier)
             return self._id_map[valid_id]
         except:
             #  looking up the parent bundle
@@ -1313,6 +1309,7 @@ class ProvBundle(ProvEntity):
             container[u'prefix'] = prefixes
 
         id_generator = AnonymousIDGenerator()
+        real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
 
         for record in self._records:
             if not record.is_asserted():
@@ -1320,7 +1317,7 @@ class ProvBundle(ProvEntity):
 
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
-            identifier = str(get_real_or_anon_id(record, id_generator))
+            identifier = str(real_or_anon_id(record))
 
             if rec_type == PROV_REC_BUNDLE:
                 #  encoding the sub-bundle
@@ -1330,7 +1327,7 @@ class ProvBundle(ProvEntity):
                 if record._attributes:
                     for (attr, value) in record._attributes.items():
                         if isinstance(value, ProvRecord):
-                            attr_record_id = get_real_or_anon_id(value, id_generator)
+                            attr_record_id = real_or_anon_id(value)
                             record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id)
                         elif value is not None:
                             #  Assuming this is a datetime value
@@ -1417,17 +1414,19 @@ class ProvBundle(ProvEntity):
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
-        default_namespace = self._namespaces.get_default_namespace()
-        if default_namespace:
-            records.append('default <%s>' % default_namespace.get_uri())
+        if self._bundle is None:
+            # Only output the namespaces of a document
+            default_namespace = self._namespaces.get_default_namespace()
+            if default_namespace:
+                records.append('default <%s>' % default_namespace.get_uri())
 
-        registered_namespaces = self._namespaces.get_registered_namespaces()
-        if registered_namespaces:
-            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+            registered_namespaces = self._namespaces.get_registered_namespaces()
+            if registered_namespaces:
+                records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
 
-        if default_namespace or registered_namespaces:
-            #  a blank line between the prefixes and the assertions
-            records.append('')
+            if default_namespace or registered_namespaces:
+                #  a blank line between the prefixes and the assertions
+                records.append('')
 
         #  adding all the records
         records.extend([record.get_provn(_indent_level + 1) for record in self._records if record.is_asserted() or not asserted_only])
