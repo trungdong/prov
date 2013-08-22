@@ -247,6 +247,24 @@ def encoding_PROV_N_value(value):
         return str(value)
 
 
+class AnonymousIDGenerator():
+    def __init__(self):
+        self._cache = {}
+        self._count = 0
+    
+    def get_anon_id(self, obj, local_prefix="id"):
+        if obj in self._cache:
+            return self._cache
+        else:
+            self._count += 1
+            self._cache = Identifier('_:%s%d' % (local_prefix, self._count))
+        return self._cache
+
+
+def get_real_or_anon_id(record, id_generator):
+    return record._identifier if record._identifier else id_generator.get_anon_id(record)
+
+
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
         self._value = value
@@ -1295,17 +1313,15 @@ class ProvBundle(ProvEntity):
         if prefixes:
             container[u'prefix'] = prefixes
 
-        ids = {}
-        #  generating/mapping all record identifiers
-        for record in self._records:
-            ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
+        id_generator = AnonymousIDGenerator()
+
         for record in self._records:
             if not record.is_asserted():
                 pass  # skipping inferred records
 
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
-            identifier = str(ids[record])
+            identifier = str(get_real_or_anon_id(record, id_generator))
 
             if rec_type == PROV_REC_BUNDLE:
                 #  encoding the sub-bundle
@@ -1315,7 +1331,7 @@ class ProvBundle(ProvEntity):
                 if record._attributes:
                     for (attr, value) in record._attributes.items():
                         if isinstance(value, ProvRecord):
-                            attr_record_id = ids[value]
+                            attr_record_id = get_real_or_anon_id(value, id_generator)
                             record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id)
                         elif value is not None:
                             #  Assuming this is a datetime value
