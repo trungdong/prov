@@ -1208,6 +1208,9 @@ class ProvBundle(ProvEntity):
         return self._namespaces.get_default_namespace()
 
     def add_namespace(self, namespace_or_prefix, uri=None):
+        if self._bundle is not None:  # This is a bundle
+            logger.warn("Namespace cannot be added into a bundle. It will be added to the document instead.")
+
         if uri is None:
             self._namespaces.add_namespace(namespace_or_prefix)
         else:
@@ -1300,13 +1303,14 @@ class ProvBundle(ProvEntity):
     def _encode_JSON_container(self):
         container = defaultdict(dict)
 
-        prefixes = {}
-        for namespace in self._namespaces.get_registered_namespaces():
-            prefixes[namespace.get_prefix()] = namespace.get_uri()
-        if self._namespaces._default:
-            prefixes['default'] = self._namespaces._default.get_uri()
-        if prefixes:
-            container[u'prefix'] = prefixes
+        if self._bundle is None:  # This is a document
+            prefixes = {}
+            for namespace in self._namespaces.get_registered_namespaces():
+                prefixes[namespace.get_prefix()] = namespace.get_uri()
+            if self._namespaces._default:
+                prefixes['default'] = self._namespaces._default.get_uri()
+            if prefixes:
+                container[u'prefix'] = prefixes
 
         id_generator = AnonymousIDGenerator()
         real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
