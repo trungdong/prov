@@ -218,13 +218,15 @@ def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
 def _save_bundle(bundle, records, record_map, prov_bundle):
     # Save all the namespaces for future QName recreation
     logger.debug('Saving namespaces...')
-    namespaces = prov_bundle.get_registered_namespaces()
-    for namespace in namespaces:
-        bundle.add_namespace(namespace.get_prefix(), namespace.get_uri())
-    # and the default namespace as well
-    default_namespace = prov_bundle.get_default_namespace()
-    if default_namespace:
-        bundle.add_namespace('', default_namespace.get_uri())
+    if prov_bundle.is_document():
+        # Only save the namespaces if this is a document
+        namespaces = prov_bundle.get_registered_namespaces()
+        for namespace in namespaces:
+            bundle.add_namespace(namespace.get_prefix(), namespace.get_uri())
+        # and the default namespace as well
+        default_namespace = prov_bundle.get_default_namespace()
+        if default_namespace:
+            bundle.add_namespace('', default_namespace.get_uri())
 
     logger.debug('Saving bundle %s...' % bundle.rec_id)
     for record in records:
