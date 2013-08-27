@@ -1549,6 +1549,10 @@ class ProvBundle(ProvEntity):
 
         self._bundles[valid_id] = bundle
         self._records.append(bundle)
+
+        for namespace in bundle.get_registered_namespaces():
+            self.add_namespace(namespace)
+
         bundle._bundle = self
 
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
