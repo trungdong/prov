@@ -271,6 +271,9 @@ class Literal(object):
     def __eq__(self, other):
         return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
 
+    def __hash__(self):
+        return hash((self._value, self._datatype, self._langtag))
+
     def get_value(self):
         return self._value
 
@@ -375,6 +378,9 @@ class Namespace(object):
 
     def __eq__(self, other):
         return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
+
+    def __hash__(self):
+        return hash((self._uri, self._prefix))
 
     def __getitem__(self, localpart):
         if localpart in self._cache:
