@@ -16,6 +16,7 @@ import json
 import re
 import collections
 from collections import defaultdict
+from copy import deepcopy
 try:
     from collections import OrderedDict
 except ImportError:
@@ -413,6 +414,13 @@ class ProvExceptionNotValidAttribute(ProvException):
         self.attribute_types = attribute_types
 
 
+class ProvExceptionCannotUnifyAttribute(ProvException):
+    def __init__(self, identifier, record_type1, record_type2):
+        self.identifier = identifier
+        self.record_type1 = record_type1
+        self.record_type2 = record_type2
+
+
 class ProvExceptionContraint(ProvException):
     def __init__(self, record_type, attribute1, attribute2, msg):
         self.record_type = record_type
@@ -510,17 +518,17 @@ class ProvRecord(object):
     def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
             if self._extra_attributes is None:
-                self._extra_attributes = []
+                self._extra_attributes = set()
             attr_list = self.parse_extra_attributes(extra_attributes)
             #  Check attributes for valid qualified names
-            self._extra_attributes.extend(attr_list)
+            self._extra_attributes.update(attr_list)
 
     def add_attributes(self, attributes, extra_attributes):
         if attributes:
             if self._attributes is None:
                 self._attributes = attributes
             else:
-                self._attributes.update(attributes)
+                self._attributes.update(dict((k, v) for k, v in attributes.iteritems() if v is not None))
         self.add_extra_attributes(extra_attributes)
 
     def get_attributes(self):
@@ -578,7 +586,10 @@ class ProvRecord(object):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
-            return attribute
+            if isinstance(attribute, ProvRecord):
+                return self._bundle._id_map[attribute._identifier]
+            else:
+                return attribute
         else:
             #  The attribute is not of a valid type
             #  Attempt to parse it
@@ -596,7 +607,7 @@ class ProvRecord(object):
         return self._validate_attribute(attribute, attribute_types)
 
     def optional_attribute(self, attributes, attribute_id, attribute_types):
-        if attribute_id not in attributes:
+        if not attributes or attribute_id not in attributes:
             #  Because this is optional, return nothing
             return None
         #  Found the optional attribute
@@ -1472,6 +1483,16 @@ class ProvBundle(ProvEntity):
             del kw['cls']
         return json.loads(json_content, cls=ProvBundle.JSONDecoder, **kw)
 
+    def get_flattened(self):
+        flattened = deepcopy(self)
+        for bundle in flattened._bundles.values():
+            for record in bundle._records:
+                flattened._add_record(record)
+            flattened._records.remove(bundle)
+
+        flattened._bundles = {}
+        return flattened
+
     def __eq__(self, other):
         try:
             other_records = set(other._records)
@@ -1521,7 +1542,17 @@ class ProvBundle(ProvEntity):
                 #  Don't mix bunle ids with normal record ids.
                 self._bundles[record._identifier] = record
             else:
-                self._id_map[record._identifier] = record
+                if record._identifier in self._id_map:
+                    merge_target = self._id_map[record._identifier]
+                    if record.get_type() != merge_target.get_type():
+                        raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+
+                    if not merge_target._asserted and record._asserted:
+                        merge_target._asserted = True
+                    merge_target.add_attributes(record._attributes, record._extra_attributes)
+                    self._records.remove(record)
+                else:
+                    self._id_map[record._identifier] = record
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None, asserted=True):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes, asserted)
