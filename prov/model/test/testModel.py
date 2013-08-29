@@ -98,10 +98,11 @@ class TestFlattening(unittest.TestCase):
         bundle = examples.bundles1()
         flattened = bundle.get_flattened()
 
-        for record in set(flattened._records):
-            for attr_value in (record._attributes or {}):
-                if attr_value and isinstance(attr_value, ProvRecord) and attr_value._identifier:
-                    self.assertIn(attr_value._identifier, flattened._id_map, 'Document does not contain the record %s' % attr_value._identifier)
+        records = set(flattened._records)
+        for record in records:
+            for attr_value in (record._attributes or {}).values():
+                if attr_value and isinstance(attr_value, ProvRecord):
+                    self.assertIn(attr_value, records, 'Document does not contain the record %s' % attr_value)
 
 
 if __name__ == "__main__":
