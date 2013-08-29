@@ -123,6 +123,11 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                     _attach_attribute_annotation(node, rec)
                 return node
 
+        def _get_node(record):
+            if record not in node_map:
+                _add_node(record)
+            return node_map[record]
+
         records = bundle.get_records()
         relations = []
         for rec in records:
@@ -142,12 +147,10 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
             add_attribute_annotation = show_relation_attributes and rec._extra_attributes
             add_nary_elements = len(nodes) > 2 and show_nary
             style = DOT_PROV_STYLE[rec.get_type()]
-            for r in nodes:
-                if r not in node_map:
-                    _add_node(r)  # make sure all elements have a dot node
             if len(nodes) < 2:  # too few elements for a relation?
-                pass  # cannot draw this
-            elif add_nary_elements or add_attribute_annotation:
+                continue  # cannot draw this
+
+            if add_nary_elements or add_attribute_annotation:
                 # need a blank node for n-ary relations or the attribute annotation
                 # add a blank node
                 count[1] = count[1] + 1
@@ -155,19 +158,19 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 bnode = pydot.Node(bnode_id, label='""', shape='point', color='gray')
                 dot.add_node(bnode)
 
-                dot.add_edge(pydot.Edge(node_map[nodes[0]], bnode, arrowhead='none', **style))  # the first segment
+                dot.add_edge(pydot.Edge(_get_node(nodes[0]), bnode, arrowhead='none', **style))  # the first segment
                 style = dict(style)  # copy the style
                 del style['label']  # not showing label in the second segment
-                dot.add_edge(pydot.Edge(bnode, node_map[nodes[1]], **style))  # the second segment
+                dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1]), **style))  # the second segment
                 if add_nary_elements:
                     style['color'] = 'gray'  # all remaining segment to be gray
                     for node in nodes[2:]:
-                        dot.add_edge(pydot.Edge(bnode, node_map[node], **style))
+                        dot.add_edge(pydot.Edge(bnode, _get_node(node), **style))
                 if add_attribute_annotation:
                     _attach_attribute_annotation(bnode, rec)
             else:
                 # show a simple binary relations with no annotation
-                dot.add_edge(pydot.Edge(node_map[nodes[0]], node_map[nodes[1]], **style))
+                dot.add_edge(pydot.Edge(_get_node(nodes[0]), _get_node(nodes[1]), **style))
 
     _bundle_to_dot(maindot, bundle)
     return maindot
