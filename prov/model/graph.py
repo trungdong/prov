@@ -96,33 +96,38 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
             dot.add_node(annotations)
             dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
+        def _add_node(record):
+            if isinstance(record, ProvBundle):
+                count[2] = count[2] + 1
+                subdot = pydot.Cluster(graph_name='c%d' % count[2])
+                if use_labels:
+                    subdot.set_label('"%s"' % str(record.get_label()))
+                else:
+                    subdot.set_label('"%s"' % str(record.get_identifier()))
+                _bundle_to_dot(subdot, record)
+                dot.add_subgraph(subdot)
+                return subdot
+            else:
+                count[0] = count[0] + 1
+                node_id = 'n%d' % count[0]
+                if use_labels:
+                    node_label = '"%s"' % str(record.get_label())
+                else:
+                    node_label = '"%s"' % str(record.get_identifier())
+                style = DOT_PROV_STYLE[record.get_type()]
+                node = pydot.Node(node_id, label=node_label, **style)
+                node_map[record] = node
+                dot.add_node(node)
+
+                if show_element_attributes and record._extra_attributes:
+                    _attach_attribute_annotation(node, rec)
+                return node
+
         records = bundle.get_records()
         relations = []
         for rec in records:
             if rec.is_element():
-                if isinstance(rec, ProvBundle):
-                    count[2] = count[2] + 1
-                    subdot = pydot.Cluster(graph_name='c%d' % count[2])
-                    if use_labels:
-                        subdot.set_label('"%s"' % str(rec.get_label()))
-                    else:
-                        subdot.set_label('"%s"' % str(rec.get_identifier()))
-                    _bundle_to_dot(subdot, rec)
-                    dot.add_subgraph(subdot)
-                else:
-                    count[0] = count[0] + 1
-                    node_id = 'n%d' % count[0]
-                    if use_labels:
-                        node_label = '"%s"' % str(rec.get_label())
-                    else:
-                        node_label = '"%s"' % str(rec.get_identifier())
-                    style = DOT_PROV_STYLE[rec.get_type()]
-                    node = pydot.Node(node_id, label=node_label, **style)
-                    node_map[rec] = node
-                    dot.add_node(node)
-
-                    if show_element_attributes and rec._extra_attributes:
-                        _attach_attribute_annotation(node, rec)
+                _add_node(rec)
             else:
                 # Saving the relations for later processing
                 relations.append(rec)
@@ -137,6 +142,9 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
             add_attribute_annotation = show_relation_attributes and rec._extra_attributes
             add_nary_elements = len(nodes) > 2 and show_nary
             style = DOT_PROV_STYLE[rec.get_type()]
+            for r in nodes:
+                if r not in node_map:
+                    _add_node(r)  # make sure all elements have a dot node
             if len(nodes) < 2:  # too few elements for a relation?
                 pass  # cannot draw this
             elif add_nary_elements or add_attribute_annotation:
