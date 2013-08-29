@@ -586,7 +586,7 @@ class ProvRecord(object):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
-            if isinstance(attribute, ProvRecord):
+            if isinstance(attribute, ProvRecord) and attribute._identifier in self._bundle._id_map:
                 return self._bundle._id_map[attribute._identifier]
             else:
                 return attribute
@@ -1487,7 +1487,7 @@ class ProvBundle(ProvEntity):
         flattened = deepcopy(self)
         for bundle in flattened._bundles.values():
             for record in bundle._records:
-                flattened._add_record(record)
+                flattened.add_record(record.get_type(), record._identifier, record._attributes, record._extra_attributes, record._asserted)
             flattened._records.remove(bundle)
 
         flattened._bundles = {}

@@ -4,7 +4,7 @@ Created on Jan 25, 2012
 @author: Trung Dong Huynh
 '''
 import unittest
-from prov.model import ProvBundle
+from prov.model import ProvBundle, ProvRecord
 import logging
 import json
 import examples
@@ -93,6 +93,15 @@ class TestFlattening(unittest.TestCase):
         result_inner.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"), ('prov:role', "ex:dataToCompose2")))
         result.add_bundle(result_inner)
         self.assertEqual(result.get_flattened(), target)
+
+    def test_references_in_flattened_documents(self):
+        bundle = examples.bundles1()
+        flattened = bundle.get_flattened()
+
+        for record in set(flattened._records):
+            for attr_value in (record._attributes or {}):
+                if attr_value and isinstance(attr_value, ProvRecord) and attr_value._identifier:
+                    self.assertIn(attr_value._identifier, flattened._id_map, 'Document does not contain the record %s' % attr_value._identifier)
 
 
 if __name__ == "__main__":
