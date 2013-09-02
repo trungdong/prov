@@ -432,7 +432,7 @@ class ProvExceptionContraint(ProvException):
 #  PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True):
+    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True, allowed_types=None, infered_for=None):
         self._bundle = bundle
         self._identifier = identifier
         self._asserted = asserted
@@ -440,9 +440,18 @@ class ProvRecord(object):
         self._extra_attributes = None
         if attributes or other_attributes:
             self.add_attributes(attributes, other_attributes)
+        if not asserted:
+            self._allowed_types = allowed_types
+            self._infered_for = infered_for
 
     def get_type(self):
         pass
+
+    def get_allowed_types(self):
+        if self._asserted:
+            return [self.__class__]
+        else:
+            return [self.__class__] + list(self._allowed_types)
 
     def get_prov_type(self):
         pass
@@ -543,7 +552,7 @@ class ProvRecord(object):
         except:
             return self._bundle.valid_identifier(value)
 
-    def _parse_record(self, attribute, attribute_types):
+    def _parse_record(self, attribute_id, attribute, attribute_types):
         #  check to see if there is an existing record matching the attribute (as the record's identifier)
         existing_record = self._bundle.get_record(attribute)
         if existing_record is None:
@@ -557,12 +566,13 @@ class ProvRecord(object):
                 klass = attribute_types[0]  # get the first class
             else:
                 klass = attribute_types  # only one class provided
+                attribute_types = [attribute_types]
             if issubclass(klass, ProvRecord):
                 #  Create an inferred record for the id given:
-                return self._bundle.add_inferred_record(klass, attribute)
+                return self._bundle.add_inferred_record(klass, attribute, (self, attribute_id), attribute_types)
         return None
 
-    def _parse_attribute(self, attribute, attribute_types):
+    def _parse_attribute(self, attribute_id, attribute, attribute_types):
         if attribute_types is Identifier:
             return self._parse_identifier(attribute)
 
@@ -572,7 +582,7 @@ class ProvRecord(object):
 
         # attempt to find an existing record having the same identifier
         if any(map(lambda x: issubclass(x, ProvRecord), attribute_types)):
-            record = self._parse_record(attribute, attribute_types)
+            record = self._parse_record(attribute_id, attribute, attribute_types)
             if record:
                 return record
         #  Try to parse it with known datatype parsers
@@ -582,7 +592,7 @@ class ProvRecord(object):
                 return data
         return None
 
-    def _validate_attribute(self, attribute, attribute_types):
+    def _validate_attribute(self, attribute_id, attribute, attribute_types):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
@@ -593,7 +603,7 @@ class ProvRecord(object):
         else:
             #  The attribute is not of a valid type
             #  Attempt to parse it
-            parsed_value = self._parse_attribute(attribute, attribute_types)
+            parsed_value = self._parse_attribute(attribute_id, attribute, attribute_types)
             if parsed_value is None:
                 raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
             return parsed_value
@@ -604,7 +614,7 @@ class ProvRecord(object):
             raise ProvExceptionMissingRequiredAttribute(self.get_type(), attribute_id)
         #  Found the required attribute
         attribute = attributes.get(attribute_id)
-        return self._validate_attribute(attribute, attribute_types)
+        return self._validate_attribute(attribute_id, attribute, attribute_types)
 
     def optional_attribute(self, attributes, attribute_id, attribute_types):
         if not attributes or attribute_id not in attributes:
@@ -615,7 +625,7 @@ class ProvRecord(object):
         if attribute is None:
             return None
         #  Validate its type
-        return self._validate_attribute(attribute, attribute_types)
+        return self._validate_attribute(attribute_id, attribute, attribute_types)
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -1544,12 +1554,19 @@ class ProvBundle(ProvEntity):
             else:
                 if record._identifier in self._id_map:
                     merge_target = self._id_map[record._identifier]
-                    if record.get_type() != merge_target.get_type():
-                        raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
 
                     if not merge_target._asserted and record._asserted:
-                        merge_target._asserted = True
-                    merge_target.add_attributes(record._attributes, record._extra_attributes)
+                        if record.__class__ in merge_target.get_allowed_types():
+                            merge_target._infered_for[0]._attributes[merge_target._infered_for[1]] = record
+                            self._records.remove(merge_target)
+                            self._id_map[record._identifier] = record
+                            self._records.append(record)
+                        else:
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                    else:
+                        if record.get_type() != merge_target.get_type():
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                        merge_target.add_attributes(record._attributes, record._extra_attributes)
                 else:
                     self._records.append(record)
                     self._id_map[record._identifier] = record
@@ -1561,9 +1578,9 @@ class ProvBundle(ProvEntity):
         self._add_record(new_record)
         return new_record
 
-    def add_inferred_record(self, record_cls, identifier):
+    def add_inferred_record(self, record_cls, identifier, infered_for, allowed_types):
         record_id = self.valid_identifier(identifier)
-        record = record_cls(self, record_id, asserted=False)
+        record = record_cls(self, record_id, asserted=False, allowed_types=allowed_types, infered_for=infered_for)
         self._add_record(record)
         return record
 

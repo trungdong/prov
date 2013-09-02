@@ -102,7 +102,21 @@ class TestFlattening(unittest.TestCase):
         for record in records:
             for attr_value in (record._attributes or {}).values():
                 if attr_value and isinstance(attr_value, ProvRecord):
-                    self.assertIn(attr_value, records, 'Document does not contain the record %s' % attr_value)
+                    self.assertIn(attr_value, records, 'Document does not contain the record %s with id %i (related to %s)' % (attr_value, id(attr_value), record))
+
+    def test_inferred_retyping_in_flattened_documents(self):
+        g = ProvBundle()
+        g.add_namespace("ex", "http://www.example.com/")
+        g.wasGeneratedBy('ex:Bob', time='2012-05-25T11:15:00')
+        b1 = g.bundle('ex:bundle')
+        b1.agent('ex:Bob')
+
+        h = ProvBundle()
+        h.add_namespace("ex", "http://www.example.com/")
+        h.agent('ex:Bob')
+        h.wasGeneratedBy('ex:Bob', time='2012-05-25T11:15:00')
+
+        self.assertEqual(g.get_flattened(), h)
 
 
 if __name__ == "__main__":
