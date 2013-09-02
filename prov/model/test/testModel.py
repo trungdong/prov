@@ -122,6 +122,9 @@ class TestFlattening(unittest.TestCase):
         g = ProvBundle()
         g.add_namespace("ex", "http://www.example.com/")
         g.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose1"})
+        g.used('ex:compose', 'ex:testEntity')
+        with self.assertRaises(ProvExceptionCannotUnifyAttribute):
+            g.activity('ex:testEntity')
 
         h = g.bundle('ex:bundle')
         h.add_namespace("ex", "http://www.example.com/")
