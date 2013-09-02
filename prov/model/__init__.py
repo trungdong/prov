@@ -586,8 +586,14 @@ class ProvRecord(object):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
-            if isinstance(attribute, ProvRecord) and attribute._identifier in self._bundle._id_map:
-                return self._bundle._id_map[attribute._identifier]
+            if isinstance(attribute, ProvRecord):
+                if attribute._identifier in self._bundle._id_map:
+                    return self._bundle._id_map[attribute._identifier]
+                else:
+                    if attribute._identifier:
+                        self._bundle._id_map[attribute._identifier] = attribute
+                    print id(attribute)
+                    return attribute
             else:
                 return attribute
         else:
@@ -1536,11 +1542,11 @@ class ProvBundle(ProvEntity):
 
     #  Provenance statements
     def _add_record(self, record):
-        self._records.append(record)
         if record._identifier:
             if record.get_type() == PROV_REC_BUNDLE:
                 #  Don't mix bunle ids with normal record ids.
                 self._bundles[record._identifier] = record
+                self._records.append(record)
             else:
                 if record._identifier in self._id_map:
                     merge_target = self._id_map[record._identifier]
@@ -1550,9 +1556,11 @@ class ProvBundle(ProvEntity):
                     if not merge_target._asserted and record._asserted:
                         merge_target._asserted = True
                     merge_target.add_attributes(record._attributes, record._extra_attributes)
-                    self._records.remove(record)
                 else:
+                    self._records.append(record)
                     self._id_map[record._identifier] = record
+        else:
+            self._records.append(record)
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None, asserted=True):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes, asserted)
