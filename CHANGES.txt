@@ -1,3 +1,21 @@
+v0.5.0, 02/09/2013 -- Added support for unifying records and flattening documents
+- Allow inferred records to be retyped when flattening
+- prov.model.graph: check if a node of a relation already drawn
+- Add get_flattened() function to ProvBundle
+- Added: hash functions for Literal and Namespace
+- Changed: Add new bundle's namespaces to parent document
+- Fixed: prov.persistence only saves namespaces at document level
+- Added: is_document() and is_bundle() for ProvBundle
+- Fixed: Stop outputting prefix in an bundle's PROV-JSON
+- Changed: Removed namespace declarations in example bundles
+- Better handling of ids when generating PROV-JSON
+- Changed: Bundles cannot have their own namespace prefixes
+- When exporting a bundle as a document add namespaces from parent
+- Return pdbundle when calling add_prov_bundle
+- Fixed support for the default namespace
+- Fixed minor bugs.
+
+
 v0.4.9, 09/08/2013 -- Added support for appending a named bundle to a document
 - Fixed: Cannot get_label() when self._extra_attributes is None
 
