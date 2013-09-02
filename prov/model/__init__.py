@@ -586,14 +586,8 @@ class ProvRecord(object):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
-            if isinstance(attribute, ProvRecord):
-                if attribute._identifier in self._bundle._id_map:
-                    return self._bundle._id_map[attribute._identifier]
-                else:
-                    if attribute._identifier:
-                        self._bundle._id_map[attribute._identifier] = attribute
-                    print id(attribute)
-                    return attribute
+            if isinstance(attribute, ProvRecord) and attribute._identifier in self._bundle._id_map:
+                return self._bundle._id_map[attribute._identifier]
             else:
                 return attribute
         else:
