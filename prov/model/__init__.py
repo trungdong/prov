@@ -552,7 +552,7 @@ class ProvRecord(object):
         except:
             return self._bundle.valid_identifier(value)
 
-    def _parse_record(self, attribute_id, attribute, attribute_types):
+    def _parse_record(self, attribute, attribute_types):
         #  check to see if there is an existing record matching the attribute (as the record's identifier)
         existing_record = self._bundle.get_record(attribute)
         if existing_record is None:
@@ -569,10 +569,10 @@ class ProvRecord(object):
                 attribute_types = [attribute_types]
             if issubclass(klass, ProvRecord):
                 #  Create an inferred record for the id given:
-                return self._bundle.add_inferred_record(klass, attribute, (self, attribute_id), attribute_types)
+                return self._bundle.add_inferred_record(klass, attribute, self, attribute_types)
         return None
 
-    def _parse_attribute(self, attribute_id, attribute, attribute_types):
+    def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
             return self._parse_identifier(attribute)
 
@@ -582,7 +582,7 @@ class ProvRecord(object):
 
         # attempt to find an existing record having the same identifier
         if any(map(lambda x: issubclass(x, ProvRecord), attribute_types)):
-            record = self._parse_record(attribute_id, attribute, attribute_types)
+            record = self._parse_record(attribute, attribute_types)
             if record:
                 return record
         #  Try to parse it with known datatype parsers
@@ -592,7 +592,7 @@ class ProvRecord(object):
                 return data
         return None
 
-    def _validate_attribute(self, attribute_id, attribute, attribute_types):
+    def _validate_attribute(self, attribute, attribute_types):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
@@ -603,7 +603,7 @@ class ProvRecord(object):
         else:
             #  The attribute is not of a valid type
             #  Attempt to parse it
-            parsed_value = self._parse_attribute(attribute_id, attribute, attribute_types)
+            parsed_value = self._parse_attribute(attribute, attribute_types)
             if parsed_value is None:
                 raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
             return parsed_value
@@ -614,7 +614,7 @@ class ProvRecord(object):
             raise ProvExceptionMissingRequiredAttribute(self.get_type(), attribute_id)
         #  Found the required attribute
         attribute = attributes.get(attribute_id)
-        return self._validate_attribute(attribute_id, attribute, attribute_types)
+        return self._validate_attribute(attribute, attribute_types)
 
     def optional_attribute(self, attributes, attribute_id, attribute_types):
         if not attributes or attribute_id not in attributes:
@@ -625,7 +625,7 @@ class ProvRecord(object):
         if attribute is None:
             return None
         #  Validate its type
-        return self._validate_attribute(attribute_id, attribute, attribute_types)
+        return self._validate_attribute(attribute, attribute_types)
 
     def __eq__(self, other):
         if self.__class__ != other.__class__:
@@ -1557,7 +1557,9 @@ class ProvBundle(ProvEntity):
 
                     if not merge_target._asserted and record._asserted:
                         if record.__class__ in merge_target.get_allowed_types():
-                            merge_target._infered_for[0]._attributes[merge_target._infered_for[1]] = record
+                            for attribute_id, attribute in merge_target._infered_for._attributes.iteritems():
+                                if attribute == merge_target:
+                                    merge_target._infered_for._attributes[attribute_id] = record
                             self._records.remove(merge_target)
                             self._id_map[record._identifier] = record
                             self._records.append(record)
