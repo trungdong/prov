@@ -4,7 +4,7 @@ Created on Jan 25, 2012
 @author: Trung Dong Huynh
 '''
 import unittest
-from prov.model import ProvBundle, ProvRecord
+from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute
 import logging
 import json
 import examples
@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 class Test(unittest.TestCase):
     def setUp(self):
         pass
- 
+
     def tearDown(self):
         pass
- 
+
     def testAllExamples(self):
         num_graphs = len(examples.tests)
         logger.info('Testing %d provenance graphs' % num_graphs)
@@ -33,10 +33,10 @@ class Test(unittest.TestCase):
             g2 = ProvBundle.from_provjson(json_str)
             logger.debug('Graph decoded from PROV-JSON\n%s' % g2.get_provn())
             self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
- 
- 
+
+
 class TestLoadingProvToolboxJSON(unittest.TestCase):
- 
+
     def testLoadAllJSON(self):
         json_path = os.path.dirname(os.path.abspath(__file__)) + '/json/'
         filenames = os.listdir(json_path)
@@ -117,6 +117,18 @@ class TestFlattening(unittest.TestCase):
         h.wasGeneratedBy('ex:Bob', time='2012-05-25T11:15:00')
 
         self.assertEqual(g.get_flattened(), h)
+
+    def test_non_unifiable_document(self):
+        g = ProvBundle()
+        g.add_namespace("ex", "http://www.example.com/")
+        g.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose1"})
+
+        h = g.bundle('ex:bundle')
+        h.add_namespace("ex", "http://www.example.com/")
+        h.entity('ex:compose', other_attributes={'prov:label': "impossible!!!"})
+
+        with self.assertRaises(ProvExceptionCannotUnifyAttribute):
+            g.get_flattened()
 
 
 if __name__ == "__main__":
