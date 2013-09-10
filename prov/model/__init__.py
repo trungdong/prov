@@ -1692,19 +1692,6 @@ class ProvBundle(ProvEntity):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
 
     def mention(self, specificEntity, generalEntity, bundle, identifier=None, other_attributes=None):
-        #  Special case for mention: if generalEntity is not already a ProvRecord (e.g. a string identifier),
-        #  then it might need to be looked up in the bundle provided, not the current bundle
-        if isinstance(generalEntity, basestring):
-            #  try to look for an existing record first:
-            existing_record = self.get_record(generalEntity)
-            if existing_record:
-                #  stop looking
-                generalEntity = existing_record
-            else:
-                #  looking in the target bundle
-                if isinstance(bundle, basestring):
-                    bundle = self.get_bundle(bundle)
-                generalEntity = bundle.get_record(generalEntity)
         return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
 
     def collection(self, identifier, other_attributes=None):
