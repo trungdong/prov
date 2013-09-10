@@ -405,6 +405,7 @@ class ProvExceptionMissingRequiredAttribute(ProvException):
     def __init__(self, record_type, attribute_id):
         self.record_type = record_type
         self.attribute_id = attribute_id
+        self.args += (PROV_N_MAP[record_type], attribute_id)
 
 
 class ProvExceptionNotValidAttribute(ProvException):
@@ -412,6 +413,7 @@ class ProvExceptionNotValidAttribute(ProvException):
         self.record_type = record_type
         self.attribute = attribute
         self.attribute_types = attribute_types
+        self.args += (PROV_N_MAP[record_type], str(attribute), attribute_types)
 
 
 class ProvExceptionCannotUnifyAttribute(ProvException):
@@ -419,6 +421,7 @@ class ProvExceptionCannotUnifyAttribute(ProvException):
         self.identifier = identifier
         self.record_type1 = record_type1
         self.record_type2 = record_type2
+        self.args += (identifier, PROV_N_MAP[record_type1], PROV_N_MAP[record_type2])
 
 
 class ProvExceptionContraint(ProvException):
@@ -426,6 +429,7 @@ class ProvExceptionContraint(ProvException):
         self.record_type = record_type
         self.attribute1 = attribute1
         self.attribute2 = attribute2
+        self.args += (PROV_N_MAP[record_type], attribute1, attribute2, msg)
         self.msg = msg
 
 
