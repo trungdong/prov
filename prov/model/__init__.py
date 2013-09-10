@@ -578,6 +578,10 @@ class ProvRecord(object):
 
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
+            if isinstance(attribute, ProvRecord):
+                # This is a record, return its identifier (if any)
+                return attribute.get_identifier()
+            # Otherwise, trying to parse the attribute as an identifier
             return self._parse_identifier(attribute)
 
         # putting all the types in to a tuple:
