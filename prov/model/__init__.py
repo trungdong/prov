@@ -602,6 +602,9 @@ class ProvRecord(object):
                 return attribute
         else:
             #  The attribute is not of a valid type
+            if isinstance(attribute, ProvRecord):
+                # It is definitely not valid since no further parsing is possible
+                raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
             #  Attempt to parse it
             parsed_value = self._parse_attribute(attribute, attribute_types)
             if parsed_value is None:
