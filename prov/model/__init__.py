@@ -528,7 +528,7 @@ class ProvRecord(object):
         except:
             #  Do nothing if it did not work, expect the variable is already a list
             pass
-        attr_list = ((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
+        attr_list = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
         return attr_list
 
     def add_extra_attributes(self, extra_attributes):
@@ -1386,7 +1386,7 @@ class ProvBundle(ProvEntity):
                             existing_value = record_json[attr_id]
                             try:
                                 #  Add the value to the current list of values
-                                existing_value.add(value_json)
+                                existing_value.append(value_json)
                             except:
                                 #  But if the existing value is not a list, it'll fail
                                 #  create the list for the existing value and the second value
