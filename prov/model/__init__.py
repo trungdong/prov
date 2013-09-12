@@ -1358,7 +1358,7 @@ class ProvBundle(ProvEntity):
 
         for record in self._records:
             if not record.is_asserted():
-                pass  # skipping inferred records
+                continue  # skipping inferred records
 
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
