@@ -174,6 +174,9 @@ _r_xsd_dateTime = re.compile(""" ^
 _r_typed_literal_uri = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^<(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)>$', re.X)
 _r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)$', re.X)
 
+# Converting an attribute to the normal form for comparison purposes
+_normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
+
 
 #  Datatypes
 def _parse_xsd_dateTime(s):
@@ -245,7 +248,7 @@ def encoding_PROV_N_value(value):
     elif isinstance(value, float):
         return '"%f" %%%% xsd:float' % value
     else:
-        return str(value)
+        return unicode(value)
 
 
 class AnonymousIDGenerator():
@@ -290,20 +293,20 @@ class Literal(object):
     def provn_representation(self):
         if self._langtag:
             #  a langtag can only goes with string
-            return u'"%s"@%s' % (str(self._value), str(self._langtag))
+            return u'"%s"@%s' % (unicode(self._value), unicode(self._langtag))
         else:
-            return u'"%s" %%%% %s' % (str(self._value), str(self._datatype))
+            return u'"%s" %%%% %s' % (unicode(self._value), unicode(self._datatype))
 
     def json_representation(self):
         if self._langtag:
             #  a langtag can only goes with string
-            return {'$': str(self._value), 'lang': self._langtag}
+            return {'$': unicode(self._value), 'lang': self._langtag}
         else:
             if isinstance(self._datatype, QName):
-                return {'$': str(self._value), 'type': str(self._datatype)}
+                return {'$': unicode(self._value), 'type': unicode(self._datatype)}
             else:
                 #  Assuming it is a valid identifier
-                return {'$': str(self._value), 'type': self._datatype.get_uri()}
+                return {'$': unicode(self._value), 'type': self._datatype.get_uri()}
 
 
 class Identifier(object):
@@ -665,8 +668,8 @@ class ProvRecord(object):
             if my_attrs:
                 #  my attributes set is not empty.
                 return False
-        sattr = sorted(self._extra_attributes, key=lambda attr: str(attr[0]) + str(attr[1])) if self._extra_attributes else None
-        oattr = sorted(other._extra_attributes, key=lambda attr: str(attr[0]) + str(attr[1])) if other._extra_attributes else None
+        sattr = sorted(self._extra_attributes, key=_normalise_attributes) if self._extra_attributes else None
+        oattr = sorted(other._extra_attributes, key=_normalise_attributes) if other._extra_attributes else None
         if sattr != oattr:
             return False
         return True
