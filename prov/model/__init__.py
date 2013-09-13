@@ -1436,6 +1436,14 @@ class ProvBundle(ProvEntity):
                     #  Splitting PROV attributes and the others
                     for attr, value in element.items():
                         if attr in PROV_ATTRIBUTES_ID_MAP:
+                            if isinstance(value, list):
+                                # Multiple values
+                                if len(value) == 1:
+                                    # Only a single value in the list, unpack it
+                                    value = value[0]
+                                else:
+                                    logger.error('The prov package does not support multiple-entity membership relations.')
+                                    raise ProvException
                             prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                         else:
                             attr_id = self.valid_identifier(attr)
