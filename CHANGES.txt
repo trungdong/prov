@@ -1,3 +1,13 @@
+v0.5.1, 13/09/2013 -- Bug fixes
+- Added: JSON membership relation with a single entity (in a list)
+- Fixed: Not generating inferred records in JSON encoding.
+- Fixed: Generating JSON arrays for multi-value attributes
+- Fixed: Comparing unicode literal values (fixed #12)
+- Fixed: Returning the identifier of a record if the required attribute type is Identifier
+- Fixed: No longer trying to find the actual generalEntity record when creating a Mention record
+- Added informative arguments to ProvException classes
+- Fixed: Attribute validation does not fail if the attribute is already a ProvRecord
+
 v0.5.0, 02/09/2013 -- Added support for unifying records and flattening documents
 - Allow inferred records to be retyped when flattening
 - prov.model.graph: check if a node of a relation already drawn
