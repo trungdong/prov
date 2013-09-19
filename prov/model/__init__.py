@@ -22,6 +22,8 @@ from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
 from rdflib.namespace import RDF
 
+from copy import deepcopy
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -181,6 +183,9 @@ _r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?
 
 attr2rdf = lambda attr: PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].rdf_representation()
 
+# Converting an attribute to the normal form for comparison purposes
+_normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
+
 # Datatypes
 def _parse_xsd_dateTime(s):
     """Returns datetime or None."""
@@ -251,7 +256,19 @@ def encoding_PROV_N_value(value):
     elif isinstance(value, float):
         return '"%f" %%%% xsd:float' % value
     else:
-        return str(value)
+        return unicode(value)
+
+
+class AnonymousIDGenerator():
+    def __init__(self):
+        self._cache = {}
+        self._count = 0
+
+    def get_anon_id(self, obj, local_prefix="id"):
+        if obj not in self._cache:
+            self._count += 1
+            self._cache[obj] = Identifier('_:%s%d' % (local_prefix, self._count))
+        return self._cache[obj]
 
 
 class Literal(object):
@@ -265,6 +282,9 @@ class Literal(object):
 
     def __eq__(self, other):
         return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
+
+    def __hash__(self):
+        return hash((self._value, self._datatype, self._langtag))
 
     def get_value(self):
         return self._value
@@ -281,20 +301,20 @@ class Literal(object):
     def provn_representation(self):
         if self._langtag:
             #  a langtag can only goes with string
-            return u'"%s"@%s' % (str(self._value), str(self._langtag))
+            return u'"%s"@%s' % (unicode(self._value), unicode(self._langtag))
         else:
-            return u'"%s" %%%% %s' % (str(self._value), str(self._datatype))
+            return u'"%s" %%%% %s' % (unicode(self._value), unicode(self._datatype))
 
     def json_representation(self):
         if self._langtag:
             #  a langtag can only goes with string
-            return {'$': str(self._value), 'lang': self._langtag}
+            return {'$': unicode(self._value), 'lang': self._langtag}
         else:
             if isinstance(self._datatype, QName):
-                return {'$': str(self._value), 'type': str(self._datatype)}
+                return {'$': unicode(self._value), 'type': unicode(self._datatype)}
             else:
                 #  Assuming it is a valid identifier
-                return {'$': str(self._value), 'type': self._datatype.get_uri()}
+                return {'$': unicode(self._value), 'type': self._datatype.get_uri()}
 
 
     def rdf_representation(self):
@@ -380,6 +400,9 @@ class Namespace(object):
     def __eq__(self, other):
         return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
 
+    def __hash__(self):
+        return hash((self._uri, self._prefix))
+
     def __getitem__(self, localpart):
         if localpart in self._cache:
             return self._cache[localpart]
@@ -402,6 +425,7 @@ class ProvExceptionMissingRequiredAttribute(ProvException):
     def __init__(self, record_type, attribute_id):
         self.record_type = record_type
         self.attribute_id = attribute_id
+        self.args += (PROV_N_MAP[record_type], attribute_id)
 
 
 class ProvExceptionNotValidAttribute(ProvException):
@@ -409,6 +433,15 @@ class ProvExceptionNotValidAttribute(ProvException):
         self.record_type = record_type
         self.attribute = attribute
         self.attribute_types = attribute_types
+        self.args += (PROV_N_MAP[record_type], str(attribute), attribute_types)
+
+
+class ProvExceptionCannotUnifyAttribute(ProvException):
+    def __init__(self, identifier, record_type1, record_type2):
+        self.identifier = identifier
+        self.record_type1 = record_type1
+        self.record_type2 = record_type2
+        self.args += (identifier, PROV_N_MAP[record_type1], PROV_N_MAP[record_type2])
 
 
 class ProvExceptionContraint(ProvException):
@@ -416,13 +449,14 @@ class ProvExceptionContraint(ProvException):
         self.record_type = record_type
         self.attribute1 = attribute1
         self.attribute2 = attribute2
+        self.args += (PROV_N_MAP[record_type], attribute1, attribute2, msg)
         self.msg = msg
 
 
 #  PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True):
+    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True, allowed_types=None, infered_for=None):
         self._bundle = bundle
         self._identifier = identifier
         self._asserted = asserted
@@ -430,9 +464,18 @@ class ProvRecord(object):
         self._extra_attributes = None
         if attributes or other_attributes:
             self.add_attributes(attributes, other_attributes)
+        if not asserted:
+            self._allowed_types = allowed_types
+            self._infered_for = infered_for
 
     def get_type(self):
         pass
+
+    def get_allowed_types(self):
+        if self._asserted:
+            return [self.__class__]
+        else:
+            return [self.__class__] + list(self._allowed_types)
 
     def get_prov_type(self):
         pass
@@ -502,23 +545,23 @@ class ProvRecord(object):
         except:
             #  Do nothing if it did not work, expect the variable is already a list
             pass
-        attr_list = ((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
+        attr_list = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
         return attr_list
 
     def add_extra_attributes(self, extra_attributes):
         if extra_attributes:
             if self._extra_attributes is None:
-                self._extra_attributes = []
+                self._extra_attributes = set()
             attr_list = self.parse_extra_attributes(extra_attributes)
             #  Check attributes for valid qualified names
-            self._extra_attributes.extend(attr_list)
+            self._extra_attributes.update(attr_list)
 
     def add_attributes(self, attributes, extra_attributes):
         if attributes:
             if self._attributes is None:
                 self._attributes = attributes
             else:
-                self._attributes.update(attributes)
+                self._attributes.update(dict((k, v) for k, v in attributes.iteritems() if v is not None))
         self.add_extra_attributes(extra_attributes)
 
     def get_attributes(self):
@@ -547,41 +590,49 @@ class ProvRecord(object):
                 klass = attribute_types[0]  # get the first class
             else:
                 klass = attribute_types  # only one class provided
+                attribute_types = [attribute_types]
             if issubclass(klass, ProvRecord):
                 #  Create an inferred record for the id given:
-                return self._bundle.add_inferred_record(klass, attribute)
+                return self._bundle.add_inferred_record(klass, attribute, self, attribute_types)
         return None
 
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is Identifier:
+            if isinstance(attribute, ProvRecord):
+                # This is a record, return its identifier (if any)
+                return attribute.get_identifier()
+            # Otherwise, trying to parse the attribute as an identifier
             return self._parse_identifier(attribute)
-        #  attempt to find an existing record
-        record = self._parse_record(attribute, attribute_types)
-        if record:
-            return record
-        else:
-            #  It is not a record, try to parse it with known datatype parsers
-            if isinstance(attribute_types, collections.Iterable):
-                for datatype in attribute_types:
-                    data = parse_datatype(attribute, datatype)
-                    if data:
-                        return data
-            else:
-                #  only one datatype provided
-                datatype = attribute_types
-                try:
-                    return parse_datatype(attribute, datatype)
-                except:
-                    return None
+
+        # putting all the types in to a tuple:
+        if not isinstance(attribute_types, collections.Iterable):
+            attribute_types = (attribute_types,)
+
+        # attempt to find an existing record having the same identifier
+        if any(map(lambda x: issubclass(x, ProvRecord), attribute_types)):
+            record = self._parse_record(attribute, attribute_types)
+            if record:
+                return record
+        #  Try to parse it with known datatype parsers
+        for datatype in attribute_types:
+            data = parse_datatype(attribute, datatype)
+            if data is not None:
+                return data
         return None
 
     def _validate_attribute(self, attribute, attribute_types):
         if isinstance(attribute, attribute_types):
             #  The attribute is of a required type
             #  Return it
-            return attribute
+            if isinstance(attribute, ProvRecord) and attribute._identifier in self._bundle._id_map:
+                return self._bundle._id_map[attribute._identifier]
+            else:
+                return attribute
         else:
             #  The attribute is not of a valid type
+            if isinstance(attribute, ProvRecord):
+                # It is definitely not valid since no further parsing is possible
+                raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
             #  Attempt to parse it
             parsed_value = self._parse_attribute(attribute, attribute_types)
             if parsed_value is None:
@@ -597,7 +648,7 @@ class ProvRecord(object):
         return self._validate_attribute(attribute, attribute_types)
 
     def optional_attribute(self, attributes, attribute_id, attribute_types):
-        if attribute_id not in attributes:
+        if not attributes or attribute_id not in attributes:
             #  Because this is optional, return nothing
             return None
         #  Found the optional attribute
@@ -634,8 +685,8 @@ class ProvRecord(object):
             if my_attrs:
                 #  my attributes set is not empty.
                 return False
-        sattr = sorted(self._extra_attributes, key=lambda attr: str(attr[0]) + str(attr[1])) if self._extra_attributes else None
-        oattr = sorted(other._extra_attributes, key=lambda attr: str(attr[0]) + str(attr[1])) if other._extra_attributes else None
+        sattr = sorted(self._extra_attributes, key=_normalise_attributes) if self._extra_attributes else None
+        oattr = sorted(other._extra_attributes, key=_normalise_attributes) if other._extra_attributes else None
         if sattr != oattr:
             return False
         return True
@@ -1173,8 +1224,10 @@ class NamespaceManager(dict):
         self._default_namespaces.update(default_namespaces)
         self._namespaces = {}
         self.update(self._default_namespaces)
-        self._default = default
-
+        if default is not None:
+            self.set_default_namespace(default)
+        else:
+            self._default = None
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
@@ -1280,7 +1333,7 @@ class ProvBundle(ProvEntity):
         if bundle is None:
             self._namespaces = NamespaceManager()
         else:
-            self._namespaces = NamespaceManager(parent=bundle._namespaces)
+            self._namespaces = bundle._namespaces
 
         #  Initializing record-specific attributes
         super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes, asserted)
@@ -1293,6 +1346,9 @@ class ProvBundle(ProvEntity):
         return self._namespaces.get_default_namespace()
 
     def add_namespace(self, namespace_or_prefix, uri=None):
+        if self._bundle is not None:  # This is a bundle
+            logger.warn("Namespace cannot be added into a bundle. It will be added to the document instead.")
+
         if uri is None:
             self._namespaces.add_namespace(namespace_or_prefix)
         else:
@@ -1315,8 +1371,10 @@ class ProvBundle(ProvEntity):
             return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), self._records)
 
     def get_record(self, identifier):
+        if identifier is None:
+            return None
+        valid_id = self.valid_identifier(identifier)
         try:
-            valid_id = self.valid_identifier(identifier)
             return self._id_map[valid_id]
         except:
             #  looking up the parent bundle
@@ -1383,25 +1441,25 @@ class ProvBundle(ProvEntity):
     def _encode_JSON_container(self):
         container = defaultdict(dict)
 
-        prefixes = {}
-        for namespace in self._namespaces.get_registered_namespaces():
-            prefixes[namespace.get_prefix()] = namespace.get_uri()
-        if self._namespaces._default:
-            prefixes['$'] = self._namespaces._default.get_uri()
-        if prefixes:
-            container[u'prefix'] = prefixes
+        if self._bundle is None:  # This is a document
+            prefixes = {}
+            for namespace in self._namespaces.get_registered_namespaces():
+                prefixes[namespace.get_prefix()] = namespace.get_uri()
+            if self._namespaces._default:
+                prefixes['default'] = self._namespaces._default.get_uri()
+            if prefixes:
+                container[u'prefix'] = prefixes
 
-        ids = {}
-        #  generating/mapping all record identifiers
-        for record in self._records:
-            ids[record] = record._identifier if record._identifier else self.get_anon_id(record)
+        id_generator = AnonymousIDGenerator()
+        real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
+
         for record in self._records:
             if not record.is_asserted():
-                pass  # skipping inferred records
+                continue  # skipping inferred records
 
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
-            identifier = str(ids[record])
+            identifier = str(real_or_anon_id(record))
 
             if rec_type == PROV_REC_BUNDLE:
                 #  encoding the sub-bundle
@@ -1411,7 +1469,7 @@ class ProvBundle(ProvEntity):
                 if record._attributes:
                     for (attr, value) in record._attributes.items():
                         if isinstance(value, ProvRecord):
-                            attr_record_id = ids[value]
+                            attr_record_id = real_or_anon_id(value)
                             record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = str(attr_record_id)
                         elif value is not None:
                             #  Assuming this is a datetime value
@@ -1425,7 +1483,7 @@ class ProvBundle(ProvEntity):
                             existing_value = record_json[attr_id]
                             try:
                                 #  Add the value to the current list of values
-                                existing_value.add(value_json)
+                                existing_value.append(value_json)
                             except:
                                 #  But if the existing value is not a list, it'll fail
                                 #  create the list for the existing value and the second value
@@ -1440,7 +1498,7 @@ class ProvBundle(ProvEntity):
         if u'prefix' in jc:
             prefixes = jc[u'prefix']
             for prefix, uri in prefixes.items():
-                if prefix != '$':
+                if prefix != 'default':
                     self.add_namespace(Namespace(prefix, uri))
                 else:
                     self.set_default_namespace(uri)
@@ -1475,6 +1533,14 @@ class ProvBundle(ProvEntity):
                     #  Splitting PROV attributes and the others
                     for attr, value in element.items():
                         if attr in PROV_ATTRIBUTES_ID_MAP:
+                            if isinstance(value, list):
+                                # Multiple values
+                                if len(value) == 1:
+                                    # Only a single value in the list, unpack it
+                                    value = value[0]
+                                else:
+                                    logger.error('The prov package does not support multiple-entity membership relations.')
+                                    raise ProvException
                             prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
                         else:
                             attr_id = self.valid_identifier(attr)
@@ -1488,6 +1554,12 @@ class ProvBundle(ProvEntity):
                     record.add_attributes(prov_attributes, extra_attributes)
 
     #  Miscellaneous functions
+    def is_document(self):
+        return self._bundle is None
+
+    def is_bundle(self):
+        return self._bundle is not None
+
     def get_type(self):
         return PROV_REC_BUNDLE
 
@@ -1498,12 +1570,19 @@ class ProvBundle(ProvEntity):
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
-        registered_namespaces = self._namespaces.get_registered_namespaces()
-        if registered_namespaces:
-            #  TODO: Add support for the default namespace
-            records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
-            #  a blank line between the prefixes and the assertions
-            records.append('')
+        if self._bundle is None:
+            # Only output the namespaces of a document
+            default_namespace = self._namespaces.get_default_namespace()
+            if default_namespace:
+                records.append('default <%s>' % default_namespace.get_uri())
+
+            registered_namespaces = self._namespaces.get_registered_namespaces()
+            if registered_namespaces:
+                records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+
+            if default_namespace or registered_namespaces:
+                #  a blank line between the prefixes and the assertions
+                records.append('')
 
         #  adding all the records
         records.extend([record.get_provn(_indent_level + 1) for record in self._records if record.is_asserted() or not asserted_only])
@@ -1551,6 +1630,16 @@ class ProvBundle(ProvEntity):
             del kw['cls']
         return json.loads(json_content, cls=ProvBundle.JSONDecoder, **kw)
 
+    def get_flattened(self):
+        flattened = deepcopy(self)
+        for bundle in flattened._bundles.values():
+            for record in bundle._records:
+                flattened.add_record(record.get_type(), record._identifier, record._attributes, record._extra_attributes, record._asserted)
+            flattened._records.remove(bundle)
+
+        flattened._bundles = {}
+        return flattened
+
     def __eq__(self, other):
         try:
             other_records = set(other._records)
@@ -1594,22 +1683,43 @@ class ProvBundle(ProvEntity):
 
     #  Provenance statements
     def _add_record(self, record):
-        self._records.append(record)
         if record._identifier:
             if record.get_type() == PROV_REC_BUNDLE:
                 #  Don't mix bunle ids with normal record ids.
                 self._bundles[record._identifier] = record
+                self._records.append(record)
             else:
-                self._id_map[record._identifier] = record
+                if record._identifier in self._id_map:
+                    merge_target = self._id_map[record._identifier]
+
+                    if not merge_target._asserted and record._asserted:
+                        if record.__class__ in merge_target.get_allowed_types():
+                            for attribute_id, attribute in merge_target._infered_for._attributes.iteritems():
+                                if attribute == merge_target:
+                                    merge_target._infered_for._attributes[attribute_id] = record
+                            self._records.remove(merge_target)
+                            self._id_map[record._identifier] = record
+                            self._records.append(record)
+                        else:
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                    else:
+                        if record.get_type() != merge_target.get_type():
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                        merge_target.add_attributes(record._attributes, record._extra_attributes)
+                else:
+                    self._records.append(record)
+                    self._id_map[record._identifier] = record
+        else:
+            self._records.append(record)
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None, asserted=True):
         new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes, asserted)
         self._add_record(new_record)
         return new_record
 
-    def add_inferred_record(self, record_cls, identifier):
+    def add_inferred_record(self, record_cls, identifier, infered_for, allowed_types):
         record_id = self.valid_identifier(identifier)
-        record = record_cls(self, record_id, asserted=False)
+        record = record_cls(self, record_id, asserted=False, allowed_types=allowed_types, infered_for=infered_for)
         self._add_record(record)
         return record
 
@@ -1634,6 +1744,10 @@ class ProvBundle(ProvEntity):
 
         self._bundles[valid_id] = bundle
         self._records.append(bundle)
+
+        for namespace in bundle.get_registered_namespaces():
+            self.add_namespace(namespace)
+
         bundle._bundle = self
 
     def add_element(self, record_type, identifier, attributes=None, other_attributes=None):
@@ -1708,19 +1822,6 @@ class ProvBundle(ProvEntity):
         return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
 
     def mention(self, specificEntity, generalEntity, bundle, identifier=None, other_attributes=None):
-        #  Special case for mention: if generalEntity is not already a ProvRecord (e.g. a string identifier),
-        #  then it might need to be looked up in the bundle provided, not the current bundle
-        if isinstance(generalEntity, basestring):
-            #  try to look for an existing record first:
-            existing_record = self.get_record(generalEntity)
-            if existing_record:
-                #  stop looking
-                generalEntity = existing_record
-            else:
-                #  looking in the target bundle
-                if isinstance(bundle, basestring):
-                    bundle = self.get_bundle(bundle)
-                generalEntity = bundle.get_record(generalEntity)
         return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
 
     def collection(self, identifier, other_attributes=None):

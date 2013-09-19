@@ -92,6 +92,7 @@ class PDBundle(PDRecord):
         pdbundle.bundle = self
         pdbundle.save_bundle(bundle)
         pdbundle.save()
+        return pdbundle
 
     def get_namespaces(self):
         results = {}
@@ -217,13 +218,15 @@ def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
 def _save_bundle(bundle, records, record_map, prov_bundle):
     # Save all the namespaces for future QName recreation
     logger.debug('Saving namespaces...')
-    namespaces = prov_bundle.get_registered_namespaces()
-    for namespace in namespaces:
-        bundle.add_namespace(namespace.get_prefix(), namespace.get_uri())
-    # and the default namespace as well
-    default_namespace = prov_bundle.get_default_namespace()
-    if default_namespace:
-        bundle.add_namespace('', default_namespace.get_uri())
+    if prov_bundle.is_document():
+        # Only save the namespaces if this is a document
+        namespaces = prov_bundle.get_registered_namespaces()
+        for namespace in namespaces:
+            bundle.add_namespace(namespace.get_prefix(), namespace.get_uri())
+        # and the default namespace as well
+        default_namespace = prov_bundle.get_default_namespace()
+        if default_namespace:
+            bundle.add_namespace('', default_namespace.get_uri())
 
     logger.debug('Saving bundle %s...' % bundle.rec_id)
     for record in records:
@@ -275,12 +278,23 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
 def build_ProvBundle(pdbundle, prov_bundle=None):
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
-    namespaces = pdbundle.get_namespaces()
-    for (prefix, uri) in namespaces.items():
-        if prefix == '':
-            prov_bundle.set_default_namespace(uri)
-        else:
-            prov_bundle.add_namespace(prov.Namespace(prefix, uri))
+
+    if not prov_bundle._bundle and pdbundle.bundle:
+        # If this is a bundle, not a document, but is being displayed as a standalone document
+        namespaces = pdbundle.bundle.get_namespaces()
+        for (prefix, uri) in namespaces.items():
+            if prefix == '':
+                prov_bundle.set_default_namespace(uri)
+            else:
+                prov_bundle.add_namespace(prov.Namespace(prefix, uri))
+    else:
+        # If this is a bundle within a document or a document itself
+        namespaces = pdbundle.get_namespaces()
+        for (prefix, uri) in namespaces.items():
+            if prefix == '':
+                prov_bundle.set_default_namespace(uri)
+            else:
+                prov_bundle.add_namespace(prov.Namespace(prefix, uri))
 
     record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations

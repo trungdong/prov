@@ -8,7 +8,7 @@ with open('LICENCE.txt') as f:
 
 setup(
     name='prov',
-    version='0.4.9',
+    version='0.5.1',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
@@ -23,7 +23,7 @@ setup(
         'py26-support': ['ordereddict'],
     },
     provides=['prov'],
-    keywords=['provenance', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON'],
+    keywords=['provenance', 'graph', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON', 'Django'],
     classifiers=[
           'Development Status :: 4 - Beta',
           'Environment :: Console',
