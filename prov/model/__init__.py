@@ -473,8 +473,8 @@ class ProvRecord(object):
         asserted_types = self.get_asserted_types()
         if type_identifier not in asserted_types:
             if self._extra_attributes is None:
-                self._extra_attributes = []
-            self._extra_attributes.append((PROV['type'], type_identifier))
+                self._extra_attributes = set()
+            self._extra_attributes.update(set([(PROV['type'], type_identifier)]))
 
     def get_attribute(self, attr_name):
         if not self._extra_attributes:
@@ -521,13 +521,10 @@ class ProvRecord(object):
         return literal
 
     def parse_extra_attributes(self, extra_attributes):
-        try:
+        if isinstance(extra_attributes, dict):
             #  This will only work if extra_attributes is a dictionary
             #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
             extra_attributes = extra_attributes.items()
-        except:
-            #  Do nothing if it did not work, expect the variable is already a list
-            pass
         attr_list = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
         return attr_list
 
