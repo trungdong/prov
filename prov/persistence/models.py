@@ -166,7 +166,7 @@ def _decode_python_literal(value, datatype, graph):
 
 
 def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
-    logger.debug('Saving PROV record: %s' % str(prov_record))
+    logger.debug('Saving PROV record: %s' % unicode(prov_record))
     prov_type = prov_record.get_type()
     record_id = prov_record.get_identifier()
     record_uri = None if record_id is None else record_id.get_uri()
@@ -267,11 +267,11 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
 
     if record_type == prov.PROV_REC_BUNDLE:
         # Loading records in this sub-bundle
-        logger.debug('Loading records for %s' % str(prov_record))
+        logger.debug('Loading records for %s' % unicode(prov_record))
         pdbundle = PDBundle.objects.get(pk=pk)
         build_ProvBundle(pdbundle, prov_record)
 
-    logger.debug('Loaded PROV record: %s' % str(prov_record))
+    logger.debug('Loaded PROV record: %s' % unicode(prov_record))
     return prov_record
 
 
