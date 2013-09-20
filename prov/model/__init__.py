@@ -1118,11 +1118,12 @@ PROV_REC_CLS = {
 
 #  Bundle
 class NamespaceManager(dict):
-    def __init__(self, default_namespaces={PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, default=None, parent=None):
+    def __init__(self, namespaces={}, default_namespaces={PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, default=None, parent=None):
         self._default_namespaces = {}
         self._default_namespaces.update(default_namespaces)
-        self._namespaces = {}
         self.update(self._default_namespaces)
+        self._namespaces = {}
+
         if default is not None:
             self.set_default_namespace(default)
         else:
@@ -1131,6 +1132,7 @@ class NamespaceManager(dict):
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
         self._rename_map = {}
+        self.add_namespaces(namespaces)
 
     def get_namespace(self, uri):
         for namespace in self.values():
@@ -1166,6 +1168,12 @@ class NamespaceManager(dict):
             namespace = new_namespace
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+
+    def add_namespaces(self, namespaces):
+        if namespaces:
+            for prefix, uri in namespaces.items():
+                ns = Namespace(prefix, uri)
+                self.add_namespace(ns)
 
     def get_valid_identifier(self, identifier):
         if not identifier:
@@ -1224,15 +1232,16 @@ class NamespaceManager(dict):
 
 
 class ProvBundle(ProvEntity):
-    def __init__(self, bundle=None, identifier=None, attributes=None, other_attributes=None, asserted=True):
+    def __init__(self, bundle=None, identifier=None, attributes=None, other_attributes=None, asserted=True, namespaces={}):
         #  Initializing bundle-specific attributes
         self._records = list()
         self._id_map = dict()
         self._bundles = dict()
         if bundle is None:
-            self._namespaces = NamespaceManager()
+            self._namespaces = NamespaceManager(namespaces)
         else:
             self._namespaces = bundle._namespaces
+            self._namespaces.add_namespaces(namespaces)
 
         #  Initializing record-specific attributes
         super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes, asserted)
