@@ -240,9 +240,14 @@ def parse_xsd_types(value, datatype):
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 
+def _ensure_multiline_string_triple_quoted(s):
+    format_str = u'"""%s"""' if '\n' in s else u'"%s"'
+    return format_str % s
+
+
 def encoding_PROV_N_value(value):
     if isinstance(value, basestring):
-        return '"%s"' % value
+        return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
         return value.isoformat()
     elif isinstance(value, float):
@@ -293,9 +298,9 @@ class Literal(object):
     def provn_representation(self):
         if self._langtag:
             #  a langtag can only goes with string
-            return u'"%s"@%s' % (unicode(self._value), unicode(self._langtag))
+            return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._langtag))
         else:
-            return u'"%s" %%%% %s' % (unicode(self._value), unicode(self._datatype))
+            return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
 
     def json_representation(self):
         if self._langtag:

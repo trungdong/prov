@@ -395,7 +395,10 @@ def datatypes():
                   'ex:str': 'Some string',
                   'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
                   'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48)}
-
+    multiline = """Line1
+    Line2
+Line3"""
+    attributes['ex:multi-line'] = multiline
     g.entity('ex:e1', attributes)
     return g
 
