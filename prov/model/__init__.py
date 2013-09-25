@@ -163,6 +163,12 @@ PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_i
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
+
+# Converting an attribute to the normal form for comparison purposes
+_normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
+
+
+#  Datatypes
 _r_xsd_dateTime = re.compile(""" ^
     (?P<year>-?[0-9]{4}) - (?P<month>[0-9]{2}) - (?P<day>[0-9]{2})
     T (?P<hour>[0-9]{2}) : (?P<minute>[0-9]{2}) : (?P<second>[0-9]{2})
@@ -171,28 +177,22 @@ _r_xsd_dateTime = re.compile(""" ^
       Z | (?P<tz_hr>[-+][0-9]{2}) : (?P<tz_min>[0-9]{2})
     )?
     $ """, re.X)
-_r_typed_literal_uri = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^<(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)>$', re.X)
-_r_typed_literal_qname = re.compile(r'^"(?P<value>[^"\\]*(?:\\.[^"\\]*)*)"\^\^(?P<datatype>[^>\\]*(?:\\.[^>\\]*)*)$', re.X)
-
-# Converting an attribute to the normal form for comparison purposes
-_normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
 
 
-#  Datatypes
 def _parse_xsd_dateTime(s):
     """Returns datetime or None."""
     m = _r_xsd_dateTime.match(s)
     if m is not None:
         values = m.groupdict()
-    if values["microsecond"] is None:
-        values["microsecond"] = 0
+        if values["microsecond"] is None:
+            values["microsecond"] = 0
+        else:
+            values["microsecond"] = values["microsecond"][1:]
+            values["microsecond"] += "0" * (6 - len(values["microsecond"]))
+        values = dict((k, int(v)) for k, v in values.iteritems() if not k.startswith("tz"))
+        return datetime.datetime(**values)
     else:
-        values["microsecond"] = values["microsecond"][1:]
-        values["microsecond"] += "0" * (6 - len(values["microsecond"]))
-    values = dict((k, int(v)) for k, v in values.iteritems()
-                  if not k.startswith("tz"))
-
-    return datetime.datetime(**values)
+        return None
 
 
 def _ensure_datetime(time):
