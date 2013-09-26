@@ -16,7 +16,7 @@ import json
 import re
 import collections
 from collections import defaultdict
-from copy import deepcopy
+from copy import deepcopy, copy
 try:
     from collections import OrderedDict
 except ImportError:
@@ -1173,6 +1173,7 @@ class NamespaceManager(dict):
             namespace = new_namespace
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+        return namespace
 
     def add_namespaces(self, namespaces):
         if namespaces:
@@ -1186,11 +1187,21 @@ class NamespaceManager(dict):
         if isinstance(identifier, Identifier):
             if isinstance(identifier, QName):
                 #  Register the namespace if it has not been registered before
-                namespace = identifier.get_namespace()
-                if namespace not in self.values():
-                    self.add_namespace(namespace)
-            #  return the original identifier
-            return identifier
+                namespace = identifier._namespace
+                prefix = namespace.get_prefix()
+                if prefix in self and self[prefix] == namespace:
+                    # No need to add the namespace
+                    existing_ns = self[prefix]
+                    if existing_ns is namespace:
+                        return identifier
+                    else:
+                        return existing_ns[identifier._localpart]  # reuse the existing namespace
+                else:
+                    ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
+                    return ns[identifier._localpart]
+            else:
+                #  return the original identifier
+                return identifier
         elif isinstance(identifier, (str, unicode)):
             if identifier.startswith('_:'):
                 return None
@@ -1526,14 +1537,28 @@ class ProvBundle(ProvEntity):
         return json.loads(json_content, cls=ProvBundle.JSONDecoder, **kw)
 
     def get_flattened(self):
-        flattened = deepcopy(self)
-        for bundle in flattened._bundles.values():
+        namespaces = dict((ns.get_prefix(), ns.get_uri()) for ns in self.get_registered_namespaces())
+        document = ProvBundle(namespaces=namespaces)
+        default_ns_uri = self.get_default_namespace()
+        if default_ns_uri is not None:
+            document.set_default_namespace(default_ns_uri)
+        # Enumerate records and bundles
+        bundles = []
+        records = []
+        for record in self.get_records():
+            if isinstance(record, ProvBundle):
+                bundles.append(record)
+            else:
+                records.append(record)
+        records = deepcopy(records)
+        for record in records:
+            document._add_record(record)
+        for bundle in bundles:
             for record in bundle._records:
-                flattened.add_record(record.get_type(), record._identifier, record._attributes, record._extra_attributes, record._asserted)
-            flattened._records.remove(bundle)
-
-        flattened._bundles = {}
-        return flattened
+                document.add_record(record.get_type(), copy(record._identifier),
+                                    deepcopy(record._attributes), deepcopy(record._extra_attributes),
+                                    record._asserted)
+        return document
 
     def __eq__(self, other):
         try:
