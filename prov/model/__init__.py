@@ -482,8 +482,9 @@ class ProvRecord(object):
             self._extra_attributes.add((PROV['type'], type_identifier))
 
     def get_attribute(self, attr_name):
+        attr_name = self._bundle.valid_identifier(attr_name)
         if not self._extra_attributes:
-            return None
+            return []
         results = [value for attr, value in self._extra_attributes if attr == attr_name]
         return results
 
@@ -765,6 +766,12 @@ class ProvActivity(ProvElement):
             self._attributes[PROV_ATTR_STARTTIME] = startTime
         if endTime is not None:
             self._attributes[PROV_ATTR_ENDTIME] = endTime
+
+    def get_startTime(self):
+        return self._attributes[PROV_ATTR_STARTTIME]
+
+    def get_endTime(self):
+        return self._attributes[PROV_ATTR_ENDTIME]
 
 
 class ProvGeneration(ProvRelation):
@@ -1446,10 +1453,9 @@ class ProvBundle(ProvEntity):
                 if hasattr(attributes, 'items'):  # it is a dict
                     #  There is only one element, create a singleton list
                     elements = [attributes]
-                else:  # expect it to be a list
-                    #  There are more than one element
-                    #  TODO: Fix this, we only accept one element (the first one)
-                    elements = [attributes[0]]
+                else:
+                    # expect it to be a list of dictionaries
+                    elements = attributes
 
                 for element in elements:
                     prov_attributes = {}

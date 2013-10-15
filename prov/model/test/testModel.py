@@ -133,6 +133,31 @@ class TestFlattening(unittest.TestCase):
         with self.assertRaises(ProvExceptionCannotUnifyAttribute):
             g.get_flattened()
 
+    def test_merging_records_json(self):
+        test_json = """
+        {
+            "entity": {
+                "e1": [
+                    {"prov:label": "First instance of e1"},
+                    {"prov:label": "Second instance of e1"}
+                ]
+            },
+            "activity": {
+                "a1": [
+                    {"prov:label": "An activity with no time (yet)"},
+                    {"prov:startTime": "2011-11-16T16:05:00"},
+                    {"prov:endTime": "2011-11-16T16:06:00"}
+                ]
+            }
+        }"""
+        g = ProvBundle.from_provjson(test_json)
+        print g
+        e1 = g.get_record("e1")
+        self.assertEqual(len(e1.get_attribute('prov:label')), 2, "e1 was not merged correctly, expecting two prov:label attributes")
+        a1 = g.get_record("a1")
+        self.assertIsNotNone(a1.get_startTime(), "a1 was not merged correctly, expecting startTime set.")
+        self.assertIsNotNone(a1.get_endTime(), "a1 was not merged correctly, expecting startTime set.")
+        self.assertEqual(len(a1.get_attribute('prov:label')), 1, "a1 was not merged correctly, expecting one prov:label attribute")
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
