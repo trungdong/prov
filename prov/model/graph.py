@@ -89,7 +89,7 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 return  # No attribute to display
 
             ann_rows = [ANNOTATION_START_ROW]
-            ann_rows.extend(ANNOTATION_ROW_TEMPLATE % (cgi.escape(str(attr)), cgi.escape(str(value))) for attr, value in record._extra_attributes)
+            ann_rows.extend(ANNOTATION_ROW_TEMPLATE % (cgi.escape(unicode(attr)), cgi.escape(unicode(value))) for attr, value in record._extra_attributes)
             ann_rows.append(ANNOTATION_END_ROW)
             count[3] += 1
             annotations = pydot.Node('ann%d' % count[3], label='\n'.join(ann_rows), **ANNOTATION_STYLE)
@@ -101,9 +101,9 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 count[2] = count[2] + 1
                 subdot = pydot.Cluster(graph_name='c%d' % count[2])
                 if use_labels:
-                    subdot.set_label('"%s"' % str(record.get_label()))
+                    subdot.set_label('"%s"' % unicode(record.get_label()))
                 else:
-                    subdot.set_label('"%s"' % str(record.get_identifier()))
+                    subdot.set_label('"%s"' % unicode(record.get_identifier()))
                 _bundle_to_dot(subdot, record)
                 dot.add_subgraph(subdot)
                 return subdot
@@ -111,9 +111,9 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 count[0] = count[0] + 1
                 node_id = 'n%d' % count[0]
                 if use_labels:
-                    node_label = '"%s"' % str(record.get_label())
+                    node_label = '"%s"' % unicode(record.get_label())
                 else:
-                    node_label = '"%s"' % str(record.get_identifier())
+                    node_label = '"%s"' % unicode(record.get_identifier())
                 style = DOT_PROV_STYLE[record.get_type()]
                 node = pydot.Node(node_id, label=node_label, **style)
                 node_map[record] = node
