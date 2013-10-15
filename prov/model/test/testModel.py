@@ -151,7 +151,6 @@ class TestFlattening(unittest.TestCase):
             }
         }"""
         g = ProvBundle.from_provjson(test_json)
-        print g
         e1 = g.get_record("e1")
         self.assertEqual(len(e1.get_attribute('prov:label')), 2, "e1 was not merged correctly, expecting two prov:label attributes")
         a1 = g.get_record("a1")

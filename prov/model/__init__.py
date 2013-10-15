@@ -7,7 +7,7 @@ References:
 PROV-DM: http://www.w3.org/TR/prov-dm/
 
 @author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2012
+@copyright: University of Southampton 2013
 '''
 
 import logging
@@ -686,7 +686,7 @@ class ProvRecord(object):
         return True
 
     def __unicode__(self):
-        return self.get_provn()  # TODO: Check this produces unicode
+        return self.get_provn()
 
     def __str__(self):
         return unicode(self).encode('utf-8')
@@ -1451,6 +1451,7 @@ class ProvBundle(ProvEntity):
                          key=lambda tuple_rec: tuple_rec[0])
 
         record_map = {}
+        _parse_attr_value = lambda value: record_map[value] if (isinstance(value, basestring) and value in record_map) else self._decode_json_representation(value)
         #  Create all the records before setting their attributes
         for (record_type, identifier, content) in records:
             if record_type == PROV_REC_BUNDLE:
@@ -1473,17 +1474,26 @@ class ProvBundle(ProvEntity):
                     prov_attributes = {}
                     extra_attributes = []
                     #  Splitting PROV attributes and the others
+                    membership_extra_members = None  # this is for the multiple-entity membership hack to come
                     for attr, value in element.items():
                         if attr in PROV_ATTRIBUTES_ID_MAP:
+                            attr_id = PROV_ATTRIBUTES_ID_MAP[attr]
                             if isinstance(value, list):
                                 # Multiple values
                                 if len(value) == 1:
                                     # Only a single value in the list, unpack it
                                     value = value[0]
                                 else:
-                                    logger.error('The prov package does not support multiple-entity membership relations.')
-                                    raise ProvException
-                            prov_attributes[PROV_ATTRIBUTES_ID_MAP[attr]] = record_map[value] if (isinstance(value, (str, unicode)) and value in record_map) else self._decode_json_representation(value)
+                                    if record.get_type() == PROV_REC_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
+                                        # This is a membership relation with multiple entities
+                                        # HACK: create multiple membership relations, one for each entity
+                                        membership_extra_members = value[1:]  # Store all the extra entities
+                                        value = value[0]  # Create the first membership relation as normal for the first entity
+                                    else:
+                                        error_msg = 'The prov package does not support PROV attributes having multiple values.'
+                                        logger.error(error_msg)
+                                        raise ProvException(error_msg)
+                            prov_attributes[attr_id] = _parse_attr_value(value)
                         else:
                             attr_id = self.valid_identifier(attr)
                             if isinstance(value, list):
@@ -1492,8 +1502,12 @@ class ProvBundle(ProvEntity):
                             else:
                                 #  add the single-value attribute
                                 extra_attributes.append((attr_id, self._decode_json_representation(value)))
-                    #  TODO: This won't work when there are more than one element
                     record.add_attributes(prov_attributes, extra_attributes)
+                    # HACK: creating extra (unidentified) membership relations
+                    if membership_extra_members:
+                        collection = prov_attributes[PROV_ATTR_COLLECTION]
+                        for member in membership_extra_members:
+                            self.membership(collection, _parse_attr_value(member), None, extra_attributes)
 
     #  Miscellaneous functions
     def is_document(self):
