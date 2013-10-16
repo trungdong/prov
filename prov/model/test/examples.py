@@ -410,7 +410,7 @@ def long_literals():
     ex = Namespace('ex', long_uri)
     g.add_namespace(ex)
 
-    g.entity('e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
+    g.entity('ex:e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
 
     return g
 

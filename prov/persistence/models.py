@@ -43,7 +43,7 @@ class PDNamespace(models.Model):
 
 
 class PDRecord(models.Model):
-    rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    rec_id = models.TextField(null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=prov.PROV_RECORD_TYPES, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='_records', null=True, blank=True, db_index=True)
     asserted = models.BooleanField(default=True)
