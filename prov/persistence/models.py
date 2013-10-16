@@ -32,7 +32,7 @@ def save_bundle(prov_bundle, identifier=None):
 # Classes
 class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
-    uri = models.CharField(max_length=255, db_index=True)
+    uri = models.TextField(db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
 
     class Meta:
