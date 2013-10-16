@@ -11,7 +11,7 @@ setup(
     version='0.5.1',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
-    packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
+    packages=['prov', 'prov.model', 'prov.persistence', 'prov.persistence.migrations', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
     scripts=[],
     url='https://github.com/trungdong/prov',
     license=licence,
