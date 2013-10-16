@@ -402,6 +402,13 @@ Line3"""
     g.entity('ex:e1', attributes)
     return g
 
+
+def long_literals():
+    g = ProvBundle()
+    g.entity('e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
+
+    return g
+
 tests = [
     ('Bundle1', bundles1),
     ('Bundle2', bundles2),
@@ -409,5 +416,6 @@ tests = [
     ('W3C Publication 1', w3c_publication_1),
     ('W3C Publication 2', w3c_publication_2),
     ('collections', collections),
-    ('datatypes', datatypes)
+    ('datatypes', datatypes),
+    ('Long literals', long_literals),
 ]
