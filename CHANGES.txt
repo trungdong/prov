@@ -1,3 +1,16 @@
+v0.5.2, 18/10/2013 -- Bug fixes
+- Added South migrations for prov.persistence
+- Fixed: Support for unlimited-length record identifier
+- Fixed: Support for unlimited-length URI in namespace
+- Fixed: Support for long literals (i.e. longer than 255 characters)
+- Fixed: (JSON) Support for membership with multiple members
+- Fixed: UnicodeEncodeError error
+- Fixed: Support for JSON having records sharing the same identifier
+- Fixed: Refactor the flattening code
+- Fixed: Parsing XSD dateTime
+- Fixed: Triple quoted multi-line string literals in PROV-N
+- Added: Support initialising namespaces when creating a ProvBundle
+
 v0.5.1, 13/09/2013 -- Bug fixes
 - Added: JSON membership relation with a single entity (in a list)
 - Fixed: Not generating inferred records in JSON encoding.
