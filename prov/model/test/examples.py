@@ -402,6 +402,18 @@ Line3"""
     g.entity('ex:e1', attributes)
     return g
 
+
+def long_literals():
+    g = ProvBundle()
+
+    long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
+    ex = Namespace('ex', long_uri)
+    g.add_namespace(ex)
+
+    g.entity('ex:e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
+
+    return g
+
 tests = [
     ('Bundle1', bundles1),
     ('Bundle2', bundles2),
@@ -409,5 +421,6 @@ tests = [
     ('W3C Publication 1', w3c_publication_1),
     ('W3C Publication 2', w3c_publication_2),
     ('collections', collections),
-    ('datatypes', datatypes)
+    ('datatypes', datatypes),
+    ('Long literals', long_literals),
 ]

@@ -32,7 +32,7 @@ def save_bundle(prov_bundle, identifier=None):
 # Classes
 class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
-    uri = models.CharField(max_length=255, db_index=True)
+    uri = models.TextField(db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
 
     class Meta:
@@ -43,7 +43,7 @@ class PDNamespace(models.Model):
 
 
 class PDRecord(models.Model):
-    rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    rec_id = models.TextField(null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=prov.PROV_RECORD_TYPES, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='_records', null=True, blank=True, db_index=True)
     asserted = models.BooleanField(default=True)
@@ -59,9 +59,9 @@ class RecordAttribute(models.Model):
 class LiteralAttribute(models.Model):
     record = models.ForeignKey(PDRecord, related_name='literals', db_index=True)
     prov_type = models.SmallIntegerField(choices=prov.PROV_RECORD_ATTRIBUTES, null=True, blank=True, db_index=True)
-    name = models.CharField(max_length=255)
-    value = models.CharField(max_length=255)
-    datatype = models.CharField(max_length=255, null=True, blank=True)
+    name = models.TextField()
+    value = models.TextField()
+    datatype = models.TextField(null=True, blank=True)
 
 
 class PDBundle(PDRecord):

@@ -32,15 +32,9 @@ class SaveLoadTest(unittest.TestCase):
         logger.debug('Deleting all test bundles (%d in total)' % len(self.bundle_db_id_map))
         PDBundle.objects.filter(pk__in=self.bundle_db_id_map.values()).delete()
 
-    def testName(self):
+    def testDBLoading(self):
         for bundle_id in self.bundles:
             logger.debug('Loading bundle from DB: %s...' % bundle_id)
             pdbundle = PDBundle.objects.get(pk=self.bundle_db_id_map[bundle_id])
             prov_bundle = pdbundle.get_prov_bundle()
             assert(prov_bundle == self.bundles[bundle_id])
-
-if __name__ == "__main__":
-    from django.test.utils import setup_test_environment
-    setup_test_environment()
-    #import sys;sys.argv = ['', 'Test.testName']
-    unittest.main()

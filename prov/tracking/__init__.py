@@ -247,7 +247,7 @@ class StreamHandler(Handler):
         try:
             stream = self.stream
             fs = "%s\n"
-            stream.write(fs % str(record))
+            stream.write(fs % unicode(record))
             self.flush()
         except (KeyboardInterrupt, SystemExit):
             raise
