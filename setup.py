@@ -8,14 +8,14 @@ with open('LICENCE.txt') as f:
 
 setup(
     name='prov',
-    version='0.5.1',
+    version='0.5.2',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
-    packages=['prov', 'prov.model', 'prov.persistence', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
+    packages=['prov', 'prov.model', 'prov.persistence', 'prov.persistence.migrations', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
     scripts=[],
     url='https://github.com/trungdong/prov',
     license=licence,
-    description='A Python implementation of PROV data model providing simple provenance tracking and persistence using Django.',
+    description='A Python implementation of PROV data model, providing simple provenance tracking and persistence using Django.',
     long_description=long_description,
     extras_require={
         'graph-export': ['pydot'],

@@ -32,7 +32,7 @@ def save_bundle(prov_bundle, identifier=None):
 # Classes
 class PDNamespace(models.Model):
     prefix = models.CharField(max_length=255, db_index=True)
-    uri = models.CharField(max_length=255, db_index=True)
+    uri = models.TextField(db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='namespaces', db_index=True)
 
     class Meta:
@@ -43,7 +43,7 @@ class PDNamespace(models.Model):
 
 
 class PDRecord(models.Model):
-    rec_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    rec_id = models.TextField(null=True, blank=True, db_index=True)
     rec_type = models.SmallIntegerField(choices=prov.PROV_RECORD_TYPES, db_index=True)
     bundle = models.ForeignKey('PDBundle', related_name='_records', null=True, blank=True, db_index=True)
     asserted = models.BooleanField(default=True)
@@ -59,9 +59,9 @@ class RecordAttribute(models.Model):
 class LiteralAttribute(models.Model):
     record = models.ForeignKey(PDRecord, related_name='literals', db_index=True)
     prov_type = models.SmallIntegerField(choices=prov.PROV_RECORD_ATTRIBUTES, null=True, blank=True, db_index=True)
-    name = models.CharField(max_length=255)
-    value = models.CharField(max_length=255)
-    datatype = models.CharField(max_length=255, null=True, blank=True)
+    name = models.TextField()
+    value = models.TextField()
+    datatype = models.TextField(null=True, blank=True)
 
 
 class PDBundle(PDRecord):
@@ -166,7 +166,7 @@ def _decode_python_literal(value, datatype, graph):
 
 
 def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
-    logger.debug('Saving PROV record: %s' % str(prov_record))
+    logger.debug('Saving PROV record: %s' % unicode(prov_record))
     prov_type = prov_record.get_type()
     record_id = prov_record.get_identifier()
     record_uri = None if record_id is None else record_id.get_uri()
@@ -267,11 +267,11 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
 
     if record_type == prov.PROV_REC_BUNDLE:
         # Loading records in this sub-bundle
-        logger.debug('Loading records for %s' % str(prov_record))
+        logger.debug('Loading records for %s' % unicode(prov_record))
         pdbundle = PDBundle.objects.get(pk=pk)
         build_ProvBundle(pdbundle, prov_record)
 
-    logger.debug('Loaded PROV record: %s' % str(prov_record))
+    logger.debug('Loaded PROV record: %s' % unicode(prov_record))
     return prov_record
 
 
