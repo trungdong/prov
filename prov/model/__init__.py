@@ -20,7 +20,7 @@ from collections import defaultdict
 from rdflib.term import URIRef, BNode
 from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, RDFS
 
 from copy import deepcopy, copy
 try:
@@ -756,7 +756,12 @@ class ProvRecord(object):
                 graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
-                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                if attr == PROV['type']:
+                    pred = RDF.type
+                elif attr == PROV['label']:
+                    pred = RDFS.label
+                else:
+                    pred = attr.rdf_representation()
                 try:
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
@@ -821,7 +826,12 @@ class ProvRelation(ProvRecord):
             for (attr, value) in self._extra_attributes:
                 if not value:
                     continue
-                pred = attr.rdf_representation() if attr != PROV['type'] else RDF.type
+                if attr == PROV['type']:
+                    pred = RDF.type
+                elif attr == PROV['label']:
+                    pred = RDFS.label
+                else:
+                    pred = attr.rdf_representation()
                 try:
                     # try if there is a RDF representation defined
                     otherobj = value.rdf_representation()
