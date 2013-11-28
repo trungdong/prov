@@ -158,6 +158,27 @@ class TestFlattening(unittest.TestCase):
         self.assertIsNotNone(a1.get_endTime(), "a1 was not merged correctly, expecting startTime set.")
         self.assertEqual(len(a1.get_attribute('prov:label')), 1, "a1 was not merged correctly, expecting one prov:label attribute")
 
+    def test_datetime_with_tz(self):
+        """ test that timezone is taken in to account while parsing json"""
+        test_json = """
+        {
+            "activity": {
+                "a1": [
+                    {"prov:label": "An activity with timezone"},
+                    {"prov:startTime": "2011-11-16T16:05:00.123456+03:00"},
+                    {"prov:endTime": "2011-11-16T16:06:00.654321"}
+                ]
+            }
+        }"""
+        g = ProvBundle.from_provjson(test_json)
+        a1 = g.get_record("a1")
+        self.assertEqual(a1.get_startTime().isoformat(),
+                         "2011-11-16T16:05:00.123456+03:00",
+                         "timezone is not set correctly")
+        self.assertEqual(a1.get_endTime().isoformat(),
+                         "2011-11-16T16:06:00.654321",
+                         "timezone is not set correctly")
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     unittest.main()
