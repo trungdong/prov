@@ -22,6 +22,7 @@ setup(
         'persistence': ['Django'],
         'py26-support': ['ordereddict'],
     },
+    install_requires=['python-dateutil'], 
     provides=['prov'],
     keywords=['provenance', 'graph', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON', 'Django'],
     classifiers=[
@@ -38,5 +39,5 @@ setup(
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Security',
           'Topic :: System :: Logging',
-          ],
+          ]
 )
