@@ -169,8 +169,7 @@ PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in P
 _normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
 
 
-#  Datatypes
-
+# Data Types
 def _parse_xsd_dateTime(s):
     return dateutil.parser.parse(s)
 
@@ -251,6 +250,13 @@ class AnonymousIDGenerator():
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
         self._value = value
+        if langtag:
+            if datatype is None:
+                logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
+                datatype = PROV["InternationalizedString"]
+            elif datatype != PROV["InternationalizedString"]:
+                logger.warn('Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' % (value, langtag))
+                datatype = PROV["InternationalizedString"]
         self._datatype = datatype
         self._langtag = langtag
 
@@ -280,14 +286,14 @@ class Literal(object):
 
     def provn_representation(self):
         if self._langtag:
-            #  a langtag can only goes with string
+            #  a language tag can only go with prov:InternationalizedString
             return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._langtag))
         else:
             return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
 
     def json_representation(self):
         if self._langtag:
-            #  a langtag can only goes with string
+            #  a language tag can only go with prov:InternationalizedString
             return {'$': unicode(self._value), 'lang': self._langtag}
         else:
             if isinstance(self._datatype, QName):
@@ -1343,22 +1349,21 @@ class ProvBundle(ProvEntity):
                 return value
 
     def _decode_json_representation(self, literal):
-        try:
+        if isinstance(literal, dict):
+            # complex type
             value = literal['$']
-            if 'lang' in literal:
-                return Literal(value, langtag=literal['lang'])
+            datatype = literal['type'] if 'type' in literal else None
+            langtag = literal['lang'] if 'lang' in literal else None
+            if datatype == u'xsd:anyURI':
+                return Identifier(value)
+            elif datatype == u'xsd:QName':
+                return self.valid_identifier(value)
             else:
-                datatype = literal['type']
-                if datatype == u'xsd:anyURI':
-                    return Identifier(value)
-                elif datatype == u'xsd:QName':
-                    return self.valid_identifier(value)
-                else:
-                    # The literal of standard Python types is not converted here
-                    # It will be automatically converted when added to a record by _auto_literal_conversion()
-                    return Literal(value, self.valid_identifier(datatype))
-        except:
-            #  simple type, just return it
+                # The literal of standard Python types is not converted here
+                # It will be automatically converted when added to a record by _auto_literal_conversion()
+                return Literal(value, self.valid_identifier(datatype), langtag)
+        else:
+            # simple type, just return it
             return literal
 
     def _encode_JSON_container(self):
