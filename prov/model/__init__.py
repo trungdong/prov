@@ -513,11 +513,6 @@ class ProvRecord(object):
         '''This method normalise datatype for literals
         '''
         if isinstance(literal, basestring):
-            # try if this is a QName
-            qname = self._bundle.valid_identifier(literal)
-            if isinstance(qname, QName):
-                return qname
-            # if not a QName, convert all strings to unicode
             return unicode(literal)
 
         if isinstance(literal, Literal) and literal.has_no_langtag():
@@ -677,6 +672,13 @@ class ProvRecord(object):
         sattr = sorted(self._extra_attributes, key=_normalise_attributes) if self._extra_attributes else None
         oattr = sorted(other._extra_attributes, key=_normalise_attributes) if other._extra_attributes else None
         if sattr != oattr:
+            if logger.isEnabledFor(logging.DEBUG):
+                for spair, opair in zip(sattr, oattr):
+                    # Log the first unequal pair of attributes
+                    if spair != opair:
+                        logger.debug("Equality (ProvRecord): unequal attribute-value pairs - %s = %s - %s = %s",
+                                     spair[0], spair[1], opair[0], opair[1])
+                        break
             return False
         return True
 
@@ -1242,8 +1244,8 @@ class NamespaceManager(dict):
                 #  create and return an identifier in the default namespace
                 return self._default[identifier]
             else:
-                #  TODO Should an exception raised here
-                return Identifier(identifier)
+                # This is not an identifier
+                return None
 
     def get_anonymous_identifier(self, local_prefix='id'):
         self._anon_id_count += 1
@@ -1607,12 +1609,12 @@ class ProvBundle(ProvEntity):
                         other_records.remove(record_b)
                         continue
                     else:
-                        logger.debug("Unequal PROV records:")
-                        logger.debug("%s" % unicode(record_a))
-                        logger.debug("%s" % unicode(record_b))
+                        logger.debug("Equality (ProvBundle): Unequal PROV records:")
+                        logger.debug("%s", unicode(record_a))
+                        logger.debug("%s", unicode(record_b))
                         return False
                 else:
-                    logger.debug("Could not find a record with this identifier: %s" % unicode(record_a._identifier))
+                    logger.debug("Equality (ProvBundle): Could not find a record with this identifier: %s", unicode(record_a._identifier))
                     return False
             else:
                 #  Manually look for the record
@@ -1623,7 +1625,7 @@ class ProvBundle(ProvEntity):
                         found = True
                         break
                 if not found:
-                    logger.debug("Could not find this record: %s" % unicode(record_a))
+                    logger.debug("Equality (ProvBundle): Could not find this record: %s", unicode(record_a))
                     return False
         return True
 
