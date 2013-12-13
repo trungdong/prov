@@ -643,7 +643,7 @@ class ProvRecord(object):
         return self._validate_attribute(attribute, attribute_types)
 
     def __eq__(self, other):
-        if self.__class__ != other.__class__:
+        if self.get_prov_type() != other.get_prov_type():
             return False
         if self._identifier and not (self._identifier == other._identifier):
             return False
@@ -1305,10 +1305,12 @@ class ProvBundle(ProvEntity):
         return self._namespaces.get_anonymous_identifier()
 
     def get_records(self, class_or_type_or_tuple=None):
-        if class_or_type_or_tuple is None:
-            return self._records
+        # Only returning asserted records
+        results = [rec for rec in self._records if rec.is_asserted()]
+        if class_or_type_or_tuple:
+            return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), results)
         else:
-            return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), self._records)
+            return results
 
     def get_record(self, identifier):
         if identifier is None:
@@ -1589,12 +1591,10 @@ class ProvBundle(ProvEntity):
         return document
 
     def __eq__(self, other):
-        try:
-            other_records = set(other._records)
-        except:
-            #  other is not a bundle
+        if not isinstance(other, ProvBundle):
             return False
-        this_records = set(self._records)
+        other_records = set(other.get_records())
+        this_records = set(self.get_records())
         if len(this_records) != len(other_records):
             return False
         #  check if all records for equality
