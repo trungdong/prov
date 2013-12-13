@@ -1269,11 +1269,7 @@ class ProvBundle(ProvEntity):
         self._records = list()
         self._id_map = dict()
         self._bundles = dict()
-        if bundle is None:
-            self._namespaces = NamespaceManager(namespaces)
-        else:
-            self._namespaces = bundle._namespaces
-            self._namespaces.add_namespaces(namespaces)
+        self._namespaces = NamespaceManager(namespaces, parent=(bundle._namespaces if bundle is not None else None))
 
         #  Initializing record-specific attributes
         super(ProvBundle, self).__init__(bundle, identifier, attributes, other_attributes, asserted)
@@ -1286,9 +1282,6 @@ class ProvBundle(ProvEntity):
         return self._namespaces.get_default_namespace()
 
     def add_namespace(self, namespace_or_prefix, uri=None):
-        if self._bundle is not None:  # This is a bundle
-            logger.warn("Namespace cannot be added into a bundle. It will be added to the document instead.")
-
         if uri is None:
             self._namespaces.add_namespace(namespace_or_prefix)
         else:
