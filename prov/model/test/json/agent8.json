@@ -1,8 +1,8 @@
 {
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   },
   "agent": {
     "ex:ag8": {
@@ -12,6 +12,30 @@
           "type": "xsd:string"
         },
         {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "true",
+          "type": "xsd:string"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:15.383Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        },
+        {
           "$": "a",
           "type": "xsd:string"
         },
@@ -20,44 +44,20 @@
           "type": "xsd:int"
         },
         {
-          "$": "1",
-          "type": "xsd:int"
-        },
-        {
           "$": "1.0",
-          "type": "xsd:double"
-        },
-        {
-          "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
-          "type": "xsd:boolean"
-        },
-        {
-          "$": "true",
-          "type": "xsd:boolean"
+          "type": "xsd:string"
         },
         {
           "$": "ex:abc",
           "type": "xsd:QName"
         },
         {
-          "$": "ex:abc",
-          "type": "xsd:QName"
-        },
-        {
-          "$": "2013-06-25T12:48:01.491+01:00",
+          "$": "2013-12-12T17:16:15.383Z",
           "type": "xsd:dateTime"
-        },
-        {
-          "$": "2013-06-25T12:48:01.491+01:00",
-          "type": "xsd:dateTime"
-        },
-        {
-          "$": "http://example.org/hello",
-          "type": "xsd:anyURI"
         },
         {
           "$": "http://example.org/hello",
@@ -66,54 +66,6 @@
       ],
       "prov:location": [
         {
-          "$": "London",
-          "type": "xsd:string"
-        },
-        {
-          "$": "London",
-          "type": "xsd:string"
-        },
-        {
-          "$": "1",
-          "type": "xsd:int"
-        },
-        {
-          "$": "1",
-          "type": "xsd:int"
-        },
-        {
-          "$": "1.0",
-          "type": "xsd:double"
-        },
-        {
-          "$": "1.0",
-          "type": "xsd:double"
-        },
-        {
-          "$": "true",
-          "type": "xsd:boolean"
-        },
-        {
-          "$": "true",
-          "type": "xsd:boolean"
-        },
-        {
-          "$": "ex:london",
-          "type": "xsd:QName"
-        },
-        {
-          "$": "ex:london",
-          "type": "xsd:QName"
-        },
-        {
-          "$": "2013-06-25T12:48:01.491+01:00",
-          "type": "xsd:dateTime"
-        },
-        {
-          "$": "2013-06-25T12:48:01.491+01:00",
-          "type": "xsd:dateTime"
-        },
-        {
           "$": "http://example.org/london",
           "type": "xsd:anyURI"
         },
@@ -122,31 +74,7 @@
           "type": "xsd:anyURI"
         }
       ],
-      "prov:label": [
-        "agent8",
-        "hello",
-        "hello",
-        {
-          "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
-        },
-        {
-          "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
-        },
-        {
-          "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
-        },
-        {
-          "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
-        }
-      ]
+      "prov:label": "agent8"
     }
   }
 }

@@ -4,7 +4,8 @@ Created on Jan 25, 2012
 @author: Trung Dong Huynh
 '''
 import unittest
-from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute
+from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute,\
+    ProvException
 import logging
 import json
 import examples
@@ -51,13 +52,19 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                         self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
                     except:
                         fails.append(filename)
-        self.assertFalse(fails, 'Failed to load %d JSON files (%s)' % (len(fails), ', '.join(fails)))
+        self.assertFalse(fails, 'Failed to load/round-trip %d JSON files (%s)' % (len(fails), ', '.join(fails)))
 
         # Code for debugging the failed tests
-#         for filename in fails:
+        for filename in fails:
+            # Reload the failed files
+            filepath = json_path + filename
 #             os.rename(json_path + filename, json_path + filename + '-fail')
-#             with open(json_path + filename) as json_file:
-#                 json.load(json_file, cls=ProvBundle.JSONDecoder)
+            with open(filepath) as json_file:
+                try:
+                    logger.info("Loading %s..." % filepath)
+                    json.load(json_file, cls=ProvBundle.JSONDecoder)
+                except Exception, e:
+                    logger.info(str(e))
 
 
 class TestFlattening(unittest.TestCase):

@@ -1,11 +1,12 @@
 {
   "prefix": {
-    "_": "http://example3.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
     "ex": "http://example.org/",
     "ex2": "http://example2.org/"
   },
   "used": {
-    "_:u2": {
+    "_:u4": {
       "prov:activity": "ex:a1",
       "prov:type": [
         {
@@ -18,18 +19,18 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
-          "type": "xsd:boolean"
+          "type": "xsd:string"
         },
         {
           "$": "ex:abc",
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.552+01:00",
+          "$": "2013-12-12T17:16:15.438Z",
           "type": "xsd:dateTime"
         },
         {
@@ -37,11 +38,17 @@
           "type": "xsd:anyURI"
         }
       ],
-      "prov:time": "2013-06-25T12:48:01.552+01:00",
-      "ex:tag1": {
-        "$": "hello",
-        "type": "xsd:string"
-      },
+      "prov:time": "2013-12-12T17:16:15.438Z",
+      "ex:tag1": [
+        {
+          "$": "hello",
+          "type": "xsd:string"
+        },
+        {
+          "$": "hello\nover\nmore\nlines",
+          "type": "xsd:string"
+        }
+      ],
       "ex:tag2": {
         "$": "bye",
         "type": "xsd:string"
@@ -65,7 +72,7 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
@@ -76,7 +83,7 @@
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.553+01:00",
+          "$": "2013-12-12T17:16:15.438Z",
           "type": "xsd:dateTime"
         },
         {
@@ -93,13 +100,13 @@
         "hello",
         {
           "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
+          "type": "prov:InternationalizedString",
+          "lang": "en"
         },
         {
           "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
         }
       ]
     }

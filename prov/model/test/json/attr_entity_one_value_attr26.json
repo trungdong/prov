@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "ex:en_v26": {
+      "prov:value": {
+        "$": "zabcde",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "default": "http://example4.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
+  }
+}
