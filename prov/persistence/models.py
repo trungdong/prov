@@ -277,7 +277,7 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     return prov_record
 
 
-def build_ProvBundle(pdbundle, prov_bundle=None):
+def build_ProvBundle(pdbundle, prov_bundle=None, record_map={}):
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
 
@@ -298,7 +298,6 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
             else:
                 prov_bundle.add_namespace(prov.Namespace(prefix, uri))
 
-    record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
     records = dict()
     for pk, rec_id, rec_type, asserted in PDRecord.objects.select_related().filter(bundle=pdbundle).values_list('pk', 'rec_id', 'rec_type', 'asserted').order_by('rec_type'):
