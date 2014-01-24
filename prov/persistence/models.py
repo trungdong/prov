@@ -10,7 +10,7 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 @copyright: University of Southampton 2012
 '''
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import uuid
 import datetime
 import logging
@@ -271,7 +271,7 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
         # Loading records in this sub-bundle
         logger.debug('Loading records for %s' % unicode(prov_record))
         pdbundle = PDBundle.objects.get(pk=pk)
-        build_ProvBundle(pdbundle, prov_record)
+        build_ProvBundle(pdbundle, prov_record, record_map)
 
     logger.debug('Loaded PROV record: %s' % unicode(prov_record))
     return prov_record
@@ -299,7 +299,7 @@ def build_ProvBundle(pdbundle, prov_bundle=None, record_map={}):
                 prov_bundle.add_namespace(prov.Namespace(prefix, uri))
 
     # Sorting the records by their types to make sure the elements are created before the relations
-    records = dict()
+    records = OrderedDict()
     for pk, rec_id, rec_type, asserted in PDRecord.objects.select_related().filter(bundle=pdbundle).values_list('pk', 'rec_id', 'rec_type', 'asserted').order_by('rec_type'):
         records[pk] = {'rec_id': rec_id,
                        'rec_type': rec_type,
