@@ -277,7 +277,10 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     return prov_record
 
 
-def build_ProvBundle(pdbundle, prov_bundle=None, record_map={}):
+def build_ProvBundle(pdbundle, prov_bundle=None, record_map=None):
+    if record_map is None:
+        record_map = dict()
+
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
 
