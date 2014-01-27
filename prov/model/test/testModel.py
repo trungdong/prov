@@ -1,16 +1,17 @@
-'''
+"""
 Created on Jan 25, 2012
 
 @author: Trung Dong Huynh
-'''
+"""
 import unittest
-from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute,\
-    ProvException
 import logging
 import json
-import examples
 import os
+from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute
+from prov.model.test import examples
+
 logger = logging.getLogger(__name__)
+
 
 class Test(unittest.TestCase):
     def setUp(self):

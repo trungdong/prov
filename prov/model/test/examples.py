@@ -1,5 +1,5 @@
 # coding: utf8
-from prov.model import ProvBundle, Namespace, Literal, PROV, XSD, Identifier
+from prov.model import ProvDocument, Namespace, Literal, PROV, Identifier
 import datetime
 
 
@@ -7,7 +7,7 @@ def primer_example():
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/primer.pn
     #===========================================================================
     # document
-    g = ProvBundle()
+    g = ProvDocument()
 
     #    prefix ex <http://example/>
     #    prefix dcterms <http://purl.org/dc/terms/>
@@ -156,7 +156,7 @@ def w3c_publication_1():
     # endBundle
     #===========================================================================
 
-    g = ProvBundle()
+    g = ProvDocument()
     g.add_namespace('ex', 'http://example.org/')
     g.add_namespace('w3', 'http://www.w3.org/')
     g.add_namespace('tr', 'http://www.w3.org/TR/2011/')
@@ -234,7 +234,7 @@ def w3c_publication_2():
     w3 = Namespace('w3', 'http://www.w3.org/TR/2011/')
     hg = Namespace('hg', 'http://dvcs.w3.org/hg/prov/raw-file/9628aaff6e20/model/releases/WD-prov-dm-20111215/')
 
-    g = ProvBundle()
+    g = ProvDocument()
 
     g.entity(hg['Overview.html'], {'prov:type': "file in hg"})
     g.entity(w3['WD-prov-dm-20111215'], {'prov:type': "html4"})
@@ -261,7 +261,7 @@ def bundles1():
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles1.provn
     #===============================================================================
     # document
-    g = ProvBundle()
+    g = ProvDocument()
 
     #   prefix ex  <http://example.org/example/>
     EX = Namespace("ex", "http://www.example.com/")
@@ -318,7 +318,7 @@ def bundles2():
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles2.provn
     #===========================================================================
     # document
-    g = ProvBundle()
+    g = ProvDocument()
 
     #   prefix ex  <http://example.org/example/>
     g.add_namespace("ex", "http://www.example.com/")
@@ -373,7 +373,7 @@ def bundles2():
 
 
 def collections():
-    g = ProvBundle()
+    g = ProvDocument()
     ex = Namespace('ex', 'http://example.org/')
 
     c1 = g.collection(ex['c1'])
@@ -384,7 +384,7 @@ def collections():
 
 
 def datatypes():
-    g = ProvBundle()
+    g = ProvDocument()
     ex = Namespace('ex', 'http://example.org/')
     g.add_namespace(ex)
 
@@ -406,7 +406,7 @@ Line3"""
 
 
 def long_literals():
-    g = ProvBundle()
+    g = ProvDocument()
 
     long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
     ex = Namespace('ex', long_uri)
