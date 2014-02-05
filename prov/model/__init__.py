@@ -592,17 +592,12 @@ class ProvRecord(object):
             return False
         if self._identifier and not (self._identifier == other._identifier):
             return False
-        if self._asserted != other._asserted:
-            return False
         if self._attributes and other._attributes:
             if len(self._attributes) != len(other._attributes):
                 return False
             for attr, value_a in self._attributes.items():
                 value_b = other._attributes[attr]
-                if isinstance(value_a, ProvRecord) and value_a._identifier:
-                    if not (value_a._identifier == value_b._identifier):
-                        return False
-                elif not (value_a == value_b):
+                if not (value_a == value_b):
                     return False
         elif other._attributes and not self._attributes:
             other_attrs = [(key, value) for key, value in other._attributes.items() if value is not None]
@@ -1201,13 +1196,16 @@ class NamespaceManager(dict):
 
 
 class ProvBundle(object):
-    def __init__(self, bundle=None, namespaces=None):
+    def __init__(self, identifier=None, bundle=None, namespaces=None):
         #  Initializing bundle-specific attributes
-        self._identifier = None
+        self._identifier = identifier
         self._records = list()
         self._id_map = defaultdict(list)
         self._bundles = dict()
         self._namespaces = NamespaceManager(namespaces, parent=(bundle._namespaces if bundle is not None else None))
+
+    def get_identifier(self):
+        return self._identifier
 
     #  Bundle configurations
     def set_default_namespace(self, uri):
@@ -1297,7 +1295,7 @@ class ProvBundle(object):
             langtag = literal['lang'] if 'lang' in literal else None
             if datatype == u'xsd:anyURI':
                 return Identifier(value)
-            elif datatype == u'xsd:QName':
+            elif datatype == u'prov:QualifiedName':
                 return self.valid_identifier(value)
             else:
                 # The literal of standard Python types is not converted here
@@ -1499,35 +1497,16 @@ class ProvBundle(object):
             return False
         #  check if all records for equality
         for record_a in this_records:
-            if record_a._identifier:
-                if record_a.get_type() == PROV_REC_BUNDLE:
-                    record_b = other.get_bundle(record_a._identifier)
-                else:
-                    record_b = other.get_record(record_a._identifier)
-                if record_b:
-                    if record_a == record_b:
-                        other_records.remove(record_b)
-                        continue
-                    else:
-                        logger.debug("Equality (ProvBundle): Unequal PROV records:")
-                        logger.debug("%s", unicode(record_a))
-                        logger.debug("%s", unicode(record_b))
-                        return False
-                else:
-                    logger.debug("Equality (ProvBundle): Could not find a record with this identifier: %s",
-                                 unicode(record_a._identifier))
-                    return False
-            else:
-                #  Manually look for the record
-                found = False
-                for record_b in other_records:
-                    if record_a == record_b:
-                        other_records.remove(record_b)
-                        found = True
-                        break
-                if not found:
-                    logger.debug("Equality (ProvBundle): Could not find this record: %s", unicode(record_a))
-                    return False
+            #  Manually look for the record
+            found = False
+            for record_b in other_records:
+                if record_a == record_b:
+                    other_records.remove(record_b)
+                    found = True
+                    break
+            if not found:
+                logger.debug("Equality (ProvBundle): Could not find this record: %s", unicode(record_a))
+                return False
         return True
 
     #  Provenance statements

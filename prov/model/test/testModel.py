@@ -7,7 +7,7 @@ import unittest
 import logging
 import json
 import os
-from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute
+from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute, ProvDocument
 from prov.model.test import examples
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class TestFlattening(unittest.TestCase):
         target = ProvBundle()
         target.activity('ex:correct', '2012-03-31T09:21:00', '2012-04-01T15:21:00')
 
-        result = ProvBundle()
+        result = ProvDocument()
         result.activity('ex:correct', '2012-03-31T09:21:00')
         result_inner = ProvBundle(identifier="ex:bundle1")
         result_inner.activity('ex:correct', None, '2012-04-01T15:21:00')
@@ -114,7 +114,7 @@ class TestFlattening(unittest.TestCase):
         target = ProvBundle()
         target.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"), ('prov:role', "ex:dataToCompose2")))
 
-        result = ProvBundle()
+        result = ProvDocument()
         result.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose1"})
         result_inner = ProvBundle(identifier="ex:bundle1")
         result_inner.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose2"})
@@ -143,13 +143,13 @@ class TestFlattening(unittest.TestCase):
                     self.assertIn(attr_value, records, 'Document does not contain the record %s with id %i (related to %s)' % (attr_value, id(attr_value), record))
 
     def test_inferred_retyping_in_flattened_documents(self):
-        g = ProvBundle()
+        g = ProvDocument()
         g.add_namespace("ex", "http://www.example.com/")
         g.wasGeneratedBy('ex:Bob', time='2012-05-25T11:15:00')
         b1 = g.bundle('ex:bundle')
         b1.agent('ex:Bob')
 
-        h = ProvBundle()
+        h = ProvDocument()
         h.add_namespace("ex", "http://www.example.com/")
         h.agent('ex:Bob')
         h.wasGeneratedBy('ex:Bob', time='2012-05-25T11:15:00')
