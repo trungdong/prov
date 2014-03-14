@@ -20,7 +20,7 @@ from prov.model import (ProvBundle, ProvElement,
                    PROV_REC_DELEGATION, PROV_REC_ENTITY, PROV_REC_GENERATION,
                    PROV_REC_INFLUENCE, PROV_REC_INVALIDATION, PROV_REC_END,
                    PROV_REC_MEMBERSHIP, PROV_REC_MENTION,
-                   PROV_REC_SPECIALIZATION, PROV_REC_START, PROV_REC_USAGE)
+                   PROV_REC_SPECIALIZATION, PROV_REC_START, PROV_REC_USAGE, Identifier)
 import pydot
 
 # Visual styles for various elements (nodes) and relations (edges)
@@ -33,7 +33,8 @@ DOT_PROV_STYLE = {
     #    PROV_REC_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
     PROV_REC_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
     # Relations
-    PROV_REC_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0', 'color': 'darkgreen', 'fontcolor': 'darkgreen'},
+    PROV_REC_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0',
+                          'color': 'darkgreen', 'fontcolor': 'darkgreen'},
     PROV_REC_USAGE: {'label': 'used', 'fontsize': '10.0', 'color': 'red4', 'fontcolor': 'red'},
     PROV_REC_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': '10.0'},
     PROV_REC_START: {'label': 'wasStartedBy', 'fontsize': '10.0'},
@@ -54,10 +55,18 @@ ANNOTATION_STYLE = {'shape': 'note', 'color': 'gray', 'fontcolor': 'black', 'fon
 ANNOTATION_LINK_STYLE = {'arrowhead': 'none', 'style': 'dashed', 'color': 'gray'}
 ANNOTATION_START_ROW = '<<TABLE cellpadding=\"0\" border=\"0\">'
 ANNOTATION_ROW_TEMPLATE = """    <TR>
-        <TD align=\"left\">%s</TD>
-        <TD align=\"left\">%s</TD>
+        <TD align=\"left\" href=\"%s\">%s</TD>
+        <TD align=\"left\"%s>%s</TD>
     </TR>"""
 ANNOTATION_END_ROW = '    </TABLE>>'
+
+
+def htlm_link_if_uri(value):
+    try:
+        uri = value.get_uri()
+        return '<a href="%s">%s</a>' % (uri, unicode(value))
+    except AttributeError:
+        return unicode(value)
 
 
 def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attributes=True, show_relation_attributes=True):
@@ -89,7 +98,13 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 return  # No attribute to display
 
             ann_rows = [ANNOTATION_START_ROW]
-            ann_rows.extend(ANNOTATION_ROW_TEMPLATE % (cgi.escape(unicode(attr)), cgi.escape(unicode(value))) for attr, value in record._extra_attributes)
+            ann_rows.extend(
+                ANNOTATION_ROW_TEMPLATE % (
+                    attr.get_uri(), cgi.escape(unicode(attr)),
+                    ' href=\"%s\"' % value.get_uri() if isinstance(value, Identifier) else '',
+                    cgi.escape(unicode(value)))
+                for attr, value in record._extra_attributes
+            )
             ann_rows.append(ANNOTATION_END_ROW)
             count[3] += 1
             annotations = pydot.Node('ann%d' % count[3], label='\n'.join(ann_rows), **ANNOTATION_STYLE)
@@ -98,8 +113,8 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
 
         def _add_node(record):
             if isinstance(record, ProvBundle):
-                count[2] = count[2] + 1
-                subdot = pydot.Cluster(graph_name='c%d' % count[2])
+                count[2] += 1
+                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL=record.get_identifier().get_uri())
                 if use_labels:
                     subdot.set_label('"%s"' % unicode(record.get_label()))
                 else:
@@ -108,14 +123,16 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 dot.add_subgraph(subdot)
                 return subdot
             else:
-                count[0] = count[0] + 1
+                count[0] += 1
                 node_id = 'n%d' % count[0]
                 if use_labels:
                     node_label = '"%s"' % unicode(record.get_label())
                 else:
                     node_label = '"%s"' % unicode(record.get_identifier())
+
+                uri = record.get_identifier().get_uri()
                 style = DOT_PROV_STYLE[record.get_type()]
-                node = pydot.Node(node_id, label=node_label, **style)
+                node = pydot.Node(node_id, label=node_label, URL=uri, **style)
                 node_map[record] = node
                 dot.add_node(node)
 
@@ -153,7 +170,7 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
             if add_nary_elements or add_attribute_annotation:
                 # need a blank node for n-ary relations or the attribute annotation
                 # add a blank node
-                count[1] = count[1] + 1
+                count[1] += 1
                 bnode_id = 'b%d' % count[1]
                 bnode = pydot.Node(bnode_id, label='""', shape='point', color='gray')
                 dot.add_node(bnode)
@@ -185,19 +202,18 @@ def prov_to_file(prov_g, filepath, format='png', dpi='150', **kw):
     dot.write(filepath, format=format)
     return dot
 
-# ## Testing code
-if __name__ == "__main__":
+
+def show_graph(prov_g):
+    """Show the provided provenance graph in a Matplotlib plot
+    """
     import tempfile
     import os
     import matplotlib.pyplot as plt
     import matplotlib.image as mpimg
-    import test.examples as ex
 
     path = tempfile.mkdtemp()
-    filepath = os.path.join(path, 'dot-test.png')
+    filepath = os.path.join(path, 'prov_graph.png')
 
-    # Get an example PROV graph
-    prov_g = ex.primer_example()
     # Convert it to DOT
     dot = prov_to_file(prov_g, filepath, show_nary=True)
 
@@ -205,4 +221,15 @@ if __name__ == "__main__":
     img = mpimg.imread(filepath)
     imgplot = plt.imshow(img)
     plt.show()
+
+    # remove the temporary file
     os.remove(filepath)
+
+
+# Testing code
+if __name__ == "__main__":
+    import test.examples as ex
+    # Get an example PROV graph
+    prov_g = ex.primer_example()
+    show_graph(prov_g)
+
