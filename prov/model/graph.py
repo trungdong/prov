@@ -114,7 +114,7 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
         def _add_node(record):
             if isinstance(record, ProvBundle):
                 count[2] += 1
-                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL=record.get_identifier().get_uri())
+                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % record.get_identifier().get_uri())
                 if use_labels:
                     subdot.set_label('"%s"' % unicode(record.get_label()))
                 else:
@@ -132,7 +132,7 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
 
                 uri = record.get_identifier().get_uri()
                 style = DOT_PROV_STYLE[record.get_type()]
-                node = pydot.Node(node_id, label=node_label, URL=uri, **style)
+                node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
                 node_map[record] = node
                 dot.add_node(node)
 
