@@ -10,7 +10,7 @@ convert -- Convert PROV-JSON to PROV-N, PROV-JSON, or graphical formats (SVG, PD
 @license:    TBD
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2014-03-14
+@deffield    updated: 2014-03-23
 """
 
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 __all__ = []
 __version__ = 0.1
 __date__ = '2014-03-14'
-__updated__ = '2014-03-14'
+__updated__ = '2014-03-23'
 
 DEBUG = 1
 TESTRUN = 0
@@ -41,6 +41,7 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
     'vml', 'vmlz', 'x11', 'xdot', 'xlib'
 }
 
+RDF_FORMATS = {'rdf', 'n3', 'turtle', 'nt', 'pretty-rdf', 'trix'}
 
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
@@ -61,6 +62,10 @@ def convert_file(infile, outfile, output_format):
         json.dump(prov_doc, outfile, cls=ProvBundle.JSONEncoder, indent=2)
     elif output_format == 'provn':
         outfile.write(prov_doc.get_provn())
+    elif output_format in RDF_FORMATS:
+        output_format = output_format.replace('rdf', 'xml')
+        rdf_graph = prov_doc.rdf()
+        outfile.write(rdf_graph.serialize(format=output_format))
     elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         dot = prov_to_dot(prov_doc)
         content = dot.create(format=output_format)
@@ -113,7 +118,8 @@ USAGE
         # parser.add_argument("-r", "--recursive", dest="recurse", action="store_true",
         #                     help="recurse into sub-folders [default: %(default)s]")
         parser.add_argument('-f', '--format', dest='format', action='store', default='json',
-                            help='output format: json, provn, or one supported by GraphViz (e.g. svg, pdf)')
+                            help='output format: json, provn, rdf, n3, turtle, trix, or '
+                                 'one supported by GraphViz (e.g. svg, pdf)')
         parser.add_argument('infile', nargs='?', type=FileType('r'), default=sys.stdin)
         parser.add_argument('outfile', nargs='?', type=FileType('w'), default=sys.stdout)
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
