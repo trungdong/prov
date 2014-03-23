@@ -1,13 +1,13 @@
 {
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   },
   "used": {
     "ex:use4": {
       "prov:activity": "ex:a1",
-      "prov:time": "2013-06-25T12:48:01.543+01:00",
+      "prov:time": "2013-12-12T17:16:15.425Z",
       "prov:role": {
         "$": "somerole",
         "type": "xsd:string"

@@ -8,20 +8,19 @@
         "hello",
         {
           "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
+          "type": "prov:InternationalizedString",
+          "lang": "en"
         },
         {
           "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
         }
       ]
     }
   },
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   }
 }

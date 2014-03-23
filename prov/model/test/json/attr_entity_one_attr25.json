@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "ex:et25": {
+      "prov:type": {
+        "$": "other:zabcd",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "other": "http://example4.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
+  }
+}

@@ -13,18 +13,18 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
-          "type": "xsd:boolean"
+          "type": "xsd:string"
         },
         {
           "$": "ex:abc",
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.660+01:00",
+          "$": "2013-12-12T17:16:15.538Z",
           "type": "xsd:dateTime"
         },
         {
@@ -32,11 +32,17 @@
           "type": "xsd:anyURI"
         }
       ],
-      "prov:time": "2013-06-25T12:48:01.660+01:00",
-      "ex:tag1": {
-        "$": "hello",
-        "type": "xsd:string"
-      },
+      "prov:time": "2013-12-12T17:16:15.538Z",
+      "ex:tag1": [
+        {
+          "$": "hello",
+          "type": "xsd:string"
+        },
+        {
+          "$": "hello\nover\nmore\nlines",
+          "type": "xsd:string"
+        }
+      ],
       "prov:ender": "ex:a2",
       "ex:tag2": {
         "$": "bye",
@@ -67,7 +73,7 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
@@ -78,7 +84,7 @@
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.660+01:00",
+          "$": "2013-12-12T17:16:15.538Z",
           "type": "xsd:dateTime"
         },
         {
@@ -94,19 +100,20 @@
         "hello",
         {
           "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
+          "type": "prov:InternationalizedString",
+          "lang": "en"
         },
         {
           "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
         }
       ]
     }
   },
   "prefix": {
-    "_": "http://example3.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
     "ex": "http://example.org/",
     "ex2": "http://example2.org/"
   }

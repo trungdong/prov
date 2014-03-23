@@ -1,0 +1,16 @@
+{
+  "entity": {
+    "ex:en_o20": {
+      "ex:tag2": {
+        "$": "http://example.org",
+        "type": "xsd:anyURI"
+      }
+    }
+  },
+  "prefix": {
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

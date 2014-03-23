@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "ex:en_l34": {
+      "prov:location": {
+        "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+        "type": "xsd:dayTimeDuration"
+      }
+    }
+  },
+  "prefix": {
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
+  }
+}

@@ -1,3 +1,13 @@
+v0.5.3, 13/12/2013 -- Bug fixes
+- Changed: Allowed namespaces at bundle level
+- Fixed: Only check equality of ProvBundles on asserted records
+- Fixed: Some string literals are wrongly converted to QNames
+- Updated test cases from ProvToolbox (v4.1)
+- Added text explanations for some ProvException subclasses
+- Added support for langtag in prov.persistence.LiteralAttribute
+- Fixed: Support for prov:InternationalizedString literals
+- Fixed: Keep timezone information when parsing xsd:dateTime
+
 v0.5.2, 18/10/2013 -- Bug fixes
 - Added South migrations for prov.persistence
 - Fixed: Support for unlimited-length record identifier

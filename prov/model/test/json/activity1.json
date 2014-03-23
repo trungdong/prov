@@ -1,8 +1,7 @@
 {
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   },
   "activity": {
     "ex:a1": {}

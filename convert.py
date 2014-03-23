@@ -1,0 +1,165 @@
+#!/usr/bin/env python2.7
+# encoding: utf-8
+"""
+convert -- Convert PROV-JSON to PROV-N, PROV-JSON, or graphical formats (SVG, PDF, PNG)
+
+@author:     Trung Dong Huynh
+
+@copyright:  2014 University of Southampton, United Kingdom. All rights reserved.
+
+@license:    TBD
+
+@contact:    trungdong@donggiang.com
+@deffield    updated: 2014-03-14
+"""
+
+
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
+import json
+import os
+import sys
+import logging
+import traceback
+from prov.model import ProvBundle
+from prov.model.graph import prov_to_dot
+
+
+logger = logging.getLogger(__name__)
+
+__all__ = []
+__version__ = 0.1
+__date__ = '2014-03-14'
+__updated__ = '2014-03-14'
+
+DEBUG = 1
+TESTRUN = 0
+PROFILE = 0
+
+GRAPHVIZ_SUPPORTED_FORMATS = {
+    'bmp', 'canon', 'cmap', 'cmapx', 'cmapx_np', 'dot', 'eps', 'fig', 'gtk', 'gv', 'ico', 'imap', 'imap_np', 'ismap',
+    'jpe', 'jpeg', 'jpg', 'pdf', 'plain', 'plain-ext', 'png', 'ps', 'ps2', 'svg', 'svgz', 'tif', 'tiff', 'tk',
+    'vml', 'vmlz', 'x11', 'xdot', 'xlib'
+}
+
+
+class CLIError(Exception):
+    """Generic exception to raise and log different fatal errors."""
+    def __init__(self, msg):
+        super(CLIError).__init__(type(self))
+        self.msg = "E: %s" % msg
+
+    def __str__(self):
+        return self.msg
+
+    def __unicode__(self):
+        return self.msg
+
+
+def convert_file(infile, outfile, output_format):
+    prov_doc = json.load(infile, cls=ProvBundle.JSONDecoder)
+    if output_format == 'json':
+        json.dump(prov_doc, outfile, cls=ProvBundle.JSONEncoder, indent=2)
+    elif output_format == 'provn':
+        outfile.write(prov_doc.get_provn())
+    elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
+        dot = prov_to_dot(prov_doc)
+        content = dot.create(format=output_format)
+        outfile.write(content)
+    else:
+        raise CLIError('Output format "%s" is not supported.' % output_format)
+
+
+def main(argv=None):  # IGNORE:C0111
+    """Command line options."""
+
+    if argv is None:
+        argv = sys.argv
+    else:
+        sys.argv.extend(argv)
+
+    program_name = os.path.basename(sys.argv[0])
+    program_version = "v%s" % __version__
+    program_build_date = str(__updated__)
+    program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
+    program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
+    program_license = '''%s
+
+  Created by Trung Dong Huynh on %s.
+  Copyright 2014 University of Southampton. All rights reserved.
+
+  Licensed under the Apache License 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Distributed on an "AS IS" basis without warranties
+  or conditions of any kind, either express or implied.
+
+USAGE
+''' % (program_shortdesc, str(__date__))
+
+    try:
+        # Setup argument parser
+        parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
+        # parser.add_argument("-r", "--recursive", dest="recurse", action="store_true",
+        #                     help="recurse into subfolders [default: %(default)s]")
+        # parser.add_argument("-v", "--verbose", dest="verbose", action="count",
+        #                     help="set verbosity level [default: %(default)s]")
+        # parser.add_argument("-i", "--include", dest="include",
+        #                     help="only include paths matching this regex pattern. "
+        #                          "Note: exclude is given preference over include. [default: %(default)s]",
+        #                     metavar="RE")
+        # parser.add_argument("-e", "--exclude", dest="exclude",
+        #                     help="exclude paths matching this regex pattern. [default: %(default)s]",
+        #                     metavar="RE")
+        # parser.add_argument("-r", "--recursive", dest="recurse", action="store_true",
+        #                     help="recurse into sub-folders [default: %(default)s]")
+        parser.add_argument('-f', '--format', dest='format', action='store', default='json',
+                            help='output format: json, provn, or one supported by GraphViz (e.g. svg, pdf)')
+        parser.add_argument('infile', nargs='?', type=FileType('r'), default=sys.stdin)
+        parser.add_argument('outfile', nargs='?', type=FileType('w'), default=sys.stdout)
+        parser.add_argument('-V', '--version', action='version', version=program_version_message)
+
+        args = None
+        try:
+            # Process arguments
+            args = parser.parse_args()
+            convert_file(args.infile, args.outfile, args.format.lower())
+        finally:
+            if args:
+                if args.infile:
+                    args.infile.close()
+                if args.outfile:
+                    args.outfile.close()
+
+        return 0
+    except KeyboardInterrupt:
+        ### handle keyboard interrupt ###
+        return 0
+    except Exception, e:
+        if DEBUG or TESTRUN:
+            traceback.print_exc()
+            raise e
+        indent = len(program_name) * " "
+        sys.stderr.write(program_name + ": " + repr(e) + "\n")
+        sys.stderr.write(indent + "  for help use --help")
+        return 2
+
+if __name__ == "__main__":
+    logging.basicConfig(level=(logging.DEBUG if DEBUG else logging.INFO))
+    # if DEBUG:
+    #     sys.argv.append("-v")
+    #     sys.argv.append("-r")
+    if TESTRUN:
+        import doctest
+        doctest.testmod()
+    if PROFILE:
+        import cProfile
+        import pstats
+        profile_filename = 'converter_profile.txt'
+        cProfile.run('main()', profile_filename)
+        statsfile = open("profile_stats.txt", "wb")
+        p = pstats.Stats(profile_filename, stream=statsfile)
+        stats = p.strip_dirs().sort_stats('cumulative')
+        stats.print_stats()
+        statsfile.close()
+        sys.exit(0)
+    sys.exit(main())

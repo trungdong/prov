@@ -3,14 +3,36 @@
     "ex:e0": {
       "ex:tag2": {
         "$": "bonjour",
-        "type": "xsd:string",
+        "type": "prov:InternationalizedString",
         "lang": "fr"
-      }
+      },
+      "prov:location": [
+        {
+          "$": "un llieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "http://example.org/london",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "2",
+          "type": "xsd:long"
+        }
+      ]
     }
   },
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   }
 }

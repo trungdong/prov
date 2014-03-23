@@ -1,0 +1,17 @@
+{
+  "wasAssociatedWith": {
+    "ex:ass_r0": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:role": {
+        "$": "un lieu",
+        "type": "xsd:string"
+      }
+    }
+  },
+  "prefix": {
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
+  }
+}

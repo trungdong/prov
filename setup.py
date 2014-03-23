@@ -8,20 +8,21 @@ with open('LICENCE.txt') as f:
 
 setup(
     name='prov',
-    version='0.5.2',
+    version='0.5.3',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     packages=['prov', 'prov.model', 'prov.persistence', 'prov.persistence.migrations', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
     scripts=[],
     url='https://github.com/trungdong/prov',
     license=licence,
-    description='A Python implementation of PROV data model, providing simple provenance tracking and persistence using Django.',
+    description='A Python implementation of PROV data model, providing simple provenance tracking and persistence using Django ORM.',
     long_description=long_description,
     extras_require={
         'graph-export': ['pydot'],
-        'persistence': ['Django'],
+        'persistence': ['Django', 'South'],
         'py26-support': ['ordereddict'],
     },
+    install_requires=['python-dateutil'], 
     provides=['prov'],
     keywords=['provenance', 'graph', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON', 'Django'],
     classifiers=[
@@ -38,5 +39,5 @@ setup(
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Security',
           'Topic :: System :: Logging',
-          ],
+          ]
 )
