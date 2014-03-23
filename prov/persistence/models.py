@@ -10,7 +10,7 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 @copyright: University of Southampton 2012
 '''
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import uuid
 import datetime
 import logging
@@ -62,6 +62,7 @@ class LiteralAttribute(models.Model):
     name = models.TextField()
     value = models.TextField()
     datatype = models.TextField(null=True, blank=True)
+    langtag = models.TextField(null=True, blank=True, default=None)
 
 
 class PDBundle(PDRecord):
@@ -129,21 +130,22 @@ class PDBundle(PDRecord):
 # Internal functions
 def _encode_python_literal(literal):
     if isinstance(literal, datetime.datetime):
-        return literal.isoformat(), 'xsd:dateTime'
+        return literal.isoformat(), 'xsd:dateTime', None
     elif isinstance(literal, prov.Identifier):
-        return literal.get_uri(), 'xsd:anyURI'
+        return literal.get_uri(), 'xsd:anyURI', None
     elif isinstance(literal, prov.Literal):
-        value, _ = _encode_python_literal(literal.get_value())
+        value, _, _ = _encode_python_literal(literal.get_value())
         datatype = literal.get_datatype()
+        langtag = literal.get_langtag()
         xsd_type = prov.XSD.qname(datatype)
         if xsd_type:
             xsd_type_str = str(xsd_type)
 #            if xsd_type_str in ('xsd:anyURI', 'xsd:QName'):
-            return value, xsd_type_str
+            return value, xsd_type_str, langtag
         else:
-            return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype
+            return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype, langtag
     else:
-        return literal, type(literal)
+        return literal, type(literal), None
 
 DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
@@ -155,14 +157,14 @@ DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'float'>": float}
 
 
-def _decode_python_literal(value, datatype, graph):
+def _decode_python_literal(value, datatype, langtag, graph):
     if datatype in DATATYPE_FUNCTIONS_MAP:
         return DATATYPE_FUNCTIONS_MAP[datatype](value)
     elif datatype == 'xsd:anyURI':
         return graph.valid_identifier(value)
     else:
         literal_type = graph.valid_identifier(datatype)
-        return prov.Literal(value, literal_type)
+        return prov.Literal(value, literal_type, langtag)
 
 
 def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
@@ -202,15 +204,15 @@ def _create_pdrecord(prov_record, bundle, record_map, prov_bundle=None):
             else:
                 # Create a literal attribute
                 attr_name = prov.PROV_ID_ATTRIBUTES_MAP[attr]
-                value, datatype = _encode_python_literal(value)
-                LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype)
+                value, datatype, langtag = _encode_python_literal(value)
+                LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype, langtag=langtag)
 
     if extra_attributes:
         for (attr, value) in extra_attributes:
             # Create a literal attribute
             attr_name = attr.get_uri() if isinstance(attr, prov.Identifier) else attr
-            value, datatype = _encode_python_literal(value)
-            LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype)
+            value, datatype, langtag = _encode_python_literal(value)
+            LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype, langtag=langtag)
 
     return pdrecord
 
@@ -256,9 +258,9 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
     other_literals = []
     for attr in literals[pk]:
         if attr.prov_type:
-            prov_literals[attr.prov_type] = _decode_python_literal(attr.value, attr.datatype, prov_bundle)
+            prov_literals[attr.prov_type] = _decode_python_literal(attr.value, attr.datatype, attr.langtag, prov_bundle)
         else:
-            other_literals.append((prov_bundle.valid_identifier(attr.name), _decode_python_literal(attr.value, attr.datatype, prov_bundle)))
+            other_literals.append((prov_bundle.valid_identifier(attr.name), _decode_python_literal(attr.value, attr.datatype, attr.langtag, prov_bundle)))
     prov_attributes.update(prov_literals)
 
     # Create the record by its type
@@ -269,13 +271,16 @@ def _create_prov_record(prov_bundle, pk, records, attributes, literals, record_m
         # Loading records in this sub-bundle
         logger.debug('Loading records for %s' % unicode(prov_record))
         pdbundle = PDBundle.objects.get(pk=pk)
-        build_ProvBundle(pdbundle, prov_record)
+        build_ProvBundle(pdbundle, prov_record, record_map)
 
     logger.debug('Loaded PROV record: %s' % unicode(prov_record))
     return prov_record
 
 
-def build_ProvBundle(pdbundle, prov_bundle=None):
+def build_ProvBundle(pdbundle, prov_bundle=None, record_map=None):
+    if record_map is None:
+        record_map = dict()
+
     if prov_bundle is None:
         prov_bundle = prov.ProvBundle()
 
@@ -296,9 +301,8 @@ def build_ProvBundle(pdbundle, prov_bundle=None):
             else:
                 prov_bundle.add_namespace(prov.Namespace(prefix, uri))
 
-    record_map = {}
     # Sorting the records by their types to make sure the elements are created before the relations
-    records = dict()
+    records = OrderedDict()
     for pk, rec_id, rec_type, asserted in PDRecord.objects.select_related().filter(bundle=pdbundle).values_list('pk', 'rec_id', 'rec_type', 'asserted').order_by('rec_type'):
         records[pk] = {'rec_id': rec_id,
                        'rec_type': rec_type,

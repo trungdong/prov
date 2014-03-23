@@ -1,8 +1,8 @@
 {
   "prefix": {
-    "_": "http://example3.org/",
-    "ex": "http://example.org/",
-    "ex2": "http://example2.org/"
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
   },
   "activity": {
     "ex:a8": {
@@ -17,18 +17,18 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
-          "type": "xsd:boolean"
+          "type": "xsd:string"
         },
         {
           "$": "ex:abc",
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.447+01:00",
+          "$": "2013-12-12T17:16:15.344Z",
           "type": "xsd:dateTime"
         },
         {
@@ -45,18 +45,18 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
-          "type": "xsd:boolean"
+          "type": "xsd:string"
         },
         {
           "$": "ex:abc",
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.447+01:00",
+          "$": "2013-12-12T17:16:15.344Z",
           "type": "xsd:dateTime"
         },
         {
@@ -64,8 +64,8 @@
           "type": "xsd:anyURI"
         }
       ],
-      "prov:startTime": "2013-06-25T12:48:01.447+01:00",
-      "prov:endTime": "2013-06-25T12:48:01.447+01:00",
+      "prov:startTime": "2013-12-12T17:16:15.344Z",
+      "prov:endTime": "2013-12-12T17:16:15.344Z",
       "prov:location": [
         {
           "$": "London",
@@ -77,7 +77,7 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
@@ -88,7 +88,7 @@
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.447+01:00",
+          "$": "2013-12-12T17:16:15.345Z",
           "type": "xsd:dateTime"
         },
         {
@@ -109,7 +109,7 @@
         },
         {
           "$": "1.0",
-          "type": "xsd:double"
+          "type": "xsd:float"
         },
         {
           "$": "true",
@@ -120,7 +120,7 @@
           "type": "xsd:QName"
         },
         {
-          "$": "2013-06-25T12:48:01.447+01:00",
+          "$": "2013-12-12T17:16:15.345Z",
           "type": "xsd:dateTime"
         },
         {
@@ -137,24 +137,24 @@
         "hello",
         {
           "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
+          "type": "prov:InternationalizedString",
+          "lang": "en"
         },
         {
           "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
         },
         "hello",
         {
           "$": "bye",
-          "type": "xsd:string",
-          "lang": "EN"
+          "type": "prov:InternationalizedString",
+          "lang": "en"
         },
         {
           "$": "bonjour",
-          "type": "xsd:string",
-          "lang": "FR"
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
         }
       ]
     }

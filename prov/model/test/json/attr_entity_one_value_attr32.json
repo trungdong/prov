@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "ex:en_v32": {
+      "prov:value": {
+        "$": "P0Y0M0DT0H0M12.225S",
+        "type": "xsd:duration"
+      }
+    }
+  },
+  "prefix": {
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "prov": "http://www.w3.org/ns/prov#",
+    "ex": "http://example.org/"
+  }
+}

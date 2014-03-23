@@ -1,0 +1,1126 @@
+{
+  "entity": {
+    "e0": {
+      "prov:type": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ],
+      "tag2": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ],
+      "tag3": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ],
+      "prov:value": {
+        "$": "10",
+        "type": "xsd:string"
+      },
+      "ex4:tag5": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ],
+      "prov:location": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ],
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ],
+      "ex4:tag4": [
+        {
+          "$": "un lieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "un lieu",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        },
+        {
+          "$": "a place",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1",
+          "type": "xsd:long"
+        },
+        {
+          "$": "1",
+          "type": "xsd:short"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "10",
+          "type": "xsd:decimal"
+        },
+        {
+          "$": "true",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "false",
+          "type": "xsd:boolean"
+        },
+        {
+          "$": "10",
+          "type": "xsd:byte"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedInt"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedLong"
+        },
+        {
+          "$": "10",
+          "type": "xsd:integer"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedShort"
+        },
+        {
+          "$": "10",
+          "type": "xsd:nonNegativeInteger"
+        },
+        {
+          "$": "-10",
+          "type": "xsd:nonPositiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:positiveInteger"
+        },
+        {
+          "$": "10",
+          "type": "xsd:unsignedByte"
+        },
+        {
+          "$": "http://example.org",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "abcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcd",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "pre_0:zabcde",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2013-12-12T17:16:07.978Z",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "2013",
+          "type": "xsd:gYear"
+        },
+        {
+          "$": "--01",
+          "type": "xsd:gMonth"
+        },
+        {
+          "$": "---30",
+          "type": "xsd:gDay"
+        },
+        {
+          "$": "--12-25",
+          "type": "xsd:gMonthDay"
+        },
+        {
+          "$": "P0Y0M0DT0H0M12.225S",
+          "type": "xsd:duration"
+        },
+        {
+          "$": "P2Y6M",
+          "type": "xsd:yearMonthDuration"
+        },
+        {
+          "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+          "type": "xsd:dayTimeDuration"
+        },
+        {
+          "$": "000102220506",
+          "type": "xsd:hexBinary"
+        },
+        {
+          "$": "AAECIgUG",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "type": "xsd:base64Binary"
+        },
+        {
+          "$": "en",
+          "type": "xsd:language"
+        },
+        {
+          "$": "normal",
+          "type": "xsd:normalizedString"
+        },
+        {
+          "$": "TOK",
+          "type": "xsd:token"
+        },
+        {
+          "$": "NMTOK",
+          "type": "xsd:NMTOKEN"
+        },
+        {
+          "$": "name",
+          "type": "xsd:Name"
+        },
+        {
+          "$": "NCName",
+          "type": "xsd:NCName"
+        },
+        {
+          "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+          "type": "rdf:XMLLiteral"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex4": "http://example2.org/",
+    "pre_0": "http://example4.org/",
+    "ex2": "http://example.org/",
+    "ex": "http://example.org/",
+    "other": "http://example.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "default": "http://example.org/"
+  }
+}
