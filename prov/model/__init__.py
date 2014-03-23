@@ -300,7 +300,8 @@ class Identifier(object):
     def __init__(self, uri):
         self._uri = unicode(uri)  # Ensure this is a unicode string
 
-    def get_uri(self):
+    @property
+    def uri(self):
         return self._uri
 
     def __unicode__(self):
@@ -310,10 +311,10 @@ class Identifier(object):
         return unicode(self).encode('utf-8')
 
     def __eq__(self, other):
-        return self.get_uri() == other.get_uri() if isinstance(other, Identifier) else False
+        return self.uri == other.uri if isinstance(other, Identifier) else False
 
     def __hash__(self):
-        return hash(self.get_uri())
+        return hash(self.uri)
 
     def provn_representation(self):
         return u'"%s" %%%% xsd:anyURI' % self._uri
@@ -324,18 +325,16 @@ class Identifier(object):
 
 class QName(Identifier):
     def __init__(self, namespace, localpart):
+        Identifier.__init__(self, u''.join([namespace.uri, localpart]))
         self._namespace = namespace
         self._localpart = localpart
-        self._str = u':'.join([namespace._prefix, localpart]) if namespace._prefix else localpart
+        self._str = u':'.join([namespace.prefix, localpart]) if namespace.prefix else localpart
 
     def get_namespace(self):
         return self._namespace
 
     def get_localpart(self):
         return self._localpart
-
-    def get_uri(self):
-        return u''.join([self._namespace._uri, self._localpart])
 
     def __unicode__(self):
         return self._str
@@ -356,18 +355,20 @@ class Namespace(object):
         self._uri = uri
         self._cache = dict()
 
-    def get_prefix(self):
-        return self._prefix
-
-    def get_uri(self):
+    @property
+    def uri(self):
         return self._uri
 
+    @property
+    def prefix(self):
+        return self._prefix
+
     def contains(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.uri if isinstance(identifier, Identifier) else None)
         return uri.startswith(self._uri) if uri else False
 
     def qname(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.uri if isinstance(identifier, Identifier) else None)
         if uri and uri.startswith(self._uri):
             return QName(self, uri[len(self._uri):])
         else:
@@ -1111,11 +1112,11 @@ class NamespaceManager(dict):
             #  already renamed and added
             return
 
-        prefix = namespace.get_prefix()
+        prefix = namespace.prefix
         if prefix in self:
             #  Conflicting prefix
             new_prefix = self._get_unused_prefix(prefix)
-            new_namespace = Namespace(new_prefix, namespace.get_uri())
+            new_namespace = Namespace(new_prefix, namespace.uri)
             self._rename_map[namespace] = new_namespace
             prefix = new_prefix
             namespace = new_namespace
@@ -1136,7 +1137,7 @@ class NamespaceManager(dict):
             if isinstance(identifier, QName):
                 #  Register the namespace if it has not been registered before
                 namespace = identifier._namespace
-                prefix = namespace.get_prefix()
+                prefix = namespace.prefix
                 if prefix in self and self[prefix] == namespace:
                     # No need to add the namespace
                     existing_ns = self[prefix]
@@ -1163,9 +1164,9 @@ class NamespaceManager(dict):
                     #  treat as a URI (with the first part as its scheme)
                     #  check if the URI can be compacted
                     for namespace in self.values():
-                        if identifier.startswith(namespace.get_uri()):
+                        if identifier.startswith(namespace.uri):
                             #  create a QName with the namespace
-                            return namespace[identifier.replace(namespace.get_uri(), '')]
+                            return namespace[identifier.replace(namespace.uri, '')]
                     if self.parent is not None:
                         # try the parent namespace manager
                         return self.parent.get_valid_identifier(identifier)
@@ -1311,9 +1312,9 @@ class ProvBundle(object):
         if self.is_document():  # This is a document
             prefixes = {}
             for namespace in self._namespaces.get_registered_namespaces():
-                prefixes[namespace.get_prefix()] = namespace.get_uri()
+                prefixes[namespace.prefix] = namespace.uri
             if self._namespaces._default:
-                prefixes['default'] = self._namespaces._default.get_uri()
+                prefixes['default'] = self._namespaces._default.uri
             if prefixes:
                 container[u'prefix'] = prefixes
 
@@ -1367,69 +1368,65 @@ class ProvBundle(object):
                     self.add_namespace(Namespace(prefix, uri))
                 else:
                     self.set_default_namespace(uri)
-        records = sorted([(PROV_RECORD_IDS_MAP[rec_type], rec_id, jc[rec_type][rec_id])
-                          for rec_type in jc if rec_type != u'prefix'
-                          for rec_id in jc[rec_type]],
-                         key=lambda tuple_rec: tuple_rec[0])
+            del jc[u'prefix']
 
-        record_map = {}
-        _parse_attr_value = lambda value: record_map[value] if (isinstance(value, basestring) and value in record_map) else self._decode_json_representation(value)
-        #  Create all the records before setting their attributes
-        for (record_type, identifier, content) in records:
-            if record_type == PROV_REC_BUNDLE:
-                bundle = self.bundle(identifier)
-                bundle._decode_JSON_container(content)
-            else:
-                record_map[identifier] = self.add_record(record_type, identifier, None, None)
-        for (record_type, identifier, attributes) in records:
-            if record_type != PROV_REC_BUNDLE:
-                record = record_map[identifier]
-
-                if hasattr(attributes, 'items'):  # it is a dict
-                    #  There is only one element, create a singleton list
-                    elements = [attributes]
+        for rec_type_str in jc:
+            rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
+            for rec_id, content in jc[rec_type_str].items():
+                if rec_type == PROV_REC_BUNDLE:
+                    bundle = self.bundle(rec_id)
+                    bundle._decode_JSON_container(content)
                 else:
-                    # expect it to be a list of dictionaries
-                    elements = attributes
+                    if hasattr(content, 'items'):  # it is a dict
+                        #  There is only one element, create a singleton list
+                        elements = [content]
+                    else:
+                        # expect it to be a list of dictionaries
+                        elements = content
 
-                for element in elements:
-                    prov_attributes = {}
-                    extra_attributes = []
-                    #  Splitting PROV attributes and the others
-                    membership_extra_members = None  # this is for the multiple-entity membership hack to come
-                    for attr, value in element.items():
-                        if attr in PROV_ATTRIBUTES_ID_MAP:
-                            attr_id = PROV_ATTRIBUTES_ID_MAP[attr]
-                            if isinstance(value, list):
-                                # Multiple values
-                                if len(value) == 1:
-                                    # Only a single value in the list, unpack it
-                                    value = value[0]
-                                else:
-                                    if record.get_type() == PROV_REC_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
-                                        # This is a membership relation with multiple entities
-                                        # HACK: create multiple membership relations, one for each entity
-                                        membership_extra_members = value[1:]  # Store all the extra entities
-                                        value = value[0]  # Create the first membership relation as normal for the first entity
+                    for element in elements:
+                        prov_attributes = {}
+                        extra_attributes = []
+                        #  Splitting PROV attributes and the others
+                        membership_extra_members = None  # this is for the multiple-entity membership hack to come
+                        for attr, value in element.items():
+                            if attr in PROV_ATTRIBUTES_ID_MAP:
+                                attr_id = PROV_ATTRIBUTES_ID_MAP[attr]
+                                if isinstance(value, list):
+                                    # Multiple values
+                                    if len(value) == 1:
+                                        # Only a single value in the list, unpack it
+                                        value = value[0]
                                     else:
-                                        error_msg = 'The prov package does not support PROV attributes having multiple values.'
-                                        logger.error(error_msg)
-                                        raise ProvException(error_msg)
-                            prov_attributes[attr_id] = _parse_attr_value(value)
-                        else:
-                            attr_id = self.valid_identifier(attr)
-                            if isinstance(value, list):
-                                #  Parsing multi-value attribute
-                                extra_attributes.extend((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                                        if rec_type == PROV_REC_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
+                                            # This is a membership relation with multiple entities
+                                            # HACK: create multiple membership relations, one for each entity
+                                            membership_extra_members = value[1:]  # Store all the extra entities
+                                            value = value[0]  # Create the first membership relation as normal for the first entity
+                                        else:
+                                            error_msg = 'The prov package does not support PROV attributes having multiple values.'
+                                            logger.error(error_msg)
+                                            raise ProvException(error_msg)
+                                prov_attributes[attr_id] =\
+                                    self.valid_identifier(value) if attr_id not in PROV_ATTRIBUTE_LITERALS else \
+                                    self._decode_json_representation(value)
                             else:
-                                #  add the single-value attribute
-                                extra_attributes.append((attr_id, self._decode_json_representation(value)))
-                    record.add_attributes(prov_attributes, extra_attributes)
-                    # HACK: creating extra (unidentified) membership relations
-                    if membership_extra_members:
-                        collection = prov_attributes[PROV_ATTR_COLLECTION]
-                        for member in membership_extra_members:
-                            self.membership(collection, _parse_attr_value(member), None, extra_attributes)
+                                attr_id = self.valid_identifier(attr)
+                                if isinstance(value, list):
+                                    #  Parsing multi-value attribute
+                                    extra_attributes.extend(
+                                        (attr_id, self._decode_json_representation(value_single))
+                                        for value_single in value
+                                    )
+                                else:
+                                    #  add the single-value attribute
+                                    extra_attributes.append((attr_id, self._decode_json_representation(value)))
+                        self.add_record(rec_type, rec_id, prov_attributes, extra_attributes)
+                        # HACK: creating extra (unidentified) membership relations
+                        if membership_extra_members:
+                            collection = prov_attributes[PROV_ATTR_COLLECTION]
+                            for member in membership_extra_members:
+                                self.membership(collection, self.valid_identifier(member))
 
     #  Miscellaneous functions
     def is_document(self):
@@ -1447,11 +1444,11 @@ class ProvBundle(object):
 
         default_namespace = self._namespaces.get_default_namespace()
         if default_namespace:
-            lines.append('default <%s>' % default_namespace.get_uri())
+            lines.append('default <%s>' % default_namespace.uri)
 
         registered_namespaces = self._namespaces.get_registered_namespaces()
         if registered_namespaces:
-            lines.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+            lines.extend(['prefix %s <%s>' % (namespace.prefix, namespace.uri) for namespace in registered_namespaces])
 
         if default_namespace or registered_namespaces:
             #  a blank line between the prefixes and the assertions
@@ -1761,3 +1758,5 @@ class ProvDocument(ProvBundle):
         self.add_bundle(b, valid_id)
         return b
 
+    def from_provjson(json_content, **kw):
+        pass
