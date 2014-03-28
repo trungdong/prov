@@ -10,157 +10,37 @@ PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
 """
 
 import logging
+logger = logging.getLogger(__name__)
+
 import datetime
-import json
 import dateutil.parser
 from collections import defaultdict, Iterable
 from copy import deepcopy
+from prov import Error, serializers
+
+try:
+    from io import BytesIO
+    assert BytesIO
+except ImportError:
+    try:
+        from cStringIO import StringIO as BytesIO
+        assert BytesIO
+    except ImportError:
+        from StringIO import StringIO as BytesIO
+        assert BytesIO
+
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-logger = logging.getLogger(__name__)
 
-#  # PROV record constants - PROV-DM LC
-#  C1. Entities/Activities
-PROV_REC_ENTITY = 1
-PROV_REC_ACTIVITY = 2
-PROV_REC_GENERATION = 11
-PROV_REC_USAGE = 12
-PROV_REC_COMMUNICATION = 13
-PROV_REC_START = 14
-PROV_REC_END = 15
-PROV_REC_INVALIDATION = 16
 
-#  C2. Derivations
-PROV_REC_DERIVATION = 21
+import os
+import shutil
+import tempfile
+from urlparse import urlparse
 
-#  C3. Agents/Responsibility
-PROV_REC_AGENT = 3
-PROV_REC_ATTRIBUTION = 31
-PROV_REC_ASSOCIATION = 32
-PROV_REC_DELEGATION = 33
-PROV_REC_INFLUENCE = 34
-#  C4. Bundles
-PROV_REC_BUNDLE = 4  # This is the lowest value, so bundle(s) in JSON will be decoded first
-#  C5. Alternate
-PROV_REC_ALTERNATE = 51
-PROV_REC_SPECIALIZATION = 52
-PROV_REC_MENTION = 53
-#  C6. Collections
-PROV_REC_MEMBERSHIP = 61
-
-PROV_RECORD_TYPES = (
-    (PROV_REC_ENTITY, u'Entity'),
-    (PROV_REC_ACTIVITY, u'Activity'),
-    (PROV_REC_GENERATION, u'Generation'),
-    (PROV_REC_USAGE, u'Usage'),
-    (PROV_REC_COMMUNICATION, u'Communication'),
-    (PROV_REC_START, u'Start'),
-    (PROV_REC_END, u'End'),
-    (PROV_REC_INVALIDATION, u'Invalidation'),
-    (PROV_REC_DERIVATION, u'Derivation'),
-    (PROV_REC_AGENT, u'Agent'),
-    (PROV_REC_ATTRIBUTION, u'Attribution'),
-    (PROV_REC_ASSOCIATION, u'Association'),
-    (PROV_REC_DELEGATION, u'Delegation'),
-    (PROV_REC_INFLUENCE, u'Influence'),
-    (PROV_REC_BUNDLE, u'Bundle'),
-    (PROV_REC_ALTERNATE, u'Alternate'),
-    (PROV_REC_SPECIALIZATION, u'Specialization'),
-    (PROV_REC_MENTION, u'Mention'),
-    (PROV_REC_MEMBERSHIP, u'Membership'),
-)
-
-PROV_N_MAP = {
-    PROV_REC_ENTITY:               u'entity',
-    PROV_REC_ACTIVITY:             u'activity',
-    PROV_REC_GENERATION:           u'wasGeneratedBy',
-    PROV_REC_USAGE:                u'used',
-    PROV_REC_COMMUNICATION:        u'wasInformedBy',
-    PROV_REC_START:                u'wasStartedBy',
-    PROV_REC_END:                  u'wasEndedBy',
-    PROV_REC_INVALIDATION:         u'wasInvalidatedBy',
-    PROV_REC_DERIVATION:           u'wasDerivedFrom',
-    PROV_REC_AGENT:                u'agent',
-    PROV_REC_ATTRIBUTION:          u'wasAttributedTo',
-    PROV_REC_ASSOCIATION:          u'wasAssociatedWith',
-    PROV_REC_DELEGATION:           u'actedOnBehalfOf',
-    PROV_REC_INFLUENCE:            u'wasInfluencedBy',
-    PROV_REC_ALTERNATE:            u'alternateOf',
-    PROV_REC_SPECIALIZATION:       u'specializationOf',
-    PROV_REC_MENTION:              u'mentionOf',
-    PROV_REC_MEMBERSHIP:           u'hadMember',
-    PROV_REC_BUNDLE:               u'bundle',
-}
-
-#  # Identifiers for PROV's attributes
-PROV_ATTR_ENTITY = 1
-PROV_ATTR_ACTIVITY = 2
-PROV_ATTR_TRIGGER = 3
-PROV_ATTR_INFORMED = 4
-PROV_ATTR_INFORMANT = 5
-PROV_ATTR_STARTER = 6
-PROV_ATTR_ENDER = 7
-PROV_ATTR_AGENT = 8
-PROV_ATTR_PLAN = 9
-PROV_ATTR_DELEGATE = 10
-PROV_ATTR_RESPONSIBLE = 11
-PROV_ATTR_GENERATED_ENTITY = 12
-PROV_ATTR_USED_ENTITY = 13
-PROV_ATTR_GENERATION = 14
-PROV_ATTR_USAGE = 15
-PROV_ATTR_SPECIFIC_ENTITY = 16
-PROV_ATTR_GENERAL_ENTITY = 17
-PROV_ATTR_ALTERNATE1 = 18
-PROV_ATTR_ALTERNATE2 = 19
-PROV_ATTR_BUNDLE = 20
-PROV_ATTR_INFLUENCEE = 21
-PROV_ATTR_INFLUENCER = 22
-PROV_ATTR_COLLECTION = 23
-
-#  Literal properties
-PROV_ATTR_TIME = 100
-PROV_ATTR_STARTTIME = 101
-PROV_ATTR_ENDTIME = 102
-
-PROV_RECORD_ATTRIBUTES = (
-    #  Relations properties
-    (PROV_ATTR_ENTITY, u'prov:entity'),
-    (PROV_ATTR_ACTIVITY, u'prov:activity'),
-    (PROV_ATTR_TRIGGER, u'prov:trigger'),
-    (PROV_ATTR_INFORMED, u'prov:informed'),
-    (PROV_ATTR_INFORMANT, u'prov:informant'),
-    (PROV_ATTR_STARTER, u'prov:starter'),
-    (PROV_ATTR_ENDER, u'prov:ender'),
-    (PROV_ATTR_AGENT, u'prov:agent'),
-    (PROV_ATTR_PLAN, u'prov:plan'),
-    (PROV_ATTR_DELEGATE, u'prov:delegate'),
-    (PROV_ATTR_RESPONSIBLE, u'prov:responsible'),
-    (PROV_ATTR_GENERATED_ENTITY, u'prov:generatedEntity'),
-    (PROV_ATTR_USED_ENTITY, u'prov:usedEntity'),
-    (PROV_ATTR_GENERATION, u'prov:generation'),
-    (PROV_ATTR_USAGE, u'prov:usage'),
-    (PROV_ATTR_SPECIFIC_ENTITY, u'prov:specificEntity'),
-    (PROV_ATTR_GENERAL_ENTITY, u'prov:generalEntity'),
-    (PROV_ATTR_ALTERNATE1, u'prov:alternate1'),
-    (PROV_ATTR_ALTERNATE2, u'prov:alternate2'),
-    (PROV_ATTR_BUNDLE, u'prov:bundle'),
-    (PROV_ATTR_INFLUENCEE, u'prov:influencee'),
-    (PROV_ATTR_INFLUENCER, u'prov:influencer'),
-    (PROV_ATTR_COLLECTION, u'prov:collection'),
-    #  Literal properties
-    (PROV_ATTR_TIME, u'prov:time'),
-    (PROV_ATTR_STARTTIME, u'prov:startTime'),
-    (PROV_ATTR_ENDTIME, u'prov:endTime'),
-)
-
-PROV_ATTRIBUTE_LITERALS = {PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME}
-
-PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
-PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
-PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
-
+from prov.contants import *
 
 # Converting an attribute to the normal form for comparison purposes
 _normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
@@ -174,7 +54,7 @@ def _ensure_datetime(value):
         return value
 
 
-def parse_xsd_dateTime(value):
+def parse_xsd_datetime(value):
     try:
         return dateutil.parser.parse(value)
     except ValueError:
@@ -182,7 +62,7 @@ def parse_xsd_dateTime(value):
     return None
 
 DATATYPE_PARSERS = {
-    datetime.datetime: parse_xsd_dateTime,
+    datetime.datetime: parse_xsd_datetime,
 }
 
 
@@ -202,7 +82,7 @@ XSD_DATATYPE_PARSERS = {
     u"xsd:long": long,
     u"xsd:int": int,
     u"xsd:boolean": bool,
-    u"xsd:dateTime": parse_xsd_dateTime,
+    u"xsd:dateTime": parse_xsd_datetime,
 }
 
 
@@ -226,18 +106,6 @@ def encoding_PROV_N_value(value):
         return u'"%f" %%%% xsd:float' % value
     else:
         return unicode(value)
-
-
-class AnonymousIDGenerator():
-    def __init__(self):
-        self._cache = {}
-        self._count = 0
-
-    def get_anon_id(self, obj, local_prefix="id"):
-        if obj not in self._cache:
-            self._count += 1
-            self._cache[obj] = Identifier('_:%s%d' % (local_prefix, self._count))
-        return self._cache[obj]
 
 
 class Literal(object):
@@ -284,17 +152,6 @@ class Literal(object):
         else:
             return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
 
-    def json_representation(self):
-        if self._langtag:
-            #  a language tag can only go with prov:InternationalizedString
-            return {'$': unicode(self._value), 'lang': self._langtag}
-        else:
-            if isinstance(self._datatype, QName):
-                return {'$': unicode(self._value), 'type': unicode(self._datatype)}
-            else:
-                #  Assuming it is a valid identifier
-                return {'$': unicode(self._value), 'type': self._datatype.get_uri()}
-
 
 class Identifier(object):
     def __init__(self, uri):
@@ -319,9 +176,6 @@ class Identifier(object):
     def provn_representation(self):
         return u'"%s" %%%% xsd:anyURI' % self._uri
 
-    def json_representation(self):
-        return {'$': self._uri, 'type': u'xsd:anyURI'}
-
 
 class QName(Identifier):
     def __init__(self, namespace, localpart):
@@ -344,9 +198,6 @@ class QName(Identifier):
 
     def provn_representation(self):
         return u"'%s'" % self._str
-
-    def json_representation(self):
-        return {'$': self._str, 'type': u'prov:QualifiedName'}
 
 
 class Namespace(object):
@@ -393,8 +244,8 @@ PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
 
 
 # Exceptions
-class ProvException(Exception):
-    """Base class for exceptions in this module."""
+class ProvException(Error):
+    """Base class for PROV model exceptions."""
     pass
 
 
@@ -1197,13 +1048,21 @@ class NamespaceManager(dict):
 
 
 class ProvBundle(object):
-    def __init__(self, identifier=None, bundle=None, namespaces=None):
+    def __init__(self, identifier=None, namespaces=None, document=None):
         #  Initializing bundle-specific attributes
         self._identifier = identifier
         self._records = list()
         self._id_map = defaultdict(list)
-        self._bundles = dict()
-        self._namespaces = NamespaceManager(namespaces, parent=(bundle._namespaces if bundle is not None else None))
+        self._document = document
+        self._namespaces = NamespaceManager(namespaces, parent=(document.namespaces if document is not None else None))
+
+    @property
+    def namespaces(self):
+        return set(self._namespaces.get_registered_namespaces())
+
+    @property
+    def document(self):
+        return self._document
 
     def get_identifier(self):
         return self._identifier
@@ -1263,171 +1122,6 @@ class ProvBundle(object):
             else:
                 return None
 
-    #  PROV-JSON serialization/deserialization
-    class JSONEncoder(json.JSONEncoder):
-        def default(self, o):
-            if isinstance(o, ProvBundle):
-                return o._encode_JSON_container()
-            else:
-                #  Use the default encoder instead
-                return json.JSONEncoder.default(self, o)
-
-    class JSONDecoder(json.JSONDecoder):
-        def decode(self, s):
-            json_container = json.JSONDecoder.decode(self, s)
-            result = ProvDocument()
-            result._decode_JSON_container(json_container)
-            return result
-
-    def _encode_json_representation(self, value):
-        try:
-            return value.json_representation()
-        except AttributeError:
-            if isinstance(value, datetime.datetime):
-                return {'$': value.isoformat(), 'type': u'xsd:dateTime'}
-            else:
-                return value
-
-    def _decode_json_representation(self, literal):
-        if isinstance(literal, dict):
-            # complex type
-            value = literal['$']
-            datatype = literal['type'] if 'type' in literal else None
-            langtag = literal['lang'] if 'lang' in literal else None
-            if datatype == u'xsd:anyURI':
-                return Identifier(value)
-            elif datatype == u'prov:QualifiedName':
-                return self.valid_identifier(value)
-            else:
-                # The literal of standard Python types is not converted here
-                # It will be automatically converted when added to a record by _auto_literal_conversion()
-                return Literal(value, self.valid_identifier(datatype), langtag)
-        else:
-            # simple type, just return it
-            return literal
-
-    def _encode_JSON_container(self):
-        container = defaultdict(dict)
-
-        if self.is_document():  # This is a document
-            prefixes = {}
-            for namespace in self._namespaces.get_registered_namespaces():
-                prefixes[namespace.prefix] = namespace.uri
-            if self._namespaces._default:
-                prefixes['default'] = self._namespaces._default.uri
-            if prefixes:
-                container[u'prefix'] = prefixes
-
-        id_generator = AnonymousIDGenerator()
-        real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
-
-        for record in self._records:
-            rec_type = record.get_type()
-            rec_label = PROV_N_MAP[rec_type]
-            identifier = unicode(real_or_anon_id(record))
-
-            record_json = {}
-            if record._attributes:
-                for (attr, value) in record._attributes.items():
-                    if isinstance(value, ProvRecord):
-                        attr_record_id = real_or_anon_id(value)
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = unicode(attr_record_id)
-                    elif value is not None:
-                        #  Assuming this is a datetime value
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat() if isinstance(value, datetime.datetime) else unicode(value)
-            if record._extra_attributes:
-                for (attr, value) in record._extra_attributes:
-                    attr_id = unicode(attr)
-                    value_json = self._encode_json_representation(value)
-                    if attr_id in record_json:
-                        #  Multi-value attribute
-                        existing_value = record_json[attr_id]
-                        try:
-                            #  Add the value to the current list of values
-                            existing_value.append(value_json)
-                        except:
-                            #  But if the existing value is not a list, it'll fail
-                            #  create the list for the existing value and the second value
-                            record_json[attr_id] = [existing_value, value_json]
-                    else:
-                        record_json[attr_id] = value_json
-            container[rec_label][identifier] = record_json
-
-            for bundle_id, bundle in self._bundles.items():
-                #  encoding the sub-bundle
-                bundle_json = bundle._encode_JSON_container()
-                container['bundle'][unicode(bundle_id)] = bundle_json
-
-        return container
-
-    def _decode_JSON_container(self, jc):
-        if u'prefix' in jc:
-            prefixes = jc[u'prefix']
-            for prefix, uri in prefixes.items():
-                if prefix != 'default':
-                    self.add_namespace(Namespace(prefix, uri))
-                else:
-                    self.set_default_namespace(uri)
-            del jc[u'prefix']
-
-        for rec_type_str in jc:
-            rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
-            for rec_id, content in jc[rec_type_str].items():
-                if rec_type == PROV_REC_BUNDLE:
-                    bundle = self.bundle(rec_id)
-                    bundle._decode_JSON_container(content)
-                else:
-                    if hasattr(content, 'items'):  # it is a dict
-                        #  There is only one element, create a singleton list
-                        elements = [content]
-                    else:
-                        # expect it to be a list of dictionaries
-                        elements = content
-
-                    for element in elements:
-                        prov_attributes = {}
-                        extra_attributes = []
-                        #  Splitting PROV attributes and the others
-                        membership_extra_members = None  # this is for the multiple-entity membership hack to come
-                        for attr, value in element.items():
-                            if attr in PROV_ATTRIBUTES_ID_MAP:
-                                attr_id = PROV_ATTRIBUTES_ID_MAP[attr]
-                                if isinstance(value, list):
-                                    # Multiple values
-                                    if len(value) == 1:
-                                        # Only a single value in the list, unpack it
-                                        value = value[0]
-                                    else:
-                                        if rec_type == PROV_REC_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
-                                            # This is a membership relation with multiple entities
-                                            # HACK: create multiple membership relations, one for each entity
-                                            membership_extra_members = value[1:]  # Store all the extra entities
-                                            value = value[0]  # Create the first membership relation as normal for the first entity
-                                        else:
-                                            error_msg = 'The prov package does not support PROV attributes having multiple values.'
-                                            logger.error(error_msg)
-                                            raise ProvException(error_msg)
-                                prov_attributes[attr_id] =\
-                                    self.valid_identifier(value) if attr_id not in PROV_ATTRIBUTE_LITERALS else \
-                                    self._decode_json_representation(value)
-                            else:
-                                attr_id = self.valid_identifier(attr)
-                                if isinstance(value, list):
-                                    #  Parsing multi-value attribute
-                                    extra_attributes.extend(
-                                        (attr_id, self._decode_json_representation(value_single))
-                                        for value_single in value
-                                    )
-                                else:
-                                    #  add the single-value attribute
-                                    extra_attributes.append((attr_id, self._decode_json_representation(value)))
-                        self.add_record(rec_type, rec_id, prov_attributes, extra_attributes)
-                        # HACK: creating extra (unidentified) membership relations
-                        if membership_extra_members:
-                            collection = prov_attributes[PROV_ATTR_COLLECTION]
-                            for member in membership_extra_members:
-                                self.membership(collection, self.valid_identifier(member))
-
     #  Miscellaneous functions
     def is_document(self):
         return False
@@ -1460,30 +1154,6 @@ class ProvBundle(object):
         #  closing the structure
         provn_str += indentation + ('endDocument' if self.is_document() else 'endBundle')
         return provn_str
-
-    def get_provjson(self, **kw):
-        """Return the `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ representation for the bundle/document.
-
-        Parameters for `json.dumps <http://docs.python.org/2/library/json.html#json.dumps>`_ like `indent=4` can be also passed as keyword arguments.
-        """
-        # Prevent overwriting the encoder class
-        if 'cls' in kw:
-            del kw['cls']
-        json_content = json.dumps(self, cls=ProvBundle.JSONEncoder, **kw)
-        return json_content
-
-    @staticmethod
-    def from_provjson(json_content, **kw):
-        """Construct the bundle/document from the given `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_
-        representation.
-
-        Parameters for `json.loads <http://docs.python.org/2/library/json.html#json.loads>`_ can be also passed as
-        keyword arguments.
-        """
-        # Prevent overwriting the decoder class
-        if 'cls' in kw:
-            del kw['cls']
-        return json.loads(json_content, cls=ProvBundle.JSONDecoder, **kw)
 
     def __eq__(self, other):
         if not isinstance(other, ProvBundle):
@@ -1717,8 +1387,10 @@ class ProvBundle(object):
 
 
 class ProvDocument(ProvBundle):
+
     def __init__(self, namespaces=None):
         ProvBundle.__init__(self, None, namespaces)
+        self._bundles = dict()
 
     def is_document(self):
         return True
@@ -1726,23 +1398,30 @@ class ProvDocument(ProvBundle):
     def is_bundle(self):
         return False
 
+    def has_bundles(self):
+        return len(self._bundles) > 0
+
+    @property
+    def bundles(self):
+        return set(self._bundles.values())
+
     def add_bundle(self, bundle, identifier=None):
         """Add a bundle to the current document
         """
+        if not isinstance(bundle, ProvBundle):
+            raise ProvException(u'Only a ProvBundle instance can be added as a bundle in a ProvDocument.')
+
         if identifier is None:
             identifier = bundle.get_identifier()
 
         if not identifier:
-            raise ProvException(u"The added bundle has no identifier")
+            raise ProvException(u'The provided bundle has no identifier')
 
         valid_id = self.valid_identifier(identifier)
         bundle._identifier = valid_id
 
         if valid_id in self._bundles:
             raise ProvException(u"A bundle with that identifier already exists")
-
-        if len(bundle._bundles) > 0:
-            raise ProvException(u"A bundle may not contain bundles")
 
         self._bundles[valid_id] = bundle
 
@@ -1758,5 +1437,53 @@ class ProvDocument(ProvBundle):
         self.add_bundle(b, valid_id)
         return b
 
-    def from_provjson(json_content, **kw):
-        pass
+    # Serializing and deserializing
+    def serialize(self, destination=None, format='json', **args):
+        """Serialize the ProvDocument to destination
+
+        If destination is None serialize method returns the serialization as a
+        string. Format defaults to PROV-JSON.
+        """
+        serializer = serializers.get(format)(self)
+        if destination is None:
+            stream = BytesIO()
+            serializer.serialize(stream, **args)
+            return stream.getvalue()
+        if hasattr(destination, "write"):
+            stream = destination
+            serializer.serialize(stream, **args)
+        else:
+            location = destination
+            scheme, netloc, path, params, _query, fragment = urlparse(location)
+            if netloc != "":
+                print("WARNING: not saving as location" +
+                      "is not a local file reference")
+                return
+            fd, name = tempfile.mkstemp()
+            stream = os.fdopen(fd, "wb")
+            serializer.serialize(stream, **args)
+            stream.close()
+            if hasattr(shutil, "move"):
+                shutil.move(name, path)
+            else:
+                shutil.copy(name, path)
+                os.remove(name)
+
+    @staticmethod
+    def deserialize(source=None, content=None, format='json', **args):
+        """Deserialize the ProvDocument from source (a stream or a filepath) or directly from a string content
+
+        Format defaults to PROV-JSON.
+        """
+        serializer = serializers.get(format)()
+
+        if content is not None:
+            stream = BytesIO(content)
+            return serializer.deserialize(stream, **args)
+
+        if source is not None:
+            if hasattr(source, "read"):
+                return serializer.deserialize(source, **args)
+            else:
+                with open(source) as f:
+                    return serializer.deserialize(f, **args)
