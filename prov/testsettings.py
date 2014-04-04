@@ -5,7 +5,7 @@ import string
 DEBUG = False
 
 INSTALLED_APPS = (
-    'prov.persistence',
+    'prov.db',
 )
 
 TEST_RUNNER = 'django.test.simple.DjangoTestSuiteRunner'
