@@ -355,7 +355,7 @@ class ProvRecord(object):
 
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
-        if isinstance(literal, basestring):
+        if isinstance(literal, str):
             return unicode(literal)
 
         if isinstance(literal, Literal) and literal.has_no_langtag():
