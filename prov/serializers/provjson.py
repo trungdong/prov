@@ -127,7 +127,19 @@ class ProvJSONSerializer(Serializer):
                             record_json[attr_id] = [existing_value, value_json]
                     else:
                         record_json[attr_id] = value_json
-            container[rec_label][identifier] = record_json
+            # Check if the container already has the id of the record
+            if identifier not in container[rec_label]:
+                # this is the first instance, just put in the new record
+                container[rec_label][identifier] = record_json
+            else:
+                # the container already has some record(s) of the same identifier
+                # check if this is the second instance
+                current_content = container[rec_label][identifier]
+                if hasattr(current_content, 'items'):
+                    # this is a dict, make it a singleton list
+                    container[rec_label][identifier] = [current_content]
+                # now append the new record to the list
+                container[rec_label][identifier].append(record_json)
 
         return container
 
