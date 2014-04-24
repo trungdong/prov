@@ -5,10 +5,9 @@ Created on Jan 25, 2012
 """
 import unittest
 import logging
-import json
 import os
 
-from prov.model import ProvBundle, ProvDocument
+from prov.model import ProvDocument
 from tests import examples
 
 

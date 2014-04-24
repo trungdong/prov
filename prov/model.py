@@ -10,6 +10,8 @@ PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
 """
 
 import logging
+import warnings
+
 logger = logging.getLogger(__name__)
 
 import datetime
@@ -243,13 +245,18 @@ XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
 
 
-# Exceptions
+# Exceptions and warnings
 class ProvException(Error):
     """Base class for PROV model exceptions."""
     pass
 
 
-class ProvExceptionMissingRequiredAttribute(ProvException):
+class ProvWarning(Warning):
+    """Base class for PROV model warnings."""
+    pass
+
+
+class ProvWarningMissingRequiredAttribute(ProvWarning):
     def __init__(self, record_type, attribute_id):
         self.record_type = record_type
         self.attribute_id = attribute_id
@@ -422,8 +429,9 @@ class ProvRecord(object):
 
     def required_attribute(self, attributes, attribute_id, attribute_types):
         if attribute_id not in attributes:
-            #  Raise an exception about the missing attribute
-            raise ProvExceptionMissingRequiredAttribute(self.get_type(), attribute_id)
+            #  Raise an warning about the missing attribute
+            warnings.warn(ProvWarningMissingRequiredAttribute(self.get_type(), attribute_id))
+            return None
         #  Found the required attribute
         attribute = attributes.get(attribute_id)
         return self._validate_attribute(attribute, attribute_types)
