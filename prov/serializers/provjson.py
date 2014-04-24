@@ -30,6 +30,16 @@ class AnonymousIDGenerator():
         return self._cache[obj]
 
 
+# Reverse map for prov.model.XSD_DATATYPE_PARSERS
+LITERAL_XSDTYPE_MAP = {
+    float: u"xsd:double",
+    long: u"xsd:long",
+    int: u"xsd:int"
+    # boolean, string values are supported natively by PROV-JSON
+    # datetime values are converted separately
+}
+
+
 class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
         container = self.encode_document(self.document)
@@ -55,6 +65,8 @@ class ProvJSONSerializer(Serializer):
             return {'$': str(value), 'type': u'prov:QualifiedName'}
         elif isinstance(value, Identifier):
             return {'$': value.uri, 'type': u'xsd:anyURI'}
+        elif type(value) in LITERAL_XSDTYPE_MAP:
+            return {'$': value, 'type': LITERAL_XSDTYPE_MAP[type(value)]}
         else:
             return value
 
