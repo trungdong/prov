@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 import datetime
 import dateutil.parser
-from collections import defaultdict, Iterable
+from collections import defaultdict, Iterable, OrderedDict
 from copy import deepcopy
 from prov import Error, serializers
 
@@ -30,11 +30,6 @@ except ImportError:
     except ImportError:
         from StringIO import StringIO as BytesIO
         assert BytesIO
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
 
 
 import os
@@ -336,10 +331,20 @@ class ProvRecord(object):
         results = [value for attr, value in self._extra_attributes if attr == attr_name]
         return results
 
-    def get_identifier(self):
+    @property
+    def identifier(self):
         return self._identifier
 
-    def get_label(self):
+    @property
+    def attributes(self):
+        return self._attributes, self._extra_attributes
+
+    @property
+    def bundle(self):
+        return self._bundle
+
+    @property
+    def label(self):
         label = None
         if self._extra_attributes:
             for attribute in self._extra_attributes:
@@ -350,7 +355,8 @@ class ProvRecord(object):
                         break
         return label if label else self._identifier
 
-    def get_value(self):
+    @property
+    def value(self):
         return self.get_attribute(PROV['value'])
 
     def _auto_literal_conversion(self, literal):
@@ -391,16 +397,10 @@ class ProvRecord(object):
                 self._attributes.update(dict((k, v) for k, v in attributes.iteritems() if v is not None))
         self.add_extra_attributes(extra_attributes)
 
-    def get_attributes(self):
-        return (self._attributes, self._extra_attributes)
-
-    def get_bundle(self):
-        return self._bundle
-
     def _parse_attribute(self, attribute, attribute_types):
         if attribute_types is QName:
             # Expecting a qualified name
-            qname = attribute.get_identifier() if isinstance(attribute, ProvRecord) else attribute
+            qname = attribute.identifier if isinstance(attribute, ProvRecord) else attribute
             return self._bundle.valid_identifier(qname)
 
         # putting all the types in to a tuple:
@@ -498,7 +498,7 @@ class ProvRecord(object):
                     items.append(u'-')
                 else:
                     if isinstance(value, ProvRecord):
-                        record_id = value.get_identifier()
+                        record_id = value.identifier
                         items.append(unicode(record_id))
                     else:
                         #  Assuming this is a datetime or QName value
@@ -1072,7 +1072,8 @@ class ProvBundle(object):
     def document(self):
         return self._document
 
-    def get_identifier(self):
+    @property
+    def identifier(self):
         return self._identifier
 
     #  Bundle configurations
@@ -1420,7 +1421,7 @@ class ProvDocument(ProvBundle):
             raise ProvException(u'Only a ProvBundle instance can be added as a bundle in a ProvDocument.')
 
         if identifier is None:
-            identifier = bundle.get_identifier()
+            identifier = bundle.identifier
 
         if not identifier:
             raise ProvException(u'The provided bundle has no identifier')

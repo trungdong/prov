@@ -244,4 +244,4 @@ def literal_json_representation(literal):
             return {'$': unicode(literal._value), 'type': unicode(literal._datatype)}
         else:
             #  Assuming it is a valid identifier
-            return {'$': unicode(literal._value), 'type': literal._datatype.get_uri()}
+            return {'$': unicode(literal._value), 'type': literal._datatype.uri}

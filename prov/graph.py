@@ -66,7 +66,7 @@ ANNOTATION_END_ROW = '    </TABLE>>'
 
 def htlm_link_if_uri(value):
     try:
-        uri = value.get_uri()
+        uri = value.uri
         return '<a href="%s">%s</a>' % (uri, unicode(value))
     except AttributeError:
         return unicode(value)
@@ -104,7 +104,7 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
             ann_rows.extend(
                 ANNOTATION_ROW_TEMPLATE % (
                     attr.get_uri(), cgi.escape(unicode(attr)),
-                    ' href=\"%s\"' % value.get_uri() if isinstance(value, Identifier) else '',
+                    ' href=\"%s\"' % value.uri if isinstance(value, Identifier) else '',
                     cgi.escape(unicode(value)))
                 for attr, value in record._extra_attributes
             )
@@ -117,11 +117,11 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
         def _add_node(record):
             if isinstance(record, ProvBundle):
                 count[2] += 1
-                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % record.get_identifier().get_uri())
+                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % record.identifier().get_uri())
                 if use_labels:
-                    subdot.set_label('"%s"' % unicode(record.get_label()))
+                    subdot.set_label('"%s"' % unicode(record.label))
                 else:
-                    subdot.set_label('"%s"' % unicode(record.get_identifier()))
+                    subdot.set_label('"%s"' % unicode(record.identifier))
                 _bundle_to_dot(subdot, record)
                 dot.add_subgraph(subdot)
                 return subdot
@@ -129,11 +129,11 @@ def prov_to_dot(bundle, show_nary=False, use_labels=False, show_element_attribut
                 count[0] += 1
                 node_id = 'n%d' % count[0]
                 if use_labels:
-                    node_label = '"%s"' % unicode(record.get_label())
+                    node_label = '"%s"' % unicode(record.label)
                 else:
-                    node_label = '"%s"' % unicode(record.get_identifier())
+                    node_label = '"%s"' % unicode(record.identifier)
 
-                uri = record.get_identifier().get_uri()
+                uri = record.identifier().uri
                 style = DOT_PROV_STYLE[record.get_type()]
                 node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
                 node_map[record] = node
