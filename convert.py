@@ -20,7 +20,7 @@ import sys
 import logging
 import traceback
 
-from prov.model import ProvBundle
+from prov.model import ProvDocument
 from prov.graph import prov_to_dot
 
 
@@ -56,9 +56,9 @@ class CLIError(Exception):
 
 
 def convert_file(infile, outfile, output_format):
-    prov_doc = json.load(infile, cls=ProvBundle.JSONDecoder)
+    prov_doc = ProvDocument.deserialize(infile)
     if output_format == 'json':
-        json.dump(prov_doc, outfile, cls=ProvBundle.JSONEncoder, indent=2)
+        prov_doc.serialize(outfile, indent=2)
     elif output_format == 'provn':
         outfile.write(prov_doc.get_provn())
     elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
