@@ -13,15 +13,15 @@ convert -- Convert PROV-JSON to PROV-N, PROV-JSON, or graphical formats (SVG, PD
 @deffield    updated: 2014-03-14
 """
 
-
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
 import json
 import os
 import sys
 import logging
 import traceback
+
 from prov.model import ProvBundle
-from prov.model.graph import prov_to_dot
+from prov.graph import prov_to_dot
 
 
 logger = logging.getLogger(__name__)

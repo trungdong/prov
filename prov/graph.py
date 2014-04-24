@@ -12,6 +12,9 @@ References:
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
 import cgi
+
+import pydot
+
 from prov.model import (ProvBundle, ProvElement,
                    PROV_REC_ACTIVITY, PROV_REC_AGENT,
                    PROV_REC_ALTERNATE, PROV_REC_ASSOCIATION,
@@ -21,7 +24,7 @@ from prov.model import (ProvBundle, ProvElement,
                    PROV_REC_INFLUENCE, PROV_REC_INVALIDATION, PROV_REC_END,
                    PROV_REC_MEMBERSHIP, PROV_REC_MENTION,
                    PROV_REC_SPECIALIZATION, PROV_REC_START, PROV_REC_USAGE, Identifier)
-import pydot
+
 
 # Visual styles for various elements (nodes) and relations (edges)
 # see http://graphviz.org/content/attrs
