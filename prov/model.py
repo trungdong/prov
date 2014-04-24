@@ -80,8 +80,11 @@ def _parse_datatype(value, datatype):
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
     u"xsd:string": unicode,
-    u"xsd:double": float,
-    u"xsd:long": long,
+    # TODO: The following are omitted because attribute values 2 and 2.0 are consider the same by Python in a set!
+    # (two values of xsd:int 2 and xsd:double 2.0 will be merged into one if the below mappings are enabled)
+    # See issue #34
+    # u"xsd:double": float,
+    # u"xsd:long": long,
     u"xsd:int": int,
     u"xsd:boolean": bool,
     u"xsd:dateTime": parse_xsd_datetime,
