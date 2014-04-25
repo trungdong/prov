@@ -394,7 +394,7 @@ class Namespace(object):
             self._cache[localpart] = qname
             return qname
 
-XSD = Namespace("xsd", 'http://www.w3.org/2001/XMLSchema-datatypes#')
+XSD = Namespace("xsd", 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace("prov", 'http://www.w3.org/ns/prov#')
 
 
