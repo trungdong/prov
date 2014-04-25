@@ -37,7 +37,7 @@ import shutil
 import tempfile
 from urlparse import urlparse
 
-from prov.identifier import Identifier, QName, Namespace
+from prov.identifier import Identifier, QName
 from prov.contants import *
 
 # Converting an attribute to the normal form for comparison purposes
@@ -95,7 +95,7 @@ def _ensure_multiline_string_triple_quoted(s):
     return format_str % s
 
 
-def encoding_PROV_N_value(value):
+def encoding_provn_value(value):
     if isinstance(value, basestring):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
@@ -114,7 +114,10 @@ class Literal(object):
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
                 datatype = PROV["InternationalizedString"]
             elif datatype != PROV["InternationalizedString"]:
-                logger.warn('Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' % (value, langtag))
+                logger.warn(
+                    'Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' %
+                    (datatype, value, langtag)
+                )
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
         self._langtag = langtag
@@ -149,7 +152,6 @@ class Literal(object):
             return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._langtag))
         else:
             return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
-
 
 
 # Exceptions and warnings
@@ -422,8 +424,8 @@ class ProvRecord(object):
                 try:
                     #  try if there is a prov-n representation defined
                     provn_represenation = value.provn_representation()
-                except:
-                    provn_represenation = encoding_PROV_N_value(value)
+                except AttributeError:
+                    provn_represenation = encoding_provn_value(value)
                 extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
             if extra:
                 items.append(u'[%s]' % u', '.join(extra))
@@ -845,6 +847,7 @@ DEFAULT_NAMESPACES = {'prov': PROV, 'xsd': XSD}
 #  Bundle
 class NamespaceManager(dict):
     def __init__(self, namespaces=None, default=None, parent=None):
+        dict.__init__(self)
         self._default_namespaces = DEFAULT_NAMESPACES
         self.update(self._default_namespaces)
         self._namespaces = {}
@@ -1025,21 +1028,10 @@ class ProvBundle(object):
         valid_id = self.valid_identifier(identifier)
         try:
             return self._id_map[valid_id]
-        except:
+        except KeyError:
             #  looking up the parent bundle
-            if self._bundle is not None:
-                return self._bundle.get_record(valid_id)
-            else:
-                return None
-
-    def get_bundle(self, identifier):
-        try:
-            valid_id = self.valid_identifier(identifier)
-            return self._bundles[valid_id]
-        except:
-            #  looking up the parent bundle
-            if self._bundle is not None:
-                return self._bundle.get_bundle(valid_id)
+            if self.is_bundle():
+                return self.document.get_record(valid_id)
             else:
                 return None
 
