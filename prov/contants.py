@@ -7,54 +7,32 @@ XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
 
 #  C1. Entities/Activities
-PROV_REC_ENTITY = 1
-PROV_REC_ACTIVITY = 2
-PROV_REC_GENERATION = 11
-PROV_REC_USAGE = 12
-PROV_REC_COMMUNICATION = 13
-PROV_REC_START = 14
-PROV_REC_END = 15
-PROV_REC_INVALIDATION = 16
+PROV_REC_ENTITY = PROV['Entity']
+PROV_REC_ACTIVITY = PROV['Activity']
+PROV_REC_GENERATION = PROV['Generation']
+PROV_REC_USAGE = PROV['Usage']
+PROV_REC_COMMUNICATION = PROV['Communication']
+PROV_REC_START = PROV['Start']
+PROV_REC_END = PROV['End']
+PROV_REC_INVALIDATION = PROV['Invalidation']
 
 #  C2. Derivations
-PROV_REC_DERIVATION = 21
+PROV_REC_DERIVATION = PROV['Derivation']
 
 #  C3. Agents/Responsibility
-PROV_REC_AGENT = 3
-PROV_REC_ATTRIBUTION = 31
-PROV_REC_ASSOCIATION = 32
-PROV_REC_DELEGATION = 33
-PROV_REC_INFLUENCE = 34
+PROV_REC_AGENT = PROV['Agent']
+PROV_REC_ATTRIBUTION = PROV['Attribution']
+PROV_REC_ASSOCIATION = PROV['Association']
+PROV_REC_DELEGATION = PROV['Delegation']
+PROV_REC_INFLUENCE = PROV['Influence']
 #  C4. Bundles
-PROV_REC_BUNDLE = 4  # This is the lowest value, so bundle(s) in JSON will be decoded first
+PROV_REC_BUNDLE = PROV['Bundle']
 #  C5. Alternate
-PROV_REC_ALTERNATE = 51
-PROV_REC_SPECIALIZATION = 52
-PROV_REC_MENTION = 53
+PROV_REC_ALTERNATE = PROV['Alternate']
+PROV_REC_SPECIALIZATION = PROV['Specialization']
+PROV_REC_MENTION = PROV['Mention']
 #  C6. Collections
-PROV_REC_MEMBERSHIP = 61
-
-PROV_RECORD_TYPES = (
-    (PROV_REC_ENTITY, u'Entity'),
-    (PROV_REC_ACTIVITY, u'Activity'),
-    (PROV_REC_GENERATION, u'Generation'),
-    (PROV_REC_USAGE, u'Usage'),
-    (PROV_REC_COMMUNICATION, u'Communication'),
-    (PROV_REC_START, u'Start'),
-    (PROV_REC_END, u'End'),
-    (PROV_REC_INVALIDATION, u'Invalidation'),
-    (PROV_REC_DERIVATION, u'Derivation'),
-    (PROV_REC_AGENT, u'Agent'),
-    (PROV_REC_ATTRIBUTION, u'Attribution'),
-    (PROV_REC_ASSOCIATION, u'Association'),
-    (PROV_REC_DELEGATION, u'Delegation'),
-    (PROV_REC_INFLUENCE, u'Influence'),
-    (PROV_REC_BUNDLE, u'Bundle'),
-    (PROV_REC_ALTERNATE, u'Alternate'),
-    (PROV_REC_SPECIALIZATION, u'Specialization'),
-    (PROV_REC_MENTION, u'Mention'),
-    (PROV_REC_MEMBERSHIP, u'Membership'),
-)
+PROV_REC_MEMBERSHIP = PROV['Membership']
 
 PROV_N_MAP = {
     PROV_REC_ENTITY:               u'entity',

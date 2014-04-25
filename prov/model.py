@@ -218,11 +218,7 @@ class ProvRecord(object):
             self.add_attributes(attributes, other_attributes)
 
     def get_type(self):
-        """Returning the numeric type of the record"""
-        pass
-
-    def get_prov_type(self):
-        """Returning the Qualified Name for the prov: class"""
+        """Returning the PROV type of the record"""
         pass
 
     def get_asserted_types(self):
@@ -362,7 +358,7 @@ class ProvRecord(object):
         return self._validate_attribute(attribute, attribute_types)
 
     def __eq__(self, other):
-        if self.get_prov_type() != other.get_prov_type():
+        if self.get_type() != other.get_type():
             return False
         if self._identifier and not (self._identifier == other._identifier):
             return False
@@ -456,16 +452,10 @@ class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_REC_ENTITY
 
-    def get_prov_type(self):
-        return PROV['Entity']
-
 
 class ProvActivity(ProvElement):
     def get_type(self):
         return PROV_REC_ACTIVITY
-
-    def get_prov_type(self):
-        return PROV['Activity']
 
     def add_attributes(self, attributes, extra_attributes):
         startTime = self.optional_attribute(attributes, PROV_ATTR_STARTTIME, datetime.datetime)
@@ -498,9 +488,6 @@ class ProvGeneration(ProvRelation):
     def get_type(self):
         return PROV_REC_GENERATION
 
-    def get_prov_type(self):
-        return PROV['Generation']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
@@ -520,9 +507,6 @@ class ProvUsage(ProvRelation):
     def get_type(self):
         return PROV_REC_USAGE
 
-    def get_prov_type(self):
-        return PROV['Usage']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
@@ -541,9 +525,6 @@ class ProvCommunication(ProvRelation):
     def get_type(self):
         return PROV_REC_COMMUNICATION
 
-    def get_prov_type(self):
-        return PROV['Communication']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, QName)
@@ -558,9 +539,6 @@ class ProvCommunication(ProvRelation):
 class ProvStart(ProvRelation):
     def get_type(self):
         return PROV_REC_START
-
-    def get_prov_type(self):
-        return PROV['Start']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -582,9 +560,6 @@ class ProvEnd(ProvRelation):
     def get_type(self):
         return PROV_REC_END
 
-    def get_prov_type(self):
-        return PROV['End']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
@@ -605,9 +580,6 @@ class ProvInvalidation(ProvRelation):
     def get_type(self):
         return PROV_REC_INVALIDATION
 
-    def get_prov_type(self):
-        return PROV['Invalidation']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
@@ -627,9 +599,6 @@ class ProvInvalidation(ProvRelation):
 class ProvDerivation(ProvRelation):
     def get_type(self):
         return PROV_REC_DERIVATION
-
-    def get_prov_type(self):
-        return PROV['Derivation']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -655,16 +624,10 @@ class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_REC_AGENT
 
-    def get_prov_type(self):
-        return PROV['Agent']
-
 
 class ProvAttribution(ProvRelation):
     def get_type(self):
         return PROV_REC_ATTRIBUTION
-
-    def get_prov_type(self):
-        return PROV['Attribution']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -680,9 +643,6 @@ class ProvAttribution(ProvRelation):
 class ProvAssociation(ProvRelation):
     def get_type(self):
         return PROV_REC_ASSOCIATION
-
-    def get_prov_type(self):
-        return PROV['Association']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -702,9 +662,6 @@ class ProvDelegation(ProvRelation):
     def get_type(self):
         return PROV_REC_DELEGATION
 
-    def get_prov_type(self):
-        return PROV['Delegation']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, QName)
@@ -723,9 +680,6 @@ class ProvInfluence(ProvRelation):
     def get_type(self):
         return PROV_REC_INFLUENCE
 
-    def get_prov_type(self):
-        return PROV['Influence']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, QName)
@@ -739,16 +693,13 @@ class ProvInfluence(ProvRelation):
 
 #  ## Component 4: Bundles
 
-#  See below
+#  See ProvBundle
 
 #  ## Component 5: Alternate Entities
 
 class ProvSpecialization(ProvRelation):
     def get_type(self):
         return PROV_REC_SPECIALIZATION
-
-    def get_prov_type(self):
-        return PROV['Specialization']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -765,9 +716,6 @@ class ProvAlternate(ProvRelation):
     def get_type(self):
         return PROV_REC_ALTERNATE
 
-    def get_prov_type(self):
-        return PROV['Alternate']
-
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
         alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, QName)
@@ -782,9 +730,6 @@ class ProvAlternate(ProvRelation):
 class ProvMention(ProvSpecialization):
     def get_type(self):
         return PROV_REC_MENTION
-
-    def get_prov_type(self):
-        return PROV['Mention']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
@@ -804,9 +749,6 @@ class ProvMention(ProvSpecialization):
 class ProvMembership(ProvRelation):
     def get_type(self):
         return PROV_REC_MEMBERSHIP
-
-    def get_prov_type(self):
-        return PROV['Membership']
 
     def add_attributes(self, attributes, extra_attributes):
         #  Required attributes
