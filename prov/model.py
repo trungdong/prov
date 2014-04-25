@@ -37,6 +37,7 @@ import shutil
 import tempfile
 from urlparse import urlparse
 
+from prov.identifier import Identifier, QName, Namespace
 from prov.contants import *
 
 # Converting an attribute to the normal form for comparison purposes
@@ -149,95 +150,6 @@ class Literal(object):
         else:
             return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
 
-
-class Identifier(object):
-    def __init__(self, uri):
-        self._uri = unicode(uri)  # Ensure this is a unicode string
-
-    @property
-    def uri(self):
-        return self._uri
-
-    def __unicode__(self):
-        return self._uri
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __eq__(self, other):
-        return self.uri == other.uri if isinstance(other, Identifier) else False
-
-    def __hash__(self):
-        return hash(self.uri)
-
-    def provn_representation(self):
-        return u'"%s" %%%% xsd:anyURI' % self._uri
-
-
-class QName(Identifier):
-    def __init__(self, namespace, localpart):
-        Identifier.__init__(self, u''.join([namespace.uri, localpart]))
-        self._namespace = namespace
-        self._localpart = localpart
-        self._str = u':'.join([namespace.prefix, localpart]) if namespace.prefix else localpart
-
-    def get_namespace(self):
-        return self._namespace
-
-    def get_localpart(self):
-        return self._localpart
-
-    def __unicode__(self):
-        return self._str
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def provn_representation(self):
-        return u"'%s'" % self._str
-
-
-class Namespace(object):
-    def __init__(self, prefix, uri):
-        self._prefix = prefix
-        self._uri = uri
-        self._cache = dict()
-
-    @property
-    def uri(self):
-        return self._uri
-
-    @property
-    def prefix(self):
-        return self._prefix
-
-    def contains(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.uri if isinstance(identifier, Identifier) else None)
-        return uri.startswith(self._uri) if uri else False
-
-    def qname(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.uri if isinstance(identifier, Identifier) else None)
-        if uri and uri.startswith(self._uri):
-            return QName(self, uri[len(self._uri):])
-        else:
-            return None
-
-    def __eq__(self, other):
-        return (self._uri == other._uri and self._prefix == other._prefix) if isinstance(other, Namespace) else False
-
-    def __hash__(self):
-        return hash((self._uri, self._prefix))
-
-    def __getitem__(self, localpart):
-        if localpart in self._cache:
-            return self._cache[localpart]
-        else:
-            qname = QName(self, localpart)
-            self._cache[localpart] = qname
-            return qname
-
-XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
-PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
 
 
 # Exceptions and warnings
