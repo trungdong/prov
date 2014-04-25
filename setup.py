@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 with open('README.rst') as f:
     long_description = f.read()
@@ -11,8 +11,8 @@ setup(
     version='0.6.0',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
-    packages=['prov', 'prov.serializers'],
-    scripts=[],
+    packages=find_packages(),
+    scripts=['scripts/prov-convert'],
     url='https://github.com/trungdong/prov',
     license=licence,
     description='A Python implementation of PROV data model.',
