@@ -411,7 +411,7 @@ class Namespace(object):
             self._cache[localpart] = qname
             return qname
 
-XSD = Namespace("xsd", 'http://www.w3.org/2001/XMLSchema-datatypes#')
+XSD = Namespace("xsd", 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace("prov", 'http://www.w3.org/ns/prov#')
 
 
@@ -529,7 +529,7 @@ class ProvRecord(object):
     def _auto_literal_conversion(self, literal):
         '''This method normalise datatype for literals
         '''
-        if isinstance(literal, basestring):
+        if isinstance(literal, str):
             return unicode(literal)
 
         if isinstance(literal, Literal) and literal.has_no_langtag():
@@ -546,7 +546,9 @@ class ProvRecord(object):
         if isinstance(extra_attributes, dict):
             #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
             extra_attributes = extra_attributes.items()
-        attr_set = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
+        attr_set = set((self._bundle.valid_identifier(attribute),
+                        self._auto_literal_conversion(value))
+                       for attribute, value in extra_attributes)
         return attr_set
 
     def add_extra_attributes(self, extra_attributes):
@@ -754,17 +756,28 @@ class ProvRecord(object):
                 graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
+                try:
+                    # try if there is a RDF representation defined
+                    obj = value.rdf_representation()
+                except Exception, e:
+                    obj = RDFLiteral(value)
+                if attr == PROV['location']:
+                    pred = PROV['atLocation'].rdf_representation()
+                    if isinstance(value, (URIRef, QName)):
+                        if isinstance(value, QName):
+                            value = URIRef(value.get_uri())
+                        graph.add((subj, pred, value))
+                        graph.add((value, RDF.type,
+                                   PROV['Location'].rdf_representation()))
+                    else:
+                        graph.add((subj, pred, obj))
+                    continue
                 if attr == PROV['type']:
                     pred = RDF.type
                 elif attr == PROV['label']:
                     pred = RDFS.label
                 else:
                     pred = attr.rdf_representation()
-                try:
-                    # try if there is a RDF representation defined
-                    obj = value.rdf_representation()
-                except Exception, e:
-                    obj = RDFLiteral(value)
                 graph.add((subj, pred, obj))
         return graph
         
@@ -867,8 +880,7 @@ class ProvActivity(ProvElement):
         startTime = self.optional_attribute(attributes, PROV_ATTR_STARTTIME, datetime.datetime)
         endTime = self.optional_attribute(attributes, PROV_ATTR_ENDTIME, datetime.datetime)
         if startTime and endTime and startTime > endTime:
-            #  TODO Raise logic exception here
-            pass
+            raise ValueError('StartTime %s > EndTime %s' % (startTime, endTime))
         attributes = OrderedDict()
         attributes[PROV_ATTR_STARTTIME] = startTime
         attributes[PROV_ATTR_ENDTIME] = endTime
