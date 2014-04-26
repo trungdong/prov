@@ -16,42 +16,42 @@ import cgi
 import pydot
 
 from prov.model import (ProvBundle, ProvElement,
-                   PROV_REC_ACTIVITY, PROV_REC_AGENT,
-                   PROV_REC_ALTERNATE, PROV_REC_ASSOCIATION,
-                   PROV_REC_ATTRIBUTION, PROV_REC_BUNDLE,
-                   PROV_REC_COMMUNICATION, PROV_REC_DERIVATION,
-                   PROV_REC_DELEGATION, PROV_REC_ENTITY, PROV_REC_GENERATION,
-                   PROV_REC_INFLUENCE, PROV_REC_INVALIDATION, PROV_REC_END,
-                   PROV_REC_MEMBERSHIP, PROV_REC_MENTION,
-                   PROV_REC_SPECIALIZATION, PROV_REC_START, PROV_REC_USAGE, Identifier)
+                   PROV_ACTIVITY, PROV_AGENT,
+                   PROV_ALTERNATE, PROV_ASSOCIATION,
+                   PROV_ATTRIBUTION, PROV_BUNDLE,
+                   PROV_COMMUNICATION, PROV_DERIVATION,
+                   PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION,
+                   PROV_INFLUENCE, PROV_INVALIDATION, PROV_END,
+                   PROV_MEMBERSHIP, PROV_MENTION,
+                   PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier)
 
 
 # Visual styles for various elements (nodes) and relations (edges)
 # see http://graphviz.org/content/attrs
 DOT_PROV_STYLE = {
     # Elements
-    PROV_REC_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': '#FFFC87', 'color': '#808080'},
-    PROV_REC_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': '#9FB1FC', 'color': '#0000FF'},
-    PROV_REC_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
-    #    PROV_REC_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
-    PROV_REC_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
+    PROV_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': '#FFFC87', 'color': '#808080'},
+    PROV_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': '#9FB1FC', 'color': '#0000FF'},
+    PROV_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
+    #    PROV_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
+    PROV_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
     # Relations
-    PROV_REC_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0',
+    PROV_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0',
                           'color': 'darkgreen', 'fontcolor': 'darkgreen'},
-    PROV_REC_USAGE: {'label': 'used', 'fontsize': '10.0', 'color': 'red4', 'fontcolor': 'red'},
-    PROV_REC_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': '10.0'},
-    PROV_REC_START: {'label': 'wasStartedBy', 'fontsize': '10.0'},
-    PROV_REC_END: {'label': 'wasEndedBy', 'fontsize': '10.0'},
-    PROV_REC_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': '10.0'},
-    PROV_REC_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': '10.0'},
-    PROV_REC_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_REC_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_REC_DELEGATION: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_REC_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': '10.0', 'color': 'grey'},
-    PROV_REC_ALTERNATE: {'label': 'alternateOf', 'fontsize': '10.0'},
-    PROV_REC_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': '10.0'},
-    PROV_REC_MENTION: {'label': 'mentionOf', 'fontsize': '10.0'},
-    PROV_REC_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
+    PROV_USAGE: {'label': 'used', 'fontsize': '10.0', 'color': 'red4', 'fontcolor': 'red'},
+    PROV_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': '10.0'},
+    PROV_START: {'label': 'wasStartedBy', 'fontsize': '10.0'},
+    PROV_END: {'label': 'wasEndedBy', 'fontsize': '10.0'},
+    PROV_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': '10.0'},
+    PROV_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': '10.0'},
+    PROV_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': '#FED37F'},
+    PROV_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': '#FED37F'},
+    PROV_DELEGATION: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': '#FED37F'},
+    PROV_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': '10.0', 'color': 'grey'},
+    PROV_ALTERNATE: {'label': 'alternateOf', 'fontsize': '10.0'},
+    PROV_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': '10.0'},
+    PROV_MENTION: {'label': 'mentionOf', 'fontsize': '10.0'},
+    PROV_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
     }
 
 ANNOTATION_STYLE = {'shape': 'note', 'color': 'gray', 'fontcolor': 'black', 'fontsize': '10'}

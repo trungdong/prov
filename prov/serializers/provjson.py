@@ -180,7 +180,7 @@ class ProvJSONSerializer(Serializer):
         for rec_type_str in jc:
             rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
             for rec_id, content in jc[rec_type_str].items():
-                if rec_type == PROV_REC_BUNDLE:
+                if rec_type == PROV_BUNDLE:
                     raise ProvJSONException('A bundle cannot have nested bundles')
                 else:
                     if hasattr(content, 'items'):  # it is a dict
@@ -204,7 +204,7 @@ class ProvJSONSerializer(Serializer):
                                         # Only a single value in the list, unpack it
                                         value = value[0]
                                     else:
-                                        if rec_type == PROV_REC_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
+                                        if rec_type == PROV_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
                                             # This is a membership relation with multiple entities
                                             # HACK: create multiple membership relations, one for each entity
                                             membership_extra_members = value[1:]  # Store all the extra entities
