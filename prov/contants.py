@@ -113,6 +113,7 @@ PROV_ATTRIBUTE_QNAMES = {
     PROV_ATTR_COLLECTION
 }
 PROV_ATTRIBUTE_LITERALS = {PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME}
+# Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
 PROV_RECORD_ATTRIBUTES = list((attr, unicode(attr)) for attr in PROV_ATTRIBUTES)
 
@@ -120,3 +121,7 @@ PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_i
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
+# Extra definition for convenience
+PROV_TYPE = PROV['type']
+PROV_LABEL = PROV['label']
+PROV_VALUE = PROV['value']

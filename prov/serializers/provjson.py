@@ -11,7 +11,7 @@ import datetime
 import json
 from prov import Serializer, Error
 from prov.contants import *
-from prov.model import Literal, Identifier, QName, Namespace, ProvRecord, ProvDocument
+from prov.model import Literal, Identifier, QName, Namespace, ProvDocument, first, parse_xsd_datetime
 
 
 class ProvJSONException(Error):
@@ -62,6 +62,7 @@ class ProvJSONSerializer(Serializer):
             return {'$': value.isoformat(), 'type': u'xsd:dateTime'}
         elif isinstance(value, QName):
             # TODO Manage prefix in the whole structure consistently
+            # TODO QName export
             return {'$': str(value), 'type': u'prov:QualifiedName'}
         elif isinstance(value, Identifier):
             return {'$': value.uri, 'type': u'xsd:anyURI'}
@@ -107,7 +108,7 @@ class ProvJSONSerializer(Serializer):
             container[u'prefix'] = prefixes
 
         id_generator = AnonymousIDGenerator()
-        real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
+        real_or_anon_id = lambda r: r._identifier if r._identifier else id_generator.get_anon_id(r)
 
         for record in bundle._records:
             rec_type = record.get_type()
@@ -116,29 +117,23 @@ class ProvJSONSerializer(Serializer):
 
             record_json = {}
             if record._attributes:
-                for (attr, value) in record._attributes.items():
-                    if isinstance(value, ProvRecord):
-                        attr_record_id = real_or_anon_id(value)
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = unicode(attr_record_id)
-                    elif value is not None:
-                        #  Assuming this is a datetime value
-                        record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat() if isinstance(value, datetime.datetime) else unicode(value)
-            if record._extra_attributes:
-                for (attr, value) in record._extra_attributes:
-                    attr_id = unicode(attr)
-                    value_json = self.encode_json_representation(value)
-                    if attr_id in record_json:
-                        #  Multi-value attribute
-                        existing_value = record_json[attr_id]
-                        try:
-                            #  Add the value to the current list of values
-                            existing_value.append(value_json)
-                        except:
-                            #  But if the existing value is not a list, it'll fail
-                            #  create the list for the existing value and the second value
-                            record_json[attr_id] = [existing_value, value_json]
+                for (attr, values) in record._attributes.items():
+                    if not values:
+                        continue
+                    attr_name = unicode(attr)
+                    if attr in PROV_ATTRIBUTE_QNAMES:
+                        record_json[attr_name] = unicode(first(values))  # TODO: QName export
+                    elif attr in PROV_ATTRIBUTE_LITERALS:
+                        record_json[attr_name] = first(values).isoformat()
                     else:
-                        record_json[attr_id] = value_json
+                        if len(values) == 1:
+                            # single value
+                            record_json[attr_name] = self.encode_json_representation(first(values))
+                        else:
+                            # multiple values
+                            record_json[attr_name] = list(
+                                self.encode_json_representation(value) for value in values
+                            )
             # Check if the container already has the id of the record
             if identifier not in container[rec_label]:
                 # this is the first instance, just put in the new record
@@ -191,46 +186,48 @@ class ProvJSONSerializer(Serializer):
                         elements = content
 
                     for element in elements:
-                        prov_attributes = {}
-                        extra_attributes = []
-                        #  Splitting PROV attributes and the others
+                        attributes = dict()
+                        other_attributes = []
                         membership_extra_members = None  # this is for the multiple-entity membership hack to come
-                        for attr, value in element.items():
-                            if attr in PROV_ATTRIBUTES_ID_MAP:
-                                attr_id = PROV_ATTRIBUTES_ID_MAP[attr]
-                                if isinstance(value, list):
-                                    # Multiple values
-                                    if len(value) == 1:
-                                        # Only a single value in the list, unpack it
-                                        value = value[0]
-                                    else:
-                                        if rec_type == PROV_MEMBERSHIP and attr_id == PROV_ATTR_ENTITY:
+                        for attr_name, values in element.items():
+                            attr = PROV_ATTRIBUTES_ID_MAP[attr_name] if attr_name in PROV_ATTRIBUTES_ID_MAP \
+                                else self.valid_identifier(attr_name)
+                            if attr in PROV_ATTRIBUTES:
+                                if isinstance(values, list):
+                                    # only one value is allowed
+                                    if len(values) > 1:
+                                        # unless it is the membership hack
+                                        if rec_type == PROV_MEMBERSHIP and attr == PROV_ATTR_ENTITY:
                                             # This is a membership relation with multiple entities
                                             # HACK: create multiple membership relations, one for each entity
-                                            membership_extra_members = value[1:]  # Store all the extra entities
-                                            value = value[0]  # Create the first membership relation as normal for the first entity
+                                            membership_extra_members = values[1:]  # Store all the extra entities
+                                            # Create the first membership relation as normal for the first entity
+                                            value = values[0]
                                         else:
-                                            error_msg = 'The prov package does not support PROV attributes having multiple values.'
+                                            error_msg = 'The prov package does not support PROV attributes ' \
+                                                        'having multiple values.'
                                             logger.error(error_msg)
                                             raise ProvJSONException(error_msg)
-                                prov_attributes[attr_id] =\
-                                    self.valid_identifier(value) if attr_id not in PROV_ATTRIBUTE_LITERALS else \
-                                    self.decode_json_representation(value)
+                                    else:
+                                        value = values[0]
+                                else:
+                                    value = values
+                                value = self.valid_identifier(value) if attr in PROV_ATTRIBUTE_QNAMES else \
+                                    parse_xsd_datetime(value)
+                                attributes[attr] = value
                             else:
-                                attr_id = self.valid_identifier(attr)
-                                if isinstance(value, list):
-                                    #  Parsing multi-value attribute
-                                    extra_attributes.extend(
-                                        (attr_id, self.decode_json_representation(value_single))
-                                        for value_single in value
+                                if isinstance(values, list):
+                                    other_attributes.extend(
+                                        (attr, self.decode_json_representation(value))
+                                        for value in values
                                     )
                                 else:
-                                    #  add the single-value attribute
-                                    extra_attributes.append((attr_id, self.decode_json_representation(value)))
-                        bundle.add_record(rec_type, rec_id, prov_attributes, extra_attributes)
+                                    # single value
+                                    other_attributes.append((attr, self.decode_json_representation(values)))
+                        bundle.add_record(rec_type, rec_id, attributes, other_attributes)
                         # HACK: creating extra (unidentified) membership relations
                         if membership_extra_members:
-                            collection = prov_attributes[PROV_ATTR_COLLECTION]
+                            collection = attributes[PROV_ATTR_COLLECTION]
                             for member in membership_extra_members:
                                 bundle.membership(collection, self.valid_identifier(member))
 

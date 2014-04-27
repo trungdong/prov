@@ -10,13 +10,12 @@ PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
 """
 
 import logging
-import warnings
 
 logger = logging.getLogger(__name__)
 
 import datetime
 import dateutil.parser
-from collections import defaultdict, Iterable, OrderedDict
+from collections import defaultdict
 from copy import deepcopy
 from prov import Error, serializers
 
@@ -39,9 +38,6 @@ from urlparse import urlparse
 
 from prov.identifier import Identifier, QName
 from prov.contants import *
-
-# Converting an attribute to the normal form for comparison purposes
-_normalise_attributes = lambda attr: (unicode(attr[0]), unicode(attr[1]))
 
 
 # Data Types
@@ -90,6 +86,9 @@ def parse_xsd_types(value, datatype):
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 
+first = lambda a_set: next(iter(a_set))
+
+
 def _ensure_multiline_string_triple_quoted(s):
     format_str = u'"""%s"""' if isinstance(s, basestring) and '\n' in s else u'"%s"'
     return format_str % s
@@ -103,6 +102,7 @@ def encoding_provn_value(value):
     elif isinstance(value, float):
         return u'"%f" %%%% xsd:float' % value
     else:
+        # TODO: QName export
         return unicode(value)
 
 
@@ -165,14 +165,12 @@ class ProvWarning(Warning):
     pass
 
 
-class ProvWarningMissingRequiredAttribute(ProvWarning):
-    def __init__(self, record_type, attribute_id):
-        self.record_type = record_type
-        self.attribute_id = attribute_id
-        self.args += (PROV_N_MAP[record_type], attribute_id)
+class ProvExceptionInvalidQualifiedName(ProvException):
+    def __init__(self, qname):
+        self.qname = qname
 
-    def __str__(self):
-        return 'Missing the required attribute "%s" in %s' % (PROV_ID_ATTRIBUTES_MAP[self.attribute_id], PROV_N_MAP[self.record_type])
+    def __unicode__(self):
+        return u'Invalid Qualified Name: %s' % self.qname
 
 
 class ProvExceptionNotValidAttribute(ProvException):
@@ -208,38 +206,29 @@ class ProvExceptionContraint(ProvException):
 
 #  PROV records
 class ProvRecord(object):
-    """Base class for PROV _records."""
-    def __init__(self, bundle, identifier, attributes=None, other_attributes=None):
+    """Base class for PROV records."""
+    FORMAL_ATTRIBUTES = ()
+
+    def __init__(self, bundle, identifier, attributes=None):
         self._bundle = bundle
         self._identifier = identifier
-        self._attributes = None
-        self._extra_attributes = None
-        if attributes or other_attributes:
-            self.add_attributes(attributes, other_attributes)
+        self._attributes = defaultdict(set)
+        if attributes:
+            self.add_attributes(attributes)
 
     def get_type(self):
         """Returning the PROV type of the record"""
         pass
 
     def get_asserted_types(self):
-        if self._extra_attributes:
-            prov_type = PROV['type']
-            return set([value for attr, value in self._extra_attributes if attr == prov_type])
-        return set()
+        return self._attributes[PROV_TYPE]
 
     def add_asserted_type(self, type_identifier):
-        asserted_types = self.get_asserted_types()
-        if type_identifier not in asserted_types:
-            if self._extra_attributes is None:
-                self._extra_attributes = set()
-            self._extra_attributes.add((PROV['type'], type_identifier))
+        self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name):
         attr_name = self._bundle.valid_identifier(attr_name)
-        if not self._extra_attributes:
-            return []
-        results = [value for attr, value in self._extra_attributes if attr == attr_name]
-        return results
+        return self._attributes[attr_name]
 
     @property
     def identifier(self):
@@ -247,7 +236,7 @@ class ProvRecord(object):
 
     @property
     def attributes(self):
-        return self._attributes, self._extra_attributes
+        return self._attributes
 
     @property
     def bundle(self):
@@ -255,19 +244,11 @@ class ProvRecord(object):
 
     @property
     def label(self):
-        label = None
-        if self._extra_attributes:
-            for attribute in self._extra_attributes:
-                if attribute[0]:
-                    if attribute[0] == PROV['label']:
-                        label = attribute[1]
-                        #  use the first label found
-                        break
-        return label if label else self._identifier
+        return first(self._attributes[PROV_LABEL]) if self._attributes[PROV_LABEL] else self._identifier
 
     @property
     def value(self):
-        return self.get_attribute(PROV['value'])
+        return self._attributes[PROV_VALUE]
 
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
@@ -284,113 +265,41 @@ class ProvRecord(object):
         # No conversion here, return the original value
         return literal
 
-    def parse_extra_attributes(self, extra_attributes):
-        if isinstance(extra_attributes, dict):
-            #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
-            extra_attributes = extra_attributes.items()
-        attr_set = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
-        return attr_set
-
-    def add_extra_attributes(self, extra_attributes):
-        if extra_attributes:
-            if self._extra_attributes is None:
-                self._extra_attributes = set()
-            #  Check attributes for valid qualified names
-            attr_set = self.parse_extra_attributes(extra_attributes)
-            self._extra_attributes.update(attr_set)
-
-    def add_attributes(self, attributes, extra_attributes):
+    def add_attributes(self, attributes):
         if attributes:
-            if self._attributes is None:
-                self._attributes = attributes
-            else:
-                self._attributes.update(dict((k, v) for k, v in attributes.iteritems() if v is not None))
-        self.add_extra_attributes(extra_attributes)
+            if isinstance(attributes, dict):
+                #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
+                attributes = attributes.items()
+            for attr_name, original_value in attributes:
+                if original_value is None:
+                    continue
+                attr = self._bundle.valid_identifier(attr_name)  # make sure the attribute name is valid
+                if attr is None:
+                    raise ProvExceptionInvalidQualifiedName(attr_name)
+                if attr in PROV_ATTRIBUTES and self._attributes[attr]:
+                    raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
+                if attr in PROV_ATTRIBUTE_QNAMES:
+                    # Expecting a qualified name
+                    qname = original_value.identifier if isinstance(original_value, ProvRecord) else original_value
+                    value = self._bundle.valid_identifier(qname)
+                elif attr in PROV_ATTRIBUTE_LITERALS:
+                    value = original_value if isinstance(original_value, datetime.datetime) else \
+                        parse_xsd_datetime(original_value)
+                else:
+                    value = self._auto_literal_conversion(original_value)
 
-    def _parse_attribute(self, attribute, attribute_types):
-        if attribute_types is QName:
-            # Expecting a qualified name
-            qname = attribute.identifier if isinstance(attribute, ProvRecord) else attribute
-            return self._bundle.valid_identifier(qname)
+                if value is None:
+                    raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
 
-        # putting all the types in to a tuple:
-        if not isinstance(attribute_types, Iterable):
-            attribute_types = (attribute_types,)
-
-        #  Try to parse it with known datatype parsers
-        for datatype in attribute_types:
-            data = _parse_datatype(attribute, datatype)
-            if data is not None:
-                return data
-        return None
-
-    def _validate_attribute(self, attribute, attribute_types):
-        if isinstance(attribute, attribute_types):
-            #  The attribute is of a required type
-            #  Return it
-            return attribute
-        else:
-            #  The attribute is not of a valid type
-            #  Attempt to parse it
-            parsed_value = self._parse_attribute(attribute, attribute_types)
-            if parsed_value is None:
-                raise ProvExceptionNotValidAttribute(self.get_type(), attribute, attribute_types)
-            return parsed_value
-
-    def required_attribute(self, attributes, attribute_id, attribute_types):
-        if attribute_id not in attributes:
-            #  Raise an warning about the missing attribute
-            warnings.warn(ProvWarningMissingRequiredAttribute(self.get_type(), attribute_id))
-            return None
-        #  Found the required attribute
-        attribute = attributes.get(attribute_id)
-        return self._validate_attribute(attribute, attribute_types)
-
-    def optional_attribute(self, attributes, attribute_id, attribute_types):
-        if not attributes or attribute_id not in attributes:
-            #  Because this is optional, return nothing
-            return None
-        #  Found the optional attribute
-        attribute = attributes.get(attribute_id)
-        if attribute is None:
-            return None
-        #  Validate its type
-        return self._validate_attribute(attribute, attribute_types)
+                self._attributes[attr].add(value)
 
     def __eq__(self, other):
         if self.get_type() != other.get_type():
             return False
         if self._identifier and not (self._identifier == other._identifier):
             return False
-        if self._attributes and other._attributes:
-            if len(self._attributes) != len(other._attributes):
-                return False
-            for attr, value_a in self._attributes.items():
-                value_b = other._attributes[attr]
-                if not (value_a == value_b):
-                    return False
-        elif other._attributes and not self._attributes:
-            other_attrs = [(key, value) for key, value in other._attributes.items() if value is not None]
-            if other_attrs:
-                #  the other's attributes set is not empty.
-                return False
-        elif self._attributes and not other._attributes:
-            my_attrs = [(key, value) for key, value in self._attributes.items() if value is not None]
-            if my_attrs:
-                #  my attributes set is not empty.
-                return False
-        sattr = sorted(self._extra_attributes, key=_normalise_attributes) if self._extra_attributes else None
-        oattr = sorted(other._extra_attributes, key=_normalise_attributes) if other._extra_attributes else None
-        if sattr != oattr:
-            if logger.isEnabledFor(logging.DEBUG):
-                for spair, opair in zip(sattr, oattr):
-                    # Log the first unequal pair of attributes
-                    if spair != opair:
-                        logger.debug("Equality (ProvRecord): unequal attribute-value pairs - %s = %s - %s = %s",
-                                     spair[0], spair[1], opair[0], opair[1])
-                        break
-            return False
-        return True
+
+        return self._attributes == other._attributes
 
     def __unicode__(self):
         return self.get_provn()
@@ -398,34 +307,45 @@ class ProvRecord(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
-    def get_provn(self, _indent_level=0):
+    def get_provn(self):
         items = []
-        if self._identifier:
-            items.append(unicode(self._identifier))
-        if self._attributes:
-            for (attr, value) in self._attributes.items():
-                if value is None:
-                    items.append(u'-')
-                else:
-                    if isinstance(value, ProvRecord):
-                        record_id = value.identifier
-                        items.append(unicode(record_id))
-                    else:
-                        #  Assuming this is a datetime or QName value
-                        items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
 
-        if self._extra_attributes:
-            extra = []
-            for (attr, value) in self._extra_attributes:
-                try:
-                    #  try if there is a prov-n representation defined
-                    provn_represenation = value.provn_representation()
-                except AttributeError:
-                    provn_represenation = encoding_provn_value(value)
-                extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
-            if extra:
-                items.append(u'[%s]' % u', '.join(extra))
-        prov_n = u'%s(%s)' % (PROV_N_MAP[self.get_type()], u', '.join(items))
+        # Generating identifier
+        relation_id = u''  # default blank
+        if self._identifier:
+            identifier = unicode(self._identifier)  # TODO: QName export
+            if self.is_element():
+                items.append(identifier)
+            else:
+                # this is a relation
+                relation_id = identifier + '; '  # relations use ; to separate identifiers
+
+        # Writing out the formal attributes
+        for attr in self.FORMAL_ATTRIBUTES:
+            values = self._attributes[attr]
+            if values:
+                value = first(values)  # Formal attributes always have single values
+                # TODO: QName export
+                items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
+            else:
+                items.append(u'-')
+
+        # Writing out the remaining attributes
+        extra = []
+        for attr in self._attributes:
+            if attr not in self.FORMAL_ATTRIBUTES:
+                for value in self._attributes[attr]:
+                    try:
+                        # try if there is a prov-n representation defined
+                        provn_represenation = value.provn_representation()
+                    except AttributeError:
+                        provn_represenation = encoding_provn_value(value)
+                    # TODO: QName export
+                    extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
+
+        if extra:
+            items.append(u'[%s]' % u', '.join(extra))
+        prov_n = u'%s(%s%s)' % (PROV_N_MAP[self.get_type()], relation_id, u', '.join(items))
         return prov_n
 
     def is_element(self):
@@ -454,311 +374,141 @@ class ProvEntity(ProvElement):
 
 
 class ProvActivity(ProvElement):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
+
     def get_type(self):
         return PROV_ACTIVITY
 
-    def add_attributes(self, attributes, extra_attributes):
-        startTime = self.optional_attribute(attributes, PROV_ATTR_STARTTIME, datetime.datetime)
-        endTime = self.optional_attribute(attributes, PROV_ATTR_ENDTIME, datetime.datetime)
-        if startTime and endTime and startTime > endTime:
-            #  TODO Raise logic exception here
-            pass
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_STARTTIME] = startTime
-        attributes[PROV_ATTR_ENDTIME] = endTime
-
-        ProvElement.add_attributes(self, attributes, extra_attributes)
-
     #  Convenient methods
     def set_time(self, startTime=None, endTime=None):
-        #  The _attributes dict should have been initialised
         if startTime is not None:
-            self._attributes[PROV_ATTR_STARTTIME] = startTime
+            self._attributes[PROV_ATTR_STARTTIME] = {startTime}
         if endTime is not None:
-            self._attributes[PROV_ATTR_ENDTIME] = endTime
+            self._attributes[PROV_ATTR_ENDTIME] = {endTime}
 
     def get_startTime(self):
-        return self._attributes[PROV_ATTR_STARTTIME]
+        values = self._attributes[PROV_ATTR_STARTTIME]
+        return first(values) if values else None
 
     def get_endTime(self):
-        return self._attributes[PROV_ATTR_ENDTIME]
+        values = self._attributes[PROV_ATTR_ENDTIME]
+        return first(values) if values else None
 
 
 class ProvGeneration(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
+
     def get_type(self):
         return PROV_GENERATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
-        #  Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ENTITY] = entity
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_TIME] = time
-
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvUsage(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_ENTITY, PROV_ATTR_TIME)
+
     def get_type(self):
         return PROV_USAGE
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        #  Optional attributes
-        entity = self.optional_attribute(attributes, PROV_ATTR_ENTITY, QName)
-        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_ENTITY] = entity
-        attributes[PROV_ATTR_TIME] = time
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvCommunication(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT)
+
     def get_type(self):
         return PROV_COMMUNICATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        informed = self.required_attribute(attributes, PROV_ATTR_INFORMED, QName)
-        informant = self.required_attribute(attributes, PROV_ATTR_INFORMANT, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_INFORMED] = informed
-        attributes[PROV_ATTR_INFORMANT] = informant
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvStart(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER, PROV_ATTR_STARTER, PROV_ATTR_TIME)
+
     def get_type(self):
         return PROV_START
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        #  Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, QName)
-        starter = self.optional_attribute(attributes, PROV_ATTR_STARTER, QName)
-        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_TRIGGER] = trigger
-        attributes[PROV_ATTR_STARTER] = starter
-        attributes[PROV_ATTR_TIME] = time
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvEnd(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER, PROV_ATTR_ENDER, PROV_ATTR_TIME)
+
     def get_type(self):
         return PROV_END
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        #  Optional attributes
-        trigger = self.optional_attribute(attributes, PROV_ATTR_TRIGGER, QName)
-        ender = self.optional_attribute(attributes, PROV_ATTR_ENDER, QName)
-        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_TRIGGER] = trigger
-        attributes[PROV_ATTR_ENDER] = ender
-        attributes[PROV_ATTR_TIME] = time
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvInvalidation(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
+
     def get_type(self):
         return PROV_INVALIDATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
-        #  Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        time = self.optional_attribute(attributes, PROV_ATTR_TIME, datetime.datetime)
 
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ENTITY] = entity
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_TIME] = time
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-#  ## Component 2: Derivations
-
+### Component 2: Derivations
 class ProvDerivation(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
+                         PROV_ATTR_ACTIVITY, PROV_ATTR_GENERATION, PROV_ATTR_USAGE)
+
     def get_type(self):
         return PROV_DERIVATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        generatedEntity = self.required_attribute(attributes, PROV_ATTR_GENERATED_ENTITY, QName)
-        usedEntity = self.required_attribute(attributes, PROV_ATTR_USED_ENTITY, QName)
-        #  Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        generation = self.optional_attribute(attributes, PROV_ATTR_GENERATION, QName)
-        usage = self.optional_attribute(attributes, PROV_ATTR_USAGE, QName)
 
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_GENERATED_ENTITY] = generatedEntity
-        attributes[PROV_ATTR_USED_ENTITY] = usedEntity
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_GENERATION] = generation
-        attributes[PROV_ATTR_USAGE] = usage
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-#  ## Component 3: Agents, Responsibility, and Influence
-
+### Component 3: Agents, Responsibility, and Influence
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_AGENT
 
 
 class ProvAttribution(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_AGENT)
+
     def get_type(self):
         return PROV_ATTRIBUTION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
-        agent = self.required_attribute(attributes, PROV_ATTR_AGENT, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ENTITY] = entity
-        attributes[PROV_ATTR_AGENT] = agent
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvAssociation(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN)
+
     def get_type(self):
         return PROV_ASSOCIATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        activity = self.required_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-        #  Optional attributes
-        agent = self.optional_attribute(attributes, PROV_ATTR_AGENT, QName)
-        plan = self.optional_attribute(attributes, PROV_ATTR_PLAN, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        attributes[PROV_ATTR_AGENT] = agent
-        attributes[PROV_ATTR_PLAN] = plan
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvDelegation(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE, PROV_ATTR_ACTIVITY)
+
     def get_type(self):
         return PROV_DELEGATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        delegate = self.required_attribute(attributes, PROV_ATTR_DELEGATE, QName)
-        responsible = self.required_attribute(attributes, PROV_ATTR_RESPONSIBLE, QName)
-        #  Optional attributes
-        activity = self.optional_attribute(attributes, PROV_ATTR_ACTIVITY, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_DELEGATE] = delegate
-        attributes[PROV_ATTR_RESPONSIBLE] = responsible
-        attributes[PROV_ATTR_ACTIVITY] = activity
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvInfluence(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_INFLUENCEE, PROV_ATTR_INFLUENCER)
+
     def get_type(self):
         return PROV_INFLUENCE
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        influencee = self.required_attribute(attributes, PROV_ATTR_INFLUENCEE, QName)
-        influencer = self.required_attribute(attributes, PROV_ATTR_INFLUENCER, QName)
 
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_INFLUENCEE] = influencee
-        attributes[PROV_ATTR_INFLUENCER] = influencer
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-#  ## Component 4: Bundles
-
-#  See ProvBundle
-
-#  ## Component 5: Alternate Entities
-
+### Component 5: Alternate Entities
 class ProvSpecialization(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY)
+
     def get_type(self):
         return PROV_SPECIALIZATION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, QName)
-        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_SPECIFIC_ENTITY] = specificEntity
-        attributes[PROV_ATTR_GENERAL_ENTITY] = generalEntity
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvAlternate(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2)
+
     def get_type(self):
         return PROV_ALTERNATE
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        alternate1 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE1, QName)
-        alternate2 = self.required_attribute(attributes, PROV_ATTR_ALTERNATE2, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_ALTERNATE1] = alternate1
-        attributes[PROV_ATTR_ALTERNATE2] = alternate2
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
 
 class ProvMention(ProvSpecialization):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY, PROV_ATTR_BUNDLE)
+
     def get_type(self):
         return PROV_MENTION
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        specificEntity = self.required_attribute(attributes, PROV_ATTR_SPECIFIC_ENTITY, QName)
-        generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, QName)
-        bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, QName)
 
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_SPECIFIC_ENTITY] = specificEntity
-        attributes[PROV_ATTR_GENERAL_ENTITY] = generalEntity
-        attributes[PROV_ATTR_BUNDLE] = bundle
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
-
-
-#  ## Component 6: Collections
-
+### Component 6: Collections
 class ProvMembership(ProvRelation):
+    FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
+
     def get_type(self):
         return PROV_MEMBERSHIP
 
-    def add_attributes(self, attributes, extra_attributes):
-        #  Required attributes
-        collection = self.required_attribute(attributes, PROV_ATTR_COLLECTION, QName)
-        entity = self.required_attribute(attributes, PROV_ATTR_ENTITY, QName)
-
-        attributes = OrderedDict()
-        attributes[PROV_ATTR_COLLECTION] = collection
-        attributes[PROV_ATTR_ENTITY] = entity
-        ProvRelation.add_attributes(self, attributes, extra_attributes)
 
 #  Class mappings from PROV record type
 PROV_REC_CLS = {
@@ -823,10 +573,10 @@ class NamespaceManager(dict):
     def add_namespace(self, namespace):
         if namespace in self.values():
             #  no need to do anything
-            return
+            return namespace
         if namespace in self._rename_map:
             #  already renamed and added
-            return
+            return self._rename_map[namespace]
 
         prefix = namespace.prefix
         if prefix in self:
@@ -1004,7 +754,8 @@ class ProvBundle(object):
             lines.append('')
 
         #  adding all the records
-        lines.extend([record.get_provn(_indent_level + 1) for record in self._records])
+        lines.extend([record.get_provn() for record in self._records])
+        # TODO Print out sub-bundles
         provn_str = newline.join(lines) + '\n'
         #  closing the structure
         provn_str += indentation + ('endDocument' if self.is_document() else 'endBundle')
@@ -1033,12 +784,24 @@ class ProvBundle(object):
 
     #  Provenance statements
     def _add_record(self, record):
-        # TODO Keep bundles and records separated
         # TODO Build a map of records (by their identifier for fast lookup)
         self._records.append(record)
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
-        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes)
+        attr_list = []
+        if attributes:
+            if isinstance(attributes, dict):
+                attr_list.extend(
+                    (attr, value) for attr, value in attributes.items()
+                )
+            else:
+                # expecting a list of attributes here
+                attr_list.extend(attributes)
+        if other_attributes:
+            attr_list.extend(
+                other_attributes.items() if isinstance(other_attributes, dict) else other_attributes
+            )
+        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attr_list)
         self._add_record(new_record)
         return new_record
 
