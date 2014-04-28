@@ -10,8 +10,9 @@ from collections import defaultdict
 import datetime
 import json
 from prov import Serializer, Error
-from prov.contants import *
-from prov.model import Literal, Identifier, QName, Namespace, ProvDocument, first, parse_xsd_datetime
+from prov.constants import *
+from prov.model import (Literal, Identifier, QName, Namespace, ProvDocument,
+                        first, parse_xsd_datetime)
 
 
 class ProvJSONException(Error):
