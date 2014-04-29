@@ -131,7 +131,6 @@ class ProvRDFSerializer(Serializer):
                 for idx, (attr, value) in enumerate(record._attributes.items()):
                     if record.is_relation():
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
-                        print idx, attr, value
                         if idx == 0:
                             identifier = URIRef(value.uri)
                         elif idx == 1:
