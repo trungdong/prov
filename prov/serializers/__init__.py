@@ -19,9 +19,11 @@ class Registry:
     @staticmethod
     def load_serializers():
         from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provrdf import ProvRDFSerializer
 
         Registry.serializers = {
-            'json': ProvJSONSerializer
+            'json': ProvJSONSerializer,
+            'rdf': ProvRDFSerializer
         }
 
 
