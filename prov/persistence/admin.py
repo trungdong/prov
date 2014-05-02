@@ -1,8 +1,8 @@
-'''Django Admin interface for prov.persistence
+"""Django Admin interface for prov.persistence
 
 @author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2012
-'''
+@copyright: University of Southampton 2014
+"""
 
 from django.contrib import admin
 from prov.persistence.models import PDBundle, PDNamespace

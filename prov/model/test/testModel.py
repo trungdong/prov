@@ -1,11 +1,10 @@
-'''
+"""
 Created on Jan 25, 2012
 
 @author: Trung Dong Huynh
-'''
+"""
 import unittest
-from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute,\
-    ProvException
+from prov.model import ProvBundle, ProvRecord, ProvExceptionCannotUnifyAttribute
 import logging
 import json
 import examples
@@ -111,7 +110,8 @@ class TestFlattening(unittest.TestCase):
 
     def test2(self):
         target = ProvBundle()
-        target.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"), ('prov:role', "ex:dataToCompose2")))
+        target.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"),
+                                                        ('prov:role', "ex:dataToCompose2")))
 
         result = ProvBundle()
         result.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose1"})
@@ -122,12 +122,14 @@ class TestFlattening(unittest.TestCase):
 
     def test3(self):
         target = ProvBundle()
-        target.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"), ('prov:role', "ex:dataToCompose2")))
+        target.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"),
+                                                        ('prov:role', "ex:dataToCompose2")))
 
         result = ProvBundle()
         result.activity('ex:compose', other_attributes={'prov:role': "ex:dataToCompose1"})
         result_inner = ProvBundle(identifier="ex:bundle1")
-        result_inner.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"), ('prov:role', "ex:dataToCompose2")))
+        result_inner.activity('ex:compose', other_attributes=(('prov:role', "ex:dataToCompose1"),
+                                                              ('prov:role', "ex:dataToCompose2")))
         result.add_bundle(result_inner)
         self.assertEqual(result.get_flattened(), target)
 
@@ -139,7 +141,10 @@ class TestFlattening(unittest.TestCase):
         for record in records:
             for attr_value in (record._attributes or {}).values():
                 if attr_value and isinstance(attr_value, ProvRecord):
-                    self.assertIn(attr_value, records, 'Document does not contain the record %s with id %i (related to %s)' % (attr_value, id(attr_value), record))
+                    self.assertIn(attr_value, records,
+                                  'Document does not contain the record %s with id %i (related to %s)' %
+                                  (attr_value, id(attr_value), record)
+                    )
 
     def test_inferred_retyping_in_flattened_documents(self):
         g = ProvBundle()
@@ -192,11 +197,13 @@ class TestFlattening(unittest.TestCase):
         }"""
         g = ProvBundle.from_provjson(test_json)
         e1 = g.get_record("e1")
-        self.assertEqual(len(e1.get_attribute('prov:label')), 2, "e1 was not merged correctly, expecting two prov:label attributes")
+        self.assertEqual(len(e1.get_attribute('prov:label')), 2,
+                         "e1 was not merged correctly, expecting two prov:label attributes")
         a1 = g.get_record("a1")
         self.assertIsNotNone(a1.get_startTime(), "a1 was not merged correctly, expecting startTime set.")
         self.assertIsNotNone(a1.get_endTime(), "a1 was not merged correctly, expecting startTime set.")
-        self.assertEqual(len(a1.get_attribute('prov:label')), 1, "a1 was not merged correctly, expecting one prov:label attribute")
+        self.assertEqual(len(a1.get_attribute('prov:label')), 1,
+                         "a1 was not merged correctly, expecting one prov:label attribute")
 
     def test_datetime_with_tz(self):
         """ test that timezone is taken in to account while parsing json"""

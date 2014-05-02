@@ -1,4 +1,4 @@
-'''Django app for persisting prov.model.ProvBundle
+"""Django app for persisting prov.model.ProvBundle
 
 Save and load provenance bundles from databases
 
@@ -7,8 +7,8 @@ References:
 PROV-DM: http://www.w3.org/TR/prov-dm/
 
 @author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2012
-'''
+@copyright: University of Southampton 2014
+"""
 
 from collections import defaultdict, OrderedDict
 import uuid

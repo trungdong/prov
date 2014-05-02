@@ -17,7 +17,8 @@ def primer_example():
     g.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
 
     #    entity(ex:article, [dcterms:title="Crime rises in cities"])
-    g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})  # first time the ex namespace was used, it is added to the document automatically
+    g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})
+    # first time the ex namespace was used, it is added to the document automatically
     #    entity(ex:articleV1)
     g.entity(ex['articleV1'])
     #    entity(ex:articleV2)
@@ -67,7 +68,8 @@ def primer_example():
     #
     #    agent(ex:derek, [ prov:type="prov:Person", foaf:givenName = "Derek",
     #           foaf:mbox= "<mailto:derek@example.org>"])
-    g.agent('ex:derek', {'prov:type': PROV["Person"], 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
+    g.agent('ex:derek', {'prov:type': PROV["Person"], 'foaf:givenName': "Derek",
+                         'foaf:mbox': "<mailto:derek@example.org>"})
     #    wasAssociatedWith(ex:compose, ex:derek, -)
     g.wasAssociatedWith('ex:compose', 'ex:derek')
     #    wasAssociatedWith(ex:illustrate, ex:derek, -)
@@ -408,11 +410,16 @@ Line3"""
 def long_literals():
     g = ProvBundle()
 
-    long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
+    long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/" \
+               "venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/" \
+               "platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
     ex = Namespace('ex', long_uri)
     g.add_namespace(ex)
 
-    g.entity('ex:e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
+    g.entity('ex:e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque'
+                                     ' luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium'
+                                     ' rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a '
+                                     'facilisis turpis. Lorem volutpat.'})
 
     return g
 

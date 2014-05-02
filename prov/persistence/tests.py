@@ -1,8 +1,8 @@
-'''Test cases for the prov.persistence Django app
+"""Test cases for the prov.persistence Django app
 
 @author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2012
-'''
+@copyright: University of Southampton 2014
+"""
 
 import unittest
 import logging

@@ -1,4 +1,4 @@
-'''Python implemetation of the W3C Provenance Data Model (PROV-DM)
+"""Python implementation of the W3C Provenance Data Model (PROV-DM)
 
 Support for PROV-JSON import/export
 
@@ -8,12 +8,11 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 
 @author: Trung Dong Huynh <trungdong@donggiang.com>
 @copyright: University of Southampton 2013
-'''
+"""
 
 import logging
 import datetime
 import json
-import re
 import dateutil.parser
 import collections
 from collections import defaultdict
@@ -158,7 +157,7 @@ PROV_RECORD_ATTRIBUTES = (
     (PROV_ATTR_ENDTIME, u'prov:endTime'),
 )
 
-PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
+PROV_ATTRIBUTE_LITERALS = {PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME}
 
 PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
@@ -255,7 +254,8 @@ class Literal(object):
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
                 datatype = PROV["InternationalizedString"]
             elif datatype != PROV["InternationalizedString"]:
-                logger.warn('Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' % (value, langtag))
+                logger.warn('Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' %
+                            (datatype, value, langtag))
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
         self._langtag = langtag
@@ -267,7 +267,12 @@ class Literal(object):
         return unicode(self).encode('utf-8')
 
     def __eq__(self, other):
-        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
+        return (
+            self._value == other._value and
+            self._datatype == other._datatype and
+            self._langtag == other._langtag
+            if isinstance(other, Literal) else False
+        )
 
     def __hash__(self):
         return hash((self._value, self._datatype, self._langtag))
@@ -370,11 +375,15 @@ class Namespace(object):
         return self._uri
 
     def contains(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        uri = identifier if isinstance(identifier, (str, unicode)) else (
+            identifier.get_uri() if isinstance(identifier, Identifier) else None
+        )
         return uri.startswith(self._uri) if uri else False
 
     def qname(self, identifier):
-        uri = identifier if isinstance(identifier, (str, unicode)) else (identifier.get_uri() if isinstance(identifier, Identifier) else None)
+        uri = identifier if isinstance(identifier, (str, unicode)) else (
+            identifier.get_uri() if isinstance(identifier, Identifier) else None
+        )
         if uri and uri.startswith(self._uri):
             return QName(self, uri[len(self._uri):])
         else:
@@ -411,7 +420,9 @@ class ProvExceptionMissingRequiredAttribute(ProvException):
         self.args += (PROV_N_MAP[record_type], attribute_id)
 
     def __str__(self):
-        return 'Missing the required attribute "%s" in %s' % (PROV_ID_ATTRIBUTES_MAP[self.attribute_id], PROV_N_MAP[self.record_type])
+        return 'Missing the required attribute "%s" in %s' % (
+            PROV_ID_ATTRIBUTES_MAP[self.attribute_id], PROV_N_MAP[self.record_type]
+        )
 
 
 class ProvExceptionNotValidAttribute(ProvException):
@@ -433,7 +444,9 @@ class ProvExceptionCannotUnifyAttribute(ProvException):
         self.args += (identifier, PROV_N_MAP[record_type1], PROV_N_MAP[record_type2])
 
     def __str__(self):
-        return 'Cannot unify two records of type %s and %s with same identifier (%s)' % (self.identifier, PROV_N_MAP[self.record_type1], PROV_N_MAP[self.record_type2])
+        return 'Cannot unify two records of type %s and %s with same identifier (%s)' % (
+            self.identifier, PROV_N_MAP[self.record_type1], PROV_N_MAP[self.record_type2]
+        )
 
 
 class ProvExceptionContraint(ProvException):
@@ -448,7 +461,8 @@ class ProvExceptionContraint(ProvException):
 #  PROV records
 class ProvRecord(object):
     """Base class for PROV _records."""
-    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True, allowed_types=None, infered_for=None):
+    def __init__(self, bundle, identifier, attributes=None, other_attributes=None, asserted=True,
+                 allowed_types=None, infered_for=None):
         self._bundle = bundle
         self._identifier = identifier
         self._asserted = asserted
@@ -510,8 +524,8 @@ class ProvRecord(object):
         return self.get_attribute(PROV['value'])
 
     def _auto_literal_conversion(self, literal):
-        '''This method normalise datatype for literals
-        '''
+        """This method normalise datatype for literals
+        """
         if isinstance(literal, basestring):
             return unicode(literal)
 
@@ -529,7 +543,10 @@ class ProvRecord(object):
         if isinstance(extra_attributes, dict):
             #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
             extra_attributes = extra_attributes.items()
-        attr_set = set((self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value)) for attribute, value in extra_attributes)
+        attr_set = set(
+            (self._bundle.valid_identifier(attribute), self._auto_literal_conversion(value))
+            for attribute, value in extra_attributes
+        )
         return attr_set
 
     def add_extra_attributes(self, extra_attributes):
@@ -549,7 +566,7 @@ class ProvRecord(object):
         self.add_extra_attributes(extra_attributes)
 
     def get_attributes(self):
-        return (self._attributes, self._extra_attributes)
+        return self._attributes, self._extra_attributes
 
     def get_bundle(self):
         return self._bundle
@@ -557,7 +574,7 @@ class ProvRecord(object):
     def _parse_identifier(self, value):
         try:
             return value.get_identifier()
-        except:
+        except AttributeError:
             return self._bundle.valid_identifier(value)
 
     def _parse_record(self, attribute, attribute_types):
@@ -710,7 +727,7 @@ class ProvRecord(object):
                 try:
                     #  try if there is a prov-n representation defined
                     provn_represenation = value.provn_representation()
-                except:
+                except AttributeError:
                     provn_represenation = encoding_PROV_N_value(value)
                 extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
             if extra:
@@ -1081,11 +1098,12 @@ class ProvMention(ProvSpecialization):
         generalEntity = self.required_attribute(attributes, PROV_ATTR_GENERAL_ENTITY, Identifier)
         bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, Identifier)
         #=======================================================================
-        #  # This is disabled so that mentionOf can refer to bundle that is not defined in the same place
-        #  bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, ProvBundle)
-        #  # Check if generalEntity is in the bundle
-        #  if generalEntity.get_bundle() is not bundle:
-        #    raise ProvExceptionContraint(PROV_REC_MENTION, generalEntity, bundle, 'The generalEntity must belong to the bundle')
+        # # This is disabled so that mentionOf can refer to bundle that is not defined in the same place
+        # bundle = self.required_attribute(attributes, PROV_ATTR_BUNDLE, ProvBundle)
+        # # Check if generalEntity is in the bundle
+        # if generalEntity.get_bundle() is not bundle:
+        #    raise ProvExceptionContraint(PROV_REC_MENTION, generalEntity, bundle,
+        #                                 'The generalEntity must belong to the bundle')
         #=======================================================================
 
         attributes = OrderedDict()
@@ -1139,7 +1157,9 @@ PROV_REC_CLS = {
 
 #  Bundle
 class NamespaceManager(dict):
-    def __init__(self, namespaces={}, default_namespaces={PROV.get_prefix(): PROV, XSD.get_prefix(): XSD}, default=None, parent=None):
+    def __init__(self, namespaces={}, default_namespaces={PROV.get_prefix(): PROV, XSD.get_prefix(): XSD},
+                 default=None, parent=None):
+        dict.__init__(self)
         self._default_namespaces = {}
         self._default_namespaces.update(default_namespaces)
         self.update(self._default_namespaces)
@@ -1174,10 +1194,10 @@ class NamespaceManager(dict):
     def add_namespace(self, namespace):
         if namespace in self.values():
             #  no need to do anything
-            return
+            return namespace
         if namespace in self._rename_map:
             #  already renamed and added
-            return
+            return self._rename_map[namespace]
 
         prefix = namespace.get_prefix()
         if prefix in self:
@@ -1264,7 +1284,8 @@ class NamespaceManager(dict):
 
 
 class ProvBundle(ProvEntity):
-    def __init__(self, bundle=None, identifier=None, attributes=None, other_attributes=None, asserted=True, namespaces={}):
+    def __init__(self, bundle=None, identifier=None, attributes=None, other_attributes=None,
+                 asserted=True, namespaces={}):
         #  Initializing bundle-specific attributes
         self._records = list()
         self._id_map = dict()
@@ -1311,7 +1332,7 @@ class ProvBundle(ProvEntity):
         valid_id = self.valid_identifier(identifier)
         try:
             return self._id_map[valid_id]
-        except:
+        except KeyError:
             #  looking up the parent bundle
             if self._bundle is not None:
                 return self._bundle.get_record(valid_id)
@@ -1322,7 +1343,7 @@ class ProvBundle(ProvEntity):
         try:
             valid_id = self.valid_identifier(identifier)
             return self._bundles[valid_id]
-        except:
+        except KeyError:
             #  looking up the parent bundle
             if self._bundle is not None:
                 return self._bundle.get_bundle(valid_id)
@@ -1407,7 +1428,8 @@ class ProvBundle(ProvEntity):
                             record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = unicode(attr_record_id)
                         elif value is not None:
                             #  Assuming this is a datetime value
-                            record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = value.isoformat() if isinstance(value, datetime.datetime) else unicode(value)
+                            record_json[PROV_ID_ATTRIBUTES_MAP[attr]] = \
+                                value.isoformat() if isinstance(value, datetime.datetime) else unicode(value)
                 if record._extra_attributes:
                     for (attr, value) in record._extra_attributes:
                         attr_id = unicode(attr)
@@ -1418,7 +1440,7 @@ class ProvBundle(ProvEntity):
                             try:
                                 #  Add the value to the current list of values
                                 existing_value.append(value_json)
-                            except:
+                            except AttributeError:
                                 #  But if the existing value is not a list, it'll fail
                                 #  create the list for the existing value and the second value
                                 record_json[attr_id] = [existing_value, value_json]
@@ -1442,7 +1464,8 @@ class ProvBundle(ProvEntity):
                          key=lambda tuple_rec: tuple_rec[0])
 
         record_map = {}
-        _parse_attr_value = lambda value: record_map[value] if (isinstance(value, basestring) and value in record_map) else self._decode_json_representation(value)
+        _parse_attr_value = lambda value: record_map[value] if (isinstance(value, basestring) and value in record_map)\
+            else self._decode_json_representation(value)
         #  Create all the records before setting their attributes
         for (record_type, identifier, content) in records:
             if record_type == PROV_REC_BUNDLE:
@@ -1479,9 +1502,11 @@ class ProvBundle(ProvEntity):
                                         # This is a membership relation with multiple entities
                                         # HACK: create multiple membership relations, one for each entity
                                         membership_extra_members = value[1:]  # Store all the extra entities
-                                        value = value[0]  # Create the first membership relation as normal for the first entity
+                                        # Create the first membership relation as normal for the first entity
+                                        value = value[0]
                                     else:
-                                        error_msg = 'The prov package does not support PROV attributes having multiple values.'
+                                        error_msg = 'The prov package does not support PROV attributes having' \
+                                                    ' multiple values.'
                                         logger.error(error_msg)
                                         raise ProvException(error_msg)
                             prov_attributes[attr_id] = _parse_attr_value(value)
@@ -1489,7 +1514,10 @@ class ProvBundle(ProvEntity):
                             attr_id = self.valid_identifier(attr)
                             if isinstance(value, list):
                                 #  Parsing multi-value attribute
-                                extra_attributes.extend((attr_id, self._decode_json_representation(value_single)) for value_single in value)
+                                extra_attributes.extend(
+                                    (attr_id, self._decode_json_representation(value_single))
+                                    for value_single in value
+                                )
                             else:
                                 #  add the single-value attribute
                                 extra_attributes.append((attr_id, self._decode_json_representation(value)))
@@ -1525,14 +1553,20 @@ class ProvBundle(ProvEntity):
 
             registered_namespaces = self._namespaces.get_registered_namespaces()
             if registered_namespaces:
-                records.extend(['prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri()) for namespace in registered_namespaces])
+                records.extend([
+                    'prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri())
+                    for namespace in registered_namespaces
+                ])
 
             if default_namespace or registered_namespaces:
                 #  a blank line between the prefixes and the assertions
                 records.append('')
 
         #  adding all the records
-        records.extend([record.get_provn(_indent_level + 1) for record in self._records if record.is_asserted() or not asserted_only])
+        records.extend([
+            record.get_provn(_indent_level + 1) for record in self._records
+            if record.is_asserted() or not asserted_only
+        ])
         provn_str = newline.join(records) + '\n'
         #  closing the structure
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
@@ -1541,7 +1575,8 @@ class ProvBundle(ProvEntity):
     def get_provjson(self, **kw):
         """Return the `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ representation for the bundle/document.
 
-        Parameters for `json.dumps <http://docs.python.org/2/library/json.html#json.dumps>`_ like `indent=4` can be also passed as keyword arguments.
+        Parameters for `json.dumps <http://docs.python.org/2/library/json.html#json.dumps>`_ like `indent=4` can be also
+        passed as keyword arguments.
         """
         # Prevent overwriting the encoder class
         if 'cls' in kw:
@@ -1551,9 +1586,11 @@ class ProvBundle(ProvEntity):
 
     @staticmethod
     def from_provjson(json_content, **kw):
-        """Construct the bundle/document from the given `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ representation.
+        """Construct the bundle/document from the given `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_
+        representation.
 
-        Parameters for `json.loads <http://docs.python.org/2/library/json.html#json.loads>`_ can be also passed as keyword arguments.
+        Parameters for `json.loads <http://docs.python.org/2/library/json.html#json.loads>`_ can be also passed as
+        keyword arguments.
         """  # Prevent overwriting the decoder class
         if 'cls' in kw:
             del kw['cls']
@@ -1607,7 +1644,10 @@ class ProvBundle(ProvEntity):
                         logger.debug("%s", unicode(record_b))
                         return False
                 else:
-                    logger.debug("Equality (ProvBundle): Could not find a record with this identifier: %s", unicode(record_a._identifier))
+                    logger.debug(
+                        "Equality (ProvBundle): Could not find a record with this identifier: %s",
+                        unicode(record_a._identifier)
+                    )
                     return False
             else:
                 #  Manually look for the record
@@ -1642,10 +1682,12 @@ class ProvBundle(ProvEntity):
                             self._id_map[record._identifier] = record
                             self._records.append(record)
                         else:
-                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(),
+                                                                    record.get_type())
                     else:
                         if record.get_type() != merge_target.get_type():
-                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(), record.get_type())
+                            raise ProvExceptionCannotUnifyAttribute(record._identifier, merge_target.get_type(),
+                                                                    record.get_type())
                         merge_target.add_attributes(record._attributes, record._extra_attributes)
                 else:
                     self._records.append(record)
@@ -1654,7 +1696,8 @@ class ProvBundle(ProvEntity):
             self._records.append(record)
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None, asserted=True):
-        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes, asserted)
+        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attributes, other_attributes,
+                                               asserted)
         self._add_record(new_record)
         return new_record
 
@@ -1665,10 +1708,10 @@ class ProvBundle(ProvEntity):
         return record
 
     def add_bundle(self, bundle, identifier=None):
-        '''Add a bundle to the current document
-        '''
+        """Add a bundle to the current document
+        """
 
-        if identifier == None:
+        if identifier is None:
             identifier = bundle.get_identifier()
 
         if not identifier:
@@ -1698,42 +1741,107 @@ class ProvBundle(ProvEntity):
         return self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
 
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        return self.add_element(PROV_REC_ACTIVITY, identifier, {PROV_ATTR_STARTTIME: _ensure_datetime(startTime), PROV_ATTR_ENDTIME: _ensure_datetime(endTime)}, other_attributes)
+        return self.add_element(
+            PROV_REC_ACTIVITY, identifier, {
+                PROV_ATTR_STARTTIME: _ensure_datetime(startTime),
+                PROV_ATTR_ENDTIME: _ensure_datetime(endTime)
+            }, other_attributes
+        )
 
     def generation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_GENERATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
+        return self.add_record(
+            PROV_REC_GENERATION, identifier, {
+                PROV_ATTR_ENTITY: entity,
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_TIME: _ensure_datetime(time)
+            }, other_attributes
+        )
 
     def usage(self, activity, entity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_USAGE, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_ENTITY: entity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
+        return self.add_record(
+            PROV_REC_USAGE, identifier, {
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_ENTITY: entity,
+                PROV_ATTR_TIME: _ensure_datetime(time)
+            }, other_attributes
+        )
 
     def start(self, activity, trigger=None, starter=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_START, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_STARTER: starter, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
+        return self.add_record(
+            PROV_REC_START, identifier, {
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_TRIGGER: trigger,
+                PROV_ATTR_STARTER: starter,
+                PROV_ATTR_TIME: _ensure_datetime(time)
+            }, other_attributes
+        )
 
     def end(self, activity, trigger=None, ender=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_END, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TRIGGER: trigger, PROV_ATTR_ENDER: ender, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
+        return self.add_record(
+            PROV_REC_END, identifier, {
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_TRIGGER: trigger,
+                PROV_ATTR_ENDER: ender,
+                PROV_ATTR_TIME: _ensure_datetime(time)
+            }, other_attributes
+        )
 
     def invalidation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_INVALIDATION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_ACTIVITY: activity, PROV_ATTR_TIME: _ensure_datetime(time)}, other_attributes)
+        return self.add_record(
+            PROV_REC_INVALIDATION, identifier, {
+                PROV_ATTR_ENTITY: entity,
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_TIME: _ensure_datetime(time)
+            }, other_attributes
+        )
 
     def communication(self, informed, informant, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_COMMUNICATION, identifier, {PROV_ATTR_INFORMED: informed, PROV_ATTR_INFORMANT: informant}, other_attributes)
+        return self.add_record(
+            PROV_REC_COMMUNICATION, identifier, {
+                PROV_ATTR_INFORMED: informed,
+                PROV_ATTR_INFORMANT: informant
+            }, other_attributes
+        )
 
     def agent(self, identifier, other_attributes=None):
         return self.add_element(PROV_REC_AGENT, identifier, None, other_attributes)
 
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ATTRIBUTION, identifier, {PROV_ATTR_ENTITY: entity, PROV_ATTR_AGENT: agent}, other_attributes)
+        return self.add_record(
+            PROV_REC_ATTRIBUTION, identifier, {
+                PROV_ATTR_ENTITY: entity,
+                PROV_ATTR_AGENT: agent
+            }, other_attributes
+        )
 
     def association(self, activity, agent=None, plan=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ASSOCIATION, identifier, {PROV_ATTR_ACTIVITY: activity, PROV_ATTR_AGENT: agent, PROV_ATTR_PLAN: plan}, other_attributes)
+        return self.add_record(
+            PROV_REC_ASSOCIATION, identifier, {
+                PROV_ATTR_ACTIVITY: activity,
+                PROV_ATTR_AGENT: agent,
+                PROV_ATTR_PLAN: plan
+            }, other_attributes
+        )
 
     def delegation(self, delegate, responsible, activity=None, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_DELEGATION, identifier, {PROV_ATTR_DELEGATE: delegate, PROV_ATTR_RESPONSIBLE: responsible, PROV_ATTR_ACTIVITY: activity}, other_attributes)
+        return self.add_record(
+            PROV_REC_DELEGATION, identifier, {
+                PROV_ATTR_DELEGATE: delegate,
+                PROV_ATTR_RESPONSIBLE: responsible,
+                PROV_ATTR_ACTIVITY: activity
+            }, other_attributes
+        )
 
     def influence(self, influencee, influencer, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_INFLUENCE, identifier, {PROV_ATTR_INFLUENCEE: influencee, PROV_ATTR_INFLUENCER: influencer}, other_attributes)
+        return self.add_record(
+            PROV_REC_INFLUENCE, identifier, {
+                PROV_ATTR_INFLUENCEE: influencee,
+                PROV_ATTR_INFLUENCER: influencer
+            }, other_attributes
+        )
 
-    def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
+    def derivation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, identifier=None,
+                   other_attributes=None):
         attributes = {PROV_ATTR_GENERATED_ENTITY: generatedEntity,
                       PROV_ATTR_USED_ENTITY: usedEntity,
                       PROV_ATTR_ACTIVITY: activity,
@@ -1741,29 +1849,54 @@ class ProvBundle(ProvEntity):
                       PROV_ATTR_USAGE: usage}
         return self.add_record(PROV_REC_DERIVATION, identifier, attributes, other_attributes)
 
-    def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
-        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+    def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, identifier=None,
+                 other_attributes=None):
+        record = self.derivation(
+            generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes
+        )
         record.add_asserted_type(PROV['Revision'])
         return record
 
-    def quotation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
-        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+    def quotation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, identifier=None,
+                  other_attributes=None):
+        record = self.derivation(
+            generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes
+        )
         record.add_asserted_type(PROV['Quotation'])
         return record
 
-    def primary_source(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, time=None, identifier=None, other_attributes=None):
-        record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, time, identifier, other_attributes)
+    def primary_source(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None, identifier=None,
+                       other_attributes=None):
+        record = self.derivation(
+            generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes
+        )
         record.add_asserted_type(PROV['PrimarySource'])
         return record
 
     def specialization(self, specificEntity, generalEntity, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_SPECIALIZATION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity}, other_attributes)
+        return self.add_record(
+            PROV_REC_SPECIALIZATION, identifier, {
+                PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
+                PROV_ATTR_GENERAL_ENTITY: generalEntity
+            }, other_attributes
+        )
 
     def alternate(self, alternate1, alternate2, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_ALTERNATE, identifier, {PROV_ATTR_ALTERNATE1: alternate1, PROV_ATTR_ALTERNATE2: alternate2}, other_attributes)
+        return self.add_record(
+            PROV_REC_ALTERNATE, identifier, {
+                PROV_ATTR_ALTERNATE1: alternate1,
+                PROV_ATTR_ALTERNATE2: alternate2
+            }, other_attributes
+        )
 
     def mention(self, specificEntity, generalEntity, bundle, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_MENTION, identifier, {PROV_ATTR_SPECIFIC_ENTITY: specificEntity, PROV_ATTR_GENERAL_ENTITY: generalEntity, PROV_ATTR_BUNDLE: bundle}, other_attributes)
+        return self.add_record(
+            PROV_REC_MENTION, identifier, {
+                PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
+                PROV_ATTR_GENERAL_ENTITY: generalEntity,
+                PROV_ATTR_BUNDLE: bundle
+            }, other_attributes
+        )
 
     def collection(self, identifier, other_attributes=None):
         record = self.add_element(PROV_REC_ENTITY, identifier, None, other_attributes)
@@ -1771,7 +1904,12 @@ class ProvBundle(ProvEntity):
         return record
 
     def membership(self, collection, entity, identifier=None, other_attributes=None):
-        return self.add_record(PROV_REC_MEMBERSHIP, identifier, {PROV_ATTR_COLLECTION: collection, PROV_ATTR_ENTITY: entity}, other_attributes)
+        return self.add_record(
+            PROV_REC_MEMBERSHIP, identifier, {
+                PROV_ATTR_COLLECTION: collection,
+                PROV_ATTR_ENTITY: entity
+            }, other_attributes
+        )
 
     def bundle(self, identifier, other_attributes=None):
         return self.add_element(PROV_REC_BUNDLE, identifier, None, other_attributes)
