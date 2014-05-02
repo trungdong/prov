@@ -8,14 +8,16 @@ with open('LICENCE.txt') as f:
 
 setup(
     name='prov',
-    version='0.5.3',
+    version='0.5.4',
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
-    packages=['prov', 'prov.model', 'prov.persistence', 'prov.persistence.migrations', 'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
+    packages=['prov', 'prov.model', 'prov.persistence', 'prov.persistence.migrations',
+              'prov.tracking', 'prov.model.test', 'prov.tracking.test'],
     scripts=[],
     url='https://github.com/trungdong/prov',
     license=licence,
-    description='A Python implementation of PROV data model, providing simple provenance tracking and persistence using Django ORM.',
+    description='A Python implementation of PROV data model, providing simple provenance tracking and persistence '
+                'using Django ORM.',
     long_description=long_description,
     extras_require={
         'graph-export': ['pydot'],
@@ -24,7 +26,8 @@ setup(
     },
     install_requires=['python-dateutil'], 
     provides=['prov'],
-    keywords=['provenance', 'graph', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON', 'Django'],
+    keywords=['provenance', 'graph', 'model', 'persistence', 'tracking', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON',
+              'Django'],
     classifiers=[
           'Development Status :: 4 - Beta',
           'Environment :: Console',
@@ -39,5 +42,5 @@ setup(
           'Topic :: Scientific/Engineering :: Information Analysis',
           'Topic :: Security',
           'Topic :: System :: Logging',
-          ]
+    ]
 )
