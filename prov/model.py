@@ -756,8 +756,11 @@ class ProvBundle(object):
 
         #  adding all the records
         lines.extend([record.get_provn() for record in self._records])
-        # TODO Print out sub-bundles
+        if self.is_document():
+            # Print out bundles
+            lines.extend(bundle.get_provn(_indent_level + 1) for bundle in self.bundles)
         provn_str = newline.join(lines) + '\n'
+
         #  closing the structure
         provn_str += indentation + ('endDocument' if self.is_document() else 'endBundle')
         return provn_str
