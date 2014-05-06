@@ -217,6 +217,12 @@ class ProvRecord(object):
         if attributes:
             self.add_attributes(attributes)
 
+    def copy(self):
+        """
+        Return an exact copy of this record.
+        """
+        return PROV_REC_CLS[self.get_type()](self._bundle, self.identifier, self.attributes)
+
     def get_type(self):
         """Returning the PROV type of the record"""
         pass
@@ -237,7 +243,7 @@ class ProvRecord(object):
 
     @property
     def attributes(self):
-        return self._attributes
+        return [(attr_name, value) for attr_name, values in self._attributes.items() for value in values]
 
     @property
     def bundle(self):
@@ -277,8 +283,7 @@ class ProvRecord(object):
                 attr = self._bundle.valid_identifier(attr_name)  # make sure the attribute name is valid
                 if attr is None:
                     raise ProvExceptionInvalidQualifiedName(attr_name)
-                if attr in PROV_ATTRIBUTES and self._attributes[attr]:
-                    raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
+
                 if attr in PROV_ATTRIBUTE_QNAMES:
                     # Expecting a qualified name
                     qname = original_value.identifier if isinstance(original_value, ProvRecord) else original_value
@@ -291,6 +296,14 @@ class ProvRecord(object):
 
                 if value is None:
                     raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
+
+                if attr in PROV_ATTRIBUTES and self._attributes[attr]:
+                    existing_value = first(self._attributes[attr])
+                    if value != existing_value:
+                        raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
+                    else:
+                        # Same value, ignore it
+                        continue
 
                 self._attributes[attr].add(value)
 
@@ -664,13 +677,16 @@ class NamespaceManager(dict):
 
 
 class ProvBundle(object):
-    def __init__(self, identifier=None, namespaces=None, document=None):
+    def __init__(self, records=None, identifier=None, namespaces=None, document=None):
         #  Initializing bundle-specific attributes
         self._identifier = identifier
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
         self._namespaces = NamespaceManager(namespaces, parent=(document.namespaces if document is not None else None))
+        if records:
+            for record in records:
+                self._add_record(record)
 
     @property
     def namespaces(self):
@@ -786,9 +802,54 @@ class ProvBundle(object):
                 return False
         return True
 
+    # Transformations
+    def _unified_records(self):
+        """Returns a list of unified records
+        """
+        # TODO: Check unification rules in the PROV-CONSTRAINTS document
+        # This method simply merges the records having the same name
+        merged_records = dict()
+        for identifier, records in self._id_map.items():
+            if len(records) > 1:  # more than one record having the same identifier
+                # merge the records
+                merged = records[0].copy()
+                for record in records[1:]:
+                    merged.add_attributes(record.attributes)
+                # map all of them to the merged record
+                for record in records:
+                    merged_records[record] = merged
+        if not merged_records:
+            # No merging done, just return the list of original records
+            return list(self._records)
+
+        added_merged_records = set()
+        unified_records = list()
+        for record in self._records:
+            if record in merged_records:
+                merged = merged_records[record]
+                if merged not in added_merged_records:
+                    unified_records.append(merged)
+                    added_merged_records.add(merged)
+            else:
+                # add the original record
+                unified_records.append(record)
+        return unified_records
+
+    def unified(self):
+        """
+        Returns a new ProvBundle in which all records having the same identifier are unified
+        """
+        unified_records = self._unified_records()
+        bundle = ProvBundle(records=unified_records, identifier=self.identifier)
+        return bundle
+
     #  Provenance statements
     def _add_record(self, record):
-        # TODO Build a map of records (by their identifier for fast lookup)
+        # IMPORTANT: All records need to be added to a bundle/document via this method. Otherwise, the _id_map dict
+        # will not be correctly updated
+        identifier = record.identifier
+        if identifier is not None:
+            self._id_map[identifier].append(record)
         self._records.append(record)
 
     def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
@@ -1009,9 +1070,8 @@ class ProvBundle(object):
 
 
 class ProvDocument(ProvBundle):
-
-    def __init__(self, namespaces=None):
-        ProvBundle.__init__(self, None, namespaces)
+    def __init__(self, records=None, namespaces=None):
+        ProvBundle.__init__(self, records=records, identifier=None, namespaces=namespaces)
         self._bundles = dict()
 
     def is_document(self):
@@ -1027,6 +1087,7 @@ class ProvDocument(ProvBundle):
     def bundles(self):
         return set(self._bundles.values())
 
+    # Transformations
     def flattened(self):
         """ Returns a new document containing all the records in its bundles
         """
@@ -1043,6 +1104,17 @@ class ProvDocument(ProvBundle):
             # returning the same document
             return self
 
+    def unified(self):
+        """
+        Returns a new document containing all records having same identifiers unified (including those inside bundles)
+        """
+        document = ProvDocument(self._unified_records())
+        for bundle in self.bundles:
+            unified_bundle = bundle.unified()
+            document.add_bundle(unified_bundle)
+        return document
+
+    # Bundle operations
     def add_bundle(self, bundle, identifier=None):
         """Add a bundle to the current document
         """
@@ -1056,6 +1128,7 @@ class ProvDocument(ProvBundle):
             raise ProvException(u'The provided bundle has no identifier')
 
         valid_id = self.valid_identifier(identifier)
+        # IMPORTANT: Rewriting the bundle identifier for consistency
         bundle._identifier = valid_id
 
         if valid_id in self._bundles:
