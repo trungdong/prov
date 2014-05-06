@@ -10,6 +10,7 @@ PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
 """
 
 import logging
+import itertools
 
 logger = logging.getLogger(__name__)
 
@@ -1022,6 +1023,22 @@ class ProvDocument(ProvBundle):
     @property
     def bundles(self):
         return set(self._bundles.values())
+
+    def flattened(self):
+        """ Returns a new document containing all the records in its bundles
+        """
+        if self._bundles:
+            # Creating a new document for all the records
+            new_doc = ProvDocument()
+            bundled_records = itertools.chain(
+                *[b.get_records() for b in self._bundles.values()]
+            )
+            for record in itertools.chain(self._records, bundled_records):
+                new_doc._add_record(record)
+            return new_doc
+        else:
+            # returning the same document
+            return self
 
     def add_bundle(self, bundle, identifier=None):
         """Add a bundle to the current document

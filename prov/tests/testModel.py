@@ -71,6 +71,24 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                 self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
 
 
+class TestFlattening(unittest.TestCase):
+    def test_flattening(self):
+        for name, graph in examples.tests:
+            logger.info('Testing flattening of the %s example', name)
+            document = graph()
+            flattened = document.flattened()
+            flattened_records = set(flattened.get_records())
+            # counting all the records:
+            n_records = 0
+            for record in document.get_records():
+                n_records += 1
+                self.assertIn(record, flattened_records)
+            for bundle in document.bundles:
+                for record in bundle.get_records():
+                    n_records += 1
+                    self.assertIn(record, flattened_records)
+            self.assertEqual(n_records, len(flattened.get_records()))
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     unittest.main()
