@@ -246,6 +246,14 @@ class ProvRecord(object):
         return [(attr_name, value) for attr_name, values in self._attributes.items() for value in values]
 
     @property
+    def args(self):
+        return tuple(first(self._attributes[attr_name]) for attr_name in self.FORMAL_ATTRIBUTES)
+
+    @property
+    def formal_attributes(self):
+        return tuple((attr_name, first(self._attributes[attr_name])) for attr_name in self.FORMAL_ATTRIBUTES)
+
+    @property
     def bundle(self):
         return self._bundle
 
