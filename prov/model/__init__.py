@@ -1304,9 +1304,9 @@ class ProvBundle(ProvEntity):
 
     def add_namespace(self, namespace_or_prefix, uri=None):
         if uri is None:
-            self._namespaces.add_namespace(namespace_or_prefix)
+            return self._namespaces.add_namespace(namespace_or_prefix)
         else:
-            self._namespaces.add_namespace(Namespace(namespace_or_prefix, uri))
+            return self._namespaces.add_namespace(Namespace(namespace_or_prefix, uri))
 
     def get_registered_namespaces(self):
         return self._namespaces.get_registered_namespaces()
