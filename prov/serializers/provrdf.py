@@ -105,8 +105,6 @@ class ProvRDFSerializer(Serializer):
             #  encoding the sub-bundle
             bundle = self.encode_container(b, identifier=b_id.uri)
             container.addN(bundle.quads())
-            container.add((URIRef(b_id.uri), RDF.type,
-                           URIRef(PROV['Bundle'].uri)))
         return container
 
     def encode_container(self, bundle, container=None, identifier=None):
