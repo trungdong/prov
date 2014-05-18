@@ -58,7 +58,11 @@ class ProvRDFSerializer(Serializer):
         container.serialize(stream, **newargs)
 
     def deserialize(self, stream, **kwargs):
-        container = json.load(stream, **kwargs)
+        newargs = kwargs.copy()
+        if newargs and 'rdf_format' in newargs:
+            newargs['format'] = newargs['rdf_format']
+            del newargs['rdf_format']
+        container = ConjunctiveGraph().parse(stream, **newargs)
         document = ProvDocument()
         self.document = document
         self.decode_document(container, document)
