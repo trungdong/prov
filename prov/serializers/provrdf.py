@@ -1,14 +1,12 @@
-"""PROV-JSON serializers for ProvDocument
+"""PROV-RDF serializers for ProvDocument
 
-@author: Trung Dong Huynh <trungdong@donggiang.com>
+@author: Satrajit Ghosh <satra@mit.edu>
 @copyright: University of Southampton 2014
 """
 import logging
 logger = logging.getLogger(__name__)
 
-from collections import defaultdict
 import datetime
-import json
 from prov import Serializer, Error
 from prov.constants import *
 from prov.model import (Literal, Identifier, QName, Namespace, ProvRecord,
@@ -105,14 +103,17 @@ class ProvRDFSerializer(Serializer):
         container = self.encode_container(document)
         for b_id, b in document._bundles.items():
             #  encoding the sub-bundle
-            bundle_json = self.encode_container(b)
-            container['bundle'][unicode(b_id)] = bundle_json
+            bundle = self.encode_container(b, identifier=b_id.uri)
+            container.addN(bundle.quads())
+            container.add((URIRef(b_id.uri), RDF.type,
+                           URIRef(PROV['Bundle'].uri)))
         return container
 
-    def encode_container(self, bundle):
-        container = ConjunctiveGraph()
-        nm = container.namespace_manager
-        nm.bind('prov', PROV.uri)
+    def encode_container(self, bundle, container=None, identifier=None):
+        if container is None:
+            container = ConjunctiveGraph(identifier=identifier)
+            nm = container.namespace_manager
+            nm.bind('prov', PROV.uri)
         prefixes = {}
         for namespace in bundle._namespaces.get_registered_namespaces():
             container.bind(namespace.prefix, namespace.uri)
@@ -131,16 +132,28 @@ class ProvRDFSerializer(Serializer):
             else:
                 identifier = URIRef(unicode(real_or_anon_id(record)))
                 container.add((identifier, RDF.type, URIRef(rec_type.uri)))
-            if record._attributes:
-                for idx, (attr, value) in enumerate(record._attributes.items()):
+            if record.attributes:
+                bnode = None
+                formal_objects = []
+                used_objects = []
+                for idx, (attr, value) in enumerate(record.attributes):
                     if record.is_relation():
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
-                        if idx == 0:
-                            identifier = URIRef(value.uri)
-                        elif idx == 1:
-                            if value:
-                                obj = URIRef(value.uri)
-                                container.add((identifier, pred, obj))
+                        # create bnode relation
+                        if bnode is None:
+                            for key, val in record.formal_attributes:
+                                formal_objects.append(key)
+                            used_objects = [record.formal_attributes[0][0]]
+                            identifier = URIRef(record.formal_attributes[0][1].uri)
+                            try:
+                                obj_val = record.formal_attributes[1][1]
+                                obj_attr = URIRef(record.formal_attributes[1][0].uri)
+                            except IndexError:
+                                obj_val = None
+                            if obj_val:
+                                used_objects.append(record.formal_attributes[1][0])
+                                obj_val = self.encode_rdf_representation(obj_val)
+                                container.add((identifier, pred, obj_val))
                             QRole = URIRef(PROV['qualified' +
                                                 rec_type.get_localpart()].uri)
                             bnode = BNode()
@@ -149,25 +162,23 @@ class ProvRDFSerializer(Serializer):
                                            URIRef(rec_type.uri)))
                             # reset identifier to BNode
                             identifier = bnode
-                            if value:
-                                container.add((identifier, attr2rdf(attr), obj))
-                        elif value:
-                            pred = attr2rdf(attr)
+                            if obj_val:
+                                container.add((identifier, obj_attr, obj_val))
+                        if value and attr not in used_objects:
+                            if attr in formal_objects:
+                                pred = attr2rdf(attr)
+                            else:
+                                pred = self.encode_rdf_representation(attr)
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
                     if value is None:
                         continue
-                    pred = attr2rdf(attr)
                     if isinstance(value, ProvRecord):
                         obj = URIRef(unicode(real_or_anon_id(value)))
                     else:
                         #  Assuming this is a datetime value
                         obj = self.encode_rdf_representation(value)
-                    container.add((identifier, pred, obj))
-            if record._extra_attributes:
-                for (attr, value) in record._extra_attributes:
-                    obj = self.encode_rdf_representation(value)
                     if attr == PROV['location']:
                         pred = URIRef(PROV['atLocation'].uri)
                         if isinstance(value, (URIRef, QName)):
@@ -179,6 +190,7 @@ class ProvRDFSerializer(Serializer):
                         else:
                             container.add((identifier, pred, obj))
                         continue
+                    #pred = attr2rdf(attr)
                     if attr == PROV['type']:
                         pred = RDF.type
                     elif attr == PROV['label']:
