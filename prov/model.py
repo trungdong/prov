@@ -37,7 +37,7 @@ import shutil
 import tempfile
 from urlparse import urlparse
 
-from prov.identifier import Identifier, QName
+from prov.identifier import Identifier, QualifiedName, XSDQName
 from prov.contants import *
 
 
@@ -622,9 +622,9 @@ class NamespaceManager(dict):
         if not identifier:
             return None
         if isinstance(identifier, Identifier):
-            if isinstance(identifier, QName):
+            if isinstance(identifier, QualifiedName):
                 #  Register the namespace if it has not been registered before
-                namespace = identifier._namespace
+                namespace = identifier.namespace
                 prefix = namespace.prefix
                 if prefix in self and self[prefix] == namespace:
                     # No need to add the namespace
@@ -632,10 +632,10 @@ class NamespaceManager(dict):
                     if existing_ns is namespace:
                         return identifier
                     else:
-                        return existing_ns[identifier._localpart]  # reuse the existing namespace
+                        return existing_ns[identifier.localpart]  # reuse the existing namespace
                 else:
                     ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                    return ns[identifier._localpart] # minting the same Qualified Name from the namespace's copy
+                    return ns[identifier.localpart]  # minting the same Qualified Name from the namespace's copy
             else:
                 #  return the original identifier
                 return identifier
@@ -646,7 +646,7 @@ class NamespaceManager(dict):
                 #  check if the identifier contains a registered prefix
                 prefix, local_part = identifier.split(':', 1)
                 if prefix in self:
-                    #  return a new QName
+                    #  return a new QualifiedName
                     return self[prefix][local_part]
                 else:
                     #  treat as a URI (with the first part as its scheme)

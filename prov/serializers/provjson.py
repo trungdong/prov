@@ -11,7 +11,7 @@ import datetime
 import json
 from prov import Serializer, Error
 from prov.contants import *
-from prov.model import Literal, Identifier, QName, Namespace, ProvDocument, first, parse_xsd_datetime
+from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, first, parse_xsd_datetime
 
 
 class ProvJSONException(Error):
@@ -52,15 +52,20 @@ class ProvJSONSerializer(Serializer):
         self.decode_document(container, document)
         return document
 
-    def valid_identifier(self, value):
-        return self.document.valid_identifier(value)
+    def valid_identifier(self, value, xsd_qname=False):
+        qualified_name = self.document.valid_identifier(value)
+        return qualified_name if not xsd_qname else XSDQName(qualified_name)
 
     def encode_json_representation(self, value):
         if isinstance(value, Literal):
             return literal_json_representation(value)
         elif isinstance(value, datetime.datetime):
             return {'$': value.isoformat(), 'type': u'xsd:dateTime'}
-        elif isinstance(value, QName):
+        elif isinstance(value, XSDQName):
+            # Process XSDQName before QualifiedName because it is a subclass of QualifiedName
+            # TODO QName export
+            return {'$': str(value), 'type': u'xsd:QName'}
+        elif isinstance(value, QualifiedName):
             # TODO Manage prefix in the whole structure consistently
             # TODO QName export
             return {'$': str(value), 'type': u'prov:QualifiedName'}
@@ -79,6 +84,8 @@ class ProvJSONSerializer(Serializer):
             langtag = literal['lang'] if 'lang' in literal else None
             if datatype == u'xsd:anyURI':
                 return Identifier(value)
+            elif datatype == u'xsd:QName':
+                return self.valid_identifier(value, xsd_qname=True)
             elif datatype == u'prov:QualifiedName':
                 return self.valid_identifier(value)
             else:
@@ -237,7 +244,8 @@ def literal_json_representation(literal):
         #  a language tag can only go with prov:InternationalizedString
         return {'$': unicode(literal._value), 'lang': literal._langtag}
     else:
-        if isinstance(literal._datatype, QName):
+        if isinstance(literal._datatype, QualifiedName):
+            # TODO: QName export
             return {'$': unicode(literal._value), 'type': unicode(literal._datatype)}
         else:
             #  Assuming it is a valid identifier

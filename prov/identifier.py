@@ -22,17 +22,19 @@ class Identifier(object):
         return u'"%s" %%%% xsd:anyURI' % self._uri
 
 
-class QName(Identifier):
+class QualifiedName(Identifier):
     def __init__(self, namespace, localpart):
         Identifier.__init__(self, u''.join([namespace.uri, localpart]))
         self._namespace = namespace
         self._localpart = localpart
         self._str = u':'.join([namespace.prefix, localpart]) if namespace.prefix else localpart
 
-    def get_namespace(self):
+    @property
+    def namespace(self):
         return self._namespace
 
-    def get_localpart(self):
+    @property
+    def localpart(self):
         return self._localpart
 
     def __unicode__(self):
@@ -43,6 +45,17 @@ class QName(Identifier):
 
     def provn_representation(self):
         return u"'%s'" % self._str
+
+
+class XSDQName(QualifiedName):
+    """
+    A subclass to wrap around a QualifiedName for xsd:QName literals
+    """
+    def __init__(self, qualified_name):
+        QualifiedName.__init__(self, qualified_name.namespace, qualified_name.localpart)
+
+    def provn_representation(self):
+        return u'"%s" %% xsd:QName' % self._str
 
 
 class Namespace(object):
@@ -70,7 +83,7 @@ class Namespace(object):
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         if uri and uri.startswith(self._uri):
-            return QName(self, uri[len(self._uri):])
+            return QualifiedName(self, uri[len(self._uri):])
         else:
             return None
 
@@ -84,6 +97,6 @@ class Namespace(object):
         if localpart in self._cache:
             return self._cache[localpart]
         else:
-            qname = QName(self, localpart)
+            qname = QualifiedName(self, localpart)
             self._cache[localpart] = qname
             return qname

@@ -7,11 +7,18 @@ import unittest
 import logging
 import os
 
-from prov.model import ProvDocument
+from prov.model import ProvDocument, XSDQName, Namespace
 from prov.tests import examples
 
 
 logger = logging.getLogger(__name__)
+
+
+class JSONRoundTripTestCase(unittest.TestCase):
+    def assertPROVJSONRoundTripEquivalence(self, prov_doc, msg=None):
+        json_str = prov_doc.serialize(indent=4)
+        prov_doc_new = ProvDocument.deserialize(content=json_str)
+        self.assertEqual(prov_doc, prov_doc_new, msg)
 
 
 class Test(unittest.TestCase):
@@ -107,6 +114,18 @@ class TestUnification(unittest.TestCase):
                 flattened = document.flattened()
                 unified = flattened.unified()
                 self.assertLess(len(unified.get_records()), len(flattened.get_records()))
+
+
+class TestXSDQNames(JSONRoundTripTestCase):
+    def test_xsd_qnames(self):
+        prov_doc = ProvDocument()
+        ex = Namespace('ex', 'http://www.example.org')
+        prov_doc.add_namespace(ex)
+
+        an_xsd_qname = XSDQName(ex['a_value'])
+        prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname})
+
+        self.assertPROVJSONRoundTripEquivalence(prov_doc)
 
 
 if __name__ == "__main__":
