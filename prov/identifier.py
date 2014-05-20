@@ -55,7 +55,7 @@ class XSDQName(QualifiedName):
         QualifiedName.__init__(self, qualified_name.namespace, qualified_name.localpart)
 
     def provn_representation(self):
-        return u'"%s" %% xsd:QName' % self._str
+        return u'"%s" %%%% xsd:QName' % self._str
 
 
 class Namespace(object):
