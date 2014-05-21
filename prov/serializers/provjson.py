@@ -52,8 +52,8 @@ class ProvJSONSerializer(Serializer):
         self.decode_document(container, document)
         return document
 
-    def valid_identifier(self, value, xsd_qname=False):
-        qualified_name = self.document.valid_identifier(value)
+    def valid_qualified_name(self, value, xsd_qname=False):
+        qualified_name = self.document.valid_qualified_name(value)
         return qualified_name if not xsd_qname else XSDQName(qualified_name)
 
     def encode_json_representation(self, value):
@@ -85,13 +85,13 @@ class ProvJSONSerializer(Serializer):
             if datatype == u'xsd:anyURI':
                 return Identifier(value)
             elif datatype == u'xsd:QName':
-                return self.valid_identifier(value, xsd_qname=True)
+                return self.valid_qualified_name(value, xsd_qname=True)
             elif datatype == u'prov:QualifiedName':
-                return self.valid_identifier(value)
+                return self.valid_qualified_name(value)
             else:
                 # The literal of standard Python types is not converted here
                 # It will be automatically converted when added to a record by _auto_literal_conversion()
-                return Literal(value, self.valid_identifier(datatype), langtag)
+                return Literal(value, self.valid_qualified_name(datatype), langtag)
         else:
             # simple type, just return it
             return literal
@@ -198,7 +198,7 @@ class ProvJSONSerializer(Serializer):
                         membership_extra_members = None  # this is for the multiple-entity membership hack to come
                         for attr_name, values in element.items():
                             attr = PROV_ATTRIBUTES_ID_MAP[attr_name] if attr_name in PROV_ATTRIBUTES_ID_MAP \
-                                else self.valid_identifier(attr_name)
+                                else self.valid_qualified_name(attr_name)
                             if attr in PROV_ATTRIBUTES:
                                 if isinstance(values, list):
                                     # only one value is allowed
@@ -219,7 +219,7 @@ class ProvJSONSerializer(Serializer):
                                         value = values[0]
                                 else:
                                     value = values
-                                value = self.valid_identifier(value) if attr in PROV_ATTRIBUTE_QNAMES else \
+                                value = self.valid_qualified_name(value) if attr in PROV_ATTRIBUTE_QNAMES else \
                                     parse_xsd_datetime(value)
                                 attributes[attr] = value
                             else:
@@ -236,7 +236,7 @@ class ProvJSONSerializer(Serializer):
                         if membership_extra_members:
                             collection = attributes[PROV_ATTR_COLLECTION]
                             for member in membership_extra_members:
-                                bundle.membership(collection, self.valid_identifier(member))
+                                bundle.membership(collection, self.valid_qualified_name(member))
 
 
 def literal_json_representation(literal):

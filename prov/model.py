@@ -234,7 +234,7 @@ class ProvRecord(object):
         self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name):
-        attr_name = self._bundle.valid_identifier(attr_name)
+        attr_name = self._bundle.valid_qualified_name(attr_name)
         return self._attributes[attr_name]
 
     @property
@@ -288,14 +288,14 @@ class ProvRecord(object):
             for attr_name, original_value in attributes:
                 if original_value is None:
                     continue
-                attr = self._bundle.valid_identifier(attr_name)  # make sure the attribute name is valid
+                attr = self._bundle.valid_qualified_name(attr_name)  # make sure the attribute name is valid
                 if attr is None:
                     raise ProvExceptionInvalidQualifiedName(attr_name)
 
                 if attr in PROV_ATTRIBUTE_QNAMES:
                     # Expecting a qualified name
                     qname = original_value.identifier if isinstance(original_value, ProvRecord) else original_value
-                    value = self._bundle.valid_identifier(qname)
+                    value = self._bundle.valid_qualified_name(qname)
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     value = original_value if isinstance(original_value, datetime.datetime) else \
                         parse_xsd_datetime(original_value)
@@ -618,55 +618,58 @@ class NamespaceManager(dict):
                 ns = Namespace(prefix, uri)
                 self.add_namespace(ns)
 
-    def get_valid_identifier(self, identifier):
-        if not identifier:
+    def valid_qualified_name(self, qname):
+        if not qname:
             return None
-        if isinstance(identifier, Identifier):
-            if isinstance(identifier, QualifiedName):
-                #  Register the namespace if it has not been registered before
-                namespace = identifier.namespace
-                prefix = namespace.prefix
-                if prefix in self and self[prefix] == namespace:
-                    # No need to add the namespace
-                    existing_ns = self[prefix]
-                    if existing_ns is namespace:
-                        return identifier
-                    else:
-                        return existing_ns[identifier.localpart]  # reuse the existing namespace
+
+        if isinstance(qname, QualifiedName):
+            #  Register the namespace if it has not been registered before
+            namespace = qname.namespace
+            prefix = namespace.prefix
+            if prefix in self and self[prefix] == namespace:
+                # No need to add the namespace
+                existing_ns = self[prefix]
+                if existing_ns is namespace:
+                    return qname
                 else:
-                    ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                    return ns[identifier.localpart]  # minting the same Qualified Name from the namespace's copy
+                    return existing_ns[qname.localpart]  # reuse the existing namespace
             else:
-                #  return the original identifier
-                return identifier
-        elif isinstance(identifier, (str, unicode)):
-            if identifier.startswith('_:'):
-                return None
-            elif ':' in identifier:
-                #  check if the identifier contains a registered prefix
-                prefix, local_part = identifier.split(':', 1)
-                if prefix in self:
-                    #  return a new QualifiedName
-                    return self[prefix][local_part]
+                ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
+                return ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+
+        if not isinstance(qname, (basestring, Identifier)):
+            # Only proceed for string or URI values
+            return None
+        # Try to generate a Qualified Name
+        str_value = qname.uri if isinstance(qname, Identifier) else unicode(qname)
+        if str_value.startswith('_:'):
+            # this is a blank node ID
+            return None
+        elif ':' in str_value:
+            #  check if the identifier contains a registered prefix
+            prefix, local_part = str_value.split(':', 1)
+            if prefix in self:
+                #  return a new QualifiedName
+                return self[prefix][local_part]
+            else:
+                #  treat as a URI (with the first part as its scheme)
+                #  check if the URI can be compacted
+                for namespace in self.values():
+                    if str_value.startswith(namespace.uri):
+                        #  create a QName with the namespace
+                        return namespace[str_value.replace(namespace.uri, '')]
+                if self.parent is not None:
+                    # try the parent namespace manager
+                    return self.parent.valid_qualified_name(qname)
                 else:
-                    #  treat as a URI (with the first part as its scheme)
-                    #  check if the URI can be compacted
-                    for namespace in self.values():
-                        if identifier.startswith(namespace.uri):
-                            #  create a QName with the namespace
-                            return namespace[identifier.replace(namespace.uri, '')]
-                    if self.parent is not None:
-                        # try the parent namespace manager
-                        return self.parent.get_valid_identifier(identifier)
-                    else:
-                        #  return an Identifier with the given URI
-                        return Identifier(identifier)
-            elif self._default:
-                #  create and return an identifier in the default namespace
-                return self._default[identifier]
-            else:
-                # This is not an identifier
-                return None
+                    #  return None as we cannot generate a Qualified Name from the given URI
+                    return None
+        elif self._default:
+            #  create and return an identifier in the default namespace
+            return self._default[qname]
+
+        # Default to FAIL
+        return None
 
     def get_anonymous_identifier(self, local_prefix='id'):
         self._anon_id_count += 1
@@ -691,7 +694,9 @@ class ProvBundle(object):
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(namespaces, parent=(document.namespaces if document is not None else None))
+        self._namespaces = NamespaceManager(namespaces,
+                                            parent=(document._namespaces if document is not None else None)
+        )
         if records:
             for record in records:
                 self._add_record(record)
@@ -724,8 +729,8 @@ class ProvBundle(object):
     def get_registered_namespaces(self):
         return self._namespaces.get_registered_namespaces()
 
-    def valid_identifier(self, identifier):
-        return self._namespaces.get_valid_identifier(identifier)
+    def valid_qualified_name(self, identifier):
+        return self._namespaces.valid_qualified_name(identifier)
 
     def get_anon_id(self, record):
         #  TODO Implement a dict of self-generated anon ids for records without identifier
@@ -742,7 +747,7 @@ class ProvBundle(object):
         # TODO: This will not work with the new _id_map, which is now a map of (QName, list(ProvRecord))
         if identifier is None:
             return None
-        valid_id = self.valid_identifier(identifier)
+        valid_id = self.valid_qualified_name(identifier)
         try:
             return self._id_map[valid_id]
         except KeyError:
@@ -874,7 +879,7 @@ class ProvBundle(object):
             attr_list.extend(
                 other_attributes.items() if isinstance(other_attributes, dict) else other_attributes
             )
-        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attr_list)
+        new_record = PROV_REC_CLS[record_type](self, self.valid_qualified_name(identifier), attr_list)
         self._add_record(new_record)
         return new_record
 
@@ -1135,7 +1140,10 @@ class ProvDocument(ProvBundle):
         if not identifier:
             raise ProvException(u'The provided bundle has no identifier')
 
-        valid_id = self.valid_identifier(identifier)
+        # Link the bundle namespace manager to the document's
+        bundle._namespaces.parent = self._namespaces
+
+        valid_id = bundle.valid_qualified_name(identifier)
         # IMPORTANT: Rewriting the bundle identifier for consistency
         bundle._identifier = valid_id
 
@@ -1143,17 +1151,16 @@ class ProvDocument(ProvBundle):
             raise ProvException(u"A bundle with that identifier already exists")
 
         self._bundles[valid_id] = bundle
-
-        # TODO Set parent namespace for the bundle
-
-        bundle._bundle = self
+        bundle._document = self
 
     def bundle(self, identifier):
         if identifier is None:
             raise ProvException('An identifier is required. Cannot create an unnamed bundle.')
-        valid_id = self.valid_identifier(identifier)
-        b = ProvBundle()
-        self.add_bundle(b, valid_id)
+        valid_id = self.valid_qualified_name(identifier)
+        if valid_id in self._bundles:
+            raise ProvException(u"A bundle with that identifier already exists")
+        b = ProvBundle(identifier=valid_id, document=self)
+        self._bundles[valid_id] = b
         return b
 
     # Serializing and deserializing
