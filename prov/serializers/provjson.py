@@ -10,7 +10,7 @@ from collections import defaultdict
 import datetime
 import json
 from prov import Serializer, Error
-from prov.contants import *
+from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, first, parse_xsd_datetime
 
 

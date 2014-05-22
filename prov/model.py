@@ -38,7 +38,7 @@ import tempfile
 from urlparse import urlparse
 
 from prov.identifier import Identifier, QualifiedName, XSDQName
-from prov.contants import *
+from prov.constants import *
 
 
 # Data Types
