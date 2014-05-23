@@ -129,6 +129,9 @@ class Literal(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
+    def __repr__(self):
+        return u'<Literal: %r>' % self._value
+
     def __eq__(self, other):
         return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
 
@@ -328,6 +331,9 @@ class ProvRecord(object):
 
     def __str__(self):
         return unicode(self).encode('utf-8')
+
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
 
     def get_provn(self):
         items = []
@@ -700,6 +706,9 @@ class ProvBundle(object):
         if records:
             for record in records:
                 self._add_record(record)
+
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
 
     @property
     def namespaces(self):

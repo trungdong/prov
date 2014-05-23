@@ -18,6 +18,9 @@ class Identifier(object):
     def __hash__(self):
         return hash(self.uri)
 
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._uri)
+
     def provn_representation(self):
         return u'"%s" %%%% xsd:anyURI' % self._uri
 
@@ -42,6 +45,9 @@ class QualifiedName(Identifier):
 
     def __str__(self):
         return unicode(self).encode('utf-8')
+
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._str)
 
     def provn_representation(self):
         return u"'%s'" % self._str
@@ -92,6 +98,9 @@ class Namespace(object):
 
     def __hash__(self):
         return hash((self._uri, self._prefix))
+
+    def __repr__(self):
+        return u'<%s: %s {%s}>' % (self.__class__.__name__, self._prefix, self._uri)
 
     def __getitem__(self, localpart):
         if localpart in self._cache:
