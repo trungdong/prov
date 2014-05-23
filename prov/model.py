@@ -87,7 +87,7 @@ def parse_xsd_types(value, datatype):
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 
-first = lambda a_set: next(iter(a_set))
+first = lambda a_set: next(iter(a_set), None)
 
 
 def _ensure_multiline_string_triple_quoted(s):
@@ -130,7 +130,7 @@ class Literal(object):
         return unicode(self).encode('utf-8')
 
     def __repr__(self):
-        return u'<Literal: %r>' % self._value
+        return u'<Literal: %s>' % self.provn_representation()
 
     def __eq__(self, other):
         return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
@@ -332,9 +332,6 @@ class ProvRecord(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
-    def __repr__(self):
-        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
-
     def get_provn(self):
         items = []
 
@@ -388,14 +385,21 @@ class ProvElement(ProvRecord):
     def is_element(self):
         return True
 
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
+
 
 class ProvRelation(ProvRecord):
     def is_relation(self):
         return True
 
+    def __repr__(self):
+        identifier = u' %s' % self._identifier if self._identifier else u''
+        element_1, element_2 = [qname for _, qname in self.formal_attributes[:2]]
+        return u'<%s:%s (%s, %s)>' % (self.__class__.__name__, identifier, element_1, element_2)
+
 
 #  ## Component 1: Entities and Activities
-
 class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_ENTITY
@@ -1095,6 +1099,9 @@ class ProvDocument(ProvBundle):
     def __init__(self, records=None, namespaces=None):
         ProvBundle.__init__(self, records=records, identifier=None, namespaces=namespaces)
         self._bundles = dict()
+
+    def __repr__(self):
+        return u'<ProvDocument>'
 
     def is_document(self):
         return True
