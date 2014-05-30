@@ -101,7 +101,9 @@ def encoding_provn_value(value):
     elif isinstance(value, datetime.datetime):
         return value.isoformat()
     elif isinstance(value, float):
-        return u'"%f" %%%% xsd:float' % value
+        return u'"%g" %%%% xsd:float' % value
+    elif isinstance(value, bool):
+        return u'"%i" %%%% xsd:boolean' % value        
     else:
         # TODO: QName export
         return unicode(value)
