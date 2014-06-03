@@ -151,7 +151,7 @@ DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
                           "<type 'str'>": unicode,
                           "<type 'unicode'>": unicode,
-                          "<type 'bool'>": bool,
+                          "<type 'bool'>": lambda x: x.lower() != 'false',
                           "<type 'int'>": int,
                           "<type 'long'>": long,
                           "<type 'float'>": float}
