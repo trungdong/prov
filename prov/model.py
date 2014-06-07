@@ -21,15 +21,11 @@ from copy import deepcopy
 from prov import Error, serializers
 
 try:
-    from io import BytesIO
-    assert BytesIO
+    from cStringIO import StringIO
+    assert StringIO
 except ImportError:
-    try:
-        from cStringIO import StringIO as BytesIO
-        assert BytesIO
-    except ImportError:
-        from StringIO import StringIO as BytesIO
-        assert BytesIO
+    from StringIO import StringIO
+    assert StringIO
 
 
 import os
@@ -1190,7 +1186,7 @@ class ProvDocument(ProvBundle):
         """
         serializer = serializers.get(format)(self)
         if destination is None:
-            stream = BytesIO()
+            stream = StringIO()
             serializer.serialize(stream, **args)
             return stream.getvalue()
         if hasattr(destination, "write"):
@@ -1222,7 +1218,7 @@ class ProvDocument(ProvBundle):
         serializer = serializers.get(format)()
 
         if content is not None:
-            stream = BytesIO(content)
+            stream = StringIO(content)
             return serializer.deserialize(stream, **args)
 
         if source is not None:
