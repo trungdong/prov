@@ -1,3 +1,15 @@
+v0.5.5, 8/6/2014 -- Bug fixes
+- Fixed missing namespaces in bundles
+- Fixed bundle order in PROV-N
+- Return the namespace after having added it to a bundle
+
+v0.5.4, 2/5/2014 -- Bug fixes and code clean up
+- Fixed XSD namespace
+- Fixed: missing quotes around URLs when exporting graphs
+- Added: command-line script to convert a PROV-JSON input file to a range of supported formats
+- Added: links for identifiers and qualified names when exporting graphs
+- Fixed: Loading relations in a bundle referencing record from the document level
+
 v0.5.3, 13/12/2013 -- Bug fixes
 - Changed: Allowed namespaces at bundle level
 - Fixed: Only check equality of ProvBundles on asserted records
