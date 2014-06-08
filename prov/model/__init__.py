@@ -1396,14 +1396,13 @@ class ProvBundle(ProvEntity):
     def _encode_JSON_container(self):
         container = defaultdict(dict)
 
-        if self._bundle is None:  # This is a document
-            prefixes = {}
-            for namespace in self._namespaces.get_registered_namespaces():
-                prefixes[namespace.get_prefix()] = namespace.get_uri()
-            if self._namespaces._default:
-                prefixes['default'] = self._namespaces._default.get_uri()
-            if prefixes:
-                container[u'prefix'] = prefixes
+        prefixes = {}
+        for namespace in self._namespaces.get_registered_namespaces():
+            prefixes[namespace.get_prefix()] = namespace.get_uri()
+        if self._namespaces._default:
+            prefixes['default'] = self._namespaces._default.get_uri()
+        if prefixes:
+            container[u'prefix'] = prefixes
 
         id_generator = AnonymousIDGenerator()
         real_or_anon_id = lambda record: record._identifier if record._identifier else id_generator.get_anon_id(record)
@@ -1545,22 +1544,20 @@ class ProvBundle(ProvEntity):
         #  if this is the document, start the document; otherwise, start the bundle
         records = ['document'] if self._bundle is None else ['bundle %s' % self._identifier]
 
-        if self._bundle is None:
-            # Only output the namespaces of a document
-            default_namespace = self._namespaces.get_default_namespace()
-            if default_namespace:
-                records.append('default <%s>' % default_namespace.get_uri())
+        default_namespace = self._namespaces.get_default_namespace()
+        if default_namespace:
+            records.append('default <%s>' % default_namespace.get_uri())
 
-            registered_namespaces = self._namespaces.get_registered_namespaces()
-            if registered_namespaces:
-                records.extend([
-                    'prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri())
-                    for namespace in registered_namespaces
-                ])
+        registered_namespaces = self._namespaces.get_registered_namespaces()
+        if registered_namespaces:
+            records.extend([
+                'prefix %s <%s>' % (namespace.get_prefix(), namespace.get_uri())
+                for namespace in registered_namespaces
+            ])
 
-            if default_namespace or registered_namespaces:
-                #  a blank line between the prefixes and the assertions
-                records.append('')
+        if default_namespace or registered_namespaces:
+            #  a blank line between the prefixes and the assertions
+            records.append('')
 
         #  adding all the records
         bundles = []
