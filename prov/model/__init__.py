@@ -1563,10 +1563,20 @@ class ProvBundle(ProvEntity):
                 records.append('')
 
         #  adding all the records
-        records.extend([
-            record.get_provn(_indent_level + 1) for record in self._records
-            if record.is_asserted() or not asserted_only
-        ])
+        bundles = []
+        for rec in self._records:
+            if isinstance(rec, ProvBundle):
+                # moving bundles to the end of a PROV-N document
+                bundles.append(rec)
+            else:
+                if rec.is_asserted() or not asserted_only:
+                    records.append(
+                        rec.get_provn(_indent_level + 1)
+                    )
+        # now exporting the bundles
+        for b in bundles:
+            records.append('')
+            records.append(b.get_provn(_indent_level + 1))
         provn_str = newline.join(records) + '\n'
         #  closing the structure
         provn_str += indentation + ('endDocument' if self._bundle is None else 'endBundle')
