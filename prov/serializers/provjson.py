@@ -52,7 +52,7 @@ class ProvJSONSerializer(Serializer):
 class ProvJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, ProvDocument):
-            return encode_json_container(o)
+            return encode_json_document(o)
         else:
             return super(ProvJSONEncoder, self).encode(o)
 
