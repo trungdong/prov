@@ -581,7 +581,9 @@ class NamespaceManager(dict):
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
-        self._rename_map = {}
+        self._uri_map = dict()
+        self._rename_map = dict()
+        self._prefix_renamed_map = dict()
         self.add_namespaces(namespaces)
 
     def get_namespace(self, uri):
@@ -608,16 +610,31 @@ class NamespaceManager(dict):
             #  already renamed and added
             return self._rename_map[namespace]
 
+        # Checking if the URI has been defined and use the existing namespace instead
+        uri = namespace.uri
         prefix = namespace.prefix
+
+        if uri in self._uri_map:
+            existing_ns = self._uri_map[uri]
+            self._rename_map[namespace] = existing_ns
+            self._prefix_renamed_map[prefix] = existing_ns
+            return existing_ns
+
         if prefix in self:
             #  Conflicting prefix
             new_prefix = self._get_unused_prefix(prefix)
             new_namespace = Namespace(new_prefix, namespace.uri)
             self._rename_map[namespace] = new_namespace
+            # TODO: What if the prefix is already in the map and point to a different Namespace? Raise an exception?
+            self._prefix_renamed_map[prefix] = new_namespace
             prefix = new_prefix
             namespace = new_namespace
+
+        # Only now add the namespace to the registry
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+        self._uri_map[uri] = namespace
+
         return namespace
 
     def add_namespaces(self, namespaces):
@@ -659,6 +676,9 @@ class NamespaceManager(dict):
             if prefix in self:
                 #  return a new QualifiedName
                 return self[prefix][local_part]
+            if prefix in self._prefix_renamed_map:
+                #  return a new QualifiedName
+                return self._prefix_renamed_map[prefix][local_part]
             else:
                 #  treat as a URI (with the first part as its scheme)
                 #  check if the URI can be compacted

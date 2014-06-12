@@ -67,6 +67,8 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 # Encoding/decoding functions
 def valid_qualified_name(bundle, value, xsd_qname=False):
+    if value is None:
+        return None
     qualified_name = bundle.valid_qualified_name(value)
     return qualified_name if not xsd_qname else XSDQName(qualified_name)
 
