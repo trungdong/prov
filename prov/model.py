@@ -131,18 +131,22 @@ class Literal(object):
         return u'<Literal: %s>' % self.provn_representation()
 
     def __eq__(self, other):
-        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
+        return (self._value == other.value and self._datatype == other.datatype and self._langtag == other.langtag)\
+            if isinstance(other, Literal) else False
 
     def __hash__(self):
         return hash((self._value, self._datatype, self._langtag))
 
-    def get_value(self):
+    @property
+    def value(self):
         return self._value
 
-    def get_datatype(self):
+    @property
+    def datatype(self):
         return self._datatype
 
-    def get_langtag(self):
+    @property
+    def langtag(self):
         return self._langtag
 
     def has_no_langtag(self):
@@ -274,7 +278,7 @@ class ProvRecord(object):
         if isinstance(literal, Literal) and literal.has_no_langtag():
             # try convert generic Literal object to Python standard type if possible
             # this is to match JSON decoding's literal conversion
-            value = parse_xsd_types(literal.get_value(), literal.get_datatype())
+            value = parse_xsd_types(literal.value, literal.datatype)
             if value is not None:
                 return value
 
