@@ -85,7 +85,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
     :type show_relation_attributes: bool
     :returns:  :class:`pydot.Dot` -- the Dot object.
     """
-    maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
+    maindot = pydot.Dot(graph_type='digraph', rankdir='BT', charset='utf-8')
 
     node_map = {}
     count = [0, 0, 0, 0]  # counters for node ids
