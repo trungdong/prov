@@ -70,7 +70,9 @@ class ProvRDFSerializer(Serializer):
         return self.document.valid_identifier(value)
 
     def encode_rdf_representation(self, value):
-        if isinstance(value, Literal):
+        if isinstance(value, URIRef):
+            return value
+        elif isinstance(value, Literal):
             return literal_rdf_representation(value)
         elif isinstance(value, datetime.datetime):
             return RDFLiteral(value.isoformat(), datatype=XSD['dateTime'])
