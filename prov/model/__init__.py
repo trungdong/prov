@@ -752,7 +752,10 @@ class ProvRecord(object):
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
                 except:
-                    obj = RDFLiteral(value)
+                    if isinstance(value, URIRef):
+                        obj = value
+                    else:
+                        obj = RDFLiteral(value)
                 graph.add((subj, pred, obj))
         if self._extra_attributes:
             for (attr, value) in self._extra_attributes:
@@ -760,7 +763,10 @@ class ProvRecord(object):
                     # try if there is a RDF representation defined
                     obj = value.rdf_representation()
                 except Exception, e:
-                    obj = RDFLiteral(value)
+                    if isinstance(value, URIRef):
+                        obj = value
+                    else:
+                        obj = RDFLiteral(value)
                 if attr == PROV['location']:
                     pred = PROV['atLocation'].rdf_representation()
                     if isinstance(value, (URIRef, QName)):
