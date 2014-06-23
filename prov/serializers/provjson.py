@@ -11,13 +11,8 @@ import datetime
 import json
 from prov import Serializer, Error
 from prov.constants import *
-<<<<<<< HEAD
-from prov.model import (Literal, Identifier, QName, Namespace, ProvDocument,
-                        first, parse_xsd_datetime)
-=======
-from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
-    first, parse_xsd_datetime
->>>>>>> upstream/master
+from prov.model import (Literal, Identifier, QualifiedName, XSDQName, Namespace,
+                        ProvDocument, ProvBundle, first, parse_xsd_datetime)
 
 
 class ProvJSONException(Error):
