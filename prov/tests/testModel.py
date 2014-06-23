@@ -40,7 +40,7 @@ class TestCase(unittest.TestCase):
             f(a, b, *args, **kwargs)
 
     def assertLess(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
+        """Python < v2.7 compatibility.  Assert a < b"""
         try:
             f = super(TestCase, self).assertLess
         except AttributeError:
