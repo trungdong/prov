@@ -21,15 +21,11 @@ from copy import deepcopy
 from prov import Error, serializers
 
 try:
-    from io import BytesIO
-    assert BytesIO
+    from cStringIO import StringIO
+    assert StringIO
 except ImportError:
-    try:
-        from cStringIO import StringIO as BytesIO
-        assert BytesIO
-    except ImportError:
-        from StringIO import StringIO as BytesIO
-        assert BytesIO
+    from StringIO import StringIO
+    assert StringIO
 
 
 import os
@@ -37,7 +33,7 @@ import shutil
 import tempfile
 from urlparse import urlparse
 
-from prov.identifier import Identifier, QName
+from prov.identifier import Identifier, QualifiedName, XSDQName
 from prov.constants import *
 
 
@@ -87,7 +83,7 @@ def parse_xsd_types(value, datatype):
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 
-first = lambda a_set: next(iter(a_set))
+first = lambda a_set: next(iter(a_set), None)
 
 
 def _ensure_multiline_string_triple_quoted(s):
@@ -101,7 +97,9 @@ def encoding_provn_value(value):
     elif isinstance(value, datetime.datetime):
         return value.isoformat()
     elif isinstance(value, float):
-        return u'"%f" %%%% xsd:float' % value
+        return u'"%g" %%%% xsd:float' % value
+    elif isinstance(value, bool):
+        return u'"%i" %%%% xsd:boolean' % value        
     else:
         # TODO: QName export
         return unicode(value)
@@ -129,19 +127,26 @@ class Literal(object):
     def __str__(self):
         return unicode(self).encode('utf-8')
 
+    def __repr__(self):
+        return u'<Literal: %s>' % self.provn_representation()
+
     def __eq__(self, other):
-        return self._value == other._value and self._datatype == other._datatype and self._langtag == other._langtag if isinstance(other, Literal) else False
+        return (self._value == other.value and self._datatype == other.datatype and self._langtag == other.langtag)\
+            if isinstance(other, Literal) else False
 
     def __hash__(self):
         return hash((self._value, self._datatype, self._langtag))
 
-    def get_value(self):
+    @property
+    def value(self):
         return self._value
 
-    def get_datatype(self):
+    @property
+    def datatype(self):
         return self._datatype
 
-    def get_langtag(self):
+    @property
+    def langtag(self):
         return self._langtag
 
     def has_no_langtag(self):
@@ -234,7 +239,7 @@ class ProvRecord(object):
         self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name):
-        attr_name = self._bundle.valid_identifier(attr_name)
+        attr_name = self._bundle.valid_qualified_name(attr_name)
         return self._attributes[attr_name]
 
     @property
@@ -273,7 +278,7 @@ class ProvRecord(object):
         if isinstance(literal, Literal) and literal.has_no_langtag():
             # try convert generic Literal object to Python standard type if possible
             # this is to match JSON decoding's literal conversion
-            value = parse_xsd_types(literal.get_value(), literal.get_datatype())
+            value = parse_xsd_types(literal.value, literal.datatype)
             if value is not None:
                 return value
 
@@ -288,14 +293,14 @@ class ProvRecord(object):
             for attr_name, original_value in attributes:
                 if original_value is None:
                     continue
-                attr = self._bundle.valid_identifier(attr_name)  # make sure the attribute name is valid
+                attr = self._bundle.valid_qualified_name(attr_name)  # make sure the attribute name is valid
                 if attr is None:
                     raise ProvExceptionInvalidQualifiedName(attr_name)
 
                 if attr in PROV_ATTRIBUTE_QNAMES:
                     # Expecting a qualified name
                     qname = original_value.identifier if isinstance(original_value, ProvRecord) else original_value
-                    value = self._bundle.valid_identifier(qname)
+                    value = self._bundle.valid_qualified_name(qname)
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     value = original_value if isinstance(original_value, datetime.datetime) else \
                         parse_xsd_datetime(original_value)
@@ -382,14 +387,21 @@ class ProvElement(ProvRecord):
     def is_element(self):
         return True
 
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
+
 
 class ProvRelation(ProvRecord):
     def is_relation(self):
         return True
 
+    def __repr__(self):
+        identifier = u' %s' % self._identifier if self._identifier else u''
+        element_1, element_2 = [qname for _, qname in self.formal_attributes[:2]]
+        return u'<%s:%s (%s, %s)>' % (self.__class__.__name__, identifier, element_1, element_2)
+
 
 #  ## Component 1: Entities and Activities
-
 class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_ENTITY
@@ -573,7 +585,9 @@ class NamespaceManager(dict):
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
-        self._rename_map = {}
+        self._uri_map = dict()
+        self._rename_map = dict()
+        self._prefix_renamed_map = dict()
         self.add_namespaces(namespaces)
 
     def get_namespace(self, uri):
@@ -600,16 +614,31 @@ class NamespaceManager(dict):
             #  already renamed and added
             return self._rename_map[namespace]
 
+        # Checking if the URI has been defined and use the existing namespace instead
+        uri = namespace.uri
         prefix = namespace.prefix
+
+        if uri in self._uri_map:
+            existing_ns = self._uri_map[uri]
+            self._rename_map[namespace] = existing_ns
+            self._prefix_renamed_map[prefix] = existing_ns
+            return existing_ns
+
         if prefix in self:
             #  Conflicting prefix
             new_prefix = self._get_unused_prefix(prefix)
             new_namespace = Namespace(new_prefix, namespace.uri)
             self._rename_map[namespace] = new_namespace
+            # TODO: What if the prefix is already in the map and point to a different Namespace? Raise an exception?
+            self._prefix_renamed_map[prefix] = new_namespace
             prefix = new_prefix
             namespace = new_namespace
+
+        # Only now add the namespace to the registry
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+        self._uri_map[uri] = namespace
+
         return namespace
 
     def add_namespaces(self, namespaces):
@@ -618,55 +647,61 @@ class NamespaceManager(dict):
                 ns = Namespace(prefix, uri)
                 self.add_namespace(ns)
 
-    def get_valid_identifier(self, identifier):
-        if not identifier:
+    def valid_qualified_name(self, qname):
+        if not qname:
             return None
-        if isinstance(identifier, Identifier):
-            if isinstance(identifier, QName):
-                #  Register the namespace if it has not been registered before
-                namespace = identifier._namespace
-                prefix = namespace.prefix
-                if prefix in self and self[prefix] == namespace:
-                    # No need to add the namespace
-                    existing_ns = self[prefix]
-                    if existing_ns is namespace:
-                        return identifier
-                    else:
-                        return existing_ns[identifier._localpart]  # reuse the existing namespace
+
+        if isinstance(qname, QualifiedName):
+            #  Register the namespace if it has not been registered before
+            namespace = qname.namespace
+            prefix = namespace.prefix
+            if prefix in self and self[prefix] == namespace:
+                # No need to add the namespace
+                existing_ns = self[prefix]
+                if existing_ns is namespace:
+                    return qname
                 else:
-                    ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                    return ns[identifier._localpart] # minting the same Qualified Name from the namespace's copy
+                    return existing_ns[qname.localpart]  # reuse the existing namespace
             else:
-                #  return the original identifier
-                return identifier
-        elif isinstance(identifier, (str, unicode)):
-            if identifier.startswith('_:'):
-                return None
-            elif ':' in identifier:
-                #  check if the identifier contains a registered prefix
-                prefix, local_part = identifier.split(':', 1)
-                if prefix in self:
-                    #  return a new QName
-                    return self[prefix][local_part]
+                ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
+                return ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+
+        if not isinstance(qname, (basestring, Identifier)):
+            # Only proceed for string or URI values
+            return None
+        # Try to generate a Qualified Name
+        str_value = qname.uri if isinstance(qname, Identifier) else unicode(qname)
+        if str_value.startswith('_:'):
+            # this is a blank node ID
+            return None
+        elif ':' in str_value:
+            #  check if the identifier contains a registered prefix
+            prefix, local_part = str_value.split(':', 1)
+            if prefix in self:
+                #  return a new QualifiedName
+                return self[prefix][local_part]
+            if prefix in self._prefix_renamed_map:
+                #  return a new QualifiedName
+                return self._prefix_renamed_map[prefix][local_part]
+            else:
+                #  treat as a URI (with the first part as its scheme)
+                #  check if the URI can be compacted
+                for namespace in self.values():
+                    if str_value.startswith(namespace.uri):
+                        #  create a QName with the namespace
+                        return namespace[str_value.replace(namespace.uri, '')]
+                if self.parent is not None:
+                    # try the parent namespace manager
+                    return self.parent.valid_qualified_name(qname)
                 else:
-                    #  treat as a URI (with the first part as its scheme)
-                    #  check if the URI can be compacted
-                    for namespace in self.values():
-                        if identifier.startswith(namespace.uri):
-                            #  create a QName with the namespace
-                            return namespace[identifier.replace(namespace.uri, '')]
-                    if self.parent is not None:
-                        # try the parent namespace manager
-                        return self.parent.get_valid_identifier(identifier)
-                    else:
-                        #  return an Identifier with the given URI
-                        return Identifier(identifier)
-            elif self._default:
-                #  create and return an identifier in the default namespace
-                return self._default[identifier]
-            else:
-                # This is not an identifier
-                return None
+                    #  return None as we cannot generate a Qualified Name from the given URI
+                    return None
+        elif self._default:
+            #  create and return an identifier in the default namespace
+            return self._default[qname]
+
+        # Default to FAIL
+        return None
 
     def get_anonymous_identifier(self, local_prefix='id'):
         self._anon_id_count += 1
@@ -691,10 +726,15 @@ class ProvBundle(object):
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(namespaces, parent=(document.namespaces if document is not None else None))
+        self._namespaces = NamespaceManager(namespaces,
+                                            parent=(document._namespaces if document is not None else None)
+        )
         if records:
             for record in records:
                 self._add_record(record)
+
+    def __repr__(self):
+        return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
 
     @property
     def namespaces(self):
@@ -717,15 +757,15 @@ class ProvBundle(object):
 
     def add_namespace(self, namespace_or_prefix, uri=None):
         if uri is None:
-            self._namespaces.add_namespace(namespace_or_prefix)
+            return self._namespaces.add_namespace(namespace_or_prefix)
         else:
-            self._namespaces.add_namespace(Namespace(namespace_or_prefix, uri))
+            return self._namespaces.add_namespace(Namespace(namespace_or_prefix, uri))
 
     def get_registered_namespaces(self):
         return self._namespaces.get_registered_namespaces()
 
-    def valid_identifier(self, identifier):
-        return self._namespaces.get_valid_identifier(identifier)
+    def valid_qualified_name(self, identifier):
+        return self._namespaces.valid_qualified_name(identifier)
 
     def get_anon_id(self, record):
         #  TODO Implement a dict of self-generated anon ids for records without identifier
@@ -742,7 +782,7 @@ class ProvBundle(object):
         # TODO: This will not work with the new _id_map, which is now a map of (QName, list(ProvRecord))
         if identifier is None:
             return None
-        valid_id = self.valid_identifier(identifier)
+        valid_id = self.valid_qualified_name(identifier)
         try:
             return self._id_map[valid_id]
         except KeyError:
@@ -874,7 +914,7 @@ class ProvBundle(object):
             attr_list.extend(
                 other_attributes.items() if isinstance(other_attributes, dict) else other_attributes
             )
-        new_record = PROV_REC_CLS[record_type](self, self.valid_identifier(identifier), attr_list)
+        new_record = PROV_REC_CLS[record_type](self, self.valid_qualified_name(identifier), attr_list)
         self._add_record(new_record)
         return new_record
 
@@ -1082,6 +1122,9 @@ class ProvDocument(ProvBundle):
         ProvBundle.__init__(self, records=records, identifier=None, namespaces=namespaces)
         self._bundles = dict()
 
+    def __repr__(self):
+        return u'<ProvDocument>'
+
     def is_document(self):
         return True
 
@@ -1135,7 +1178,10 @@ class ProvDocument(ProvBundle):
         if not identifier:
             raise ProvException(u'The provided bundle has no identifier')
 
-        valid_id = self.valid_identifier(identifier)
+        # Link the bundle namespace manager to the document's
+        bundle._namespaces.parent = self._namespaces
+
+        valid_id = bundle.valid_qualified_name(identifier)
         # IMPORTANT: Rewriting the bundle identifier for consistency
         bundle._identifier = valid_id
 
@@ -1143,17 +1189,16 @@ class ProvDocument(ProvBundle):
             raise ProvException(u"A bundle with that identifier already exists")
 
         self._bundles[valid_id] = bundle
-
-        # TODO Set parent namespace for the bundle
-
-        bundle._bundle = self
+        bundle._document = self
 
     def bundle(self, identifier):
         if identifier is None:
             raise ProvException('An identifier is required. Cannot create an unnamed bundle.')
-        valid_id = self.valid_identifier(identifier)
-        b = ProvBundle()
-        self.add_bundle(b, valid_id)
+        valid_id = self.valid_qualified_name(identifier)
+        if valid_id in self._bundles:
+            raise ProvException(u"A bundle with that identifier already exists")
+        b = ProvBundle(identifier=valid_id, document=self)
+        self._bundles[valid_id] = b
         return b
 
     # Serializing and deserializing
@@ -1165,7 +1210,7 @@ class ProvDocument(ProvBundle):
         """
         serializer = serializers.get(format)(self)
         if destination is None:
-            stream = BytesIO()
+            stream = StringIO()
             serializer.serialize(stream, **args)
             return stream.getvalue()
         if hasattr(destination, "write"):
@@ -1197,7 +1242,7 @@ class ProvDocument(ProvBundle):
         serializer = serializers.get(format)()
 
         if content is not None:
-            stream = BytesIO(content)
+            stream = StringIO(content)
             return serializer.deserialize(stream, **args)
 
         if source is not None:

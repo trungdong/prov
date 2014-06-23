@@ -1,0 +1,33 @@
+{
+  "entity": {
+    "ex:e1": {}
+  },
+  "wasGeneratedBy": {
+    "ex:gen1": [
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2014-06-23T12:28:53.268+01:00",
+        "ex:tag2": {
+          "$": "hello-scruff-gen2",
+          "type": "xsd:string"
+        },
+        "prov:entity": "ex:e1"
+      },
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2012-12-03T21:08:16.686Z",
+        "ex:tag2": {
+          "$": "hi-scruff-gen2",
+          "type": "xsd:string"
+        },
+        "prov:entity": "ex:e1"
+      }
+    ]
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a1": {}
+  }
+}

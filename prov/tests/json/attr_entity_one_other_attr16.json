@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o16": {
+      "ex:tag2": {
+        "$": "10",
+        "type": "xsd:nonNegativeInteger"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

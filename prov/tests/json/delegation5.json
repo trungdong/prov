@@ -1,0 +1,11 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "actedOnBehalfOf": {
+    "_:aOBO1": {
+      "prov:delegate": "ex:e1",
+      "prov:responsible": "ex:ag1"
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v0": {
+      "prov:value": {
+        "$": "un lieu",
+        "type": "xsd:string"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

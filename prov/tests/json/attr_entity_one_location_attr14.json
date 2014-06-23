@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l14": {
+      "prov:location": {
+        "$": "10",
+        "type": "xsd:integer"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

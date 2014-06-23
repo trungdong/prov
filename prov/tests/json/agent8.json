@@ -1,0 +1,78 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "agent": {
+    "ex:ag8": {
+      "prov:type": [
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "true",
+          "type": "xsd:string"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2014-06-23T12:28:54.384+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "true",
+          "type": "xsd:string"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2014-06-23T12:28:54.384+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "prov:location": [
+        {
+          "$": "http://example.org/london",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "http://example.org/london",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "prov:label": "agent8"
+    }
+  }
+}

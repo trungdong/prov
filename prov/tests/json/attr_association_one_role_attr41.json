@@ -1,0 +1,15 @@
+{
+  "wasAssociatedWith": {
+    "ex:ass_r41": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:role": {
+        "$": "NMTOK",
+        "type": "xsd:NMTOKEN"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

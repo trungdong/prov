@@ -1,0 +1,10 @@
+{
+  "wasAttributedTo": {
+    "ex:attr1": {
+      "prov:entity": "ex:e1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

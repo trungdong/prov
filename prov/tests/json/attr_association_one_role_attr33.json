@@ -1,0 +1,15 @@
+{
+  "wasAssociatedWith": {
+    "ex:ass_r33": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:role": {
+        "$": "P2Y6M",
+        "type": "xsd:yearMonthDuration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

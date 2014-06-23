@@ -1,0 +1,25 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "actedOnBehalfOf": {
+    "ex:del6": {
+      "prov:activity": "ex:a",
+      "prov:delegate": "ex:e1",
+      "prov:responsible": "ex:ag1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  }
+}

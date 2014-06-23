@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et10": {
+      "prov:type": {
+        "$": "false",
+        "type": "xsd:boolean"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasDerivedFrom": {
+    "_:wDF2": {
+      "prov:activity": "ex:a",
+      "prov:generatedEntity": "ex:e2",
+      "prov:usage": "ex:u",
+      "prov:generation": "ex:g",
+      "prov:usedEntity": "ex:e1"
+    }
+  }
+}

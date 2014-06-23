@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o38": {
+      "ex:tag2": {
+        "$": "en",
+        "type": "xsd:language"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

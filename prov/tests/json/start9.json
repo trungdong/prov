@@ -1,0 +1,11 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasStartedBy": {
+    "_:wSB3": {
+      "prov:activity": "ex:a1",
+      "prov:trigger": "ex:e1"
+    }
+  }
+}

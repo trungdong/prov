@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l42": {
+      "prov:location": {
+        "$": "name",
+        "type": "xsd:Name"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

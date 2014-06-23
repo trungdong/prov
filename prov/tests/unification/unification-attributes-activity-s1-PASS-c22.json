@@ -1,0 +1,24 @@
+{
+  "entity": {
+    "ex:e1": {}
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a1": [
+      {
+        "prov:type": {
+          "$": "ex:test1",
+          "type": "xsd:QName"
+        }
+      },
+      {
+        "prov:type": {
+          "$": "ex:test2",
+          "type": "xsd:QName"
+        }
+      }
+    ]
+  }
+}

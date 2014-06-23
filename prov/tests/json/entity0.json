@@ -1,0 +1,36 @@
+{
+  "entity": {
+    "ex:e0": {
+      "ex:tag2": {
+        "$": "bonjour",
+        "type": "prov:InternationalizedString",
+        "lang": "fr"
+      },
+      "prov:location": [
+        {
+          "$": "un llieu",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "2.0",
+          "type": "xsd:double"
+        },
+        {
+          "$": "http://example.org/london",
+          "type": "xsd:anyURI"
+        },
+        {
+          "$": "2",
+          "type": "xsd:long"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

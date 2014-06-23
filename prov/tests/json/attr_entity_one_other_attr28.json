@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o28": {
+      "ex:tag2": {
+        "$": "2013",
+        "type": "xsd:gYear"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

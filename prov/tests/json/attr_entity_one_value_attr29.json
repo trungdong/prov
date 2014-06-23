@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v29": {
+      "prov:value": {
+        "$": "--01",
+        "type": "xsd:gMonth"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

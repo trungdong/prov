@@ -1,0 +1,13 @@
+{
+  "hadMember": {
+    "_:hM1": {
+      "prov:collection": "ex:c",
+      "prov:entity": [
+        "ex:e1"
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasDerivedFrom": {
+    "ex:der1": {
+      "prov:usedEntity": "ex:e1"
+    }
+  }
+}

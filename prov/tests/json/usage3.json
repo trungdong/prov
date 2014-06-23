@@ -1,0 +1,21 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "used": {
+    "ex:use3": {
+      "prov:activity": "ex:a1",
+      "prov:role": [
+        {
+          "$": "somerole",
+          "type": "xsd:string"
+        },
+        {
+          "$": "otherRole",
+          "type": "xsd:string"
+        }
+      ],
+      "prov:entity": "ex:e1"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o10": {
+      "ex:tag2": {
+        "$": "false",
+        "type": "xsd:boolean"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

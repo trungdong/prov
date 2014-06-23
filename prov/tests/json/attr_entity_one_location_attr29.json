@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l29": {
+      "prov:location": {
+        "$": "--01",
+        "type": "xsd:gMonth"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

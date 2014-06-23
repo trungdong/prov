@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l39": {
+      "prov:location": {
+        "$": "normal",
+        "type": "xsd:normalizedString"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

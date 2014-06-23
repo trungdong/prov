@@ -85,13 +85,12 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
     :type show_relation_attributes: bool
     :returns:  :class:`pydot.Dot` -- the Dot object.
     """
-    maindot = pydot.Dot(graph_type='digraph', rankdir='BT')
+    maindot = pydot.Dot(graph_type='digraph', rankdir='BT', charset='utf-8')
 
     node_map = {}
     count = [0, 0, 0, 0]  # counters for node ids
 
     def _bundle_to_dot(dot, bundle):
-
         def _attach_attribute_annotation(node, record):
             # Adding a node to show all attributes
             attributes = list(
@@ -116,34 +115,34 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             dot.add_node(annotations)
             dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
-        def _add_node(record):
-            if isinstance(record, ProvBundle):
-                count[2] += 1
-                subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % record.identifier.uri)
-                if use_labels:
-                    subdot.set_label('"%s"' % unicode(record.label))
-                else:
-                    subdot.set_label('"%s"' % unicode(record.identifier))
-                _bundle_to_dot(subdot, record)
-                dot.add_subgraph(subdot)
-                return subdot
+        def _add_bundle(bundle):
+            count[2] += 1
+            subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % bundle.identifier.uri)
+            if use_labels:
+                subdot.set_label('"%s"' % unicode(bundle.label))
             else:
-                count[0] += 1
-                node_id = 'n%d' % count[0]
-                if use_labels:
-                    node_label = '"%s"' % unicode(record.label)
-                else:
-                    node_label = '"%s"' % unicode(record.identifier)
+                subdot.set_label('"%s"' % unicode(bundle.identifier))
+            _bundle_to_dot(subdot, bundle)
+            dot.add_subgraph(subdot)
+            return subdot
 
-                uri = record.identifier.uri
-                style = DOT_PROV_STYLE[record.get_type()]
-                node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
-                node_map[uri] = node
-                dot.add_node(node)
+        def _add_node(record):
+            count[0] += 1
+            node_id = 'n%d' % count[0]
+            if use_labels:
+                node_label = '"%s"' % unicode(record.label)
+            else:
+                node_label = '"%s"' % unicode(record.identifier)
 
-                if show_element_attributes:
-                    _attach_attribute_annotation(node, rec)
-                return node
+            uri = record.identifier.uri
+            style = DOT_PROV_STYLE[record.get_type()]
+            node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
+            node_map[uri] = node
+            dot.add_node(node)
+
+            if show_element_attributes:
+                _attach_attribute_annotation(node, rec)
+            return node
 
         def _add_generic_node(qname):
             count[0] += 1
@@ -180,6 +179,10 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             else:
                 # Saving the relations for later processing
                 relations.append(rec)
+
+        if not bundle.is_bundle():
+            for bundle in bundle.bundles:
+                _add_bundle(bundle)
 
         for rec in relations:
             args = rec.args

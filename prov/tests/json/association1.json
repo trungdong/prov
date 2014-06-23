@@ -1,0 +1,10 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc1": {
+      "prov:activity": "ex:a1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}
