@@ -4,7 +4,7 @@ python:
 
 # Install packages
 install:
-  - pip install dateutil
+  - pip install python-dateutil
   - python setup.py install
   - ls
 
