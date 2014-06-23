@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l21": {
+      "prov:location": {
+        "$": "ex:abc",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

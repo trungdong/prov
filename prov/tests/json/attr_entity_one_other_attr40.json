@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o40": {
+      "ex:tag2": {
+        "$": "TOK",
+        "type": "xsd:token"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

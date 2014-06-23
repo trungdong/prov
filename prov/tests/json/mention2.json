@@ -1,0 +1,12 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "mentionOf": {
+    "_:mO2": {
+      "prov:generalEntity": "ex:e1",
+      "prov:specificEntity": "ex:e2",
+      "prov:bundle": "ex:b"
+    }
+  }
+}

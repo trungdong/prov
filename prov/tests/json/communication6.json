@@ -1,0 +1,54 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasInformedBy": {
+    "ex:inf6": {
+      "prov:type": [
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "true",
+          "type": "xsd:string"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2014-06-23T12:28:54.102+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "prov:informant": "ex:a1",
+      "prov:informed": "ex:a2",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  }
+}

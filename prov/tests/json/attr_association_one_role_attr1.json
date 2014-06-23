@@ -1,0 +1,16 @@
+{
+  "wasAssociatedWith": {
+    "ex:ass_r1": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:role": {
+        "$": "un lieu",
+        "type": "prov:InternationalizedString",
+        "lang": "fr"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

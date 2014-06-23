@@ -1,0 +1,12 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasStartedBy": {
+    "ex:start7": {
+      "prov:activity": "ex:a1",
+      "prov:time": "2014-06-23T12:28:54.453+01:00",
+      "prov:starter": "ex:a2"
+    }
+  }
+}

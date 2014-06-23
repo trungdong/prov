@@ -1,0 +1,41 @@
+{
+  "wasEndedBy": {
+    "_:wEB4": {
+      "prov:activity": "ex:a1",
+      "prov:type": {
+        "$": "ex:test1",
+        "type": "xsd:string"
+      },
+      "prov:trigger": "ex:e1",
+      "prov:ender": "ex:a2"
+    },
+    "ex:end1": [
+      {
+        "prov:activity": "ex:a1",
+        "prov:type": {
+          "$": "ex:test1",
+          "type": "xsd:QName"
+        },
+        "prov:time": "2011-11-16T16:05:00.000Z"
+      },
+      {
+        "prov:activity": "ex:a1",
+        "prov:type": {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        "prov:ender": "ex:a2"
+      }
+    ]
+  },
+  "entity": {
+    "ex:e1": {}
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a2": {},
+    "ex:a1": {}
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "entity": {
+    "ex:e1": {}
+  },
+  "wasGeneratedBy": {
+    "ex:gen1": [
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2014-06-23T12:28:53.265+01:00",
+        "prov:entity": "ex:e1"
+      },
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2012-12-03T21:08:16.686Z",
+        "prov:entity": "ex:e1"
+      }
+    ]
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a1": {}
+  }
+}

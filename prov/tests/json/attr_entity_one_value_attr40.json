@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v40": {
+      "prov:value": {
+        "$": "TOK",
+        "type": "xsd:token"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

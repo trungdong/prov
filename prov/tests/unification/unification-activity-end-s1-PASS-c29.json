@@ -1,0 +1,21 @@
+{
+  "wasEndedBy": {
+    "ex:end1": {
+      "prov:activity": "ex:a1",
+      "prov:time": "2012-11-16T17:05:00.000Z"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a1": [
+      {
+        "prov:startTime": "2012-11-16T16:05:00.000Z"
+      },
+      {
+        "prov:endTime": "2012-11-16T17:05:00.000Z"
+      }
+    ]
+  }
+}

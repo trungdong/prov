@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o0": {
+      "ex:tag2": {
+        "$": "un lieu",
+        "type": "xsd:string"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

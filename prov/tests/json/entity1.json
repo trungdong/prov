@@ -1,0 +1,8 @@
+{
+  "entity": {
+    "ex:e1": {}
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o19": {
+      "ex:tag2": {
+        "$": "10",
+        "type": "xsd:unsignedByte"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

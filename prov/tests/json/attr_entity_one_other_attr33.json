@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o33": {
+      "ex:tag2": {
+        "$": "P2Y6M",
+        "type": "xsd:yearMonthDuration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

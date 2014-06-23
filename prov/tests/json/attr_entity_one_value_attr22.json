@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_v22": {
+      "prov:value": {
+        "$": "ex:abcd",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "other": "http://example.org/",
+    "ex": "http://example.org/"
+  }
+}

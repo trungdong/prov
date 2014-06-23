@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et27": {
+      "prov:type": {
+        "$": "2014-06-23T12:28:41.760+01:00",
+        "type": "xsd:dateTime"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

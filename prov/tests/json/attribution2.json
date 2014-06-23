@@ -1,0 +1,10 @@
+{
+  "wasAttributedTo": {
+    "ex:attr2": {
+      "prov:agent": "ex:ag1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

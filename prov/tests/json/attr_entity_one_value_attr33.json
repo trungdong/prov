@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v33": {
+      "prov:value": {
+        "$": "P2Y6M",
+        "type": "xsd:yearMonthDuration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

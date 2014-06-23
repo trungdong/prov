@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et16": {
+      "prov:type": {
+        "$": "10",
+        "type": "xsd:nonNegativeInteger"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

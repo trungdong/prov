@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "en_o23": {
+      "tag2": {
+        "$": "abcde",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "default": "http://example.org/",
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

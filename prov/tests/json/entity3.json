@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:e3": {
+      "prov:value": {
+        "$": "ex:avalue",
+        "type": "xsd:QName"
+      },
+      "prov:label": "entity3"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

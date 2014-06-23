@@ -1,0 +1,24 @@
+{
+  "wasAttributedTo": {
+    "ex:attr6": {
+      "prov:agent": "ex:ag1",
+      "prov:entity": "ex:e1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

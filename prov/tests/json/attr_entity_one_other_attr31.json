@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o31": {
+      "ex:tag2": {
+        "$": "--12-25",
+        "type": "xsd:gMonthDay"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

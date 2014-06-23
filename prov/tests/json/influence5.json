@@ -1,0 +1,24 @@
+{
+  "wasInfluencedBy": {
+    "ex:inf5": {
+      "prov:influencer": "ex:a1",
+      "prov:influencee": "ex:a2",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "entity": {
+    "ex:e2": {
+      "prov:label": "entity2"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

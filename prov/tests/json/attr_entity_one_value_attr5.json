@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v5": {
+      "prov:value": {
+        "$": "1",
+        "type": "xsd:short"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

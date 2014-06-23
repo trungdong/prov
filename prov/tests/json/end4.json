@@ -1,0 +1,11 @@
+{
+  "wasEndedBy": {
+    "ex:end4": {
+      "prov:trigger": "ex:e1",
+      "prov:ender": "ex:a2"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

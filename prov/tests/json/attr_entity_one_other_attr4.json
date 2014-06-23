@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o4": {
+      "ex:tag2": {
+        "$": "1",
+        "type": "xsd:long"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

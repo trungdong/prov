@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v38": {
+      "prov:value": {
+        "$": "en",
+        "type": "xsd:language"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

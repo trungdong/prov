@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l43": {
+      "prov:location": {
+        "$": "NCName",
+        "type": "xsd:NCName"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

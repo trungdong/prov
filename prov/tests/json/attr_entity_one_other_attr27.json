@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o27": {
+      "ex:tag2": {
+        "$": "2014-06-23T12:28:41.703+01:00",
+        "type": "xsd:dateTime"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

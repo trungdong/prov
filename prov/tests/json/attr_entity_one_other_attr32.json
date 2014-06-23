@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o32": {
+      "ex:tag2": {
+        "$": "P0Y0M0DT0H0M12.225S",
+        "type": "xsd:duration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

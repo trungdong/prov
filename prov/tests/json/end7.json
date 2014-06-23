@@ -1,0 +1,12 @@
+{
+  "wasEndedBy": {
+    "ex:end7": {
+      "prov:activity": "ex:a1",
+      "prov:time": "2014-06-23T12:28:53.216+01:00",
+      "prov:ender": "ex:a2"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

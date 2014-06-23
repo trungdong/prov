@@ -1,0 +1,16 @@
+{
+  "wasAssociatedWith": {
+    "ass_r23": {
+      "prov:activity": "a1",
+      "prov:agent": "ag1",
+      "prov:role": {
+        "$": "abcde",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "default": "http://example.org/",
+    "ex": "http://example.org/"
+  }
+}

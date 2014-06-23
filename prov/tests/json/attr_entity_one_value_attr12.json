@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v12": {
+      "prov:value": {
+        "$": "10",
+        "type": "xsd:unsignedInt"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

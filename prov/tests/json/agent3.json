@@ -1,0 +1,13 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "agent": {
+    "ex:ag2": {
+      "prov:label": [
+        "agent2",
+        "hello"
+      ]
+    }
+  }
+}
