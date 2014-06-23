@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 import datetime
 from prov import Serializer, Error
 from prov.constants import *
-from prov.model import (Literal, Identifier, QName, Namespace, ProvRecord,
-                        ProvDocument)
+from prov.model import (Literal, Identifier, QualifiedName, Namespace,
+                        ProvRecord, ProvDocument)
 
 attr2rdf = lambda attr: URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].uri)
 
@@ -76,7 +76,7 @@ class ProvRDFSerializer(Serializer):
             return literal_rdf_representation(value)
         elif isinstance(value, datetime.datetime):
             return RDFLiteral(value.isoformat(), datatype=XSD['dateTime'])
-        elif isinstance(value, (QName, Identifier)):
+        elif isinstance(value, (QualifiedName, Identifier)):
             return URIRef(value.uri)
         elif type(value) in LITERAL_XSDTYPE_MAP:
             return RDFLiteral(value, datatype=LITERAL_XSDTYPE_MAP[type(value)])
@@ -181,8 +181,8 @@ class ProvRDFSerializer(Serializer):
                         obj = self.encode_rdf_representation(value)
                     if attr == PROV['location']:
                         pred = URIRef(PROV['atLocation'].uri)
-                        if isinstance(value, (URIRef, QName)):
-                            if isinstance(value, QName):
+                        if isinstance(value, (URIRef, QualifiedName)):
+                            if isinstance(value, QualifiedName):
                                 value = URIRef(value.uri)
                             container.add((identifier, pred, value))
                             container.add((value, RDF.type,
@@ -287,7 +287,7 @@ def literal_rdf_representation(literal):
                           lang=str(literal.get_langtag()))
     else:
         datatype = literal.get_datatype()
-        if isinstance(datatype, QName):
+        if isinstance(datatype, QualifiedName):
             return RDFLiteral(unicode(literal.get_value()),
                               datatype=unicode(datatype))
         else:
