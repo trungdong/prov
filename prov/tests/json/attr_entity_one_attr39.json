@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et39": {
+      "prov:type": {
+        "$": "normal",
+        "type": "xsd:normalizedString"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

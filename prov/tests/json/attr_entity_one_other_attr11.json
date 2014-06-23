@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o11": {
+      "ex:tag2": {
+        "$": "10",
+        "type": "xsd:byte"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

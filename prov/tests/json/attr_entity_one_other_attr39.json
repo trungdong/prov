@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o39": {
+      "ex:tag2": {
+        "$": "normal",
+        "type": "xsd:normalizedString"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

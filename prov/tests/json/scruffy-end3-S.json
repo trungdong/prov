@@ -1,0 +1,29 @@
+{
+  "wasEndedBy": {
+    "ex:end1": [
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2014-06-23T12:28:54.691+01:00",
+        "prov:trigger": "ex:e1",
+        "prov:ender": "ex:a1s",
+        "ex:tag2": {
+          "$": "hello",
+          "type": "xsd:string"
+        }
+      },
+      {
+        "prov:activity": "ex:a1",
+        "prov:time": "2012-12-03T21:08:16.686Z",
+        "prov:trigger": "ex:e1",
+        "prov:ender": "ex:a2s",
+        "ex:tag2": {
+          "$": "hi",
+          "type": "xsd:string"
+        }
+      }
+    ]
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

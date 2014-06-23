@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l38": {
+      "prov:location": {
+        "$": "en",
+        "type": "xsd:language"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

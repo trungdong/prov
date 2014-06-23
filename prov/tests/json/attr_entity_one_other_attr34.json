@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o34": {
+      "ex:tag2": {
+        "$": "P2147483647DT2147483647H2147483647M123456789012345.123456789012345S",
+        "type": "xsd:dayTimeDuration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

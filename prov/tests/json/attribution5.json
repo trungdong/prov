@@ -1,0 +1,11 @@
+{
+  "wasAttributedTo": {
+    "_:wAT1": {
+      "prov:agent": "ex:ag1",
+      "prov:entity": "ex:e1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

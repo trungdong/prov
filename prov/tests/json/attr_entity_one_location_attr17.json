@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l17": {
+      "prov:location": {
+        "$": "-10",
+        "type": "xsd:nonPositiveInteger"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

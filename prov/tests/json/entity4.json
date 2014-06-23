@@ -1,0 +1,23 @@
+{
+  "entity": {
+    "ex:e4": {
+      "prov:label": [
+        "entity4",
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

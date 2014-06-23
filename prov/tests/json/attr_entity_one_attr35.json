@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et35": {
+      "prov:type": {
+        "$": "000102220506",
+        "type": "xsd:hexBinary"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o36": {
+      "ex:tag2": {
+        "$": "AAECIgUG",
+        "type": "xsd:base64Binary"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o35": {
+      "ex:tag2": {
+        "$": "000102220506",
+        "type": "xsd:hexBinary"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "prefix": {
+    "ex": "http://example.org/",
+    "ex2": "http://example2.org/"
+  },
+  "wasDerivedFrom": {
+    "ex:der8": {
+      "prov:generatedEntity": "ex:e2",
+      "prov:type": [
+        {
+          "$": "a",
+          "type": "xsd:string"
+        },
+        {
+          "$": "1",
+          "type": "xsd:int"
+        },
+        {
+          "$": "1.0",
+          "type": "xsd:float"
+        },
+        {
+          "$": "true",
+          "type": "xsd:string"
+        },
+        {
+          "$": "ex:abc",
+          "type": "xsd:QName"
+        },
+        {
+          "$": "2014-06-23T12:28:53.729+01:00",
+          "type": "xsd:dateTime"
+        },
+        {
+          "$": "http://example.org/hello",
+          "type": "xsd:anyURI"
+        }
+      ],
+      "ex:tag1": [
+        {
+          "$": "hello",
+          "type": "xsd:string"
+        },
+        {
+          "$": "hello\nover\nmore\nlines",
+          "type": "xsd:string"
+        }
+      ],
+      "ex:tag2": {
+        "$": "bye",
+        "type": "xsd:string"
+      },
+      "ex2:tag3": {
+        "$": "hi",
+        "type": "xsd:string"
+      },
+      "prov:usedEntity": "ex:e1",
+      "prov:label": "hello"
+    }
+  }
+}

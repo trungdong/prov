@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v32": {
+      "prov:value": {
+        "$": "P0Y0M0DT0H0M12.225S",
+        "type": "xsd:duration"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l9": {
+      "prov:location": {
+        "$": "true",
+        "type": "xsd:boolean"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

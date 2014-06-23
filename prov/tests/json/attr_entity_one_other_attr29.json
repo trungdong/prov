@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o29": {
+      "ex:tag2": {
+        "$": "--01",
+        "type": "xsd:gMonth"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

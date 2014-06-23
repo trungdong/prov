@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "ex:en_o26": {
+      "ex:tag2": {
+        "$": "zabcde",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "default": "http://example4.org/",
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

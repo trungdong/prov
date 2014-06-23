@@ -1,0 +1,10 @@
+{
+  "wasInfluencedBy": {
+    "ex:inf1": {
+      "prov:influencee": "ex:a2"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

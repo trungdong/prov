@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_v36": {
+      "prov:value": {
+        "$": "AAECIgUG",
+        "type": "xsd:base64Binary"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

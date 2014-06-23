@@ -1,0 +1,22 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc8": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:role": [
+        {
+          "$": "someRole",
+          "type": "xsd:string"
+        },
+        {
+          "$": "someOtherRole",
+          "type": "xsd:string"
+        }
+      ],
+      "prov:plan": "ex:plan1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

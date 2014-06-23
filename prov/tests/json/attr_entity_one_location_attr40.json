@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l40": {
+      "prov:location": {
+        "$": "TOK",
+        "type": "xsd:token"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

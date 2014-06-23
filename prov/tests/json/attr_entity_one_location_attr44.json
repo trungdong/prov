@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_l44": {
+      "prov:location": {
+        "$": "\u003cap:aaa xmlns:ap\u003d\"http://app/\"\u003e\u003cap:bbb\u003e\u003cap:ccc/\u003e\u003c/ap:bbb\u003e\u003c/ap:aaa\u003e",
+        "type": "rdf:XMLLiteral"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "wasInformedBy": {
+    "ex:inf5": {
+      "prov:informant": "ex:a1",
+      "prov:informed": "ex:a2",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  }
+}

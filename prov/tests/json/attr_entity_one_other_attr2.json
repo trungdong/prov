@@ -1,0 +1,15 @@
+{
+  "entity": {
+    "ex:en_o2": {
+      "ex:tag2": {
+        "$": "a place",
+        "type": "prov:InternationalizedString",
+        "lang": "en"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

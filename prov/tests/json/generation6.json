@@ -1,0 +1,11 @@
+{
+  "wasGeneratedBy": {
+    "_:wGB3": {
+      "prov:activity": "ex:a1",
+      "prov:entity": "ex:e1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

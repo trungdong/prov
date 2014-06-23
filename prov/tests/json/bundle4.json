@@ -1,0 +1,56 @@
+{
+  "entity": {
+    "foo:bundle1": {
+      "prov:type": {
+        "$": "prov:Bundle",
+        "type": "xsd:QName"
+      }
+    },
+    "ex:bundle2": {
+      "prov:type": {
+        "$": "prov:Bundle",
+        "type": "xsd:QName"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://another.org/",
+    "foo": "http://example.org/"
+  },
+  "bundle": {
+    "ex:bundle1": {
+      "entity": {
+        "ex:e1": {}
+      },
+      "prefix": {
+        "ex": "http://example.org/"
+      },
+      "used": {
+        "ex:use1": {
+          "prov:activity": "ex:a1",
+          "prov:entity": "ex:e1"
+        }
+      },
+      "activity": {
+        "ex:a1": {}
+      }
+    },
+    "ex:bundle2": {
+      "entity": {
+        "ex:ee1": {}
+      },
+      "prefix": {
+        "ex": "http://another.org/"
+      },
+      "used": {
+        "ex:use2": {
+          "prov:activity": "ex:aa1",
+          "prov:entity": "ex:ee1"
+        }
+      },
+      "activity": {
+        "ex:aa1": {}
+      }
+    }
+  }
+}

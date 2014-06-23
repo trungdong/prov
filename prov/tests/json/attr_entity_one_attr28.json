@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et28": {
+      "prov:type": {
+        "$": "2013",
+        "type": "xsd:gYear"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

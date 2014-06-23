@@ -1,0 +1,23 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "activity": {
+    "ex:a2": {
+      "prov:label": [
+        "activity2",
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  }
+}

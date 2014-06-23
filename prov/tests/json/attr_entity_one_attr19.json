@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et19": {
+      "prov:type": {
+        "$": "10",
+        "type": "xsd:unsignedByte"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

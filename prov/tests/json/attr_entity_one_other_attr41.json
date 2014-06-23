@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o41": {
+      "ex:tag2": {
+        "$": "NMTOK",
+        "type": "xsd:NMTOKEN"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

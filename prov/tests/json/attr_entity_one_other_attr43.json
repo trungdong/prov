@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_o43": {
+      "ex:tag2": {
+        "$": "NCName",
+        "type": "xsd:NCName"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/",
+    "exo": "http://example.org/"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "wasAssociatedWith": {
+    "ex:assoc6": {
+      "prov:activity": "ex:a1",
+      "prov:agent": "ex:ag1",
+      "prov:plan": "ex:plan1",
+      "prov:label": [
+        "hello",
+        {
+          "$": "bye",
+          "type": "prov:InternationalizedString",
+          "lang": "en"
+        },
+        {
+          "$": "bonjour",
+          "type": "prov:InternationalizedString",
+          "lang": "fr"
+        }
+      ]
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

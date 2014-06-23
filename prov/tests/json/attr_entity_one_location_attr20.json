@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l20": {
+      "prov:location": {
+        "$": "http://example.org",
+        "type": "xsd:anyURI"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

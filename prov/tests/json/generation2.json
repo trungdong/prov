@@ -1,0 +1,11 @@
+{
+  "wasGeneratedBy": {
+    "ex:gen2": {
+      "prov:activity": "ex:a1",
+      "prov:entity": "ex:e1"
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

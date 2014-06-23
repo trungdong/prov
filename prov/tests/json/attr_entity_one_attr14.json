@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et14": {
+      "prov:type": {
+        "$": "10",
+        "type": "xsd:integer"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

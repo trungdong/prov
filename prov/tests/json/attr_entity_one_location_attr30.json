@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l30": {
+      "prov:location": {
+        "$": "---30",
+        "type": "xsd:gDay"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

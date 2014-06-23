@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:en_l41": {
+      "prov:location": {
+        "$": "NMTOK",
+        "type": "xsd:NMTOKEN"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

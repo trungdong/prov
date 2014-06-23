@@ -1,0 +1,13 @@
+{
+  "entity": {
+    "ex:et31": {
+      "prov:type": {
+        "$": "--12-25",
+        "type": "xsd:gMonthDay"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

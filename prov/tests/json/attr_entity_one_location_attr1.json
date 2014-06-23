@@ -1,0 +1,14 @@
+{
+  "entity": {
+    "ex:en_l1": {
+      "prov:location": {
+        "$": "un lieu",
+        "type": "prov:InternationalizedString",
+        "lang": "fr"
+      }
+    }
+  },
+  "prefix": {
+    "ex": "http://example.org/"
+  }
+}

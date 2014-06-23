@@ -1,0 +1,11 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "used": {
+    "ex:use2": {
+      "prov:activity": "ex:a1",
+      "prov:entity": "ex:e1"
+    }
+  }
+}
