@@ -1,6 +1,7 @@
 *WARNING*: Under active development
 
-[![Build Status](https://travis-ci.org/trungdong/prov.svg)](https://travis-ci.org/trungdong/prov)
+.. image:: https://travis-ci.org/trungdong/prov.svg
+    :target: https://travis-ci.org/trungdong/prov
 
 This package provides an implementation of the `PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python.
 It provides in-memory classes for PROV assertions and can be serialized into `PROV-JSON representation <http://www.w3.org/Submission/prov-json/>`_.
