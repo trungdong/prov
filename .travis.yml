@@ -5,7 +5,7 @@ python:
 
 # Install packages
 install:
-  - pip install python-dateutil
+  - pip install python-dateutil rdflib
   - python setup.py install
 
 # Run test
