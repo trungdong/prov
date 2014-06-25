@@ -5,9 +5,12 @@ python:
 
 # Install packages
 install:
-  - pip install python-dateutil
-  - python setup.py install
+  - pip install coverage coveralls
+  - pip install -e .
 
 # Run test
 script:
-  - python prov/tests/testModel.py
+  - coverage run prov/tests/testModel.py
+
+after_success:
+  - coveralls
