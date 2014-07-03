@@ -90,7 +90,6 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
 
     def testLoadAllJSON(self):
         # self.assertFalse(fails, 'Failed to load/round-trip %d JSON files (%s)' % (len(fails), ', '.join(fails)))
-        logging.basicConfig(level=logging.DEBUG)
 
         # Code for debugging the failed tests
         for filename in self.fails:
@@ -156,5 +155,4 @@ class TestXSDQNames(JSONRoundTripTestCase):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     unittest.main()
