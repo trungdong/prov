@@ -243,17 +243,18 @@ def decode_json_representation(literal, bundle):
         # complex type
         value = literal['$']
         datatype = literal['type'] if 'type' in literal else None
+        datatype = valid_qualified_name(bundle, datatype)
         langtag = literal['lang'] if 'lang' in literal else None
-        if datatype == u'xsd:anyURI':
+        if datatype == XSD_ANYURI:
             return Identifier(value)
-        elif datatype == u'xsd:QName':
+        elif datatype == XSD_QNAME:
             return valid_qualified_name(bundle, value, xsd_qname=True)
-        elif datatype == u'prov:QualifiedName':
+        elif datatype == PROV_QUALIFIEDNAME:
             return valid_qualified_name(bundle, value)
         else:
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by _auto_literal_conversion()
-            return Literal(value, valid_qualified_name(bundle, datatype), langtag)
+            return Literal(value, datatype, langtag)
     else:
         # simple type, just return it
         return literal
