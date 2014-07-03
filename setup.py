@@ -22,6 +22,7 @@ setup(
     },
     install_requires=['python-dateutil'], 
     provides=['prov'],
+    test_suite='prov.tests',
     keywords=['provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON'],
     classifiers=[
         'Development Status :: 4 - Beta',

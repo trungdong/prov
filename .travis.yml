@@ -10,7 +10,7 @@ install:
 
 # Run test
 script:
-  - coverage run prov/tests/testModel.py
+  - coverage run setup.py test
 
 after_success:
   - coveralls
