@@ -107,7 +107,7 @@ def encoding_provn_value(value):
 
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
-        self._value = value
+        self._value = unicode(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
@@ -119,7 +119,7 @@ class Literal(object):
                 )
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
-        self._langtag = langtag
+        self._langtag = unicode(langtag) if langtag is not None else None  # langtag is always a string
 
     def __unicode__(self):
         return self.provn_representation()

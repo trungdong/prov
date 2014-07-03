@@ -261,13 +261,9 @@ def decode_json_representation(literal, bundle):
 
 
 def literal_json_representation(literal):
-    if literal._langtag:
-        #  a language tag can only go with prov:InternationalizedString
-        return {'$': unicode(literal._value), 'lang': literal._langtag}
+    # TODO: QName export
+    value, datatype, langtag = literal.value, literal.datatype, literal.langtag
+    if langtag:
+        return {'$': value, 'lang': langtag, 'type': unicode(datatype)}
     else:
-        if isinstance(literal._datatype, QualifiedName):
-            # TODO: QName export
-            return {'$': unicode(literal._value), 'type': unicode(literal._datatype)}
-        else:
-            #  Assuming it is a valid identifier
-            return {'$': unicode(literal._value), 'type': literal._datatype.uri}
+        return {'$': value, 'type': unicode(datatype)}
