@@ -18,7 +18,6 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_no_id(self):
         document = ProvDocument()
-        self.assertRaises(ProvException)
 
         def test():
             bundle = ProvBundle()
