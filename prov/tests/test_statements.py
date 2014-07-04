@@ -341,13 +341,14 @@ class RoundTripFromPythonTest(ProvJSONRoundTripTest):
 
     def test_generation_4(self):
         document = self.new_document()
-        a = document.generation(EX_NS['e1'],
-                                identifier=EX_NS['gen4'],
-                                activity=EX_NS['a1'],
-                                time=datetime.datetime.now())
-        a.add_attributes([
-            (PROV_ROLE, 'somerole'),
-        ])
+        a = document.add_record(
+            PROV_GENERATION, EX_NS['gen4'], (
+                (PROV_ATTR_ENTITY, EX_NS['e1']),
+                (PROV_ATTR_ACTIVITY, EX_NS['a1']),
+                (PROV_ATTR_TIME, datetime.datetime.now())
+            ),
+            {PROV_ROLE: 'somerole'}
+        )
         self.run_roundtrip_test_document(document)
 
     def test_generation_5(self):
@@ -765,41 +766,32 @@ class RoundTripFromPythonTest(ProvJSONRoundTripTest):
 
     def test_derivation_11(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
+        der = document.revision(EX_NS['e2'],
                                   usedEntity=EX_NS['e1'],
                                   identifier=EX_NS['rev1'],
                                   activity=EX_NS['a'],
                                   usage=EX_NS['u'],
                                   generation=EX_NS['g'])
-        der.add_attributes([
-            (PROV_TYPE, PROV['Revision'])
-        ])
         self.run_roundtrip_test_document(document)
 
     def test_derivation_12(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
+        der = document.quotation(EX_NS['e2'],
                                   usedEntity=EX_NS['e1'],
                                   identifier=EX_NS['quo1'],
                                   activity=EX_NS['a'],
                                   usage=EX_NS['u'],
                                   generation=EX_NS['g'])
-        der.add_attributes([
-            (PROV_TYPE, PROV['Quotation'])
-        ])
         self.run_roundtrip_test_document(document)
 
     def test_derivation_13(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
+        der = document.primary_source(EX_NS['e2'],
                                   usedEntity=EX_NS['e1'],
                                   identifier=EX_NS['prim1'],
                                   activity=EX_NS['a'],
                                   usage=EX_NS['u'],
                                   generation=EX_NS['g'])
-        der.add_attributes([
-            (PROV_TYPE, PROV['PrimarySource'])
-        ])
         self.run_roundtrip_test_document(document)
 
     ## ASSOCIATIONS

@@ -383,7 +383,7 @@ class ProvRecord(object):
         return False
 
 
-# Abstract classes for elements and relations
+#  Abstract classes for elements and relations
 class ProvElement(ProvRecord):
     def is_element(self):
         return True
@@ -793,7 +793,7 @@ class ProvBundle(object):
             else:
                 return None
 
-    #  Miscellaneous functions
+    # Miscellaneous functions
     def is_document(self):
         return False
 
@@ -892,7 +892,7 @@ class ProvBundle(object):
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
         return bundle
 
-    #  Provenance statements
+    # Provenance statements
     def _add_record(self, record):
         # IMPORTANT: All records need to be added to a bundle/document via this method. Otherwise, the _id_map dict
         # will not be correctly updated
@@ -1221,7 +1221,7 @@ class ProvDocument(ProvBundle):
             location = destination
             scheme, netloc, path, params, _query, fragment = urlparse(location)
             if netloc != "":
-                print("WARNING: not saving as location" +
+                print("WARNING: not saving as location " +
                       "is not a local file reference")
                 return
             fd, name = tempfile.mkstemp()
