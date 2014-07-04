@@ -2,6 +2,7 @@ import unittest
 
 from prov.model import *
 from prov.tests.utility import ProvJSONRoundTripTest
+from prov.dot import prov_to_dot
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
@@ -9,6 +10,25 @@ EX_OTHER_NS = Namespace('other', 'http://exceptions.example.org/')
 
 
 class TestExtras(unittest.TestCase):
+    def test_dot(self):
+        # This is naive.. since we can't programatically check the output is correct
+        document = ProvDocument()
+
+        bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
+        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        bundle1.entity(identifier=EX_NS['e1'], other_attributes={PROV_ROLE: "sausage"})
+        bundle1.activity(identifier=EX_NS['a1'])
+        document.activity(EX_NS['a2'])
+
+        bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
+        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'], identifier=EX_NS['use2'])
+        bundle2.entity(identifier=EX_NS['ee1'])
+        bundle2.activity(identifier=EX_NS['aa1'])
+
+        document.add_bundle(bundle1)
+        document.add_bundle(bundle2)
+        prov_to_dot(document)
+
     def test_serialize_to_path(self):
         document = ProvDocument()
         document.serialize("output.json")
