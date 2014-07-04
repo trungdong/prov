@@ -68,18 +68,16 @@ def _parse_datatype(value, datatype):
 
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
-    u"xsd:string": unicode,
-    u"xsd:double": float,
-    u"xsd:long": long,
-    u"xsd:int": int,
-    u"xsd:boolean": bool,
-    u"xsd:dateTime": parse_xsd_datetime,
+    XSD_DOUBLE: float,
+    XSD_LONG: long,
+    XSD_INT: int,
+    XSD_BOOLEAN: bool,
+    XSD_DATETIME: parse_xsd_datetime,
+    XSD_ANYURI: Identifier
 }
 
 
 def parse_xsd_types(value, datatype):
-    # if the datatype is a QName, convert it to a Unicode string
-    datatype = unicode(datatype)
     return XSD_DATATYPE_PARSERS[datatype](value) if datatype in XSD_DATATYPE_PARSERS else None
 
 

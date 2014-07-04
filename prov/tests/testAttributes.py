@@ -72,7 +72,7 @@ class TestAttributes(RoundTripTest):
         Literal(10, XSD_POSITIVEINTEGER),
         Literal(10, XSD_UNSIGNEDBYTE),
         Identifier('http://example.org'),
-        Literal('http://example.org', XSD_ANYURI),  # Failing
+        Literal('http://example.org', XSD_ANYURI),
         EX_NS['abc'],
         EX_OTHER_NS['abcd'],
         Namespace('ex', 'http://example4.org/')['zabc'],
@@ -160,9 +160,7 @@ class TestAttributes(RoundTripTest):
         self.run_entity_with_one_type_attribute(20)
 
     def test_entity_with_one_type_attribute_21(self):
-        # TODO Fail test
-        # self.run_entity_with_one_type_attribute(21)
-        pass
+        self.run_entity_with_one_type_attribute(21)
 
     def test_entity_with_one_type_attribute_22(self):
         self.run_entity_with_one_type_attribute(22)
