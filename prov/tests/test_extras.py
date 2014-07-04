@@ -18,12 +18,13 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_no_id(self):
         document = ProvDocument()
-        with self.assertRaises(ProvException):
-            document.bundle(None)
+        self.assertRaises(ProvException)
 
-        with self.assertRaises(ProvException):
+        def test():
             bundle = ProvBundle()
             document.add_bundle(bundle)
+
+        self.assertRaises(ProvException, test)
 
     def test_use_set_time_helpers(self):
         dt = datetime.datetime.now()
@@ -40,12 +41,18 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_add_garbage(self):
         document = ProvDocument()
-        with self.assertRaises(ProvException):
+
+        def test():
             document.add_bundle(document.entity(EX_NS['entity_trying_to_be_a_bundle']))
 
-        with self.assertRaises(ProvException):
+        self.assertRaises(ProvException, test)
+
+        def test():
             bundle = ProvBundle()
             document.add_bundle(bundle)
+
+        self.assertRaises(ProvException, test)
+
 
     def test_bundle_equality_garbage(self):
         document = ProvBundle()
@@ -62,7 +69,7 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_get_record_by_id(self):
         document = ProvDocument()
-        self.assertIsNone(document.get_record(None))
+        self.assertEqual(document.get_record(None), None)
 
         # record = document.entity(identifier=EX_NS['e1'])
         # self.assertEqual(document.get_record(EX_NS['e1']), record)
@@ -80,15 +87,23 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_name_clash(self):
         document = ProvDocument()
-        with self.assertRaises(ProvException):
+
+        def test():
             document.bundle(EX_NS['indistinct'])
             document.bundle(EX_NS['indistinct'])
 
+        self.assertRaises(ProvException, test)
+
+
         document = ProvDocument()
-        with self.assertRaises(ProvException):
+
+        def test():
             document.bundle(EX_NS['indistinct'])
             bundle = ProvBundle(identifier=EX_NS['indistinct'])
             document.add_bundle(bundle)
+
+        self.assertRaises(ProvException, test)
+
 
     def test_document_helper_methods(self):
         document = ProvDocument()
