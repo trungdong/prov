@@ -44,13 +44,7 @@ EX3_URI = 'http://example3.org/'
 
 
 class TestAttributes(RoundTripTest):
-    attribute_values_small = [
-        "un lieu",
-        Literal("un lieu", langtag='fr'),
-        Literal("a place", datatype=XSD_STRING, langtag='en')
-    ]
-
-    attribute_values_long = [
+    attribute_values = [
         "un lieu",
         Literal("un lieu", langtag='fr'),
         Literal("a place", datatype=XSD_STRING, langtag='en'),
@@ -93,7 +87,7 @@ class TestAttributes(RoundTripTest):
 
     def run_entity_with_one_type_attribute(self, n):
         document = self.new_document()
-        document.entity(EX_NS['et%d' % n], {'prov:type': self.attribute_values_long[n]})
+        document.entity(EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]})
         self.run_roundtrip_test_document(document)
 
     def test_entity_with_one_type_attribute_0(self):
@@ -179,6 +173,22 @@ class TestAttributes(RoundTripTest):
 
     def test_entity_with_one_type_attribute_27(self):
         self.run_entity_with_one_type_attribute(27)
+
+    def test_entity_with_multiple_attribute(self):
+        document = self.new_document()
+        attributes = [
+            (EX_NS['v_%d'% i], value) for i, value in enumerate(self.attribute_values)
+        ]
+        document.entity(EX_NS['emov'], attributes)
+        self.run_roundtrip_test_document(document)
+
+    def test_entity_with_multiple_value_attribute(self):
+        document = self.new_document()
+        attributes = [
+            ('prov:value', value) for i, value in enumerate(self.attribute_values)
+        ]
+        document.entity(EX_NS['emv'], attributes)
+        self.run_roundtrip_test_document(document)
 
 
 if __name__ == '__main__':
