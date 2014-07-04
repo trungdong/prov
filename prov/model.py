@@ -282,6 +282,9 @@ class ProvRecord(object):
             if value is not None:
                 return value
 
+        if isinstance(literal, QualifiedName):
+            return self._bundle.valid_qualified_name(literal)
+
         # No conversion here, return the original value
         return literal
 
