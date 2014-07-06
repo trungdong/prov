@@ -29,6 +29,8 @@ class BaseRoundTripTest(unittest.TestCase):
         # Self equality check
         self.assertEqual(doc_1, doc_1)
         self.assertEqual(doc_2, doc_2)
+        # PROV-N output
+        logger.debug(doc_1.get_provn())
         # Equality check
         try:
             self.assertEqual(doc_1, doc_2)

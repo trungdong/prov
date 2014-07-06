@@ -57,15 +57,6 @@ DATATYPE_PARSERS = {
 }
 
 
-def _parse_datatype(value, datatype):
-    if datatype in DATATYPE_PARSERS:
-        #  found the required parser
-        return DATATYPE_PARSERS[datatype](value)
-    else:
-        #  No parser found for the given data type
-        raise Exception(u'No parser found for the data type <%s>' % unicode(datatype))
-
-
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
     XSD_DOUBLE: float,
@@ -175,37 +166,6 @@ class ProvExceptionInvalidQualifiedName(ProvException):
 
     def __unicode__(self):
         return u'Invalid Qualified Name: %s' % self.qname
-
-
-class ProvExceptionNotValidAttribute(ProvException):
-    def __init__(self, record_type, attribute, attribute_types):
-        self.record_type = record_type
-        self.attribute = attribute
-        self.attribute_types = attribute_types
-        self.args += (PROV_N_MAP[record_type], unicode(attribute), attribute_types)
-
-    def __str__(self):
-        return 'Invalid attribute value: %s. %s expected' % (self.attribute, self.attribute_types)
-
-
-class ProvExceptionCannotUnifyAttribute(ProvException):
-    def __init__(self, identifier, record_type1, record_type2):
-        self.identifier = identifier
-        self.record_type1 = record_type1
-        self.record_type2 = record_type2
-        self.args += (identifier, PROV_N_MAP[record_type1], PROV_N_MAP[record_type2])
-
-    def __str__(self):
-        return 'Cannot unify two records of type %s and %s with same identifier (%s)' % (self.identifier, PROV_N_MAP[self.record_type1], PROV_N_MAP[self.record_type2])
-
-
-class ProvExceptionContraint(ProvException):
-    def __init__(self, record_type, attribute1, attribute2, msg):
-        self.record_type = record_type
-        self.attribute1 = attribute1
-        self.attribute2 = attribute2
-        self.args += (PROV_N_MAP[record_type], attribute1, attribute2, msg)
-        self.msg = msg
 
 
 #  PROV records
@@ -327,7 +287,7 @@ class ProvRecord(object):
         if self._identifier and not (self._identifier == other._identifier):
             return False
 
-        return self._attributes == other._attributes
+        return set(self.attributes) == set(other.attributes)
 
     def __unicode__(self):
         return self.get_provn()
@@ -350,9 +310,8 @@ class ProvRecord(object):
 
         # Writing out the formal attributes
         for attr in self.FORMAL_ATTRIBUTES:
-            values = self._attributes[attr]
-            if values:
-                value = first(values)  # Formal attributes always have single values
+            if attr in self._attributes:
+                value = first(self._attributes[attr])  # Formal attributes always have single values
                 # TODO: QName export
                 items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
             else:
