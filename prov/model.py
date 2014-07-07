@@ -59,6 +59,7 @@ DATATYPE_PARSERS = {
 
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
+    XSD_STRING: unicode,
     XSD_DOUBLE: float,
     XSD_LONG: long,
     XSD_INT: int,
