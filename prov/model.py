@@ -238,7 +238,9 @@ class ProvRecord(object):
             # try convert generic Literal object to Python standard type if possible
             # this is to match JSON decoding's literal conversion
             value = parse_xsd_types(literal.value, literal.datatype)
-            if value is not None:
+            if value is None:
+                return self._auto_literal_conversion(literal.value)
+            else:
                 return value
 
         if isinstance(literal, QualifiedName):
