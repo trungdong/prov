@@ -233,20 +233,20 @@ class ProvRecord(object):
         # This method normalise datatype for literals
         if isinstance(literal, str):
             return unicode(literal)
-
-        if isinstance(literal, Literal) and literal.has_no_langtag():
-            # try convert generic Literal object to Python standard type if possible
-            # this is to match JSON decoding's literal conversion
-            value = parse_xsd_types(literal.value, literal.datatype)
-            if value is None:
-                return self._auto_literal_conversion(literal.value)
+        elif isinstance(literal, QualifiedName):
+            return self._bundle.valid_qualified_name(literal)
+        elif isinstance(literal, Literal) and literal.has_no_langtag():
+            if literal.datatype:
+                # try convert generic Literal object to Python standard type if possible
+                # this is to match JSON decoding's literal conversion
+                value = parse_xsd_types(literal.value, literal.datatype)
             else:
+                # A literal with no datatype nor langtag defined, try converting the value
+                value = self._auto_literal_conversion(literal.value)
+            if value is not None:
                 return value
 
-        if isinstance(literal, QualifiedName):
-            return self._bundle.valid_qualified_name(literal)
-
-        # No conversion here, return the original value
+        # No conversion possible, return the original value
         return literal
 
     def add_attributes(self, attributes):
