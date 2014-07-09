@@ -9,7 +9,7 @@ formats such as PDF, PNG and SVG.
 
 This package is under active development.
 
-- [PyPi Index Entry](https://pypi.python.org/pypi/provpy)
+- [PyPi Index Entry](https://pypi.python.org/pypi/prov)
 
 
 ## Installation
