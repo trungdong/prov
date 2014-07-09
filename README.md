@@ -43,10 +43,10 @@ e2 = document.entity('e2', (
     ('ex:content', "There was a lot of crime in London last month"),
 ))
 
-a1 = document.activity('a1', datetime.datetime.now(), other_attributes={prov.PROV_TYPE: "edit"})
+a1 = document.activity('a1', datetime.datetime.now(), None, {prov.PROV_TYPE: "edit"})
 # References can be qnames or ProvRecord objects themselves
-document.wasGeneratedBy(e2, a1, other_attributes={'ex:fct': "save"})
-document.wasAssociatedWith('a1', 'ag2', other_attributes={prov.PROV_ROLE: "author"})
+document.wasGeneratedBy(e2, a1, None, {'ex:fct': "save"})
+document.wasAssociatedWith('a1', 'ag2', None, None, {prov.PROV_ROLE: "author"})
 document.agent('ag2', {prov.PROV_TYPE: 'prov:Person', 'ex:name': "Bob"})
 
 document.get_provn() # =>
