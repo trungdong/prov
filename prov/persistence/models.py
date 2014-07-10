@@ -146,7 +146,7 @@ def _encode_python_literal(literal):
         else:
             return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype, langtag
     else:
-        return literal, type(literal), None
+        return literal, unicode(type(literal)), None
 
 DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
