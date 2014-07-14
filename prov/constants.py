@@ -1,3 +1,6 @@
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 #  # PROV record constants - PROV-DM
 
 # Built-in namespaces

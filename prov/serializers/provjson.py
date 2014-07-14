@@ -1,8 +1,9 @@
 """PROV-JSON serializers for ProvDocument
 
-@author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2014
 """
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 import logging
 logger = logging.getLogger(__name__)
 

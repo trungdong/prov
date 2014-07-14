@@ -1,4 +1,5 @@
-__author__ = 'tdh'
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
 
 __all__ = [
     'get'

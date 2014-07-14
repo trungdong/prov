@@ -14,7 +14,10 @@ Desktop.ini
 ## Python
 #############
 
-*.py[co]
+*.py[cod]
+
+# C extensions
+*.so
 
 # Packages
 *.egg
@@ -28,6 +31,8 @@ var
 sdist
 develop-eggs
 .installed.cfg
+lib
+lib64
 
 # Installer logs
 pip-log.txt
@@ -35,12 +40,23 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+nosetests.xml
+htmlcov
 
-#Translations
+# Translations
 *.mo
 
-#Mr Developer
+# Mr Developer
 .mr.developer.cfg
+.project
+.pydevproject
 
-# Mac crap
+# Complexity
+output/*.html
+output/*/index.html
+
+# Sphinx
+docs/_build
+
+# Mac
 .DS_Store

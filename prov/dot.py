@@ -11,6 +11,10 @@ References:
 
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
+
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 import cgi
 import pydot
 

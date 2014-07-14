@@ -4,10 +4,10 @@ References:
 
 PROV-DM: http://www.w3.org/TR/prov-dm/
 PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
-
-@author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2014
 """
+
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
 
 import logging
 import itertools
