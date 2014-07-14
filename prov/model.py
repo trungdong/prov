@@ -20,13 +20,7 @@ from collections import defaultdict
 from copy import deepcopy
 from prov import Error, serializers
 
-try:
-    from cStringIO import StringIO
-    assert StringIO
-except ImportError:
-    from StringIO import StringIO
-    assert StringIO
-
+from StringIO import StringIO
 
 import os
 import shutil

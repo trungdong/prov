@@ -14,6 +14,35 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class BaseTestCase(unittest.TestCase):
+    def assertIn(self, a, b, *args, **kwargs):
+        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
+        try:
+            f = super(BaseTestCase, self).assertIn
+        except AttributeError:
+            self.assertTrue(a in b, *args, **kwargs)
+        else:
+            f(a, b, *args, **kwargs)
+
+    def assertNotIn(self, a, b, *args, **kwargs):
+        """Python < v2.7 compatibility.  Assert 'a' NOT in 'b'"""
+        try:
+            f = super(BaseTestCase, self).assertNotIn
+        except AttributeError:
+            self.assertFalse(a in b, *args, **kwargs)
+        else:
+            f(a, b, *args, **kwargs)
+
+    def assertLess(self, a, b, *args, **kwargs):
+        """Python < v2.7 compatibility.  Assert a < b"""
+        try:
+            f = super(BaseTestCase, self).assertLess
+        except AttributeError:
+            self.assertTrue(a < b, *args, **kwargs)
+        else:
+            f(a, b, *args, **kwargs)
+
+
 class BaseRoundTripTest(unittest.TestCase):
     def setUp(self):
         # a dictionary to hold test documents

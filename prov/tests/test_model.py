@@ -9,7 +9,7 @@ import os
 
 from prov.model import ProvDocument, XSDQName, Namespace
 from prov.tests import examples
-
+from prov.tests.utility import BaseTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -20,33 +20,6 @@ class JSONRoundTripTestCase(unittest.TestCase):
         prov_doc_new = ProvDocument.deserialize(content=json_str)
         self.assertEqual(prov_doc, prov_doc_new, msg)
 
-class TestCase(unittest.TestCase):
-    def assertIn(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
-        try:
-            f = super(TestCase, self).assertIn
-        except AttributeError:
-            self.assertTrue(a in b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
-
-    def assertNotIn(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' NOT in 'b'"""
-        try:
-            f = super(TestCase, self).assertNotIn
-        except AttributeError:
-            self.assertFalse(a in b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
-
-    def assertLess(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert a < b"""
-        try:
-            f = super(TestCase, self).assertLess
-        except AttributeError:
-            self.assertTrue(a < b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
 
 class Test(unittest.TestCase):
     def setUp(self):
@@ -104,7 +77,7 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                 self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
 
 
-class TestFlattening(TestCase):
+class TestFlattening(BaseTestCase):
     def test_flattening(self):
         for name, graph in examples.tests:
             logger.info('Testing flattening of the %s example', name)
@@ -123,7 +96,7 @@ class TestFlattening(TestCase):
             self.assertEqual(n_records, len(flattened.get_records()))
 
 
-class TestUnification(TestCase):
+class TestUnification(BaseTestCase):
     def test_unifying(self):
         # This is a very trivial test just to exercise the unified() function
         # TODO: Create a proper unification test
