@@ -12,10 +12,10 @@ prov
 .. image:: https://coveralls.io/repos/trungdong/prov/badge.png?branch=master
   :target: https://coveralls.io/r/trungdong/prov?branch=master
   :alt: Coverage Status
-.. image:: https://pypip.in/wheel/prov/badge.png
+.. image:: https://pypip.in/wheel/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
-.. image:: https://pypip.in/download/prov/badge.png
+.. image:: https://pypip.in/download/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Downloads
 
