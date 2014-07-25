@@ -20,9 +20,11 @@ class Registry:
     @staticmethod
     def load_serializers():
         from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provxml import ProvXMLSerializer
 
         Registry.serializers = {
-            'json': ProvJSONSerializer
+            'json': ProvJSONSerializer,
+            'xml': ProvXMLSerializer
         }
 
 
