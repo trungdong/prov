@@ -1,0 +1,22 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:agent prov:ref="ex:ag1"/>
+    <prov:role xsi:type="xsd:QName">loggedInUser</prov:role>
+    <ex:how>webapp</ex:how>
+  </prov:wasAssociatedWith>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:agent prov:ref="ex:ag2"/>
+    <prov:plan prov:ref="ex:wf"/>
+    <prov:role xsi:type="xsd:QName">designer</prov:role>
+    <ex:content>project1</ex:content>
+  </prov:wasAssociatedWith>
+
+</prov:document>

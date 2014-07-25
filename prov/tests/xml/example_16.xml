@@ -1,0 +1,32 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:wp="http://thinklinks.wordpress.com/2012/03/07/"
+    xmlns:ex="http://example.com/ns/ex#"
+    xmlns:dm="http://dvcs.w3.org/hg/prov/raw-file/default/model/prov-dm.html#">
+
+  <prov:entity prov:id="wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop"/>
+
+  <prov:entity prov:id="dm:bl-dagstuhl"/>
+
+  <prov:person prov:id="ex:Luc"/>
+
+  <prov:person prov:id="ex:Paul"/>
+
+  <prov:wasQuotedFrom>
+    <prov:generatedEntity prov:ref="dm:gl-dagstuhl"/>
+    <prov:usedEntity prov:ref="wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop"/>
+  </prov:wasQuotedFrom>
+
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="dm:bl-dagstuhl"/>
+    <prov:agent prov:ref="ex:Luc"/>
+  </prov:wasAttributedTo>
+
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop"/>
+    <prov:agent prov:ref="ex:Paul"/>
+  </prov:wasAttributedTo>
+
+</prov:document>

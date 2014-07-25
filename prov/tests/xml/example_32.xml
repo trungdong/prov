@@ -1,0 +1,10 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:bbc="http://www.bbc.co.uk/news"
+    xmlns:bbcmobile="http://www.bbc.co.uk/news/mobile">
+
+    <prov:emptyCollection prov:id="ex:c0"/>
+
+</prov:document>
