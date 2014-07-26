@@ -150,7 +150,7 @@ for filename in glob.iglob(os.path.join(
     name = os.path.splitext(os.path.basename(filename))[0]
     test_name = "test_roundtrip_from_xml_%s" % name
 
-    # Python creates closures by function calls...
+    # Python creates closures on function calls...
     def get_fct(f):
         def fct(self):
             self._perform_round_trip(f)

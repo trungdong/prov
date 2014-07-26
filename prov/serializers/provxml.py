@@ -53,11 +53,15 @@ class ProvXMLSerializer(prov.Serializer):
         for record in self.document._records:
             rec_type = record.get_type()
             rec_label = prov.constants.PROV_N_MAP[rec_type]
-            identifier = unicode(record._identifier)
+            identifier = unicode(record._identifier) \
+                if record._identifier else None
 
-            elem = etree.SubElement(
-                xml_root, _ns_prov(rec_label),
-                {_ns_prov("id"): identifier})
+            if identifier:
+                attrs = {_ns_prov("id"): identifier}
+            else:
+                attrs = None
+
+            elem = etree.SubElement(xml_root, _ns_prov(rec_label), attrs)
 
             used_attributes = []
             for fct in filter_fcts:
@@ -96,7 +100,11 @@ class ProvXMLSerializer(prov.Serializer):
             qname = etree.QName(element)
             if qname.namespace == NS_PROV:
                 rec_type = prov.constants.PROV_RECORD_IDS_MAP[qname.localname]
-                rec_id = element.attrib[_ns_prov("id")]
+
+                id_tag = _ns_prov("id")
+                rec_id = element.attrib[id_tag] if id_tag in element.attrib \
+                    else None
+
                 attributes = []
                 other_attributes = []
                 for subel in element:
@@ -113,21 +121,22 @@ class ProvXMLSerializer(prov.Serializer):
                         raise NotImplementedError
                     elif len(subel.attrib) == 1:
                         key, value = subel.attrib.items()[0]
-                        if key != "{%s}%s" % (NS_XSI, "type"):
+                        if key == "{%s}%s" % (NS_XSI, "type"):
+                            _v = prov.model.Literal(
+                                subel.text,
+                                prov.constants.XSD[value.split(":")[1]])
+                        elif key == _ns_prov("ref"):
+                            _v = value
+                        else:
                             raise NotImplementedError
-                        _v = prov.model.Literal(
-                            subel.text,
-                            prov.constants.XSD[value.split(":")[1]])
                     else:
                         _v = subel.text
                     d.append((_t, _v))
                 document.add_record(rec_type, rec_id, attributes,
                                     other_attributes)
-
             else:
                 raise NotImplementedError
-
-            return document
+        return document
 
 
 def _ns(ns, tag):
