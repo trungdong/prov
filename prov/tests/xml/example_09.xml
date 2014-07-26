@@ -13,7 +13,7 @@
   <prov:used>
     <prov:activity prov:ref="ex:a1"/>
     <prov:entity prov:ref="ex:e1"/>
-    <prov:time≶2011-11-16T16:00:00</prov:time>
+    <prov:time>2011-11-16T16:00:00</prov:time>
     <ex:parameter>p1</ex:parameter>
   </prov:used>
 
