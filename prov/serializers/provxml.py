@@ -1,5 +1,5 @@
-"""PROV-XML serializers for ProvDocument
-
+"""
+PROV-XML serializers for ProvDocument
 """
 __author__ = 'Lion Krischer'
 __email__ = 'krischer@geophysik.uni-muenchen.de'
@@ -91,6 +91,8 @@ class ProvXMLSerializer(prov.Serializer):
         r_nsmap = {value: key for key, value in xml_doc.nsmap.items()}
 
         for element in xml_doc:
+            if isinstance(element, etree._Comment):
+                continue
             qname = etree.QName(element)
             if qname.namespace == NS_PROV:
                 rec_type = prov.constants.PROV_RECORD_IDS_MAP[qname.localname]
@@ -134,6 +136,7 @@ def _ns(ns, tag):
 
 def _ns_prov(tag):
     return _ns(NS_PROV, tag)
+
 
 def _ns_xsi(tag):
     return _ns(NS_XSI, tag)

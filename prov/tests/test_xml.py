@@ -1,4 +1,5 @@
 import difflib
+import glob
 import inspect
 import io
 from lxml import etree
@@ -53,7 +54,7 @@ def compare_xml(doc1, doc2):
         raise AssertionError(msg + err_msg)
 
 
-class ProvXMLSerializationTestCase(unittest.TestCase):
+class ProvXMLTestCase(unittest.TestCase):
     def test_serialization_example_6(self):
         """
         Test the serialization of example 6 which is a simple entity
@@ -130,6 +131,35 @@ class ProvXMLSerializationTestCase(unittest.TestCase):
                 ("ex:host", "server.example.org")])
 
         self.assertEqual(actual_doc, expected_document)
+
+
+class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
+    def _perform_round_trip(self, filename):
+        document = prov.ProvDocument.deserialize(source=filename, format="xml")
+
+        with io.BytesIO() as new_xml:
+            document.serialize(format='xml', destination=new_xml)
+            compare_xml(filename, new_xml)
+
+
+# Add one test for each found file. Lazy way to do metaprogramming...
+# I think parametrized tests are justified in this case as the test
+# function names make it clear what is going on.
+for filename in glob.iglob(os.path.join(
+        DATA_PATH, "*" + os.path.extsep + "xml")):
+    name = os.path.splitext(os.path.basename(filename))[0]
+    test_name = "test_roundtrip_from_xml_%s" % name
+
+    # Python creates closures by function calls...
+    def get_fct(f):
+        def fct(self):
+            self._perform_round_trip(f)
+        return fct
+
+    fct = get_fct(filename)
+    fct.__name__ = test_name
+
+    setattr(ProvXMLRoundTripFromFileTestCase, test_name, fct)
 
 
 if __name__ == '__main__':
