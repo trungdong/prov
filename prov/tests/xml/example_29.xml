@@ -1,4 +1,6 @@
 <prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     xmlns:prov="http://www.w3.org/ns/prov#"
     xmlns:ex="http://example.com/ns/ex#"
     xmlns:bbc="http://www.bbc.co.uk/">
