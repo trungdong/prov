@@ -4,6 +4,7 @@
 __author__ = 'Lion Krischer'
 __email__ = 'krischer@geophysik.uni-muenchen.de'
 
+import datetime
 import logging
 from lxml import etree
 
@@ -14,6 +15,7 @@ import prov.constants
 
 NS_PROV = "http://www.w3.org/ns/prov#"
 NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
+NS_XSD = "http://www.w3.org/2001/XMLSchema"
 
 
 class ProvXMLException(prov.Error):
@@ -28,7 +30,10 @@ class ProvXMLSerializer(prov.Serializer):
                  self.document._namespaces.get_registered_namespaces()}
         if self.document._namespaces._default:
             nsmap[None] = self.document._namespaces._default.uri
+        # Add the prov, XSI, and XSD namespaces by default.
         nsmap["prov"] = NS_PROV
+        nsmap["xsi"] = NS_XSI
+        nsmap["xsd"] = NS_XSD
 
         xml_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
@@ -67,12 +72,14 @@ class ProvXMLSerializer(prov.Serializer):
                             value.datatype.namespace.prefix,
                             value.datatype.localpart)
                         value = value.value
+                    if isinstance(value, datetime.datetime):
+                        value = value.isoformat()
                     else:
                         value = str(value)
                     subelem.text = value
 
-        print ""
-        print etree.tostring(xml_root, pretty_print=True)
+        et = etree.ElementTree(xml_root)
+        et.write(stream, pretty_print=True)
 
 
     def deserialize(self, stream, **kwargs):
