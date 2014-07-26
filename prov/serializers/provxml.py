@@ -81,9 +81,51 @@ class ProvXMLSerializer(prov.Serializer):
         et = etree.ElementTree(xml_root)
         et.write(stream, pretty_print=True)
 
-
     def deserialize(self, stream, **kwargs):
-        raise NotImplementedError
+        xml_doc = etree.parse(stream).getroot()
+
+        document = prov.model.ProvDocument()
+        for key, value in xml_doc.nsmap.items():
+            document.add_namespace(key, value)
+
+        r_nsmap = {value: key for key, value in xml_doc.nsmap.items()}
+
+        for element in xml_doc:
+            qname = etree.QName(element)
+            if qname.namespace == NS_PROV:
+                rec_type = prov.constants.PROV_RECORD_IDS_MAP[qname.localname]
+                rec_id = element.attrib[_ns_prov("id")]
+                attributes = []
+                other_attributes = []
+                for subel in element:
+                    sqname = etree.QName(subel)
+                    if sqname.namespace == NS_PROV:
+                        _t = prov.constants.PROV[sqname.localname]
+                        d = attributes
+                    else:
+                        _t = "%s:%s" % (r_nsmap[sqname.namespace],
+                                        sqname.localname)
+                        d = other_attributes
+
+                    if len(subel.attrib) > 1:
+                        raise NotImplementedError
+                    elif len(subel.attrib) == 1:
+                        key, value = subel.attrib.items()[0]
+                        if key != "{%s}%s" % (NS_XSI, "type"):
+                            raise NotImplementedError
+                        _v = prov.model.Literal(
+                            subel.text,
+                            prov.constants.XSD[value.split(":")[1]])
+                    else:
+                        _v = subel.text
+                    d.append((_t, _v))
+                document.add_record(rec_type, rec_id, attributes,
+                                    other_attributes)
+
+            else:
+                raise NotImplementedError
+
+            return document
 
 
 def _ns(ns, tag):

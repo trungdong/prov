@@ -72,7 +72,6 @@ class ProvXMLSerializationTestCase(unittest.TestCase):
             document.serialize(format='xml', destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_06.xml"), actual)
 
-
     def test_serialization_example_7(self):
         """
         Test the serialization of example 7 which is a basic activity.
@@ -87,12 +86,50 @@ class ProvXMLSerializationTestCase(unittest.TestCase):
             (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
             ("ex:host", "server.example.org")])
 
-        document.serialize(format='xml')
-
         with io.BytesIO() as actual:
             document.serialize(format='xml', destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_07.xml"), actual)
 
+    def test_deserialization_example_6(self):
+        """
+        Test the deserialization of example 6 which is a simple entity
+        description.
+        """
+        actual_doc = prov.ProvDocument.deserialize(
+            source=os.path.join(DATA_PATH, "example_06.xml"),
+            format="xml")
+
+        expected_document = prov.ProvDocument()
+        expected_document.add_namespace(*EX_NS)
+        expected_document.add_namespace(*EX_TR)
+
+        expected_document.entity("tr:WD-prov-dm-20111215", (
+            (prov.PROV_TYPE, prov.Literal("document", prov.XSD_QNAME)),
+            ("ex:version", "2")
+        ))
+
+        self.assertEqual(actual_doc, expected_document)
+
+    def test_deserialization_example_7(self):
+        """
+        Test the deserialization of example 7 which is a simple activity
+        description.
+        """
+        actual_doc = prov.ProvDocument.deserialize(
+            source=os.path.join(DATA_PATH, "example_07.xml"),
+            format="xml")
+
+        expected_document = prov.ProvDocument()
+        expected_document.add_namespace(*EX_NS)
+
+        expected_document.activity(
+            "ex:a1",
+            "2011-11-16T16:05:00",
+            "2011-11-16T16:06:00", [
+                (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
+                ("ex:host", "server.example.org")])
+
+        self.assertEqual(actual_doc, expected_document)
 
 
 if __name__ == '__main__':
