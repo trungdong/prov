@@ -91,6 +91,30 @@ class ProvXMLTestCase(unittest.TestCase):
             document.serialize(format='xml', destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_07.xml"), actual)
 
+    def test_serialization_example_8(self):
+        """
+        Test the serialization of example 8 which deals with generation.
+        """
+        document = prov.ProvDocument()
+        document.add_namespace(*EX_NS)
+
+        e1 = document.entity("ex:e1")
+        a1 = document.activity("ex:a1")
+
+        document.wasGeneratedBy(entity=e1, activity=a1,
+                                time="2001-10-26T21:32:52",
+                                other_attributes={"ex:port": "p1"})
+
+        e2 = document.entity("ex:e2")
+
+        document.wasGeneratedBy(entity=e2, activity=a1,
+                                time="2001-10-26T10:00:00",
+                                other_attributes={"ex:port": "p2"})
+
+        with io.BytesIO() as actual:
+            document.serialize(format='xml', destination=actual)
+            compare_xml(os.path.join(DATA_PATH, "example_08.xml"), actual)
+
     def test_deserialization_example_6(self):
         """
         Test the deserialization of example 6 which is a simple entity
