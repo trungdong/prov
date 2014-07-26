@@ -5,7 +5,7 @@
     xmlns:ex="http://example.com/ns/ex#">
 
   <prov:activity prov:id="ex:a1">
-    <prov:type xsi:type="xsd:string">traffic regulations enforcing<prov:type>
+    <prov:type xsi:type="xsd:string">traffic regulations enforcing</prov:type>
   </prov:activity>
 
   <prov:activity prov:id="ex:a2">
