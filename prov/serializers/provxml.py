@@ -162,7 +162,8 @@ class ProvXMLSerializer(prov.Serializer):
                     subelem.text = v
 
         et = etree.ElementTree(xml_root)
-        et.write(stream, pretty_print=True)
+        et.write(stream, pretty_print=True, xml_declaration=True,
+                 encoding="UTF-8")
 
     def deserialize(self, stream, **kwargs):
         xml_doc = etree.parse(stream).getroot()
