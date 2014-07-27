@@ -66,14 +66,17 @@ def sorted_attributes(element, attributes):
 
     sorted_elements = []
     for item in order:
+        this_type_list = []
         for e in list(attributes):
             if e[0] != item:
                 continue
-            sorted_elements.append(e)
+            this_type_list.append(e)
             attributes.remove(e)
+        this_type_list.sort(key=lambda x: (str(x[0]), str(x[1])))
+        sorted_elements.extend(this_type_list)
     # Add remaining attributes. According to the spec, the other attributes
     # have a fixed alphabetical order.
-    attributes.sort(key=lambda x: str(x[0]))
+    attributes.sort(key=lambda x: (str(x[0]), str(x[1])))
     sorted_elements.extend(attributes)
 
     return sorted_elements
@@ -130,8 +133,12 @@ class ProvXMLSerializer(prov.Serializer):
 
                 # If it is a type element and does not yet have an
                 # associated xsi type, try to infer it from the value.
+                # The not startswith("prov:") check is a little bit hacky to
+                # avoid type interference when the type is a standard prov
+                # type.
                 if attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE] and \
-                        _ns_xsi("type") not in subelem.attrib:
+                        _ns_xsi("type") not in subelem.attrib and \
+                        not str(value).startswith("prov:"):
                     xsd_type = None
                     if isinstance(value, (str, unicode)):
                         xsd_type = XSD_STRING

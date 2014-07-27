@@ -17,6 +17,14 @@ DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(
     inspect.currentframe()))), "xml")
 
 
+def remove_empty_tags(tree):
+    if tree.text is not None and tree.text.strip() == "":
+        tree.text = None
+    for elem in tree:
+        if etree.iselement(elem):
+            remove_empty_tags(elem)
+
+
 def compare_xml(doc1, doc2):
     """
     Helper function to compare two XML files. It will parse both once again
@@ -42,10 +50,8 @@ def compare_xml(doc1, doc2):
         p = c.getparent()
         p.remove(c)
 
-    # Remove root text which is just whitespace in between the nodes. There
-    # should be nothing in any case.
-    obj1.getroot().text = None
-    obj2.getroot().text = None
+    remove_empty_tags(obj1.getroot())
+    remove_empty_tags(obj2.getroot())
 
     buf = io.BytesIO()
     obj1.write_c14n(buf)

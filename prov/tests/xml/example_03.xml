@@ -7,8 +7,8 @@
 
   <prov:plan prov:id="tr:WD-prov-dm-20111215">
     <prov:type xsi:type="xsd:QName">ex:Workflow</prov:type>
-    <prov:type>prov:Plan</prov:type> <!-- inferred -->
-    <prov:type>prov:Entity</prov:type> <!-- inferred -->
+    <prov:type>prov:Entity</prov:type>
+    <prov:type>prov:Plan</prov:type>
   </prov:plan>
 
 </prov:document>
