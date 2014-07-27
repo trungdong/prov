@@ -437,6 +437,16 @@ class ProvDerivation(ProvRelation):
         return PROV_DERIVATION
 
 
+class ProvRevision(ProvDerivation):
+    def get_type(self):
+        return PROV_REVISION
+
+
+class ProvQuotation(ProvDerivation):
+    def get_type(self):
+        return PROV_QUOTATION
+
+
 ### Component 3: Agents, Responsibility, and Influence
 class ProvAgent(ProvElement):
     def get_type(self):
@@ -527,6 +537,8 @@ PROV_REC_CLS = {
     PROV_END:            ProvEnd,
     PROV_INVALIDATION:   ProvInvalidation,
     PROV_DERIVATION:     ProvDerivation,
+    PROV_REVISION:       ProvRevision,
+    PROV_QUOTATION:      ProvQuotation,
     PROV_AGENT:          ProvAgent,
     PROV_SOFTWARE_AGENT: ProvSoftwareAgent,
     PROV_PERSON:         ProvPerson,
@@ -1030,13 +1042,13 @@ class ProvBundle(object):
     def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
                  identifier=None, other_attributes=None):
         record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes)
-        record.add_asserted_type(PROV['Revision'])
+        record.add_asserted_type(PROV_REVISION)
         return record
 
     def quotation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
                   identifier=None, other_attributes=None):
         record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes)
-        record.add_asserted_type(PROV['Quotation'])
+        record.add_asserted_type(PROV_QUOTATION)
         return record
 
     def primary_source(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,

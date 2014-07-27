@@ -21,6 +21,8 @@ PROV_INVALIDATION = PROV['Invalidation']
 
 #  C2. Derivations
 PROV_DERIVATION = PROV['Derivation']
+PROV_REVISION = PROV['Revision']
+PROV_QUOTATION = PROV['Quotation']
 
 #  C3. Agents/Responsibility
 PROV_AGENT = PROV['Agent']
@@ -50,6 +52,8 @@ PROV_N_MAP = {
     PROV_END:                  u'wasEndedBy',
     PROV_INVALIDATION:         u'wasInvalidatedBy',
     PROV_DERIVATION:           u'wasDerivedFrom',
+    PROV_REVISION:             u'wasRevisionOf',
+    PROV_QUOTATION:            u'wasQuotedFrom',
     PROV_AGENT:                u'agent',
     PROV_SOFTWARE_AGENT:       u'softwareAgent',
     PROV_PERSON:               u'person',
