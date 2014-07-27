@@ -42,6 +42,8 @@ PROV_ALTERNATE = PROV['Alternate']
 PROV_SPECIALIZATION = PROV['Specialization']
 PROV_MENTION = PROV['Mention']
 #  C6. Collections
+PROV_COLLECTION = PROV['Collection']
+PROV_EMPTY_COLLECTION = PROV['EmptyCollection']
 PROV_MEMBERSHIP = PROV['Membership']
 
 PROV_N_MAP = {
@@ -69,6 +71,8 @@ PROV_N_MAP = {
     PROV_ALTERNATE:            u'alternateOf',
     PROV_SPECIALIZATION:       u'specializationOf',
     PROV_MENTION:              u'mentionOf',
+    PROV_COLLECTION:           u'collection',
+    PROV_EMPTY_COLLECTION:     u'emptyCollection',
     PROV_MEMBERSHIP:           u'hadMember',
     PROV_BUNDLE:               u'bundle',
 }
@@ -100,6 +104,7 @@ PROV_ATTR_BUNDLE = PROV['bundle']
 PROV_ATTR_INFLUENCEE = PROV['influencee']
 PROV_ATTR_INFLUENCER = PROV['influencer']
 PROV_ATTR_COLLECTION = PROV['collection']
+PROV_ATTR_EMPTY_COLLECTION = PROV['emptyCollection']
 
 #  Literal properties
 PROV_ATTR_TIME = PROV['time']
@@ -133,7 +138,8 @@ PROV_ATTRIBUTE_QNAMES = set([
     PROV_ATTR_BUNDLE,
     PROV_ATTR_INFLUENCEE,
     PROV_ATTR_INFLUENCER,
-    PROV_ATTR_COLLECTION
+    PROV_ATTR_COLLECTION,
+    PROV_ATTR_EMPTY_COLLECTION
 ])
 PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
 # Set of formal attributes of PROV records

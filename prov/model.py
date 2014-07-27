@@ -529,6 +529,16 @@ class ProvMention(ProvSpecialization):
 
 
 ### Component 6: Collections
+class ProvCollection(ProvEntity):
+    def get_type(self):
+        return PROV_COLLECTION
+
+
+class ProvEmptyCollection(ProvCollection):
+    def get_type(self):
+        return PROV_EMPTY_COLLECTION
+
+
 class ProvMembership(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
 
@@ -562,6 +572,8 @@ PROV_REC_CLS = {
     PROV_SPECIALIZATION: ProvSpecialization,
     PROV_ALTERNATE:      ProvAlternate,
     PROV_MENTION:        ProvMention,
+    PROV_COLLECTION:     ProvCollection,
+    PROV_EMPTY_COLLECTION: ProvEmptyCollection,
     PROV_MEMBERSHIP:     ProvMembership,
 }
 
@@ -1095,8 +1107,13 @@ class ProvBundle(object):
         )
 
     def collection(self, identifier, other_attributes=None):
-        record = self.add_record(PROV_ENTITY, identifier, None, other_attributes)
-        record.add_asserted_type(PROV['Collection'])
+        record = self.add_record(PROV_COLLECTION, identifier, None,
+                                 other_attributes)
+        return record
+
+    def emptyCollection(self, identifier, other_attributes=None):
+        record = self.add_record(PROV_EMPTY_COLLECTION, identifier, None,
+                                 other_attributes)
         return record
 
     def membership(self, collection, entity):
