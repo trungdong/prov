@@ -39,14 +39,15 @@ ELEMENT_ORDER = {
                      PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
     PROV_PRIMARY_SOURCE: [PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
                           PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
-    PROV_ATTRIBUTION: [PROV_ATTR_ENTITY, PROV_AGENT],
-    PROV_ASSOCIATION: [PROV_ATTR_ACTIVITY, PROV_AGENT, PROV_ATTR_PLAN],
+    PROV_ATTRIBUTION: [PROV_ATTR_ENTITY, PROV_ATTR_AGENT],
+    PROV_ASSOCIATION: [PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN],
     PROV_DELEGATION: [PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE,
                       PROV_ATTR_ACTIVITY],
     PROV_INFLUENCE: [PROV_ATTR_INFLUENCEE, PROV_ATTR_INFLUENCER],
     PROV_SPECIALIZATION: [PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY],
     PROV_MEMBERSHIP: [PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY]
 }
+
 
 def sorted_attributes(element, attributes):
     """
@@ -124,7 +125,8 @@ class ProvXMLSerializer(prov.Serializer):
 
                 # If it is a type element and does not yet have an
                 # associated xsi type, try to infer it from the value.
-                if attr == PROV_TYPE and _ns_xsi("type") not in subelem.attrib:
+                if attr in [PROV_TYPE, PROV_LOCATION] and \
+                        _ns_xsi("type") not in subelem.attrib:
                     xsd_type = None
                     if isinstance(value, (str, unicode)):
                         xsd_type = XSD_STRING
@@ -136,6 +138,8 @@ class ProvXMLSerializer(prov.Serializer):
                         xsd_type = XSD_BOOLEAN
                     elif isinstance(value, datetime.datetime):
                         xsd_type = XSD_DATETIME
+                    elif isinstance(value, prov.identifier.Identifier):
+                        xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
                         subelem.attrib[_ns_xsi("type")] = str(xsd_type)

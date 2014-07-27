@@ -480,6 +480,11 @@ class ProvAttribution(ProvRelation):
         return PROV_ATTRIBUTION
 
 
+class ProvPlan(ProvEntity):
+    def get_type(self):
+        return PROV_PLAN
+
+
 class ProvAssociation(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN)
 
@@ -551,6 +556,7 @@ PROV_REC_CLS = {
     PROV_ORGANIZATION:   ProvOrganization,
     PROV_ATTRIBUTION:    ProvAttribution,
     PROV_ASSOCIATION:    ProvAssociation,
+    PROV_PLAN:           ProvPlan,
     PROV_DELEGATION:     ProvDelegation,
     PROV_INFLUENCE:      ProvInfluence,
     PROV_SPECIALIZATION: ProvSpecialization,

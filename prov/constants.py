@@ -32,6 +32,7 @@ PROV_PERSON = PROV['Person']
 PROV_ORGANIZATION = PROV['Organization']
 PROV_ATTRIBUTION = PROV['Attribution']
 PROV_ASSOCIATION = PROV['Association']
+PROV_PLAN = PROV['Plan']
 PROV_DELEGATION = PROV['Delegation']
 PROV_INFLUENCE = PROV['Influence']
 #  C4. Bundles
@@ -62,6 +63,7 @@ PROV_N_MAP = {
     PROV_ORGANIZATION:         u'organization',
     PROV_ATTRIBUTION:          u'wasAttributedTo',
     PROV_ASSOCIATION:          u'wasAssociatedWith',
+    PROV_PLAN:                 u'plan',
     PROV_DELEGATION:           u'actedOnBehalfOf',
     PROV_INFLUENCE:            u'wasInfluencedBy',
     PROV_ALTERNATE:            u'alternateOf',
