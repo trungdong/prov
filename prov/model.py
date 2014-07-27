@@ -268,7 +268,8 @@ class ProvRecord(object):
                 if value is None:
                     raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
 
-                if attr in PROV_ATTRIBUTES and self._attributes[attr]:
+                if attr in PROV_ATTRIBUTES and self._attributes[attr] and \
+                        self.get_type() not in PROV_ELEMENTS_COLLECTION_LIKE:
                     existing_value = first(self._attributes[attr])
                     if value != existing_value:
                         raise ProvException(u'Cannot have more than one value for attribute %s' % attr)

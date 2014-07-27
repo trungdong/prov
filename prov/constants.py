@@ -150,6 +150,11 @@ PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_i
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 
+# Some elements can have multiple attributes of the same type.
+PROV_ELEMENTS_COLLECTION_LIKE = set([
+    PROV_MEMBERSHIP
+])
+
 # Extra definition for convenience
 PROV_TYPE = PROV['type']
 PROV_LABEL = PROV['label']
