@@ -24,7 +24,7 @@ NS_XSD = "http://www.w3.org/2001/XMLSchema"
 ELEMENT_ORDER = {
     PROV_ACTIVITY: [PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME],
     PROV_GENERATION: [PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME],
-    PROV_USAGE: [PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME],
+    PROV_USAGE: [PROV_ATTR_ACTIVITY, PROV_ATTR_ENTITY, PROV_ATTR_TIME],
     PROV_COMMUNICATION: [PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT],
     PROV_START: [PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER, PROV_ATTR_STARTER,
                  PROV_ATTR_TIME],
@@ -108,16 +108,34 @@ class ProvXMLSerializer(prov.Serializer):
                     subelem.attrib[_ns_xsi("type")] = "%s:%s" % (
                         value.datatype.namespace.prefix,
                         value.datatype.localpart)
-                    value = value.value
+                    v = value.value
                 elif isinstance(value, datetime.datetime):
-                    value = value.isoformat()
+                    v = value.isoformat()
                 else:
-                    value = str(value)
+                    v = str(value)
 
-                if attr in PROV_ATTRIBUTE_QNAMES and value:
-                    subelem.attrib[_ns_prov("ref")] = value
+                # If it is a type element and does not yet have an
+                # associated xsi type, try to infer it from the value.
+                if attr == PROV_TYPE and _ns_xsi("type") not in subelem.attrib:
+                    xsd_type = None
+                    if isinstance(value, (str, unicode)):
+                        xsd_type = XSD_STRING
+                    elif isinstance(value, float):
+                        xsd_type = XSD_DOUBLE
+                    elif isinstance(value, int):
+                        xsd_type = XSD_INT
+                    elif isinstance(value, bool):
+                        xsd_type = XSD_BOOLEAN
+                    elif isinstance(value, datetime.datetime):
+                        xsd_type = XSD_DATETIME
+
+                    if xsd_type is not None:
+                        subelem.attrib[_ns_xsi("type")] = str(xsd_type)
+
+                if attr in PROV_ATTRIBUTE_QNAMES and v:
+                    subelem.attrib[_ns_prov("ref")] = v
                 else:
-                    subelem.text = value
+                    subelem.text = v
 
         et = etree.ElementTree(xml_root)
         et.write(stream, pretty_print=True)
@@ -158,7 +176,7 @@ class ProvXMLSerializer(prov.Serializer):
                         raise NotImplementedError
                     elif len(subel.attrib) == 1:
                         key, value = subel.attrib.items()[0]
-                        if key == "{%s}%s" % (NS_XSI, "type"):
+                        if key == _ns_xsi("type"):
                             _v = prov.model.Literal(
                                 subel.text,
                                 XSD[value.split(":")[1]])
