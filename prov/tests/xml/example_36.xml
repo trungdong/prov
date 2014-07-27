@@ -9,8 +9,8 @@
   </prov:entity>
 
   <prov:entity prov:id="ex:car01">
-    <prov:label xml:lang="fr">Voiture 01</prov:label>
     <prov:label xml:lang="en">Car 01</prov:label>
+    <prov:label xml:lang="fr">Voiture 01</prov:label>
   </prov:entity>
 
 </prov:document>

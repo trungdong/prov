@@ -16,6 +16,7 @@ from prov.constants import *
 NS_PROV = "http://www.w3.org/ns/prov#"
 NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
 NS_XSD = "http://www.w3.org/2001/XMLSchema"
+NS_XML = "http://www.w3.org/XML/1998/namespace"
 
 # Force the order of child elements as it matters in XML. Not specified
 # elements will keep the original order. Label, location, role, type,
@@ -114,9 +115,13 @@ class ProvXMLSerializer(prov.Serializer):
                 subelem = etree.SubElement(
                     elem, _ns(attr.namespace.uri, attr.localpart))
                 if isinstance(value, prov.model.Literal):
-                    subelem.attrib[_ns_xsi("type")] = "%s:%s" % (
-                        value.datatype.namespace.prefix,
-                        value.datatype.localpart)
+                    if value.datatype not in \
+                            [None, PROV["InternationalizedString"]]:
+                        subelem.attrib[_ns_xsi("type")] = "%s:%s" % (
+                            value.datatype.namespace.prefix,
+                            value.datatype.localpart)
+                    if value.langtag is not None:
+                        subelem.attrib[_ns(NS_XML, "lang")] = value.langtag
                     v = value.value
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
@@ -204,6 +209,8 @@ class ProvXMLSerializer(prov.Serializer):
                                 XSD[value.split(":")[1]])
                         elif key == _ns_prov("ref"):
                             _v = value
+                        elif key == _ns(NS_XML, "lang"):
+                            _v = prov.model.Literal(subel.text, langtag=value)
                         else:
                             raise NotImplementedError
                     else:
