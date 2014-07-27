@@ -7,7 +7,7 @@
     xmlns:rec54="http://example.com/ns/rec54#">
 
   <prov:agent prov:id="ex:Paolo">
-    <prov:typexsi:type="xsd:QName">prov:Person</prov:type>
+    <prov:type xsi:type="xsd:QName">prov:Person</prov:type>
   </prov:agent>
 
   <prov:agent prov:id="ex:Simon">
