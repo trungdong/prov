@@ -6,8 +6,8 @@
 
   <prov:agent prov:id="ex:e1">
     <prov:type xsi:type="xsd:QName">prov:Person</prov:type>
-    <ex:name>Alice</ex:name>
     <ex:employee>1234</ex:employee>
+    <ex:name>Alice</ex:name>
   </prov:agent>
 
 </prov:document>
