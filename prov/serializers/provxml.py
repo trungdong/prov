@@ -69,7 +69,9 @@ def sorted_attributes(element, attributes):
                 continue
             sorted_elements.append(e)
             attributes.remove(e)
-    # Add remaining attributes.
+    # Add remaining attributes. According to the spec, the other attributes
+    # have a fixed alphabetical order.
+    attributes.sort(key=lambda x: str(x[0]))
     sorted_elements.extend(attributes)
 
     return sorted_elements
