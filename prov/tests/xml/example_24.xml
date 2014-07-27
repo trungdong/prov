@@ -32,8 +32,8 @@
   </prov:wasAssociatedWith>
 
   <prov:plan prov:id="ex:wf">
-    <ex:label>Workflow 1</ex:label>
     <prov:location xsi:type="xsd:anyURI">http://example.org/workflow1.bpel</prov:location>
+    <ex:label>Workflow 1</ex:label>
   </prov:plan>
 
 </prov:document>
