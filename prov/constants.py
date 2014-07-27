@@ -24,7 +24,7 @@ PROV_DERIVATION = PROV['Derivation']
 
 #  C3. Agents/Responsibility
 PROV_AGENT = PROV['Agent']
-PROV_SOFWARE_AGENT = PROV['SoftwareAgent']
+PROV_SOFTWARE_AGENT = PROV['SoftwareAgent']
 PROV_PERSON = PROV['Person']
 PROV_ORGANIZATION = PROV['Organization']
 PROV_ATTRIBUTION = PROV['Attribution']
@@ -51,7 +51,7 @@ PROV_N_MAP = {
     PROV_INVALIDATION:         u'wasInvalidatedBy',
     PROV_DERIVATION:           u'wasDerivedFrom',
     PROV_AGENT:                u'agent',
-    PROV_SOFWARE_AGENT:        u'softwareAgent',
+    PROV_SOFTWARE_AGENT:       u'softwareAgent',
     PROV_PERSON:               u'person',
     PROV_ORGANIZATION:         u'organization',
     PROV_ATTRIBUTION:          u'wasAttributedTo',

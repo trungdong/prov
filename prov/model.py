@@ -445,7 +445,7 @@ class ProvAgent(ProvElement):
 
 class ProvSoftwareAgent(ProvElement):
     def get_type(self):
-        return PROV_SOFWARE_AGENT
+        return PROV_SOFTWARE_AGENT
 
 
 class ProvPerson(ProvElement):
@@ -528,7 +528,7 @@ PROV_REC_CLS = {
     PROV_INVALIDATION:   ProvInvalidation,
     PROV_DERIVATION:     ProvDerivation,
     PROV_AGENT:          ProvAgent,
-    PROV_SOFWARE_AGENT:  ProvSoftwareAgent,
+    PROV_SOFTWARE_AGENT: ProvSoftwareAgent,
     PROV_PERSON:         ProvPerson,
     PROV_ORGANIZATION:   ProvOrganization,
     PROV_ATTRIBUTION:    ProvAttribution,
@@ -967,6 +967,18 @@ class ProvBundle(object):
 
     def agent(self, identifier, other_attributes=None):
         return self.add_record(PROV_AGENT, identifier, None, other_attributes)
+
+    def software_agent(self, identifier, other_attributes=None):
+        return self.add_record(PROV_SOFTWARE_AGENT, identifier, None,
+                               other_attributes)
+
+    def organization(self, identifier, other_attributes=None):
+        return self.add_record(PROV_ORGANIZATION, identifier, None,
+                               other_attributes)
+
+    def person(self, identifier, other_attributes=None):
+        return self.add_record(PROV_PERSON, identifier, None,
+                               other_attributes)
 
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
         return self.add_record(
