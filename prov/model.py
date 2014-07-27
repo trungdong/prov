@@ -447,6 +447,11 @@ class ProvQuotation(ProvDerivation):
         return PROV_QUOTATION
 
 
+class ProvPrimarySource(ProvDerivation):
+    def get_type(self):
+        return PROV_PRIMARY_SOURCE
+
+
 ### Component 3: Agents, Responsibility, and Influence
 class ProvAgent(ProvElement):
     def get_type(self):
@@ -539,6 +544,7 @@ PROV_REC_CLS = {
     PROV_DERIVATION:     ProvDerivation,
     PROV_REVISION:       ProvRevision,
     PROV_QUOTATION:      ProvQuotation,
+    PROV_PRIMARY_SOURCE: ProvPrimarySource,
     PROV_AGENT:          ProvAgent,
     PROV_SOFTWARE_AGENT: ProvSoftwareAgent,
     PROV_PERSON:         ProvPerson,
