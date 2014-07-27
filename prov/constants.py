@@ -24,6 +24,9 @@ PROV_DERIVATION = PROV['Derivation']
 
 #  C3. Agents/Responsibility
 PROV_AGENT = PROV['Agent']
+PROV_SOFWARE_AGENT = PROV['SoftwareAgent']
+PROV_PERSON = PROV['Person']
+PROV_ORGANIZATION = PROV['Organization']
 PROV_ATTRIBUTION = PROV['Attribution']
 PROV_ASSOCIATION = PROV['Association']
 PROV_DELEGATION = PROV['Delegation']
@@ -48,6 +51,9 @@ PROV_N_MAP = {
     PROV_INVALIDATION:         u'wasInvalidatedBy',
     PROV_DERIVATION:           u'wasDerivedFrom',
     PROV_AGENT:                u'agent',
+    PROV_SOFWARE_AGENT:        u'softwareAgent',
+    PROV_PERSON:               u'person',
+    PROV_ORGANIZATION:         u'organization',
     PROV_ATTRIBUTION:          u'wasAttributedTo',
     PROV_ASSOCIATION:          u'wasAssociatedWith',
     PROV_DELEGATION:           u'actedOnBehalfOf',
@@ -68,6 +74,9 @@ PROV_ATTR_INFORMANT = PROV['informant']
 PROV_ATTR_STARTER = PROV['starter']
 PROV_ATTR_ENDER = PROV['ender']
 PROV_ATTR_AGENT = PROV['agent']
+PROV_ATTR_SOFTWARE_AGENT = PROV['softwareAgent']
+PROV_ATTR_PERSON = PROV['person']
+PROV_ATTR_ORGANIZATION = PROV['organization']
 PROV_ATTR_PLAN = PROV['plan']
 PROV_ATTR_DELEGATE = PROV['delegate']
 PROV_ATTR_RESPONSIBLE = PROV['responsible']
@@ -99,6 +108,9 @@ PROV_ATTRIBUTE_QNAMES = set([
     PROV_ATTR_STARTER,
     PROV_ATTR_ENDER,
     PROV_ATTR_AGENT,
+    PROV_ATTR_SOFTWARE_AGENT,
+    PROV_ATTR_PERSON,
+    PROV_ATTR_ORGANIZATION,
     PROV_ATTR_PLAN,
     PROV_ATTR_DELEGATE,
     PROV_ATTR_RESPONSIBLE,

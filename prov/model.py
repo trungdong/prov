@@ -443,6 +443,21 @@ class ProvAgent(ProvElement):
         return PROV_AGENT
 
 
+class ProvSoftwareAgent(ProvElement):
+    def get_type(self):
+        return PROV_SOFWARE_AGENT
+
+
+class ProvPerson(ProvElement):
+    def get_type(self):
+        return PROV_PERSON
+
+
+class ProvOrganization(ProvElement):
+    def get_type(self):
+        return PROV_ORGANIZATION
+
+
 class ProvAttribution(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_AGENT)
 
@@ -513,6 +528,9 @@ PROV_REC_CLS = {
     PROV_INVALIDATION:   ProvInvalidation,
     PROV_DERIVATION:     ProvDerivation,
     PROV_AGENT:          ProvAgent,
+    PROV_SOFWARE_AGENT:  ProvSoftwareAgent,
+    PROV_PERSON:         ProvPerson,
+    PROV_ORGANIZATION:   ProvOrganization,
     PROV_ATTRIBUTION:    ProvAttribution,
     PROV_ASSOCIATION:    ProvAssociation,
     PROV_DELEGATION:     ProvDelegation,
