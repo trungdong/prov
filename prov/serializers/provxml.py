@@ -130,7 +130,7 @@ class ProvXMLSerializer(prov.Serializer):
 
                 # If it is a type element and does not yet have an
                 # associated xsi type, try to infer it from the value.
-                if attr in [PROV_TYPE, PROV_LOCATION] and \
+                if attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE] and \
                         _ns_xsi("type") not in subelem.attrib:
                     xsd_type = None
                     if isinstance(value, (str, unicode)):
@@ -159,6 +159,12 @@ class ProvXMLSerializer(prov.Serializer):
 
     def deserialize(self, stream, **kwargs):
         xml_doc = etree.parse(stream).getroot()
+
+        # Remove all comments.
+        for c in xml_doc.xpath("//comment()"):
+            p = c.getparent()
+            p.remove(c)
+
         document = prov.model.ProvDocument()
         self.deserialize_subtree(xml_doc, document)
         return document
@@ -170,8 +176,6 @@ class ProvXMLSerializer(prov.Serializer):
         r_nsmap = {value: key for key, value in xml_doc.nsmap.items()}
 
         for element in xml_doc:
-            if isinstance(element, etree._Comment):
-                continue
             qname = etree.QName(element)
             if qname.namespace == NS_PROV:
                 rec_type = PROV_RECORD_IDS_MAP[qname.localname]
@@ -216,6 +220,11 @@ class ProvXMLSerializer(prov.Serializer):
                     else:
                         _v = subel.text
                     d.append((_t, _v))
+
+                if _ns_xsi("type") in element.attrib:
+                    value = element.attrib[_ns_xsi("type")]
+                    other_attributes.append((PROV["type"], value))
+
                 bundle.add_record(rec_type, rec_id, attributes,
                                   other_attributes)
             else:

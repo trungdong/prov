@@ -34,6 +34,19 @@ def compare_xml(doc1, doc2):
     obj1 = etree.parse(doc1)
     obj2 = etree.parse(doc2)
 
+    # Remove comments from both.
+    for c in obj1.getroot().xpath("//comment()"):
+        p = c.getparent()
+        p.remove(c)
+    for c in obj2.getroot().xpath("//comment()"):
+        p = c.getparent()
+        p.remove(c)
+
+    # Remove root text which is just whitespace in between the nodes. There
+    # should be nothing in any case.
+    obj1.getroot().text = None
+    obj2.getroot().text = None
+
     buf = io.BytesIO()
     obj1.write_c14n(buf)
     buf.seek(0, 0)
@@ -155,6 +168,81 @@ class ProvXMLTestCase(unittest.TestCase):
                 ("ex:host", "server.example.org")])
 
         self.assertEqual(actual_doc, expected_document)
+
+    def test_deserialization_example_04_and_05(self):
+        """
+        Example 4 and 5 have a different type specification. They use an
+        xsi:type as an attribute on an entity. This can be read but if
+        written again it will become an XML child element. This is
+        semantically identical but cannot be tested with a round trip.
+        """
+        # Example 4.
+        xml_string = """
+        <prov:document
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:ex="http://example.com/ns/ex#"
+            xmlns:tr="http://example.com/ns/tr#">
+
+          <prov:entity prov:id="tr:WD-prov-dm-20111215" xsi:type="prov:Plan">
+            <prov:type xsi:type="xsd:QName">ex:Workflow</prov:type>
+          </prov:entity>
+
+        </prov:document>
+        """
+        with io.BytesIO() as xml:
+            xml.write(xml_string)
+            xml.seek(0, 0)
+            actual_document = prov.ProvDocument.deserialize(source=xml,
+                                                            format="xml")
+
+        expected_document = prov.ProvDocument()
+        expected_document.add_namespace(*EX_NS)
+        expected_document.add_namespace(*EX_TR)
+
+        # The xsi:type attribute is mapped to a proper PROV attribute.
+        expected_document.entity("tr:WD-prov-dm-20111215", (
+            (prov.PROV_TYPE, prov.Literal("ex:Workflow", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, "prov:Plan")))
+
+        self.assertEqual(actual_document, expected_document)
+
+        # Example 5.
+        xml_string = """
+        <prov:document
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+          xmlns:prov="http://www.w3.org/ns/prov#"
+          xmlns:ex="http://example.com/ns/ex#"
+          xmlns:tr="http://example.com/ns/tr#">
+
+        <prov:entity prov:id="tr:WD-prov-dm-20111215" xsi:type="prov:Plan">
+          <prov:type xsi:type="xsd:QName">ex:Workflow</prov:type>
+          <prov:type>prov:Plan</prov:type> <!-- inferred -->
+          <prov:type>prov:Entity</prov:type> <!-- inferred -->
+        </prov:entity>
+
+        </prov:document>
+        """
+        with io.BytesIO() as xml:
+            xml.write(xml_string)
+            xml.seek(0, 0)
+            actual_document = prov.ProvDocument.deserialize(source=xml,
+                                                            format="xml")
+
+        expected_document = prov.ProvDocument()
+        expected_document.add_namespace(*EX_NS)
+        expected_document.add_namespace(*EX_TR)
+
+        # The xsi:type attribute is mapped to a proper PROV attribute.
+        expected_document.entity("tr:WD-prov-dm-20111215", (
+            (prov.PROV_TYPE, prov.Literal("ex:Workflow", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, "prov:Entity"),
+            (prov.PROV_TYPE, "prov:Plan")
+        ))
+
+        self.assertEqual(actual_document, expected_document)
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):

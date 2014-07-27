@@ -5,8 +5,8 @@
     xmlns:ex="http://example.com/ns/ex#">
 
   <prov:entity prov:id="ex:MonaLisa">
-    <prov:type xsi:type="xsd:QName">StillImage</prov:type>
     <prov:location xsi:type="xsd:string">Le Louvre, Paris</prov:location>
+    <prov:type xsi:type="xsd:QName">StillImage</prov:type>
   </prov:entity>
 
   <prov:entity prov:id="ex:cell">

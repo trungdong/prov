@@ -6,8 +6,8 @@
     xmlns:tr="http://example.com/ns/tr#">
 
   <prov:entity prov:id="tr:WD-prov-dm-20111215">
-    <prov:type xsi:type="xsd:QName">prov:Plan</prov:type>
     <prov:type xsi:type="xsd:QName">ex:Workflow</prov:type>
+    <prov:type xsi:type="xsd:QName">prov:Plan</prov:type>
   </prov:entity>
 
 </prov:document>
