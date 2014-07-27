@@ -154,10 +154,13 @@ class ProvXMLSerializer(prov.Serializer):
 
     def deserialize(self, stream, **kwargs):
         xml_doc = etree.parse(stream).getroot()
-
         document = prov.model.ProvDocument()
+        self.deserialize_subtree(xml_doc, document)
+        return document
+
+    def deserialize_subtree(self, xml_doc, bundle):
         for key, value in xml_doc.nsmap.items():
-            document.add_namespace(key, value)
+            bundle.add_namespace(key, value)
 
         r_nsmap = {value: key for key, value in xml_doc.nsmap.items()}
 
@@ -171,6 +174,13 @@ class ProvXMLSerializer(prov.Serializer):
                 id_tag = _ns_prov("id")
                 rec_id = element.attrib[id_tag] if id_tag in element.attrib \
                     else None
+
+                # Recursively build bundles.
+                if rec_type == PROV_BUNDLE:
+                    new_bundle = prov.model.ProvBundle(document=bundle)
+                    self.deserialize_subtree(element, new_bundle)
+                    bundle.add_bundle(new_bundle,
+                                      new_bundle.valid_qualified_name(rec_id))
 
                 attributes = []
                 other_attributes = []
@@ -199,11 +209,11 @@ class ProvXMLSerializer(prov.Serializer):
                     else:
                         _v = subel.text
                     d.append((_t, _v))
-                document.add_record(rec_type, rec_id, attributes,
-                                    other_attributes)
+                bundle.add_record(rec_type, rec_id, attributes,
+                                  other_attributes)
             else:
                 raise NotImplementedError
-        return document
+        return bundle
 
 
 def _ns(ns, tag):
