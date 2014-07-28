@@ -11,6 +11,7 @@ from lxml import etree
 logger = logging.getLogger(__name__)
 
 import prov
+from prov.model import PROV_REC_CLS
 from prov.constants import *
 
 NS_PROV = "http://www.w3.org/ns/prov#"
@@ -18,47 +19,14 @@ NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
 NS_XSD = "http://www.w3.org/2001/XMLSchema"
 NS_XML = "http://www.w3.org/XML/1998/namespace"
 
-# Force the order of child elements as it matters in XML. Not specified
-# elements will keep the original order. Label, location, role, type,
-# and value attributes will always come after the specified attributes. Any
-# other attributes will come after that.
-ELEMENT_ORDER = {
-    PROV_ACTIVITY: [PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME],
-    PROV_GENERATION: [PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME],
-    PROV_USAGE: [PROV_ATTR_ACTIVITY, PROV_ATTR_ENTITY, PROV_ATTR_TIME],
-    PROV_COMMUNICATION: [PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT],
-    PROV_START: [PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER, PROV_ATTR_STARTER,
-                 PROV_ATTR_TIME],
-    PROV_END: [PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER, PROV_ATTR_ENDER,
-               PROV_ATTR_TIME],
-    PROV_INVALIDATION: [PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME],
-    PROV_DERIVATION: [PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
-                      PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
-    PROV_REVISION: [PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
-                    PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
-    PROV_QUOTATION: [PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
-                     PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
-    PROV_PRIMARY_SOURCE: [PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
-                          PROV_ATTR_ACTIVITY, PROV_GENERATION, PROV_USAGE],
-    PROV_ATTRIBUTION: [PROV_ATTR_ENTITY, PROV_ATTR_AGENT],
-    PROV_ASSOCIATION: [PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN],
-    PROV_DELEGATION: [PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE,
-                      PROV_ATTR_ACTIVITY],
-    PROV_INFLUENCE: [PROV_ATTR_INFLUENCEE, PROV_ATTR_INFLUENCER],
-    PROV_SPECIALIZATION: [PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY],
-    PROV_MEMBERSHIP: [PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY]
-}
-
 
 def sorted_attributes(element, attributes):
     """
     Helper function sorting attributes into the order required by PROV-XML.
     """
     attributes = list(attributes)
-    if element in ELEMENT_ORDER:
-        order = list(ELEMENT_ORDER[element])
-    else:
-        order = []
+    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
+
     # Append label, location, role, type, and value attributes. This is
     # universal amongst all elements.
     order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
