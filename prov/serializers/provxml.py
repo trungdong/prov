@@ -66,9 +66,9 @@ class ProvXMLSerializer(prov.Serializer):
             done in the official PROV-XML specification.
         """
         # Build the namespace map for lxml and attach it to the root XML
-        # element.
-        nsmap = {ns.prefix: ns.uri for ns in
-                 self.document._namespaces.get_registered_namespaces()}
+        # element. No dictionary comprehension in Python 2.6!
+        nsmap = dict((ns.prefix, ns.uri) for ns in
+                     self.document._namespaces.get_registered_namespaces())
         if self.document._namespaces._default:
             nsmap[None] = self.document._namespaces._default.uri
         # Add the prov, XSI, and XSD namespaces by default.
@@ -166,7 +166,8 @@ class ProvXMLSerializer(prov.Serializer):
         for key, value in xml_doc.nsmap.items():
             bundle.add_namespace(key, value)
 
-        r_nsmap = {value: key for key, value in xml_doc.nsmap.items()}
+        # No dictionary comprehension in Python 2.6.
+        r_nsmap = dict((value, key) for (key, value) in xml_doc.nsmap.items())
 
         for element in xml_doc:
             qname = etree.QName(element)
