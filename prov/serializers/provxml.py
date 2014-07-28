@@ -87,7 +87,16 @@ class ProvXMLException(prov.Error):
 
 
 class ProvXMLSerializer(prov.Serializer):
-    def serialize(self, stream, **kwargs):
+    def serialize(self, stream, force_types=False, **kwargs):
+        """
+        :param stream: Where to save the output.
+        :type force_types: boolean, optional
+        :param force_types: Will force xsd:types to be written for most
+            attributes mainly only PROV-"attributes", e.g. tags not in the
+            PROV namespace. Off by default meaning xsd:type attributes will
+            only be set for prov:type, prov:location, and prov:value as is
+            done in the official PROV-XML specification.
+        """
         # Build the namespace map for lxml and attach it to the root XML
         # element.
         nsmap = {ns.prefix: ns.uri for ns in
@@ -131,14 +140,22 @@ class ProvXMLSerializer(prov.Serializer):
                 else:
                     v = str(value)
 
+                # xsd type inference.
+                #
+                # This is a bit messy and there are all kinds of special
+                # rules but it appears to get the job done.
+                #
                 # If it is a type element and does not yet have an
                 # associated xsi type, try to infer it from the value.
                 # The not startswith("prov:") check is a little bit hacky to
                 # avoid type interference when the type is a standard prov
                 # type.
-                if attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE] and \
+                if (force_types or attr in [PROV_TYPE, PROV_LOCATION,
+                                            PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
-                        not str(value).startswith("prov:"):
+                        not str(value).startswith("prov:") and \
+                        not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
+                        attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
                     if isinstance(value, (str, unicode)):
                         xsd_type = XSD_STRING

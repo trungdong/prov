@@ -252,11 +252,13 @@ class ProvXMLTestCase(unittest.TestCase):
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
-    def _perform_round_trip(self, filename):
-        document = prov.ProvDocument.deserialize(source=filename, format="xml")
+    def _perform_round_trip(self, filename, force_types=False):
+        document = prov.ProvDocument.deserialize(
+            source=filename, format="xml")
 
         with io.BytesIO() as new_xml:
-            document.serialize(format='xml', destination=new_xml)
+            document.serialize(format='xml', destination=new_xml,
+                               force_types=force_types)
             compare_xml(filename, new_xml)
 
 
@@ -270,8 +272,13 @@ for filename in glob.iglob(os.path.join(
 
     # Python creates closures on function calls...
     def get_fct(f):
+        # Some test files have a lot of type declarations...
+        if name in ["pc1"]:
+            force_types = True
+        else:
+            force_types = False
         def fct(self):
-            self._perform_round_trip(f)
+            self._perform_round_trip(f, force_types=force_types)
         return fct
 
     fct = get_fct(filename)
