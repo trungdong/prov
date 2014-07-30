@@ -857,7 +857,7 @@ class ProvBundle(object):
             self._id_map[identifier].append(record)
         self._records.append(record)
 
-    def add_record(self, record_type, identifier, attributes=None, other_attributes=None):
+    def new_record(self, record_type, identifier, attributes=None, other_attributes=None):
         attr_list = []
         if attributes:
             if isinstance(attributes, dict):
@@ -876,10 +876,10 @@ class ProvBundle(object):
         return new_record
 
     def entity(self, identifier, other_attributes=None):
-        return self.add_record(PROV_ENTITY, identifier, None, other_attributes)
+        return self.new_record(PROV_ENTITY, identifier, None, other_attributes)
 
     def activity(self, identifier, startTime=None, endTime=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_ACTIVITY, identifier, {
                 PROV_ATTR_STARTTIME: _ensure_datetime(startTime),
                 PROV_ATTR_ENDTIME: _ensure_datetime(endTime)
@@ -888,7 +888,7 @@ class ProvBundle(object):
         )
 
     def generation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_GENERATION, identifier, {
                 PROV_ATTR_ENTITY: entity,
                 PROV_ATTR_ACTIVITY: activity,
@@ -898,7 +898,7 @@ class ProvBundle(object):
         )
 
     def usage(self, activity, entity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_USAGE, identifier, {
                 PROV_ATTR_ACTIVITY: activity,
                 PROV_ATTR_ENTITY: entity,
@@ -907,7 +907,7 @@ class ProvBundle(object):
         )
 
     def start(self, activity, trigger=None, starter=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_START, identifier, {
                 PROV_ATTR_ACTIVITY: activity,
                 PROV_ATTR_TRIGGER: trigger,
@@ -918,7 +918,7 @@ class ProvBundle(object):
         )
 
     def end(self, activity, trigger=None, ender=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_END, identifier, {
                 PROV_ATTR_ACTIVITY: activity,
                 PROV_ATTR_TRIGGER: trigger,
@@ -929,7 +929,7 @@ class ProvBundle(object):
         )
 
     def invalidation(self, entity, activity=None, time=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_INVALIDATION, identifier, {
                 PROV_ATTR_ENTITY: entity,
                 PROV_ATTR_ACTIVITY: activity,
@@ -939,7 +939,7 @@ class ProvBundle(object):
         )
 
     def communication(self, informed, informant, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_COMMUNICATION, identifier, {
                 PROV_ATTR_INFORMED: informed,
                 PROV_ATTR_INFORMANT: informant
@@ -948,10 +948,10 @@ class ProvBundle(object):
         )
 
     def agent(self, identifier, other_attributes=None):
-        return self.add_record(PROV_AGENT, identifier, None, other_attributes)
+        return self.new_record(PROV_AGENT, identifier, None, other_attributes)
 
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_ATTRIBUTION, identifier, {
                 PROV_ATTR_ENTITY: entity,
                 PROV_ATTR_AGENT: agent
@@ -960,7 +960,7 @@ class ProvBundle(object):
         )
 
     def association(self, activity, agent=None, plan=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_ASSOCIATION, identifier, {
                 PROV_ATTR_ACTIVITY: activity,
                 PROV_ATTR_AGENT: agent,
@@ -970,7 +970,7 @@ class ProvBundle(object):
         )
 
     def delegation(self, delegate, responsible, activity=None, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_DELEGATION, identifier, {
                 PROV_ATTR_DELEGATE: delegate,
                 PROV_ATTR_RESPONSIBLE: responsible,
@@ -980,7 +980,7 @@ class ProvBundle(object):
         )
 
     def influence(self, influencee, influencer, identifier=None, other_attributes=None):
-        return self.add_record(
+        return self.new_record(
             PROV_INFLUENCE, identifier, {
                 PROV_ATTR_INFLUENCEE: influencee,
                 PROV_ATTR_INFLUENCER: influencer
@@ -995,7 +995,7 @@ class ProvBundle(object):
                       PROV_ATTR_ACTIVITY: activity,
                       PROV_ATTR_GENERATION: generation,
                       PROV_ATTR_USAGE: usage}
-        return self.add_record(PROV_DERIVATION, identifier, attributes, other_attributes)
+        return self.new_record(PROV_DERIVATION, identifier, attributes, other_attributes)
 
     def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
                  identifier=None, other_attributes=None):
@@ -1016,7 +1016,7 @@ class ProvBundle(object):
         return record
 
     def specialization(self, specificEntity, generalEntity):
-        return self.add_record(
+        return self.new_record(
             PROV_SPECIALIZATION, None, {
                 PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
                 PROV_ATTR_GENERAL_ENTITY: generalEntity
@@ -1024,7 +1024,7 @@ class ProvBundle(object):
         )
 
     def alternate(self, alternate1, alternate2):
-        return self.add_record(
+        return self.new_record(
             PROV_ALTERNATE, None, {
                 PROV_ATTR_ALTERNATE1: alternate1,
                 PROV_ATTR_ALTERNATE2: alternate2
@@ -1032,7 +1032,7 @@ class ProvBundle(object):
         )
 
     def mention(self, specificEntity, generalEntity, bundle,):
-        return self.add_record(
+        return self.new_record(
             PROV_MENTION, None, {
                 PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
                 PROV_ATTR_GENERAL_ENTITY: generalEntity,
@@ -1041,12 +1041,12 @@ class ProvBundle(object):
         )
 
     def collection(self, identifier, other_attributes=None):
-        record = self.add_record(PROV_ENTITY, identifier, None, other_attributes)
+        record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
         record.add_asserted_type(PROV['Collection'])
         return record
 
     def membership(self, collection, entity):
-        return self.add_record(
+        return self.new_record(
             PROV_MEMBERSHIP, None, {
                 PROV_ATTR_COLLECTION: collection,
                 PROV_ATTR_ENTITY: entity

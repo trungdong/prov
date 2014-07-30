@@ -341,7 +341,7 @@ class RoundTripFromPythonTest(ProvJSONRoundTripTest):
 
     def test_generation_4(self):
         document = self.new_document()
-        a = document.add_record(
+        a = document.new_record(
             PROV_GENERATION, EX_NS['gen4'], (
                 (PROV_ATTR_ENTITY, EX_NS['e1']),
                 (PROV_ATTR_ACTIVITY, EX_NS['a1']),
