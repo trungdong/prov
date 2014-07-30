@@ -1116,7 +1116,7 @@ class ProvDocument(ProvBundle):
                 *[b.get_records() for b in self._bundles.values()]
             )
             for record in itertools.chain(self._records, bundled_records):
-                new_doc._add_record(record)
+                new_doc.add_record(record)
             return new_doc
         else:
             # returning the same document
