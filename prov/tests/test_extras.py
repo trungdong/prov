@@ -6,7 +6,87 @@ from prov.dot import prov_to_dot
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
+EX2_NS = Namespace('ex2', 'http://example2.org/')
 EX_OTHER_NS = Namespace('other', 'http://exceptions.example.org/')
+
+
+def add_label(record):
+    record.add_attributes(
+        [('prov:label', Literal("hello"))]
+    )
+
+
+def add_labels(record):
+    record.add_attributes([
+        ('prov:label', Literal("hello")),
+        ('prov:label', Literal("bye", langtag="en")),
+        ('prov:label', Literal("bonjour", langtag="fr"))
+    ])
+
+
+def add_types(record):
+    record.add_attributes([
+        ('prov:type', 'a'),
+        ('prov:type', 1),
+        ('prov:type', 1.0),
+        ('prov:type', True),
+        ('prov:type', EX_NS['abc']),
+        ('prov:type', datetime.datetime.now()),
+        ('prov:type', Literal('http://boiled-egg.example.com', datatype=XSD_ANYURI)),
+    ])
+
+
+def add_locations(record):
+    record.add_attributes([
+        ('prov:Location', "Southampton"),
+        ('prov:Location', 1),
+        ('prov:Location', 1.0),
+        ('prov:Location', True),
+        ('prov:Location', EX_NS['london']),
+        ('prov:Location', datetime.datetime.now()),
+        ('prov:Location', EX_NS.uri + "london"),
+        ('prov:Location', Literal(2002, datatype=XSD['gYear'])),
+    ])
+
+
+def add_value(record):
+    record.add_attributes([
+        ('prov:value', EX_NS['avalue'])
+    ])
+
+
+def add_further_attributes(record):
+    record.add_attributes([
+        (EX_NS['tag1'], "hello"),
+        (EX_NS['tag2'], "bye"),
+        (EX2_NS['tag3'], "hi"),
+        (EX_NS['tag1'], "hello\nover\nmore\nlines"),
+    ])
+
+
+def add_further_attributes0(record):
+    record.add_attributes([
+        (EX_NS['tag1'], "hello"),
+        (EX_NS['tag2'], "bye"),
+        (EX_NS['tag2'], Literal("hola", langtag="es")),
+        (EX2_NS['tag3'], "hi"),
+        (EX_NS['tag'], 1),
+        (EX_NS['tag'], long(1)),
+        (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
+        (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
+        (EX_NS['tag'], 1.0),
+        (EX_NS['tag'], True),
+        (EX_NS['tag'], EX_NS.uri + "southampton"),
+    ])
+
+    self.add_further_attributes_with_qnames(record)
+
+
+def add_further_attributes_with_qnames( record):
+    record.add_attributes([
+        (EX_NS['tag'], EX2_NS['newyork']),
+        (EX_NS['tag'], EX_NS['london']),
+    ])
 
 
 class TestExtras(unittest.TestCase):
@@ -28,6 +108,17 @@ class TestExtras(unittest.TestCase):
         document.add_bundle(bundle1)
         document.add_bundle(bundle2)
         prov_to_dot(document)
+
+    def test_extra_attributes(self):
+
+        document = ProvDocument()
+
+        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7'])
+        add_labels(inf)
+        add_types(inf)
+        add_further_attributes(inf)
+
+        self.assertEqual(len(inf.attributes), len(list(inf.formal_attributes) + inf.extra_attributes))
 
     def test_serialize_to_path(self):
         document = ProvDocument()

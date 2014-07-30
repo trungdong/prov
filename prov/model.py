@@ -212,6 +212,10 @@ class ProvRecord(object):
         return tuple((attr_name, first(self._attributes[attr_name])) for attr_name in self.FORMAL_ATTRIBUTES)
 
     @property
+    def extra_attributes(self):
+        return [(attr_name, attr_value) for attr_name, attr_value in self.attributes if attr_name not in self.FORMAL_ATTRIBUTES]
+
+    @property
     def bundle(self):
         return self._bundle
 
