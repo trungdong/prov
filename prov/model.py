@@ -175,6 +175,9 @@ class ProvRecord(object):
         if attributes:
             self.add_attributes(attributes)
 
+    def __hash__(self):
+        return hash((self.get_type(), self._identifier, frozenset(self.attributes)))
+
     def copy(self):
         """
         Return an exact copy of this record.
