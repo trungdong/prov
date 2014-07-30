@@ -3,6 +3,14 @@
 History
 -------
 
+dev (2014-07-30)
+^^^^^^^^^^^^^^^^^^
+* add_record method renamed to new_record.
+* New add_record function which takes one argument, a ProvRecord, has been added.
+* Document flattening fixed.
+* Hash function added to ProvRecord.
+* Helper method extra_attributes added to mirror existing formal_attributes.
+
 1.0.0 (2014-07-15)
 ^^^^^^^^^^^^^^^^^^
 
