@@ -879,6 +879,9 @@ class ProvBundle(object):
         self._add_record(new_record)
         return new_record
 
+    def add_record(self, record):
+        return self.new_record(record.get_type(), record.identifier, record.formal_attributes, record.extra_attributes)
+
     def entity(self, identifier, other_attributes=None):
         return self.new_record(PROV_ENTITY, identifier, None, other_attributes)
 
