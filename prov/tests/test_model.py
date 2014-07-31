@@ -9,19 +9,12 @@ import os
 
 from prov.model import ProvDocument, XSDQName, Namespace
 from prov.tests import examples
-from prov.tests.utility import BaseTestCase
+from prov.tests.utility import BaseTestCase, RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class JSONRoundTripTestCase(unittest.TestCase):
-    def assertPROVJSONRoundTripEquivalence(self, prov_doc, msg=None):
-        json_str = prov_doc.serialize(indent=4)
-        prov_doc_new = ProvDocument.deserialize(content=json_str)
-        self.assertEqual(prov_doc, prov_doc_new, msg)
-
-
-class Test(unittest.TestCase):
+class TestExamples(BaseTestCase):
     def setUp(self):
         pass
 
@@ -45,7 +38,7 @@ class Test(unittest.TestCase):
             self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
 
 
-class TestLoadingProvToolboxJSON(unittest.TestCase):
+class TestLoadingProvToolboxJSON(BaseTestCase):
     def setUp(self):
         self.json_path = os.path.dirname(os.path.abspath(__file__)) + '/json/'
         filenames = os.listdir(self.json_path)
@@ -115,16 +108,21 @@ class TestUnification(BaseTestCase):
                 self.assertLess(len(unified.get_records()), len(flattened.get_records()))
 
 
-class TestXSDQNames(JSONRoundTripTestCase):
+class TestXSDQNames(RoundTripTestCase):
     def test_xsd_qnames(self):
         prov_doc = ProvDocument()
-        ex = Namespace('ex', 'http://www.example.org')
+        ex = Namespace('ex', 'http://www.example.org/')
         prov_doc.add_namespace(ex)
+        ex1 = Namespace('ex1', 'http://www.example1.org/')  # ex1 is not added to the document
 
         an_xsd_qname = XSDQName(ex['a_value'])
-        prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname})
+        another_xsd_qname = XSDQName(ex1['another_value'])
 
-        self.assertPROVJSONRoundTripEquivalence(prov_doc)
+        e1 = prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname, 'prov:type': another_xsd_qname})
+        for _, attr_value in e1.attributes:
+            self.assertIsInstance(attr_value, XSDQName)
+
+        self.assertRoundTripEquivalence(prov_doc)
 
 
 if __name__ == "__main__":
