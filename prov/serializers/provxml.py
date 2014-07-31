@@ -56,10 +56,6 @@ class ProvXMLException(prov.Error):
 
 
 class ProvXMLSerializer(prov.Serializer):
-    def __init__(self, *args, **kwargs):
-        super(ProvXMLSerializer, self).__init__(*args, **kwargs)
-        self.__bundles = {}
-
     def serialize(self, stream, force_types=False, **kwargs):
         """
         :param stream: Where to save the output.
@@ -70,6 +66,16 @@ class ProvXMLSerializer(prov.Serializer):
             only be set for prov:type, prov:location, and prov:value as is
             done in the official PROV-XML specification.
         """
+        xml_root = self.serialize_bundle(bundle=self.document,
+                                         force_types=force_types)
+        for bundle in self.document.bundles:
+            self.serialize_bundle(bundle=bundle, element=xml_root,
+                                  force_types=force_types)
+        et = etree.ElementTree(xml_root)
+        et.write(stream, pretty_print=True, xml_declaration=True,
+                 encoding="UTF-8")
+
+    def serialize_bundle(self, bundle, element=None, force_types=False):
         # Build the namespace map for lxml and attach it to the root XML
         # element. No dictionary comprehension in Python 2.6!
         nsmap = dict((ns.prefix, ns.uri) for ns in
@@ -81,9 +87,16 @@ class ProvXMLSerializer(prov.Serializer):
         nsmap["xsi"] = NS_XSI
         nsmap["xsd"] = NS_XSD
 
-        xml_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
+        if element is not None:
+            xml_bundle_root = etree.SubElement(
+                element, _ns_prov("bundleContent"), nsmap=nsmap)
+        else:
+            xml_bundle_root= etree.Element(_ns_prov("document"), nsmap=nsmap)
 
-        for record in self.document._records:
+        if bundle.identifier:
+            xml_bundle_root.attrib[_ns_prov("id")] = unicode(bundle.identifier)
+
+        for record in bundle._records:
             rec_type = record.get_type()
             rec_label = PROV_N_MAP[rec_type]
             identifier = unicode(record._identifier) \
@@ -94,9 +107,24 @@ class ProvXMLSerializer(prov.Serializer):
             else:
                 attrs = None
 
-            elem = etree.SubElement(xml_root, _ns_prov(rec_label), attrs)
+            # The bundle record is still of type entity. In PROV XML it
+            # actually is a proper bundle element. Loop through the
+            # attributes to check if an attribute designates the current
+            # element as a bundle element.
+            for attr, value in sorted_attributes(rec_type, record.attributes):
+                if self._check_if_bundle_entity(rec_type, attr, value):
+                    rec_label = "bundle"
+                    break
+
+            elem = etree.SubElement(xml_bundle_root,
+                                    _ns_prov(rec_label), attrs)
 
             for attr, value in sorted_attributes(rec_type, record.attributes):
+                # Do not write the Bundle type specifier to the attributes.
+                # That information will be encoded in the parent element's tag.
+                if self._check_if_bundle_entity(rec_type, attr, value):
+                    continue
+
                 subelem = etree.SubElement(
                     elem, _ns(attr.namespace.uri, attr.localpart))
                 if isinstance(value, prov.model.Literal):
@@ -150,10 +178,7 @@ class ProvXMLSerializer(prov.Serializer):
                     subelem.attrib[_ns_prov("ref")] = v
                 else:
                     subelem.text = v
-
-        et = etree.ElementTree(xml_root)
-        et.write(stream, pretty_print=True, xml_declaration=True,
-                 encoding="UTF-8")
+        return xml_bundle_root
 
     def deserialize(self, stream, **kwargs):
         xml_doc = etree.parse(stream).getroot()
@@ -168,7 +193,13 @@ class ProvXMLSerializer(prov.Serializer):
         return document
 
     def deserialize_subtree(self, xml_doc, bundle):
+        # Do not add namespaces already defined in the parent document in
+        # case it is a bundle.
+        doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
+            if bundle.document is not None else []
         for key, value in xml_doc.nsmap.items():
+            if (key, value) in doc_ns:
+                continue
             bundle.add_namespace(key, value)
 
         # No dictionary comprehension in Python 2.6.
@@ -189,27 +220,24 @@ class ProvXMLSerializer(prov.Serializer):
                 rec_id = element.attrib[id_tag] if id_tag in element.attrib \
                     else None
 
-                # Deal with bundles or bundle contents.
-                if qname.localname == "bundle":
+                # Recursively read bundles.
+                if qname.localname == "bundleContent":
                     b = bundle.bundle(identifier=rec_id)
-                    attributes, other_attributes = \
-                        self._extract_attributes(element, r_nsmap)
-                    if attributes:
-                        msg = ("The bundle with identifier '%s' contains "
-                               "attributes from the prov namespace which is "
-                               "not allowed." % rec_id)
-                        raise ValueError(msg)
-                    b.add_attributes(other_attributes)
-                    self.__bundles[rec_id] = b
+                    self.deserialize_subtree(element, b)
                     continue
-                elif qname.localname == "bundleContent":
-                    self.deserialize_subtree(element, self.__bundles[rec_id])
-                    continue
-
-                rec_type = PROV_RECORD_IDS_MAP[qname.localname]
 
                 attributes, other_attributes = self._extract_attributes(
                     element, r_nsmap)
+
+                # Bundles are a bit special. Their metadata is represented
+                # as an entity with type bundle.
+                if qname.localname == "bundle":
+                    rec_type = PROV_ENTITY
+                    other_attributes.insert(0, (
+                        PROV["type"], prov.model.Literal("prov:bundle",
+                                                         XSD_QNAME)))
+                else:
+                    rec_type = PROV_RECORD_IDS_MAP[qname.localname]
 
                 if _ns_xsi("type") in element.attrib:
                     value = element.attrib[_ns_xsi("type")]
@@ -220,6 +248,14 @@ class ProvXMLSerializer(prov.Serializer):
             else:
                 raise NotImplementedError
         return bundle
+
+    def _check_if_bundle_entity(self, rec_type, attr, value):
+        if rec_type == PROV_ENTITY and attr == PROV_TYPE and (
+                        value == "prov:bundle" or
+                    (isinstance(value, prov.model.Literal) and
+                             value.value == "prov:bundle")):
+            return True
+        return False
 
     def _extract_attributes(self, element, r_nsmap):
         attributes = []
