@@ -5,6 +5,7 @@ import io
 from lxml import etree
 import os
 import unittest
+import warnings
 
 import prov.model as prov
 
@@ -249,6 +250,48 @@ class ProvXMLTestCase(unittest.TestCase):
         ))
 
         self.assertEqual(actual_document, expected_document)
+
+    def test_other_elements(self):
+        """
+        PROV XML uses the <prov:other> element to enable the storage of non
+        PROV information in a PROV XML document. It will be ignored by this
+        library a warning will be raised informing the user.
+        """
+        # This is example 42 from the PROV XML documentation.
+        xml_string = """
+        <prov:document
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:ex="http://example.com/ns/ex#">
+
+          <!-- prov statements go here -->
+
+          <prov:other>
+            <ex:foo>
+              <ex:content>bar</ex:content>
+            </ex:foo>
+          </prov:other>
+
+          <!-- more prov statements can go here -->
+
+        </prov:document>
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            with io.BytesIO() as xml:
+                xml.write(xml_string)
+                xml.seek(0, 0)
+                doc = prov.ProvDocument.deserialize(source=xml, format="xml")
+
+        self.assertEqual(len(w), 1)
+        self.assertTrue(
+            "Document contains non-PROV information in <prov:other>. It will "
+            "be ignored in this package." in str(w[0].message))
+
+        # This document contains nothing else.
+        self.assertEqual(len(doc._records), 0)
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
