@@ -79,7 +79,7 @@ def add_further_attributes0(record):
         (EX_NS['tag'], EX_NS.uri + "southampton"),
     ])
 
-    self.add_further_attributes_with_qnames(record)
+    add_further_attributes_with_qnames(record)
 
 
 def add_further_attributes_with_qnames( record):
