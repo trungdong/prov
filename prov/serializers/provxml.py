@@ -21,36 +21,6 @@ NS_XSD = "http://www.w3.org/2001/XMLSchema"
 NS_XML = "http://www.w3.org/XML/1998/namespace"
 
 
-def sorted_attributes(element, attributes):
-    """
-    Helper function sorting attributes into the order required by PROV-XML.
-    """
-    attributes = list(attributes)
-    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
-
-    # Append label, location, role, type, and value attributes. This is
-    # universal amongst all elements.
-    order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
-                  PROV_VALUE])
-
-    sorted_elements = []
-    for item in order:
-        this_type_list = []
-        for e in list(attributes):
-            if e[0] != item:
-                continue
-            this_type_list.append(e)
-            attributes.remove(e)
-        this_type_list.sort(key=lambda x: (str(x[0]), str(x[1])))
-        sorted_elements.extend(this_type_list)
-    # Add remaining attributes. According to the spec, the other attributes
-    # have a fixed alphabetical order.
-    attributes.sort(key=lambda x: (str(x[0]), str(x[1])))
-    sorted_elements.extend(attributes)
-
-    return sorted_elements
-
-
 class ProvXMLException(prov.Error):
     pass
 
@@ -207,46 +177,45 @@ class ProvXMLSerializer(prov.Serializer):
 
         for element in xml_doc:
             qname = etree.QName(element)
-            if qname.namespace == NS_PROV:
-                # Ignore the <prov:other> element storing non-PROV information.
-                if qname.localname == "other":
-                    warnings.warn(
-                        "Document contains non-PROV information in "
-                        "<prov:other>. It will be ignored in this package.",
-                        UserWarning)
-                    continue
+            if qname.namespace != NS_PROV:
+                raise ProvXMLException("Non PROV element discovered in "
+                                       "document or bundle.")
+            # Ignore the <prov:other> element storing non-PROV information.
+            if qname.localname == "other":
+                warnings.warn(
+                    "Document contains non-PROV information in "
+                    "<prov:other>. It will be ignored in this package.",
+                    UserWarning)
+                continue
 
-                id_tag = _ns_prov("id")
-                rec_id = element.attrib[id_tag] if id_tag in element.attrib \
-                    else None
+            id_tag = _ns_prov("id")
+            rec_id = element.attrib[id_tag] if id_tag in element.attrib \
+                else None
 
-                # Recursively read bundles.
-                if qname.localname == "bundleContent":
-                    b = bundle.bundle(identifier=rec_id)
-                    self.deserialize_subtree(element, b)
-                    continue
+            # Recursively read bundles.
+            if qname.localname == "bundleContent":
+                b = bundle.bundle(identifier=rec_id)
+                self.deserialize_subtree(element, b)
+                continue
 
-                attributes, other_attributes = self._extract_attributes(
-                    element, r_nsmap)
+            attributes, other_attributes = self._extract_attributes(
+                element, r_nsmap)
 
-                # Bundles are a bit special. Their metadata is represented
-                # as an entity with type bundle.
-                if qname.localname == "bundle":
-                    rec_type = PROV_ENTITY
-                    other_attributes.insert(0, (
-                        PROV["type"], prov.model.Literal("prov:bundle",
-                                                         XSD_QNAME)))
-                else:
-                    rec_type = PROV_RECORD_IDS_MAP[qname.localname]
-
-                if _ns_xsi("type") in element.attrib:
-                    value = element.attrib[_ns_xsi("type")]
-                    other_attributes.append((PROV["type"], value))
-
-                bundle.new_record(rec_type, rec_id, attributes,
-                                  other_attributes)
+            # Bundles are a bit special. Their metadata is represented as an
+            # entity with type "bundle".
+            if qname.localname == "bundle":
+                rec_type = PROV_ENTITY
+                other_attributes.insert(0, (
+                    PROV["type"], prov.model.Literal("prov:bundle",
+                                                     XSD_QNAME)))
             else:
-                raise NotImplementedError
+                rec_type = PROV_RECORD_IDS_MAP[qname.localname]
+
+            if _ns_xsi("type") in element.attrib:
+                value = element.attrib[_ns_xsi("type")]
+                other_attributes.append((PROV["type"], value))
+
+            bundle.new_record(rec_type, rec_id, attributes, other_attributes)
         return bundle
 
     def _check_if_bundle_entity(self, rec_type, attr, value):
@@ -257,6 +226,13 @@ class ProvXMLSerializer(prov.Serializer):
         return False
 
     def _extract_attributes(self, element, r_nsmap):
+        """
+        Extract the PROV attributes from an etree element.
+
+        :param element: The lxml.etree.Element instance.
+        :param r_nsmap: A reverse namespace map going from prefix to
+            namespace URI.
+        """
         attributes = []
         other_attributes = []
         for subel in element:
@@ -269,10 +245,7 @@ class ProvXMLSerializer(prov.Serializer):
                                 sqname.localname)
                 d = other_attributes
 
-            if len(subel.attrib) > 1:
-                raise NotImplementedError
-            elif len(subel.attrib) == 1:
-                key, value = subel.attrib.items()[0]
+            for key, value in subel.attrib.items():
                 if key == _ns_xsi("type"):
                     _v = prov.model.Literal(
                         subel.text,
@@ -282,11 +255,47 @@ class ProvXMLSerializer(prov.Serializer):
                 elif key == _ns(NS_XML, "lang"):
                     _v = prov.model.Literal(subel.text, langtag=value)
                 else:
-                    raise NotImplementedError
-            else:
+                    warnings.warn(
+                        "The element '%s' contains an attribute %s='%s' "
+                        "which is not representable in the prov module's "
+                        "internal data model and will thus be ignored." %
+                        (_t, str(key), str(value)), UserWarning)
+
+            if not subel.attrib:
                 _v = subel.text
+
             d.append((_t, _v))
         return attributes, other_attributes
+
+
+def sorted_attributes(element, attributes):
+    """
+    Helper function sorting attributes into the order required by PROV-XML.
+    """
+    attributes = list(attributes)
+    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
+
+    # Append label, location, role, type, and value attributes. This is
+    # universal amongst all elements.
+    order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
+                  PROV_VALUE])
+
+    sorted_elements = []
+    for item in order:
+        this_type_list = []
+        for e in list(attributes):
+            if e[0] != item:
+                continue
+            this_type_list.append(e)
+            attributes.remove(e)
+        this_type_list.sort(key=lambda x: (str(x[0]), str(x[1])))
+        sorted_elements.extend(this_type_list)
+    # Add remaining attributes. According to the spec, the other attributes
+    # have a fixed alphabetical order.
+    attributes.sort(key=lambda x: (str(x[0]), str(x[1])))
+    sorted_elements.extend(attributes)
+
+    return sorted_elements
 
 
 def _ns(ns, tag):
