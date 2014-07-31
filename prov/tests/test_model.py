@@ -21,7 +21,7 @@ class JSONRoundTripTestCase(unittest.TestCase):
         self.assertEqual(prov_doc, prov_doc_new, msg)
 
 
-class Test(unittest.TestCase):
+class TestExamples(unittest.TestCase):
     def setUp(self):
         pass
 
@@ -118,11 +118,16 @@ class TestUnification(BaseTestCase):
 class TestXSDQNames(JSONRoundTripTestCase):
     def test_xsd_qnames(self):
         prov_doc = ProvDocument()
-        ex = Namespace('ex', 'http://www.example.org')
+        ex = Namespace('ex', 'http://www.example.org/')
         prov_doc.add_namespace(ex)
+        ex1 = Namespace('ex1', 'http://www.example1.org/')  # ex1 is not added to the document
 
         an_xsd_qname = XSDQName(ex['a_value'])
-        prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname})
+        another_xsd_qname = XSDQName(ex1['another_value'])
+
+        e1 = prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname, 'prov:type': another_xsd_qname})
+        for _, attr_value in e1.attributes:
+            self.assertIsInstance(attr_value, XSDQName)
 
         self.assertPROVJSONRoundTripEquivalence(prov_doc)
 

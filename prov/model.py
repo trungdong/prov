@@ -617,6 +617,7 @@ class NamespaceManager(dict):
             return None
 
         if isinstance(qname, QualifiedName):
+            is_xsd_qname = isinstance(qname, XSDQName)
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
@@ -626,10 +627,12 @@ class NamespaceManager(dict):
                 if existing_ns is namespace:
                     return qname
                 else:
-                    return existing_ns[qname.localpart]  # reuse the existing namespace
+                    new_qname = existing_ns[qname.localpart]  # reuse the existing namespace
             else:
                 ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                return ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+                new_qname = ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+            # returning the new qname
+            return XSDQName(new_qname) if is_xsd_qname else new_qname
 
         if not isinstance(qname, (basestring, Identifier)):
             # Only proceed for string or URI values
