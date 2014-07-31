@@ -56,6 +56,10 @@ class ProvXMLException(prov.Error):
 
 
 class ProvXMLSerializer(prov.Serializer):
+    def __init__(self, *args, **kwargs):
+        super(ProvXMLSerializer, self).__init__(*args, **kwargs)
+        self.__bundles = {}
+
     def serialize(self, stream, force_types=False, **kwargs):
         """
         :param stream: Where to save the output.
@@ -181,48 +185,31 @@ class ProvXMLSerializer(prov.Serializer):
                         UserWarning)
                     continue
 
-                rec_type = PROV_RECORD_IDS_MAP[qname.localname]
-
                 id_tag = _ns_prov("id")
                 rec_id = element.attrib[id_tag] if id_tag in element.attrib \
                     else None
 
-                # Recursively build bundles.
-                if rec_type == PROV_BUNDLE:
-                    new_bundle = prov.model.ProvBundle(document=bundle)
-                    self.deserialize_subtree(element, new_bundle)
-                    bundle.add_bundle(new_bundle,
-                                      new_bundle.valid_qualified_name(rec_id))
+                # Deal with bundles or bundle contents.
+                if qname.localname == "bundle":
+                    b = bundle.bundle(identifier=rec_id)
+                    attributes, other_attributes = \
+                        self._extract_attributes(element, r_nsmap)
+                    if attributes:
+                        msg = ("The bundle with identifier '%s' contains "
+                               "attributes from the prov namespace which is "
+                               "not allowed." % rec_id)
+                        raise ValueError(msg)
+                    b.add_attributes(other_attributes)
+                    self.__bundles[rec_id] = b
+                    continue
+                elif qname.localname == "bundleContent":
+                    self.deserialize_subtree(element, self.__bundles[rec_id])
+                    continue
 
-                attributes = []
-                other_attributes = []
-                for subel in element:
-                    sqname = etree.QName(subel)
-                    if sqname.namespace == NS_PROV:
-                        _t = PROV[sqname.localname]
-                        d = attributes
-                    else:
-                        _t = "%s:%s" % (r_nsmap[sqname.namespace],
-                                        sqname.localname)
-                        d = other_attributes
+                rec_type = PROV_RECORD_IDS_MAP[qname.localname]
 
-                    if len(subel.attrib) > 1:
-                        raise NotImplementedError
-                    elif len(subel.attrib) == 1:
-                        key, value = subel.attrib.items()[0]
-                        if key == _ns_xsi("type"):
-                            _v = prov.model.Literal(
-                                subel.text,
-                                XSD[value.split(":")[1]])
-                        elif key == _ns_prov("ref"):
-                            _v = value
-                        elif key == _ns(NS_XML, "lang"):
-                            _v = prov.model.Literal(subel.text, langtag=value)
-                        else:
-                            raise NotImplementedError
-                    else:
-                        _v = subel.text
-                    d.append((_t, _v))
+                attributes, other_attributes = self._extract_attributes(
+                    element, r_nsmap)
 
                 if _ns_xsi("type") in element.attrib:
                     value = element.attrib[_ns_xsi("type")]
@@ -233,6 +220,38 @@ class ProvXMLSerializer(prov.Serializer):
             else:
                 raise NotImplementedError
         return bundle
+
+    def _extract_attributes(self, element, r_nsmap):
+        attributes = []
+        other_attributes = []
+        for subel in element:
+            sqname = etree.QName(subel)
+            if sqname.namespace == NS_PROV:
+                _t = PROV[sqname.localname]
+                d = attributes
+            else:
+                _t = "%s:%s" % (r_nsmap[sqname.namespace],
+                                sqname.localname)
+                d = other_attributes
+
+            if len(subel.attrib) > 1:
+                raise NotImplementedError
+            elif len(subel.attrib) == 1:
+                key, value = subel.attrib.items()[0]
+                if key == _ns_xsi("type"):
+                    _v = prov.model.Literal(
+                        subel.text,
+                        XSD[value.split(":")[1]])
+                elif key == _ns_prov("ref"):
+                    _v = value
+                elif key == _ns(NS_XML, "lang"):
+                    _v = prov.model.Literal(subel.text, langtag=value)
+                else:
+                    raise NotImplementedError
+            else:
+                _v = subel.text
+            d.append((_t, _v))
+        return attributes, other_attributes
 
 
 def _ns(ns, tag):
