@@ -84,7 +84,7 @@ def encoding_provn_value(value):
     elif isinstance(value, float):
         return u'"%g" %%%% xsd:float' % value
     elif isinstance(value, bool):
-        return u'"%i" %%%% xsd:boolean' % value        
+        return u'"%i" %%%% xsd:boolean' % value
     else:
         # TODO: QName export
         return unicode(value)
@@ -1067,14 +1067,12 @@ class ProvBundle(object):
     def plot(self, filename=None, show_nary=True, use_labels=False,
              show_element_attributes=True, show_relation_attributes=True):
         """
-        Convenienve function to plot a prov document.
+        Convenience function to plot a prov document.
 
         :type filename: string, optional
         :param filename: The filename to save to. If not given, it will open
             an interactive matplotlib plot. The filetype is determined from
             the filename ending.
-        :param bundle: The provenance bundle/document to be converted.
-        :type name: :class:`ProvBundle`
         :param show_nary: shows all elements in n-ary relations.
         :type show_nary: bool
         :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
