@@ -7,6 +7,7 @@ __email__ = 'krischer@geophysik.uni-muenchen.de'
 import datetime
 import logging
 from lxml import etree
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -172,6 +173,14 @@ class ProvXMLSerializer(prov.Serializer):
         for element in xml_doc:
             qname = etree.QName(element)
             if qname.namespace == NS_PROV:
+                # Ignore the <prov:other> element storing non-PROV information.
+                if qname.localname == "other":
+                    warnings.warn(
+                        "Document contains non-PROV information in "
+                        "<prov:other>. It will be ignored in this package.",
+                        UserWarning)
+                    continue
+
                 rec_type = PROV_RECORD_IDS_MAP[qname.localname]
 
                 id_tag = _ns_prov("id")
