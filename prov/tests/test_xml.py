@@ -104,8 +104,8 @@ class ProvXMLTestCase(unittest.TestCase):
             "ex:a1",
             "2011-11-16T16:05:00",
             "2011-11-16T16:06:00", [
-            (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
-            ("ex:host", "server.example.org")])
+                (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
+                ("ex:host", "server.example.org")])
 
         with io.BytesIO() as actual:
             document.serialize(format='xml', destination=actual)
@@ -320,6 +320,7 @@ for filename in glob.iglob(os.path.join(
             force_types = True
         else:
             force_types = False
+
         def fct(self):
             self._perform_round_trip(f, force_types=force_types)
         return fct

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 import prov
 from prov.model import PROV_REC_CLS
-from prov.constants import *
+from prov.constants import *  # NOQA
 
 NS_PROV = "http://www.w3.org/ns/prov#"
 NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
@@ -91,7 +91,7 @@ class ProvXMLSerializer(prov.Serializer):
             xml_bundle_root = etree.SubElement(
                 element, _ns_prov("bundleContent"), nsmap=nsmap)
         else:
-            xml_bundle_root= etree.Element(_ns_prov("document"), nsmap=nsmap)
+            xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
         if bundle.identifier:
             xml_bundle_root.attrib[_ns_prov("id")] = unicode(bundle.identifier)
@@ -251,9 +251,8 @@ class ProvXMLSerializer(prov.Serializer):
 
     def _check_if_bundle_entity(self, rec_type, attr, value):
         if rec_type == PROV_ENTITY and attr == PROV_TYPE and (
-                        value == "prov:bundle" or
-                    (isinstance(value, prov.model.Literal) and
-                             value.value == "prov:bundle")):
+            value == "prov:bundle" or (isinstance(value, prov.model.Literal)
+                                       and value.value == "prov:bundle")):
             return True
         return False
 
