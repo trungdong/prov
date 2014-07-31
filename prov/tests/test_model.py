@@ -14,14 +14,16 @@ from prov.tests.utility import BaseTestCase
 logger = logging.getLogger(__name__)
 
 
-class JSONRoundTripTestCase(unittest.TestCase):
-    def assertPROVJSONRoundTripEquivalence(self, prov_doc, msg=None):
-        json_str = prov_doc.serialize(indent=4)
-        prov_doc_new = ProvDocument.deserialize(content=json_str)
+class RoundTripTestCase(BaseTestCase):
+    FORMAT = 'json'  # default to PROV-JSON
+
+    def assertRoundTripEquivalence(self, prov_doc, msg=None):
+        json_str = prov_doc.serialize(format=self.FORMAT, indent=4)
+        prov_doc_new = ProvDocument.deserialize(content=json_str, format=self.FORMAT)
         self.assertEqual(prov_doc, prov_doc_new, msg)
 
 
-class TestExamples(unittest.TestCase):
+class TestExamples(BaseTestCase):
     def setUp(self):
         pass
 
@@ -45,7 +47,7 @@ class TestExamples(unittest.TestCase):
             self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
 
 
-class TestLoadingProvToolboxJSON(unittest.TestCase):
+class TestLoadingProvToolboxJSON(BaseTestCase):
     def setUp(self):
         self.json_path = os.path.dirname(os.path.abspath(__file__)) + '/json/'
         filenames = os.listdir(self.json_path)
@@ -115,7 +117,7 @@ class TestUnification(BaseTestCase):
                 self.assertLess(len(unified.get_records()), len(flattened.get_records()))
 
 
-class TestXSDQNames(JSONRoundTripTestCase):
+class TestXSDQNames(RoundTripTestCase):
     def test_xsd_qnames(self):
         prov_doc = ProvDocument()
         ex = Namespace('ex', 'http://www.example.org/')
@@ -129,7 +131,7 @@ class TestXSDQNames(JSONRoundTripTestCase):
         for _, attr_value in e1.attributes:
             self.assertIsInstance(attr_value, XSDQName)
 
-        self.assertPROVJSONRoundTripEquivalence(prov_doc)
+        self.assertRoundTripEquivalence(prov_doc)
 
 
 if __name__ == "__main__":
