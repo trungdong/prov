@@ -210,7 +210,7 @@ def decode_json_container(jc, bundle):
                         else:
                             # single value
                             other_attributes.append((attr, decode_json_representation(values, bundle)))
-                bundle.add_record(rec_type, rec_id, attributes, other_attributes)
+                bundle.new_record(rec_type, rec_id, attributes, other_attributes)
                 # HACK: creating extra (unidentified) membership relations
                 if membership_extra_members:
                     collection = attributes[PROV_ATTR_COLLECTION]
