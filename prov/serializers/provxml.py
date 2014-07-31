@@ -228,7 +228,7 @@ class ProvXMLSerializer(prov.Serializer):
                     value = element.attrib[_ns_xsi("type")]
                     other_attributes.append((PROV["type"], value))
 
-                bundle.add_record(rec_type, rec_id, attributes,
+                bundle.new_record(rec_type, rec_id, attributes,
                                   other_attributes)
             else:
                 raise NotImplementedError

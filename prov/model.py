@@ -1016,15 +1016,15 @@ class ProvBundle(object):
         return self.new_record(PROV_AGENT, identifier, None, other_attributes)
 
     def software_agent(self, identifier, other_attributes=None):
-        return self.add_record(PROV_SOFTWARE_AGENT, identifier, None,
+        return self.new_record(PROV_SOFTWARE_AGENT, identifier, None,
                                other_attributes)
 
     def organization(self, identifier, other_attributes=None):
-        return self.add_record(PROV_ORGANIZATION, identifier, None,
+        return self.new_record(PROV_ORGANIZATION, identifier, None,
                                other_attributes)
 
     def person(self, identifier, other_attributes=None):
-        return self.add_record(PROV_PERSON, identifier, None,
+        return self.new_record(PROV_PERSON, identifier, None,
                                other_attributes)
 
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
