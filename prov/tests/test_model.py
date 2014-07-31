@@ -9,18 +9,9 @@ import os
 
 from prov.model import ProvDocument, XSDQName, Namespace
 from prov.tests import examples
-from prov.tests.utility import BaseTestCase
+from prov.tests.utility import BaseTestCase, RoundTripTestCase
 
 logger = logging.getLogger(__name__)
-
-
-class RoundTripTestCase(BaseTestCase):
-    FORMAT = 'json'  # default to PROV-JSON
-
-    def assertRoundTripEquivalence(self, prov_doc, msg=None):
-        json_str = prov_doc.serialize(format=self.FORMAT, indent=4)
-        prov_doc_new = ProvDocument.deserialize(content=json_str, format=self.FORMAT)
-        self.assertEqual(prov_doc, prov_doc_new, msg)
 
 
 class TestExamples(BaseTestCase):
