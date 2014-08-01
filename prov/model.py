@@ -18,6 +18,7 @@ import datetime
 import dateutil.parser
 from collections import defaultdict
 from copy import deepcopy
+import io
 from prov import Error, serializers
 
 from StringIO import StringIO
@@ -671,6 +672,7 @@ class NamespaceManager(dict):
             return None
 
         if isinstance(qname, QualifiedName):
+            is_xsd_qname = isinstance(qname, XSDQName)
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
@@ -680,10 +682,12 @@ class NamespaceManager(dict):
                 if existing_ns is namespace:
                     return qname
                 else:
-                    return existing_ns[qname.localpart]  # reuse the existing namespace
+                    new_qname = existing_ns[qname.localpart]  # reuse the existing namespace
             else:
                 ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                return ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+                new_qname = ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+            # returning the new qname
+            return XSDQName(new_qname) if is_xsd_qname else new_qname
 
         if not isinstance(qname, (basestring, Identifier)):
             # Only proceed for string or URI values
@@ -1134,6 +1138,73 @@ class ProvBundle(object):
                 PROV_ATTR_ENTITY: entity
             }
         )
+
+    def plot(self, filename=None, show_nary=True, use_labels=False,
+             show_element_attributes=True, show_relation_attributes=True):
+        """
+        Convenience function to plot a prov document.
+
+        :type filename: string, optional
+        :param filename: The filename to save to. If not given, it will open
+            an interactive matplotlib plot. The filetype is determined from
+            the filename ending.
+        :param show_nary: shows all elements in n-ary relations.
+        :type show_nary: bool
+        :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
+        :type use_labels: bool
+        :param show_element_attributes: shows attributes of elements.
+        :type show_element_attributes: bool
+        :param show_relation_attributes: shows attributes of relations.
+        :type show_relation_attributes: bool
+        """
+        # Lazy imports to have soft dependencies on pydot and matplotlib
+        # (imported even later).
+        from prov import dot
+
+        if filename:
+            format = os.path.splitext(filename)[-1].lower().strip(
+                os.path.extsep)
+        else:
+            format = "png"
+        format = format.lower()
+        d = dot.prov_to_dot(self, show_nary=show_nary, use_labels=use_labels,
+                            show_element_attributes=show_element_attributes,
+                            show_relation_attributes=show_relation_attributes)
+        method = "create_%s" % format
+        if not hasattr(d, method):
+            raise ValueError("Format '%s' cannot be saved." % format)
+        with io.BytesIO() as buf:
+            buf.write(getattr(d, method)())
+
+            buf.seek(0, 0)
+            if filename:
+                with open(filename, "wb") as fh:
+                    fh.write(buf.read())
+            else:
+                # Use matplotlib to show the image as it likely is more
+                # widespread then PIL and works nicely in the ipython notebook.
+                import matplotlib.pylab as plt
+                import matplotlib.image as mpimg
+
+                max_size = 30
+
+                img = mpimg.imread(buf)
+                # pydot makes a border around the image. remove it.
+                img = img[1:-1, 1:-1]
+                size = (img.shape[1] / 100.0, img.shape[0] / 100.0)
+                if max(size) > max_size:
+                    scale = max_size / max(size)
+                else:
+                    scale = 1.0
+                size = (scale * size[0], scale * size[1])
+
+                plt.figure(figsize=size)
+                plt.subplots_adjust(bottom=0, top=1, left=0, right=1)
+                plt.xticks([])
+                plt.yticks([])
+                plt.imshow(img)
+                plt.axis("off")
+                plt.show()
 
     #  Aliases
     wasGeneratedBy = generation

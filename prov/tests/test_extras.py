@@ -1,7 +1,6 @@
 import unittest
 
 from prov.model import *
-from prov.tests.utility import ProvJSONRoundTripTest
 from prov.dot import prov_to_dot
 
 
@@ -79,10 +78,10 @@ def add_further_attributes0(record):
         (EX_NS['tag'], EX_NS.uri + "southampton"),
     ])
 
-    self.add_further_attributes_with_qnames(record)
+    add_further_attributes_with_qnames(record)
 
 
-def add_further_attributes_with_qnames( record):
+def add_further_attributes_with_qnames(record):
     record.add_attributes([
         (EX_NS['tag'], EX2_NS['newyork']),
         (EX_NS['tag'], EX_NS['london']),
@@ -163,7 +162,6 @@ class TestExtras(unittest.TestCase):
 
         self.assertRaises(ProvException, test)
 
-
     def test_bundle_equality_garbage(self):
         document = ProvBundle()
         self.assertNotEqual(document, 1)
@@ -204,7 +202,6 @@ class TestExtras(unittest.TestCase):
 
         self.assertRaises(ProvException, test)
 
-
         document = ProvDocument()
 
         def test():
@@ -213,7 +210,6 @@ class TestExtras(unittest.TestCase):
             document.add_bundle(bundle)
 
         self.assertRaises(ProvException, test)
-
 
     def test_document_helper_methods(self):
         document = ProvDocument()
