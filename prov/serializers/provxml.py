@@ -15,9 +15,8 @@ import prov
 from prov.model import PROV_REC_CLS
 from prov.constants import *  # NOQA
 
-NS_PROV = "http://www.w3.org/ns/prov#"
+NS_PROV = prov.constants.PROV.uri
 NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
-NS_XSD = "http://www.w3.org/2001/XMLSchema"
 NS_XML = "http://www.w3.org/XML/1998/namespace"
 
 
@@ -55,7 +54,9 @@ class ProvXMLSerializer(prov.Serializer):
         # Add the prov, XSI, and XSD namespaces by default.
         nsmap["prov"] = NS_PROV
         nsmap["xsi"] = NS_XSI
-        nsmap["xsd"] = NS_XSD
+        # The XSD namespace for some reason has no hash at the end for PROV
+        # XML but for all other serializations it does.
+        nsmap["xsd"] = prov.constants.XSD.uri.rstrip("#")
 
         if element is not None:
             xml_bundle_root = etree.SubElement(
@@ -170,6 +171,8 @@ class ProvXMLSerializer(prov.Serializer):
         for key, value in xml_doc.nsmap.items():
             if (key, value) in doc_ns:
                 continue
+            if key == "xsd":
+                value = value.rstrip("#") + "#"
             bundle.add_namespace(key, value)
 
         # No dictionary comprehension in Python 2.6.
