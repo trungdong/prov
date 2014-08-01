@@ -8,6 +8,8 @@ import unittest
 import warnings
 
 import prov.model as prov
+from prov.tests.test_attributes import TestAttributes
+from prov.tests.test_statements import RoundTripFromPythonTest
 
 
 EX_NS = ('ex', 'http://example.com/ns/ex#')
@@ -329,6 +331,14 @@ for filename in glob.iglob(os.path.join(
     fct.__name__ = test_name
 
     setattr(ProvXMLRoundTripFromFileTestCase, test_name, fct)
+
+
+class TestProvXMLAttributes(TestAttributes):
+    FORMAT = 'xml'
+
+
+class TestProvXMLStatements(RoundTripFromPythonTest):
+    FORMAT = 'xml'
 
 
 if __name__ == '__main__':
