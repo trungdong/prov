@@ -69,7 +69,6 @@ class ProvXMLSerializer(prov.Serializer):
 
         for record in bundle._records:
             rec_type = record.get_type()
-            rec_label = PROV_N_MAP[rec_type]
             identifier = unicode(record._identifier) \
                 if record._identifier else None
 
@@ -82,20 +81,13 @@ class ProvXMLSerializer(prov.Serializer):
             # actually is a proper bundle element. Loop through the
             # attributes to check if an attribute designates the current
             # element as a bundle element.
-            for attr, value in sorted_attributes(rec_type, record.attributes):
-                if self._check_if_bundle_entity(rec_type, attr, value):
-                    rec_label = "bundle"
-                    break
+            attributes = list(record.attributes)
+            rec_label = self._derive_record_label(rec_type, attributes)
 
             elem = etree.SubElement(xml_bundle_root,
                                     _ns_prov(rec_label), attrs)
 
-            for attr, value in sorted_attributes(rec_type, record.attributes):
-                # Do not write the Bundle type specifier to the attributes.
-                # That information will be encoded in the parent element's tag.
-                if self._check_if_bundle_entity(rec_type, attr, value):
-                    continue
-
+            for attr, value in sorted_attributes(rec_type, attributes):
                 subelem = etree.SubElement(
                     elem, _ns(attr.namespace.uri, attr.localpart))
                 if isinstance(value, prov.model.Literal):
@@ -204,29 +196,40 @@ class ProvXMLSerializer(prov.Serializer):
             attributes, other_attributes = self._extract_attributes(
                 element, r_nsmap)
 
-            # Bundles are a bit special. Their metadata is represented as an
-            # entity with type "bundle".
-            if qname.localname == "bundle":
-                rec_type = PROV_ENTITY
-                other_attributes.insert(0, (
-                    PROV["type"], prov.model.Literal("prov:bundle",
-                                                     XSD_QNAME)))
-            else:
-                rec_type = PROV_RECORD_IDS_MAP[qname.localname]
+            # Map the record type to its base type.
+            q_prov_name = PROV_RECORD_IDS_MAP[qname.localname]
+            rec_type = PROV_BASE_CLS[q_prov_name]
 
             if _ns_xsi("type") in element.attrib:
                 value = element.attrib[_ns_xsi("type")]
                 other_attributes.append((PROV["type"], value))
 
-            bundle.new_record(rec_type, rec_id, attributes, other_attributes)
+            rec = bundle.new_record(rec_type, rec_id, attributes,
+                                    other_attributes)
+
+            # Add the actual type in case a base type has been used.
+            if rec_type != q_prov_name:
+                rec.add_asserted_type(q_prov_name)
         return bundle
 
-    def _check_if_bundle_entity(self, rec_type, attr, value):
-        if rec_type == PROV_ENTITY and attr == PROV_TYPE and (
-            value == "prov:bundle" or (isinstance(value, prov.model.Literal)
-                                       and value.value == "prov:bundle")):
-            return True
-        return False
+    def _derive_record_label(self, rec_type, attributes):
+        """
+        tries to derive the record label taking care of subtypes and what
+        not. It will also remove the type declaration for the attributes if
+        it was used to specialize the type .
+        """
+        rec_label = PROV_N_MAP[rec_type]
+
+        for key, value in list(attributes):
+            if key != PROV_TYPE:
+                continue
+            if isinstance(value, prov.model.Literal):
+                value = value.value
+            if value in PROV_BASE_CLS and PROV_BASE_CLS[value] != value:
+                attributes.remove((key, value))
+                rec_label = PROV_N_MAP[value]
+                break
+        return rec_label
 
     def _extract_attributes(self, element, r_nsmap):
         """

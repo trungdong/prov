@@ -256,6 +256,15 @@ class ProvRecord(object):
             if isinstance(attributes, dict):
                 #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
                 attributes = attributes.items()
+
+            # Check if one of the attributes specifies that the current type
+            # is a collection. In that case multiple attributes of the same
+            # type are allowed.
+            if PROV_ATTR_COLLECTION in [_i[0] for _i in attributes]:
+                is_collection = True
+            else:
+                is_collection = False
+
             for attr_name, original_value in attributes:
                 if original_value is None:
                     continue
@@ -276,8 +285,8 @@ class ProvRecord(object):
                 if value is None:
                     raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
 
-                if attr in PROV_ATTRIBUTES and self._attributes[attr] and \
-                        self.get_type() not in PROV_ELEMENTS_COLLECTION_LIKE:
+                if not is_collection and attr in PROV_ATTRIBUTES and \
+                        self._attributes[attr]:
                     existing_value = first(self._attributes[attr])
                     if value != existing_value:
                         raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
@@ -446,40 +455,10 @@ class ProvDerivation(ProvRelation):
         return PROV_DERIVATION
 
 
-class ProvRevision(ProvDerivation):
-    def get_type(self):
-        return PROV_REVISION
-
-
-class ProvQuotation(ProvDerivation):
-    def get_type(self):
-        return PROV_QUOTATION
-
-
-class ProvPrimarySource(ProvDerivation):
-    def get_type(self):
-        return PROV_PRIMARY_SOURCE
-
-
 ### Component 3: Agents, Responsibility, and Influence
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_AGENT
-
-
-class ProvSoftwareAgent(ProvElement):
-    def get_type(self):
-        return PROV_SOFTWARE_AGENT
-
-
-class ProvPerson(ProvElement):
-    def get_type(self):
-        return PROV_PERSON
-
-
-class ProvOrganization(ProvElement):
-    def get_type(self):
-        return PROV_ORGANIZATION
 
 
 class ProvAttribution(ProvRelation):
@@ -487,11 +466,6 @@ class ProvAttribution(ProvRelation):
 
     def get_type(self):
         return PROV_ATTRIBUTION
-
-
-class ProvPlan(ProvEntity):
-    def get_type(self):
-        return PROV_PLAN
 
 
 class ProvAssociation(ProvRelation):
@@ -538,16 +512,6 @@ class ProvMention(ProvSpecialization):
 
 
 ### Component 6: Collections
-class ProvCollection(ProvEntity):
-    def get_type(self):
-        return PROV_COLLECTION
-
-
-class ProvEmptyCollection(ProvCollection):
-    def get_type(self):
-        return PROV_EMPTY_COLLECTION
-
-
 class ProvMembership(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
 
@@ -566,23 +530,14 @@ PROV_REC_CLS = {
     PROV_END:            ProvEnd,
     PROV_INVALIDATION:   ProvInvalidation,
     PROV_DERIVATION:     ProvDerivation,
-    PROV_REVISION:       ProvRevision,
-    PROV_QUOTATION:      ProvQuotation,
-    PROV_PRIMARY_SOURCE: ProvPrimarySource,
     PROV_AGENT:          ProvAgent,
-    PROV_SOFTWARE_AGENT: ProvSoftwareAgent,
-    PROV_PERSON:         ProvPerson,
-    PROV_ORGANIZATION:   ProvOrganization,
     PROV_ATTRIBUTION:    ProvAttribution,
     PROV_ASSOCIATION:    ProvAssociation,
-    PROV_PLAN:           ProvPlan,
     PROV_DELEGATION:     ProvDelegation,
     PROV_INFLUENCE:      ProvInfluence,
     PROV_SPECIALIZATION: ProvSpecialization,
     PROV_ALTERNATE:      ProvAlternate,
     PROV_MENTION:        ProvMention,
-    PROV_COLLECTION:     ProvCollection,
-    PROV_EMPTY_COLLECTION: ProvEmptyCollection,
     PROV_MEMBERSHIP:     ProvMembership,
 }
 
@@ -1019,18 +974,6 @@ class ProvBundle(object):
     def agent(self, identifier, other_attributes=None):
         return self.new_record(PROV_AGENT, identifier, None, other_attributes)
 
-    def software_agent(self, identifier, other_attributes=None):
-        return self.new_record(PROV_SOFTWARE_AGENT, identifier, None,
-                               other_attributes)
-
-    def organization(self, identifier, other_attributes=None):
-        return self.new_record(PROV_ORGANIZATION, identifier, None,
-                               other_attributes)
-
-    def person(self, identifier, other_attributes=None):
-        return self.new_record(PROV_PERSON, identifier, None,
-                               other_attributes)
-
     def attribution(self, entity, agent, identifier=None, other_attributes=None):
         return self.new_record(
             PROV_ATTRIBUTION, identifier, {
@@ -1081,13 +1024,13 @@ class ProvBundle(object):
     def revision(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
                  identifier=None, other_attributes=None):
         record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes)
-        record.add_asserted_type(PROV_REVISION)
+        record.add_asserted_type(PROV['Revision'])
         return record
 
     def quotation(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
                   identifier=None, other_attributes=None):
         record = self.derivation(generatedEntity, usedEntity, activity, generation, usage, identifier, other_attributes)
-        record.add_asserted_type(PROV_QUOTATION)
+        record.add_asserted_type(PROV['Quotation'])
         return record
 
     def primary_source(self, generatedEntity, usedEntity, activity=None, generation=None, usage=None,
@@ -1122,13 +1065,8 @@ class ProvBundle(object):
         )
 
     def collection(self, identifier, other_attributes=None):
-        record = self.new_record(PROV_COLLECTION, identifier, None,
-                                 other_attributes)
-        return record
-
-    def emptyCollection(self, identifier, other_attributes=None):
-        record = self.new_record(PROV_EMPTY_COLLECTION, identifier, None,
-                                 other_attributes)
+        record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
+        record.add_asserted_type(PROV['Collection'])
         return record
 
     def membership(self, collection, entity):

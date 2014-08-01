@@ -77,6 +77,40 @@ PROV_N_MAP = {
     PROV_BUNDLE:               u'bundle',
 }
 
+# Maps qualified names from the PROV namespace to their base class. If it
+# has no baseclass it maps to itsself. This is needed for example for PROV
+# XML (de)serializer where extended types are used a lot.
+PROV_BASE_CLS = {
+    PROV_ENTITY:               PROV_ENTITY,
+    PROV_ACTIVITY:             PROV_ACTIVITY,
+    PROV_GENERATION:           PROV_GENERATION,
+    PROV_USAGE:                PROV_USAGE,
+    PROV_COMMUNICATION:        PROV_COMMUNICATION,
+    PROV_START:                PROV_START,
+    PROV_END:                  PROV_END,
+    PROV_INVALIDATION:         PROV_INVALIDATION,
+    PROV_DERIVATION:           PROV_DERIVATION,
+    PROV_REVISION:             PROV_DERIVATION,
+    PROV_QUOTATION:            PROV_DERIVATION,
+    PROV_PRIMARY_SOURCE:       PROV_DERIVATION,
+    PROV_AGENT:                PROV_AGENT,
+    PROV_SOFTWARE_AGENT:       PROV_AGENT,
+    PROV_PERSON:               PROV_AGENT,
+    PROV_ORGANIZATION:         PROV_AGENT,
+    PROV_ATTRIBUTION:          PROV_ATTRIBUTION,
+    PROV_ASSOCIATION:          PROV_ASSOCIATION,
+    PROV_PLAN:                 PROV_ENTITY,
+    PROV_DELEGATION:           PROV_DELEGATION,
+    PROV_INFLUENCE:            PROV_INFLUENCE,
+    PROV_ALTERNATE:            PROV_ALTERNATE,
+    PROV_SPECIALIZATION:       PROV_SPECIALIZATION,
+    PROV_MENTION:              PROV_MENTION,
+    PROV_COLLECTION:           PROV_ENTITY,
+    PROV_EMPTY_COLLECTION:     PROV_ENTITY,
+    PROV_MEMBERSHIP:           PROV_ENTITY,
+    PROV_BUNDLE:               PROV_ENTITY
+}
+
 # Identifiers for PROV's attributes
 PROV_ATTR_ENTITY = PROV['entity']
 PROV_ATTR_ACTIVITY = PROV['activity']
@@ -86,9 +120,6 @@ PROV_ATTR_INFORMANT = PROV['informant']
 PROV_ATTR_STARTER = PROV['starter']
 PROV_ATTR_ENDER = PROV['ender']
 PROV_ATTR_AGENT = PROV['agent']
-PROV_ATTR_SOFTWARE_AGENT = PROV['softwareAgent']
-PROV_ATTR_PERSON = PROV['person']
-PROV_ATTR_ORGANIZATION = PROV['organization']
 PROV_ATTR_PLAN = PROV['plan']
 PROV_ATTR_DELEGATE = PROV['delegate']
 PROV_ATTR_RESPONSIBLE = PROV['responsible']
@@ -104,7 +135,6 @@ PROV_ATTR_BUNDLE = PROV['bundle']
 PROV_ATTR_INFLUENCEE = PROV['influencee']
 PROV_ATTR_INFLUENCER = PROV['influencer']
 PROV_ATTR_COLLECTION = PROV['collection']
-PROV_ATTR_EMPTY_COLLECTION = PROV['emptyCollection']
 
 #  Literal properties
 PROV_ATTR_TIME = PROV['time']
@@ -121,9 +151,6 @@ PROV_ATTRIBUTE_QNAMES = set([
     PROV_ATTR_STARTER,
     PROV_ATTR_ENDER,
     PROV_ATTR_AGENT,
-    PROV_ATTR_SOFTWARE_AGENT,
-    PROV_ATTR_PERSON,
-    PROV_ATTR_ORGANIZATION,
     PROV_ATTR_PLAN,
     PROV_ATTR_DELEGATE,
     PROV_ATTR_RESPONSIBLE,
@@ -138,8 +165,7 @@ PROV_ATTRIBUTE_QNAMES = set([
     PROV_ATTR_BUNDLE,
     PROV_ATTR_INFLUENCEE,
     PROV_ATTR_INFLUENCER,
-    PROV_ATTR_COLLECTION,
-    PROV_ATTR_EMPTY_COLLECTION
+    PROV_ATTR_COLLECTION
 ])
 PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
 # Set of formal attributes of PROV records
@@ -149,11 +175,6 @@ PROV_RECORD_ATTRIBUTES = list((attr, unicode(attr)) for attr in PROV_ATTRIBUTES)
 PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
 PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
 PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
-
-# Some elements can have multiple attributes of the same type.
-PROV_ELEMENTS_COLLECTION_LIKE = set([
-    PROV_MEMBERSHIP
-])
 
 # Extra definition for convenience
 PROV_TYPE = PROV['type']

@@ -23,7 +23,7 @@ from prov.model import (
     ProvBundle, PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION, PROV_ATTRIBUTION, PROV_BUNDLE,
     PROV_COMMUNICATION, PROV_DERIVATION, PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
     PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION, PROV_SPECIALIZATION, PROV_START, PROV_USAGE,
-    Identifier, PROV_ATTRIBUTE_QNAMES, PROV_SOFTWARE_AGENT, PROV_PERSON
+    Identifier, PROV_ATTRIBUTE_QNAMES
 )
 
 from prov.serializers.provxml import sorted_attributes
@@ -38,8 +38,6 @@ DOT_PROV_STYLE = {
     PROV_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': '#FFFC87', 'color': '#808080'},
     PROV_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': '#9FB1FC', 'color': '#0000FF'},
     PROV_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
-    PROV_SOFTWARE_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
-    PROV_PERSON: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
     #    PROV_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
     PROV_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
     # Relations
@@ -110,6 +108,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             if not attributes:
                 return  # No attribute to display
 
+            # Sort the attributes similar to how PROV XML does it.
             attributes = sorted_attributes(record.get_type(), attributes)
 
             ann_rows = [ANNOTATION_START_ROW]
