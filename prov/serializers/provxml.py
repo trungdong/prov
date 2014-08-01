@@ -19,6 +19,11 @@ NS_PROV = prov.constants.PROV.uri
 NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
 NS_XML = "http://www.w3.org/XML/1998/namespace"
 
+FULL_NAMES_MAP = dict(PROV_N_MAP)
+FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
+FULL_PROV_RECORD_IDS_MAP = dict((FULL_NAMES_MAP[rec_type_id], rec_type_id) for
+                                 rec_type_id in FULL_NAMES_MAP)
+
 
 class ProvXMLException(prov.Error):
     pass
@@ -197,7 +202,7 @@ class ProvXMLSerializer(prov.Serializer):
                 element, r_nsmap)
 
             # Map the record type to its base type.
-            q_prov_name = PROV_RECORD_IDS_MAP[qname.localname]
+            q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
             rec_type = PROV_BASE_CLS[q_prov_name]
 
             if _ns_xsi("type") in element.attrib:
@@ -218,7 +223,7 @@ class ProvXMLSerializer(prov.Serializer):
         not. It will also remove the type declaration for the attributes if
         it was used to specialize the type .
         """
-        rec_label = PROV_N_MAP[rec_type]
+        rec_label = FULL_NAMES_MAP[rec_type]
 
         for key, value in list(attributes):
             if key != PROV_TYPE:
@@ -227,7 +232,7 @@ class ProvXMLSerializer(prov.Serializer):
                 value = value.value
             if value in PROV_BASE_CLS and PROV_BASE_CLS[value] != value:
                 attributes.remove((key, value))
-                rec_label = PROV_N_MAP[value]
+                rec_label = FULL_NAMES_MAP[value]
                 break
         return rec_label
 

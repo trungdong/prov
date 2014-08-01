@@ -21,18 +21,11 @@ PROV_INVALIDATION = PROV['Invalidation']
 
 #  C2. Derivations
 PROV_DERIVATION = PROV['Derivation']
-PROV_REVISION = PROV['Revision']
-PROV_QUOTATION = PROV['Quotation']
-PROV_PRIMARY_SOURCE = PROV['PrimarySource']
 
 #  C3. Agents/Responsibility
 PROV_AGENT = PROV['Agent']
-PROV_SOFTWARE_AGENT = PROV['SoftwareAgent']
-PROV_PERSON = PROV['Person']
-PROV_ORGANIZATION = PROV['Organization']
 PROV_ATTRIBUTION = PROV['Attribution']
 PROV_ASSOCIATION = PROV['Association']
-PROV_PLAN = PROV['Plan']
 PROV_DELEGATION = PROV['Delegation']
 PROV_INFLUENCE = PROV['Influence']
 #  C4. Bundles
@@ -42,8 +35,6 @@ PROV_ALTERNATE = PROV['Alternate']
 PROV_SPECIALIZATION = PROV['Specialization']
 PROV_MENTION = PROV['Mention']
 #  C6. Collections
-PROV_COLLECTION = PROV['Collection']
-PROV_EMPTY_COLLECTION = PROV['EmptyCollection']
 PROV_MEMBERSHIP = PROV['Membership']
 
 PROV_N_MAP = {
@@ -56,25 +47,30 @@ PROV_N_MAP = {
     PROV_END:                  u'wasEndedBy',
     PROV_INVALIDATION:         u'wasInvalidatedBy',
     PROV_DERIVATION:           u'wasDerivedFrom',
-    PROV_REVISION:             u'wasRevisionOf',
-    PROV_QUOTATION:            u'wasQuotedFrom',
-    PROV_PRIMARY_SOURCE:       u'hadPrimarySource',
     PROV_AGENT:                u'agent',
-    PROV_SOFTWARE_AGENT:       u'softwareAgent',
-    PROV_PERSON:               u'person',
-    PROV_ORGANIZATION:         u'organization',
     PROV_ATTRIBUTION:          u'wasAttributedTo',
     PROV_ASSOCIATION:          u'wasAssociatedWith',
-    PROV_PLAN:                 u'plan',
     PROV_DELEGATION:           u'actedOnBehalfOf',
     PROV_INFLUENCE:            u'wasInfluencedBy',
     PROV_ALTERNATE:            u'alternateOf',
     PROV_SPECIALIZATION:       u'specializationOf',
     PROV_MENTION:              u'mentionOf',
-    PROV_COLLECTION:           u'collection',
-    PROV_EMPTY_COLLECTION:     u'emptyCollection',
     PROV_MEMBERSHIP:           u'hadMember',
     PROV_BUNDLE:               u'bundle',
+}
+
+# Records defined as subtypes in PROV-N but top level types in for example
+# PROV XML also need a mapping.
+ADDITIONAL_N_MAP = {
+    PROV['Revision']:          u'wasRevisionOf',
+    PROV['Quotation']:         u'wasQuotedFrom',
+    PROV['PrimarySource']:     u'hadPrimarySource',
+    PROV['SofwareAgent']:      u'softwareAgent',
+    PROV['Person']:            u'person',
+    PROV['Organization']:      u'organization',
+    PROV['Plan']:              u'plan',
+    PROV['Collection']:        u'collection',
+    PROV['EmptyCollection']:   u'emptyCollection',
 }
 
 # Maps qualified names from the PROV namespace to their base class. If it
@@ -90,23 +86,23 @@ PROV_BASE_CLS = {
     PROV_END:                  PROV_END,
     PROV_INVALIDATION:         PROV_INVALIDATION,
     PROV_DERIVATION:           PROV_DERIVATION,
-    PROV_REVISION:             PROV_DERIVATION,
-    PROV_QUOTATION:            PROV_DERIVATION,
-    PROV_PRIMARY_SOURCE:       PROV_DERIVATION,
+    PROV['Revision']:          PROV_DERIVATION,
+    PROV['Quotation']:         PROV_DERIVATION,
+    PROV['PrimarySource']:     PROV_DERIVATION,
     PROV_AGENT:                PROV_AGENT,
-    PROV_SOFTWARE_AGENT:       PROV_AGENT,
-    PROV_PERSON:               PROV_AGENT,
-    PROV_ORGANIZATION:         PROV_AGENT,
+    PROV['SofwareAgent']:      PROV_AGENT,
+    PROV['Person']:            PROV_AGENT,
+    PROV['Organization']:      PROV_AGENT,
     PROV_ATTRIBUTION:          PROV_ATTRIBUTION,
     PROV_ASSOCIATION:          PROV_ASSOCIATION,
-    PROV_PLAN:                 PROV_ENTITY,
+    PROV['Plan']:              PROV_ENTITY,
     PROV_DELEGATION:           PROV_DELEGATION,
     PROV_INFLUENCE:            PROV_INFLUENCE,
     PROV_ALTERNATE:            PROV_ALTERNATE,
     PROV_SPECIALIZATION:       PROV_SPECIALIZATION,
     PROV_MENTION:              PROV_MENTION,
-    PROV_COLLECTION:           PROV_ENTITY,
-    PROV_EMPTY_COLLECTION:     PROV_ENTITY,
+    PROV['Collection']:        PROV_ENTITY,
+    PROV['EmptyCollection']:   PROV_ENTITY,
     PROV_MEMBERSHIP:           PROV_ENTITY,
     PROV_BUNDLE:               PROV_ENTITY
 }
