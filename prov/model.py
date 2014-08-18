@@ -217,7 +217,10 @@ class ProvRecord(object):
 
     @property
     def extra_attributes(self):
-        return [(attr_name, attr_value) for attr_name, attr_value in self.attributes if attr_name not in self.FORMAL_ATTRIBUTES]
+        return [
+            (attr_name, attr_value) for attr_name, attr_value in self.attributes
+            if attr_name not in self.FORMAL_ATTRIBUTES
+        ]
 
     @property
     def bundle(self):
@@ -665,8 +668,11 @@ class NamespaceManager(dict):
                     #  return None as we cannot generate a Qualified Name from the given URI
                     return None
         elif self._default:
-            #  create and return an identifier in the default namespace
+            # create and return an identifier in the default namespace
             return self._default[qname]
+        elif self.parent:
+            # all attempts have failed, now delegate this to the parent NamespaceManager
+            return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
         return None
@@ -694,8 +700,9 @@ class ProvBundle(object):
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(namespaces,
-                                            parent=(document._namespaces if document is not None else None)
+        self._namespaces = NamespaceManager(
+            namespaces,
+            parent=(document._namespaces if document is not None else None)
         )
         if records:
             for record in records:
@@ -734,10 +741,6 @@ class ProvBundle(object):
 
     def valid_qualified_name(self, identifier):
         return self._namespaces.valid_qualified_name(identifier)
-
-    def get_anon_id(self, record):
-        #  TODO Implement a dict of self-generated anon ids for records without identifier
-        return self._namespaces.get_anonymous_identifier()
 
     def get_records(self, class_or_type_or_tuple=None):
         results = list(self._records)
