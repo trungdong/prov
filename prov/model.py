@@ -47,6 +47,14 @@ def parse_xsd_datetime(value):
         pass
     return None
 
+def parse_boolean(value):
+    if value.lower() in ["false", "0"]:
+        return False
+    elif value.lower() in ["true", "1"]:
+        return False
+    else:
+        return None
+
 DATATYPE_PARSERS = {
     datetime.datetime: parse_xsd_datetime,
 }
@@ -58,7 +66,7 @@ XSD_DATATYPE_PARSERS = {
     XSD_DOUBLE: float,
     XSD_LONG: long,
     XSD_INT: int,
-    XSD_BOOLEAN: bool,
+    XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
     XSD_ANYURI: Identifier
 }

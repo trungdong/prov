@@ -119,21 +119,23 @@ class ProvXMLSerializer(prov.Serializer):
                 # The not startswith("prov:") check is a little bit hacky to
                 # avoid type interference when the type is a standard prov
                 # type.
-                if (force_types or attr in [PROV_TYPE, PROV_LOCATION,
-                                            PROV_VALUE]) and \
+                if (force_types or
+                        isinstance(value, bool) or
+                        attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
                         not str(value).startswith("prov:") and \
                         not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
                         attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
-                    if isinstance(value, (str, unicode)):
+                    if isinstance(value, bool):
+                        xsd_type = XSD_BOOLEAN
+                        v = v.lower()
+                    elif isinstance(value, (str, unicode)):
                         xsd_type = XSD_STRING
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
                     elif isinstance(value, int):
                         xsd_type = XSD_INT
-                    elif isinstance(value, bool):
-                        xsd_type = XSD_BOOLEAN
                     elif isinstance(value, datetime.datetime):
                         xsd_type = XSD_DATETIME
                     elif isinstance(value, prov.identifier.Identifier):
@@ -276,6 +278,7 @@ class ProvXMLSerializer(prov.Serializer):
                 _v = subel.text
 
             d.append((_t, _v))
+
         return attributes, other_attributes
 
 
