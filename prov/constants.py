@@ -8,6 +8,7 @@ from prov.identifier import Namespace
 
 XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
+XSI = Namespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance')
 
 #  C1. Entities/Activities
 PROV_ENTITY = PROV['Entity']

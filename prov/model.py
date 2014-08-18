@@ -542,7 +542,7 @@ PROV_REC_CLS = {
 }
 
 
-DEFAULT_NAMESPACES = {'prov': PROV, 'xsd': XSD}
+DEFAULT_NAMESPACES = {'prov': PROV, 'xsd': XSD, 'xsi': XSI}
 
 
 #  Bundle
