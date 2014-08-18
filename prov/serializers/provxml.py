@@ -12,6 +12,7 @@ import warnings
 logger = logging.getLogger(__name__)
 
 import prov
+import prov.identifier
 from prov.model import PROV_REC_CLS
 from prov.constants import *  # NOQA
 
@@ -104,6 +105,10 @@ class ProvXMLSerializer(prov.Serializer):
                     if value.langtag is not None:
                         subelem.attrib[_ns(NS_XML, "lang")] = value.langtag
                     v = value.value
+                elif isinstance(value, prov.model.QualifiedName):
+                    if attr not in PROV_ATTRIBUTE_QNAMES:
+                        subelem.attrib[_ns_xsi("type")] = "xsd:QName"
+                    v = str(value)
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
                 else:
@@ -201,7 +206,7 @@ class ProvXMLSerializer(prov.Serializer):
                 continue
 
             attributes, other_attributes = self._extract_attributes(
-                element, r_nsmap)
+                element, r_nsmap, bundle.namespaces)
 
             # Map the record type to its base type.
             q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
@@ -238,13 +243,14 @@ class ProvXMLSerializer(prov.Serializer):
                 break
         return rec_label
 
-    def _extract_attributes(self, element, r_nsmap):
+    def _extract_attributes(self, element, r_nsmap, namespaces):
         """
         Extract the PROV attributes from an etree element.
 
         :param element: The lxml.etree.Element instance.
         :param r_nsmap: A reverse namespace map going from prefix to
             namespace URI.
+        :param namespaces: The namespace set defined for the current bundle.
         """
         attributes = []
         other_attributes = []
@@ -260,9 +266,24 @@ class ProvXMLSerializer(prov.Serializer):
 
             for key, value in subel.attrib.items():
                 if key == _ns_xsi("type"):
-                    _v = prov.model.Literal(
-                        subel.text,
-                        XSD[value.split(":")[1]])
+                    try:
+                        _namespace, _localpart = subel.text.split(":")
+                    except ValueError:
+                        _namespace, _localpart = None, subel.text
+                    # If it is an xsd:QName, make sure it is returned as a
+                    # QualifiedName instance!
+                    if value == "xsd:QName" and _namespace and \
+                            _namespace != "prov":
+                        _ns_obj = Namespace(_namespace, subel.nsmap[_namespace])
+                        if _ns_obj not in namespaces:
+                            raise ProvXMLException(
+                                "QualifiedName '%s' has an unknown namespace."
+                                % subel.text)
+                        _v = prov.identifier.QualifiedName(_ns_obj, _localpart)
+                    else:
+                        _v = prov.model.Literal(
+                            subel.text,
+                            XSD[value.split(":")[1]])
                 elif key == _ns_prov("ref"):
                     _v = value
                 elif key == _ns(NS_XML, "lang"):
