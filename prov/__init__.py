@@ -1,8 +1,8 @@
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
-__version__ = '1.0.0'
+__version__ = '1.0.1'
 
-__all__ = ["model"]
+__all__ = ["Error", "model", "read"]
 
 
 class Error(Exception):

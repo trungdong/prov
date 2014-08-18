@@ -228,7 +228,10 @@ class ProvRecord(object):
 
     @property
     def extra_attributes(self):
-        return [(attr_name, attr_value) for attr_name, attr_value in self.attributes if attr_name not in self.FORMAL_ATTRIBUTES]
+        return [
+            (attr_name, attr_value) for attr_name, attr_value in self.attributes
+            if attr_name not in self.FORMAL_ATTRIBUTES
+        ]
 
     @property
     def bundle(self):
@@ -642,19 +645,35 @@ class NamespaceManager(dict):
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
-            if prefix in self and self[prefix] == namespace:
+            local_part = qname.localpart
+            if not prefix:
+                # the namespace is a default namespace
+                if self._default == namespace:
+                    # the same default namespace is defined
+                    new_qname = self._default[local_part]
+                elif self._default is None:
+                    # no default namespace is currently defined, reused the one given
+                    self._default = namespace
+                    return qname  # no change, return the original
+                else:
+                    # different default namespace, use the 'dn' prefix for the new namespace
+                    dn_namespace = Namespace('dn', namespace.uri)
+                    dn_namespace = self.add_namespace(dn_namespace)
+                    new_qname = dn_namespace[local_part]
+            elif prefix in self and self[prefix] == namespace:
                 # No need to add the namespace
                 existing_ns = self[prefix]
                 if existing_ns is namespace:
                     return qname
                 else:
-                    new_qname = existing_ns[qname.localpart]  # reuse the existing namespace
+                    new_qname = existing_ns[local_part]  # reuse the existing namespace
             else:
                 ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
                 new_qname = ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
             # returning the new qname
             return XSDQName(new_qname) if is_xsd_qname else new_qname
 
+        # Trying to guess from here
         if not isinstance(qname, (basestring, Identifier)):
             # Only proceed for string or URI values
             return None
@@ -679,15 +698,13 @@ class NamespaceManager(dict):
                     if str_value.startswith(namespace.uri):
                         #  create a QName with the namespace
                         return namespace[str_value.replace(namespace.uri, '')]
-                if self.parent is not None:
-                    # try the parent namespace manager
-                    return self.parent.valid_qualified_name(qname)
-                else:
-                    #  return None as we cannot generate a Qualified Name from the given URI
-                    return None
         elif self._default:
-            #  create and return an identifier in the default namespace
+            # create and return an identifier in the default namespace
             return self._default[qname]
+
+        if self.parent:
+            # all attempts have failed so far, now delegate this to the parent NamespaceManager
+            return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
         return None
@@ -715,8 +732,9 @@ class ProvBundle(object):
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(namespaces,
-                                            parent=(document._namespaces if document is not None else None)
+        self._namespaces = NamespaceManager(
+            namespaces,
+            parent=(document._namespaces if document is not None else None)
         )
         if records:
             for record in records:
@@ -755,10 +773,6 @@ class ProvBundle(object):
 
     def valid_qualified_name(self, identifier):
         return self._namespaces.valid_qualified_name(identifier)
-
-    def get_anon_id(self, record):
-        #  TODO Implement a dict of self-generated anon ids for records without identifier
-        return self._namespaces.get_anonymous_identifier()
 
     def get_records(self, class_or_type_or_tuple=None):
         results = list(self._records)
