@@ -48,10 +48,10 @@ def parse_xsd_datetime(value):
     return None
 
 def parse_boolean(value):
-    if value.lower() in ["false", "0"]:
+    if value.lower() in ("false", "0"):
         return False
-    elif value.lower() in ["true", "1"]:
-        return False
+    elif value.lower() in ("true", "1"):
+        return True
     else:
         return None
 
