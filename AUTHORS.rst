@@ -5,10 +5,11 @@ Credits
 Development Lead
 ----------------
 
-* Trung Dong Huynh <trungdong@donggiang.com>
+* `Trung Dong Huynh <http://about.me/dong.huynh>`__ (`@trungdong <https://twitter.com/trungdong/>`__)
 
 Contributors
 ------------
 
-* Sam Millar <sam@rulica.com>
-* Satrajit Ghosh <satra@mit.edu>
+* Sam Millar
+* Satrajit Ghosh
+* Lion Krischer
