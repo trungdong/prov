@@ -24,6 +24,15 @@ class BaseTestCase(unittest.TestCase):
         else:
             f(obj, cls, msg)
 
+    def assertIsNotNone(self, obj, *args, **kwargs):
+        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
+        try:
+            f = super(BaseTestCase, self).assertIsNotNone
+        except AttributeError:
+            self.assertTrue(obj is not None, *args, **kwargs)
+        else:
+            f(obj, *args, **kwargs)
+
     def assertIn(self, a, b, *args, **kwargs):
         """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
         try:

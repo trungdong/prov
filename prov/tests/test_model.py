@@ -108,7 +108,7 @@ class TestUnification(BaseTestCase):
                 self.assertLess(len(unified.get_records()), len(flattened.get_records()))
 
 
-class TestXSDQNames(RoundTripTestCase):
+class TestQualifiedNames(RoundTripTestCase):
     def test_xsd_qnames(self):
         prov_doc = ProvDocument()
         ex = Namespace('ex', 'http://www.example.org/')
@@ -124,6 +124,21 @@ class TestXSDQNames(RoundTripTestCase):
 
         self.assertRoundTripEquivalence(prov_doc)
 
+    def test_namespace_inheritance(self):
+        prov_doc = ProvDocument()
+        prov_doc.add_namespace('ex', 'http://www.example.org/')
+        bundle = prov_doc.bundle('ex:bundle')
+        e1 = bundle.entity('ex:e1')
+        self.assertIsNotNone(e1.identifier, "e1's identifier is None!")
+        self.assertRoundTripEquivalence(prov_doc)
+
+    def test_default_namespace_inheritance(self):
+        prov_doc = ProvDocument()
+        prov_doc.set_default_namespace('http://www.example.org/')
+        bundle = prov_doc.bundle('bundle')
+        e1 = bundle.entity('e1')
+        self.assertIsNotNone(e1.identifier, "e1's identifier is None!")
+        self.assertRoundTripEquivalence(prov_doc)
 
 if __name__ == "__main__":
     unittest.main()

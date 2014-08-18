@@ -661,17 +661,12 @@ class NamespaceManager(dict):
                     if str_value.startswith(namespace.uri):
                         #  create a QName with the namespace
                         return namespace[str_value.replace(namespace.uri, '')]
-                if self.parent is not None:
-                    # try the parent namespace manager
-                    return self.parent.valid_qualified_name(qname)
-                else:
-                    #  return None as we cannot generate a Qualified Name from the given URI
-                    return None
         elif self._default:
             # create and return an identifier in the default namespace
             return self._default[qname]
-        elif self.parent:
-            # all attempts have failed, now delegate this to the parent NamespaceManager
+
+        if self.parent:
+            # all attempts have failed so far, now delegate this to the parent NamespaceManager
             return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
