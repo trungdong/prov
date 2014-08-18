@@ -624,19 +624,35 @@ class NamespaceManager(dict):
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
-            if prefix in self and self[prefix] == namespace:
+            local_part = qname.localpart
+            if not prefix:
+                # the namespace is a default namespace
+                if self._default == namespace:
+                    # the same default namespace is defined
+                    new_qname = self._default[local_part]
+                elif self._default is None:
+                    # no default namespace is currently defined, reused the one given
+                    self._default = namespace
+                    return qname  # no change, return the original
+                else:
+                    # different default namespace, use the 'dn' prefix for the new namespace
+                    dn_namespace = Namespace('dn', namespace.uri)
+                    dn_namespace = self.add_namespace(dn_namespace)
+                    new_qname = dn_namespace[local_part]
+            elif prefix in self and self[prefix] == namespace:
                 # No need to add the namespace
                 existing_ns = self[prefix]
                 if existing_ns is namespace:
                     return qname
                 else:
-                    new_qname = existing_ns[qname.localpart]  # reuse the existing namespace
+                    new_qname = existing_ns[local_part]  # reuse the existing namespace
             else:
                 ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
                 new_qname = ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
             # returning the new qname
             return XSDQName(new_qname) if is_xsd_qname else new_qname
 
+        # Trying to guess from here
         if not isinstance(qname, (basestring, Identifier)):
             # Only proceed for string or URI values
             return None
