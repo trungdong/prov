@@ -7,6 +7,7 @@ import os
 import unittest
 import warnings
 
+from prov.identifier import Namespace, QualifiedName
 import prov.model as prov
 from prov.tests.test_attributes import TestAttributes
 from prov.tests.test_statements import RoundTripFromPythonTest
@@ -167,13 +168,14 @@ class ProvXMLTestCase(unittest.TestCase):
             format="xml")
 
         expected_document = prov.ProvDocument()
-        expected_document.add_namespace(*EX_NS)
+        ex_ns = Namespace(*EX_NS)
+        expected_document.add_namespace(ex_ns)
 
         expected_document.activity(
             "ex:a1",
             "2011-11-16T16:05:00",
             "2011-11-16T16:06:00", [
-                (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
+                (prov.PROV_TYPE, QualifiedName(ex_ns, "edit")),
                 ("ex:host", "server.example.org")])
 
         self.assertEqual(actual_doc, expected_document)
@@ -207,12 +209,13 @@ class ProvXMLTestCase(unittest.TestCase):
                                                             format="xml")
 
         expected_document = prov.ProvDocument()
-        expected_document.add_namespace(*EX_NS)
+        ex_ns = Namespace(*EX_NS)
+        expected_document.add_namespace(ex_ns)
         expected_document.add_namespace(*EX_TR)
 
         # The xsi:type attribute is mapped to a proper PROV attribute.
         expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, prov.Literal("ex:Workflow", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
             (prov.PROV_TYPE, "prov:Plan")))
 
         self.assertEqual(actual_document, expected_document)
@@ -246,7 +249,7 @@ class ProvXMLTestCase(unittest.TestCase):
 
         # The xsi:type attribute is mapped to a proper PROV attribute.
         expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, prov.Literal("ex:Workflow", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
             (prov.PROV_TYPE, "prov:Entity"),
             (prov.PROV_TYPE, "prov:Plan")
         ))

@@ -144,7 +144,14 @@ class ProvXMLSerializer(prov.Serializer):
                     elif isinstance(value, (int, long)):
                         xsd_type = XSD_INT
                     elif isinstance(value, datetime.datetime):
-                        xsd_type = XSD_DATETIME
+                        # Exception of the exception, while technically
+                        # still correct, do not write XSD dateTime type for
+                        # attributes in the PROV namespaces as the type is
+                        # already declared in the XSD and PROV XML also does
+                        # not specify it in the docs.
+                        if attr.namespace.prefix != "prov" \
+                                or "time" not in attr.localpart.lower():
+                            xsd_type = XSD_DATETIME
                     elif isinstance(value, prov.identifier.Identifier):
                         xsd_type = XSD_ANYURI
 
@@ -317,6 +324,9 @@ def sorted_attributes(element, attributes):
     order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
                   PROV_VALUE])
 
+    sort_fct = lambda x: (
+        str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1]))
+
     sorted_elements = []
     for item in order:
         this_type_list = []
@@ -325,11 +335,11 @@ def sorted_attributes(element, attributes):
                 continue
             this_type_list.append(e)
             attributes.remove(e)
-        this_type_list.sort(key=lambda x: (str(x[0]), str(x[1])))
+        this_type_list.sort(key=sort_fct)
         sorted_elements.extend(this_type_list)
     # Add remaining attributes. According to the spec, the other attributes
     # have a fixed alphabetical order.
-    attributes.sort(key=lambda x: (str(x[0]), str(x[1])))
+    attributes.sort(key=sort_fct)
     sorted_elements.extend(attributes)
 
     return sorted_elements
