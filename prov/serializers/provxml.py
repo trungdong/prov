@@ -124,8 +124,9 @@ class ProvXMLSerializer(prov.Serializer):
                 # The not startswith("prov:") check is a little bit hacky to
                 # avoid type interference when the type is a standard prov
                 # type.
+                ALWAYS_CHECK = (bool, datetime.datetime)
                 if (force_types or
-                        isinstance(value, bool) or
+                        type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
                         not str(value).startswith("prov:") and \
