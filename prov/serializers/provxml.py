@@ -124,7 +124,8 @@ class ProvXMLSerializer(prov.Serializer):
                 # The not startswith("prov:") check is a little bit hacky to
                 # avoid type interference when the type is a standard prov
                 # type.
-                ALWAYS_CHECK = (bool, datetime.datetime, int, float, long)
+                ALWAYS_CHECK = (bool, datetime.datetime, int, float, long,
+                                prov.identifier.Identifier)
                 if (force_types or
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \

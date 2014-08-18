@@ -105,7 +105,10 @@ class Literal(object):
             if datatype is None:
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
                 datatype = PROV["InternationalizedString"]
-            elif datatype != PROV["InternationalizedString"] and datatype != XSD_STRING:
+            # PROV JSON states that the type field must not be set when
+            # using the lang attribute and PROV XML requires it to be an
+            # internationalized string.
+            elif datatype != PROV["InternationalizedString"]:
                 logger.warn(
                     'Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' %
                     (datatype, value, langtag)
