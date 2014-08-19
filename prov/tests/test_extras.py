@@ -1,7 +1,10 @@
+import io
+from StringIO import StringIO
 import unittest
 
 from prov.model import *
 from prov.dot import prov_to_dot
+from prov.serializers import Registry
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
@@ -218,6 +221,31 @@ class TestExtras(unittest.TestCase):
         document.bundle(EX_NS['b'])
         self.assertTrue(document.has_bundles())
         self.assertEqual(u'<ProvDocument>', str(document))
+
+    def test_reading_and_writing_to_file_like_objects(self):
+        """
+        Tests reading and writing to and from file like objects.
+        """
+        # Create some random document.
+        document = ProvDocument()
+        document.entity(EX2_NS["test"])
+
+        objects = [io.BytesIO, io.StringIO, StringIO]
+
+        Registry.load_serializers()
+        formats = Registry.serializers.keys()
+
+        for obj in objects:
+            for format in formats:
+                try:
+                    buf = obj()
+                    document.serialize(destination=buf, format=format)
+                    buf.seek(0, 0)
+                    new_document = ProvDocument.deserialize(source=buf,
+                                                            format=format)
+                    self.assertEqual(document, new_document)
+                finally:
+                    buf.close()
 
     # def test_document_unification(self):
     #     # TODO: Improve testing of this...

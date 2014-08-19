@@ -7,6 +7,8 @@ __email__ = 'krischer@geophysik.uni-muenchen.de'
 import datetime
 import logging
 from lxml import etree
+import io
+from StringIO import StringIO
 import warnings
 
 logger = logging.getLogger(__name__)
@@ -50,9 +52,16 @@ class ProvXMLSerializer(prov.Serializer):
         for bundle in self.document.bundles:
             self.serialize_bundle(bundle=bundle, element=xml_root,
                                   force_types=force_types)
+        # No encoding must be specified when writing to String object which
+        # does not have the concept of an encoding as it should already
+        # represent unicode code points.
         et = etree.ElementTree(xml_root)
-        et.write(stream, pretty_print=True, xml_declaration=True,
-                 encoding="UTF-8")
+        if isinstance(stream, (io.StringIO, StringIO)):
+            stream.write(unicode(etree.tostring(et, xml_declaration=True,
+                                                pretty_print=True)))
+        else:
+            et.write(stream, pretty_print=True, xml_declaration=True,
+                     encoding="UTF-8")
 
     def serialize_bundle(self, bundle, element=None, force_types=False):
         """
@@ -216,7 +225,13 @@ class ProvXMLSerializer(prov.Serializer):
 
         :param stream: Input data.
         """
-        xml_doc = etree.parse(stream).getroot()
+        if isinstance(stream, (io.StringIO, StringIO)):
+            with io.BytesIO() as buf:
+                buf.write(stream.read().encode('utf-8'))
+                buf.seek(0, 0)
+                xml_doc = etree.parse(buf).getroot()
+        else:
+            xml_doc = etree.parse(stream).getroot()
 
         # Remove all comments.
         for c in xml_doc.xpath("//comment()"):
