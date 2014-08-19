@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 from collections import defaultdict
 import datetime
+import io
 import json
+import platform
+import StringIO
 from prov import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
@@ -44,6 +47,22 @@ LITERAL_XSDTYPE_MAP = {
 
 class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
+        # Special case handling for weird pypy behavior when writing to
+        # io.BytesIO and io.StringIO.
+        if platform.python_implementation().lower() == "pypy":
+            if isinstance(stream, (io.StringIO, io.BytesIO)):
+                buf = StringIO.StringIO()
+                try:
+                    json.dump(self.document, buf, cls=ProvJSONEncoder,
+                              **kwargs)
+                    buf.seek(0, 0)
+                    if isinstance(stream, io.BytesIO):
+                        stream.write(buf.read().encode('utf-8'))
+                    else:
+                        stream.write(buf.read())
+                finally:
+                    buf.close()
+                return
         json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
 
     def deserialize(self, stream, **kwargs):
