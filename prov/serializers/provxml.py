@@ -203,9 +203,12 @@ class ProvXMLSerializer(prov.Serializer):
         for key, value in xml_doc.nsmap.items():
             if (key, value) in doc_ns:
                 continue
-            if key == "xsd":
+            elif key == "xsd":
                 value = value.rstrip("#") + "#"
-            bundle.add_namespace(key, value)
+            elif key is None:
+                bundle.set_default_namespace(value)
+            else:
+                bundle.add_namespace(key, value)
 
     def deserialize(self, stream, **kwargs):
         """
