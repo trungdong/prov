@@ -74,4 +74,6 @@ class RoundTripTestCase(BaseTestCase):
 
         serialized_content = prov_doc.serialize(format=self.FORMAT, indent=4)
         prov_doc_new = ProvDocument.deserialize(content=serialized_content, format=self.FORMAT)
+        msg_extra = u"'%s' serialization content:\n%s" % (self.FORMAT, serialized_content)
+        msg = u'\n'.join((msg, msg_extra)) if msg else msg_extra
         self.assertEqual(prov_doc, prov_doc_new, msg)
