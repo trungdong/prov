@@ -62,9 +62,16 @@ class BaseTestCase(unittest.TestCase):
 
 
 class RoundTripTestCase(BaseTestCase):
-    FORMAT = 'json'  # default to PROV-JSON
+    """A serializer test should subclass this class and set the class property FORMAT to the correct value (e.g.
+    'json', 'xml', 'rdf').
+    """
+    FORMAT = None  # a subclass should change this
 
     def assertRoundTripEquivalence(self, prov_doc, msg=None):
-        json_str = prov_doc.serialize(format=self.FORMAT, indent=4)
-        prov_doc_new = ProvDocument.deserialize(content=json_str, format=self.FORMAT)
+        if self.FORMAT is None:
+            # This is a dummy test, just return
+            return
+
+        serialized_content = prov_doc.serialize(format=self.FORMAT, indent=4)
+        prov_doc_new = ProvDocument.deserialize(content=serialized_content, format=self.FORMAT)
         self.assertEqual(prov_doc, prov_doc_new, msg)

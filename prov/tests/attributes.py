@@ -1,14 +1,15 @@
-import unittest
-
 from prov.model import *
-from prov.tests.utility import RoundTripTestCase
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
 EX_OTHER_NS = Namespace('other', 'http://example.org/')
 
 
-class TestAttributes(RoundTripTestCase):
+class TestAttributesBase(object):
+    """This is the base class for testing support for various datatypes.
+    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    """
+
     attribute_values = [
         "un lieu",
         Literal("un lieu", langtag='fr'),
@@ -148,7 +149,3 @@ class TestAttributes(RoundTripTestCase):
         ]
         document.entity(EX_NS['emv'], attributes)
         self.assertRoundTripEquivalence(document)
-
-
-if __name__ == '__main__':
-    unittest.main()
