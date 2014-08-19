@@ -13,17 +13,17 @@ logger = logging.getLogger(__name__)
 
 import prov
 import prov.identifier
-from prov.model import PROV_REC_CLS
+from prov.model import PROV_REC_CLS, DEFAULT_NAMESPACES
 from prov.constants import *  # NOQA
 
-NS_PROV = prov.constants.PROV.uri
-NS_XSI = "http://www.w3.org/2001/XMLSchema-instance"
-NS_XML = "http://www.w3.org/XML/1998/namespace"
 
+# Create a dictionary containing all top-level PROV XML elements for an easy
+# mapping.
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
+# Inverse mapping.
 FULL_PROV_RECORD_IDS_MAP = dict((FULL_NAMES_MAP[rec_type_id], rec_type_id) for
-                                 rec_type_id in FULL_NAMES_MAP)
+                                rec_type_id in FULL_NAMES_MAP)
 
 
 class ProvXMLException(prov.Error):
@@ -33,13 +33,17 @@ class ProvXMLException(prov.Error):
 class ProvXMLSerializer(prov.Serializer):
     def serialize(self, stream, force_types=False, **kwargs):
         """
+        Serializes to PROV XML.
+
         :param stream: Where to save the output.
         :type force_types: boolean, optional
         :param force_types: Will force xsd:types to be written for most
-            attributes mainly only PROV-"attributes", e.g. tags not in the
+            attributes mainly PROV-"attributes", e.g. tags not in the
             PROV namespace. Off by default meaning xsd:type attributes will
             only be set for prov:type, prov:location, and prov:value as is
-            done in the official PROV-XML specification.
+            done in the official PROV-XML specification. Furthermore the
+            types will always be set if the Python type requires it. False
+            is a good default and it should rarely require changing.
         """
         xml_root = self.serialize_bundle(bundle=self.document,
                                          force_types=force_types)
@@ -51,6 +55,20 @@ class ProvXMLSerializer(prov.Serializer):
                  encoding="UTF-8")
 
     def serialize_bundle(self, bundle, element=None, force_types=False):
+        """
+        Serializes a bundle or document to PROV XML.
+
+        :param bundle: The bundle or document.
+        :param element: The XML element to write to. Will be created if None.
+        :type force_types: boolean, optional
+        :param force_types: Will force xsd:types to be written for most
+            attributes mainly PROV-"attributes", e.g. tags not in the
+            PROV namespace. Off by default meaning xsd:type attributes will
+            only be set for prov:type, prov:location, and prov:value as is
+            done in the official PROV-XML specification. Furthermore the
+            types will always be set if the Python type requires it. False
+            is a good default and it should rarely require changing.
+        """
         # Build the namespace map for lxml and attach it to the root XML
         # element. No dictionary comprehension in Python 2.6!
         nsmap = dict((ns.prefix, ns.uri) for ns in
@@ -60,12 +78,14 @@ class ProvXMLSerializer(prov.Serializer):
         for namespace in bundle.namespaces:
             if namespace not in nsmap:
                 nsmap[namespace.prefix] = namespace.uri
-        # Add the prov, XSI, and XSD namespaces by default.
-        nsmap["prov"] = NS_PROV
-        nsmap["xsi"] = NS_XSI
-        # The XSD namespace for some reason has no hash at the end for PROV
-        # XML but for all other serializations it does.
-        nsmap["xsd"] = prov.constants.XSD.uri.rstrip("#")
+
+        for key, value in DEFAULT_NAMESPACES.items():
+            uri = value.uri
+            if value.prefix == "xsd":
+                # The XSD namespace for some reason has no hash at the end
+                # for PROV XML, but for all other serializations it does.
+                uri = uri.rstrip("#")
+            nsmap[value.prefix] = uri
 
         if element is not None:
             xml_bundle_root = etree.SubElement(
@@ -86,10 +106,8 @@ class ProvXMLSerializer(prov.Serializer):
             else:
                 attrs = None
 
-            # The bundle record is still of type entity. In PROV XML it
-            # actually is a proper bundle element. Loop through the
-            # attributes to check if an attribute designates the current
-            # element as a bundle element.
+            # Derive the record label from its attributes which is sometimes
+            # needed.
             attributes = list(record.attributes)
             rec_label = self._derive_record_label(rec_type, attributes)
 
@@ -106,7 +124,7 @@ class ProvXMLSerializer(prov.Serializer):
                             value.datatype.namespace.prefix,
                             value.datatype.localpart)
                     if value.langtag is not None:
-                        subelem.attrib[_ns(NS_XML, "lang")] = value.langtag
+                        subelem.attrib[_ns_xml("lang")] = value.langtag
                     v = value.value
                 elif isinstance(value, prov.model.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
@@ -127,6 +145,9 @@ class ProvXMLSerializer(prov.Serializer):
                 # The not startswith("prov:") check is a little bit hacky to
                 # avoid type interference when the type is a standard prov
                 # type.
+                #
+                # To enable a mapping of Python types to XML and back,
+                # the XSD type must be written for these types.
                 ALWAYS_CHECK = (bool, datetime.datetime, int, float, long,
                                 prov.identifier.Identifier)
                 if (force_types or
@@ -168,6 +189,13 @@ class ProvXMLSerializer(prov.Serializer):
         return xml_bundle_root
 
     def _add_xml_namespaces_to_bundle(self, xml_doc, bundle):
+        """
+        Helper function adding the namespaces defined in the etree to the
+        bundle.
+
+        :param xml_doc: An etree element.
+        :param bundle: A prov bundle object.
+        """
         # Do not add namespaces already defined in the parent document in
         # case it is a bundle.
         doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
@@ -180,6 +208,11 @@ class ProvXMLSerializer(prov.Serializer):
             bundle.add_namespace(key, value)
 
     def deserialize(self, stream, **kwargs):
+        """
+        Deserialize from PROV XML to the internal prov document representation.
+
+        :param stream: Input data.
+        """
         xml_doc = etree.parse(stream).getroot()
 
         # Remove all comments.
@@ -192,6 +225,13 @@ class ProvXMLSerializer(prov.Serializer):
         return document
 
     def deserialize_subtree(self, xml_doc, bundle):
+        """
+        Deserialize an etree element containing a PROV document or a bundle
+        and write it to the provided internal object.
+
+        :param xml_doc: An etree element containing the information to read.
+        :param bundle: The bundle object to write to.
+        """
         self._add_xml_namespaces_to_bundle(xml_doc, bundle)
 
         # No dictionary comprehension in Python 2.6.
@@ -199,7 +239,7 @@ class ProvXMLSerializer(prov.Serializer):
 
         for element in xml_doc:
             qname = etree.QName(element)
-            if qname.namespace != NS_PROV:
+            if qname.namespace != DEFAULT_NAMESPACES["prov"].uri:
                 raise ProvXMLException("Non PROV element discovered in "
                                        "document or bundle.")
             # Ignore the <prov:other> element storing non-PROV information.
@@ -242,9 +282,12 @@ class ProvXMLSerializer(prov.Serializer):
 
     def _derive_record_label(self, rec_type, attributes):
         """
-        tries to derive the record label taking care of subtypes and what
-        not. It will also remove the type declaration for the attributes if
-        it was used to specialize the type .
+        Helper function trying to derive the record label taking care of
+        subtypes and what not. It will also remove the type declaration for
+        the attributes if it was used to specialize the type.
+
+        :param rec_type: The type of records.
+        :param attributes: The attributes of the record.
         """
         rec_label = FULL_NAMES_MAP[rec_type]
 
@@ -272,7 +315,7 @@ class ProvXMLSerializer(prov.Serializer):
         other_attributes = []
         for subel in element:
             sqname = etree.QName(subel)
-            if sqname.namespace == NS_PROV:
+            if sqname.namespace == DEFAULT_NAMESPACES["prov"].uri:
                 _t = PROV[sqname.localname]
                 d = attributes
             else:
@@ -290,7 +333,8 @@ class ProvXMLSerializer(prov.Serializer):
                     # QualifiedName instance!
                     if value == "xsd:QName" and _namespace and \
                             _namespace != "prov":
-                        _ns_obj = Namespace(_namespace, subel.nsmap[_namespace])
+                        _ns_obj = Namespace(_namespace,
+                                            subel.nsmap[_namespace])
                         if _ns_obj not in namespaces:
                             raise ProvXMLException(
                                 "QualifiedName '%s' has an unknown namespace."
@@ -302,7 +346,7 @@ class ProvXMLSerializer(prov.Serializer):
                             XSD[value.split(":")[1]])
                 elif key == _ns_prov("ref"):
                     _v = value
-                elif key == _ns(NS_XML, "lang"):
+                elif key == _ns_xml("lang"):
                     _v = prov.model.Literal(subel.text, langtag=value)
                 else:
                     warnings.warn(
@@ -322,6 +366,10 @@ class ProvXMLSerializer(prov.Serializer):
 def sorted_attributes(element, attributes):
     """
     Helper function sorting attributes into the order required by PROV-XML.
+
+    :param element: The prov element used to derive the type and the
+        attribute order for the type.
+    :param attributes: The attributes to sort.
     """
     attributes = list(attributes)
     order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
@@ -331,6 +379,10 @@ def sorted_attributes(element, attributes):
     order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
                   PROV_VALUE])
 
+    # Sort function. The PROV XML specification talks about alphabetical
+    # sorting. We now interpret it as sorting by tag including the prefix
+    # first and then sorting by the text, also including the namespace
+    # prefix if given.
     sort_fct = lambda x: (
         str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1]))
 
@@ -357,8 +409,13 @@ def _ns(ns, tag):
 
 
 def _ns_prov(tag):
-    return _ns(NS_PROV, tag)
+    return _ns(DEFAULT_NAMESPACES['prov'].uri, tag)
 
 
 def _ns_xsi(tag):
-    return _ns(NS_XSI, tag)
+    return _ns(DEFAULT_NAMESPACES['xsi'].uri, tag)
+
+
+def _ns_xml(tag):
+    NS_XML = "http://www.w3.org/XML/1998/namespace"
+    return _ns(NS_XML, tag)
