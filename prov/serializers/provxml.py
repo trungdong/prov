@@ -129,11 +129,11 @@ class ProvXMLSerializer(prov.Serializer):
                 elif isinstance(value, prov.model.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
                         subelem.attrib[_ns_xsi("type")] = "xsd:QName"
-                    v = str(value)
+                    v = unicode(value)
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
                 else:
-                    v = str(value)
+                    v = unicode(value)
 
                 # xsd type inference.
                 #
@@ -154,7 +154,7 @@ class ProvXMLSerializer(prov.Serializer):
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
-                        not str(value).startswith("prov:") and \
+                        not unicode(value).startswith("prov:") and \
                         not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
                         attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
@@ -180,7 +180,7 @@ class ProvXMLSerializer(prov.Serializer):
                         xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = str(xsd_type)
+                        subelem.attrib[_ns_xsi("type")] = unicode(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -353,7 +353,7 @@ class ProvXMLSerializer(prov.Serializer):
                         "The element '%s' contains an attribute %s='%s' "
                         "which is not representable in the prov module's "
                         "internal data model and will thus be ignored." %
-                        (_t, str(key), str(value)), UserWarning)
+                        (_t, unicode(key), unicode(value)), UserWarning)
 
             if not subel.attrib:
                 _v = subel.text
@@ -384,7 +384,7 @@ def sorted_attributes(element, attributes):
     # first and then sorting by the text, also including the namespace
     # prefix if given.
     sort_fct = lambda x: (
-        str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1]))
+        unicode(x[0]), unicode(x[1].value if hasattr(x[1], "value") else x[1]))
 
     sorted_elements = []
     for item in order:
