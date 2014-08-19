@@ -23,10 +23,7 @@ from prov.model import (
     ProvBundle, PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION, PROV_ATTRIBUTION, PROV_BUNDLE,
     PROV_COMMUNICATION, PROV_DERIVATION, PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
     PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION, PROV_SPECIALIZATION, PROV_START, PROV_USAGE,
-    Identifier, PROV_ATTRIBUTE_QNAMES
-)
-
-from prov.serializers.provxml import sorted_attributes
+    Identifier, PROV_ATTRIBUTE_QNAMES, sorted_attributes)
 
 
 # Visual styles for various elements (nodes) and relations (edges)
@@ -108,7 +105,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             if not attributes:
                 return  # No attribute to display
 
-            # Sort the attributes similar to how PROV XML does it.
+            # Sort the attributes.
             attributes = sorted_attributes(record.get_type(), attributes)
 
             ann_rows = [ANNOTATION_START_ROW]

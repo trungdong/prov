@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 import prov
 import prov.identifier
-from prov.model import PROV_REC_CLS, DEFAULT_NAMESPACES
+from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.constants import *  # NOQA
 
 
@@ -364,47 +364,6 @@ class ProvXMLSerializer(prov.Serializer):
             d.append((_t, _v))
 
         return attributes, other_attributes
-
-
-def sorted_attributes(element, attributes):
-    """
-    Helper function sorting attributes into the order required by PROV-XML.
-
-    :param element: The prov element used to derive the type and the
-        attribute order for the type.
-    :param attributes: The attributes to sort.
-    """
-    attributes = list(attributes)
-    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
-
-    # Append label, location, role, type, and value attributes. This is
-    # universal amongst all elements.
-    order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
-                  PROV_VALUE])
-
-    # Sort function. The PROV XML specification talks about alphabetical
-    # sorting. We now interpret it as sorting by tag including the prefix
-    # first and then sorting by the text, also including the namespace
-    # prefix if given.
-    sort_fct = lambda x: (
-        unicode(x[0]), unicode(x[1].value if hasattr(x[1], "value") else x[1]))
-
-    sorted_elements = []
-    for item in order:
-        this_type_list = []
-        for e in list(attributes):
-            if e[0] != item:
-                continue
-            this_type_list.append(e)
-            attributes.remove(e)
-        this_type_list.sort(key=sort_fct)
-        sorted_elements.extend(this_type_list)
-    # Add remaining attributes. According to the spec, the other attributes
-    # have a fixed alphabetical order.
-    attributes.sort(key=sort_fct)
-    sorted_elements.extend(attributes)
-
-    return sorted_elements
 
 
 def _ns(ns, tag):
