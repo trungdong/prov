@@ -234,6 +234,7 @@ class ProvRecord(object):
     def value(self):
         return self._attributes[PROV_VALUE]
 
+    # Handling attributes
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
         if isinstance(literal, str):
@@ -374,6 +375,35 @@ class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_ENTITY
 
+    # Convenient assertions that take the current ProvEntity as the first (formal) argument
+    def wasGeneratedBy(self, activity, time=None, attributes=None):
+        self._bundle.generation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasInvalidatedBy(self, activity, time=None, attributes=None):
+        self._bundle.invalidation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasDerivedFrom(self, usedEntity, activity=None, generation=None, usage=None, attributes=None):
+        self._bundle.derivation(self, usedEntity, activity, generation, usage, other_attributes=attributes)
+        return self
+
+    def wasAttributedTo(self, agent, attributes=None):
+        self._bundle.attribution(self, agent, other_attributes=attributes)
+        return self
+
+    def alternateOf(self, alternate2):
+        self._bundle.alternate(self, alternate2)
+        return self
+
+    def specializationOf(self, generalEntity):
+        self._bundle.specialization(self, generalEntity)
+        return self
+
+    def hadMember(self, entity):
+        self._bundle.membership(self, entity)
+        return self
+
 
 class ProvActivity(ProvElement):
     FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
@@ -395,6 +425,27 @@ class ProvActivity(ProvElement):
     def get_endTime(self):
         values = self._attributes[PROV_ATTR_ENDTIME]
         return first(values) if values else None
+
+    # Convenient assertions that take the current ProvActivity as the first (formal) argument
+    def used(self, entity, time=None, attributes=None):
+        self._bundle.usage(self, entity, time, other_attributes=attributes)
+        return self
+
+    def wasInformedBy(self, informant, attributes=None):
+        self._bundle.communication(self, informant, other_attributes=attributes)
+        return self
+
+    def wasStartedBy(self, trigger, starter=None, time=None, attributes=None):
+        self._bundle.start(self, trigger, starter, time, other_attributes=attributes)
+        return self
+
+    def wasEndedBy(self, trigger, ender=None, time=None, attributes=None):
+        self._bundle.end(self, trigger, ender, time, other_attributes=attributes)
+        return self
+
+    def wasAssociatedWith(self, agent, plan=None, attributes=None):
+        self._bundle.association(self, agent, plan, other_attributes=attributes)
+        return self
 
 
 class ProvGeneration(ProvRelation):
@@ -452,6 +503,11 @@ class ProvDerivation(ProvRelation):
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_AGENT
+
+    # Convenient assertions that take the current ProvAgent as the first (formal) argument
+    def actedOnBehalfOf(self, responsible, activity=None, attributes=None):
+        self._bundle.delegation(self, responsible, activity, other_attributes=attributes)
+        return self
 
 
 class ProvAttribution(ProvRelation):
