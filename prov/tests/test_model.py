@@ -7,35 +7,27 @@ import unittest
 import logging
 import os
 
-from prov.model import ProvDocument, XSDQName, Namespace
+from prov.model import ProvDocument
 from prov.tests import examples
+from prov.tests.attributes import TestAttributesBase
+from prov.tests.qnames import TestQualifiedNamesBase
+from prov.tests.statements import TestStatementsBase
 from prov.tests.utility import BaseTestCase, RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 
 
-class TestExamples(BaseTestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def testAllExamples(self):
-        num_graphs = len(examples.tests)
-        logger.info('PROV-JSON round-trip testing %d example provenance graphs', num_graphs)
+class TestExamplesBase(object):
+    """This is the base class for testing support for all the examples provided in prov.tests.examples.
+    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    """
+    def test_all_examples(self):
         counter = 0
         for name, graph in examples.tests:
             counter += 1
             logger.info('%d. Testing the %s example', counter, name)
-            g1 = graph()
-            logger.debug('Original graph in PROV-N\n%s', g1.get_provn())
-            # json_str = g1.get_provjson(indent=4)
-            json_str = g1.serialize(indent=4)
-            logger.debug('Original graph in PROV-JSON\n%s', json_str)
-            g2 = ProvDocument.deserialize(content=json_str)
-            logger.debug('Graph decoded from PROV-JSON\n%s', g2.get_provn())
-            self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % name)
+            g = graph()
+            self.assertRoundTripEquivalence(g)
 
 
 class TestLoadingProvToolboxJSON(BaseTestCase):
@@ -54,7 +46,7 @@ class TestLoadingProvToolboxJSON(BaseTestCase):
                     except:
                         self.fails.append(filename)
 
-    def testLoadAllJSON(self):
+    def test_loading_all_json(self):
         # self.assertFalse(fails, 'Failed to load/round-trip %d JSON files (%s)' % (len(fails), ', '.join(fails)))
 
         # Code for debugging the failed tests
@@ -108,75 +100,19 @@ class TestUnification(BaseTestCase):
                 self.assertLess(len(unified.get_records()), len(flattened.get_records()))
 
 
-def document_with_n_bundles_having_default_namespace(n):
-    prov_doc = ProvDocument()
-    prov_doc.add_namespace('ex', 'http://www.example.org/')
-    for i in range(n):
-        x = str(i + 1)
-        bundle = prov_doc.bundle('ex:bundle/' + x)
-        bundle.set_default_namespace('http://www.example.org/default/' + x)
-        bundle.entity('e')
-    return prov_doc
+class AllTestsBase(TestExamplesBase, TestStatementsBase, TestAttributesBase, TestQualifiedNamesBase):
+    """This is a test to include all available tests.
+    """
+    pass
 
 
-class TestQualifiedNames(RoundTripTestCase):
-    def test_xsd_qnames(self):
-        prov_doc = ProvDocument()
-        ex = Namespace('ex', 'http://www.example.org/')
-        prov_doc.add_namespace(ex)
-        ex1 = Namespace('ex1', 'http://www.example1.org/')  # ex1 is not added to the document
-
-        an_xsd_qname = XSDQName(ex['a_value'])
-        another_xsd_qname = XSDQName(ex1['another_value'])
-
-        e1 = prov_doc.entity('ex:e1', {'prov:value': an_xsd_qname, 'prov:type': another_xsd_qname})
-        for _, attr_value in e1.attributes:
-            self.assertIsInstance(attr_value, XSDQName)
-
-        self.assertRoundTripEquivalence(prov_doc)
-
-    def test_namespace_inheritance(self):
-        prov_doc = ProvDocument()
-        prov_doc.add_namespace('ex', 'http://www.example.org/')
-        bundle = prov_doc.bundle('ex:bundle')
-        e1 = bundle.entity('ex:e1')
-        self.assertIsNotNone(e1.identifier, "e1's identifier is None!")
-        self.assertRoundTripEquivalence(prov_doc)
-
-    def test_default_namespace_inheritance(self):
-        prov_doc = ProvDocument()
-        prov_doc.set_default_namespace('http://www.example.org/')
-        bundle = prov_doc.bundle('bundle')
-        e1 = bundle.entity('e1')
-        self.assertIsNotNone(e1.identifier, "e1's identifier is None!")
-        self.assertRoundTripEquivalence(prov_doc)
-
-    def test_flattening_1_bundle_with_default_namespace(self):
-        prov_doc = document_with_n_bundles_having_default_namespace(1)
-        flattened = prov_doc.flattened()
-        self.assertRoundTripEquivalence(flattened)
-
-    def test_flattening_2_bundles_with_default_namespace(self):
-        prov_doc = document_with_n_bundles_having_default_namespace(2)
-        flattened = prov_doc.flattened()
-        self.assertRoundTripEquivalence(flattened)
-
-    def test_flattening_3_bundles_with_default_namespace(self):
-        prov_doc = document_with_n_bundles_having_default_namespace(3)
-        flattened = prov_doc.flattened()
-        self.assertRoundTripEquivalence(flattened)
-
-    def test_flattening_1_bundle_with_default_namespaces(self):
-        prov_doc = document_with_n_bundles_having_default_namespace(1)
-        prov_doc.set_default_namespace('http://www.example.org/default/0')
-        flattened = prov_doc.flattened()
-        self.assertRoundTripEquivalence(flattened)
-
-    def test_flattening_2_bundle_with_default_namespaces(self):
-        prov_doc = document_with_n_bundles_having_default_namespace(2)
-        prov_doc.set_default_namespace('http://www.example.org/default/0')
-        flattened = prov_doc.flattened()
-        self.assertRoundTripEquivalence(flattened)
+class RoundTripModelTest(RoundTripTestCase, AllTestsBase):
+    def assertRoundTripEquivalence(self, prov_doc, msg=None):
+        """Exercises prov.model without the actual serialization and PROV-N generation.
+        """
+        provn_content = prov_doc.get_provn()
+        # Checking for self-equality
+        self.assertEqual(prov_doc, prov_doc, 'The document is not self-equal:\n' + provn_content)
 
 
 if __name__ == "__main__":
