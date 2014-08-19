@@ -1,13 +1,13 @@
-import unittest
-
 from prov.model import *
-from prov.tests.utility import RoundTripTestCase
 
 EX_NS = Namespace('ex', 'http://example.org/')
 EX2_NS = Namespace('ex2', 'http://example2.org/')
 
 
-class RoundTripFromPythonTest(RoundTripTestCase):
+class TestStatementsBase(object):
+    """This is the base class for testing different PROV statements.
+    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    """
 
     def new_document(self):
         return ProvDocument()
@@ -1438,6 +1438,3 @@ class RoundTripFromPythonTest(RoundTripTestCase):
         document.add_bundle(bundle2)
 
         self.assertRoundTripEquivalence(document)
-
-if __name__ == '__main__':
-    unittest.main()
