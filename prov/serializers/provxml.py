@@ -57,6 +57,9 @@ class ProvXMLSerializer(prov.Serializer):
                      self.document._namespaces.get_registered_namespaces())
         if self.document._namespaces._default:
             nsmap[None] = self.document._namespaces._default.uri
+        for namespace in bundle.namespaces:
+            if namespace not in nsmap:
+                nsmap[namespace.prefix] = namespace.uri
         # Add the prov, XSI, and XSD namespaces by default.
         nsmap["prov"] = NS_PROV
         nsmap["xsi"] = NS_XSI
@@ -164,6 +167,18 @@ class ProvXMLSerializer(prov.Serializer):
                     subelem.text = v
         return xml_bundle_root
 
+    def _add_xml_namespaces_to_bundle(self, xml_doc, bundle):
+        # Do not add namespaces already defined in the parent document in
+        # case it is a bundle.
+        doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
+            if bundle.document is not None else []
+        for key, value in xml_doc.nsmap.items():
+            if (key, value) in doc_ns:
+                continue
+            if key == "xsd":
+                value = value.rstrip("#") + "#"
+            bundle.add_namespace(key, value)
+
     def deserialize(self, stream, **kwargs):
         xml_doc = etree.parse(stream).getroot()
 
@@ -177,16 +192,7 @@ class ProvXMLSerializer(prov.Serializer):
         return document
 
     def deserialize_subtree(self, xml_doc, bundle):
-        # Do not add namespaces already defined in the parent document in
-        # case it is a bundle.
-        doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
-            if bundle.document is not None else []
-        for key, value in xml_doc.nsmap.items():
-            if (key, value) in doc_ns:
-                continue
-            if key == "xsd":
-                value = value.rstrip("#") + "#"
-            bundle.add_namespace(key, value)
+        self._add_xml_namespaces_to_bundle(xml_doc, bundle)
 
         # No dictionary comprehension in Python 2.6.
         r_nsmap = dict((value, key) for (key, value) in xml_doc.nsmap.items())
@@ -210,6 +216,7 @@ class ProvXMLSerializer(prov.Serializer):
 
             # Recursively read bundles.
             if qname.localname == "bundleContent":
+                self._add_xml_namespaces_to_bundle(element, bundle)
                 b = bundle.bundle(identifier=rec_id)
                 self.deserialize_subtree(element, b)
                 continue
