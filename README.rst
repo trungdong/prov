@@ -1,4 +1,8 @@
-*WARNING*: Under active development
+**WARNING: Unsupported branch!!!**
+
+*This branch is not up-to-date and is no longer supported. It is only included here for reference purposes.*
+
+
 
 This package provides an implementation of the `PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python. It contains a number of sub-modules:
 
