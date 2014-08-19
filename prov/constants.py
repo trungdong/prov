@@ -104,7 +104,7 @@ PROV_BASE_CLS = {
     PROV_MENTION:              PROV_MENTION,
     PROV['Collection']:        PROV_ENTITY,
     PROV['EmptyCollection']:   PROV_ENTITY,
-    PROV_MEMBERSHIP:           PROV_ENTITY,
+    PROV_MEMBERSHIP:           PROV_MEMBERSHIP,
     PROV_BUNDLE:               PROV_ENTITY
 }
 
