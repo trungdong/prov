@@ -18,6 +18,7 @@ import datetime
 import dateutil.parser
 from collections import defaultdict
 from copy import deepcopy
+import io
 from prov import Error, serializers
 
 from StringIO import StringIO
@@ -83,7 +84,7 @@ def encoding_provn_value(value):
     elif isinstance(value, float):
         return u'"%g" %%%% xsd:float' % value
     elif isinstance(value, bool):
-        return u'"%i" %%%% xsd:boolean' % value        
+        return u'"%i" %%%% xsd:boolean' % value
     else:
         # TODO: QName export
         return unicode(value)
@@ -216,7 +217,10 @@ class ProvRecord(object):
 
     @property
     def extra_attributes(self):
-        return [(attr_name, attr_value) for attr_name, attr_value in self.attributes if attr_name not in self.FORMAL_ATTRIBUTES]
+        return [
+            (attr_name, attr_value) for attr_name, attr_value in self.attributes
+            if attr_name not in self.FORMAL_ATTRIBUTES
+        ]
 
     @property
     def bundle(self):
@@ -230,6 +234,7 @@ class ProvRecord(object):
     def value(self):
         return self._attributes[PROV_VALUE]
 
+    # Handling attributes
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
         if isinstance(literal, str):
@@ -370,6 +375,35 @@ class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_ENTITY
 
+    # Convenient assertions that take the current ProvEntity as the first (formal) argument
+    def wasGeneratedBy(self, activity, time=None, attributes=None):
+        self._bundle.generation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasInvalidatedBy(self, activity, time=None, attributes=None):
+        self._bundle.invalidation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasDerivedFrom(self, usedEntity, activity=None, generation=None, usage=None, attributes=None):
+        self._bundle.derivation(self, usedEntity, activity, generation, usage, other_attributes=attributes)
+        return self
+
+    def wasAttributedTo(self, agent, attributes=None):
+        self._bundle.attribution(self, agent, other_attributes=attributes)
+        return self
+
+    def alternateOf(self, alternate2):
+        self._bundle.alternate(self, alternate2)
+        return self
+
+    def specializationOf(self, generalEntity):
+        self._bundle.specialization(self, generalEntity)
+        return self
+
+    def hadMember(self, entity):
+        self._bundle.membership(self, entity)
+        return self
+
 
 class ProvActivity(ProvElement):
     FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
@@ -391,6 +425,27 @@ class ProvActivity(ProvElement):
     def get_endTime(self):
         values = self._attributes[PROV_ATTR_ENDTIME]
         return first(values) if values else None
+
+    # Convenient assertions that take the current ProvActivity as the first (formal) argument
+    def used(self, entity, time=None, attributes=None):
+        self._bundle.usage(self, entity, time, other_attributes=attributes)
+        return self
+
+    def wasInformedBy(self, informant, attributes=None):
+        self._bundle.communication(self, informant, other_attributes=attributes)
+        return self
+
+    def wasStartedBy(self, trigger, starter=None, time=None, attributes=None):
+        self._bundle.start(self, trigger, starter, time, other_attributes=attributes)
+        return self
+
+    def wasEndedBy(self, trigger, ender=None, time=None, attributes=None):
+        self._bundle.end(self, trigger, ender, time, other_attributes=attributes)
+        return self
+
+    def wasAssociatedWith(self, agent, plan=None, attributes=None):
+        self._bundle.association(self, agent, plan, other_attributes=attributes)
+        return self
 
 
 class ProvGeneration(ProvRelation):
@@ -448,6 +503,11 @@ class ProvDerivation(ProvRelation):
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_AGENT
+
+    # Convenient assertions that take the current ProvAgent as the first (formal) argument
+    def actedOnBehalfOf(self, responsible, activity=None, attributes=None):
+        self._bundle.delegation(self, responsible, activity, other_attributes=attributes)
+        return self
 
 
 class ProvAttribution(ProvRelation):
@@ -606,9 +666,17 @@ class NamespaceManager(dict):
         return namespace
 
     def add_namespaces(self, namespaces):
+        """Add multiple namespaces into this manager
+
+        :param namespaces: a collection of namespace(s) to add.
+        :type namespaces: list of :py:class:`~prov.identifier.Namespace` or dict of {prefix: uri}
+        :returns: None
+        """
+        if isinstance(namespaces, dict):
+            # expecting a dictionary of {prefix: uri}, convert it to a list of Namespace
+            namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
         if namespaces:
-            for prefix, uri in namespaces.items():
-                ns = Namespace(prefix, uri)
+            for ns in namespaces:
                 self.add_namespace(ns)
 
     def valid_qualified_name(self, qname):
@@ -616,20 +684,39 @@ class NamespaceManager(dict):
             return None
 
         if isinstance(qname, QualifiedName):
+            is_xsd_qname = isinstance(qname, XSDQName)
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
-            if prefix in self and self[prefix] == namespace:
+            local_part = qname.localpart
+            if not prefix:
+                # the namespace is a default namespace
+                if self._default == namespace:
+                    # the same default namespace is defined
+                    new_qname = self._default[local_part]
+                elif self._default is None:
+                    # no default namespace is currently defined, reused the one given
+                    self._default = namespace
+                    return qname  # no change, return the original
+                else:
+                    # different default namespace, use the 'dn' prefix for the new namespace
+                    dn_namespace = Namespace('dn', namespace.uri)
+                    dn_namespace = self.add_namespace(dn_namespace)
+                    new_qname = dn_namespace[local_part]
+            elif prefix in self and self[prefix] == namespace:
                 # No need to add the namespace
                 existing_ns = self[prefix]
                 if existing_ns is namespace:
                     return qname
                 else:
-                    return existing_ns[qname.localpart]  # reuse the existing namespace
+                    new_qname = existing_ns[local_part]  # reuse the existing namespace
             else:
                 ns = self.add_namespace(deepcopy(namespace))  # Do not reuse the namespace object
-                return ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+                new_qname = ns[qname.localpart]  # minting the same Qualified Name from the namespace's copy
+            # returning the new qname
+            return XSDQName(new_qname) if is_xsd_qname else new_qname
 
+        # Trying to guess from here
         if not isinstance(qname, (basestring, Identifier)):
             # Only proceed for string or URI values
             return None
@@ -654,15 +741,13 @@ class NamespaceManager(dict):
                     if str_value.startswith(namespace.uri):
                         #  create a QName with the namespace
                         return namespace[str_value.replace(namespace.uri, '')]
-                if self.parent is not None:
-                    # try the parent namespace manager
-                    return self.parent.valid_qualified_name(qname)
-                else:
-                    #  return None as we cannot generate a Qualified Name from the given URI
-                    return None
         elif self._default:
-            #  create and return an identifier in the default namespace
+            # create and return an identifier in the default namespace
             return self._default[qname]
+
+        if self.parent:
+            # all attempts have failed so far, now delegate this to the parent NamespaceManager
+            return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
         return None
@@ -690,8 +775,9 @@ class ProvBundle(object):
         self._records = list()
         self._id_map = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(namespaces,
-                                            parent=(document._namespaces if document is not None else None)
+        self._namespaces = NamespaceManager(
+            namespaces,
+            parent=(document._namespaces if document is not None else None)
         )
         if records:
             for record in records:
@@ -731,10 +817,6 @@ class ProvBundle(object):
     def valid_qualified_name(self, identifier):
         return self._namespaces.valid_qualified_name(identifier)
 
-    def get_anon_id(self, record):
-        #  TODO Implement a dict of self-generated anon ids for records without identifier
-        return self._namespaces.get_anonymous_identifier()
-
     def get_records(self, class_or_type_or_tuple=None):
         results = list(self._records)
         if class_or_type_or_tuple:
@@ -762,6 +844,13 @@ class ProvBundle(object):
 
     def is_bundle(self):
         return True
+
+    def has_bundles(self):
+        return False
+
+    @property
+    def bundles(self):
+        return frozenset()
 
     def get_provn(self, _indent_level=0):
         indentation = '' + ('  ' * _indent_level)
@@ -848,12 +937,30 @@ class ProvBundle(object):
         return unified_records
 
     def unified(self):
-        """
-        Returns a new ProvBundle in which all records having the same identifier are unified
+        """Unifies all records in the bundle that haves same identifiers
+
+        :returns: :py:class:`ProvBundle` -- the new unified bundle.
         """
         unified_records = self._unified_records()
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
         return bundle
+
+    def update(self, other):
+        """Append all the records of the *other* ProvBundle into this bundle.
+
+        :param other: the other bundle whose records to be appended.
+        :type other: :py:class:`ProvBundle`
+
+        :returns: None.
+        """
+        if isinstance(other, ProvBundle):
+            if other.is_document() and other.has_bundles():
+                # Cannot add bundles to a bundle
+                raise ProvException('ProvBundle.update(): The other bundle is a document with sub-bundle(s).')
+            for record in other.get_records():
+                self.add_record(record)
+        else:
+            raise ProvException('ProvBundle.update(): The other bundle is not a ProvBundle instance (%s)' % type(other))
 
     # Provenance statements
     def _add_record(self, record):
@@ -1063,6 +1170,73 @@ class ProvBundle(object):
             }
         )
 
+    def plot(self, filename=None, show_nary=True, use_labels=False,
+             show_element_attributes=True, show_relation_attributes=True):
+        """
+        Convenience function to plot a prov document.
+
+        :type filename: string, optional
+        :param filename: The filename to save to. If not given, it will open
+            an interactive matplotlib plot. The filetype is determined from
+            the filename ending.
+        :param show_nary: shows all elements in n-ary relations.
+        :type show_nary: bool
+        :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
+        :type use_labels: bool
+        :param show_element_attributes: shows attributes of elements.
+        :type show_element_attributes: bool
+        :param show_relation_attributes: shows attributes of relations.
+        :type show_relation_attributes: bool
+        """
+        # Lazy imports to have soft dependencies on pydot and matplotlib
+        # (imported even later).
+        from prov import dot
+
+        if filename:
+            format = os.path.splitext(filename)[-1].lower().strip(
+                os.path.extsep)
+        else:
+            format = "png"
+        format = format.lower()
+        d = dot.prov_to_dot(self, show_nary=show_nary, use_labels=use_labels,
+                            show_element_attributes=show_element_attributes,
+                            show_relation_attributes=show_relation_attributes)
+        method = "create_%s" % format
+        if not hasattr(d, method):
+            raise ValueError("Format '%s' cannot be saved." % format)
+        with io.BytesIO() as buf:
+            buf.write(getattr(d, method)())
+
+            buf.seek(0, 0)
+            if filename:
+                with open(filename, "wb") as fh:
+                    fh.write(buf.read())
+            else:
+                # Use matplotlib to show the image as it likely is more
+                # widespread then PIL and works nicely in the ipython notebook.
+                import matplotlib.pylab as plt
+                import matplotlib.image as mpimg
+
+                max_size = 30
+
+                img = mpimg.imread(buf)
+                # pydot makes a border around the image. remove it.
+                img = img[1:-1, 1:-1]
+                size = (img.shape[1] / 100.0, img.shape[0] / 100.0)
+                if max(size) > max_size:
+                    scale = max_size / max(size)
+                else:
+                    scale = 1.0
+                size = (scale * size[0], scale * size[1])
+
+                plt.figure(figsize=size)
+                plt.subplots_adjust(bottom=0, top=1, left=0, right=1)
+                plt.xticks([])
+                plt.yticks([])
+                plt.imshow(img)
+                plt.axis("off")
+                plt.show()
+
     #  Aliases
     wasGeneratedBy = generation
     used = usage
@@ -1103,11 +1277,13 @@ class ProvDocument(ProvBundle):
 
     @property
     def bundles(self):
-        return set(self._bundles.values())
+        return frozenset(self._bundles.values())
 
     # Transformations
     def flattened(self):
-        """ Returns a new document containing all the records in its bundles
+        """ Flattens the document by moving all the records in its bundles up to the document level.
+
+        :returns: :py:class:`ProvDocument` -- the (new) flattened document.
         """
         if self._bundles:
             # Creating a new document for all the records
@@ -1131,6 +1307,30 @@ class ProvDocument(ProvBundle):
             unified_bundle = bundle.unified()
             document.add_bundle(unified_bundle)
         return document
+
+    def update(self, other):
+        """Append all the records of the *other* document/bundle into this document.
+        Bundles having same identifiers will be merged.
+
+        :param other: the other document/bundle whose records to be appended.
+        :type other: :py:class:`ProvDocument` or :py:class:`ProvBundle`
+
+        :returns: None.
+        """
+        if isinstance(other, ProvBundle):
+            for record in other.get_records():
+                self.add_record(record)
+            if other.has_bundles():
+                for bundle in other.bundles:
+                    if bundle.identifier in self._bundles:
+                        self._bundles[bundle.identifier].update(bundle)
+                    else:
+                        new_bundle = self.bundle(bundle.identifier)
+                        new_bundle.update(bundle)
+        else:
+            raise ProvException(
+                'ProvDocument.update(): The other is not a ProvDocument or ProvBundle instance (%s)' % type(other)
+            )
 
     # Bundle operations
     def add_bundle(self, bundle, identifier=None):

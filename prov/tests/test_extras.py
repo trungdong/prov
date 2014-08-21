@@ -1,8 +1,8 @@
 import unittest
 
 from prov.model import *
-from prov.tests.utility import ProvJSONRoundTripTest
 from prov.dot import prov_to_dot
+from prov.tests.examples import primer_example, primer_example_alternate
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
@@ -82,7 +82,7 @@ def add_further_attributes0(record):
     add_further_attributes_with_qnames(record)
 
 
-def add_further_attributes_with_qnames( record):
+def add_further_attributes_with_qnames(record):
     record.add_attributes([
         (EX_NS['tag'], EX2_NS['newyork']),
         (EX_NS['tag'], EX_NS['london']),
@@ -163,7 +163,6 @@ class TestExtras(unittest.TestCase):
 
         self.assertRaises(ProvException, test)
 
-
     def test_bundle_equality_garbage(self):
         document = ProvBundle()
         self.assertNotEqual(document, 1)
@@ -204,7 +203,6 @@ class TestExtras(unittest.TestCase):
 
         self.assertRaises(ProvException, test)
 
-
         document = ProvDocument()
 
         def test():
@@ -214,7 +212,6 @@ class TestExtras(unittest.TestCase):
 
         self.assertRaises(ProvException, test)
 
-
     def test_document_helper_methods(self):
         document = ProvDocument()
         self.assertFalse(document.is_bundle())
@@ -223,15 +220,10 @@ class TestExtras(unittest.TestCase):
         self.assertTrue(document.has_bundles())
         self.assertEqual(u'<ProvDocument>', str(document))
 
-    # def test_document_unification(self):
-    #     # TODO: Improve testing of this...
-    #     document = ProvDocument()
-    #     bundle = document.bundle(identifier=EX_NS['b'])
-    #     e1 = bundle.entity(EX_NS['e'])
-    #     e2 = bundle.entity(EX_NS['e'])
-    #     unified = document.unified()
-    #
-    #     self.assertEqual(len(unified._bundles[0]._records), 1)
+    def test_primer_alternate(self):
+        g1 = primer_example()
+        g2 = primer_example_alternate()
+        self.assertEqual(g1, g2)
 
 
 if __name__ == '__main__':

@@ -1,14 +1,15 @@
-import unittest
-
 from prov.model import *
-from prov.tests.utility import ProvJSONRoundTripTest
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
 EX_OTHER_NS = Namespace('other', 'http://example.org/')
 
 
-class TestAttributes(ProvJSONRoundTripTest):
+class TestAttributesBase(object):
+    """This is the base class for testing support for various datatypes.
+    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    """
+
     attribute_values = [
         "un lieu",
         Literal("un lieu", langtag='fr'),
@@ -47,7 +48,7 @@ class TestAttributes(ProvJSONRoundTripTest):
     def run_entity_with_one_type_attribute(self, n):
         document = self.new_document()
         document.entity(EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]})
-        self.run_roundtrip_test_document(document)
+        self.assertRoundTripEquivalence(document)
 
     def test_entity_with_one_type_attribute_0(self):
         self.run_entity_with_one_type_attribute(0)
@@ -139,7 +140,7 @@ class TestAttributes(ProvJSONRoundTripTest):
             (EX_NS['v_%d'% i], value) for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emov'], attributes)
-        self.run_roundtrip_test_document(document)
+        self.assertRoundTripEquivalence(document)
 
     def test_entity_with_multiple_value_attribute(self):
         document = self.new_document()
@@ -147,8 +148,4 @@ class TestAttributes(ProvJSONRoundTripTest):
             ('prov:value', value) for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emv'], attributes)
-        self.run_roundtrip_test_document(document)
-
-
-if __name__ == '__main__':
-    unittest.main()
+        self.assertRoundTripEquivalence(document)
