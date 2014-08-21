@@ -1303,6 +1303,7 @@ class ProvDocument(ProvBundle):
         Returns a new document containing all records having same identifiers unified (including those inside bundles)
         """
         document = ProvDocument(self._unified_records())
+        document._namespaces = self._namespaces
         for bundle in self.bundles:
             unified_bundle = bundle.unified()
             document.add_bundle(unified_bundle)
