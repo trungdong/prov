@@ -5,6 +5,7 @@ import unittest
 from prov.model import *
 from prov.dot import prov_to_dot
 from prov.serializers import Registry
+from prov.tests.examples import primer_example, primer_example_alternate
 
 
 EX_NS = Namespace('ex', 'http://example.org/')
@@ -256,6 +257,11 @@ class TestExtras(unittest.TestCase):
     #     unified = document.unified()
     #
     #     self.assertEqual(len(unified._bundles[0]._records), 1)
+
+    def test_primer_alternate(self):
+        g1 = primer_example()
+        g2 = primer_example_alternate()
+        self.assertEqual(g1, g2)
 
 
 if __name__ == '__main__':

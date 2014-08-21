@@ -245,6 +245,7 @@ class ProvRecord(object):
     def value(self):
         return self._attributes[PROV_VALUE]
 
+    # Handling attributes
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
         if isinstance(literal, str):
@@ -395,6 +396,35 @@ class ProvEntity(ProvElement):
     def get_type(self):
         return PROV_ENTITY
 
+    # Convenient assertions that take the current ProvEntity as the first (formal) argument
+    def wasGeneratedBy(self, activity, time=None, attributes=None):
+        self._bundle.generation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasInvalidatedBy(self, activity, time=None, attributes=None):
+        self._bundle.invalidation(self, activity, time, other_attributes=attributes)
+        return self
+
+    def wasDerivedFrom(self, usedEntity, activity=None, generation=None, usage=None, attributes=None):
+        self._bundle.derivation(self, usedEntity, activity, generation, usage, other_attributes=attributes)
+        return self
+
+    def wasAttributedTo(self, agent, attributes=None):
+        self._bundle.attribution(self, agent, other_attributes=attributes)
+        return self
+
+    def alternateOf(self, alternate2):
+        self._bundle.alternate(self, alternate2)
+        return self
+
+    def specializationOf(self, generalEntity):
+        self._bundle.specialization(self, generalEntity)
+        return self
+
+    def hadMember(self, entity):
+        self._bundle.membership(self, entity)
+        return self
+
 
 class ProvActivity(ProvElement):
     FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
@@ -416,6 +446,27 @@ class ProvActivity(ProvElement):
     def get_endTime(self):
         values = self._attributes[PROV_ATTR_ENDTIME]
         return first(values) if values else None
+
+    # Convenient assertions that take the current ProvActivity as the first (formal) argument
+    def used(self, entity, time=None, attributes=None):
+        self._bundle.usage(self, entity, time, other_attributes=attributes)
+        return self
+
+    def wasInformedBy(self, informant, attributes=None):
+        self._bundle.communication(self, informant, other_attributes=attributes)
+        return self
+
+    def wasStartedBy(self, trigger, starter=None, time=None, attributes=None):
+        self._bundle.start(self, trigger, starter, time, other_attributes=attributes)
+        return self
+
+    def wasEndedBy(self, trigger, ender=None, time=None, attributes=None):
+        self._bundle.end(self, trigger, ender, time, other_attributes=attributes)
+        return self
+
+    def wasAssociatedWith(self, agent, plan=None, attributes=None):
+        self._bundle.association(self, agent, plan, other_attributes=attributes)
+        return self
 
 
 class ProvGeneration(ProvRelation):
@@ -473,6 +524,11 @@ class ProvDerivation(ProvRelation):
 class ProvAgent(ProvElement):
     def get_type(self):
         return PROV_AGENT
+
+    # Convenient assertions that take the current ProvAgent as the first (formal) argument
+    def actedOnBehalfOf(self, responsible, activity=None, attributes=None):
+        self._bundle.delegation(self, responsible, activity, other_attributes=attributes)
+        return self
 
 
 class ProvAttribution(ProvRelation):
@@ -631,9 +687,17 @@ class NamespaceManager(dict):
         return namespace
 
     def add_namespaces(self, namespaces):
+        """Add multiple namespaces into this manager
+
+        :param namespaces: a collection of namespace(s) to add.
+        :type namespaces: list of :py:class:`~prov.identifier.Namespace` or dict of {prefix: uri}
+        :returns: None
+        """
+        if isinstance(namespaces, dict):
+            # expecting a dictionary of {prefix: uri}, convert it to a list of Namespace
+            namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
         if namespaces:
-            for prefix, uri in namespaces.items():
-                ns = Namespace(prefix, uri)
+            for ns in namespaces:
                 self.add_namespace(ns)
 
     def valid_qualified_name(self, qname):
@@ -802,6 +866,13 @@ class ProvBundle(object):
     def is_bundle(self):
         return True
 
+    def has_bundles(self):
+        return False
+
+    @property
+    def bundles(self):
+        return frozenset()
+
     def get_provn(self, _indent_level=0):
         indentation = '' + ('  ' * _indent_level)
         newline = '\n' + ('  ' * (_indent_level + 1))
@@ -887,12 +958,30 @@ class ProvBundle(object):
         return unified_records
 
     def unified(self):
-        """
-        Returns a new ProvBundle in which all records having the same identifier are unified
+        """Unifies all records in the bundle that haves same identifiers
+
+        :returns: :py:class:`ProvBundle` -- the new unified bundle.
         """
         unified_records = self._unified_records()
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
         return bundle
+
+    def update(self, other):
+        """Append all the records of the *other* ProvBundle into this bundle.
+
+        :param other: the other bundle whose records to be appended.
+        :type other: :py:class:`ProvBundle`
+
+        :returns: None.
+        """
+        if isinstance(other, ProvBundle):
+            if other.is_document() and other.has_bundles():
+                # Cannot add bundles to a bundle
+                raise ProvException('ProvBundle.update(): The other bundle is a document with sub-bundle(s).')
+            for record in other.get_records():
+                self.add_record(record)
+        else:
+            raise ProvException('ProvBundle.update(): The other bundle is not a ProvBundle instance (%s)' % type(other))
 
     # Provenance statements
     def _add_record(self, record):
@@ -1209,11 +1298,13 @@ class ProvDocument(ProvBundle):
 
     @property
     def bundles(self):
-        return set(self._bundles.values())
+        return frozenset(self._bundles.values())
 
     # Transformations
     def flattened(self):
-        """ Returns a new document containing all the records in its bundles
+        """ Flattens the document by moving all the records in its bundles up to the document level.
+
+        :returns: :py:class:`ProvDocument` -- the (new) flattened document.
         """
         if self._bundles:
             # Creating a new document for all the records
@@ -1233,10 +1324,35 @@ class ProvDocument(ProvBundle):
         Returns a new document containing all records having same identifiers unified (including those inside bundles)
         """
         document = ProvDocument(self._unified_records())
+        document._namespaces = self._namespaces
         for bundle in self.bundles:
             unified_bundle = bundle.unified()
             document.add_bundle(unified_bundle)
         return document
+
+    def update(self, other):
+        """Append all the records of the *other* document/bundle into this document.
+        Bundles having same identifiers will be merged.
+
+        :param other: the other document/bundle whose records to be appended.
+        :type other: :py:class:`ProvDocument` or :py:class:`ProvBundle`
+
+        :returns: None.
+        """
+        if isinstance(other, ProvBundle):
+            for record in other.get_records():
+                self.add_record(record)
+            if other.has_bundles():
+                for bundle in other.bundles:
+                    if bundle.identifier in self._bundles:
+                        self._bundles[bundle.identifier].update(bundle)
+                    else:
+                        new_bundle = self.bundle(bundle.identifier)
+                        new_bundle.update(bundle)
+        else:
+            raise ProvException(
+                'ProvDocument.update(): The other is not a ProvDocument or ProvBundle instance (%s)' % type(other)
+            )
 
     # Bundle operations
     def add_bundle(self, bundle, identifier=None):
