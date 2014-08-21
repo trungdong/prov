@@ -237,6 +237,11 @@ class ProvRecord(object):
     # Handling attributes
     def _auto_literal_conversion(self, literal):
         # This method normalise datatype for literals
+
+        if isinstance(literal, ProvRecord):
+            # Use the QName of the record as the literal
+            literal = literal.identifier
+
         if isinstance(literal, str):
             return unicode(literal)
         elif isinstance(literal, QualifiedName):
