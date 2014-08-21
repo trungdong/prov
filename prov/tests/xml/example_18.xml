@@ -1,0 +1,13 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:agent prov:id="ex:e1">
+    <prov:type xsi:type="xsd:QName">prov:Person</prov:type>
+    <ex:employee>1234</ex:employee>
+    <ex:name>Alice</ex:name>
+  </prov:agent>
+
+</prov:document>

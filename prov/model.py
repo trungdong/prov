@@ -47,6 +47,14 @@ def parse_xsd_datetime(value):
         pass
     return None
 
+def parse_boolean(value):
+    if value.lower() in ("false", "0"):
+        return False
+    elif value.lower() in ("true", "1"):
+        return True
+    else:
+        return None
+
 DATATYPE_PARSERS = {
     datetime.datetime: parse_xsd_datetime,
 }
@@ -58,7 +66,7 @@ XSD_DATATYPE_PARSERS = {
     XSD_DOUBLE: float,
     XSD_LONG: long,
     XSD_INT: int,
-    XSD_BOOLEAN: bool,
+    XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
     XSD_ANYURI: Identifier
 }
@@ -97,7 +105,10 @@ class Literal(object):
             if datatype is None:
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
                 datatype = PROV["InternationalizedString"]
-            elif datatype != PROV["InternationalizedString"] and datatype != XSD_STRING:
+            # PROV JSON states that the type field must not be set when
+            # using the lang attribute and PROV XML requires it to be an
+            # internationalized string.
+            elif datatype != PROV["InternationalizedString"]:
                 logger.warn(
                     'Invalid data type (%s) for "%s"@%s, overridden as prov:InternationalizedString.' %
                     (datatype, value, langtag)
@@ -260,6 +271,15 @@ class ProvRecord(object):
             if isinstance(attributes, dict):
                 #  Converting the dictionary into a list of tuples (i.e. attribute-value pairs)
                 attributes = attributes.items()
+
+            # Check if one of the attributes specifies that the current type
+            # is a collection. In that case multiple attributes of the same
+            # type are allowed.
+            if PROV_ATTR_COLLECTION in [_i[0] for _i in attributes]:
+                is_collection = True
+            else:
+                is_collection = False
+
             for attr_name, original_value in attributes:
                 if original_value is None:
                     continue
@@ -280,7 +300,8 @@ class ProvRecord(object):
                 if value is None:
                     raise ProvException(u'Invalid value for attribute %s: %s' % (attr, original_value))
 
-                if attr in PROV_ATTRIBUTES and self._attributes[attr]:
+                if not is_collection and attr in PROV_ATTRIBUTES and \
+                        self._attributes[attr]:
                     existing_value = first(self._attributes[attr])
                     if value != existing_value:
                         raise ProvException(u'Cannot have more than one value for attribute %s' % attr)
@@ -591,7 +612,7 @@ PROV_REC_CLS = {
 }
 
 
-DEFAULT_NAMESPACES = {'prov': PROV, 'xsd': XSD}
+DEFAULT_NAMESPACES = {'prov': PROV, 'xsd': XSD, 'xsi': XSI}
 
 
 #  Bundle
@@ -1419,3 +1440,44 @@ class ProvDocument(ProvBundle):
             else:
                 with open(source) as f:
                     return serializer.deserialize(f, **args)
+
+
+def sorted_attributes(element, attributes):
+    """
+    Helper function sorting attributes into the order required by PROV-XML.
+
+    :param element: The prov element used to derive the type and the
+        attribute order for the type.
+    :param attributes: The attributes to sort.
+    """
+    attributes = list(attributes)
+    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
+
+    # Append label, location, role, type, and value attributes. This is
+    # universal amongst all elements.
+    order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE,
+                  PROV_VALUE])
+
+    # Sort function. The PROV XML specification talks about alphabetical
+    # sorting. We now interpret it as sorting by tag including the prefix
+    # first and then sorting by the text, also including the namespace
+    # prefix if given.
+    sort_fct = lambda x: (
+        unicode(x[0]), unicode(x[1].value if hasattr(x[1], "value") else x[1]))
+
+    sorted_elements = []
+    for item in order:
+        this_type_list = []
+        for e in list(attributes):
+            if e[0] != item:
+                continue
+            this_type_list.append(e)
+            attributes.remove(e)
+        this_type_list.sort(key=sort_fct)
+        sorted_elements.extend(this_type_list)
+    # Add remaining attributes. According to the spec, the other attributes
+    # have a fixed alphabetical order.
+    attributes.sort(key=sort_fct)
+    sorted_elements.extend(attributes)
+
+    return sorted_elements

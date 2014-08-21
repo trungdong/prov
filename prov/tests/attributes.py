@@ -13,7 +13,7 @@ class TestAttributesBase(object):
     attribute_values = [
         "un lieu",
         Literal("un lieu", langtag='fr'),
-        Literal("a place", datatype=XSD_STRING, langtag='en'),
+        Literal("a place", langtag='en'),
         Literal(1, XSD_INT),
         Literal(1, XSD_LONG),
         Literal(1, XSD_SHORT),

@@ -1,0 +1,21 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:rec54="http://www.w3.org/2001/02pd/rec54#"
+    xmlns:tr="http://example.com/ns/tr#">
+
+  <prov:entity prov:id="tr:WD-prov-dm-20111215">
+    <prov:type xsi:type="xsd:QName">rec54:WD</prov:type>
+  </prov:entity>
+
+  <prov:entity prov:id="tr:WD-prov-dm-20111018">
+    <prov:type xsi:type="xsd:QName">rec54:WD</prov:type>
+  </prov:entity>
+
+  <prov:wasRevisionOf>
+    <prov:generatedEntity prov:ref="tr:WD-prov-dm-20111215"/>
+    <prov:usedEntity prov:ref="tr:WD-prov-dm-20111018"/>
+  </prov:wasRevisionOf>
+
+</prov:document>

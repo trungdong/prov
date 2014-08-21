@@ -1,0 +1,27 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:activity prov:id="ex:a1"/>
+
+  <prov:entity prov:id="ex:e1"/>
+
+  <prov:entity prov:id="ex:e2"/>
+
+  <prov:used>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:entity prov:ref="ex:e1"/>
+    <prov:time>2011-11-16T16:00:00</prov:time>
+    <ex:parameter>p1</ex:parameter>
+  </prov:used>
+
+  <prov:used>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:entity prov:ref="ex:e2"/>
+    <prov:time>2011-11-16T16:00:01</prov:time>
+    <ex:parameter>p2</ex:parameter>
+  </prov:used>
+
+</prov:document>
