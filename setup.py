@@ -21,8 +21,8 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.0.1',
-    description='A library for W3C Provenance Data Model supporting PROV-JSON import/export',
+    version='1.1.0',
+    description='A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',

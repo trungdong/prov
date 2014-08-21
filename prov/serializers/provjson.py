@@ -11,7 +11,6 @@ from collections import defaultdict
 import datetime
 import io
 import json
-import platform
 import StringIO
 from prov import Serializer, Error
 from prov.constants import *

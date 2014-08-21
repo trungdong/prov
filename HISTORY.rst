@@ -3,6 +3,14 @@
 History
 -------
 
+1.1.0 (2014-08-21)
+^^^^^^^^^^^^^^^^^^
+* Added: Support for `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ serialization and deserialization
+* A :py:class:`~prov.model.ProvRecord` instance can now be used as the value of an attributes
+* Added: convenient assertions methods for :py:class:`~prov.model.ProvEntity`, :py:class:`~prov.model.ProvActivity`, and :py:class:`~prov.model.ProvAgent`
+* Added: :py:meth:`prov.model.ProvDocument.update` and :py:meth:`prov.model.ProvBundle.update`
+* Fixed: Handling default namespaces of bundles when flattened
+
 1.0.1 (2014-08-18)
 ^^^^^^^^^^^^^^^^^^
 * Added: Default namespace inheritance for bundles

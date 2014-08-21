@@ -1,6 +1,15 @@
 prov.serializers package
 ========================
 
+Module contents
+---------------
+
+.. automodule:: prov.serializers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 Submodules
 ----------
 
@@ -13,10 +22,10 @@ prov.serializers.provjson module
     :show-inheritance:
 
 
-Module contents
----------------
+prov.serializers.provxml module
+-------------------------------
 
-.. automodule:: prov.serializers
+.. automodule:: prov.serializers.provxml
     :members:
     :undoc-members:
     :show-inheritance:

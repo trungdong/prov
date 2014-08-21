@@ -20,7 +20,7 @@ Introduction
   :alt: Downloads
 
 
-A library for W3C Provenance Data Model supporting PROV-JSON import/export
+A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML import/export
 
 * Free software: MIT license
 * Documentation: http://prov.readthedocs.org.
@@ -28,9 +28,10 @@ A library for W3C Provenance Data Model supporting PROV-JSON import/export
 Features
 --------
 
-This package provides an implementation of the `W3C PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python.
-It provides in-memory classes for PROV assertions and can be serialized into `PROV-JSON representation <http://www.w3.org/Submission/prov-json/>`_.
-In addition, the included `prov.dot` module exports PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
+* An implementation of the `W3C PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python.
+* In-memory classes for PROV assertions, which can then be output as `PROV-N <http://www.w3.org/TR/prov-n/>`_
+* Serialization and deserializtion support: `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ and `PROV-XML <http://www.w3.org/TR/prov-xml/>`_.
+* Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
 
 
 Uses
