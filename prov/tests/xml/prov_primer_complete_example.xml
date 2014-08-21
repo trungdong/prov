@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<prov:document
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:ex="http://example.org/"
+    xmlns:exc="http://example-c.org/"
+    xmlns:exg="http://example-g.org/"
+    xmlns:exn="http://example-n.org/"
+	xmlns:dct="http://purl.org/dc/terms/"
+	xmlns:foaf="http://xmlns.com/foaf/0.1/">
+
+  <!-- Entities -->
+
+  <prov:entity prov:id="exn:article">
+	<dct:title>Crime rises in cities</dct:title>
+  </prov:entity>
+
+  <prov:entity prov:id="exg:dataset1"/>
+
+  <prov:entity prov:id="exc:regionList"/>
+
+  <prov:entity prov:id="exc:composition1"/>
+
+  <prov:entity prov:id="exc:chart1"/>
+
+  <!-- Activities -->
+
+  <prov:activity prov:id="exc:compile1"/>
+
+  <prov:activity prov:id="exc:compose1"/>
+
+  <prov:activity prov:id="exc:illustrate1"/>
+
+  <!-- Usage and Generation -->
+
+  <prov:used>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:entity prov:ref="ex:dataset1"/>
+  </prov:used>
+
+  <prov:used>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:entity prov:ref="exc:regionList"/>
+  </prov:used>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exc:composition1"/>
+    <prov:activity prov:ref="exc:compose1"/>
+  </prov:wasGeneratedBy>
+
+  <prov:used>
+    <prov:activity prov:ref="exc:illustrate1"/>
+    <prov:entity prov:ref="exc:composition1"/>
+  </prov:used>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exc:chart1"/>
+    <prov:activity prov:ref="exc:illustrate1"/>
+  </prov:wasGeneratedBy>
+
+  <!-- Agents and Responsibility -->
+
+  <prov:agent prov:id="exc:derek">
+    <prov:type>prov:Person</prov:type>
+    <foaf:givenName>Derek</foaf:givenName>
+    <foaf:mbox>mailto:derek@example.org</foaf:mbox>
+  </prov:agent>
+
+  <prov:agent prov:id="exc:chartgen">
+    <prov:type>prov:Organization</prov:type>
+    <foaf:name>Chart Generators Inc</foaf:name>
+  </prov:agent>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:agent prov:ref="exc:derek"/>
+  </prov:wasAssociatedWith>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="exc:illustrate1"/>
+    <prov:agent prov:ref="exc:derek"/>
+  </prov:wasAssociatedWith>
+
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="exc:chart1"/>
+    <prov:agent prov:ref="exc:derek"/>
+  </prov:wasAttributedTo>
+
+  <prov:actedOnBehalfOf>
+    <prov:delegate prov:ref="exc:derek"/>
+    <prov:responsible prov:ref="exc:chartgen"/>
+  </prov:actedOnBehalfOf>
+
+  <!-- Roles -->
+
+  <prov:used>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:entity prov:ref="exg:dataset1"/>
+    <prov:role>exc:dataToCompose</prov:role>
+  </prov:used>
+
+  <prov:used>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:entity prov:ref="exc:regionList"/>
+    <prov:role>exc:regionsToAggregateBy</prov:role>
+  </prov:used>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:agent prov:ref="exc:derek"/>
+    <prov:role>exc:analyst</prov:role>
+  </prov:wasAssociatedWith>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exc:composition1"/>
+    <prov:activity prov:ref="exc:compose1"/>
+    <prov:role>exc:composedData</prov:role>
+  </prov:wasGeneratedBy>
+
+  <!-- Revision and Derivation -->
+
+  <prov:entity prov:id="exg:dataSet2"/>
+  <prov:entity prov:id="exc:chart2"/>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="exg:dataSet2"/>
+    <prov:usedEntity prov:ref="exg:dataset1"/>
+    <prov:type>prov:Revision</prov:type>
+  </prov:wasDerivedFrom>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="exc:chart2"/>
+    <prov:usedEntity prov:ref="exg:dataSet2"/>
+  </prov:wasDerivedFrom>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="exc:chart2"/>
+    <prov:usedEntity prov:ref="exc:chart1"/>
+    <prov:type>prov:Revision</prov:type>
+  </prov:wasDerivedFrom>
+
+  <!-- Plans -->
+
+  <prov:activity prov:id="exg:correct1"/>
+
+  <prov:entity prov:id="exg:instructions">
+    <prov:type>prov:Plan</prov:type>
+  </prov:entity>
+
+  <prov:agent prov:id="exg:edith">
+    <prov:type>prov:Person</prov:type>
+  </prov:agent>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="exg:correct1"/>
+    <prov:agent prov:ref="exg:edith"/>
+    <prov:plan prov:ref="exg:instructions"/>
+  </prov:wasAssociatedWith>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exg:dataSet2"/>
+    <prov:activity prov:ref="exg:correct1"/>
+  </prov:wasGeneratedBy>
+
+  <!-- Time -->
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exc:chart1"/>
+    <prov:time>2012-03-02T10:30:00</prov:time>
+  </prov:wasGeneratedBy>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="exc:chart2"/>
+    <prov:time>2012-04-01T15:21:00</prov:time>
+  </prov:wasGeneratedBy>
+
+  <prov:wasStartedBy>
+    <prov:activity prov:ref="exg:correct1"/>
+    <prov:time>2012-03-31T09:21:00</prov:time>
+  </prov:wasStartedBy>
+
+  <prov:wasEndedBy>
+    <prov:activity prov:ref="exg:correct1"/>
+    <prov:time>2012-04-01T15:21:00</prov:time>
+  </prov:wasEndedBy>
+
+  <!-- alternatively, you can put the activity start and end time in the activity declaration -->
+
+  <prov:activity prov:id="exg:correct1">
+    <prov:startTime>2012-03-31T09:21:00</prov:startTime>
+    <prov:endTime>2012-04-01T15:21:00</prov:endTime>
+  </prov:activity>
+
+  <!-- Alternate Entities and Specialization -->
+
+  <prov:entity prov:id="ex:quoteInBlogEntry-20130326"/>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:quoteInBlogEntry-20130326"/>
+    <prov:usedEntity prov:ref="exn:article"/>
+    <prov:type>prov:Quotation</prov:type>
+  </prov:wasDerivedFrom>
+
+  <prov:entity prov:id="exn:articleV1"/>
+
+  <prov:specializationOf>
+    <prov:specificEntity prov:ref="exn:articleV1"/>
+    <prov:generalEntity prov:ref="exn:article"/>
+  </prov:specializationOf>
+
+  <prov:entity prov:id="exn:articleV2"/>
+
+  <prov:specializationOf>
+    <prov:specificEntity prov:ref="exn:articleV2"/>
+    <prov:generalEntity prov:ref="exn:article"/>
+  </prov:specializationOf>
+
+  <prov:alternateOf>
+    <prov:alternate1 prov:ref="exn:articleV1"/>
+    <prov:alternate2 prov:ref="exn:articleV2"/>
+  </prov:alternateOf>
+
+</prov:document>

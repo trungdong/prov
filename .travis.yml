@@ -11,7 +11,7 @@ before_install:
 # Install packages
 install:
   - pip install -r requirements.txt
-  - pip install coverage coveralls pydot
+  - pip install coverage coveralls pydot lxml
 
 # Run test
 script:

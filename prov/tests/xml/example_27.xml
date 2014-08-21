@@ -1,0 +1,33 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#"
+    xmlns:bob="http://example.com/ns/bob#"
+    xmlns:alice="http://example.com/ns/alice#"
+    xmlns:agg="http://example.com/ns/agg#">
+
+  <prov:bundle prov:id="ex:bundle1">
+    <ex:version>1</ex:version>
+  </prov:bundle>
+
+  <prov:bundleContent prov:id="ex:bundle1">
+    <prov:entity prov:id="ex:report1"/>
+
+    <prov:entity prov:id="ex:report2">
+      <prov:type xsi:type="xsd:QName">report</prov:type>
+      <ex:version>2</ex:version>
+    </prov:entity>
+
+    <prov:wasGeneratedBy>
+      <prov:entity prov:ref="ex:report2"/>
+      <prov:time>2012-05-25T11:00:01</prov:time>
+    </prov:wasGeneratedBy>
+
+    <prov:wasDerivedFrom>
+      <prov:generatedEntity prov:ref="ex:report2"/>
+      <prov:usedEntity prov:ref="ex:report1"/>
+    </prov:wasDerivedFrom>
+  </prov:bundleContent>
+
+</prov:document>

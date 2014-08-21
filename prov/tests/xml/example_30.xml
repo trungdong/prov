@@ -1,0 +1,21 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:bbc="http://www.bbc.co.uk/news"
+    xmlns:bbcmobile="http://www.bbc.co.uk/news/mobile">
+
+  <prov:entity prov:id="bbc:science-environment-17526723">
+    <prov:type xsi:type="xsd:string">a news item for desktop</prov:type>
+  </prov:entity>
+
+  <prov:entity prov:id="bbcmobile:science-environment-17526723">
+    <prov:type xsi:type="xsd:string">a news item for mobile devices</prov:type>
+  </prov:entity>
+
+  <prov:alternateOf>
+    <prov:alternate1 prov:ref="bbcmobile:science-environment-17526723"/>
+    <prov:alternate2 prov:ref="bbc:science-environment-17526723"/>
+  </prov:alternateOf>
+
+</prov:document>

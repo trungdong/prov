@@ -1,0 +1,18 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:entity prov:id="ex:e1"/>
+
+  <prov:activity prov:id="ex:a1"/>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:e1"/>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:time>2001-10-26T21:32:52</prov:time>
+    <ex:port>p1</ex:port>
+  </prov:wasGeneratedBy>
+
+</prov:document>

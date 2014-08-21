@@ -1,0 +1,22 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:entity prov:id="ex:e1"/>
+
+  <prov:entity prov:id="ex:e2"/>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:e2"/>
+    <prov:usedEntity prov:ref="ex:e1"/>
+  </prov:wasDerivedFrom>
+
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:e2"/>
+    <prov:usedEntity prov:ref="ex:e1"/>
+    <prov:type xsi:type="xsd:string">physical transform</prov:type>
+  </prov:wasDerivedFrom>
+
+</prov:document>

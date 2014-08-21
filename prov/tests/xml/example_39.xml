@@ -1,0 +1,26 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#"
+    xmlns:tr="http://example.com/ns/tr#">
+
+  <prov:entity prov:id="tr:WD-prov-dm-20111215">
+    <prov:type xsi:type="xsd:QName">document</prov:type>
+    <ex:version>2</ex:version>
+  </prov:entity>
+
+  <prov:agent prov:id="ex:e1">
+    <prov:type xsi:type="xsd:QName">prov:Person</prov:type>
+    <ex:employee>1234</ex:employee>
+    <ex:name>Alice</ex:name>
+  </prov:agent>
+
+  <prov:activity prov:id="ex:a1">
+    <prov:startTime>2011-11-16T16:05:00</prov:startTime>
+    <prov:endTime>2011-11-16T16:06:00</prov:endTime>
+    <prov:type xsi:type="xsd:QName">ex:edit</prov:type>
+    <ex:host>server.example.org</ex:host>
+  </prov:activity>
+
+</prov:document>

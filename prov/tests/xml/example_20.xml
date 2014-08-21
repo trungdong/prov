@@ -1,0 +1,9 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:w3="http://w3.org/">
+
+  <prov:organization prov:id="w3:Consortium" />
+
+</prov:document>

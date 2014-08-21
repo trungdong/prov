@@ -1,0 +1,48 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:entity prov:id="ex:e1">
+    <prov:type xsi:type="xsd:string">email message</prov:type>
+  </prov:entity>
+
+  <prov:activity prov:id="ex:a1">
+    <prov:type xsi:type="xsd:QName">Discuss</prov:type>
+  </prov:activity>
+
+  <prov:wasStartedBy>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:trigger prov:ref="ex:e1"/>
+    <prov:time>2011-11-16T16:05:00</prov:time>
+  </prov:wasStartedBy>
+
+  <prov:used>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:entity prov:ref="ex:e1"/>
+  </prov:used>
+
+  <prov:activity prov:id="ex:a0">
+    <prov:type xsi:type="xsd:QName">Write</prov:type>
+  </prov:activity>
+
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:e1"/>
+    <prov:activity prov:ref="ex:a0"/>
+  </prov:wasGeneratedBy>
+
+  <prov:wasStartedBy>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:trigger prov:ref="ex:e1"/>
+    <prov:starter prov:ref="ex:a0"/>
+    <prov:time>2011-11-16T16:05:00</prov:time>
+  </prov:wasStartedBy>
+
+  <prov:wasStartedBy>
+    <prov:activity prov:ref="ex:a1"/>
+    <prov:starter prov:ref="ex:a0"/>
+    <prov:time>2011-11-16T16:05:00</prov:time>
+  </prov:wasStartedBy>
+
+</prov:document>
