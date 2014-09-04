@@ -3,3 +3,4 @@ pydot==1.0.2
 pyparsing==1.5.7
 python-dateutil==2.2
 wheel==0.24.0
+rdflib>=4.1.2
