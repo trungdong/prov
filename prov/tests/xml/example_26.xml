@@ -1,0 +1,17 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:tr="http://example.com/ns/tr#"
+    xmlns:w3="http://w3.org/">
+
+  <prov:entity prov:id="tr:WD-prov-dm-20111215"/>
+
+  <prov:agent prov:id="w3:Consortium"/>
+
+  <prov:wasInfluencedBy>
+    <prov:influencee prov:ref="tr:WD-prov-dm-20111215"/>
+    <prov:influencer prov:ref="w3:Consortium"/>
+  </prov:wasInfluencedBy>
+
+</prov:document>

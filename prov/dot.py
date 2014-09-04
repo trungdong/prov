@@ -11,15 +11,19 @@ References:
 
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
+
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 import cgi
+from datetime import datetime
 import pydot
 
 from prov.model import (
     ProvBundle, PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION, PROV_ATTRIBUTION, PROV_BUNDLE,
     PROV_COMMUNICATION, PROV_DERIVATION, PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
     PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION, PROV_SPECIALIZATION, PROV_START, PROV_USAGE,
-    Identifier, PROV_ATTRIBUTE_QNAMES
-)
+    Identifier, PROV_ATTRIBUTE_QNAMES, sorted_attributes)
 
 
 # Visual styles for various elements (nodes) and relations (edges)
@@ -101,12 +105,17 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             if not attributes:
                 return  # No attribute to display
 
+            # Sort the attributes.
+            attributes = sorted_attributes(record.get_type(), attributes)
+
             ann_rows = [ANNOTATION_START_ROW]
             ann_rows.extend(
                 ANNOTATION_ROW_TEMPLATE % (
                     attr.uri, cgi.escape(unicode(attr)),
                     ' href=\"%s\"' % value.uri if isinstance(value, Identifier) else '',
-                    cgi.escape(unicode(value)))
+                    cgi.escape(unicode(value)
+                               if not isinstance(value, datetime) else
+                               unicode(value.isoformat())))
                 for attr, value in attributes
             )
             ann_rows.append(ANNOTATION_END_ROW)
@@ -119,7 +128,18 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             count[2] += 1
             subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % bundle.identifier.uri)
             if use_labels:
-                subdot.set_label('"%s"' % unicode(bundle.label))
+                if bundle.label == bundle.identifier:
+                    bundle_label = '"%s"' % unicode(bundle.label)
+                else:
+                    # Fancier label if both are different. The label will be
+                    # the main node text, whereas the identifier will be a
+                    # kind of suptitle.
+                    bundle_label = ('<%s<br />'
+                                    '<font color="#333333" point-size="10">'
+                                    '%s</font>>')
+                    bundle_label = bundle_label % (unicode(bundle.label),
+                                                   unicode(bundle.identifier))
+                subdot.set_label('"%s"' % unicode(bundle_label))
             else:
                 subdot.set_label('"%s"' % unicode(bundle.identifier))
             _bundle_to_dot(subdot, bundle)
@@ -130,7 +150,17 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             count[0] += 1
             node_id = 'n%d' % count[0]
             if use_labels:
-                node_label = '"%s"' % unicode(record.label)
+                if record.label == record.identifier:
+                    node_label = '"%s"' % unicode(record.label)
+                else:
+                    # Fancier label if both are different. The label will be
+                    # the main node text, whereas the identifier will be a
+                    # kind of suptitle.
+                    node_label = ('<%s<br />'
+                                  '<font color="#333333" point-size="10">'
+                                  '%s</font>>')
+                    node_label = node_label % (unicode(record.label),
+                                               unicode(record.identifier))
             else:
                 node_label = '"%s"' % unicode(record.identifier)
 

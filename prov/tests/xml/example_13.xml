@@ -1,0 +1,26 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#"
+    xmlns:bbc="http://www.bbc.co.uk/news/">
+
+  <prov:entity prov:id="ex:The-Painter"/>
+
+  <prov:agent prov:id="ex:Picasso"/>
+
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="ex:The-Painter" />
+    <prov:agent prov:ref="ex:Picasso" />
+  </prov:wasAttributedTo>
+
+  <prov:activity prov:id="ex:crash"/>
+
+  <prov:wasInvalidatedBy>
+    <prov:entity prov:ref="ex:The-Painter"/>
+    <prov:activity prov:ref="ex:crash"/>
+    <prov:time>1998-09-03T01:31:00</prov:time>
+    <ex:circumstances>plane accident</ex:circumstances>
+  </prov:wasInvalidatedBy>
+
+</prov:document>

@@ -1,0 +1,14 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:activity prov:id="ex:a1">
+    <prov:startTime>2011-11-16T16:05:00</prov:startTime>
+    <prov:endTime>2011-11-16T16:06:00</prov:endTime>
+    <prov:type xsi:type="xsd:QName">ex:edit</prov:type>
+    <ex:host>server.example.org</ex:host>
+  </prov:activity>
+
+</prov:document>

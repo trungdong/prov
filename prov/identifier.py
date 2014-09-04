@@ -1,3 +1,6 @@
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 class Identifier(object):
     def __init__(self, uri):
         self._uri = unicode(uri)  # Ensure this is a unicode string

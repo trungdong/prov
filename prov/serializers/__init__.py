@@ -1,4 +1,5 @@
-__author__ = 'tdh'
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
 
 __all__ = [
     'get'
@@ -19,11 +20,13 @@ class Registry:
     @staticmethod
     def load_serializers():
         from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provxml import ProvXMLSerializer
         from prov.serializers.provrdf import ProvRDFSerializer
 
         Registry.serializers = {
             'json': ProvJSONSerializer,
-            'rdf': ProvRDFSerializer
+            'rdf': ProvRDFSerializer,
+            'xml': ProvXMLSerializer
         }
 
 

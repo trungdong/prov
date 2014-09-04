@@ -1,0 +1,20 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:activity prov:id="ex:a1">
+    <prov:type xsi:type="xsd:string">traffic regulations enforcing</prov:type>
+  </prov:activity>
+
+  <prov:activity prov:id="ex:a2">
+    <prov:type xsi:type="xsd:string">fine paying, check writing, and mailing</prov:type>
+  </prov:activity>
+
+  <prov:wasInformedBy>
+    <prov:informed prov:ref="ex:a2"/>
+    <prov:informant prov:ref="ex:a1"/>
+  </prov:wasInformedBy>
+
+</prov:document>

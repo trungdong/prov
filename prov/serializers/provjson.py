@@ -1,14 +1,17 @@
 """PROV-JSON serializers for ProvDocument
 
-@author: Trung Dong Huynh <trungdong@donggiang.com>
-@copyright: University of Southampton 2014
 """
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 import logging
 logger = logging.getLogger(__name__)
 
 from collections import defaultdict
 import datetime
+import io
 import json
+import StringIO
 from prov import Serializer, Error
 from prov.constants import *
 from prov.model import (Literal, Identifier, QualifiedName, XSDQName, Namespace,
@@ -43,6 +46,19 @@ LITERAL_XSDTYPE_MAP = {
 
 class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
+        if isinstance(stream, (io.StringIO, io.BytesIO)):
+            buf = StringIO.StringIO()
+            try:
+                json.dump(self.document, buf, cls=ProvJSONEncoder,
+                          **kwargs)
+                buf.seek(0, 0)
+                if isinstance(stream, io.BytesIO):
+                    stream.write(buf.read().encode('utf-8'))
+                else:
+                    stream.write(unicode(buf.read()))
+            finally:
+                buf.close()
+            return
         json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
 
     def deserialize(self, stream, **kwargs):
@@ -209,7 +225,7 @@ def decode_json_container(jc, bundle):
                         else:
                             # single value
                             other_attributes.append((attr, decode_json_representation(values, bundle)))
-                bundle.add_record(rec_type, rec_id, attributes, other_attributes)
+                bundle.new_record(rec_type, rec_id, attributes, other_attributes)
                 # HACK: creating extra (unidentified) membership relations
                 if membership_extra_members:
                     collection = attributes[PROV_ATTR_COLLECTION]
@@ -243,30 +259,27 @@ def decode_json_representation(literal, bundle):
         # complex type
         value = literal['$']
         datatype = literal['type'] if 'type' in literal else None
+        datatype = valid_qualified_name(bundle, datatype)
         langtag = literal['lang'] if 'lang' in literal else None
-        if datatype == u'xsd:anyURI':
+        if datatype == XSD_ANYURI:
             return Identifier(value)
-        elif datatype == u'xsd:QName':
+        elif datatype == XSD_QNAME:
             return valid_qualified_name(bundle, value, xsd_qname=True)
-        elif datatype == u'prov:QualifiedName':
+        elif datatype == PROV_QUALIFIEDNAME:
             return valid_qualified_name(bundle, value)
         else:
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by _auto_literal_conversion()
-            return Literal(value, valid_qualified_name(bundle, datatype), langtag)
+            return Literal(value, datatype, langtag)
     else:
         # simple type, just return it
         return literal
 
 
 def literal_json_representation(literal):
-    if literal._langtag:
-        #  a language tag can only go with prov:InternationalizedString
-        return {'$': unicode(literal._value), 'lang': literal._langtag}
+    # TODO: QName export
+    value, datatype, langtag = literal.value, literal.datatype, literal.langtag
+    if langtag:
+        return {'$': value, 'lang': langtag, 'type': unicode(datatype)}
     else:
-        if isinstance(literal._datatype, QualifiedName):
-            # TODO: QName export
-            return {'$': unicode(literal._value), 'type': unicode(literal._datatype)}
-        else:
-            #  Assuming it is a valid identifier
-            return {'$': unicode(literal._value), 'type': literal._datatype.uri}
+        return {'$': value, 'type': unicode(datatype)}

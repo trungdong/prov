@@ -17,7 +17,8 @@ def primer_example():
     g.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
 
     #    entity(ex:article, [dcterms:title="Crime rises in cities"])
-    g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})  # first time the ex namespace was used, it is added to the document automatically
+    # first time the ex namespace was used, it is added to the document automatically
+    g.entity(ex['article'], {'dcterms:title': "Crime rises in cities"})
     #    entity(ex:articleV1)
     g.entity(ex['articleV1'])
     #    entity(ex:articleV2)
@@ -67,7 +68,9 @@ def primer_example():
     #
     #    agent(ex:derek, [ prov:type="prov:Person", foaf:givenName = "Derek",
     #           foaf:mbox= "<mailto:derek@example.org>"])
-    g.agent('ex:derek', {'prov:type': PROV["Person"], 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"})
+    g.agent('ex:derek', {
+        'prov:type': PROV["Person"], 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"
+    })
     #    wasAssociatedWith(ex:compose, ex:derek, -)
     g.wasAssociatedWith('ex:compose', 'ex:derek')
     #    wasAssociatedWith(ex:illustrate, ex:derek, -)
@@ -106,6 +109,68 @@ def primer_example():
     g.alternateOf('ex:articleV2', 'ex:articleV1')
 
     # endDocument
+    return g
+
+
+def primer_example_alternate():
+    g = ProvDocument(namespaces={
+        'ex': 'http://example/',
+        'dcterms': 'http://purl.org/dc/terms/',
+        'foaf': 'http://xmlns.com/foaf/0.1/'
+    })
+
+    article = g.entity('ex:article', {'dcterms:title': "Crime rises in cities"})
+    articleV1 = g.entity('ex:articleV1')
+    articleV2 = g.entity('ex:articleV2')
+    dataSet1 = g.entity('ex:dataSet1')
+    dataSet2 = g.entity('ex:dataSet2')
+    regionList = g.entity('ex:regionList')
+    composition = g.entity('ex:composition')
+    chart1 = g.entity('ex:chart1')
+    chart2 = g.entity('ex:chart2')
+    blogEntry = g.entity('ex:blogEntry')
+
+    compile = g.activity('ex:compile')
+    compile2 = g.activity('ex:compile2')
+    compose = g.activity('ex:compose')
+    correct = g.activity('ex:correct', '2012-03-31T09:21:00', '2012-04-01T15:21:00')
+    illustrate = g.activity('ex:illustrate')
+
+    compose.used(dataSet1, attributes={'prov:role': "ex:dataToCompose"})
+    compose.used(regionList, attributes={'prov:role': "ex:regionsToAggregateBy"})
+    composition.wasGeneratedBy(compose)
+
+    illustrate.used(composition)
+    chart1.wasGeneratedBy(illustrate)
+
+    chart1.wasGeneratedBy(compile, '2012-03-02T10:30:00')
+
+    derek = g.agent('ex:derek', {
+        'prov:type': PROV['Person'], 'foaf:givenName': "Derek", 'foaf:mbox': "<mailto:derek@example.org>"
+    })
+    compose.wasAssociatedWith(derek)
+    illustrate.wasAssociatedWith(derek)
+
+    chartgen = g.agent('ex:chartgen', {
+        'prov:type': PROV["Organization"], 'foaf:name': "Chart Generators Inc"
+    })
+    derek.actedOnBehalfOf(chartgen, compose)
+    chart1.wasAttributedTo(derek)
+
+    dataSet2.wasGeneratedBy(correct)
+    correct.used(dataSet1)
+    dataSet2.wasDerivedFrom(dataSet1, attributes={'prov:type': PROV['Revision']})
+    chart2.wasDerivedFrom(dataSet2)
+
+    blogEntry.wasDerivedFrom(article, attributes={'prov:type': PROV['Quotation']})
+    articleV1.specializationOf(article)
+    articleV1.wasDerivedFrom(dataSet1)
+
+    articleV2.specializationOf(article)
+    articleV2.wasDerivedFrom(dataSet2)
+
+    articleV2.alternateOf(articleV1)
+
     return g
 
 
@@ -388,14 +453,15 @@ def datatypes():
     ex = Namespace('ex', 'http://example.org/')
     g.add_namespace(ex)
 
-    attributes = {'ex:int': 100,
-                  'ex:float': 100.123456,
-                  'ex:long': 123456789000,
-                  'ex:bool': True,
-                  'ex:str': 'Some string',
-                  'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
-                  'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48),
-                  'ex:intstr': Literal("PROV Internationalized string", PROV["InternationalizedString"], "en"),
+    attributes = {
+        'ex:int': 100,
+        'ex:float': 100.123456,
+        'ex:long': 123456789000,
+        'ex:bool': True,
+        'ex:str': 'Some string',
+        'ex:unicode': u'Some unicode string with accents: Huỳnh Trung Đông',
+        'ex:timedate': datetime.datetime(2012, 12, 12, 14, 7, 48),
+        'ex:intstr': Literal("PROV Internationalized string", PROV["InternationalizedString"], "en"),
     }
     multiline = """Line1
     Line2
@@ -408,11 +474,17 @@ Line3"""
 def long_literals():
     g = ProvDocument()
 
-    long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
+    long_uri = "http://Lorem.ipsum/dolor/sit/amet/consectetur/adipiscing/elit/Quisque/vel/sollicitudin/felis/nec/" \
+               "venenatis/massa/Aenean/lectus/arcu/sagittis/sit/amet/nisl/nec/varius/eleifend/sem/In/hac/habitasse/" \
+               "platea/dictumst/Aliquam/eget/fermentum/enim/Curabitur/auctor/elit/non/ipsum/interdum/at/orci/aliquam/"
     ex = Namespace('ex', long_uri)
     g.add_namespace(ex)
 
-    g.entity('ex:e1', {'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'})
+    g.entity('ex:e1', {
+        'prov:label': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pellentesque luctus nulla vel '
+                      'ullamcorper. Donec sit amet ligula sit amet lorem pretium rhoncus vel vel lorem. Sed at '
+                      'consequat metus, eget eleifend massa. Fusce a facilisis turpis. Lorem volutpat.'
+    })
 
     return g
 

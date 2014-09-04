@@ -1,0 +1,14 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#"
+    xmlns:tr="http://example.com/ns/tr#">
+
+  <prov:plan prov:id="tr:WD-prov-dm-20111215">
+    <prov:type xsi:type="xsd:QName">ex:Workflow</prov:type>
+    <prov:type>prov:Entity</prov:type>
+    <prov:type>prov:Plan</prov:type>
+  </prov:plan>
+
+</prov:document>

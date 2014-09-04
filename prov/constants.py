@@ -1,3 +1,6 @@
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
+
 #  # PROV record constants - PROV-DM
 
 # Built-in namespaces
@@ -5,6 +8,7 @@ from prov.identifier import Namespace
 
 XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')
+XSI = Namespace('xsi', 'http://www.w3.org/2001/XMLSchema-instance')
 
 #  C1. Entities/Activities
 PROV_ENTITY = PROV['Entity']
@@ -54,6 +58,54 @@ PROV_N_MAP = {
     PROV_MENTION:              u'mentionOf',
     PROV_MEMBERSHIP:           u'hadMember',
     PROV_BUNDLE:               u'bundle',
+}
+
+# Records defined as subtypes in PROV-N but top level types in for example
+# PROV XML also need a mapping.
+ADDITIONAL_N_MAP = {
+    PROV['Revision']:          u'wasRevisionOf',
+    PROV['Quotation']:         u'wasQuotedFrom',
+    PROV['PrimarySource']:     u'hadPrimarySource',
+    PROV['SofwareAgent']:      u'softwareAgent',
+    PROV['Person']:            u'person',
+    PROV['Organization']:      u'organization',
+    PROV['Plan']:              u'plan',
+    PROV['Collection']:        u'collection',
+    PROV['EmptyCollection']:   u'emptyCollection',
+}
+
+# Maps qualified names from the PROV namespace to their base class. If it
+# has no baseclass it maps to itsself. This is needed for example for PROV
+# XML (de)serializer where extended types are used a lot.
+PROV_BASE_CLS = {
+    PROV_ENTITY:               PROV_ENTITY,
+    PROV_ACTIVITY:             PROV_ACTIVITY,
+    PROV_GENERATION:           PROV_GENERATION,
+    PROV_USAGE:                PROV_USAGE,
+    PROV_COMMUNICATION:        PROV_COMMUNICATION,
+    PROV_START:                PROV_START,
+    PROV_END:                  PROV_END,
+    PROV_INVALIDATION:         PROV_INVALIDATION,
+    PROV_DERIVATION:           PROV_DERIVATION,
+    PROV['Revision']:          PROV_DERIVATION,
+    PROV['Quotation']:         PROV_DERIVATION,
+    PROV['PrimarySource']:     PROV_DERIVATION,
+    PROV_AGENT:                PROV_AGENT,
+    PROV['SofwareAgent']:      PROV_AGENT,
+    PROV['Person']:            PROV_AGENT,
+    PROV['Organization']:      PROV_AGENT,
+    PROV_ATTRIBUTION:          PROV_ATTRIBUTION,
+    PROV_ASSOCIATION:          PROV_ASSOCIATION,
+    PROV['Plan']:              PROV_ENTITY,
+    PROV_DELEGATION:           PROV_DELEGATION,
+    PROV_INFLUENCE:            PROV_INFLUENCE,
+    PROV_ALTERNATE:            PROV_ALTERNATE,
+    PROV_SPECIALIZATION:       PROV_SPECIALIZATION,
+    PROV_MENTION:              PROV_MENTION,
+    PROV['Collection']:        PROV_ENTITY,
+    PROV['EmptyCollection']:   PROV_ENTITY,
+    PROV_MEMBERSHIP:           PROV_MEMBERSHIP,
+    PROV_BUNDLE:               PROV_ENTITY
 }
 
 # Identifiers for PROV's attributes

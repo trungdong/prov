@@ -1,0 +1,53 @@
+<prov:document
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:prov="http://www.w3.org/ns/prov#"
+    xmlns:ex="http://example.com/ns/ex#">
+
+  <prov:activity prov:id="ex:a">
+    <prov:type xsi:type="xsd:QName">workflow</prov:type>
+  </prov:activity>
+
+  <prov:agent prov:id="ex:ag1">
+    <prov:type xsi:type="xsd:QName">programmer</prov:type>
+  </prov:agent>
+
+  <prov:agent prov:id="ex:ag2">
+    <prov:type xsi:type="xsd:QName">researcher</prov:type>
+  </prov:agent>
+
+  <prov:agent prov:id="ex:ag3">
+    <prov:type xsi:type="xsd:QName">funder</prov:type>
+  </prov:agent>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:agent prov:ref="ex:ag1"/>
+    <prov:role xsi:type="xsd:QName">loggedInUser</prov:role>
+  </prov:wasAssociatedWith>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:agent prov:ref="ex:ag2"/>
+  </prov:wasAssociatedWith>
+
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:agent prov:ref="ex:ag3"/>
+  </prov:wasAssociatedWith>
+
+  <prov:actedOnBehalfOf>
+    <prov:delegate prov:ref="ex:ag1"/>
+    <prov:responsible prov:ref="ex:ag2"/>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:type xsi:type="xsd:QName">line-management</prov:type>
+  </prov:actedOnBehalfOf>
+
+  <prov:actedOnBehalfOf>
+    <prov:delegate prov:ref="ex:ag2"/>
+    <prov:responsible prov:ref="ex:ag3"/>
+    <prov:activity prov:ref="ex:a"/>
+    <prov:type xsi:type="xsd:QName">contract</prov:type>
+  </prov:actedOnBehalfOf>
+
+</prov:document>
