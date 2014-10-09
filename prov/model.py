@@ -807,7 +807,7 @@ class ProvBundle(object):
         )
         if records:
             for record in records:
-                self._add_record(record)
+                self.add_record(record)
 
     def __repr__(self):
         return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
