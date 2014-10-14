@@ -88,7 +88,7 @@ def encoding_provn_value(value):
     if isinstance(value, basestring):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
-        return value.isoformat()
+        return u'"{0}" %% xsd:dateTime'.format(value.isoformat())
     elif isinstance(value, float):
         return u'"%g" %%%% xsd:float' % value
     elif isinstance(value, bool):
