@@ -1,7 +1,12 @@
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
+
 class Identifier(object):
+    """Base class for all identifiers and also represents xsd:anyURI
+    """
+    # TODO: make Identifier an "abstract" base class and move xsd:anyURI into a subclass
+
     def __init__(self, uri):
         self._uri = unicode(uri)  # Ensure this is a unicode string
 
@@ -19,7 +24,7 @@ class Identifier(object):
         return self.uri == other.uri if isinstance(other, Identifier) else False
 
     def __hash__(self):
-        return hash(self.uri)
+        return hash((self.uri, self.__class__))
 
     def __repr__(self):
         return u'<%s: %s>' % (self.__class__.__name__, self._uri)
@@ -51,6 +56,9 @@ class QualifiedName(Identifier):
 
     def __repr__(self):
         return u'<%s: %s>' % (self.__class__.__name__, self._str)
+
+    def __hash__(self):
+        return hash(self.uri)
 
     def provn_representation(self):
         return u"'%s'" % self._str
