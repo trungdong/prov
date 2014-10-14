@@ -184,7 +184,6 @@ class ProvRecord(object):
         self._bundle = bundle
         self._identifier = identifier
         self._attributes = defaultdict(set)
-        self.formal_attributes # touch to trigger setting attributes for all
         if attributes:
             self.add_attributes(attributes)
 
@@ -225,7 +224,10 @@ class ProvRecord(object):
 
     @property
     def formal_attributes(self):
-        return tuple((attr_name, first(self._attributes[attr_name])) for attr_name in self.FORMAL_ATTRIBUTES)
+        return tuple(
+            (attr_name, first(self._attributes[attr_name]))
+            for attr_name in self.FORMAL_ATTRIBUTES
+        )
 
     @property
     def extra_attributes(self):
@@ -346,13 +348,12 @@ class ProvRecord(object):
 
         # Writing out the formal attributes
         for attr in self.FORMAL_ATTRIBUTES:
-            if attr in self._attributes:
+            if attr in self._attributes and self._attributes[attr]:
                 value = first(self._attributes[attr])  # Formal attributes always have single values
                 # TODO: QName export
-                if value is not None:
-                    items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
-                else:
-                    items.append(u'-')
+                items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
+            else:
+                items.append(u'-')
 
         # Writing out the remaining attributes
         extra = []
