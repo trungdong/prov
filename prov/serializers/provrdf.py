@@ -6,11 +6,14 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import base64
 import datetime
+import dateutil.parser
 from prov import Serializer, Error
 from prov.constants import *
 from prov.model import (Literal, Identifier, QualifiedName, Namespace,
-                        ProvRecord, ProvDocument)
+                        ProvRecord, ProvDocument, XSDQName)
+import prov.model as pm
 
 attr2rdf = lambda attr: URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].uri)
 
@@ -45,6 +48,12 @@ LITERAL_XSDTYPE_MAP = {
     # datetime values are converted separately
 }
 
+def valid_qualified_name(bundle, value, xsd_qname=False):
+    if value is None:
+        return None
+    qualified_name = bundle.valid_qualified_name(value)
+    return qualified_name if not xsd_qname else XSDQName(qualified_name)
+
 
 class ProvRDFSerializer(Serializer):
     def serialize(self, stream=None, **kwargs):
@@ -67,36 +76,84 @@ class ProvRDFSerializer(Serializer):
         return document
 
     def valid_identifier(self, value):
-        return self.document.valid_identifier(value)
+        return self.document.valid_qualified_name(value)
 
     def encode_rdf_representation(self, value):
+        #print value, type(value) #dbg
         if isinstance(value, URIRef):
             return value
         elif isinstance(value, Literal):
             return literal_rdf_representation(value)
         elif isinstance(value, datetime.datetime):
             return RDFLiteral(value.isoformat(), datatype=XSD['dateTime'])
-        elif isinstance(value, (QualifiedName, Identifier)):
+        elif isinstance(value, QualifiedName):
+            return URIRef(value.uri) #, datatype=XSD['QName'])
+        elif isinstance(value, XSDQName):
+            return URIRef(value.uri) #, datatype=XSD['QName'])
+        elif isinstance(value, Identifier):
             return URIRef(value.uri)
         elif type(value) in LITERAL_XSDTYPE_MAP:
             return RDFLiteral(value, datatype=LITERAL_XSDTYPE_MAP[type(value)])
         else:
             return RDFLiteral(value)
 
+    """
     def decode_rdf_representation(self, literal):
-        if isinstance(literal, dict):
+        if isinstance(literal, RDFLiteral):
             # complex type
-            value = literal['$']
-            datatype = literal['type'] if 'type' in literal else None
-            langtag = literal['lang'] if 'lang' in literal else None
-            if datatype == u'xsd:anyURI':
+            value = literal.value if literal.value is not None else literal
+            datatype = literal.datatype if hasattr(literal, 'datatype') else None
+            langtag = literal.language if hasattr(literal, 'language') else None
+            datatype = valid_qualified_name(self.document, datatype)
+            if datatype == XSD_ANYURI:
                 return Identifier(value)
-            elif datatype == u'prov:QualifiedName':
+            elif datatype == XSD_QNAME:
+                return valid_qualified_name(self.document, value, xsd_qname=True)
+            elif datatype == PROV_QUALIFIEDNAME:
+                return valid_qualified_name(self.document, value)
+            else:
+                # The literal of standard Python types is not converted here
+                # It will be automatically converted when added to a record by _auto_literal_conversion()
+                return Literal(value, datatype, langtag)
+        elif isinstance(literal, URIRef):
+            val = unicode(literal)
+            return Identifier(val)
+        else:
+            # simple type, just return it
+            return literal
+
+    """
+    def decode_rdf_representation(self, literal):
+        #print(('Decode', literal))
+        if isinstance(literal, RDFLiteral):
+            value = literal.value if literal.value is not None else literal
+            datatype = literal.datatype if hasattr(literal, 'datatype') else None
+            langtag = literal.language if hasattr(literal, 'language') else None
+            if datatype and 'base64Binary' in datatype:
+                value = base64.standard_b64encode(value)
+            #print((value, datatype, langtag)) #dbg
+            '''
+            if datatype == XSD['anyURI']:
+                return Identifier(value)
+            elif datatype == PROV['QualifiedName']:
                 return self.valid_identifier(value)
+            '''
+            if datatype == XSD['QName']:
+                for ns in self.document.namespaces:
+                    if literal.startswith(ns.prefix):
+                        return pm.XSDQName(QualifiedName(ns,
+                                                         literal.replace(ns.prefix + ':',
+                                                                         '')))
+                raise Exception('No namespace found for: %s' % literal)
+            if datatype == XSD['dateTime']:
+                return dateutil.parser.parse(literal)
             else:
                 # The literal of standard Python types is not converted here
                 # It will be automatically converted when added to a record by _auto_literal_conversion()
                 return Literal(value, self.valid_identifier(datatype), langtag)
+        elif isinstance(literal, URIRef):
+            val = unicode(literal)
+            return Identifier(val)
         else:
             # simple type, just return it
             return literal
@@ -127,16 +184,19 @@ class ProvRDFSerializer(Serializer):
         for record in bundle._records:
             rec_type = record.get_type()
             rec_label = PROV[PROV_N_MAP[rec_type]].uri
-            if record.is_relation():
-                identifier = None
-            else:
+            if hasattr(record, 'identifier') and record.identifier: #record.is_relation():
                 identifier = URIRef(unicode(real_or_anon_id(record)))
                 container.add((identifier, RDF.type, URIRef(rec_type.uri)))
+            else:
+                identifier = None
             if record.attributes:
                 bnode = None
                 formal_objects = []
                 used_objects = []
-                for idx, (attr, value) in enumerate(record.attributes):
+                all_attributes = set(record.formal_attributes).union(set(record.attributes))
+                for idx, (attr, value) in enumerate(all_attributes):
+                    #print identifier, idx, attr, value
+                    #print record, rec_type.uri
                     if record.is_relation():
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
                         # create bnode relation
@@ -144,31 +204,79 @@ class ProvRDFSerializer(Serializer):
                             for key, val in record.formal_attributes:
                                 formal_objects.append(key)
                             used_objects = [record.formal_attributes[0][0]]
-                            identifier = URIRef(record.formal_attributes[0][1].uri)
-                            try:
-                                obj_val = record.formal_attributes[1][1]
-                                obj_attr = URIRef(record.formal_attributes[1][0].uri)
-                            except IndexError:
-                                obj_val = None
-                            if obj_val:
-                                used_objects.append(record.formal_attributes[1][0])
-                                obj_val = self.encode_rdf_representation(obj_val)
-                                container.add((identifier, pred, obj_val))
-                            QRole = URIRef(PROV['qualified' +
-                                                rec_type.get_localpart()].uri)
-                            bnode = BNode()
-                            container.add((identifier, QRole, bnode))
-                            container.add((bnode, RDF.type,
-                                           URIRef(rec_type.uri)))
-                            # reset identifier to BNode
-                            identifier = bnode
-                            if obj_val:
-                                container.add((identifier, obj_attr, obj_val))
-                        if value and attr not in used_objects:
+                            subj = None
+                            if record.formal_attributes[0][1]:
+                                subj = URIRef(record.formal_attributes[0][1].uri)
+                            if identifier is None and subj is not None:
+                                try:
+                                    obj_val = record.formal_attributes[1][1]
+                                    obj_attr = URIRef(record.formal_attributes[1][0].uri)
+                                except IndexError:
+                                    obj_val = None
+                                if obj_val:
+                                    used_objects.append(record.formal_attributes[1][0])
+                                    obj_val = self.encode_rdf_representation(obj_val)
+                                    container.add((subj, pred, obj_val))
+                                #print identifier, pred, obj_val
+                            if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
+                                continue
+                            if subj and identifier:
+                                QRole = URIRef(PROV['qualified' +
+                                                    rec_type._localpart].uri)
+                                container.add((subj, QRole, identifier))
+
+                            '''
+                            for key, val in record.formal_attributes:
+                                formal_objects.append(key)
+                            used_objects = [record.formal_attributes[0][0]]
+                            if record.formal_attributes[0][1]:
+                                identifier = URIRef(record.formal_attributes[0][1].uri)
+                                try:
+                                    obj_val = record.formal_attributes[1][1]
+                                    obj_attr = URIRef(record.formal_attributes[1][0].uri)
+                                except IndexError:
+                                    obj_val = None
+                                if obj_val:
+                                    used_objects.append(record.formal_attributes[1][0])
+                                    obj_val = self.encode_rdf_representation(obj_val)
+                                    container.add((identifier, pred, obj_val))
+                                print identifier, pred, obj_val
+                                if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
+                                    continue
+                                QRole = URIRef(PROV['qualified' +
+                                                    rec_type._localpart].uri)
+                                if hasattr(record, 'identifier') and record.identifier:
+                                    bnode = URIRef(record.identifier.uri)
+                                else:
+                                    bnode = BNode()
+                                container.add((identifier, QRole, bnode))
+                                container.add((bnode, RDF.type,
+                                               URIRef(rec_type.uri)))
+                                # reset identifier to BNode
+                                identifier = bnode
+                                print identifier, obj_attr, obj_val #dbg
+                                if obj_val:
+                                    container.add((identifier, obj_attr, obj_val))
+                            '''
+                        if value is not None and attr not in used_objects:
+                            #print 'attr', attr #dbg
                             if attr in formal_objects:
                                 pred = attr2rdf(attr)
+                            elif attr == PROV['role']:
+                                pred = URIRef(PROV['hadRole'].uri)
+                            elif attr == PROV['plan']:
+                                pred = URIRef(PROV['hadPlan'].uri)
+                            elif attr == PROV['type']:
+                                pred = RDF.type
+                            elif attr == PROV['label']:
+                                pred = RDFS.label
+                            elif isinstance(attr, QualifiedName):
+                                pred = URIRef(attr.uri)
                             else:
                                 pred = self.encode_rdf_representation(attr)
+                            if PROV['plan'].uri in pred:
+                                pred = URIRef(PROV['hadPlan'].uri)
+                            #print pred #dbg
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
@@ -183,12 +291,14 @@ class ProvRDFSerializer(Serializer):
                         pred = URIRef(PROV['atLocation'].uri)
                         if isinstance(value, (URIRef, QualifiedName)):
                             if isinstance(value, QualifiedName):
+                                #value = RDFLiteral(unicode(value), datatype=XSD['QName'])
                                 value = URIRef(value.uri)
                             container.add((identifier, pred, value))
-                            container.add((value, RDF.type,
-                                           URIRef(PROV['Location'].uri)))
+                            #container.add((value, RDF.type,
+                            #               URIRef(PROV['Location'].uri)))
                         else:
-                            container.add((identifier, pred, obj))
+                            container.add((identifier, pred,
+                                           self.encode_rdf_representation(obj)))
                         continue
                     #pred = attr2rdf(attr)
                     if attr == PROV['type']:
@@ -201,18 +311,118 @@ class ProvRDFSerializer(Serializer):
         return container
 
     def decode_document(self, content, document):
-        bundles = dict()
-        if u'bundle' in content:
-            bundles = content[u'bundle']
-            del content[u'bundle']
+        for prefix, url in content.namespaces():
+            #if prefix in ['rdf', 'rdfs', 'xml']:
+            #    continue
+            document.add_namespace(prefix, unicode(url))
+        if hasattr(content, 'contexts'):
+            for graph in content.contexts():
+                bundle_id = unicode(graph.identifier)
+                bundle = document.bundle(bundle_id)
+                self.decode_container(graph, bundle)
+        else:
+            self.decode_container(content, document)
 
-        self.decode_container(content, document)
+    def decode_container(self, graph, bundle):
+        ids = {}
+        PROV_CLS_MAP = {}
+        for key, val in PROV_N_MAP.items():
+            PROV_CLS_MAP[key.uri] = val
+        for key, val in ADDITIONAL_N_MAP.items():
+            PROV_CLS_MAP[key.uri] = val
+        for stmt in graph.triples((None, RDF.type, None)):
+            id = unicode(stmt[0])
+            obj = unicode(stmt[2])
+            #print obj, type(obj), obj in PROV_CLS_MAP #dbg
+            if obj in PROV_CLS_MAP:
+                #print 'obj_found' #dbg
+                try:
+                    prov_obj = getattr(bundle, PROV_CLS_MAP[obj])(identifier=id)
+                except TypeError, e:
+                    #print e
+                    prov_obj = getattr(bundle, PROV_CLS_MAP[obj])
+                if id not in ids:
+                    ids[id] = prov_obj
+                else:
+                    raise ValueError(('An object cannot be of two different '
+                                     'PROV types'))
+        other_attributes = {}
+        for stmt in graph.triples((None, RDF.type, None)):
+            id = unicode(stmt[0])
+            if id not in other_attributes:
+                other_attributes[id] = []
+            obj = unicode(stmt[2]) #unicode(stmt[2]).replace('http://www.w3.org/ns/prov#', '').lower()
+            if obj in PROV_CLS_MAP:
+                continue
+            elif id in ids:
+                obj = self.decode_rdf_representation(stmt[2])
+                if hasattr(ids[id], '__call__'):
+                    other_attributes[id].append((pm.PROV['type'], obj))
+                else:
+                    ids[id].add_attributes([(pm.PROV['type'], obj)])
+        for id, pred, obj in graph:
+            #print((id, pred, obj)) #dbg
+            id = unicode(id)
+            if id not in other_attributes:
+                other_attributes[id] = []
+            if pred == RDF.type:
+                continue
+            elif pred == URIRef(PROV['alternateOf'].uri):
+                bundle.alternate(id, unicode(obj))
+            elif pred == URIRef(PROV['wasAssociatedWith'].uri):
+                bundle.association(id, unicode(obj))
+            elif id in ids:
+                #print((id, pred, obj)) #dbg
+                obj1 = self.decode_rdf_representation(obj)
+                if pred == RDFS.label:
+                    if hasattr(ids[id], '__call__'):
+                        other_attributes[id].append((pm.PROV['label'], obj1))
+                    else:
+                        ids[id].add_attributes([(pm.PROV['label'], obj1)])
+                elif pred == URIRef(PROV['atLocation'].uri):
+                    ids[id].add_attributes([(pm.PROV['location'], obj1)])
+                else:
+                    if hasattr(ids[id], '__call__'):
+                        if ids[id].__name__ == 'association':
+                            if 'agent' in unicode(pred):
+                                aid = ids[id](None, agent=obj1,
+                                              identifier=unicode(id))
+                                ids[id] = aid
+                                if other_attributes[id]:
+                                    aid.add_attributes(other_attributes[id])
+                                    other_attributes[id] = []
+                            else:
+                                if 'hadPlan' in pred:
+                                    pred = pm.PROV_ATTR_PLAN
+                                elif 'hadRole' in pred:
+                                    pred = PROV_ROLE
+                                other_attributes[id].append((pred, obj1))
+                    else:
+                        if 'hadPlan' in pred:
+                            ids[id].add_attributes([(pm.PROV_ATTR_PLAN, obj1)])
+                        elif 'hadRole' in pred:
+                            ids[id].add_attributes([(PROV_ROLE,
+                                                     obj1)])
+                        else:
+                            ids[id].add_attributes([(unicode(pred), obj1)])
+            if unicode(obj) in ids:
+                #print obj #dbg
+                if pred == URIRef(PROV['qualifiedAssociation'].uri):
+                    if hasattr(ids[unicode(obj)], '__call__'):
+                        aid = ids[unicode(obj)](id, identifier=unicode(obj))
+                        if other_attributes[id]:
+                            aid.add_attributes(other_attributes[id])
+                            other_attributes[id] = []
+                        ids[unicode(obj)] = aid
+                    else:
+                        ids[unicode(obj)].add_attributes([(pm.PROV_ATTR_ACTIVITY,
+                                                           id)])
+            #print other_attributes #dbg
+        for key, val in other_attributes.items():
+            if val:
+                ids[key].add_attributes(val)
 
-        for bundle_id, bundle_content in bundles.items():
-            bundle = document.bundle(bundle_id)
-            self.decode_container(bundle_content, bundle)
-
-    def decode_container(self, jc, bundle):
+        '''
         if u'prefix' in jc:
             prefixes = jc[u'prefix']
             for prefix, uri in prefixes.items():
@@ -278,19 +488,24 @@ class ProvRDFSerializer(Serializer):
                             collection = prov_attributes[PROV_ATTR_COLLECTION]
                             for member in membership_extra_members:
                                 bundle.membership(collection, self.valid_identifier(member))
-
+        '''
 
 def literal_rdf_representation(literal):
-    if literal.get_langtag():
+    value = unicode(literal.value) if literal.value else literal
+    if literal.langtag:
         #  a language tag can only go with prov:InternationalizedString
-        return RDFLiteral(unicode(literal.get_value()),
-                          lang=str(literal.get_langtag()))
+        return RDFLiteral(value, lang=str(literal.langtag))
     else:
-        datatype = literal.get_datatype()
+        datatype = literal.datatype
+        '''
         if isinstance(datatype, QualifiedName):
-            return RDFLiteral(unicode(literal.get_value()),
+            print 'QName', datatype, datatype.uri
+            return RDFLiteral(unicode(literal.value),
                               datatype=unicode(datatype))
         else:
             #  Assuming it is a valid identifier
-            return RDFLiteral(unicode(literal.get_value()),
-                              datatype=datatype.uri)
+            print 'URI', datatype
+        '''
+        if 'base64Binary' in datatype.uri:
+            value = base64.standard_b64encode(value)
+        return RDFLiteral(value, datatype=datatype.uri)
