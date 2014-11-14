@@ -87,9 +87,12 @@ class ProvRDFSerializer(Serializer):
         elif isinstance(value, datetime.datetime):
             return RDFLiteral(value.isoformat(), datatype=XSD['dateTime'])
         elif isinstance(value, QualifiedName):
-            return URIRef(value.uri) #, datatype=XSD['QName'])
+            #if value.namespace == PROV:
+                return URIRef(value.uri) #, datatype=XSD['QName'])
+            #else:
+            #    return RDFLiteral(value, datatype=XSD['QName'])
         elif isinstance(value, XSDQName):
-            return URIRef(value.uri) #, datatype=XSD['QName'])
+            return RDFLiteral(value, datatype=XSD['QName'])
         elif isinstance(value, Identifier):
             return URIRef(value.uri)
         elif type(value) in LITERAL_XSDTYPE_MAP:
@@ -193,7 +196,9 @@ class ProvRDFSerializer(Serializer):
                 bnode = None
                 formal_objects = []
                 used_objects = []
-                all_attributes = set(record.formal_attributes).union(set(record.attributes))
+                all_attributes = list(record.formal_attributes) + list(record.attributes)
+                #print all_attributes
+                #all_attributes = set(record.formal_attributes).union(set(record.attributes))
                 for idx, (attr, value) in enumerate(all_attributes):
                     #print identifier, idx, attr, value
                     #print record, rec_type.uri
@@ -220,11 +225,17 @@ class ProvRDFSerializer(Serializer):
                                 #print identifier, pred, obj_val
                             if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
                                 continue
-                            if subj and identifier:
+                            if subj:
                                 QRole = URIRef(PROV['qualified' +
                                                     rec_type._localpart].uri)
-                                container.add((subj, QRole, identifier))
-
+                                if identifier is not None:
+                                    container.add((subj, QRole, identifier))
+                                else:
+                                    identifier = BNode()
+                                    container.add((subj, QRole, identifier))
+                                    container.add((identifier, RDF.type,
+                                                   URIRef(rec_type.uri)))
+                                               # reset identifier to BNode
                             '''
                             for key, val in record.formal_attributes:
                                 formal_objects.append(key)
@@ -276,7 +287,7 @@ class ProvRDFSerializer(Serializer):
                                 pred = self.encode_rdf_representation(attr)
                             if PROV['plan'].uri in pred:
                                 pred = URIRef(PROV['hadPlan'].uri)
-                            #print pred #dbg
+                            #print identifier, pred, value #dbg
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
@@ -287,9 +298,10 @@ class ProvRDFSerializer(Serializer):
                     else:
                         #  Assuming this is a datetime value
                         obj = self.encode_rdf_representation(value)
+                    #print type(value), type(obj)
                     if attr == PROV['location']:
                         pred = URIRef(PROV['atLocation'].uri)
-                        if isinstance(value, (URIRef, QualifiedName)):
+                        if False and isinstance(value, (URIRef, QualifiedName)):
                             if isinstance(value, QualifiedName):
                                 #value = RDFLiteral(unicode(value), datatype=XSD['QName'])
                                 value = URIRef(value.uri)
@@ -315,6 +327,9 @@ class ProvRDFSerializer(Serializer):
             #if prefix in ['rdf', 'rdfs', 'xml']:
             #    continue
             document.add_namespace(prefix, unicode(url))
+        for bundle_stmt in content.triples((None, RDF.type,
+                                            URIRef(pm.PROV['bundle'].uri))):
+            bundle_id = unicode(bundle_stmt[0])
         if hasattr(content, 'contexts'):
             for graph in content.contexts():
                 bundle_id = unicode(graph.identifier)
