@@ -245,6 +245,9 @@ class TestExtras(unittest.TestCase):
                     new_document = ProvDocument.deserialize(source=buf,
                                                             format=format)
                     self.assertEqual(document, new_document)
+                except NotImplementedError:
+                    # Some serializers might not implement serialize or deserialize method
+                    pass  # and this is fine in the context of this test
                 finally:
                     buf.close()
 

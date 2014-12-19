@@ -1,6 +1,7 @@
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
+import io
 import logging
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,9 @@ class ProvNSerializer(Serializer):
         :param stream: Where to save the output.
         """
         provn_content = self.document.get_provn()
-        stream.write(provn_content.encode('utf-8'))
+        if isinstance(stream, io.BytesIO):
+            provn_content = provn_content.encode('utf-8')
+        stream.write(provn_content)
 
     def deserialize(self, stream, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
