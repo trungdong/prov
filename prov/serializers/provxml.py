@@ -1,6 +1,3 @@
-"""
-PROV-XML serializers for ProvDocument
-"""
 __author__ = 'Lion Krischer'
 __email__ = 'krischer@geophysik.uni-muenchen.de'
 
@@ -33,9 +30,11 @@ class ProvXMLException(prov.Error):
 
 
 class ProvXMLSerializer(prov.serializers.Serializer):
+    """PROV-XML serializer for :class:`~prov.model.ProvDocument`
+    """
     def serialize(self, stream, force_types=False, **kwargs):
         """
-        Serializes to PROV XML.
+        Serializes a :class:`~prov.model.ProvDocument` instance to `PROV-XML <http://www.w3.org/TR/prov-xml/>`_.
 
         :param stream: Where to save the output.
         :type force_types: boolean, optional
@@ -221,7 +220,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
     def deserialize(self, stream, **kwargs):
         """
-        Deserialize from PROV XML to the internal prov document representation.
+        Deserialize from `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ representation to a
+        :class:`~prov.model.ProvDocument` instance.
 
         :param stream: Input data.
         """

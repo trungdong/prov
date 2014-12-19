@@ -35,10 +35,12 @@ class Registry:
     @staticmethod
     def load_serializers():
         from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provn import ProvNSerializer
         from prov.serializers.provxml import ProvXMLSerializer
 
         Registry.serializers = {
             'json': ProvJSONSerializer,
+            'provn': ProvNSerializer,
             'xml': ProvXMLSerializer
         }
 

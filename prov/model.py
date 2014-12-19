@@ -1400,7 +1400,7 @@ class ProvDocument(ProvBundle):
 
     # Serializing and deserializing
     def serialize(self, destination=None, format='json', **args):
-        """Serialize the ProvDocument to destination
+        """Serialize the :class:`ProvDocument` to destination
 
         If destination is None serialize method returns the serialization as a
         string. Format defaults to PROV-JSON.
@@ -1432,7 +1432,7 @@ class ProvDocument(ProvBundle):
 
     @staticmethod
     def deserialize(source=None, content=None, format='json', **args):
-        """Deserialize the ProvDocument from source (a stream or a filepath) or directly from a string content
+        """Deserialize the :class:`ProvDocument` from source (a stream or a filepath) or directly from a string content
 
         Format defaults to PROV-JSON.
         """

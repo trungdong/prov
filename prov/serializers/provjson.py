@@ -1,6 +1,3 @@
-"""PROV-JSON serializers for ProvDocument
-
-"""
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
@@ -45,10 +42,13 @@ LITERAL_XSDTYPE_MAP = {
 
 
 class ProvJSONSerializer(Serializer):
+    """PROV-JSON serializer for :class:`~prov.model.ProvDocument`
+
+    """
     def serialize(self, stream, **kwargs):
         """
-        Serializes a :class:`prov.model.ProvDocument` instance to
-        `PROV JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_.
+        Serializes a :class:`~prov.model.ProvDocument` instance to
+        `PROV-JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_.
 
         :param stream: Where to save the output.
         """
@@ -69,8 +69,8 @@ class ProvJSONSerializer(Serializer):
 
     def deserialize(self, stream, **kwargs):
         """
-        Deserialize from the `PROV JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_ representation to
-        :class:`prov.model.ProvDocument` instance.
+        Deserialize from the `PROV JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_ representation to a
+        :class:`~prov.model.ProvDocument` instance.
 
         :param stream: Input data.
         """
