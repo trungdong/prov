@@ -10,21 +10,6 @@ class Error(Exception):
     pass
 
 
-class Serializer(object):
-    def __init__(self, document=None):
-        self.document = document
-
-    def serialize(self, stream, **kwargs):
-        """
-        Abstract method for serializing
-        """
-
-    def deserialize(self, stream, **kwargs):
-        """
-        Abstract method for deserializing
-        """
-
-
 def read(source, format=None):
     """
     Convenience function returning a ProvDocument instance.

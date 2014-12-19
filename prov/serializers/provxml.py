@@ -32,7 +32,7 @@ class ProvXMLException(prov.Error):
     pass
 
 
-class ProvXMLSerializer(prov.Serializer):
+class ProvXMLSerializer(prov.serializers.Serializer):
     def serialize(self, stream, force_types=False, **kwargs):
         """
         Serializes to PROV XML.

@@ -12,7 +12,7 @@ import datetime
 import io
 import json
 import StringIO
-from prov import Serializer, Error
+from prov.serializers import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
     first, parse_xsd_datetime
@@ -46,6 +46,12 @@ LITERAL_XSDTYPE_MAP = {
 
 class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
+        """
+        Serializes a :class:`prov.model.ProvDocument` instance to
+        `PROV JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_.
+
+        :param stream: Where to save the output.
+        """
         if isinstance(stream, (io.StringIO, io.BytesIO)):
             buf = StringIO.StringIO()
             try:
@@ -62,6 +68,12 @@ class ProvJSONSerializer(Serializer):
         json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
 
     def deserialize(self, stream, **kwargs):
+        """
+        Deserialize from the `PROV JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_ representation to
+        :class:`prov.model.ProvDocument` instance.
+
+        :param stream: Input data.
+        """
         return json.load(stream, cls=ProvJSONDecoder, **kwargs)
 
 
