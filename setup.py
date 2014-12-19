@@ -12,6 +12,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 requirements = [
     'python-dateutil',
+    'networkx',
     'lxml'
 ]
 
@@ -21,7 +22,7 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.1.0',
+    version='1.2.0',
     description='A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
