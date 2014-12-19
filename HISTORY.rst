@@ -3,6 +3,16 @@
 History
 -------
 
+1.2.0 (2014-12-19)
+^^^^^^^^^^^^^^^^^^
+* Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
+* Added: PROV-N serializer
+* Fixed: None values for empty formal attributes in PROV-N output (issue #60)
+* Fixed: PROV-N representation for xsd:dateTime (issue #58)
+* Fixed: Unintended merging of Identifier and QualifiedName values
+* Fixed: Cloning the records when creating a new document from them
+* Fixed: incorrect SoftwareAgent records in XML serialization
+
 1.1.0 (2014-08-21)
 ^^^^^^^^^^^^^^^^^^
 * Added: Support for `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ serialization and deserialization
