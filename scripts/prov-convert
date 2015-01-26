@@ -18,6 +18,7 @@ import os
 import sys
 import logging
 import traceback
+import six
 
 from prov.model import ProvDocument
 from prov.dot import prov_to_dot
@@ -41,6 +42,7 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
 }
 
 
+@six.python_2_unicode_compatible
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
     def __init__(self, msg):
@@ -48,9 +50,6 @@ class CLIError(Exception):
         self.msg = "E: %s" % msg
 
     def __str__(self):
-        return self.msg
-
-    def __unicode__(self):
         return self.msg
 
 

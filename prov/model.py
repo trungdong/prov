@@ -100,6 +100,7 @@ def encoding_provn_value(value):
         return six.text_type(value)
 
 
+@six.python_2_unicode_compatible
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
         self._value = six.text_type(value)  # value is always a string
@@ -119,11 +120,8 @@ class Literal(object):
         self._datatype = datatype
         self._langtag = six.text_type(langtag) if langtag is not None else None # langtag is always a string
 
-    def __unicode__(self):
-        return self.provn_representation()
-
     def __str__(self):
-        return six.text_type(self).encode('utf-8')
+        return self.provn_representation()
 
     def __repr__(self):
         return u'<Literal: %s>' % self.provn_representation()
@@ -169,15 +167,17 @@ class ProvWarning(Warning):
     pass
 
 
+@six.python_2_unicode_compatible
 class ProvExceptionInvalidQualifiedName(ProvException):
     def __init__(self, qname):
         self.qname = qname
 
-    def __unicode__(self):
+    def __str__(self):
         return u'Invalid Qualified Name: %s' % self.qname
 
 
 #  PROV records
+@six.python_2_unicode_compatible
 class ProvRecord(object):
     """Base class for PROV records."""
     FORMAL_ATTRIBUTES = ()
@@ -329,11 +329,8 @@ class ProvRecord(object):
 
         return set(self.attributes) == set(other.attributes)
 
-    def __unicode__(self):
-        return self.get_provn()
-
     def __str__(self):
-        return six.text_type(self).encode('utf-8')
+        return self.get_provn()
 
     def get_provn(self):
         items = []
