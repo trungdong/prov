@@ -24,7 +24,7 @@ from prov import Error, serializers
 import os
 import shutil
 import tempfile
-from urlparse import urlparse
+from six.moves.urllib.parse import urlparse
 
 from prov.identifier import Identifier, QualifiedName, XSDQName
 from prov.constants import *
