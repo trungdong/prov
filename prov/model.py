@@ -21,8 +21,6 @@ from copy import deepcopy
 import io
 from prov import Error, serializers
 
-from StringIO import StringIO
-
 import os
 import shutil
 import tempfile
@@ -1407,7 +1405,7 @@ class ProvDocument(ProvBundle):
         """
         serializer = serializers.get(format)(self)
         if destination is None:
-            stream = StringIO()
+            stream = io.StringIO()
             serializer.serialize(stream, **args)
             return stream.getvalue()
         if hasattr(destination, "write"):
@@ -1439,7 +1437,7 @@ class ProvDocument(ProvBundle):
         serializer = serializers.get(format)()
 
         if content is not None:
-            stream = StringIO(content)
+            stream = io.StringIO(content)
             return serializer.deserialize(stream, **args)
 
         if source is not None:

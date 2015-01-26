@@ -8,7 +8,6 @@ from collections import defaultdict
 import datetime
 import io
 import json
-import StringIO
 from prov.serializers import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
@@ -42,8 +41,8 @@ LITERAL_XSDTYPE_MAP = {
 
 
 class ProvJSONSerializer(Serializer):
-    """PROV-JSON serializer for :class:`~prov.model.ProvDocument`
-
+    """
+    PROV-JSON serializer for :class:`~prov.model.ProvDocument`
     """
     def serialize(self, stream, **kwargs):
         """
@@ -52,20 +51,20 @@ class ProvJSONSerializer(Serializer):
 
         :param stream: Where to save the output.
         """
-        if isinstance(stream, (io.StringIO, io.BytesIO)):
-            buf = StringIO.StringIO()
-            try:
-                json.dump(self.document, buf, cls=ProvJSONEncoder,
-                          **kwargs)
-                buf.seek(0, 0)
-                if isinstance(stream, io.BytesIO):
-                    stream.write(buf.read().encode('utf-8'))
-                else:
-                    stream.write(unicode(buf.read()))
-            finally:
-                buf.close()
-            return
-        json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
+        buf = io.BytesIO()
+        try:
+            json.dump(self.document, buf, cls=ProvJSONEncoder,
+                      **kwargs)
+            buf.seek(0, 0)
+            # Right now this is a bytestream. If the object to stream to is
+            # a text object is must be decoded. We assume utf-8 here which
+            # should be fine for almost every case.
+            if isinstance(stream, io.TextIOBase):
+                stream.write(buf.read().decode('utf-8'))
+            else:
+                stream.write(buf.read())
+        finally:
+            buf.close()
 
     def deserialize(self, stream, **kwargs):
         """
