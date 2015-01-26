@@ -4,13 +4,6 @@ import unittest
 
 from prov.model import ProvDocument
 
-try:
-    from cStringIO import StringIO
-    assert StringIO
-except ImportError:
-    from StringIO import StringIO
-    assert StringIO
-
 
 logger = logging.getLogger(__name__)
 

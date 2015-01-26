@@ -5,7 +5,6 @@ import datetime
 import logging
 from lxml import etree
 import io
-from StringIO import StringIO
 import warnings
 
 logger = logging.getLogger(__name__)
@@ -55,9 +54,9 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         # does not have the concept of an encoding as it should already
         # represent unicode code points.
         et = etree.ElementTree(xml_root)
-        if isinstance(stream, (io.StringIO, StringIO)):
-            stream.write(unicode(etree.tostring(et, xml_declaration=True,
-                                                pretty_print=True)))
+        if isinstance(stream, io.TextIOBase):
+            stream.write(etree.tostring(et, xml_declaration=True,
+                                        pretty_print=True).decode('utf-8'))
         else:
             et.write(stream, pretty_print=True, xml_declaration=True,
                      encoding="UTF-8")
@@ -225,7 +224,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
         :param stream: Input data.
         """
-        if isinstance(stream, (io.StringIO, StringIO)):
+        if isinstance(stream, io.TextIOBase):
             with io.BytesIO() as buf:
                 buf.write(stream.read().encode('utf-8'))
                 buf.seek(0, 0)

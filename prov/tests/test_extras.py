@@ -1,5 +1,4 @@
 import io
-from StringIO import StringIO
 import unittest
 
 from prov.model import *
@@ -231,7 +230,7 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
         document.entity(EX2_NS["test"])
 
-        objects = [io.BytesIO, io.StringIO, StringIO]
+        objects = [io.BytesIO, io.StringIO]
 
         Registry.load_serializers()
         formats = Registry.serializers.keys()
