@@ -812,6 +812,21 @@ class ProvBundle(object):
             for record in records:
                 self.add_record(record)
 
+    def __hash__(self):
+        """
+        Attempt to get a somewhat reliable hash.
+
+        This is not necessarilythe best idea as the object is mutable and
+        the hash will change alongside the object.
+        """
+        return hash((
+            self._identifier,
+            hash(frozenset(self._records)),
+            hash(self._document),
+            hash(frozenset(self._id_map.keys())),
+            hash(frozenset(frozenset(_i) for _i in self._id_map.values())),
+            hash(frozenset(self._namespaces.items()))))
+
     def __repr__(self):
         return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
 
