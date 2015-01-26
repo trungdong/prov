@@ -9,6 +9,7 @@ import logging
 from lxml import etree
 import io
 import warnings
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +105,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
         if bundle.identifier:
-            xml_bundle_root.attrib[_ns_prov("id")] = unicode(bundle.identifier)
+            xml_bundle_root.attrib[_ns_prov("id")] = six.text_type(bundle.identifier)
 
         for record in bundle._records:
             rec_type = record.get_type()
-            identifier = unicode(record._identifier) \
+            identifier = six.text_type(record._identifier) \
                 if record._identifier else None
 
             if identifier:
@@ -139,11 +140,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 elif isinstance(value, prov.model.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
                         subelem.attrib[_ns_xsi("type")] = "xsd:QName"
-                    v = unicode(value)
+                    v = six.text_type(value)
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
                 else:
-                    v = unicode(value)
+                    v = six.text_type(value)
 
                 # xsd type inference.
                 #
@@ -164,14 +165,14 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
-                        not unicode(value).startswith("prov:") and \
+                        not six.text_type(value).startswith("prov:") and \
                         not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
                         attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
                     if isinstance(value, bool):
                         xsd_type = XSD_BOOLEAN
                         v = v.lower()
-                    elif isinstance(value, (str, unicode)):
+                    elif isinstance(value, six.string_types):
                         xsd_type = XSD_STRING
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
@@ -190,7 +191,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = unicode(xsd_type)
+                        subelem.attrib[_ns_xsi("type")] = six.text_type(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -373,7 +374,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         "The element '%s' contains an attribute %s='%s' "
                         "which is not representable in the prov module's "
                         "internal data model and will thus be ignored." %
-                        (_t, unicode(key), unicode(value)), UserWarning)
+                        (_t, six.text_type(key), six.text_type(value)), UserWarning)
 
             if not subel.attrib:
                 _v = subel.text

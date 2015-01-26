@@ -26,6 +26,8 @@ from prov import Error, serializers
 import os
 import shutil
 import tempfile
+
+import six
 from six.moves.urllib.parse import urlparse
 
 from prov.identifier import Identifier, QualifiedName, XSDQName
@@ -62,7 +64,7 @@ DATATYPE_PARSERS = {
 
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
-    XSD_STRING: unicode,
+    XSD_STRING: six.text_type,
     XSD_DOUBLE: float,
     XSD_LONG: long,
     XSD_INT: int,
@@ -95,12 +97,12 @@ def encoding_provn_value(value):
         return u'"%i" %%%% xsd:boolean' % value
     else:
         # TODO: QName export
-        return unicode(value)
+        return six.text_type(value)
 
 
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
-        self._value = unicode(value)  # value is always a string
+        self._value = six.text_type(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug('Assuming prov:InternationalizedString as the type of "%s"@%s' % (value, langtag))
@@ -115,13 +117,13 @@ class Literal(object):
                 )
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
-        self._langtag = unicode(langtag) if langtag is not None else None  # langtag is always a string
+        self._langtag = six.text_type(langtag) if langtag is not None else None # langtag is always a string
 
     def __unicode__(self):
         return self.provn_representation()
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return six.text_type(self).encode('utf-8')
 
     def __repr__(self):
         return u'<Literal: %s>' % self.provn_representation()
@@ -151,9 +153,9 @@ class Literal(object):
     def provn_representation(self):
         if self._langtag:
             #  a language tag can only go with prov:InternationalizedString
-            return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._langtag))
+            return u'%s@%s' % (_ensure_multiline_string_triple_quoted(self._value), six.text_type(self._langtag))
         else:
-            return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), unicode(self._datatype))
+            return u'%s %%%% %s' % (_ensure_multiline_string_triple_quoted(self._value), six.text_type(self._datatype))
 
 
 # Exceptions and warnings
@@ -257,7 +259,7 @@ class ProvRecord(object):
             literal = literal.identifier
 
         if isinstance(literal, str):
-            return unicode(literal)
+            return six.text_type(literal)
         elif isinstance(literal, QualifiedName):
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
@@ -331,7 +333,7 @@ class ProvRecord(object):
         return self.get_provn()
 
     def __str__(self):
-        return unicode(self).encode('utf-8')
+        return six.text_type(self).encode('utf-8')
 
     def get_provn(self):
         items = []
@@ -339,7 +341,7 @@ class ProvRecord(object):
         # Generating identifier
         relation_id = u''  # default blank
         if self._identifier:
-            identifier = unicode(self._identifier)  # TODO: QName export
+            identifier = six.text_type(self._identifier)  # TODO: QName export
             if self.is_element():
                 items.append(identifier)
             else:
@@ -351,7 +353,7 @@ class ProvRecord(object):
             if attr in self._attributes and self._attributes[attr]:
                 value = first(self._attributes[attr])  # Formal attributes always have single values
                 # TODO: QName export
-                items.append(value.isoformat() if isinstance(value, datetime.datetime) else unicode(value))
+                items.append(value.isoformat() if isinstance(value, datetime.datetime) else six.text_type(value))
             else:
                 items.append(u'-')
 
@@ -366,7 +368,7 @@ class ProvRecord(object):
                     except AttributeError:
                         provn_represenation = encoding_provn_value(value)
                     # TODO: QName export
-                    extra.append(u'%s=%s' % (unicode(attr), provn_represenation))
+                    extra.append(u'%s=%s' % (six.text_type(attr), provn_represenation))
 
         if extra:
             items.append(u'[%s]' % u', '.join(extra))
@@ -750,7 +752,7 @@ class NamespaceManager(dict):
             # Only proceed for string or URI values
             return None
         # Try to generate a Qualified Name
-        str_value = qname.uri if isinstance(qname, Identifier) else unicode(qname)
+        str_value = qname.uri if isinstance(qname, Identifier) else six.text_type(qname)
         if str_value.startswith('_:'):
             # this is a blank node ID
             return None
@@ -790,7 +792,7 @@ class NamespaceManager(dict):
             return original_prefix
         count = 1
         while True:
-            new_prefix = '_'.join((original_prefix, unicode(count)))
+            new_prefix = '_'.join((original_prefix, six.text_type(count)))
             if new_prefix in self:
                 count += 1
             else:
@@ -928,7 +930,7 @@ class ProvBundle(object):
                     found = True
                     break
             if not found:
-                logger.debug("Equality (ProvBundle): Could not find this record: %s", unicode(record_a))
+                logger.debug("Equality (ProvBundle): Could not find this record: %s", six.text_type(record_a))
                 return False
         return True
 
@@ -1471,7 +1473,7 @@ def sorted_attributes(element, attributes):
     # first and then sorting by the text, also including the namespace
     # prefix if given.
     sort_fct = lambda x: (
-        unicode(x[0]), unicode(x[1].value if hasattr(x[1], "value") else x[1]))
+        six.text_type(x[0]), six.text_type(x[1].value if hasattr(x[1], "value") else x[1]))
 
     sorted_elements = []
     for item in order:

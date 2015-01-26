@@ -11,6 +11,8 @@ from collections import defaultdict
 import datetime
 import io
 import json
+import six
+
 from prov.serializers import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
@@ -108,7 +110,7 @@ def encode_json_document(document):
     for bundle in document.bundles:
         #  encoding the sub-bundle
         bundle_json = encode_json_container(bundle)
-        container['bundle'][unicode(bundle.identifier)] = bundle_json
+        container['bundle'][six.text_type(bundle.identifier)] = bundle_json
     return container
 
 
@@ -128,16 +130,16 @@ def encode_json_container(bundle):
     for record in bundle._records:
         rec_type = record.get_type()
         rec_label = PROV_N_MAP[rec_type]
-        identifier = unicode(real_or_anon_id(record))
+        identifier = six.text_type(real_or_anon_id(record))
 
         record_json = {}
         if record._attributes:
             for (attr, values) in record._attributes.items():
                 if not values:
                     continue
-                attr_name = unicode(attr)
+                attr_name = six.text_type(attr)
                 if attr in PROV_ATTRIBUTE_QNAMES:
-                    record_json[attr_name] = unicode(first(values))  # TODO: QName export
+                    record_json[attr_name] = six.text_type(first(values))  # TODO: QName export
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = first(values).isoformat()
                 else:
@@ -294,6 +296,6 @@ def literal_json_representation(literal):
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
-        return {'$': value, 'lang': langtag, 'type': unicode(datatype)}
+        return {'$': value, 'lang': langtag, 'type': six.text_type(datatype)}
     else:
-        return {'$': value, 'type': unicode(datatype)}
+        return {'$': value, 'type': six.text_type(datatype)}
