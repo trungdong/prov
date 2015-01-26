@@ -197,7 +197,7 @@ class TestExtras(unittest.TestCase):
 
         document.entity(identifier=EX_NS['e1'])
         document.agent(identifier=EX_NS['e1'])
-        self.assertEqual(len(document.get_records(ProvAgent)), 1)
+        self.assertEqual(len(list(document.get_records(ProvAgent))), 1)
         self.assertEqual(len(document.get_records()), 2)
 
     def test_bundle_name_clash(self):
