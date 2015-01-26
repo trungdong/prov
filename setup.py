@@ -13,7 +13,8 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 requirements = [
     'python-dateutil',
     'networkx',
-    'lxml'
+    'lxml',
+    'six'
 ]
 
 test_requirements = [
