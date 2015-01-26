@@ -36,7 +36,7 @@ from prov.constants import *
 
 # Data Types
 def _ensure_datetime(value):
-    if isinstance(value, basestring):
+    if isinstance(value, six.string_types):
         return dateutil.parser.parse(value)
     else:
         return value
@@ -82,12 +82,12 @@ first = lambda a_set: next(iter(a_set), None)
 
 
 def _ensure_multiline_string_triple_quoted(s):
-    format_str = u'"""%s"""' if isinstance(s, basestring) and '\n' in s else u'"%s"'
+    format_str = u'"""%s"""' if isinstance(s, six.string_types) and '\n' in s else u'"%s"'
     return format_str % s
 
 
 def encoding_provn_value(value):
-    if isinstance(value, basestring):
+    if isinstance(value, six.string_types):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
         return u'"{0}" %% xsd:dateTime'.format(value.isoformat())
@@ -748,7 +748,7 @@ class NamespaceManager(dict):
             return XSDQName(new_qname) if is_xsd_qname else new_qname
 
         # Trying to guess from here
-        if not isinstance(qname, (basestring, Identifier)):
+        if not isinstance(qname, (six.string_types, Identifier)):
             # Only proceed for string or URI values
             return None
         # Try to generate a Qualified Name
