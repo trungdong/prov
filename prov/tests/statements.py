@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 from prov.model import *
 
 EX_NS = Namespace('ex', 'http://example.org/')

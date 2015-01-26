@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
