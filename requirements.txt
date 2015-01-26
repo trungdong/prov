@@ -3,3 +3,4 @@ networkx>=1.9.1
 pydot==1.0.2
 pyparsing<2.0.0
 python-dateutil>=2.2
+six
