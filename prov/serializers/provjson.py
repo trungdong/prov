@@ -59,20 +59,36 @@ class ProvJSONSerializer(Serializer):
 
         :param stream: Where to save the output.
         """
-        buf = io.BytesIO()
-        try:
-            json.dump(self.document, buf, cls=ProvJSONEncoder,
-                      **kwargs)
-            buf.seek(0, 0)
-            # Right now this is a bytestream. If the object to stream to is
-            # a text object is must be decoded. We assume utf-8 here which
-            # should be fine for almost every case.
-            if isinstance(stream, io.TextIOBase):
-                stream.write(buf.read().decode('utf-8'))
-            else:
-                stream.write(buf.read())
-        finally:
-            buf.close()
+        if six.PY2:
+            buf = io.BytesIO()
+            try:
+                json.dump(self.document, buf, cls=ProvJSONEncoder,
+                          **kwargs)
+                buf.seek(0, 0)
+                # Right now this is a bytestream. If the object to stream to is
+                # a text object is must be decoded. We assume utf-8 here which
+                # should be fine for almost every case.
+                if isinstance(stream, io.TextIOBase):
+                    stream.write(buf.read().decode('utf-8'))
+                else:
+                    stream.write(buf.read())
+            finally:
+                buf.close()
+        else:
+            buf = io.StringIO()
+            try:
+                json.dump(self.document, buf, cls=ProvJSONEncoder,
+                          **kwargs)
+                buf.seek(0, 0)
+                # Right now this is a bytestream. If the object to stream to is
+                # a text object is must be decoded. We assume utf-8 here which
+                # should be fine for almost every case.
+                if isinstance(stream, io.TextIOBase):
+                    stream.write(buf.read())
+                else:
+                    stream.write(buf.read().encode('utf-8'))
+            finally:
+                buf.close()
 
     def deserialize(self, stream, **kwargs):
         """
@@ -81,6 +97,9 @@ class ProvJSONSerializer(Serializer):
 
         :param stream: Input data.
         """
+        if not isinstance(stream, io.TextIOBase):
+            buf = io.StringIO(stream.read().decode('utf-8'))
+            stream = buf
         return json.load(stream, cls=ProvJSONDecoder, **kwargs)
 
 
