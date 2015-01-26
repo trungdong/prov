@@ -66,7 +66,8 @@ DATATYPE_PARSERS = {
 XSD_DATATYPE_PARSERS = {
     XSD_STRING: six.text_type,
     XSD_DOUBLE: float,
-    XSD_LONG: long,
+    # long on Python 2, int on Python 3
+    XSD_LONG: six.integer_types[-1],
     XSD_INT: int,
     XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,

@@ -76,7 +76,8 @@ def add_further_attributes0(record):
         (EX_NS['tag2'], Literal("hola", langtag="es")),
         (EX2_NS['tag3'], "hi"),
         (EX_NS['tag'], 1),
-        (EX_NS['tag'], long(1)),
+        # long on python 2, int on python 3
+        (EX_NS['tag'], six.integer_types[-1](1)),
         (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
         (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
         (EX_NS['tag'], 1.0),

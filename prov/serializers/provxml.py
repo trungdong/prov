@@ -159,8 +159,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 #
                 # To enable a mapping of Python types to XML and back,
                 # the XSD type must be written for these types.
-                ALWAYS_CHECK = (bool, datetime.datetime, int, float, long,
-                                prov.identifier.Identifier)
+                ALWAYS_CHECK = [bool, datetime.datetime, float,
+                                prov.identifier.Identifier]
+                # Add long and int on Python 2, only int on Python 3.
+                ALWAYS_CHECK.extend(six.integer_types)
+                ALWAYS_CHECK = tuple(ALWAYS_CHECK)
                 if (force_types or
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
@@ -176,7 +179,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         xsd_type = XSD_STRING
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
-                    elif isinstance(value, (int, long)):
+                    elif isinstance(value, six.integer_types):
                         xsd_type = XSD_INT
                     elif isinstance(value, datetime.datetime):
                         # Exception of the exception, while technically

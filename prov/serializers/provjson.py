@@ -38,11 +38,14 @@ class AnonymousIDGenerator():
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
     float: u"xsd:double",
-    long: u"xsd:long",
     int: u"xsd:int"
     # boolean, string values are supported natively by PROV-JSON
     # datetime values are converted separately
 }
+
+# Add long on Python 2
+if six.integer_types[-1] not in LITERAL_XSDTYPE_MAP:
+   LITERAL_XSDTYPE_MAP[six.integer_types[-1]] = u"xsd:long"
 
 
 class ProvJSONSerializer(Serializer):
