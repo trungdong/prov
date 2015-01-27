@@ -1308,7 +1308,7 @@ class ProvDocument(ProvBundle):
 
     @property
     def bundles(self):
-        return six.viewvalues(self._bundles)
+        return self._bundles.values()
 
     # Transformations
     def flattened(self):
