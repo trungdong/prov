@@ -812,21 +812,6 @@ class ProvBundle(object):
             for record in records:
                 self.add_record(record)
 
-    def __hash__(self):
-        """
-        Attempt to get a somewhat reliable hash.
-
-        This is not necessarilythe best idea as the object is mutable and
-        the hash will change alongside the object.
-        """
-        return hash((
-            self._identifier,
-            hash(frozenset(self._records)),
-            hash(self._document),
-            hash(frozenset(self._id_map.keys())),
-            hash(frozenset(frozenset(_i) for _i in self._id_map.values())),
-            hash(frozenset(self._namespaces.items()))))
-
     def __repr__(self):
         return u'<%s: %s>' % (self.__class__.__name__, self._identifier)
 
@@ -946,6 +931,8 @@ class ProvBundle(object):
                 logger.debug("Equality (ProvBundle): Could not find this record: %s", six.text_type(record_a))
                 return False
         return True
+
+    __hash__ = None
 
     # Transformations
     def _unified_records(self):
@@ -1321,7 +1308,7 @@ class ProvDocument(ProvBundle):
 
     @property
     def bundles(self):
-        return frozenset(self._bundles.values())
+        return six.viewvalues(self._bundles)
 
     # Transformations
     def flattened(self):

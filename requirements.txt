@@ -1,5 +1,5 @@
 lxml>=3.3.5
 networkx>=1.9.1
-pyparsing
 python-dateutil>=2.2
 six
+https://bitbucket.org/prologic/pydot/get/ac76697320d6.zip
