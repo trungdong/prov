@@ -18,6 +18,12 @@ Introduction
 .. image:: https://pypip.in/download/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Downloads
+.. image:: https://pypip.in/py_versions/prov/badge.svg
+  :target: https://pypi.python.org/pypi/prov/
+  :alt: Supported Python version
+.. image:: https://pypip.in/license/prov/badge.svg
+  :target: https://pypi.python.org/pypi/prov/
+  :alt: License
 
 
 A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML import/export
@@ -37,5 +43,4 @@ Features
 Uses
 ^^^^
 This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
-a respository for provenance documents.
-
+a repository for provenance documents.
