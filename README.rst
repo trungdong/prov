@@ -18,9 +18,9 @@ Introduction
 .. image:: https://pypip.in/download/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Downloads
-.. image:: https://pypip.in/implementation/prov/badge.svg
+.. image:: https://pypip.in/py_versions/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
-  :alt: Supported Python implementations
+  :alt: Supported Python version
 .. image:: https://pypip.in/license/prov/badge.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: License
