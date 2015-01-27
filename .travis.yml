@@ -16,7 +16,7 @@ install:
   - if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then pip install https://bitbucket.org/prologic/pydot/get/ac76697320d6.zip ; fi
   - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install https://bitbucket.org/prologic/pydot/get/ac76697320d6.zip ; fi
   - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install pydot; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install pydot; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install pydot; fi
   - if [[ $TRAVIS_PYTHON_VERSION == 'pypy' ]]; then pip install pydot; fi
   - pip install -r requirements.txt
   - pip install coverage coveralls
