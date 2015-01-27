@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import difflib
 import glob
 import inspect
@@ -202,7 +205,7 @@ class ProvXMLTestCase(unittest.TestCase):
 
         </prov:document>
         """
-        with io.BytesIO() as xml:
+        with io.StringIO() as xml:
             xml.write(xml_string)
             xml.seek(0, 0)
             actual_document = prov.ProvDocument.deserialize(source=xml,
@@ -237,7 +240,7 @@ class ProvXMLTestCase(unittest.TestCase):
 
         </prov:document>
         """
-        with io.BytesIO() as xml:
+        with io.StringIO() as xml:
             xml.write(xml_string)
             xml.seek(0, 0)
             actual_document = prov.ProvDocument.deserialize(source=xml,
@@ -285,7 +288,7 @@ class ProvXMLTestCase(unittest.TestCase):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
-            with io.BytesIO() as xml:
+            with io.StringIO() as xml:
                 xml.write(xml_string)
                 xml.seek(0, 0)
                 doc = prov.ProvDocument.deserialize(source=xml, format="xml")
@@ -331,7 +334,7 @@ for filename in glob.iglob(os.path.join(
         return fct
 
     fct = get_fct(filename)
-    fct.__name__ = test_name
+    fct.__name__ = str(test_name)
 
     setattr(ProvXMLRoundTripFromFileTestCase, test_name, fct)
 

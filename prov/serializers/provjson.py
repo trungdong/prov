@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
@@ -8,7 +11,8 @@ from collections import defaultdict
 import datetime
 import io
 import json
-import StringIO
+import six
+
 from prov.serializers import Serializer, Error
 from prov.constants import *
 from prov.model import Literal, Identifier, QualifiedName, XSDQName, Namespace, ProvDocument, ProvBundle, \
@@ -34,16 +38,19 @@ class AnonymousIDGenerator():
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
     float: u"xsd:double",
-    long: u"xsd:long",
     int: u"xsd:int"
     # boolean, string values are supported natively by PROV-JSON
     # datetime values are converted separately
 }
 
+# Add long on Python 2
+if six.integer_types[-1] not in LITERAL_XSDTYPE_MAP:
+   LITERAL_XSDTYPE_MAP[six.integer_types[-1]] = u"xsd:long"
+
 
 class ProvJSONSerializer(Serializer):
-    """PROV-JSON serializer for :class:`~prov.model.ProvDocument`
-
+    """
+    PROV-JSON serializer for :class:`~prov.model.ProvDocument`
     """
     def serialize(self, stream, **kwargs):
         """
@@ -52,20 +59,36 @@ class ProvJSONSerializer(Serializer):
 
         :param stream: Where to save the output.
         """
-        if isinstance(stream, (io.StringIO, io.BytesIO)):
-            buf = StringIO.StringIO()
+        if six.PY2:
+            buf = io.BytesIO()
             try:
                 json.dump(self.document, buf, cls=ProvJSONEncoder,
                           **kwargs)
                 buf.seek(0, 0)
-                if isinstance(stream, io.BytesIO):
-                    stream.write(buf.read().encode('utf-8'))
+                # Right now this is a bytestream. If the object to stream to is
+                # a text object is must be decoded. We assume utf-8 here which
+                # should be fine for almost every case.
+                if isinstance(stream, io.TextIOBase):
+                    stream.write(buf.read().decode('utf-8'))
                 else:
-                    stream.write(unicode(buf.read()))
+                    stream.write(buf.read())
             finally:
                 buf.close()
-            return
-        json.dump(self.document, stream, cls=ProvJSONEncoder, **kwargs)
+        else:
+            buf = io.StringIO()
+            try:
+                json.dump(self.document, buf, cls=ProvJSONEncoder,
+                          **kwargs)
+                buf.seek(0, 0)
+                # Right now this is a bytestream. If the object to stream to is
+                # a text object is must be decoded. We assume utf-8 here which
+                # should be fine for almost every case.
+                if isinstance(stream, io.TextIOBase):
+                    stream.write(buf.read())
+                else:
+                    stream.write(buf.read().encode('utf-8'))
+            finally:
+                buf.close()
 
     def deserialize(self, stream, **kwargs):
         """
@@ -74,6 +97,9 @@ class ProvJSONSerializer(Serializer):
 
         :param stream: Input data.
         """
+        if not isinstance(stream, io.TextIOBase):
+            buf = io.StringIO(stream.read().decode('utf-8'))
+            stream = buf
         return json.load(stream, cls=ProvJSONDecoder, **kwargs)
 
 
@@ -106,7 +132,7 @@ def encode_json_document(document):
     for bundle in document.bundles:
         #  encoding the sub-bundle
         bundle_json = encode_json_container(bundle)
-        container['bundle'][unicode(bundle.identifier)] = bundle_json
+        container['bundle'][six.text_type(bundle.identifier)] = bundle_json
     return container
 
 
@@ -126,16 +152,16 @@ def encode_json_container(bundle):
     for record in bundle._records:
         rec_type = record.get_type()
         rec_label = PROV_N_MAP[rec_type]
-        identifier = unicode(real_or_anon_id(record))
+        identifier = six.text_type(real_or_anon_id(record))
 
         record_json = {}
         if record._attributes:
             for (attr, values) in record._attributes.items():
                 if not values:
                     continue
-                attr_name = unicode(attr)
+                attr_name = six.text_type(attr)
                 if attr in PROV_ATTRIBUTE_QNAMES:
-                    record_json[attr_name] = unicode(first(values))  # TODO: QName export
+                    record_json[attr_name] = six.text_type(first(values))  # TODO: QName export
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = first(values).isoformat()
                 else:
@@ -292,6 +318,6 @@ def literal_json_representation(literal):
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
-        return {'$': value, 'lang': langtag, 'type': unicode(datatype)}
+        return {'$': value, 'lang': langtag, 'type': six.text_type(datatype)}
     else:
-        return {'$': value, 'type': unicode(datatype)}
+        return {'$': value, 'type': six.text_type(datatype)}

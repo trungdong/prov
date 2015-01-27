@@ -11,6 +11,8 @@ References:
 
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
@@ -18,6 +20,7 @@ __email__ = 'trungdong@donggiang.com'
 import cgi
 from datetime import datetime
 import pydot
+import six
 
 from prov.model import (
     ProvBundle, PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION, PROV_ATTRIBUTION, PROV_BUNDLE,
@@ -68,9 +71,9 @@ ANNOTATION_END_ROW = '    </TABLE>>'
 def htlm_link_if_uri(value):
     try:
         uri = value.uri
-        return '<a href="%s">%s</a>' % (uri, unicode(value))
+        return '<a href="%s">%s</a>' % (uri, six.text_type(value))
     except AttributeError:
-        return unicode(value)
+        return six.text_type(value)
 
 
 def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attributes=True, show_relation_attributes=True):
@@ -111,11 +114,11 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             ann_rows = [ANNOTATION_START_ROW]
             ann_rows.extend(
                 ANNOTATION_ROW_TEMPLATE % (
-                    attr.uri, cgi.escape(unicode(attr)),
+                    attr.uri, cgi.escape(six.text_type(attr)),
                     ' href=\"%s\"' % value.uri if isinstance(value, Identifier) else '',
-                    cgi.escape(unicode(value)
+                    cgi.escape(six.text_type(value)
                                if not isinstance(value, datetime) else
-                               unicode(value.isoformat())))
+                               six.text_type(value.isoformat())))
                 for attr, value in attributes
             )
             ann_rows.append(ANNOTATION_END_ROW)
@@ -129,7 +132,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % bundle.identifier.uri)
             if use_labels:
                 if bundle.label == bundle.identifier:
-                    bundle_label = '"%s"' % unicode(bundle.label)
+                    bundle_label = '"%s"' % six.text_type(bundle.label)
                 else:
                     # Fancier label if both are different. The label will be
                     # the main node text, whereas the identifier will be a
@@ -137,11 +140,11 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
                     bundle_label = ('<%s<br />'
                                     '<font color="#333333" point-size="10">'
                                     '%s</font>>')
-                    bundle_label = bundle_label % (unicode(bundle.label),
-                                                   unicode(bundle.identifier))
-                subdot.set_label('"%s"' % unicode(bundle_label))
+                    bundle_label = bundle_label % (six.text_type(bundle.label),
+                                                   six.text_type(bundle.identifier))
+                subdot.set_label('"%s"' % six.text_type(bundle_label))
             else:
-                subdot.set_label('"%s"' % unicode(bundle.identifier))
+                subdot.set_label('"%s"' % six.text_type(bundle.identifier))
             _bundle_to_dot(subdot, bundle)
             dot.add_subgraph(subdot)
             return subdot
@@ -151,7 +154,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             node_id = 'n%d' % count[0]
             if use_labels:
                 if record.label == record.identifier:
-                    node_label = '"%s"' % unicode(record.label)
+                    node_label = '"%s"' % six.text_type(record.label)
                 else:
                     # Fancier label if both are different. The label will be
                     # the main node text, whereas the identifier will be a
@@ -159,10 +162,10 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
                     node_label = ('<%s<br />'
                                   '<font color="#333333" point-size="10">'
                                   '%s</font>>')
-                    node_label = node_label % (unicode(record.label),
-                                               unicode(record.identifier))
+                    node_label = node_label % (six.text_type(record.label),
+                                               six.text_type(record.identifier))
             else:
-                node_label = '"%s"' % unicode(record.identifier)
+                node_label = '"%s"' % six.text_type(record.identifier)
 
             uri = record.identifier.uri
             style = DOT_PROV_STYLE[record.get_type()]
@@ -177,7 +180,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
         def _add_generic_node(qname):
             count[0] += 1
             node_id = 'n%d' % count[0]
-            node_label = '"%s"' % unicode(qname)
+            node_label = '"%s"' % six.text_type(qname)
 
             uri = qname.uri
             style = DOT_PROV_STYLE[0]

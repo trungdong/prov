@@ -1,5 +1,7 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import io
-from StringIO import StringIO
 import unittest
 
 from prov.model import *
@@ -74,7 +76,8 @@ def add_further_attributes0(record):
         (EX_NS['tag2'], Literal("hola", langtag="es")),
         (EX2_NS['tag3'], "hi"),
         (EX_NS['tag'], 1),
-        (EX_NS['tag'], long(1)),
+        # long on python 2, int on python 3
+        (EX_NS['tag'], six.integer_types[-1](1)),
         (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
         (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
         (EX_NS['tag'], 1.0),
@@ -194,7 +197,7 @@ class TestExtras(unittest.TestCase):
 
         document.entity(identifier=EX_NS['e1'])
         document.agent(identifier=EX_NS['e1'])
-        self.assertEqual(len(document.get_records(ProvAgent)), 1)
+        self.assertEqual(len(list(document.get_records(ProvAgent))), 1)
         self.assertEqual(len(document.get_records()), 2)
 
     def test_bundle_name_clash(self):
@@ -231,7 +234,7 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
         document.entity(EX2_NS["test"])
 
-        objects = [io.BytesIO, io.StringIO, StringIO]
+        objects = [io.BytesIO, io.StringIO]
 
         Registry.load_serializers()
         formats = Registry.serializers.keys()

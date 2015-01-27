@@ -1,15 +1,11 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import io
 import logging
 import unittest
 
 from prov.model import ProvDocument
-
-try:
-    from cStringIO import StringIO
-    assert StringIO
-except ImportError:
-    from StringIO import StringIO
-    assert StringIO
 
 
 logger = logging.getLogger(__name__)

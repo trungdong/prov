@@ -1,3 +1,6 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 __author__ = 'Lion Krischer'
 __email__ = 'krischer@geophysik.uni-muenchen.de'
 
@@ -5,8 +8,8 @@ import datetime
 import logging
 from lxml import etree
 import io
-from StringIO import StringIO
 import warnings
+import six
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +58,9 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         # does not have the concept of an encoding as it should already
         # represent unicode code points.
         et = etree.ElementTree(xml_root)
-        if isinstance(stream, (io.StringIO, StringIO)):
-            stream.write(unicode(etree.tostring(et, xml_declaration=True,
-                                                pretty_print=True)))
+        if isinstance(stream, io.TextIOBase):
+            stream.write(etree.tostring(et, xml_declaration=True,
+                                        pretty_print=True).decode('utf-8'))
         else:
             et.write(stream, pretty_print=True, xml_declaration=True,
                      encoding="UTF-8")
@@ -102,11 +105,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
         if bundle.identifier:
-            xml_bundle_root.attrib[_ns_prov("id")] = unicode(bundle.identifier)
+            xml_bundle_root.attrib[_ns_prov("id")] = six.text_type(bundle.identifier)
 
         for record in bundle._records:
             rec_type = record.get_type()
-            identifier = unicode(record._identifier) \
+            identifier = six.text_type(record._identifier) \
                 if record._identifier else None
 
             if identifier:
@@ -137,11 +140,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 elif isinstance(value, prov.model.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
                         subelem.attrib[_ns_xsi("type")] = "xsd:QName"
-                    v = unicode(value)
+                    v = six.text_type(value)
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
                 else:
-                    v = unicode(value)
+                    v = six.text_type(value)
 
                 # xsd type inference.
                 #
@@ -156,24 +159,27 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 #
                 # To enable a mapping of Python types to XML and back,
                 # the XSD type must be written for these types.
-                ALWAYS_CHECK = (bool, datetime.datetime, int, float, long,
-                                prov.identifier.Identifier)
+                ALWAYS_CHECK = [bool, datetime.datetime, float,
+                                prov.identifier.Identifier]
+                # Add long and int on Python 2, only int on Python 3.
+                ALWAYS_CHECK.extend(six.integer_types)
+                ALWAYS_CHECK = tuple(ALWAYS_CHECK)
                 if (force_types or
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
-                        not unicode(value).startswith("prov:") and \
+                        not six.text_type(value).startswith("prov:") and \
                         not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
                         attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
                     if isinstance(value, bool):
                         xsd_type = XSD_BOOLEAN
                         v = v.lower()
-                    elif isinstance(value, (str, unicode)):
+                    elif isinstance(value, six.string_types):
                         xsd_type = XSD_STRING
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
-                    elif isinstance(value, (int, long)):
+                    elif isinstance(value, six.integer_types):
                         xsd_type = XSD_INT
                     elif isinstance(value, datetime.datetime):
                         # Exception of the exception, while technically
@@ -188,7 +194,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = unicode(xsd_type)
+                        subelem.attrib[_ns_xsi("type")] = six.text_type(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -225,7 +231,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
         :param stream: Input data.
         """
-        if isinstance(stream, (io.StringIO, StringIO)):
+        if isinstance(stream, io.TextIOBase):
             with io.BytesIO() as buf:
                 buf.write(stream.read().encode('utf-8'))
                 buf.seek(0, 0)
@@ -371,7 +377,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         "The element '%s' contains an attribute %s='%s' "
                         "which is not representable in the prov module's "
                         "internal data model and will thus be ignored." %
-                        (_t, unicode(key), unicode(value)), UserWarning)
+                        (_t, six.text_type(key), six.text_type(value)), UserWarning)
 
             if not subel.attrib:
                 _v = subel.text

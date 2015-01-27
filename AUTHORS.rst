@@ -12,4 +12,4 @@ Contributors
 
 * Sam Millar
 * Satrajit Ghosh
-* Lion Krischer (:py:mod:`prov.serializers.provxml` module)
+* Lion Krischer (:py:mod:`prov.serializers.provxml` module and Python 3 support)

@@ -3,6 +3,9 @@ Created on Jan 25, 2012
 
 @author: Trung Dong Huynh
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import unittest
 import logging
 import os
