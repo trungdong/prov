@@ -3,6 +3,13 @@
 History
 -------
 
+1.3.0 (2015-02-03)
+^^^^^^^^^^^^^^^^^^
+* Python 3.3 and 3.4 supported
+* Updated prov-convert script to support XML output
+* Added missing test JSON and XML files in distributions
+
+
 1.2.0 (2014-12-19)
 ^^^^^^^^^^^^^^^^^^
 * Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
