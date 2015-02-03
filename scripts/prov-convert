@@ -64,12 +64,12 @@ def convert_file(infile, outfile, output_format):
         dot = prov_to_dot(prov_doc)
         content = dot.create(format=output_format)
         outfile.write(content)
-
-    # Try supported serializers:
-    try:
-        prov_doc.serialize(outfile, format=output_format)
-    except serializers.DoNotExist:
-        raise CLIError('Output format "%s" is not supported.' % output_format)
+    else:
+        # Try supported serializers:
+        try:
+            prov_doc.serialize(outfile, format=output_format)
+        except serializers.DoNotExist:
+            raise CLIError('Output format "%s" is not supported.' % output_format)
 
 
 def main(argv=None):  # IGNORE:C0111
