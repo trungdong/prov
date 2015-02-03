@@ -1,11 +1,11 @@
 #!/usr/bin/env python2.7
 # encoding: utf-8
 """
-convert -- Convert PROV-JSON to PROV-N, PROV-JSON, or graphical formats (SVG, PDF, PNG)
+convert -- Convert PROV-JSON to PROV-N, PROV-XML, or graphical formats (SVG, PDF, PNG)
 
 @author:     Trung Dong Huynh
 
-@copyright:  2014 University of Southampton, United Kingdom. All rights reserved.
+@copyright:  2015 University of Southampton, United Kingdom. All rights reserved.
 
 @license:    TBD
 
@@ -21,15 +21,15 @@ import traceback
 import six
 
 from prov.model import ProvDocument
-from prov.dot import prov_to_dot
+from prov import serializers
 
 
 logger = logging.getLogger(__name__)
 
 __all__ = []
 __version__ = 0.1
-__date__ = '2014-03-14
-__updated__ = '2014-04-25'
+__date__ = '2014-03-14'
+__updated__ = '2015-02-03'
 
 DEBUG = 0
 TESTRUN = 0
@@ -55,15 +55,20 @@ class CLIError(Exception):
 
 def convert_file(infile, outfile, output_format):
     prov_doc = ProvDocument.deserialize(infile)
-    if output_format == 'json':
-        prov_doc.serialize(outfile, indent=2)
-    elif output_format == 'provn':
+
+    # Formats not supported by prov.serializers
+    if output_format == 'provn':
         outfile.write(prov_doc.get_provn())
     elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
+        from prov.dot import prov_to_dot
         dot = prov_to_dot(prov_doc)
         content = dot.create(format=output_format)
         outfile.write(content)
-    else:
+
+    # Try supported serializers:
+    try:
+        prov_doc.serialize(outfile, format=output_format)
+    except serializers.DoNotExist:
         raise CLIError('Output format "%s" is not supported.' % output_format)
 
 
@@ -83,10 +88,10 @@ def main(argv=None):  # IGNORE:C0111
     program_license = '''%s
 
   Created by Trung Dong Huynh on %s.
-  Copyright 2014 University of Southampton. All rights reserved.
+  Copyright 2015 University of Southampton. All rights reserved.
 
-  Licensed under the Apache License 2.0
-  http://www.apache.org/licenses/LICENSE-2.0
+  Licensed under the MIT License
+  https://github.com/trungdong/prov/blob/master/LICENSE
 
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
@@ -98,7 +103,7 @@ USAGE
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
         parser.add_argument('-f', '--format', dest='format', action='store', default='json',
-                            help='output format: json, provn, or one supported by GraphViz (e.g. svg, pdf)')
+                            help='output format: json, xml, provn, or one supported by GraphViz (e.g. svg, pdf)')
         parser.add_argument('infile', nargs='?', type=FileType('r'), default=sys.stdin)
         parser.add_argument('outfile', nargs='?', type=FileType('w'), default=sys.stdout)
         parser.add_argument('-V', '--version', action='version', version=program_version_message)
@@ -117,14 +122,14 @@ USAGE
 
         return 0
     except KeyboardInterrupt:
-        ### handle keyboard interrupt ###
+        # handle keyboard interrupt
         return 0
     except Exception, e:
         if DEBUG or TESTRUN:
             traceback.print_exc()
             raise e
         indent = len(program_name) * " "
-        sys.stderr.write(program_name + ": " + repr(e) + "\n")
+        sys.stderr.write(program_name + ": " + str(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")
         return 2
 
