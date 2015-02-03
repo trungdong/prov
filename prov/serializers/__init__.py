@@ -30,8 +30,6 @@ class DoNotExist(Error):
     pass
 
 
-
-
 class Registry:
     serializers = None
 
@@ -59,7 +57,7 @@ def get(format_name):
         return Registry.serializers[format_name]
     except KeyError:
         raise DoNotExist(
-            'No serializer avaliable for the format "%s"' % format_name
+            'No serializer available for the format "%s"' % format_name
         )
 
 
