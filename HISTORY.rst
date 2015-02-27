@@ -3,6 +3,12 @@
 History
 -------
 
+1.3.1 (2015-02-27)
+^^^^^^^^^^^^^^^^^^
+* Fixed unicode issue with deserialising text contents
+* Set the correct version requirement for six
+* Fixed format selection in prov-convert script
+
 1.3.0 (2015-02-03)
 ^^^^^^^^^^^^^^^^^^
 * Python 3.3 and 3.4 supported
