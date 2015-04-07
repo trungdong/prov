@@ -196,13 +196,23 @@ class ProvRDFSerializer(Serializer):
                 bnode = None
                 formal_objects = []
                 used_objects = []
+                printed = False
                 all_attributes = list(record.formal_attributes) + list(record.attributes)
+                formal_qualifiers = False
+                for attr, value in list(record.formal_attributes)[2:]:
+                    if value is not None:
+                        formal_qualifiers = True
+                has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
                 #print all_attributes
+                #print record, rec_type.uri
+                #print "attr", record.attributes
                 #all_attributes = set(record.formal_attributes).union(set(record.attributes))
                 for idx, (attr, value) in enumerate(all_attributes):
-                    #print identifier, idx, attr, value
-                    #print record, rec_type.uri
+                    print identifier, idx, attr, value
                     if record.is_relation():
+                        if not printed:
+                            #print "attr", record.extra_attributes
+                            printed = True
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
                         # create bnode relation
                         if bnode is None:
@@ -225,16 +235,23 @@ class ProvRDFSerializer(Serializer):
                                 #print identifier, pred, obj_val
                             if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
                                 continue
-                            if subj:
-                                QRole = URIRef(PROV['qualified' +
-                                                    rec_type._localpart].uri)
+                            if subj and has_qualifiers:
+                                qualifier = rec_type._localpart
+                                rec_uri = rec_type.uri
+                                for attr, val in record.extra_attributes:
+                                    if attr == PROV['type']:
+                                        print "qualifier", val
+                                        if PROV['Revision'] == val or PROV['Quotation'] == val:
+                                            qualifier = val._localpart
+                                            rec_uri = val.uri
+                                QRole = URIRef(PROV['qualified' + qualifier].uri)
                                 if identifier is not None:
                                     container.add((subj, QRole, identifier))
                                 else:
-                                    identifier = BNode()
+                                    bnode = identifier = BNode()
                                     container.add((subj, QRole, identifier))
                                     container.add((identifier, RDF.type,
-                                                   URIRef(rec_type.uri)))
+                                                   URIRef(rec_uri)))
                                                # reset identifier to BNode
                             '''
                             for key, val in record.formal_attributes:
@@ -287,7 +304,7 @@ class ProvRDFSerializer(Serializer):
                                 pred = self.encode_rdf_representation(attr)
                             if PROV['plan'].uri in pred:
                                 pred = URIRef(PROV['hadPlan'].uri)
-                            #print identifier, pred, value #dbg
+                            print 'Q:', identifier, pred, value #dbg
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
@@ -319,6 +336,7 @@ class ProvRDFSerializer(Serializer):
                         pred = RDFS.label
                     else:
                         pred = self.encode_rdf_representation(attr)
+                    print identifier, pred, obj
                     container.add((identifier, pred, obj))
         return container
 
@@ -345,6 +363,7 @@ class ProvRDFSerializer(Serializer):
             PROV_CLS_MAP[key.uri] = val
         for key, val in ADDITIONAL_N_MAP.items():
             PROV_CLS_MAP[key.uri] = val
+        other_attributes = {}
         for stmt in graph.triples((None, RDF.type, None)):
             id = unicode(stmt[0])
             obj = unicode(stmt[2])
@@ -356,12 +375,14 @@ class ProvRDFSerializer(Serializer):
                 except TypeError, e:
                     #print e
                     prov_obj = getattr(bundle, PROV_CLS_MAP[obj])
-                if id not in ids:
+                except AttributeError, e:
+                    prov_obj = None
+                if id not in ids and prov_obj:
                     ids[id] = prov_obj
                 else:
-                    raise ValueError(('An object cannot be of two different '
-                                     'PROV types'))
-        other_attributes = {}
+                    if id not in other_attributes:
+                        other_attributes[id] = []
+                    other_attributes[id].append((pm.PROV['type'], obj))
         for stmt in graph.triples((None, RDF.type, None)):
             id = unicode(stmt[0])
             if id not in other_attributes:
