@@ -1441,8 +1441,11 @@ class ProvDocument(ProvBundle):
         serializer = serializers.get(format)()
 
         if content is not None:
-            # io.StringIO only accepts unicode strings (i.e. six.text_type)
-            stream = io.StringIO(content if isinstance(content, six.text_type) else six.u(content))
+            # io.StringIO only accepts unicode strings
+            stream = io.StringIO(
+                content if not isinstance(content, six.binary_type)
+                else content.decode()
+            )
             return serializer.deserialize(stream, **args)
 
         if source is not None:
