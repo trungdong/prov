@@ -23,7 +23,7 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.3.1',
+    version='1.3.2',
     description='A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
@@ -33,7 +33,7 @@ setup(
     package_dir={
         'prov': 'prov'
     },
-    scripts=['scripts/prov-convert'],
+    scripts=['scripts/prov-convert', 'scripts/prov-compare'],
     include_package_data=True,
     install_requires=requirements,
     extras_require={
