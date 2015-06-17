@@ -37,7 +37,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
     """
     def serialize(self, stream, force_types=False, **kwargs):
         """
-        Serializes a :class:`~prov.model.ProvDocument` instance to `PROV-XML <http://www.w3.org/TR/prov-xml/>`_.
+        Serializes a :class:`~prov.model.ProvDocument` instance to `PROV-XML
+        <http://www.w3.org/TR/prov-xml/>`_.
 
         :param stream: Where to save the output.
         :type force_types: boolean, optional
@@ -105,7 +106,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
         if bundle.identifier:
-            xml_bundle_root.attrib[_ns_prov("id")] = six.text_type(bundle.identifier)
+            xml_bundle_root.attrib[_ns_prov("id")] = \
+                six.text_type(bundle.identifier)
 
         for record in bundle._records:
             rec_type = record.get_type()
@@ -194,7 +196,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = six.text_type(xsd_type)
+                        subelem.attrib[_ns_xsi("type")] = \
+                            six.text_type(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -226,8 +229,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
     def deserialize(self, stream, **kwargs):
         """
-        Deserialize from `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ representation to a
-        :class:`~prov.model.ProvDocument` instance.
+        Deserialize from `PROV-XML <http://www.w3.org/TR/prov-xml/>`_
+        representation to a :class:`~prov.model.ProvDocument` instance.
 
         :param stream: Input data.
         """
@@ -377,7 +380,8 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                         "The element '%s' contains an attribute %s='%s' "
                         "which is not representable in the prov module's "
                         "internal data model and will thus be ignored." %
-                        (_t, six.text_type(key), six.text_type(value)), UserWarning)
+                        (_t, six.text_type(key), six.text_type(value)),
+                        UserWarning)
 
             if not subel.attrib:
                 _v = subel.text

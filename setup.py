@@ -24,7 +24,8 @@ test_requirements = [
 setup(
     name='prov',
     version='1.3.2',
-    description='A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML',
+    description='A library for W3C Provenance Data Model supporting PROV-JSON '
+                'and PROV-XML',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
@@ -41,7 +42,9 @@ setup(
     },
     license="MIT",
     zip_safe=False,
-    keywords=['provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON'],
+    keywords=[
+        'provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON'
+    ],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',

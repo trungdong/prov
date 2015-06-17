@@ -50,7 +50,7 @@ def get(format_name):
     """
     Returns the serializer class for the specified format. Raises a DoNotExist
     """
-    # Lazily initialize the list of available serializers to avoid cyclic imports
+    # Lazily initialize the list of serializers to avoid cyclic imports
     if Registry.serializers is None:
         Registry.load_serializers()
     try:

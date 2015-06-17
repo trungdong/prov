@@ -9,4 +9,4 @@ from prov.graph import prov_to_graph
 class ProvGraphTestCase(unittest.TestCase):
     def test_simple_graph_conversion(self):
         for name, doc_func in tests:
-            nx_graph = prov_to_graph(doc_func())
+            prov_to_graph(doc_func())

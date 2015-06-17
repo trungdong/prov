@@ -10,7 +10,8 @@ EX_OTHER_NS = Namespace('other', 'http://example.org/')
 
 class TestAttributesBase(object):
     """This is the base class for testing support for various datatypes.
-    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    It is not runnable and needs to be included in a subclass of
+    RoundTripTestCase.
     """
 
     attribute_values = [
@@ -50,7 +51,9 @@ class TestAttributesBase(object):
 
     def run_entity_with_one_type_attribute(self, n):
         document = self.new_document()
-        document.entity(EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]})
+        document.entity(
+            EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]}
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_entity_with_one_type_attribute_0(self):
@@ -140,7 +143,8 @@ class TestAttributesBase(object):
     def test_entity_with_multiple_attribute(self):
         document = self.new_document()
         attributes = [
-            (EX_NS['v_%d'% i], value) for i, value in enumerate(self.attribute_values)
+            (EX_NS['v_%d' % i], value)
+            for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emov'], attributes)
         self.assertRoundTripEquivalence(document)
@@ -148,7 +152,8 @@ class TestAttributesBase(object):
     def test_entity_with_multiple_value_attribute(self):
         document = self.new_document()
         attributes = [
-            ('prov:value', value) for i, value in enumerate(self.attribute_values)
+            ('prov:value', value)
+            for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emv'], attributes)
         self.assertRoundTripEquivalence(document)

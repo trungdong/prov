@@ -24,8 +24,10 @@ EX_URI = 'http://www.example.org'
 
 
 class TestExamplesBase(object):
-    """This is the base class for testing support for all the examples provided in prov.tests.examples.
-    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    """This is the base class for testing support for all the examples provided
+    in prov.tests.examples.
+    It is not runnable and needs to be included in a subclass of
+    RoundTripTestCase.
     """
     def test_all_examples(self):
         counter = 0
@@ -48,7 +50,11 @@ class TestLoadingProvToolboxJSON(BaseTestCase):
                         g1 = ProvDocument.deserialize(json_file)
                         json_str = g1.serialize(indent=4)
                         g2 = ProvDocument.deserialize(content=json_str)
-                        self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
+                        self.assertEqual(
+                            g1, g2,
+                            'Round-trip JSON encoding/decoding failed:  %s.'
+                            % filename
+                        )
                     except:
                         self.fails.append(filename)
 
@@ -65,7 +71,11 @@ class TestLoadingProvToolboxJSON(BaseTestCase):
                 g1 = ProvDocument.deserialize(json_file)
                 json_str = g1.serialize(indent=4)
                 g2 = ProvDocument.deserialize(content=json_str)
-                self.assertEqual(g1, g2, 'Round-trip JSON encoding/decoding failed:  %s.' % filename)
+                self.assertEqual(
+                    g1, g2,
+                    'Round-trip JSON encoding/decoding failed:  %s.'
+                    % filename
+                )
 
 
 class TestFlattening(BaseTestCase):
@@ -103,7 +113,10 @@ class TestUnification(BaseTestCase):
                 document = ProvDocument.deserialize(json_file)
                 flattened = document.flattened()
                 unified = flattened.unified()
-                self.assertLess(len(unified.get_records()), len(flattened.get_records()))
+                self.assertLess(
+                    len(unified.get_records()),
+                    len(flattened.get_records())
+                )
 
 
 class TestBundleUpdate(BaseTestCase):
@@ -147,7 +160,8 @@ class TestBundleUpdate(BaseTestCase):
         self.assertEqual(len(d1.bundles), 2)
 
 
-class AllTestsBase(TestExamplesBase, TestStatementsBase, TestAttributesBase, TestQualifiedNamesBase):
+class AllTestsBase(TestExamplesBase, TestStatementsBase,
+                   TestAttributesBase, TestQualifiedNamesBase):
     """This is a test to include all available tests.
     """
     pass
@@ -155,11 +169,14 @@ class AllTestsBase(TestExamplesBase, TestStatementsBase, TestAttributesBase, Tes
 
 class RoundTripModelTest(RoundTripTestCase, AllTestsBase):
     def assertRoundTripEquivalence(self, prov_doc, msg=None):
-        """Exercises prov.model without the actual serialization and PROV-N generation.
+        """Exercises prov.model without the actual serialization and PROV-N
+        generation.
         """
         provn_content = prov_doc.get_provn()
         # Checking for self-equality
-        self.assertEqual(prov_doc, prov_doc, 'The document is not self-equal:\n' + provn_content)
+        self.assertEqual(
+            prov_doc, prov_doc,
+            'The document is not self-equal:\n' + provn_content)
 
 
 if __name__ == "__main__":

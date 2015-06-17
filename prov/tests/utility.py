@@ -59,8 +59,8 @@ class BaseTestCase(unittest.TestCase):
 
 
 class RoundTripTestCase(BaseTestCase):
-    """A serializer test should subclass this class and set the class property FORMAT to the correct value (e.g.
-    'json', 'xml', 'rdf').
+    """A serializer test should subclass this class and set the class property
+    FORMAT to the correct value (e.g. 'json', 'xml', 'rdf').
     """
     FORMAT = None  # a subclass should change this
 

@@ -9,7 +9,8 @@ EX2_NS = Namespace('ex2', 'http://example2.org/')
 
 class TestStatementsBase(object):
     """This is the base class for testing different PROV statements.
-    It is not runnable and needs to be included in a subclass of RoundTripTestCase.
+    It is not runnable and needs to be included in a subclass of
+    RoundTripTestCase.
     """
 
     def new_document(self):
@@ -35,7 +36,8 @@ class TestStatementsBase(object):
             ('prov:type', True),
             ('prov:type', EX_NS['abc']),
             ('prov:type', datetime.datetime.now()),
-            ('prov:type', Literal('http://boiled-egg.example.com', datatype=XSD_ANYURI)),
+            ('prov:type', Literal('http://boiled-egg.example.com',
+                                  datatype=XSD_ANYURI)),
         ])
 
     def add_locations(self, record):
@@ -89,8 +91,7 @@ class TestStatementsBase(object):
 
     # TESTS
 
-    ## ENTITIES
-
+    # ENTITIES
     def test_entity_0(self):
         document = self.new_document()
         a = document.entity(EX_NS['e0'])
@@ -105,7 +106,7 @@ class TestStatementsBase(object):
 
     def test_entity_1(self):
         document = self.new_document()
-        a = document.entity(EX_NS['e1'])
+        document.entity(EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_entity_2(self):
@@ -183,12 +184,10 @@ class TestStatementsBase(object):
         self.add_further_attributes0(a)
         self.assertRoundTripEquivalence(document)
 
-
-    ## ACTIVITIES
-
+    # ACTIVITIES
     def test_activity_1(self):
         document = self.new_document()
-        a = document.activity(EX_NS['a1'])
+        document.activity(EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_activity_2(self):
@@ -199,7 +198,11 @@ class TestStatementsBase(object):
 
     def test_activity_3(self):
         document = self.new_document()
-        a = document.activity(EX_NS['a3'], startTime=datetime.datetime.now(), endTime=datetime.datetime.now())
+        document.activity(
+            EX_NS['a3'],
+            startTime=datetime.datetime.now(),
+            endTime=datetime.datetime.now()
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_activity_4(self):
@@ -234,7 +237,11 @@ class TestStatementsBase(object):
 
     def test_activity_8(self):
         document = self.new_document()
-        a = document.activity(EX_NS['a8'], startTime=datetime.datetime.now(), endTime=datetime.datetime.now())
+        a = document.activity(
+            EX_NS['a8'],
+            startTime=datetime.datetime.now(),
+            endTime=datetime.datetime.now()
+        )
         a.add_attributes([(PROV_LABEL, 'activity8')])
         self.add_types(a)
         self.add_types(a)
@@ -254,11 +261,10 @@ class TestStatementsBase(object):
         self.add_further_attributes(a)
         self.assertRoundTripEquivalence(document)
 
-
-    ## AGENTS
+    # AGENTS
     def test_agent_1(self):
         document = self.new_document()
-        a = document.agent(EX_NS['ag1'])
+        document.agent(EX_NS['ag1'])
         self.assertRoundTripEquivalence(document)
 
     def test_agent_2(self):
@@ -322,21 +328,24 @@ class TestStatementsBase(object):
         self.add_further_attributes(a)
         self.assertRoundTripEquivalence(document)
 
-
-    ## GENERATIONS
+    # GENERATIONS
     def test_generation_1(self):
         document = self.new_document()
-        a = document.generation(EX_NS['e1'], identifier=EX_NS['gen1'])
+        document.generation(EX_NS['e1'], identifier=EX_NS['gen1'])
         self.assertRoundTripEquivalence(document)
 
     def test_generation_2(self):
         document = self.new_document()
-        a = document.generation(EX_NS['e1'], identifier=EX_NS['gen2'], activity=EX_NS['a1'])
+        document.generation(
+            EX_NS['e1'], identifier=EX_NS['gen2'], activity=EX_NS['a1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_generation_3(self):
         document = self.new_document()
-        a = document.generation(EX_NS['e1'], identifier=EX_NS['gen3'], activity=EX_NS['a1'])
+        a = document.generation(
+            EX_NS['e1'], identifier=EX_NS['gen3'], activity=EX_NS['a1']
+        )
         a.add_attributes([
             (PROV_ROLE, 'somerole'),
             (PROV_ROLE, 'otherRole'),
@@ -345,7 +354,7 @@ class TestStatementsBase(object):
 
     def test_generation_4(self):
         document = self.new_document()
-        a = document.new_record(
+        document.new_record(
             PROV_GENERATION, EX_NS['gen4'], (
                 (PROV_ATTR_ENTITY, EX_NS['e1']),
                 (PROV_ATTR_ACTIVITY, EX_NS['a1']),
@@ -372,9 +381,9 @@ class TestStatementsBase(object):
 
     def test_generation_6(self):
         document = self.new_document()
-        a = document.generation(EX_NS['e1'],
-                                activity=EX_NS['a1'],
-                                time=datetime.datetime.now())
+        document.generation(
+            EX_NS['e1'], activity=EX_NS['a1'], time=datetime.datetime.now()
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_generation_7(self):
@@ -382,29 +391,33 @@ class TestStatementsBase(object):
         a = document.generation(EX_NS['e1'],
                                 activity=EX_NS['a1'],
                                 time=datetime.datetime.now())
-        a.add_attributes([
-            (PROV_ROLE, 'somerole'),
-        ])
+        a.add_attributes([(PROV_ROLE, 'somerole')])
         self.add_types(a)
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
         self.assertRoundTripEquivalence(document)
 
-    ## USAGE
+    # USAGE
     def test_usage_1(self):
         document = self.new_document()
-        use = document.usage(None, entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        document.usage(
+            None, entity=EX_NS['e1'], identifier=EX_NS['use1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_usage_2(self):
         document = self.new_document()
-        use = document.usage(EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use2'])
+        document.usage(
+            EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_usage_3(self):
         document = self.new_document()
-        use = document.usage(EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use3'])
+        use = document.usage(
+            EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use3']
+        )
         use.add_attributes([
             (PROV_ROLE, "somerole"),
             (PROV_ROLE, "otherRole")
@@ -439,8 +452,7 @@ class TestStatementsBase(object):
 
     def test_usage_6(self):
         document = self.new_document()
-        use = document.usage(EX_NS['a1'],
-                             entity=EX_NS['e1'])
+        document.usage(EX_NS['a1'], entity=EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_usage_7(self):
@@ -457,21 +469,24 @@ class TestStatementsBase(object):
         self.add_further_attributes(use)
         self.assertRoundTripEquivalence(document)
 
-
-    ## INVALIDATIONS
+    # INVALIDATIONS
     def test_invalidation_1(self):
         document = self.new_document()
-        inv = document.invalidation(EX_NS['e1'], identifier=EX_NS['inv1'])
+        document.invalidation(EX_NS['e1'], identifier=EX_NS['inv1'])
         self.assertRoundTripEquivalence(document)
 
     def test_invalidation_2(self):
         document = self.new_document()
-        inv = document.invalidation(EX_NS['e1'], identifier=EX_NS['inv2'], activity=EX_NS['a1'])
+        document.invalidation(
+            EX_NS['e1'], identifier=EX_NS['inv2'], activity=EX_NS['a1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_invalidation_3(self):
         document = self.new_document()
-        inv = document.invalidation(EX_NS['e1'], identifier=EX_NS['inv3'], activity=EX_NS['a1'])
+        inv = document.invalidation(
+            EX_NS['e1'], identifier=EX_NS['inv3'], activity=EX_NS['a1']
+        )
         inv.add_attributes([
             (PROV_ROLE, "someRole"),
             (PROV_ROLE, "otherRole"),
@@ -506,8 +521,7 @@ class TestStatementsBase(object):
 
     def test_invalidation_6(self):
         document = self.new_document()
-        inv = document.invalidation(EX_NS['e1'],
-                                    activity=EX_NS['a1'])
+        document.invalidation(EX_NS['e1'], activity=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_invalidation_7(self):
@@ -524,52 +538,53 @@ class TestStatementsBase(object):
         self.add_further_attributes(inv)
         self.assertRoundTripEquivalence(document)
 
-
-    ## STARTS
+    # STARTS
     def test_start_1(self):
         document = self.new_document()
-        start = document.start(None, trigger=EX_NS['e1'], identifier=EX_NS['start1'])
+        document.start(None, trigger=EX_NS['e1'], identifier=EX_NS['start1'])
         self.assertRoundTripEquivalence(document)
 
     def test_start_2(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['start2'])
+        document.start(
+            EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['start2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_start_3(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'], identifier=EX_NS['start3'])
+        document.start(EX_NS['a1'], identifier=EX_NS['start3'])
         self.assertRoundTripEquivalence(document)
 
     def test_start_4(self):
         document = self.new_document()
-        start = document.start(None,
-                               trigger=EX_NS['e1'],
-                               identifier=EX_NS['start4'],
-                               starter=EX_NS['a2'])
+        document.start(
+            None, trigger=EX_NS['e1'], identifier=EX_NS['start4'],
+            starter=EX_NS['a2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_start_5(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'],
-                               trigger=EX_NS['e1'],
-                               identifier=EX_NS['start5'],
-                               starter=EX_NS['a2'])
+        document.start(
+            EX_NS['a1'], trigger=EX_NS['e1'],
+            identifier=EX_NS['start5'], starter=EX_NS['a2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_start_6(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'],
-                               identifier=EX_NS['start6'],
-                               starter=EX_NS['a2'])
+        document.start(
+            EX_NS['a1'], identifier=EX_NS['start6'], starter=EX_NS['a2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_start_7(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'],
-                               identifier=EX_NS['start7'],
-                               starter=EX_NS['a2'],
-                               time=datetime.datetime.now())
+        document.start(
+            EX_NS['a1'], identifier=EX_NS['start7'],
+            starter=EX_NS['a2'], time=datetime.datetime.now()
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_start_8(self):
@@ -590,8 +605,7 @@ class TestStatementsBase(object):
 
     def test_start_9(self):
         document = self.new_document()
-        start = document.start(EX_NS['a1'],
-                               trigger=EX_NS['e1'])
+        document.start(EX_NS['a1'], trigger=EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_start_10(self):
@@ -609,60 +623,59 @@ class TestStatementsBase(object):
         self.add_further_attributes(start)
         self.assertRoundTripEquivalence(document)
 
-
-    ## ENDS
+    # ENDS
     def test_end_1(self):
         document = self.new_document()
-        end = document.end(None, trigger=EX_NS['e1'], identifier=EX_NS['end1'])
+        document.end(None, trigger=EX_NS['e1'], identifier=EX_NS['end1'])
         self.assertRoundTripEquivalence(document)
 
     def test_end_2(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['end2'])
+        document.end(
+            EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['end2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_end_3(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'], identifier=EX_NS['end3'])
+        document.end(EX_NS['a1'], identifier=EX_NS['end3'])
         self.assertRoundTripEquivalence(document)
 
     def test_end_4(self):
         document = self.new_document()
-        end = document.end(None,
-                               trigger=EX_NS['e1'],
-                               identifier=EX_NS['end4'],
-                               ender=EX_NS['a2'])
+        document.end(
+            None, trigger=EX_NS['e1'], identifier=EX_NS['end4'],
+            ender=EX_NS['a2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_end_5(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'],
-                               trigger=EX_NS['e1'],
-                               identifier=EX_NS['end5'],
-                               ender=EX_NS['a2'])
+        document.end(
+            EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['end5'],
+            ender=EX_NS['a2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_end_6(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'],
-                               identifier=EX_NS['end6'],
-                               ender=EX_NS['a2'])
+        document.end(EX_NS['a1'], identifier=EX_NS['end6'], ender=EX_NS['a2'])
         self.assertRoundTripEquivalence(document)
 
     def test_end_7(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'],
-                               identifier=EX_NS['end7'],
-                               ender=EX_NS['a2'],
-                               time=datetime.datetime.now())
+        document.end(
+            EX_NS['a1'], identifier=EX_NS['end7'], ender=EX_NS['a2'],
+            time=datetime.datetime.now()
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_end_8(self):
         document = self.new_document()
         end = document.end(EX_NS['a1'],
-                               identifier=EX_NS['end8'],
-                               ender=EX_NS['a2'],
-                               time=datetime.datetime.now())
+                           identifier=EX_NS['end8'],
+                           ender=EX_NS['a2'],
+                           time=datetime.datetime.now())
         end.add_attributes([
             (PROV_ROLE, "egg-cup"),
             (PROV_ROLE, "boiling-water"),
@@ -675,15 +688,14 @@ class TestStatementsBase(object):
 
     def test_end_9(self):
         document = self.new_document()
-        end = document.end(EX_NS['a1'],
-                               trigger=EX_NS['e1'])
+        document.end(EX_NS['a1'], trigger=EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_end_10(self):
         document = self.new_document()
         end = document.end(EX_NS['a1'],
-                               ender=EX_NS['a2'],
-                               time=datetime.datetime.now())
+                           ender=EX_NS['a2'],
+                           time=datetime.datetime.now())
         end.add_attributes([
             (PROV_ROLE, "yolk"),
             (PROV_ROLE, "white"),
@@ -694,53 +706,60 @@ class TestStatementsBase(object):
         self.add_further_attributes(end)
         self.assertRoundTripEquivalence(document)
 
-    ## DERIVATIONS
+    # DERIVATIONS
     def test_derivation_1(self):
         document = self.new_document()
-        der = document.derivation(None, usedEntity=EX_NS['e1'], identifier=EX_NS['der1'])
+        document.derivation(
+            None, usedEntity=EX_NS['e1'], identifier=EX_NS['der1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_2(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'], usedEntity=None, identifier=EX_NS['der2'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=None, identifier=EX_NS['der2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_3(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der3'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der3']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_4(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der4'])
+        der = document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der4']
+        )
         self.add_label(der)
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_5(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['der5'],
-                                  activity=EX_NS['a'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['der5'], activity=EX_NS['a']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_6(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['der6'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['der6'], activity=EX_NS['a'],
+            usage=EX_NS['u']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_7(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['der7'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'],
-                                  generation=EX_NS['g'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['der7'], activity=EX_NS['a'],
+            usage=EX_NS['u'], generation=EX_NS['g']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_8(self):
@@ -761,70 +780,71 @@ class TestStatementsBase(object):
 
     def test_derivation_10(self):
         document = self.new_document()
-        der = document.derivation(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'],
-                                  generation=EX_NS['g'])
+        document.derivation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            activity=EX_NS['a'], usage=EX_NS['u'],
+            generation=EX_NS['g']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_11(self):
         document = self.new_document()
-        der = document.revision(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['rev1'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'],
-                                  generation=EX_NS['g'])
+        document.revision(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['rev1'], activity=EX_NS['a'],
+            usage=EX_NS['u'], generation=EX_NS['g']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_12(self):
         document = self.new_document()
-        der = document.quotation(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['quo1'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'],
-                                  generation=EX_NS['g'])
+        document.quotation(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['quo1'], activity=EX_NS['a'],
+            usage=EX_NS['u'], generation=EX_NS['g']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_derivation_13(self):
         document = self.new_document()
-        der = document.primary_source(EX_NS['e2'],
-                                  usedEntity=EX_NS['e1'],
-                                  identifier=EX_NS['prim1'],
-                                  activity=EX_NS['a'],
-                                  usage=EX_NS['u'],
-                                  generation=EX_NS['g'])
+        document.primary_source(
+            EX_NS['e2'], usedEntity=EX_NS['e1'],
+            identifier=EX_NS['prim1'], activity=EX_NS['a'],
+            usage=EX_NS['u'], generation=EX_NS['g']
+        )
         self.assertRoundTripEquivalence(document)
 
-    ## ASSOCIATIONS
+    # ASSOCIATIONS
     def test_association_1(self):
         document = self.new_document()
-        assoc = document.association(EX_NS['a1'], identifier=EX_NS['assoc1'])
+        document.association(EX_NS['a1'], identifier=EX_NS['assoc1'])
         self.assertRoundTripEquivalence(document)
 
     def test_association_2(self):
         document = self.new_document()
-        assoc = document.association(None, agent=EX_NS['ag1'], identifier=EX_NS['assoc2'])
+        document.association(
+            None, agent=EX_NS['ag1'], identifier=EX_NS['assoc2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_association_3(self):
         document = self.new_document()
-        assoc = document.association(EX_NS['a1'], agent=EX_NS['ag1'], identifier=EX_NS['assoc3'])
+        document.association(
+            EX_NS['a1'], agent=EX_NS['ag1'], identifier=EX_NS['assoc3']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_association_4(self):
         document = self.new_document()
-        assoc = document.association(EX_NS['a1'],
-                                     agent=EX_NS['ag1'],
-                                     identifier=EX_NS['assoc4'],
-                                     plan=EX_NS['plan1'])
+        document.association(
+            EX_NS['a1'], agent=EX_NS['ag1'],
+            identifier=EX_NS['assoc4'], plan=EX_NS['plan1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_association_5(self):
         document = self.new_document()
-        assoc = document.association(EX_NS['a1'], agent=EX_NS['ag1'])
+        document.association(EX_NS['a1'], agent=EX_NS['ag1'])
         self.assertRoundTripEquivalence(document)
 
     def test_association_6(self):
@@ -869,81 +889,100 @@ class TestStatementsBase(object):
         self.add_further_attributes(assoc)
         self.assertRoundTripEquivalence(document)
 
-    ## ATTRIBUTIONS
+    # ATTRIBUTIONS
     def test_attribution_1(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], None, identifier=EX_NS['attr1'])
+        document.attribution(
+            EX_NS['e1'], None, identifier=EX_NS['attr1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_2(self):
         document = self.new_document()
-        attr = document.attribution(None, EX_NS['ag1'], identifier=EX_NS['attr2'])
+        document.attribution(
+            None, EX_NS['ag1'], identifier=EX_NS['attr2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_3(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr3'])
+        document.attribution(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr3']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_4(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr4'])
+        document.attribution(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr4']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_5(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'])
+        document.attribution(EX_NS['e1'], EX_NS['ag1'])
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_6(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr6'])
+        attr = document.attribution(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr6']
+        )
         self.add_labels(attr)
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_7(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr7'])
+        attr = document.attribution(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr7']
+        )
         self.add_labels(attr)
         self.add_types(attr)
         self.assertRoundTripEquivalence(document)
 
     def test_attribution_8(self):
         document = self.new_document()
-        attr = document.attribution(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr8'])
+        attr = document.attribution(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr8']
+        )
         self.add_labels(attr)
         self.add_types(attr)
         self.add_further_attributes(attr)
         self.assertRoundTripEquivalence(document)
 
-
-    ## DELEGATIONS
+    # DELEGATIONS
     def test_delegation_1(self):
         document = self.new_document()
-        dele = document.delegation(EX_NS['e1'], None, identifier=EX_NS['dele1'])
+        document.delegation(
+            EX_NS['e1'], None, identifier=EX_NS['dele1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_delegation_2(self):
         document = self.new_document()
-        dele = document.delegation(None, EX_NS['ag1'], identifier=EX_NS['dele2'])
+        document.delegation(
+            None, EX_NS['ag1'], identifier=EX_NS['dele2']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_delegation_3(self):
         document = self.new_document()
-        dele = document.delegation(EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['dele3'])
+        document.delegation(
+            EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['dele3']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_delegation_4(self):
         document = self.new_document()
-        dele = document.delegation(EX_NS['e1'],
-                                   EX_NS['ag1'],
-                                   activity=EX_NS['a1'],
-                                   identifier=EX_NS['dele4'])
+        document.delegation(
+            EX_NS['e1'], EX_NS['ag1'],
+            activity=EX_NS['a1'], identifier=EX_NS['dele4']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_delegation_5(self):
         document = self.new_document()
-        dele = document.delegation(EX_NS['e1'], EX_NS['ag1'])
+        document.delegation(EX_NS['e1'], EX_NS['ag1'])
         self.assertRoundTripEquivalence(document)
 
     def test_delegation_6(self):
@@ -976,111 +1015,120 @@ class TestStatementsBase(object):
         self.add_further_attributes(dele)
         self.assertRoundTripEquivalence(document)
 
-
-    ## COMMUNICATIONS
+    # COMMUNICATIONS
     def test_communication_1(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], None, identifier=EX_NS['inf1'])
+        document.communication(
+            EX_NS['a2'], None, identifier=EX_NS['inf1']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_communication_2(self):
         document = self.new_document()
-        inf = document.communication(None, EX_NS['a1'], identifier=EX_NS['inf2'])
+        document.communication(None, EX_NS['a1'], identifier=EX_NS['inf2'])
         self.assertRoundTripEquivalence(document)
 
     def test_communication_3(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3'])
+        document.communication(
+            EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3']
+        )
         self.assertRoundTripEquivalence(document)
 
     def test_communication_4(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], EX_NS['a1'])
+        document.communication(EX_NS['a2'], EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_communication_5(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf5'])
+        inf = document.communication(
+            EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf5']
+        )
         self.add_labels(inf)
         self.assertRoundTripEquivalence(document)
 
     def test_communication_6(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf6'])
+        inf = document.communication(EX_NS['a2'], EX_NS['a1'],
+                                     identifier=EX_NS['inf6'])
         self.add_labels(inf)
         self.add_types(inf)
         self.assertRoundTripEquivalence(document)
 
     def test_communication_7(self):
         document = self.new_document()
-        inf = document.communication(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7'])
+        inf = document.communication(EX_NS['a2'], EX_NS['a1'],
+                                     identifier=EX_NS['inf7'])
         self.add_labels(inf)
         self.add_types(inf)
         self.add_further_attributes(inf)
         self.assertRoundTripEquivalence(document)
 
-
-    ## INFLUENCES
+    # INFLUENCES
     def test_influence_1(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], None, identifier=EX_NS['inf1'])
+        document.influence(EX_NS['a2'], None, identifier=EX_NS['inf1'])
         self.assertRoundTripEquivalence(document)
 
     def test_influence_2(self):
         document = self.new_document()
-        inf = document.influence(None, EX_NS['a1'], identifier=EX_NS['inf2'])
+        document.influence(None, EX_NS['a1'], identifier=EX_NS['inf2'])
         self.assertRoundTripEquivalence(document)
 
     def test_influence_3(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3'])
+        document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3'])
         self.assertRoundTripEquivalence(document)
 
     def test_influence_4(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'])
+        document.influence(EX_NS['a2'], EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_influence_5(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf5'])
+        inf = document.influence(EX_NS['a2'], EX_NS['a1'],
+                                 identifier=EX_NS['inf5'])
         self.add_labels(inf)
         self.assertRoundTripEquivalence(document)
 
     def test_influence_6(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf6'])
+        inf = document.influence(EX_NS['a2'], EX_NS['a1'],
+                                 identifier=EX_NS['inf6'])
         self.add_labels(inf)
         self.add_types(inf)
         self.assertRoundTripEquivalence(document)
 
     def test_influence_7(self):
         document = self.new_document()
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7'])
+        inf = document.influence(EX_NS['a2'], EX_NS['a1'],
+                                 identifier=EX_NS['inf7'])
         self.add_labels(inf)
         self.add_types(inf)
         self.add_further_attributes(inf)
         self.assertRoundTripEquivalence(document)
 
-    ## OTHERS
+    # OTHERS
     def test_alternate_1(self):
         document = self.new_document()
-        alt = document.alternate(EX_NS['e2'], EX_NS['e1'])
+        document.alternate(EX_NS['e2'], EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_specialization_1(self):
         document = self.new_document()
-        spe = document.specialization(EX_NS['e2'], EX_NS['e1'])
+        document.specialization(EX_NS['e2'], EX_NS['e1'])
         self.assertRoundTripEquivalence(document)
 
     def test_mention_1(self):
         document = self.new_document()
-        men = document.mention(EX_NS['e2'], EX_NS['e1'], None)
+        document.mention(EX_NS['e2'], EX_NS['e1'], None)
         self.assertRoundTripEquivalence(document)
 
     def test_mention_2(self):
         document = self.new_document()
-        men = document.mention(EX_NS['e2'], EX_NS['e1'], EX_NS['b'])
+        document.mention(EX_NS['e2'], EX_NS['e1'], EX_NS['b'])
         self.assertRoundTripEquivalence(document)
 
     def test_membership_1(self):
@@ -1101,20 +1149,21 @@ class TestStatementsBase(object):
         document.membership(EX_NS['c'], EX_NS['e3'])
         self.assertRoundTripEquivalence(document)
 
-
-    ## SCRUFFY
+    # SCRUFFY
     def test_scruffy_generation_1(self):
         document = self.new_document()
-        gen1 = document.generation(EX_NS['e1'],
-                                   EX_NS['a1'],
-                                   identifier=EX_NS['gen1'],
-                                   time=datetime.datetime.now())
-        gen2 = document.generation(EX_NS['e1'],
-                                   EX_NS['a1'],
-                                   identifier=EX_NS['gen1'],
-                                   time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.generation(
+            EX_NS['e1'], EX_NS['a1'],
+            identifier=EX_NS['gen1'],
+            time=datetime.datetime.now()
+        )
+        document.generation(
+            EX_NS['e1'], EX_NS['a1'],
+            identifier=EX_NS['gen1'],
+            time=dateutil.parser.parse("2012-12-03T21:08:16.686Z")
+        )
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_generation_2(self):
@@ -1126,29 +1175,32 @@ class TestStatementsBase(object):
         gen2 = document.generation(EX_NS['e1'],
                                    EX_NS['a1'],
                                    identifier=EX_NS['gen1'],
-                                   time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
+                                   time=dateutil.parser.parse(
+                                       "2012-12-03T21:08:16.686Z"))
         gen1.add_attributes([
             (EX_NS['tag2'], "hello-scruff-gen2")
         ])
         gen2.add_attributes([
             (EX_NS['tag2'], "hi-scruff-gen2")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_invalidation_1(self):
         document = self.new_document()
-        inv1 = document.invalidation(EX_NS['e1'],
-                                     EX_NS['a1'],
-                                     identifier=EX_NS['gen1'],
-                                     time=datetime.datetime.now())
-        inv2 = document.invalidation(EX_NS['e1'],
-                                     EX_NS['a1'],
-                                     identifier=EX_NS['gen1'],
-                                     time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.invalidation(
+            EX_NS['e1'], EX_NS['a1'],
+            identifier=EX_NS['gen1'],
+            time=datetime.datetime.now()
+        )
+        document.invalidation(
+            EX_NS['e1'], EX_NS['a1'],
+            identifier=EX_NS['gen1'],
+            time=dateutil.parser.parse("2012-12-03T21:08:16.686Z")
+        )
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_invalidation_2(self):
@@ -1160,29 +1212,32 @@ class TestStatementsBase(object):
         inv2 = document.invalidation(EX_NS['e1'],
                                      EX_NS['a1'],
                                      identifier=EX_NS['gen1'],
-                                     time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
+                                     time=dateutil.parser.parse(
+                                         "2012-12-03T21:08:16.686Z"))
         inv1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         inv2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_usage_1(self):
         document = self.new_document()
-        use1 = document.usage(EX_NS['a1'],
-                              EX_NS['e1'],
-                              identifier=EX_NS['gen1'],
-                              time=datetime.datetime.now())
-        use2 = document.usage(EX_NS['a1'],
-                              EX_NS['e1'],
-                              identifier=EX_NS['gen1'],
-                              time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.usage(
+            EX_NS['a1'], EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=datetime.datetime.now()
+        )
+        document.usage(
+            EX_NS['a1'], EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=dateutil.parser.parse("2012-12-03T21:08:16.686Z")
+        )
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_usage_2(self):
@@ -1194,29 +1249,32 @@ class TestStatementsBase(object):
         use2 = document.usage(EX_NS['a1'],
                               EX_NS['e1'],
                               identifier=EX_NS['gen1'],
-                              time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
+                              time=dateutil.parser.parse(
+                                  "2012-12-03T21:08:16.686Z"))
         use1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         use2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_start_1(self):
         document = self.new_document()
-        start1 = document.start(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=datetime.datetime.now())
-        start2 = document.start(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.start(
+            EX_NS['a1'], EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=datetime.datetime.now()
+        )
+        document.start(
+            EX_NS['a1'], EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=dateutil.parser.parse("2012-12-03T21:08:16.686Z")
+        )
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_start_2(self):
@@ -1228,15 +1286,16 @@ class TestStatementsBase(object):
         start2 = document.start(EX_NS['a1'],
                                 EX_NS['e1'],
                                 identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
+                                time=dateutil.parser.parse(
+                                    "2012-12-03T21:08:16.686Z"))
         start1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         start2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_start_3(self):
@@ -1249,7 +1308,8 @@ class TestStatementsBase(object):
         start2 = document.start(EX_NS['a1'],
                                 EX_NS['e1'],
                                 identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"),
+                                time=dateutil.parser.parse(
+                                    "2012-12-03T21:08:16.686Z"),
                                 starter=EX_NS['a2s'])
         start1.add_attributes([
             (EX_NS['tag2'], "hello")
@@ -1257,10 +1317,10 @@ class TestStatementsBase(object):
         start2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
-        a2 = document.activity(identifier=EX_NS['a2'])
-        a2s = document.activity(identifier=EX_NS['a2s'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
+        document.activity(identifier=EX_NS['a2'])
+        document.activity(identifier=EX_NS['a2s'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_start_4(self):
@@ -1273,7 +1333,8 @@ class TestStatementsBase(object):
         start2 = document.start(EX_NS['a1'],
                                 EX_NS['e1'],
                                 identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"),
+                                time=dateutil.parser.parse(
+                                    "2012-12-03T21:08:16.686Z"),
                                 starter=EX_NS['a2s'])
         start1.add_attributes([
             (EX_NS['tag2'], "hello")
@@ -1281,106 +1342,115 @@ class TestStatementsBase(object):
         start2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
-        a1s = document.activity(identifier=EX_NS['a1s'])
-        a2 = document.activity(identifier=EX_NS['a2'])
-        a2s = document.activity(identifier=EX_NS['a2s'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
+        document.activity(identifier=EX_NS['a1s'])
+        document.activity(identifier=EX_NS['a2'])
+        document.activity(identifier=EX_NS['a2s'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_end_1(self):
         document = self.new_document()
-        end1 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=datetime.datetime.now())
-        end2 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.end(
+            EX_NS['a1'],
+            EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=datetime.datetime.now()
+        )
+        document.end(
+            EX_NS['a1'],
+            EX_NS['e1'],
+            identifier=EX_NS['gen1'],
+            time=dateutil.parser.parse("2012-12-03T21:08:16.686Z")
+        )
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_end_2(self):
         document = self.new_document()
         end1 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=datetime.datetime.now())
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=datetime.datetime.now())
         end2 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"))
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=dateutil.parser.parse(
+                                "2012-12-03T21:08:16.686Z"))
         end1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         end2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_end_3(self):
         document = self.new_document()
         end1 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=datetime.datetime.now(),
-                                ender=EX_NS['a1s'])
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=datetime.datetime.now(),
+                            ender=EX_NS['a1s'])
         end2 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"),
-                                ender=EX_NS['a2s'])
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=dateutil.parser.parse(
+                                "2012-12-03T21:08:16.686Z"),
+                            ender=EX_NS['a2s'])
         end1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         end2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
-        a2 = document.activity(identifier=EX_NS['a2'])
-        a2s = document.activity(identifier=EX_NS['a2s'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
+        document.activity(identifier=EX_NS['a2'])
+        document.activity(identifier=EX_NS['a2s'])
         self.assertRoundTripEquivalence(document)
 
     def test_scruffy_end_4(self):
         document = self.new_document()
         end1 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=datetime.datetime.now(),
-                                ender=EX_NS['a1s'])
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=datetime.datetime.now(),
+                            ender=EX_NS['a1s'])
         end2 = document.end(EX_NS['a1'],
-                                EX_NS['e1'],
-                                identifier=EX_NS['gen1'],
-                                time=dateutil.parser.parse("2012-12-03T21:08:16.686Z"),
-                                ender=EX_NS['a2s'])
+                            EX_NS['e1'],
+                            identifier=EX_NS['gen1'],
+                            time=dateutil.parser.parse(
+                                "2012-12-03T21:08:16.686Z"),
+                            ender=EX_NS['a2s'])
         end1.add_attributes([
             (EX_NS['tag2'], "hello")
         ])
         end2.add_attributes([
             (EX_NS['tag2'], "hi")
         ])
-        e1 = document.entity(identifier=EX_NS['e1'])
-        a1 = document.activity(identifier=EX_NS['a1'])
-        a1s = document.activity(identifier=EX_NS['a1s'])
-        a2 = document.activity(identifier=EX_NS['a2'])
-        a2s = document.activity(identifier=EX_NS['a2s'])
+        document.entity(identifier=EX_NS['e1'])
+        document.activity(identifier=EX_NS['a1'])
+        document.activity(identifier=EX_NS['a1s'])
+        document.activity(identifier=EX_NS['a2'])
+        document.activity(identifier=EX_NS['a2s'])
         self.assertRoundTripEquivalence(document)
 
     def test_bundle_1(self):
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'],
+                      identifier=EX_NS['use1'])
         bundle1.entity(identifier=EX_NS['e1'])
         bundle1.activity(identifier=EX_NS['a1'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'], identifier=EX_NS['use2'])
+        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'],
+                      identifier=EX_NS['use2'])
         bundle2.entity(identifier=EX_NS['ee1'])
         bundle2.activity(identifier=EX_NS['aa1'])
 
@@ -1393,12 +1463,14 @@ class TestStatementsBase(object):
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'],
+                      identifier=EX_NS['use1'])
         bundle1.entity(identifier=EX_NS['e1'])
         bundle1.activity(identifier=EX_NS['a1'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use2'])
+        bundle2.usage(activity=EX_NS['a1'], entity=EX_NS['e1'],
+                      identifier=EX_NS['use2'])
         bundle2.entity(identifier=EX_NS['e1'])
         bundle2.activity(identifier=EX_NS['a1'])
 
@@ -1411,12 +1483,14 @@ class TestStatementsBase(object):
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'],
+                      identifier=EX_NS['use1'])
         bundle1.entity(identifier=EX_NS['e1'])
         bundle1.activity(identifier=EX_NS['a1'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'], identifier=EX_NS['use2'])
+        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'],
+                      identifier=EX_NS['use2'])
         bundle2.entity(identifier=EX_NS['ee1'])
         bundle2.activity(identifier=EX_NS['aa1'])
 
@@ -1429,12 +1503,14 @@ class TestStatementsBase(object):
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
+        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'],
+                      identifier=EX_NS['use1'])
         bundle1.entity(identifier=EX_NS['e1'])
         bundle1.activity(identifier=EX_NS['a1'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX2_NS['aa1'], entity=EX2_NS['ee1'], identifier=EX2_NS['use2'])
+        bundle2.usage(activity=EX2_NS['aa1'], entity=EX2_NS['ee1'],
+                      identifier=EX2_NS['use2'])
         bundle2.entity(identifier=EX2_NS['ee1'])
         bundle2.activity(identifier=EX2_NS['aa1'])
 

@@ -23,7 +23,9 @@ class TestJSONSerializer(BaseTestCase):
     }
 }''' % unicode_char
 
-        prov_doc = ProvDocument.deserialize(content=json_content, format='json')
+        prov_doc = ProvDocument.deserialize(
+            content=json_content, format='json'
+        )
         e1 = prov_doc.get_record('ex:unicode_char')[0]
         self.assertIn(unicode_char, e1.get_attribute('prov:label'))
 

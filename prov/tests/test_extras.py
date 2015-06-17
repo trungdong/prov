@@ -37,7 +37,8 @@ def add_types(record):
         ('prov:type', True),
         ('prov:type', EX_NS['abc']),
         ('prov:type', datetime.datetime.now()),
-        ('prov:type', Literal('http://boiled-egg.example.com', datatype=XSD_ANYURI)),
+        ('prov:type', Literal('http://boiled-egg.example.com',
+                              datatype=XSD_ANYURI)),
     ])
 
 
@@ -97,17 +98,25 @@ def add_further_attributes_with_qnames(record):
 
 class TestExtras(unittest.TestCase):
     def test_dot(self):
-        # This is naive.. since we can't programatically check the output is correct
+        # This is naive, since we can't programatically check the output is
+        # correct
         document = ProvDocument()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
-        bundle1.entity(identifier=EX_NS['e1'], other_attributes={PROV_ROLE: "sausage"})
+        bundle1.usage(
+            activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1']
+        )
+        bundle1.entity(
+            identifier=EX_NS['e1'], other_attributes={PROV_ROLE: "sausage"}
+        )
         bundle1.activity(identifier=EX_NS['a1'])
         document.activity(EX_NS['a2'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'], identifier=EX_NS['use2'])
+        bundle2.usage(
+            activity=EX_NS['aa1'], entity=EX_NS['ee1'],
+            identifier=EX_NS['use2']
+        )
         bundle2.entity(identifier=EX_NS['ee1'])
         bundle2.activity(identifier=EX_NS['aa1'])
 
@@ -119,12 +128,17 @@ class TestExtras(unittest.TestCase):
 
         document = ProvDocument()
 
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7'])
+        inf = document.influence(
+            EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7']
+        )
         add_labels(inf)
         add_types(inf)
         add_further_attributes(inf)
 
-        self.assertEqual(len(inf.attributes), len(list(inf.formal_attributes) + inf.extra_attributes))
+        self.assertEqual(
+            len(inf.attributes),
+            len(list(inf.formal_attributes) + inf.extra_attributes)
+        )
 
     def test_serialize_to_path(self):
         document = ProvDocument()
@@ -159,7 +173,9 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
 
         def test():
-            document.add_bundle(document.entity(EX_NS['entity_trying_to_be_a_bundle']))
+            document.add_bundle(
+                document.entity(EX_NS['entity_trying_to_be_a_bundle'])
+            )
 
         self.assertRaises(ProvException, test)
 
@@ -249,7 +265,8 @@ class TestExtras(unittest.TestCase):
                                                             format=format)
                     self.assertEqual(document, new_document)
                 except NotImplementedError:
-                    # Some serializers might not implement serialize or deserialize method
+                    # Some serializers might not implement serialize or
+                    # deserialize method
                     pass  # and this is fine in the context of this test
                 finally:
                     buf.close()

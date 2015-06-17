@@ -23,43 +23,102 @@ import pydot
 import six
 
 from prov.model import (
-    ProvBundle, PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION, PROV_ATTRIBUTION, PROV_BUNDLE,
-    PROV_COMMUNICATION, PROV_DERIVATION, PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
-    PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION, PROV_SPECIALIZATION, PROV_START, PROV_USAGE,
-    Identifier, PROV_ATTRIBUTE_QNAMES, sorted_attributes)
+    PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION,
+    PROV_ATTRIBUTION, PROV_BUNDLE, PROV_COMMUNICATION, PROV_DERIVATION,
+    PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
+    PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION,
+    PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier,
+    PROV_ATTRIBUTE_QNAMES, sorted_attributes
+)
 
 
 # Visual styles for various elements (nodes) and relations (edges)
 # see http://graphviz.org/content/attrs
 DOT_PROV_STYLE = {
     # Generic node
-    0: {'shape': 'oval', 'style': 'filled', 'fillcolor': 'lightgray', 'color': 'dimgray'},
+    0: {
+        'shape': 'oval', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
     # Elements
-    PROV_ENTITY: {'shape': 'oval', 'style': 'filled', 'fillcolor': '#FFFC87', 'color': '#808080'},
-    PROV_ACTIVITY: {'shape': 'box', 'style': 'filled', 'fillcolor': '#9FB1FC', 'color': '#0000FF'},
-    PROV_AGENT: {'shape': 'house', 'style': 'filled', 'fillcolor': '#FED37F'},
-    #    PROV_COLLECTION: {'label': 'wasGeneratedBy', 'fontsize': 10.0},
-    PROV_BUNDLE: {'shape': 'folder', 'style': 'filled', 'fillcolor': 'aliceblue'},
+    PROV_ENTITY: {
+        'shape': 'oval', 'style': 'filled',
+        'fillcolor': '#FFFC87', 'color': '#808080'
+    },
+    PROV_ACTIVITY: {
+        'shape': 'box', 'style': 'filled',
+        'fillcolor': '#9FB1FC', 'color': '#0000FF'
+    },
+    PROV_AGENT: {
+        'shape': 'house', 'style': 'filled',
+        'fillcolor': '#FED37F'
+    },
+    PROV_BUNDLE: {
+        'shape': 'folder', 'style': 'filled',
+        'fillcolor': 'aliceblue'
+    },
     # Relations
-    PROV_GENERATION: {'label': 'wasGeneratedBy', 'fontsize': '10.0', 'color': 'darkgreen', 'fontcolor': 'darkgreen'},
-    PROV_USAGE: {'label': 'used', 'fontsize': '10.0', 'color': 'red4', 'fontcolor': 'red'},
-    PROV_COMMUNICATION: {'label': 'wasInformedBy', 'fontsize': '10.0'},
-    PROV_START: {'label': 'wasStartedBy', 'fontsize': '10.0'},
-    PROV_END: {'label': 'wasEndedBy', 'fontsize': '10.0'},
-    PROV_INVALIDATION: {'label': 'wasInvalidatedBy', 'fontsize': '10.0'},
-    PROV_DERIVATION: {'label': 'wasDerivedFrom', 'fontsize': '10.0'},
-    PROV_ATTRIBUTION: {'label': 'wasAttributedTo', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_ASSOCIATION: {'label': 'wasAssociatedWith', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_DELEGATION: {'label': 'actedOnBehalfOf', 'fontsize': '10.0', 'color': '#FED37F'},
-    PROV_INFLUENCE: {'label': 'wasInfluencedBy', 'fontsize': '10.0', 'color': 'grey'},
-    PROV_ALTERNATE: {'label': 'alternateOf', 'fontsize': '10.0'},
-    PROV_SPECIALIZATION: {'label': 'specializationOf', 'fontsize': '10.0'},
-    PROV_MENTION: {'label': 'mentionOf', 'fontsize': '10.0'},
-    PROV_MEMBERSHIP: {'label': 'hadMember', 'fontsize': '10.0'},
+    PROV_GENERATION: {
+        'label': 'wasGeneratedBy', 'fontsize': '10.0',
+        'color': 'darkgreen', 'fontcolor': 'darkgreen'
+    },
+    PROV_USAGE: {
+        'label': 'used', 'fontsize': '10.0',
+        'color': 'red4', 'fontcolor': 'red'
+    },
+    PROV_COMMUNICATION: {
+        'label': 'wasInformedBy', 'fontsize': '10.0'
+    },
+    PROV_START: {
+        'label': 'wasStartedBy', 'fontsize': '10.0'
+    },
+    PROV_END: {
+        'label': 'wasEndedBy', 'fontsize': '10.0'
+    },
+    PROV_INVALIDATION: {
+        'label': 'wasInvalidatedBy', 'fontsize': '10.0'
+    },
+    PROV_DERIVATION: {
+        'label': 'wasDerivedFrom', 'fontsize': '10.0'
+    },
+    PROV_ATTRIBUTION: {
+        'label': 'wasAttributedTo', 'fontsize': '10.0',
+        'color': '#FED37F'
+    },
+    PROV_ASSOCIATION: {
+        'label': 'wasAssociatedWith', 'fontsize': '10.0',
+        'color': '#FED37F'
+    },
+    PROV_DELEGATION: {
+        'label': 'actedOnBehalfOf', 'fontsize': '10.0',
+        'color': '#FED37F'
+    },
+    PROV_INFLUENCE: {
+        'label': 'wasInfluencedBy', 'fontsize': '10.0',
+        'color': 'grey'
+    },
+    PROV_ALTERNATE: {
+        'label': 'alternateOf', 'fontsize': '10.0'
+    },
+    PROV_SPECIALIZATION: {
+        'label': 'specializationOf', 'fontsize': '10.0'
+    },
+    PROV_MENTION: {
+        'label': 'mentionOf', 'fontsize': '10.0'
+    },
+    PROV_MEMBERSHIP: {
+        'label': 'hadMember', 'fontsize': '10.0'
+    },
     }
 
-ANNOTATION_STYLE = {'shape': 'note', 'color': 'gray', 'fontcolor': 'black', 'fontsize': '10'}
-ANNOTATION_LINK_STYLE = {'arrowhead': 'none', 'style': 'dashed', 'color': 'gray'}
+ANNOTATION_STYLE = {
+    'shape': 'note', 'color': 'gray',
+    'fontcolor': 'black', 'fontsize': '10'
+}
+ANNOTATION_LINK_STYLE = {
+    'arrowhead': 'none', 'style': 'dashed',
+    'color': 'gray'
+}
 ANNOTATION_START_ROW = '<<TABLE cellpadding=\"0\" border=\"0\">'
 ANNOTATION_ROW_TEMPLATE = """    <TR>
         <TD align=\"left\" href=\"%s\">%s</TD>
@@ -76,7 +135,8 @@ def htlm_link_if_uri(value):
         return six.text_type(value)
 
 
-def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attributes=True, show_relation_attributes=True):
+def prov_to_dot(bundle, show_nary=True, use_labels=False,
+                show_element_attributes=True, show_relation_attributes=True):
     """
     Convert a provenance bundle/document into a DOT graphical representation.
 
@@ -84,7 +144,8 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
     :type name: :class:`ProvBundle`
     :param show_nary: shows all elements in n-ary relations.
     :type show_nary: bool
-    :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
+    :param use_labels: uses the prov:label property of an element as its name
+    (instead of its identifier).
     :type use_labels: bool
     :param show_element_attributes: shows attributes of elements.
     :type show_element_attributes: bool
@@ -115,7 +176,8 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             ann_rows.extend(
                 ANNOTATION_ROW_TEMPLATE % (
                     attr.uri, cgi.escape(six.text_type(attr)),
-                    ' href=\"%s\"' % value.uri if isinstance(value, Identifier) else '',
+                    ' href=\"%s\"' % value.uri if isinstance(value, Identifier)
+                    else '',
                     cgi.escape(six.text_type(value)
                                if not isinstance(value, datetime) else
                                six.text_type(value.isoformat())))
@@ -123,13 +185,18 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             )
             ann_rows.append(ANNOTATION_END_ROW)
             count[3] += 1
-            annotations = pydot.Node('ann%d' % count[3], label='\n'.join(ann_rows), **ANNOTATION_STYLE)
+            annotations = pydot.Node(
+                'ann%d' % count[3], label='\n'.join(ann_rows),
+                **ANNOTATION_STYLE
+            )
             dot.add_node(annotations)
             dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
         def _add_bundle(bundle):
             count[2] += 1
-            subdot = pydot.Cluster(graph_name='c%d' % count[2], URL='"%s"' % bundle.identifier.uri)
+            subdot = pydot.Cluster(
+                graph_name='c%d' % count[2], URL='"%s"' % bundle.identifier.uri
+            )
             if use_labels:
                 if bundle.label == bundle.identifier:
                     bundle_label = '"%s"' % six.text_type(bundle.label)
@@ -140,8 +207,10 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
                     bundle_label = ('<%s<br />'
                                     '<font color="#333333" point-size="10">'
                                     '%s</font>>')
-                    bundle_label = bundle_label % (six.text_type(bundle.label),
-                                                   six.text_type(bundle.identifier))
+                    bundle_label = bundle_label % (
+                        six.text_type(bundle.label),
+                        six.text_type(bundle.identifier)
+                    )
                 subdot.set_label('"%s"' % six.text_type(bundle_label))
             else:
                 subdot.set_label('"%s"' % six.text_type(bundle.identifier))
@@ -169,7 +238,9 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
 
             uri = record.identifier.uri
             style = DOT_PROV_STYLE[record.get_type()]
-            node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
+            node = pydot.Node(
+                node_id, label=node_label, URL='"%s"' % uri, **style
+            )
             node_map[uri] = node
             dot.add_node(node)
 
@@ -184,7 +255,9 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
 
             uri = qname.uri
             style = DOT_PROV_STYLE[0]
-            node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
+            node = pydot.Node(
+                node_id, label=node_label, URL='"%s"' % uri, **style
+            )
             node_map[uri] = node
             dot.add_node(node)
             return node
@@ -192,7 +265,9 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
         def _get_bnode():
             count[1] += 1
             bnode_id = 'b%d' % count[1]
-            bnode = pydot.Node(bnode_id, label='""', shape='point', color='gray')
+            bnode = pydot.Node(
+                bnode_id, label='""', shape='point', color='gray'
+            )
             dot.add_node(bnode)
             return bnode
 
@@ -223,35 +298,52 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False, show_element_attribute
             if not args:
                 continue
             # picking element nodes
-            nodes = [value for attr_name, value in rec.formal_attributes if attr_name in PROV_ATTRIBUTE_QNAMES]
-            other_attributes = [
-                (attr_name, value) for attr_name, value in rec.attributes if attr_name not in PROV_ATTRIBUTE_QNAMES
+            nodes = [
+                value for attr_name, value in rec.formal_attributes
+                if attr_name in PROV_ATTRIBUTE_QNAMES
             ]
-            add_attribute_annotation = show_relation_attributes and other_attributes
+            other_attributes = [
+                (attr_name, value) for attr_name, value in rec.attributes
+                if attr_name not in PROV_ATTRIBUTE_QNAMES
+            ]
+            add_attribute_annotation = (
+                show_relation_attributes and other_attributes
+            )
             add_nary_elements = len(nodes) > 2 and show_nary
             style = DOT_PROV_STYLE[rec.get_type()]
             if len(nodes) < 2:  # too few elements for a relation?
                 continue  # cannot draw this
 
             if add_nary_elements or add_attribute_annotation:
-                # need a blank node for n-ary relations or the attribute annotation
-                # add a blank node
+                # a blank node for n-ary relations or the attribute annotation
                 bnode = _get_bnode()
 
-                dot.add_edge(pydot.Edge(_get_node(nodes[0]), bnode, arrowhead='none', **style))  # the first segment
+                # the first segment
+                dot.add_edge(
+                    pydot.Edge(
+                        _get_node(nodes[0]), bnode, arrowhead='none', **style
+                    )
+                )
                 style = dict(style)  # copy the style
                 del style['label']  # not showing label in the second segment
-                dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1]), **style))  # the second segment
+                # the second segment
+                dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1]), **style))
                 if add_nary_elements:
                     style['color'] = 'gray'  # all remaining segment to be gray
                     for node in nodes[2:]:
                         if node is not None:
-                            dot.add_edge(pydot.Edge(bnode, _get_node(node), **style))
+                            dot.add_edge(
+                                pydot.Edge(bnode, _get_node(node), **style)
+                            )
                 if add_attribute_annotation:
                     _attach_attribute_annotation(bnode, rec)
             else:
                 # show a simple binary relations with no annotation
-                dot.add_edge(pydot.Edge(_get_node(nodes[0]), _get_node(nodes[1]), **style))
+                dot.add_edge(
+                    pydot.Edge(
+                        _get_node(nodes[0]), _get_node(nodes[1]), **style
+                    )
+                )
 
     unified = bundle.unified()
     _bundle_to_dot(maindot, unified)

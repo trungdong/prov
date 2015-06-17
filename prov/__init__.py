@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function,
 
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
-__version__ = '1.3.1'
+__version__ = '1.3.2'
 
 __all__ = ["Error", "model", "read"]
 
@@ -20,7 +20,7 @@ def read(source, format=None):
     It does a lazy format detection by simply using try/except for all known
     formats. The deserializers should fail fairly early when data of the
     wrong type is passed to them thus the try/except is likely cheap. One
-    could of course also do some more advanced format autodetection but I am
+    could of course also do some more advanced format auto-detection but I am
     not sure that is necessary.
 
     The downside is that no proper error messages will be produced, use the
