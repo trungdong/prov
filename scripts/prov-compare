@@ -76,7 +76,7 @@ USAGE
     try:
         # Setup argument parser
         parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument('file1', nargs='?', type=FileType('r'), default=sys.stdin)
+        parser.add_argument('file1', nargs='?', type=FileType('r'))
         parser.add_argument('file2', nargs='?', type=FileType('r'))
         parser.add_argument('-f', '--format1', dest='format1', action='store', default='json',
                             help='File 1\'s format: json or xml')
