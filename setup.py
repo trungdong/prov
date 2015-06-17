@@ -43,7 +43,8 @@ setup(
     license="MIT",
     zip_safe=False,
     keywords=[
-        'provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON'
+        'provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON',
+        'PROV-XML', 'PROV-N'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',
