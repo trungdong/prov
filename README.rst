@@ -9,19 +9,19 @@ Introduction
 .. image:: https://travis-ci.org/trungdong/prov.svg
   :target: https://travis-ci.org/trungdong/prov
   :alt: Build Status
-.. image:: https://coveralls.io/repos/trungdong/prov/badge.png?branch=master
+.. image:: https://img.shields.io/coveralls/trungdong/prov.svg
   :target: https://coveralls.io/r/trungdong/prov?branch=master
   :alt: Coverage Status
-.. image:: https://pypip.in/wheel/prov/badge.svg
+.. image:: https://img.shields.io/pypi/wheel/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
-.. image:: https://pypip.in/download/prov/badge.svg
+.. image:: https://img.shields.io/pypi/dm/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Downloads
-.. image:: https://pypip.in/py_versions/prov/badge.svg
+.. image:: https://img.shields.io/pypi/pyversions/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Supported Python version
-.. image:: https://pypip.in/license/prov/badge.svg
+.. image:: https://img.shields.io/pypi/l/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: License
 
@@ -42,5 +42,8 @@ Features
 
 Uses
 ^^^^
+
+See `a short tutorial  <http://provbits.blogspot.co.uk/2014/08/a-short-tutorial-for-prov-python.html>`_ for using this package.
+
 This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
-a repository for provenance documents.
+a free online repository for provenance documents.
