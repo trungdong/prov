@@ -3,6 +3,11 @@
 History
 -------
 
+1.3.2 (2015-06-17)
+^^^^^^^^^^^^^^^^^^
+* Added: prov-compare script to check equivalence of two PROV files (currently supporting JSON and XML)
+* Fixed: deserialising Python 3's bytes objects (issue #67)
+
 1.3.1 (2015-02-27)
 ^^^^^^^^^^^^^^^^^^
 * Fixed unicode issue with deserialising text contents
