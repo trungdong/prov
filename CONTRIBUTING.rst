@@ -36,7 +36,7 @@ is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-prov could always use more documentation, whether as part of the
+We could always use more documentation, whether as part of the
 official prov docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
@@ -108,4 +108,4 @@ Tips
 
 To run a subset of tests::
 
-	$ python -m unittest tests.test_prov
+	$ python -m unittest prov.tests.test_json
