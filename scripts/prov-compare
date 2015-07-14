@@ -99,7 +99,7 @@ USAGE
                 if args.file2:
                     args.file2.close()
 
-    except Exception, e:
+    except Exception as e:
         if DEBUG or TESTRUN:
             traceback.print_exc()
             raise e
