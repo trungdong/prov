@@ -265,6 +265,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         r_nsmap = dict((value, key) for (key, value) in xml_doc.nsmap.items())
 
         for element in xml_doc:
+            self._add_xml_namespaces_to_bundle(element, bundle)
             qname = etree.QName(element)
             if qname.namespace != DEFAULT_NAMESPACES["prov"].uri:
                 raise ProvXMLException("Non PROV element discovered in "
