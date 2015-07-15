@@ -316,6 +316,16 @@ class ProvXMLTestCase(unittest.TestCase):
         self.assertEqual(doc._records[0].identifier.namespace, ns)
         self.assertEqual(doc._records[0].identifier.localpart, "e001")
 
+    def test_changing_default_namespace(self):
+        """
+        If the default namespace changes, an error will be raised.
+        """
+        filename = os.path.join(DATA_PATH,
+                                "nested_changing_default_namespace.xml")
+        self.assertRaises(
+            ValueError, prov.ProvDocument.deserialize,
+            source=filename, format="xml")
+
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
@@ -338,7 +348,8 @@ for filename in glob.iglob(os.path.join(
 
     # Cannot round trip this one as the namespace in the PROV data model are
     # always defined per bundle and not per element.
-    if name == "nested_default_namespace":
+    if name in ("nested_default_namespace",
+                "nested_changing_default_namespace"):
         continue
 
     # Python creates closures on function calls...
