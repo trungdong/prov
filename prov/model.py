@@ -202,6 +202,13 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         return u'Invalid Qualified Name: %s' % self.qname
 
 
+@six.python_2_unicode_compatible
+class ProvElementIdentifierRequired(ProvException):
+    def __str__(self):
+        return u'An identifier is missing. All PROV elements require a valid ' \
+               u'identifier.'
+
+
 #  PROV records
 @six.python_2_unicode_compatible
 class ProvRecord(object):
@@ -441,6 +448,13 @@ class ProvRecord(object):
 
 #  Abstract classes for elements and relations
 class ProvElement(ProvRecord):
+    def __init__(self, bundle, identifier, attributes):
+        if identifier is None:
+            # All types of PROV elements require a valid identifier
+            raise ProvElementIdentifierRequired()
+
+        super(ProvElement, self).__init__(bundle, identifier, attributes)
+
     def is_element(self):
         return True
 
