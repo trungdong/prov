@@ -215,24 +215,28 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         """
         # Do not add namespaces already defined in the parent document in
         # case it is a bundle.
-        doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
-            if bundle.document is not None else []
+        doc_ns = dict((i.prefix, i.uri) for i in bundle.namespaces)
         for key, value in xml_doc.nsmap.items():
-            if (key, value) in doc_ns:
-                continue
+            if key in doc_ns:
+                if doc_ns[key] == value:
+                    continue
+                raise ValueError(
+                    "The XML document changes the '%s' prefixed namespace at "
+                    "some point. This cannot be reflected by the PROV "
+                    "data model." % key)
             elif key == "xsd":
                 value = value.rstrip("#") + "#"
             elif key is None:
                 if bundle.get_default_namespace() is None:
                     bundle.set_default_namespace(value)
                     continue
-                if bundle.get_default_namespace().uri != value:
+                elif bundle.get_default_namespace().uri != value:
                     raise ValueError(
                         "The XML document changes the default namespace at "
                         "some point. This cannot be reflected by the PROV "
                         "data model.")
-            else:
-                bundle.add_namespace(key, value)
+                continue
+            bundle.add_namespace(key, value)
 
     def deserialize(self, stream, **kwargs):
         """
