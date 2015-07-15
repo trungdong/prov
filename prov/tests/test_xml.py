@@ -301,6 +301,21 @@ class ProvXMLTestCase(unittest.TestCase):
         # This document contains nothing else.
         self.assertEqual(len(doc._records), 0)
 
+    def test_nested_default_namespace(self):
+        """
+        Tests that a default namespace that is defined in a lower level tag is
+        written to a bundle.
+        """
+        filename = os.path.join(DATA_PATH, "nested_default_namespace.xml")
+        doc = prov.ProvDocument.deserialize(source=filename, format="xml")
+
+        ns = Namespace("", "http://example.org/0/")
+
+        self.assertEqual(len(doc._records), 1)
+        self.assertEqual(doc.get_default_namespace(), ns)
+        self.assertEqual(doc._records[0].identifier.namespace, ns)
+        self.assertEqual(doc._records[0].identifier.localpart, "e001")
+
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
@@ -320,6 +335,11 @@ for filename in glob.iglob(os.path.join(
         DATA_PATH, "*" + os.path.extsep + "xml")):
     name = os.path.splitext(os.path.basename(filename))[0]
     test_name = "test_roundtrip_from_xml_%s" % name
+
+    # Cannot round trip this one as the namespace in the PROV data model are
+    # always defined per bundle and not per element.
+    if name == "nested_default_namespace":
+        continue
 
     # Python creates closures on function calls...
     def get_fct(f):
