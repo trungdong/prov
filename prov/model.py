@@ -1480,6 +1480,22 @@ class ProvDocument(ProvBundle):
     def __repr__(self):
         return '<ProvDocument>'
 
+    def __eq__(self, other):
+        # Comparing the documents' content
+        if not super(ProvDocument, self).__eq__(other):
+            return False
+
+        # Comparing the documents' bundles
+        for b_id, bundle in self._bundles.items():
+            if b_id not in other._bundles:
+                return False
+            other_bundle = other._bundles[b_id]
+            if bundle != other_bundle:
+                return False
+
+        # Everything is the same
+        return True
+
     def is_document(self):
         return True
 
