@@ -326,6 +326,22 @@ class ProvXMLTestCase(unittest.TestCase):
             ValueError, prov.ProvDocument.deserialize,
             source=filename, format="xml")
 
+    def test_redefining_namespaces(self):
+        """
+        Test the behaviour when namespaces are redefined at the element level.
+        """
+        filename = os.path.join(DATA_PATH,
+                                "namespace_redefined_but_does_not_change.xml")
+        # Should not raise.
+        prov.ProvDocument.deserialize(source=filename, format="xml")
+
+        filename = os.path.join(DATA_PATH, "namespace_redefined.xml")
+        # Should raise.
+        self.assertRaises(
+            ValueError, prov.ProvDocument.deserialize,
+            source=filename, format="xml")
+
+
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
@@ -349,7 +365,9 @@ for filename in glob.iglob(os.path.join(
     # Cannot round trip this one as the namespace in the PROV data model are
     # always defined per bundle and not per element.
     if name in ("nested_default_namespace",
-                "nested_changing_default_namespace"):
+                "nested_changing_default_namespace",
+                "namespace_redefined_but_does_not_change",
+                "namespace_redefined"):
         continue
 
     # Python creates closures on function calls...
