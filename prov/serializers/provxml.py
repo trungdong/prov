@@ -213,29 +213,15 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         :param xml_doc: An etree element.
         :param bundle: A prov bundle object.
         """
-        # Do not add namespaces already defined in the parent document in
-        # case it is a bundle.
-        doc_ns = dict((i.prefix, i.uri) for i in bundle.namespaces)
         for key, value in xml_doc.nsmap.items():
-            if key in doc_ns:
-                if doc_ns[key] == value:
-                    continue
-                raise ValueError(
-                    "The XML document changes the '%s' prefixed namespace at "
-                    "some point. This cannot be reflected by the PROV "
-                    "data model." % key)
-            elif key == "xsd":
+            if key == "xsd":
                 value = value.rstrip("#") + "#"
             elif key is None:
                 if bundle.get_default_namespace() is None:
                     bundle.set_default_namespace(value)
                     continue
-                elif bundle.get_default_namespace().uri != value:
-                    raise ValueError(
-                        "The XML document changes the default namespace at "
-                        "some point. This cannot be reflected by the PROV "
-                        "data model.")
-                continue
+                # The namespace manager will then choose a new prefix.
+                key = ""
             bundle.add_namespace(key, value)
 
     def deserialize(self, stream, **kwargs):
@@ -292,6 +278,35 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             id_tag = _ns_prov("id")
             rec_id = element.attrib[id_tag] if id_tag in element.attrib \
                 else None
+
+            if rec_id is not None:
+                # Try to make a qualified name out of it!
+                if ":" in rec_id:
+                    uri, localpart = rec_id.split(":")
+                    uri = element.nsmap[uri]
+                else:
+                    # In this case, a default namespace must be available!
+                    if None not in element.nsmap:
+                        raise ProvXMLException(
+                            "Identifier is not a qualified name and no "
+                            "default namespace is available.")
+                    uri = element.nsmap[None]
+                    localpart = rec_id
+
+                # Now attempt to get the namespace. It should have been
+                # registered before.
+                if bundle.get_default_namespace() and \
+                        bundle.get_default_namespace().uri == uri:
+                    ns = bundle.get_default_namespace()
+                else:
+                    _ns_obj = [i for i in bundle.namespaces if i.uri == uri]
+                    if not _ns_obj:
+                        raise ProvXMLException(
+                            "Namespace with uri '%s' not found in bundle. It "
+                            "should already have been registered." % uri)
+                    ns = _ns_obj[0]
+
+                rec_id = prov.model.QualifiedName(ns, localpart)
 
             # Recursively read bundles.
             if qname.localname == "bundleContent":
@@ -372,12 +387,14 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                     # QualifiedName instance!
                     if value == "xsd:QName" and _namespace and \
                             _namespace != "prov":
-                        _ns_obj = Namespace(_namespace,
-                                            subel.nsmap[_namespace])
-                        if _ns_obj not in namespaces:
+                        # Find the current namespace.
+                        _ns_obj = [i for i in namespaces if
+                                   i.uri == subel.nsmap[_namespace]]
+                        if not _ns_obj:
                             raise ProvXMLException(
                                 "QualifiedName '%s' has an unknown namespace."
                                 % subel.text)
+                        _ns_obj = _ns_obj[0]
                         _v = prov.identifier.QualifiedName(_ns_obj, _localpart)
                     else:
                         _v = prov.model.Literal(

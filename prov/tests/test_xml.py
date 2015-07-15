@@ -318,13 +318,24 @@ class ProvXMLTestCase(unittest.TestCase):
 
     def test_changing_default_namespace(self):
         """
-        If the default namespace changes, an error will be raised.
+        If the default namespace changes a new prefix should be used for it.
         """
         filename = os.path.join(DATA_PATH,
                                 "nested_changing_default_namespace.xml")
-        self.assertRaises(
-            ValueError, prov.ProvDocument.deserialize,
-            source=filename, format="xml")
+        doc = prov.ProvDocument.deserialize(source=filename, format="xml")
+        self.assertEqual(len(doc._records), 1)
+
+        # Original default namespace is unchanged.
+        ns = Namespace("", "http://example.org/0/")
+        self.assertEqual(doc.get_default_namespace(), ns)
+
+        # It additionally should have a namespace with a new prefix.
+        self.assertEqual(len(doc.namespaces), 1)
+        new_ns = list(doc.namespaces)[0]
+        self.assertNotEqual(ns, new_ns)
+
+        # The identifier now also should be in the new namespace.
+        self.assertEqual(doc._records[0].identifier.namespace, new_ns)
 
     def test_redefining_namespaces(self):
         """
@@ -332,15 +343,19 @@ class ProvXMLTestCase(unittest.TestCase):
         """
         filename = os.path.join(DATA_PATH,
                                 "namespace_redefined_but_does_not_change.xml")
-        # Should not raise.
-        prov.ProvDocument.deserialize(source=filename, format="xml")
+        doc = prov.ProvDocument.deserialize(source=filename, format="xml")
+        # This has one record part of the original namespace.
+        self.assertEqual(len(doc._records), 1)
+        ns = Namespace("ex", "http://example.com/ns/ex#")
+        self.assertEqual(doc._records[0].attributes[0][1].namespace, ns)
 
+        # This also has one record but now in a different namespace.
         filename = os.path.join(DATA_PATH, "namespace_redefined.xml")
-        # Should raise.
-        self.assertRaises(
-            ValueError, prov.ProvDocument.deserialize,
-            source=filename, format="xml")
-
+        doc = prov.ProvDocument.deserialize(source=filename, format="xml")
+        new_ns = doc._records[0].attributes[0][1].namespace
+        self.assertNotEqual(new_ns, ns)
+        self.assertEqual(new_ns.uri, "http://example.com/ns/new_ex#")
+        self.assertNotEqual(new_ns.prefix, "ex")
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
