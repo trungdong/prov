@@ -223,7 +223,14 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             elif key == "xsd":
                 value = value.rstrip("#") + "#"
             elif key is None:
-                bundle.set_default_namespace(value)
+                if bundle.get_default_namespace() is None:
+                    bundle.set_default_namespace(value)
+                    continue
+                if bundle.get_default_namespace().uri != value:
+                    raise ValueError(
+                        "The XML document changes the default namespace at "
+                        "some point. This cannot be reflected by the PROV "
+                        "data model.")
             else:
                 bundle.add_namespace(key, value)
 
