@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#">
+    <prov:entity xmlns="http://example.org/0/" prov:id="e001"/>
+</prov:document>

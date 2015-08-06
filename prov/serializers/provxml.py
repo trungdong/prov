@@ -27,6 +27,8 @@ FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
 FULL_PROV_RECORD_IDS_MAP = dict((FULL_NAMES_MAP[rec_type_id], rec_type_id) for
                                 rec_type_id in FULL_NAMES_MAP)
 
+XML_XSD_URI = 'http://www.w3.org/2001/XMLSchema'
+
 
 class ProvXMLException(prov.Error):
     pass
@@ -205,28 +207,6 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                     subelem.text = v
         return xml_bundle_root
 
-    def _add_xml_namespaces_to_bundle(self, xml_doc, bundle):
-        """
-        Helper function adding the namespaces defined in the etree to the
-        bundle.
-
-        :param xml_doc: An etree element.
-        :param bundle: A prov bundle object.
-        """
-        # Do not add namespaces already defined in the parent document in
-        # case it is a bundle.
-        doc_ns = [(i.prefix, i.uri) for i in bundle.document.namespaces] \
-            if bundle.document is not None else []
-        for key, value in xml_doc.nsmap.items():
-            if (key, value) in doc_ns:
-                continue
-            elif key == "xsd":
-                value = value.rstrip("#") + "#"
-            elif key is None:
-                bundle.set_default_namespace(value)
-            else:
-                bundle.add_namespace(key, value)
-
     def deserialize(self, stream, **kwargs):
         """
         Deserialize from `PROV-XML <http://www.w3.org/TR/prov-xml/>`_
@@ -259,10 +239,6 @@ class ProvXMLSerializer(prov.serializers.Serializer):
         :param xml_doc: An etree element containing the information to read.
         :param bundle: The bundle object to write to.
         """
-        self._add_xml_namespaces_to_bundle(xml_doc, bundle)
-
-        # No dictionary comprehension in Python 2.6.
-        r_nsmap = dict((value, key) for (key, value) in xml_doc.nsmap.items())
 
         for element in xml_doc:
             qname = etree.QName(element)
@@ -281,26 +257,29 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             rec_id = element.attrib[id_tag] if id_tag in element.attrib \
                 else None
 
+            if rec_id is not None:
+                # Try to make a qualified name out of it!
+                rec_id = xml_qname_to_QualifiedName(element, rec_id)
+
             # Recursively read bundles.
             if qname.localname == "bundleContent":
-                self._add_xml_namespaces_to_bundle(element, bundle)
                 b = bundle.bundle(identifier=rec_id)
                 self.deserialize_subtree(element, b)
                 continue
 
-            attributes, other_attributes = self._extract_attributes(
-                element, r_nsmap, bundle.namespaces)
+            attributes = _extract_attributes(element)
 
             # Map the record type to its base type.
             q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
             rec_type = PROV_BASE_CLS[q_prov_name]
 
             if _ns_xsi("type") in element.attrib:
-                value = element.attrib[_ns_xsi("type")]
-                other_attributes.append((PROV["type"], value))
+                value = xml_qname_to_QualifiedName(
+                    element, element.attrib[_ns_xsi("type")]
+                )
+                attributes.append((PROV["type"], value))
 
-            rec = bundle.new_record(rec_type, rec_id, attributes,
-                                    other_attributes)
+            rec = bundle.new_record(rec_type, rec_id, attributes)
 
             # Add the actual type in case a base type has been used.
             if rec_type != q_prov_name:
@@ -329,67 +308,69 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 break
         return rec_label
 
-    def _extract_attributes(self, element, r_nsmap, namespaces):
-        """
-        Extract the PROV attributes from an etree element.
 
-        :param element: The lxml.etree.Element instance.
-        :param r_nsmap: A reverse namespace map going from prefix to
-            namespace URI.
-        :param namespaces: The namespace set defined for the current bundle.
-        """
-        attributes = []
-        other_attributes = []
-        for subel in element:
-            sqname = etree.QName(subel)
-            if sqname.namespace == DEFAULT_NAMESPACES["prov"].uri:
-                _t = PROV[sqname.localname]
-                d = attributes
-            else:
-                _t = "%s:%s" % (r_nsmap[sqname.namespace],
-                                sqname.localname)
-                d = other_attributes
+def _extract_attributes(element):
+    """
+    Extract the PROV attributes from an etree element.
 
-            for key, value in subel.attrib.items():
-                if key == _ns_xsi("type"):
-                    try:
-                        _namespace, _localpart = subel.text.split(":")
-                    except ValueError:
-                        _namespace, _localpart = None, subel.text
-                    # If it is an xsd:QName, make sure it is returned as a
-                    # QualifiedName instance!
-                    if value == "xsd:QName" and _namespace and \
-                            _namespace != "prov":
-                        _ns_obj = Namespace(_namespace,
-                                            subel.nsmap[_namespace])
-                        if _ns_obj not in namespaces:
-                            raise ProvXMLException(
-                                "QualifiedName '%s' has an unknown namespace."
-                                % subel.text)
-                        _v = prov.identifier.QualifiedName(_ns_obj, _localpart)
-                    else:
-                        _v = prov.model.Literal(
-                            subel.text,
-                            XSD[value.split(":")[1]])
-                elif key == _ns_prov("ref"):
-                    _v = value
-                elif key == _ns_xml("lang"):
-                    _v = prov.model.Literal(subel.text, langtag=value)
+    :param element: The lxml.etree.Element instance.
+    """
+    attributes = []
+    for subel in element:
+        sqname = etree.QName(subel)
+        _t = xml_qname_to_QualifiedName(
+            subel, "%s:%s" % (subel.prefix, sqname.localname)
+        )
+
+        for key, value in subel.attrib.items():
+            if key == _ns_xsi("type"):
+                datatype = xml_qname_to_QualifiedName(subel, value)
+                if datatype == XSD_QNAME:
+                    _v = xml_qname_to_QualifiedName(subel, subel.text)
                 else:
-                    warnings.warn(
-                        "The element '%s' contains an attribute %s='%s' "
-                        "which is not representable in the prov module's "
-                        "internal data model and will thus be ignored." %
-                        (_t, six.text_type(key), six.text_type(value)),
-                        UserWarning)
+                    _v = prov.model.Literal(subel.text, datatype)
+            elif key == _ns_prov("ref"):
+                _v = xml_qname_to_QualifiedName(subel, value)
+            elif key == _ns_xml("lang"):
+                _v = prov.model.Literal(subel.text, langtag=value)
+            else:
+                warnings.warn(
+                    "The element '%s' contains an attribute %s='%s' "
+                    "which is not representable in the prov module's "
+                    "internal data model and will thus be ignored." %
+                    (_t, six.text_type(key), six.text_type(value)),
+                    UserWarning)
 
-            if not subel.attrib:
-                _v = subel.text
+        if not subel.attrib:
+            _v = subel.text
 
-            d.append((_t, _v))
+        attributes.append((_t, _v))
 
-        return attributes, other_attributes
+    return attributes
 
+
+def xml_qname_to_QualifiedName(element, qname_str):
+    if ':' in qname_str:
+        prefix, localpart = qname_str.split(':', 1)
+        if prefix in element.nsmap:
+            ns_uri = element.nsmap[prefix]
+            if ns_uri == XML_XSD_URI:
+                ns = XSD  # use the standard xsd namespace (i.e. with #)
+            elif ns_uri == PROV.uri:
+                ns = PROV
+            else:
+                ns = Namespace(prefix, ns_uri)
+            return ns[localpart]
+    # case 1: no colon
+    # case 2: unknown prefix
+    if None in element.nsmap:
+        ns_uri = element.nsmap[None]
+        ns = Namespace('', ns_uri)
+        return ns[qname_str]
+    # no default namespace
+    raise ProvXMLException(
+        'Could not create a valid QualifiedName for "%s"' % qname_str
+    )
 
 def _ns(ns, tag):
     return "{%s}%s" % (ns, tag)
