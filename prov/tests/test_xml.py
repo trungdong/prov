@@ -87,11 +87,11 @@ class ProvXMLTestCase(unittest.TestCase):
         description.
         """
         document = prov.ProvDocument()
-        document.add_namespace(*EX_NS)
+        ex_ns = document.add_namespace(*EX_NS)
         document.add_namespace(*EX_TR)
 
         document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, prov.Literal("document", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, ex_ns["Document"]),
             ("ex:version", "2")
         ))
 
@@ -151,11 +151,11 @@ class ProvXMLTestCase(unittest.TestCase):
             format="xml")
 
         expected_document = prov.ProvDocument()
-        expected_document.add_namespace(*EX_NS)
+        ex_ns = expected_document.add_namespace(*EX_NS)
         expected_document.add_namespace(*EX_TR)
 
         expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, prov.Literal("document", prov.XSD_QNAME)),
+            (prov.PROV_TYPE, ex_ns["Document"]),
             ("ex:version", "2")
         ))
 

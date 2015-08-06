@@ -6,7 +6,7 @@
     xmlns:tr="http://example.com/ns/tr#">
 
   <prov:entity prov:id="tr:WD-prov-dm-20111215">
-    <prov:type xsi:type="xsd:QName">document</prov:type>
+    <prov:type xsi:type="xsd:QName">ex:Document</prov:type>
     <ex:version>2</ex:version>
   </prov:entity>
 
