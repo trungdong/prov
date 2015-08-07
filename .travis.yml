@@ -1,3 +1,4 @@
+sudo: false
 language: python
 python:
   - 2.6
@@ -6,9 +7,10 @@ python:
   - 3.4
   - "pypy"
 
-before_install:
- - sudo apt-get update -qq
- - sudo apt-get install -qq graphviz
+addons:
+  apt:
+    packages:
+      - graphviz
 
 # Install packages
 install:
