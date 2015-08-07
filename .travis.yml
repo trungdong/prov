@@ -12,6 +12,10 @@ addons:
     packages:
       - graphviz
 
+cache:
+  - pip
+  - apt
+
 # Install packages
 install:
   - pip install -r requirements.txt
