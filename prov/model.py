@@ -1583,28 +1583,28 @@ class ProvDocument(ProvBundle):
                     'Cannot add a document with nested bundles as a bundle.'
                 )
             # Make it a new ProvBundle
-            new_bundle = self.bundle(identifier)
+            new_bundle = ProvBundle(namespaces=bundle.namespaces)
             new_bundle.update(bundle)
-        else:
-            # Reuse the provided bundle and update identifier if needed
-            if identifier is None:
-                identifier = bundle.identifier
+            bundle = new_bundle
 
-            if not identifier:
-                raise ProvException('The provided bundle has no identifier')
+        if identifier is None:
+            identifier = bundle.identifier
 
-            # Link the bundle namespace manager to the document's
-            bundle._namespaces.parent = self._namespaces
+        if not identifier:
+            raise ProvException('The provided bundle has no identifier')
 
-            valid_id = bundle.valid_qualified_name(identifier)
-            # IMPORTANT: Rewriting the bundle identifier for consistency
-            bundle._identifier = valid_id
+        # Link the bundle namespace manager to the document's
+        bundle._namespaces.parent = self._namespaces
 
-            if valid_id in self._bundles:
-                raise ProvException('A bundle with that identifier already exists')
+        valid_id = bundle.valid_qualified_name(identifier)
+        # IMPORTANT: Rewriting the bundle identifier for consistency
+        bundle._identifier = valid_id
 
-            self._bundles[valid_id] = bundle
-            bundle._document = self
+        if valid_id in self._bundles:
+            raise ProvException('A bundle with that identifier already exists')
+
+        self._bundles[valid_id] = bundle
+        bundle._document = self
 
     def bundle(self, identifier):
         if identifier is None:

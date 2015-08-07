@@ -10,7 +10,7 @@ import unittest
 import logging
 import os
 
-from prov.model import ProvDocument, ProvBundle, ProvException
+from prov.model import ProvDocument, ProvBundle, ProvException, first
 from prov.tests import examples
 from prov.tests.attributes import TestAttributesBase
 from prov.tests.qnames import TestQualifiedNamesBase
@@ -207,7 +207,9 @@ class TestAddBundle(BaseTestCase):
             d1.add_bundle(d2)
         self.assertRaises(ProvException, sub_test_1)
 
+        ex2_b2 = d2.valid_qualified_name('ex:b2')
         d1.add_bundle(d2, 'ex:b2')
+        self.assertEqual(ex2_b2, first(d1.bundles).identifier)
         self.assertNotIn(d2, d1.bundles)
         b2 = ProvBundle()
         b2.update(d2)
