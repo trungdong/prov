@@ -1479,6 +1479,8 @@ class ProvDocument(ProvBundle):
         return '<ProvDocument>'
 
     def __eq__(self, other):
+        if not isinstance(other, ProvDocument):
+            return False
         # Comparing the documents' content
         if not super(ProvDocument, self).__eq__(other):
             return False
@@ -1575,24 +1577,34 @@ class ProvDocument(ProvBundle):
                 'ProvDocument.'
             )
 
-        if identifier is None:
-            identifier = bundle.identifier
+        if bundle.is_document():
+            if bundle.has_bundles():
+                raise ProvException(
+                    'Cannot add a document with nested bundles as a bundle.'
+                )
+            # Make it a new ProvBundle
+            new_bundle = self.bundle(identifier)
+            new_bundle.update(bundle)
+        else:
+            # Reuse the provided bundle and update identifier if needed
+            if identifier is None:
+                identifier = bundle.identifier
 
-        if not identifier:
-            raise ProvException('The provided bundle has no identifier')
+            if not identifier:
+                raise ProvException('The provided bundle has no identifier')
 
-        # Link the bundle namespace manager to the document's
-        bundle._namespaces.parent = self._namespaces
+            # Link the bundle namespace manager to the document's
+            bundle._namespaces.parent = self._namespaces
 
-        valid_id = bundle.valid_qualified_name(identifier)
-        # IMPORTANT: Rewriting the bundle identifier for consistency
-        bundle._identifier = valid_id
+            valid_id = bundle.valid_qualified_name(identifier)
+            # IMPORTANT: Rewriting the bundle identifier for consistency
+            bundle._identifier = valid_id
 
-        if valid_id in self._bundles:
-            raise ProvException('A bundle with that identifier already exists')
+            if valid_id in self._bundles:
+                raise ProvException('A bundle with that identifier already exists')
 
-        self._bundles[valid_id] = bundle
-        bundle._document = self
+            self._bundles[valid_id] = bundle
+            bundle._document = self
 
     def bundle(self, identifier):
         if identifier is None:
@@ -1600,6 +1612,10 @@ class ProvDocument(ProvBundle):
                 'An identifier is required. Cannot create an unnamed bundle.'
             )
         valid_id = self.valid_qualified_name(identifier)
+        if valid_id is None:
+            raise ProvException(
+                'The provided identifier "%s" is not valid' % identifier
+            )
         if valid_id in self._bundles:
             raise ProvException('A bundle with that identifier already exists')
         b = ProvBundle(identifier=valid_id, document=self)

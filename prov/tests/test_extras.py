@@ -193,11 +193,6 @@ class TestExtras(unittest.TestCase):
         document = ProvBundle()
         self.assertTrue(document.is_bundle())
 
-    def test_bundle_in_document(self):
-        document = ProvDocument()
-        bundle = document.bundle('b')
-        self.assertTrue(bundle in bundle.document.bundles)
-
     def test_bundle_get_record_by_id(self):
         document = ProvDocument()
         self.assertEqual(document.get_record(None), None)
