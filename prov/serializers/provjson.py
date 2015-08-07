@@ -11,11 +11,10 @@ from collections import defaultdict
 import datetime
 import io
 import json
-import six
 
 from prov.serializers import Serializer, Error
 from prov.constants import *
-from prov.model import (Literal, Identifier, QualifiedName, XSDQName,
+from prov.model import (Literal, Identifier, QualifiedName,
                         Namespace, ProvDocument, ProvBundle, first,
                         parse_xsd_datetime)
 
@@ -124,11 +123,11 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 
 # Encoding/decoding functions
-def valid_qualified_name(bundle, value, xsd_qname=False):
+def valid_qualified_name(bundle, value):
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
-    return qualified_name if not xsd_qname else XSDQName(qualified_name)
+    return qualified_name
 
 
 def encode_json_document(document):
@@ -314,15 +313,10 @@ def encode_json_representation(value):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
         return {'$': value.isoformat(), 'type': 'xsd:dateTime'}
-    elif isinstance(value, XSDQName):
-        # Process XSDQName before QualifiedName because it is a subclass of
-        # QualifiedName
-        # TODO QName export
-        return {'$': str(value), 'type': 'xsd:QName'}
     elif isinstance(value, QualifiedName):
         # TODO Manage prefix in the whole structure consistently
         # TODO QName export
-        return {'$': str(value), 'type': 'prov:QualifiedName'}
+        return {'$': str(value), 'type': PROV_QUALIFIEDNAME._str}
     elif isinstance(value, Identifier):
         return {'$': value.uri, 'type': 'xsd:anyURI'}
     elif type(value) in LITERAL_XSDTYPE_MAP:
@@ -340,8 +334,6 @@ def decode_json_representation(literal, bundle):
         langtag = literal['lang'] if 'lang' in literal else None
         if datatype == XSD_ANYURI:
             return Identifier(value)
-        elif datatype == XSD_QNAME:
-            return valid_qualified_name(bundle, value, xsd_qname=True)
         elif datatype == PROV_QUALIFIEDNAME:
             return valid_qualified_name(bundle, value)
         else:

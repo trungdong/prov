@@ -69,19 +69,6 @@ class QualifiedName(Identifier):
         return "'%s'" % self._str
 
 
-class XSDQName(QualifiedName):
-    """
-    A subclass to wrap around a QualifiedName for xsd:QName literals
-    """
-    def __init__(self, qualified_name):
-        QualifiedName.__init__(
-            self, qualified_name.namespace, qualified_name.localpart
-        )
-
-    def provn_representation(self):
-        return '"%s" %%%% xsd:QName' % self._str
-
-
 class Namespace(object):
     def __init__(self, prefix, uri):
         self._prefix = prefix

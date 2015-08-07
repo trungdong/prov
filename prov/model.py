@@ -28,10 +28,9 @@ import os
 import shutil
 import tempfile
 
-import six
 from six.moves.urllib.parse import urlparse
 
-from prov.identifier import Identifier, QualifiedName, XSDQName
+from prov.identifier import Identifier, QualifiedName
 from prov.constants import *
 
 
@@ -822,7 +821,6 @@ class NamespaceManager(dict):
             return None
 
         if isinstance(qname, QualifiedName):
-            is_xsd_qname = isinstance(qname, XSDQName)
             #  Register the namespace if it has not been registered before
             namespace = qname.namespace
             prefix = namespace.prefix
@@ -856,7 +854,7 @@ class NamespaceManager(dict):
                 # minting the same Qualified Name from the namespace's copy
                 new_qname = ns[qname.localpart]
             # returning the new qname
-            return XSDQName(new_qname) if is_xsd_qname else new_qname
+            return new_qname
 
         # Trying to guess from here
         if not isinstance(qname, (six.string_types, Identifier)):

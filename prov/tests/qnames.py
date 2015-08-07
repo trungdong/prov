@@ -1,7 +1,7 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-from prov.model import ProvDocument, Namespace, XSDQName
+from prov.model import ProvDocument, Namespace
 
 
 def document_with_n_bundles_having_default_namespace(n):
@@ -20,25 +20,6 @@ class TestQualifiedNamesBase(object):
     namespaces. It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.
     """
-
-    def test_xsd_qnames(self):
-        prov_doc = ProvDocument()
-        ex = Namespace('ex', 'http://www.example.org/')
-        prov_doc.add_namespace(ex)
-        # ex1 is not added to the document
-        ex1 = Namespace('ex1', 'http://www.example1.org/')
-
-        an_xsd_qname = XSDQName(ex['a_value'])
-        another_xsd_qname = XSDQName(ex1['another_value'])
-
-        e1 = prov_doc.entity(
-            'ex:e1',
-            {'prov:value': an_xsd_qname, 'prov:type': another_xsd_qname}
-        )
-        for _, attr_value in e1.attributes:
-            self.assertIsInstance(attr_value, XSDQName)
-
-        self.assertRoundTripEquivalence(prov_doc)
 
     def test_namespace_inheritance(self):
         prov_doc = ProvDocument()
