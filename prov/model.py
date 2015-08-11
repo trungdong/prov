@@ -447,7 +447,7 @@ class ProvRecord(object):
 
 #  Abstract classes for elements and relations
 class ProvElement(ProvRecord):
-    def __init__(self, bundle, identifier, attributes):
+    def __init__(self, bundle, identifier, attributes=None):
         if identifier is None:
             # All types of PROV elements require a valid identifier
             raise ProvElementIdentifierRequired()
