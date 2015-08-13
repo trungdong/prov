@@ -58,11 +58,19 @@ class BaseTestCase(unittest.TestCase):
             f(a, b, *args, **kwargs)
 
 
-class RoundTripTestCase(BaseTestCase):
+class DocumentBaseTestCase(BaseTestCase):
+    def do_tests(self, prov_doc, msg=None):
+        pass
+
+
+class RoundTripTestCase(DocumentBaseTestCase):
     """A serializer test should subclass this class and set the class property
     FORMAT to the correct value (e.g. 'json', 'xml', 'rdf').
     """
     FORMAT = None  # a subclass should change this
+
+    def do_tests(self, prov_doc, msg=None):
+        self.assertRoundTripEquivalence(prov_doc, msg)
 
     def assertRoundTripEquivalence(self, prov_doc, msg=None):
         if self.FORMAT is None:

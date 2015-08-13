@@ -102,46 +102,46 @@ class TestStatementsBase(object):
             (PROV['Location'], 2.0),
             (PROV['Location'], EX_NS.uri + "london"),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_1(self):
         document = self.new_document()
         document.entity(EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_2(self):
         document = self.new_document()
         a = document.entity(EX_NS['e2'])
         a.add_attributes([(PROV_LABEL, 'entity2')])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_3(self):
         document = self.new_document()
         a = document.entity(EX_NS['e3'])
         a.add_attributes([(PROV_LABEL, 'entity3')])
         self.add_value(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_4(self):
         document = self.new_document()
         a = document.entity(EX_NS['e4'])
         a.add_attributes([(PROV_LABEL, 'entity4')])
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_5(self):
         document = self.new_document()
         a = document.entity(EX_NS['e5'])
         a.add_attributes([(PROV_LABEL, 'entity5')])
         self.add_types(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_6(self):
         document = self.new_document()
         a = document.entity(EX_NS['e6'])
         a.add_attributes([(PROV_LABEL, 'entity6')])
         self.add_locations(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_7(self):
         document = self.new_document()
@@ -150,7 +150,7 @@ class TestStatementsBase(object):
         self.add_types(a)
         self.add_locations(a)
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_8(self):
         document = self.new_document()
@@ -162,7 +162,7 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_9(self):
         document = self.new_document()
@@ -172,7 +172,7 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_10(self):
         document = self.new_document()
@@ -182,19 +182,19 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes0(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # ACTIVITIES
     def test_activity_1(self):
         document = self.new_document()
         document.activity(EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_2(self):
         document = self.new_document()
         a = document.activity(EX_NS['a2'])
         a.add_attributes([(PROV_LABEL, 'activity2')])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_3(self):
         document = self.new_document()
@@ -203,28 +203,28 @@ class TestStatementsBase(object):
             startTime=datetime.datetime.now(),
             endTime=datetime.datetime.now()
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_4(self):
         document = self.new_document()
         a = document.activity(EX_NS['a4'])
         a.add_attributes([(PROV_LABEL, 'activity4')])
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_5(self):
         document = self.new_document()
         a = document.activity(EX_NS['a5'])
         a.add_attributes([(PROV_LABEL, 'activity5')])
         self.add_types(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_6(self):
         document = self.new_document()
         a = document.activity(EX_NS['a6'])
         a.add_attributes([(PROV_LABEL, 'activity6')])
         self.add_locations(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_7(self):
         document = self.new_document()
@@ -233,7 +233,7 @@ class TestStatementsBase(object):
         self.add_types(a)
         self.add_locations(a)
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_8(self):
         document = self.new_document()
@@ -249,7 +249,7 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_activity_9(self):
         document = self.new_document()
@@ -259,19 +259,19 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # AGENTS
     def test_agent_1(self):
         document = self.new_document()
         document.agent(EX_NS['ag1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_2(self):
         document = self.new_document()
         a = document.agent(EX_NS['ag2'])
         a.add_attributes([(PROV_LABEL, 'agent2')])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_3(self):
         document = self.new_document()
@@ -280,7 +280,7 @@ class TestStatementsBase(object):
             (PROV_LABEL, 'agent3'),
             (PROV_LABEL, Literal('hello')),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_4(self):
         document = self.new_document()
@@ -290,7 +290,7 @@ class TestStatementsBase(object):
             (PROV_LABEL, Literal('hello')),
             (PROV_LABEL, Literal('bye', langtag="en")),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_5(self):
         document = self.new_document()
@@ -301,14 +301,14 @@ class TestStatementsBase(object):
             (PROV_LABEL, Literal('bye', langtag="en")),
             (PROV_LABEL, Literal('bonjour', langtag="french")),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_6(self):
         document = self.new_document()
         a = document.agent(EX_NS['ag6'])
         a.add_attributes([(PROV_LABEL, 'agent6')])
         self.add_types(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_7(self):
         document = self.new_document()
@@ -316,7 +316,7 @@ class TestStatementsBase(object):
         a.add_attributes([(PROV_LABEL, 'agent7')])
         self.add_locations(a)
         self.add_labels(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_agent_8(self):
         document = self.new_document()
@@ -326,20 +326,20 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # GENERATIONS
     def test_generation_1(self):
         document = self.new_document()
         document.generation(EX_NS['e1'], identifier=EX_NS['gen1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_2(self):
         document = self.new_document()
         document.generation(
             EX_NS['e1'], identifier=EX_NS['gen2'], activity=EX_NS['a1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_3(self):
         document = self.new_document()
@@ -350,7 +350,7 @@ class TestStatementsBase(object):
             (PROV_ROLE, 'somerole'),
             (PROV_ROLE, 'otherRole'),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_4(self):
         document = self.new_document()
@@ -362,7 +362,7 @@ class TestStatementsBase(object):
             ),
             {PROV_ROLE: 'somerole'}
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_5(self):
         document = self.new_document()
@@ -377,14 +377,14 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_6(self):
         document = self.new_document()
         document.generation(
             EX_NS['e1'], activity=EX_NS['a1'], time=datetime.datetime.now()
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_generation_7(self):
         document = self.new_document()
@@ -396,7 +396,7 @@ class TestStatementsBase(object):
         self.add_locations(a)
         self.add_labels(a)
         self.add_further_attributes(a)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # USAGE
     def test_usage_1(self):
@@ -404,14 +404,14 @@ class TestStatementsBase(object):
         document.usage(
             None, entity=EX_NS['e1'], identifier=EX_NS['use1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_2(self):
         document = self.new_document()
         document.usage(
             EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_3(self):
         document = self.new_document()
@@ -422,7 +422,7 @@ class TestStatementsBase(object):
             (PROV_ROLE, "somerole"),
             (PROV_ROLE, "otherRole")
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_4(self):
         document = self.new_document()
@@ -433,7 +433,7 @@ class TestStatementsBase(object):
         use.add_attributes([
             (PROV_ROLE, "somerole")
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_5(self):
         document = self.new_document()
@@ -448,12 +448,12 @@ class TestStatementsBase(object):
         self.add_locations(use)
         self.add_labels(use)
         self.add_further_attributes(use)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_6(self):
         document = self.new_document()
         document.usage(EX_NS['a1'], entity=EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_usage_7(self):
         document = self.new_document()
@@ -467,20 +467,20 @@ class TestStatementsBase(object):
         self.add_locations(use)
         self.add_labels(use)
         self.add_further_attributes(use)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # INVALIDATIONS
     def test_invalidation_1(self):
         document = self.new_document()
         document.invalidation(EX_NS['e1'], identifier=EX_NS['inv1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_2(self):
         document = self.new_document()
         document.invalidation(
             EX_NS['e1'], identifier=EX_NS['inv2'], activity=EX_NS['a1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_3(self):
         document = self.new_document()
@@ -491,7 +491,7 @@ class TestStatementsBase(object):
             (PROV_ROLE, "someRole"),
             (PROV_ROLE, "otherRole"),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_4(self):
         document = self.new_document()
@@ -502,7 +502,7 @@ class TestStatementsBase(object):
         inv.add_attributes([
             (PROV_ROLE, "someRole"),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_5(self):
         document = self.new_document()
@@ -517,12 +517,12 @@ class TestStatementsBase(object):
         self.add_locations(inv)
         self.add_labels(inv)
         self.add_further_attributes(inv)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_6(self):
         document = self.new_document()
         document.invalidation(EX_NS['e1'], activity=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_invalidation_7(self):
         document = self.new_document()
@@ -536,25 +536,25 @@ class TestStatementsBase(object):
         self.add_locations(inv)
         self.add_labels(inv)
         self.add_further_attributes(inv)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # STARTS
     def test_start_1(self):
         document = self.new_document()
         document.start(None, trigger=EX_NS['e1'], identifier=EX_NS['start1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_2(self):
         document = self.new_document()
         document.start(
             EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['start2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_3(self):
         document = self.new_document()
         document.start(EX_NS['a1'], identifier=EX_NS['start3'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_4(self):
         document = self.new_document()
@@ -562,7 +562,7 @@ class TestStatementsBase(object):
             None, trigger=EX_NS['e1'], identifier=EX_NS['start4'],
             starter=EX_NS['a2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_5(self):
         document = self.new_document()
@@ -570,14 +570,14 @@ class TestStatementsBase(object):
             EX_NS['a1'], trigger=EX_NS['e1'],
             identifier=EX_NS['start5'], starter=EX_NS['a2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_6(self):
         document = self.new_document()
         document.start(
             EX_NS['a1'], identifier=EX_NS['start6'], starter=EX_NS['a2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_7(self):
         document = self.new_document()
@@ -585,7 +585,7 @@ class TestStatementsBase(object):
             EX_NS['a1'], identifier=EX_NS['start7'],
             starter=EX_NS['a2'], time=datetime.datetime.now()
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_8(self):
         document = self.new_document()
@@ -601,12 +601,12 @@ class TestStatementsBase(object):
         self.add_locations(start)
         self.add_labels(start)
         self.add_further_attributes(start)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_9(self):
         document = self.new_document()
         document.start(EX_NS['a1'], trigger=EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_start_10(self):
         document = self.new_document()
@@ -621,25 +621,25 @@ class TestStatementsBase(object):
         self.add_locations(start)
         self.add_labels(start)
         self.add_further_attributes(start)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # ENDS
     def test_end_1(self):
         document = self.new_document()
         document.end(None, trigger=EX_NS['e1'], identifier=EX_NS['end1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_2(self):
         document = self.new_document()
         document.end(
             EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['end2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_3(self):
         document = self.new_document()
         document.end(EX_NS['a1'], identifier=EX_NS['end3'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_4(self):
         document = self.new_document()
@@ -647,7 +647,7 @@ class TestStatementsBase(object):
             None, trigger=EX_NS['e1'], identifier=EX_NS['end4'],
             ender=EX_NS['a2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_5(self):
         document = self.new_document()
@@ -655,12 +655,12 @@ class TestStatementsBase(object):
             EX_NS['a1'], trigger=EX_NS['e1'], identifier=EX_NS['end5'],
             ender=EX_NS['a2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_6(self):
         document = self.new_document()
         document.end(EX_NS['a1'], identifier=EX_NS['end6'], ender=EX_NS['a2'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_7(self):
         document = self.new_document()
@@ -668,7 +668,7 @@ class TestStatementsBase(object):
             EX_NS['a1'], identifier=EX_NS['end7'], ender=EX_NS['a2'],
             time=datetime.datetime.now()
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_8(self):
         document = self.new_document()
@@ -684,12 +684,12 @@ class TestStatementsBase(object):
         self.add_locations(end)
         self.add_labels(end)
         self.add_further_attributes(end)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_9(self):
         document = self.new_document()
         document.end(EX_NS['a1'], trigger=EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_end_10(self):
         document = self.new_document()
@@ -704,7 +704,7 @@ class TestStatementsBase(object):
         self.add_locations(end)
         self.add_labels(end)
         self.add_further_attributes(end)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # DERIVATIONS
     def test_derivation_1(self):
@@ -712,21 +712,21 @@ class TestStatementsBase(object):
         document.derivation(
             None, usedEntity=EX_NS['e1'], identifier=EX_NS['der1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_2(self):
         document = self.new_document()
         document.derivation(
             EX_NS['e2'], usedEntity=None, identifier=EX_NS['der2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_3(self):
         document = self.new_document()
         document.derivation(
             EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der3']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_4(self):
         document = self.new_document()
@@ -734,7 +734,7 @@ class TestStatementsBase(object):
             EX_NS['e2'], usedEntity=EX_NS['e1'], identifier=EX_NS['der4']
         )
         self.add_label(der)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_5(self):
         document = self.new_document()
@@ -742,7 +742,7 @@ class TestStatementsBase(object):
             EX_NS['e2'], usedEntity=EX_NS['e1'],
             identifier=EX_NS['der5'], activity=EX_NS['a']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_6(self):
         document = self.new_document()
@@ -751,7 +751,7 @@ class TestStatementsBase(object):
             identifier=EX_NS['der6'], activity=EX_NS['a'],
             usage=EX_NS['u']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_7(self):
         document = self.new_document()
@@ -760,7 +760,7 @@ class TestStatementsBase(object):
             identifier=EX_NS['der7'], activity=EX_NS['a'],
             usage=EX_NS['u'], generation=EX_NS['g']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_8(self):
         document = self.new_document()
@@ -770,13 +770,13 @@ class TestStatementsBase(object):
         self.add_label(der)
         self.add_types(der)
         self.add_further_attributes(der)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_9(self):
         document = self.new_document()
         der = document.derivation(EX_NS['e2'], usedEntity=None)
         self.add_types(der)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_10(self):
         document = self.new_document()
@@ -785,7 +785,7 @@ class TestStatementsBase(object):
             activity=EX_NS['a'], usage=EX_NS['u'],
             generation=EX_NS['g']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_11(self):
         document = self.new_document()
@@ -794,7 +794,7 @@ class TestStatementsBase(object):
             identifier=EX_NS['rev1'], activity=EX_NS['a'],
             usage=EX_NS['u'], generation=EX_NS['g']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_12(self):
         document = self.new_document()
@@ -803,7 +803,7 @@ class TestStatementsBase(object):
             identifier=EX_NS['quo1'], activity=EX_NS['a'],
             usage=EX_NS['u'], generation=EX_NS['g']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_derivation_13(self):
         document = self.new_document()
@@ -812,27 +812,27 @@ class TestStatementsBase(object):
             identifier=EX_NS['prim1'], activity=EX_NS['a'],
             usage=EX_NS['u'], generation=EX_NS['g']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # ASSOCIATIONS
     def test_association_1(self):
         document = self.new_document()
         document.association(EX_NS['a1'], identifier=EX_NS['assoc1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_2(self):
         document = self.new_document()
         document.association(
             None, agent=EX_NS['ag1'], identifier=EX_NS['assoc2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_3(self):
         document = self.new_document()
         document.association(
             EX_NS['a1'], agent=EX_NS['ag1'], identifier=EX_NS['assoc3']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_4(self):
         document = self.new_document()
@@ -840,12 +840,12 @@ class TestStatementsBase(object):
             EX_NS['a1'], agent=EX_NS['ag1'],
             identifier=EX_NS['assoc4'], plan=EX_NS['plan1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_5(self):
         document = self.new_document()
         document.association(EX_NS['a1'], agent=EX_NS['ag1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_6(self):
         document = self.new_document()
@@ -854,7 +854,7 @@ class TestStatementsBase(object):
                                      identifier=EX_NS['assoc6'],
                                      plan=EX_NS['plan1'])
         self.add_labels(assoc)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_7(self):
         document = self.new_document()
@@ -864,7 +864,7 @@ class TestStatementsBase(object):
                                      plan=EX_NS['plan1'])
         self.add_labels(assoc)
         self.add_types(assoc)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_8(self):
         document = self.new_document()
@@ -876,7 +876,7 @@ class TestStatementsBase(object):
             (PROV_ROLE, "figroll"),
             (PROV_ROLE, "sausageroll"),
         ])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_association_9(self):
         document = self.new_document()
@@ -887,7 +887,7 @@ class TestStatementsBase(object):
         self.add_labels(assoc)
         self.add_types(assoc)
         self.add_further_attributes(assoc)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # ATTRIBUTIONS
     def test_attribution_1(self):
@@ -895,33 +895,33 @@ class TestStatementsBase(object):
         document.attribution(
             EX_NS['e1'], None, identifier=EX_NS['attr1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_2(self):
         document = self.new_document()
         document.attribution(
             None, EX_NS['ag1'], identifier=EX_NS['attr2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_3(self):
         document = self.new_document()
         document.attribution(
             EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr3']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_4(self):
         document = self.new_document()
         document.attribution(
             EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr4']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_5(self):
         document = self.new_document()
         document.attribution(EX_NS['e1'], EX_NS['ag1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_6(self):
         document = self.new_document()
@@ -929,7 +929,7 @@ class TestStatementsBase(object):
             EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['attr6']
         )
         self.add_labels(attr)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_7(self):
         document = self.new_document()
@@ -938,7 +938,7 @@ class TestStatementsBase(object):
         )
         self.add_labels(attr)
         self.add_types(attr)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_attribution_8(self):
         document = self.new_document()
@@ -948,7 +948,7 @@ class TestStatementsBase(object):
         self.add_labels(attr)
         self.add_types(attr)
         self.add_further_attributes(attr)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # DELEGATIONS
     def test_delegation_1(self):
@@ -956,21 +956,21 @@ class TestStatementsBase(object):
         document.delegation(
             EX_NS['e1'], None, identifier=EX_NS['dele1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_2(self):
         document = self.new_document()
         document.delegation(
             None, EX_NS['ag1'], identifier=EX_NS['dele2']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_3(self):
         document = self.new_document()
         document.delegation(
             EX_NS['e1'], EX_NS['ag1'], identifier=EX_NS['dele3']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_4(self):
         document = self.new_document()
@@ -978,12 +978,12 @@ class TestStatementsBase(object):
             EX_NS['e1'], EX_NS['ag1'],
             activity=EX_NS['a1'], identifier=EX_NS['dele4']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_5(self):
         document = self.new_document()
         document.delegation(EX_NS['e1'], EX_NS['ag1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_6(self):
         document = self.new_document()
@@ -992,7 +992,7 @@ class TestStatementsBase(object):
                                    activity=EX_NS['a1'],
                                    identifier=EX_NS['dele6'])
         self.add_labels(dele)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_7(self):
         document = self.new_document()
@@ -1002,7 +1002,7 @@ class TestStatementsBase(object):
                                    identifier=EX_NS['dele7'])
         self.add_labels(dele)
         self.add_types(dele)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_delegation_8(self):
         document = self.new_document()
@@ -1013,7 +1013,7 @@ class TestStatementsBase(object):
         self.add_labels(dele)
         self.add_types(dele)
         self.add_further_attributes(dele)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # COMMUNICATIONS
     def test_communication_1(self):
@@ -1021,24 +1021,24 @@ class TestStatementsBase(object):
         document.communication(
             EX_NS['a2'], None, identifier=EX_NS['inf1']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_2(self):
         document = self.new_document()
         document.communication(None, EX_NS['a1'], identifier=EX_NS['inf2'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_3(self):
         document = self.new_document()
         document.communication(
             EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3']
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_4(self):
         document = self.new_document()
         document.communication(EX_NS['a2'], EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_5(self):
         document = self.new_document()
@@ -1046,7 +1046,7 @@ class TestStatementsBase(object):
             EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf5']
         )
         self.add_labels(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_6(self):
         document = self.new_document()
@@ -1054,7 +1054,7 @@ class TestStatementsBase(object):
                                      identifier=EX_NS['inf6'])
         self.add_labels(inf)
         self.add_types(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_communication_7(self):
         document = self.new_document()
@@ -1063,35 +1063,35 @@ class TestStatementsBase(object):
         self.add_labels(inf)
         self.add_types(inf)
         self.add_further_attributes(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # INFLUENCES
     def test_influence_1(self):
         document = self.new_document()
         document.influence(EX_NS['a2'], None, identifier=EX_NS['inf1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_2(self):
         document = self.new_document()
         document.influence(None, EX_NS['a1'], identifier=EX_NS['inf2'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_3(self):
         document = self.new_document()
         document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf3'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_4(self):
         document = self.new_document()
         document.influence(EX_NS['a2'], EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_5(self):
         document = self.new_document()
         inf = document.influence(EX_NS['a2'], EX_NS['a1'],
                                  identifier=EX_NS['inf5'])
         self.add_labels(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_6(self):
         document = self.new_document()
@@ -1099,7 +1099,7 @@ class TestStatementsBase(object):
                                  identifier=EX_NS['inf6'])
         self.add_labels(inf)
         self.add_types(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_influence_7(self):
         document = self.new_document()
@@ -1108,46 +1108,46 @@ class TestStatementsBase(object):
         self.add_labels(inf)
         self.add_types(inf)
         self.add_further_attributes(inf)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # OTHERS
     def test_alternate_1(self):
         document = self.new_document()
         document.alternate(EX_NS['e2'], EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_specialization_1(self):
         document = self.new_document()
         document.specialization(EX_NS['e2'], EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_mention_1(self):
         document = self.new_document()
         document.mention(EX_NS['e2'], EX_NS['e1'], None)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_mention_2(self):
         document = self.new_document()
         document.mention(EX_NS['e2'], EX_NS['e1'], EX_NS['b'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_membership_1(self):
         document = self.new_document()
         document.membership(EX_NS['c'], EX_NS['e1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_membership_2(self):
         document = self.new_document()
         document.membership(EX_NS['c'], EX_NS['e1'])
         document.membership(EX_NS['c'], EX_NS['e2'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_membership_3(self):
         document = self.new_document()
         document.membership(EX_NS['c'], EX_NS['e1'])
         document.membership(EX_NS['c'], EX_NS['e2'])
         document.membership(EX_NS['c'], EX_NS['e3'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     # SCRUFFY
     def test_scruffy_generation_1(self):
@@ -1164,7 +1164,7 @@ class TestStatementsBase(object):
         )
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_generation_2(self):
         document = self.new_document()
@@ -1185,7 +1185,7 @@ class TestStatementsBase(object):
         ])
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_invalidation_1(self):
         document = self.new_document()
@@ -1201,7 +1201,7 @@ class TestStatementsBase(object):
         )
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_invalidation_2(self):
         document = self.new_document()
@@ -1222,7 +1222,7 @@ class TestStatementsBase(object):
         ])
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_usage_1(self):
         document = self.new_document()
@@ -1238,7 +1238,7 @@ class TestStatementsBase(object):
         )
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_usage_2(self):
         document = self.new_document()
@@ -1259,7 +1259,7 @@ class TestStatementsBase(object):
         ])
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_start_1(self):
         document = self.new_document()
@@ -1275,7 +1275,7 @@ class TestStatementsBase(object):
         )
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_start_2(self):
         document = self.new_document()
@@ -1296,7 +1296,7 @@ class TestStatementsBase(object):
         ])
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_start_3(self):
         document = self.new_document()
@@ -1321,7 +1321,7 @@ class TestStatementsBase(object):
         document.activity(identifier=EX_NS['a1'])
         document.activity(identifier=EX_NS['a2'])
         document.activity(identifier=EX_NS['a2s'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_start_4(self):
         document = self.new_document()
@@ -1347,7 +1347,7 @@ class TestStatementsBase(object):
         document.activity(identifier=EX_NS['a1s'])
         document.activity(identifier=EX_NS['a2'])
         document.activity(identifier=EX_NS['a2s'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_end_1(self):
         document = self.new_document()
@@ -1365,7 +1365,7 @@ class TestStatementsBase(object):
         )
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_end_2(self):
         document = self.new_document()
@@ -1386,7 +1386,7 @@ class TestStatementsBase(object):
         ])
         document.entity(identifier=EX_NS['e1'])
         document.activity(identifier=EX_NS['a1'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_end_3(self):
         document = self.new_document()
@@ -1411,7 +1411,7 @@ class TestStatementsBase(object):
         document.activity(identifier=EX_NS['a1'])
         document.activity(identifier=EX_NS['a2'])
         document.activity(identifier=EX_NS['a2s'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_scruffy_end_4(self):
         document = self.new_document()
@@ -1437,7 +1437,7 @@ class TestStatementsBase(object):
         document.activity(identifier=EX_NS['a1s'])
         document.activity(identifier=EX_NS['a2'])
         document.activity(identifier=EX_NS['a2s'])
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_bundle_1(self):
         document = self.new_document()
@@ -1457,7 +1457,7 @@ class TestStatementsBase(object):
         document.add_bundle(bundle1)
         document.add_bundle(bundle2)
 
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_bundle_2(self):
         document = self.new_document()
@@ -1477,7 +1477,7 @@ class TestStatementsBase(object):
         document.add_bundle(bundle1)
         document.add_bundle(bundle2)
 
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_bundle_3(self):
         document = self.new_document()
@@ -1497,7 +1497,7 @@ class TestStatementsBase(object):
         document.add_bundle(bundle1)
         document.add_bundle(bundle2)
 
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_bundle_4(self):
         document = self.new_document()
@@ -1517,4 +1517,4 @@ class TestStatementsBase(object):
         document.add_bundle(bundle1)
         document.add_bundle(bundle2)
 
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)

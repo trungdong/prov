@@ -36,7 +36,7 @@ class TestExamplesBase(object):
             counter += 1
             logger.info('%d. Testing the %s example', counter, name)
             g = graph()
-            self.assertRoundTripEquivalence(g)
+            self.do_tests(g)
 
 
 class TestLoadingProvToolboxJSON(BaseTestCase):

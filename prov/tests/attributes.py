@@ -54,7 +54,7 @@ class TestAttributesBase(object):
         document.entity(
             EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]}
         )
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_with_one_type_attribute_0(self):
         self.run_entity_with_one_type_attribute(0)
@@ -147,7 +147,7 @@ class TestAttributesBase(object):
             for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emov'], attributes)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
 
     def test_entity_with_multiple_value_attribute(self):
         document = self.new_document()
@@ -156,4 +156,4 @@ class TestAttributesBase(object):
             for i, value in enumerate(self.attribute_values)
         ]
         document.entity(EX_NS['emv'], attributes)
-        self.assertRoundTripEquivalence(document)
+        self.do_tests(document)
