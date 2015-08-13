@@ -19,7 +19,7 @@ __email__ = 'trungdong@donggiang.com'
 
 import cgi
 from datetime import datetime
-import pydot
+import pydotplus as pydot
 import six
 
 from prov.model import (

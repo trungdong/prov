@@ -18,7 +18,7 @@ requirements = [
 ]
 
 test_requirements = [
-    'pydot'
+    'pydotplus'
 ]
 
 setup(
@@ -38,7 +38,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     extras_require={
-        'dot': ['pydot'],
+        'dot': ['pydotplus'],
     },
     license="MIT",
     zip_safe=False,
