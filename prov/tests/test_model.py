@@ -15,7 +15,7 @@ from prov.tests import examples
 from prov.tests.attributes import TestAttributesBase
 from prov.tests.qnames import TestQualifiedNamesBase
 from prov.tests.statements import TestStatementsBase
-from prov.tests.utility import BaseTestCase, RoundTripTestCase
+from prov.tests.utility import RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ class TestExamplesBase(object):
             self.do_tests(g)
 
 
-class TestLoadingProvToolboxJSON(BaseTestCase):
+class TestLoadingProvToolboxJSON(unittest.TestCase):
     def setUp(self):
         self.json_path = os.path.dirname(os.path.abspath(__file__)) + '/json/'
         filenames = os.listdir(self.json_path)
@@ -79,7 +79,7 @@ class TestLoadingProvToolboxJSON(BaseTestCase):
                 )
 
 
-class TestFlattening(BaseTestCase):
+class TestFlattening(unittest.TestCase):
     def test_flattening(self):
         for name, graph in examples.tests:
             logger.info('Testing flattening of the %s example', name)
@@ -98,7 +98,7 @@ class TestFlattening(BaseTestCase):
             self.assertEqual(n_records, len(flattened.get_records()))
 
 
-class TestUnification(BaseTestCase):
+class TestUnification(unittest.TestCase):
     def test_unifying(self):
         # This is a very trivial test just to exercise the unified() function
         # TODO: Create a proper unification test
@@ -120,7 +120,7 @@ class TestUnification(BaseTestCase):
                 )
 
 
-class TestBundleUpdate(BaseTestCase):
+class TestBundleUpdate(unittest.TestCase):
     def test_bundle_update_simple(self):
         doc = ProvDocument()
         doc.set_default_namespace(EX_URI)
@@ -161,7 +161,7 @@ class TestBundleUpdate(BaseTestCase):
         self.assertEqual(len(d1.bundles), 2)
 
 
-class TestAddBundle(BaseTestCase):
+class TestAddBundle(unittest.TestCase):
     def document_1(self):
         d1 = ProvDocument()
         ns_ex = d1.add_namespace('ex', EX_URI)

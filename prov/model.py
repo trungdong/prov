@@ -535,9 +535,9 @@ class ProvActivity(ProvElement):
     #  Convenient methods
     def set_time(self, startTime=None, endTime=None):
         if startTime is not None:
-            self._attributes[PROV_ATTR_STARTTIME] = set([startTime])
+            self._attributes[PROV_ATTR_STARTTIME] = {startTime}
         if endTime is not None:
-            self._attributes[PROV_ATTR_ENDTIME] = set([endTime])
+            self._attributes[PROV_ATTR_ENDTIME] = {endTime}
 
     def get_startTime(self):
         values = self._attributes[PROV_ATTR_STARTTIME]

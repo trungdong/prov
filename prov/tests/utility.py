@@ -11,54 +11,7 @@ from prov.model import ProvDocument
 logger = logging.getLogger(__name__)
 
 
-class BaseTestCase(unittest.TestCase):
-    def assertIsInstance(self, obj, cls, msg=None):
-        """Python < v2.7 compatibility.  Assert isinstance(obj, cls)"""
-        try:
-            f = super(BaseTestCase, self).assertIsInstance
-        except AttributeError:
-            self.assertTrue(isinstance(obj, cls), msg)
-        else:
-            f(obj, cls, msg)
-
-    def assertIsNotNone(self, obj, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
-        try:
-            f = super(BaseTestCase, self).assertIsNotNone
-        except AttributeError:
-            self.assertTrue(obj is not None, *args, **kwargs)
-        else:
-            f(obj, *args, **kwargs)
-
-    def assertIn(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' in 'b'"""
-        try:
-            f = super(BaseTestCase, self).assertIn
-        except AttributeError:
-            self.assertTrue(a in b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
-
-    def assertNotIn(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert 'a' NOT in 'b'"""
-        try:
-            f = super(BaseTestCase, self).assertNotIn
-        except AttributeError:
-            self.assertFalse(a in b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
-
-    def assertLess(self, a, b, *args, **kwargs):
-        """Python < v2.7 compatibility.  Assert a < b"""
-        try:
-            f = super(BaseTestCase, self).assertLess
-        except AttributeError:
-            self.assertTrue(a < b, *args, **kwargs)
-        else:
-            f(a, b, *args, **kwargs)
-
-
-class DocumentBaseTestCase(BaseTestCase):
+class DocumentBaseTestCase(unittest.TestCase):
     def do_tests(self, prov_doc, msg=None):
         pass
 
