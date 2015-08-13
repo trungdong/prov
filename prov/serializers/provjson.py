@@ -350,6 +350,6 @@ def literal_json_representation(literal):
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
-        return {'$': value, 'lang': langtag, 'type': six.text_type(datatype)}
+        return {'$': value, 'lang': langtag}
     else:
         return {'$': value, 'type': six.text_type(datatype)}
