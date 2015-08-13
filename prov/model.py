@@ -367,7 +367,14 @@ class ProvRecord(object):
                 if not is_collection and attr in PROV_ATTRIBUTES and \
                         self._attributes[attr]:
                     existing_value = first(self._attributes[attr])
-                    if value != existing_value:
+                    is_not_same_value = True
+                    try:
+                        is_not_same_value = value != existing_value
+                    except TypeError:
+                        # Cannot compare them
+                        pass  # consider them different values
+
+                    if is_not_same_value:
                         raise ProvException(
                             'Cannot have more than one value for attribute %s'
                             % attr
