@@ -3,6 +3,14 @@
 History
 -------
 
+1.4.0 (2015-08-13)
+^^^^^^^^^^^^^^^^^^
+* Changed the type of qualified names to prov:QUALIFIED_NAME (fixed #68)
+* Removed XSDQName class and stopped supporting parsing xsd:QName as qualified names
+* Replaced pydot dependency with pydotplus
+* Removed support for Python 2.6
+* Various minor bug fixes and improvements
+
 1.3.2 (2015-06-17)
 ^^^^^^^^^^^^^^^^^^
 * Added: prov-compare script to check equivalence of two PROV files (currently supporting JSON and XML)
