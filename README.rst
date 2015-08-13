@@ -43,7 +43,7 @@ Features
 Uses
 ^^^^
 
-See `a short tutorial  <http://provbits.blogspot.co.uk/2014/08/a-short-tutorial-for-prov-python.html>`_ for using this package.
+See `a short tutorial  <http://trungdong.github.io/prov-python-short-tutorial.html>`_ for using this package.
 
 This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
 a free online repository for provenance documents.
