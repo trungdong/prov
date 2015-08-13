@@ -28,7 +28,7 @@ from prov.model import (
     PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
     PROV_INVALIDATION, PROV_END, PROV_MEMBERSHIP, PROV_MENTION,
     PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier,
-    PROV_ATTRIBUTE_QNAMES, sorted_attributes
+    PROV_ATTRIBUTE_QNAMES, sorted_attributes, ProvException
 )
 
 
@@ -345,6 +345,12 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                     )
                 )
 
-    unified = bundle.unified()
+    try:
+        unified = bundle.unified()
+    except ProvException:
+        # Could not unify this bundle
+        # try the original document anyway
+        unified = bundle
+
     _bundle_to_dot(maindot, unified)
     return maindot
