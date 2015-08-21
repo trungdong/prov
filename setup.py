@@ -23,7 +23,7 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.4.0',
+    version='1.4.1.dev1',
     description='A library for W3C Provenance Data Model supporting PROV-JSON '
                 'and PROV-XML',
     long_description=readme + '\n\n' + history,
