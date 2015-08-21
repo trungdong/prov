@@ -6,12 +6,7 @@ __email__ = 'trungdong@donggiang.com'
 
 import networkx as nx
 
-from prov.model import ProvEntity, ProvActivity, ProvAgent, ProvElement,\
-    ProvRelation, PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT,\
-    PROV_ATTR_TRIGGER, PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,\
-    PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE, PROV_ATTR_SPECIFIC_ENTITY,\
-    PROV_ATTR_GENERAL_ENTITY, PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2,\
-    PROV_ATTR_COLLECTION, PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT
+from prov.model import *
 
 INFERRED_ELEMENT_CLASS = {
     PROV_ATTR_ENTITY: ProvEntity,
@@ -42,10 +37,11 @@ def prov_to_graph(prov_document):
     """
     g = nx.MultiDiGraph()
     unified = prov_document.unified()
-    node_map = dict(
-        (element.identifier, element)
-        for element in unified.get_records(ProvElement)
-    )
+    node_map = dict()
+    for element in unified.get_records(ProvElement):
+        g.add_node(element)
+        node_map[element.identifier] = element
+
     for relation in unified.get_records(ProvRelation):
         # taking the first two elements of a relation
         attr_pair_1, attr_pair_2 = relation.formal_attributes[:2]
@@ -64,3 +60,19 @@ def prov_to_graph(prov_document):
                 continue  # skipping this relation
             g.add_edge(node_map[qn1], node_map[qn2], relation=relation)
     return g
+
+
+def graph_to_prov(g):
+    prov_doc = ProvDocument()
+    for n in g.nodes_iter():
+        if isinstance(n, ProvRecord) and n.bundle is not None:
+            prov_doc.add_record(n)
+    for _, _, edge_data in g.edges_iter(data=True):
+        try:
+            relation = edge_data['relation']
+            if isinstance(relation, ProvRecord):
+                prov_doc.add_record(relation)
+        except KeyError:
+            pass
+
+    return prov_doc
