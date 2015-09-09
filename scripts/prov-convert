@@ -58,7 +58,7 @@ def convert_file(infile, outfile, output_format):
 
     # Formats not supported by prov.serializers
     if output_format == 'provn':
-        outfile.write(prov_doc.get_provn())
+        outfile.write(prov_doc.get_provn().encode())
     elif output_format in GRAPHVIZ_SUPPORTED_FORMATS:
         from prov.dot import prov_to_dot
         dot = prov_to_dot(prov_doc)
