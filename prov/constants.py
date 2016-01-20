@@ -1,5 +1,10 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
+
+import six
 
 #  # PROV record constants - PROV-DM
 
@@ -139,7 +144,7 @@ PROV_ATTR_STARTTIME = PROV['startTime']
 PROV_ATTR_ENDTIME = PROV['endTime']
 
 
-PROV_ATTRIBUTE_QNAMES = set([
+PROV_ATTRIBUTE_QNAMES = {
     PROV_ATTR_ENTITY,
     PROV_ATTR_ACTIVITY,
     PROV_ATTR_TRIGGER,
@@ -163,15 +168,25 @@ PROV_ATTRIBUTE_QNAMES = set([
     PROV_ATTR_INFLUENCEE,
     PROV_ATTR_INFLUENCER,
     PROV_ATTR_COLLECTION
-])
-PROV_ATTRIBUTE_LITERALS = set([PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME])
+}
+PROV_ATTRIBUTE_LITERALS = {
+    PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME
+}
+
 # Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
-PROV_RECORD_ATTRIBUTES = list((attr, unicode(attr)) for attr in PROV_ATTRIBUTES)
+PROV_RECORD_ATTRIBUTES = list((attr, six.text_type(attr)) for attr in
+                              PROV_ATTRIBUTES)
 
-PROV_RECORD_IDS_MAP = dict((PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP)
-PROV_ID_ATTRIBUTES_MAP = dict((prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
-PROV_ATTRIBUTES_ID_MAP = dict((attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES)
+PROV_RECORD_IDS_MAP = dict(
+    (PROV_N_MAP[rec_type_id], rec_type_id) for rec_type_id in PROV_N_MAP
+)
+PROV_ID_ATTRIBUTES_MAP = dict(
+    (prov_id, attribute) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES
+)
+PROV_ATTRIBUTES_ID_MAP = dict(
+    (attribute, prov_id) for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES
+)
 
 # Extra definition for convenience
 PROV_TYPE = PROV['type']
@@ -180,9 +195,9 @@ PROV_VALUE = PROV['value']
 PROV_LOCATION = PROV['location']
 PROV_ROLE = PROV['role']
 
-PROV_QUALIFIEDNAME = PROV['QualifiedName']
+PROV_QUALIFIEDNAME = PROV['QUALIFIED_NAME']
 
-### XSD DATA TYPES ###
+# XSD DATA TYPES
 XSD_ANYURI = XSD['anyURI']
 XSD_QNAME = XSD['QName']
 XSD_DATETIME = XSD['dateTime']

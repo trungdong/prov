@@ -258,8 +258,8 @@ texinfo_documents = [
      u'prov Documentation',
      u'Trung Dong Huynh',
      'prov',
-     'One line description of project.',
-     'Miscellaneous'),
+     'A Python library for the World Wide Web Consortium\'s PROV Data Model',
+     'Documentation'),
 ]
 
 # Documents to append as an appendix to all manuals.

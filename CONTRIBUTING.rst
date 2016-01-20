@@ -36,7 +36,7 @@ is open to whoever wants to implement it.
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-prov could always use more documentation, whether as part of the
+We could always use more documentation, whether as part of the
 official prov docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
@@ -99,13 +99,15 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, and for PyPy. Check
-   https://travis-ci.org/trungdong/prov/pull_requests
+3. The pull request should work for Python 2.6, 2.7, 3.3, 3.4, and for PyPy.
+   Check https://travis-ci.org/trungdong/prov/pull_requests
    and make sure that the tests pass for all supported Python versions.
+   (See [pyenv](https://github.com/yyuu/pyenv) for help on setting up
+   multiple versions of Python locally for testing.)
 
 Tips
 ----
 
 To run a subset of tests::
 
-	$ python -m unittest tests.test_prov
+	$ python -m unittest prov.tests.test_json

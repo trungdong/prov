@@ -1,5 +1,7 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import io
-from StringIO import StringIO
 import unittest
 
 from prov.model import *
@@ -35,7 +37,8 @@ def add_types(record):
         ('prov:type', True),
         ('prov:type', EX_NS['abc']),
         ('prov:type', datetime.datetime.now()),
-        ('prov:type', Literal('http://boiled-egg.example.com', datatype=XSD_ANYURI)),
+        ('prov:type', Literal('http://boiled-egg.example.com',
+                              datatype=XSD_ANYURI)),
     ])
 
 
@@ -74,7 +77,8 @@ def add_further_attributes0(record):
         (EX_NS['tag2'], Literal("hola", langtag="es")),
         (EX2_NS['tag3'], "hi"),
         (EX_NS['tag'], 1),
-        (EX_NS['tag'], long(1)),
+        # long on python 2, int on python 3
+        (EX_NS['tag'], six.integer_types[-1](1)),
         (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
         (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
         (EX_NS['tag'], 1.0),
@@ -94,17 +98,25 @@ def add_further_attributes_with_qnames(record):
 
 class TestExtras(unittest.TestCase):
     def test_dot(self):
-        # This is naive.. since we can't programatically check the output is correct
+        # This is naive, since we can't programatically check the output is
+        # correct
         document = ProvDocument()
 
         bundle1 = ProvBundle(identifier=EX_NS['bundle1'])
-        bundle1.usage(activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1'])
-        bundle1.entity(identifier=EX_NS['e1'], other_attributes={PROV_ROLE: "sausage"})
+        bundle1.usage(
+            activity=EX_NS['a1'], entity=EX_NS['e1'], identifier=EX_NS['use1']
+        )
+        bundle1.entity(
+            identifier=EX_NS['e1'], other_attributes={PROV_ROLE: "sausage"}
+        )
         bundle1.activity(identifier=EX_NS['a1'])
         document.activity(EX_NS['a2'])
 
         bundle2 = ProvBundle(identifier=EX_NS['bundle2'])
-        bundle2.usage(activity=EX_NS['aa1'], entity=EX_NS['ee1'], identifier=EX_NS['use2'])
+        bundle2.usage(
+            activity=EX_NS['aa1'], entity=EX_NS['ee1'],
+            identifier=EX_NS['use2']
+        )
         bundle2.entity(identifier=EX_NS['ee1'])
         bundle2.activity(identifier=EX_NS['aa1'])
 
@@ -116,12 +128,17 @@ class TestExtras(unittest.TestCase):
 
         document = ProvDocument()
 
-        inf = document.influence(EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7'])
+        inf = document.influence(
+            EX_NS['a2'], EX_NS['a1'], identifier=EX_NS['inf7']
+        )
         add_labels(inf)
         add_types(inf)
         add_further_attributes(inf)
 
-        self.assertEqual(len(inf.attributes), len(list(inf.formal_attributes) + inf.extra_attributes))
+        self.assertEqual(
+            len(inf.attributes),
+            len(list(inf.formal_attributes) + inf.extra_attributes)
+        )
 
     def test_serialize_to_path(self):
         document = ProvDocument()
@@ -156,7 +173,9 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
 
         def test():
-            document.add_bundle(document.entity(EX_NS['entity_trying_to_be_a_bundle']))
+            document.add_bundle(
+                document.entity(EX_NS['entity_trying_to_be_a_bundle'])
+            )
 
         self.assertRaises(ProvException, test)
 
@@ -174,11 +193,6 @@ class TestExtras(unittest.TestCase):
         document = ProvBundle()
         self.assertTrue(document.is_bundle())
 
-    def test_bundle_in_document(self):
-        document = ProvDocument()
-        bundle = document.bundle('b')
-        self.assertTrue(bundle in bundle.document.bundles)
-
     def test_bundle_get_record_by_id(self):
         document = ProvDocument()
         self.assertEqual(document.get_record(None), None)
@@ -194,7 +208,7 @@ class TestExtras(unittest.TestCase):
 
         document.entity(identifier=EX_NS['e1'])
         document.agent(identifier=EX_NS['e1'])
-        self.assertEqual(len(document.get_records(ProvAgent)), 1)
+        self.assertEqual(len(list(document.get_records(ProvAgent))), 1)
         self.assertEqual(len(document.get_records()), 2)
 
     def test_bundle_name_clash(self):
@@ -231,7 +245,7 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
         document.entity(EX2_NS["test"])
 
-        objects = [io.BytesIO, io.StringIO, StringIO]
+        objects = [io.BytesIO, io.StringIO]
 
         Registry.load_serializers()
         formats = Registry.serializers.keys()
@@ -245,6 +259,10 @@ class TestExtras(unittest.TestCase):
                     new_document = ProvDocument.deserialize(source=buf,
                                                             format=format)
                     self.assertEqual(document, new_document)
+                except NotImplementedError:
+                    # Some serializers might not implement serialize or
+                    # deserialize method
+                    pass  # and this is fine in the context of this test
                 finally:
                     buf.close()
 

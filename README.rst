@@ -9,15 +9,21 @@ Introduction
 .. image:: https://travis-ci.org/trungdong/prov.svg
   :target: https://travis-ci.org/trungdong/prov
   :alt: Build Status
-.. image:: https://coveralls.io/repos/trungdong/prov/badge.png?branch=master
+.. image:: https://img.shields.io/coveralls/trungdong/prov.svg
   :target: https://coveralls.io/r/trungdong/prov?branch=master
   :alt: Coverage Status
-.. image:: https://pypip.in/wheel/prov/badge.svg
+.. image:: https://img.shields.io/pypi/wheel/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
-.. image:: https://pypip.in/download/prov/badge.svg
+.. image:: https://img.shields.io/pypi/dm/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Downloads
+.. image:: https://img.shields.io/pypi/pyversions/prov.svg
+  :target: https://pypi.python.org/pypi/prov/
+  :alt: Supported Python version
+.. image:: https://img.shields.io/pypi/l/prov.svg
+  :target: https://pypi.python.org/pypi/prov/
+  :alt: License
 
 
 A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML import/export
@@ -36,6 +42,8 @@ Features
 
 Uses
 ^^^^
-This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
-a respository for provenance documents.
 
+See `a short tutorial  <http://trungdong.github.io/prov-python-short-tutorial.html>`_ for using this package.
+
+This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
+a free online repository for provenance documents.

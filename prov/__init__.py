@@ -1,6 +1,9 @@
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
-__version__ = '1.1.0'
+__version__ = '1.4.1.dev1'
 
 __all__ = ["Error", "model", "read"]
 
@@ -10,21 +13,6 @@ class Error(Exception):
     pass
 
 
-class Serializer(object):
-    def __init__(self, document=None):
-        self.document = document
-
-    def serialize(self, stream, **kwargs):
-        """
-        Abstract method for serializing
-        """
-
-    def deserialize(self, stream, **kwargs):
-        """
-        Abstract method for deserializing
-        """
-
-
 def read(source, format=None):
     """
     Convenience function returning a ProvDocument instance.
@@ -32,7 +20,7 @@ def read(source, format=None):
     It does a lazy format detection by simply using try/except for all known
     formats. The deserializers should fail fairly early when data of the
     wrong type is passed to them thus the try/except is likely cheap. One
-    could of course also do some more advanced format autodetection but I am
+    could of course also do some more advanced format auto-detection but I am
     not sure that is necessary.
 
     The downside is that no proper error messages will be produced, use the

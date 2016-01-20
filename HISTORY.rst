@@ -3,6 +3,42 @@
 History
 -------
 
+1.4.0 (2015-08-13)
+^^^^^^^^^^^^^^^^^^
+* Changed the type of qualified names to prov:QUALIFIED_NAME (fixed #68)
+* Removed XSDQName class and stopped supporting parsing xsd:QName as qualified names
+* Replaced pydot dependency with pydotplus
+* Removed support for Python 2.6
+* Various minor bug fixes and improvements
+
+1.3.2 (2015-06-17)
+^^^^^^^^^^^^^^^^^^
+* Added: prov-compare script to check equivalence of two PROV files (currently supporting JSON and XML)
+* Fixed: deserialising Python 3's bytes objects (issue #67)
+
+1.3.1 (2015-02-27)
+^^^^^^^^^^^^^^^^^^
+* Fixed unicode issue with deserialising text contents
+* Set the correct version requirement for six
+* Fixed format selection in prov-convert script
+
+1.3.0 (2015-02-03)
+^^^^^^^^^^^^^^^^^^
+* Python 3.3 and 3.4 supported
+* Updated prov-convert script to support XML output
+* Added missing test JSON and XML files in distributions
+
+
+1.2.0 (2014-12-19)
+^^^^^^^^^^^^^^^^^^
+* Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
+* Added: PROV-N serializer
+* Fixed: None values for empty formal attributes in PROV-N output (issue #60)
+* Fixed: PROV-N representation for xsd:dateTime (issue #58)
+* Fixed: Unintended merging of Identifier and QualifiedName values
+* Fixed: Cloning the records when creating a new document from them
+* Fixed: incorrect SoftwareAgent records in XML serialization
+
 1.1.0 (2014-08-21)
 ^^^^^^^^^^^^^^^^^^
 * Added: Support for `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ serialization and deserialization

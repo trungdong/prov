@@ -27,6 +27,14 @@ prov.dot module
     :undoc-members:
     :show-inheritance:
 
+prov.graph module
+-----------------
+
+.. automodule:: prov.graph
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 prov.identifier module
 ----------------------
 
