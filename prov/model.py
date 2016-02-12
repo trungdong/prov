@@ -939,15 +939,39 @@ class ProvBundle(object):
 
     @property
     def namespaces(self):
+        """
+        Returns the set of registered namespaces
+        """
         return set(self._namespaces.get_registered_namespaces())
 
     @property
+    def default_ns_uri(self):
+        """
+        Returns the default namespace's URI, if any
+        """
+        default_ns = self._namespaces.get_default_namespace()
+        return default_ns.uri if default_ns else None
+
+    @property
     def document(self):
+        """
+        Returns the parent document, if any
+        """
         return self._document
 
     @property
     def identifier(self):
+        """
+        Returns the bundle's identifier
+        """
         return self._identifier
+
+    @property
+    def records(self):
+        """
+        Returns the list of all records in the current bundle
+        """
+        return list(self._records)
 
     #  Bundle configurations
     def set_default_namespace(self, uri):
