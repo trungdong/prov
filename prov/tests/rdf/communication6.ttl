@@ -1,0 +1,14 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ex: <http://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+
+ex:inf6 a prov:Communication ;
+	prov:activity ex:a1 .
+
+ex:a2 prov:qualifiedCommunication ex:inf6 .
+
+ex:inf6 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:54.102+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+	rdfs:label "hello" , "bye"@en , "bonjour"@fr .

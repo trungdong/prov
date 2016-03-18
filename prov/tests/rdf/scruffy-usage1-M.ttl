@@ -1,0 +1,17 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ex: <http://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+
+ex:use1 a prov:Usage ;
+	prov:entity ex:e1 .
+
+ex:a1 prov:qualifiedUsage ex:use1 .
+
+ex:use1 prov:atTime "2014-06-23T12:28:52.647+01:00"^^xsd:dateTime , "2012-12-03T21:08:16.686Z"^^xsd:dateTime .
+
+ex:a1 a prov:Activity .
+
+ex:e1 a prov:Entity .
