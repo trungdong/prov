@@ -216,7 +216,7 @@ class ProvRDFSerializer(Serializer):
                 all_attributes = list(record.formal_attributes) + list(record.attributes)
                 formal_qualifiers = False
                 for attrid, (attr, value) in enumerate(list(record.formal_attributes)): #[1:]:
-                    logger.debug((identifier, attrid, attr, value, formal_qualifiers))
+                    #logger.debug((identifier, attrid, attr, value, formal_qualifiers))
                     if (identifier is not None and value is not None) or \
                             (identifier is None and value is not None and attrid > 1):
                         formal_qualifiers = True
@@ -232,12 +232,15 @@ class ProvRDFSerializer(Serializer):
                             #print "attr", record.extra_attributes
                             printed = True
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
-                        logger.debug(('pred', pred))
+                        #logger.debug(('pred', pred))
                         # create bnode relation
                         if bnode is None:
-                            logger.debug(record.formal_attributes)
-                            for key, val in record.formal_attributes:
+                            #logger.debug(record.formal_attributes)
+                            valid_formal_indices = set()
+                            for idx, (key, val) in enumerate(record.formal_attributes):
                                 formal_objects.append(key)
+                                if val:
+                                    valid_formal_indices.add(idx)
                             used_objects = [record.formal_attributes[0][0]]
                             subj = None
                             if record.formal_attributes[0][1]:
@@ -249,19 +252,28 @@ class ProvRDFSerializer(Serializer):
                                     obj_attr = URIRef(record.formal_attributes[1][0].uri)
                                 except IndexError:
                                     obj_val = None
-                                if obj_val and rec_type not in [PROV_END,
+                                if obj_val and (rec_type not in [PROV_END,
                                                                 PROV_START,
                                                                 PROV_USAGE,
                                                                 PROV_GENERATION,
                                                                 PROV_DERIVATION,
-                                                                PROV_INVALIDATION]:
+                                                                PROV_INVALIDATION] or
+                                                (valid_formal_indices == set([0, 1]) and
+                                                 len(record.extra_attributes) == 0)):
                                     used_objects.append(record.formal_attributes[1][0])
                                     obj_val = self.encode_rdf_representation(obj_val)
                                     container.add((subj, pred, obj_val))
+                                    if rec_type == PROV_MENTION:
+                                        if record.formal_attributes[2][1]:
+                                            used_objects.append(record.formal_attributes[2][0])
+                                            obj_val = self.encode_rdf_representation(record.formal_attributes[2][1])
+                                            container.add((subj, URIRef(PROV['asInBundle'].uri), obj_val))
+                                        has_qualifiers = False
+
                                 #logger.debug(subj, pred, obj_val)
                             if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
                                 continue
-                            if subj and has_qualifiers:
+                            if subj and (has_qualifiers or identifier):  #and (len(record.extra_attributes) > 0 or                                                            identifier):
                                 qualifier = rec_type._localpart
                                 rec_uri = rec_type.uri
                                 for attr_name, val in record.extra_attributes:
@@ -315,7 +327,7 @@ class ProvRDFSerializer(Serializer):
                                     pred = URIRef(PROV['hadUsage'].uri)
                                 if PROV['usedEntity'].uri in pred:
                                     pred = URIRef(PROV['entity'].uri)
-                            logger.debug(('Q:', identifier, pred, value))
+                            #logger.debug(('Q:', identifier, pred, value))
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
@@ -371,13 +383,23 @@ class ProvRDFSerializer(Serializer):
         ids = {}
         PROV_CLS_MAP = {}
         formal_attributes = {}
+        unique_sets = {}
         for key, val in PROV_BASE_CLS.items():
             PROV_CLS_MAP[key.uri] = PROV_BASE_CLS[key]
         relation_mapper = {URIRef(PROV['alternateOf'].uri): 'alternate',
+                           URIRef(PROV['actedOnBehalfOf'].uri): 'delegation',
+                           URIRef(PROV['specializationOf'].uri): 'specialization',
+                           URIRef(PROV['mentionOf'].uri): 'mention',
                            URIRef(PROV['wasAssociatedWith'].uri): 'association',
                            URIRef(PROV['wasAttributedTo'].uri): 'attribution',
                            URIRef(PROV['wasInformedBy'].uri): 'communication',
-                           URIRef(PROV['actedOnBehalfOf'].uri): 'delegation',
+                           URIRef(PROV['wasGeneratedBy'].uri): 'generation',
+                           URIRef(PROV['wasInfluencedBy'].uri): 'influence',
+                           URIRef(PROV['wasInvalidatedBy'].uri): 'invalidation',
+                           URIRef(PROV['wasEndedBy'].uri): 'end',
+                           URIRef(PROV['wasStartedBy'].uri): 'start',
+                           URIRef(PROV['hadMember'].uri): 'membership',
+                           URIRef(PROV['used'].uri): 'usage',
                            }
         other_attributes = {}
         for stmt in graph.triples((None, RDF.type, None)):
@@ -394,6 +416,7 @@ class ProvRDFSerializer(Serializer):
                     ids[id] = prov_obj
                     klass = pm.PROV_REC_CLS[prov_obj]
                     formal_attributes[id] = OrderedDict([(key, None) for key in klass.FORMAL_ATTRIBUTES])
+                    unique_sets[id] = OrderedDict([(key, []) for key in klass.FORMAL_ATTRIBUTES])
                 else:
                     if id not in other_attributes:
                         other_attributes[id] = []
@@ -416,11 +439,17 @@ class ProvRDFSerializer(Serializer):
             if pred == RDF.type:
                 continue
             if pred in relation_mapper:
-                getattr(bundle, relation_mapper[pred])(id, unicode(obj))
+                if 'mentionOf' in pred:
+                    mentionBundle = None
+                    for stmt in graph.triples((URIRef(id), URIRef(pm.PROV['asInBundle'].uri), None)):
+                        mentionBundle = stmt[2]
+                    getattr(bundle, relation_mapper[pred])(id, unicode(obj), mentionBundle)
+                else:
+                    getattr(bundle, relation_mapper[pred])(id, unicode(obj))
             elif id in ids:
                 # logger.debug((id, pred, obj)) #dbg
                 obj1 = self.decode_rdf_representation(obj)
-                # logger.debug(('decoded:', id, pred, obj1, unicode(pred))) #dbg
+                #logger.debug(('decoded:', id, pred, obj1, unicode(pred), formal_attributes[id])) #dbg
                 if pred == RDFS.label:
                     other_attributes[id].append((pm.PROV['label'], obj1))
                 elif pred == URIRef(PROV['atLocation'].uri):
@@ -443,15 +472,25 @@ class ProvRDFSerializer(Serializer):
                     elif 'entity' in pred:
                         formal_attributes[id][PROV_ATTR_USED_ENTITY] = obj1
                     elif unicode(pred) in formal_attributes[id]:
-                        formal_attributes[id][unicode(pred)] = obj1
+                        qname_key = self.valid_identifier(unicode(pred))
+                        formal_attributes[id][qname_key] = obj1
+                        unique_sets[id][qname_key].append(obj1)
+                        if len(unique_sets[id][qname_key]) > 1:
+                            formal_attributes[id][qname_key] = None
                     else:
-                        other_attributes[id].append((unicode(pred), obj1))
+                        if 'qualified' not in pred:
+                            other_attributes[id].append((unicode(pred), obj1))
                 elif ids[id] in [PROV_END, PROV_START] and 'entity' in pred:
                     formal_attributes[id][PROV_ATTR_TRIGGER] = obj1
-                elif unicode(pred) in formal_attributes[id]:
-                    formal_attributes[id][unicode(pred)] = obj1
+                elif unicode(pred) in [val.uri for val in formal_attributes[id]]:
+                    qname_key = self.valid_identifier(unicode(pred))
+                    formal_attributes[id][qname_key] = obj1
+                    unique_sets[id][qname_key].append(obj1)
+                    if len(unique_sets[id][qname_key]) > 1:
+                        formal_attributes[id][qname_key] = None
                 else:
-                    other_attributes[id].append((unicode(pred), obj1))
+                    if 'qualified' not in pred:
+                        other_attributes[id].append((unicode(pred), obj1))
             local_key = unicode(obj)
             if local_key in ids:
                 if 'qualified' in pred:
@@ -460,15 +499,60 @@ class ProvRDFSerializer(Serializer):
             attrs = None
             if id in other_attributes:
                 attrs = other_attributes[id]
+            #logger.debug(('Record', formal_attributes[id], unique_sets[id], attrs))
+            items_to_walk = []
+            for qname, values in unique_sets[id].items():
+                #logger.debug((qname, values))
+                if values and len(values) > 1:
+                    items_to_walk.append((qname, values))
+            if items_to_walk:
+                for subset in list(walk(items_to_walk)):
+                    for key, value in subset.items():
+                        formal_attributes[id][key] = value
+                    #logger.debug(('Formal', formal_attributes[id], other_attributes[id]))
+                    temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
+                                                attrs)
+            else:
+                #logger.debug(('No subsets', id, formal_attributes[id], attrs))
                 temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
                                             attrs)
-                ids[id] = temp_id
-                if attrs is not None:
-                    other_attributes[id] = []
+            ids[id] = None #temp_id
+            if attrs is not None:
+                other_attributes[id] = []
         for key, val in other_attributes.items():
             if val:
                 ids[key].add_attributes(val)
 
+def walk(children, level=0, path=None, usename=True):
+    """Generate all the full paths in a tree, as a dict.
+    Examples
+    --------
+    >>> from nipype.pipeline.engine.utils import walk
+    >>> iterables = [('a', lambda: [1, 2]), ('b', lambda: [3, 4])]
+    >>> [val['a'] for val in walk(iterables)]
+    [1, 1, 2, 2]
+    >>> [val['b'] for val in walk(iterables)]
+    [3, 4, 3, 4]
+    """
+    # Entry point
+    if level == 0:
+        path = {}
+    # Exit condition
+    if not children:
+        yield path.copy()
+        return
+    # Tree recursion
+    head, tail = children[0], children[1:]
+    name, func = head
+    for child in func:
+        # We can use the arg name or the tree level as a key
+        if usename:
+            path[name] = child
+        else:
+            path[level] = child
+        # Recurse into the next level
+        for child_paths in walk(tail, level + 1, path, usename):
+            yield child_paths
 
 def literal_rdf_representation(literal):
     value = unicode(literal.value) if literal.value else literal
