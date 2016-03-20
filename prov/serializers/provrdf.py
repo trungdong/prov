@@ -19,6 +19,8 @@ from prov.model import (Literal, Identifier, QualifiedName,
                         Namespace, ProvDocument, ProvBundle, first,
                         parse_xsd_datetime, ProvRecord)
 
+from six import text_type
+
 import base64
 import datetime
 import dateutil.parser
@@ -51,7 +53,7 @@ class AnonymousIDGenerator():
 LITERAL_XSDTYPE_MAP = {
     float: XSD['double'],
     int: XSD['int'],
-    unicode: XSD['string'],
+    text_type: XSD['string'],
     # boolean, string values are supported natively by PROV-RDF
     # datetime values are converted separately
 }
@@ -205,7 +207,7 @@ class ProvRDFSerializer(Serializer):
         for record in bundle._records:
             rec_type = record.get_type()
             if hasattr(record, 'identifier') and record.identifier:
-                identifier = URIRef(unicode(real_or_anon_id(record)))
+                identifier = URIRef(text_type(real_or_anon_id(record)))
                 container.add((identifier, RDF.type, URIRef(rec_type.uri)))
             else:
                 identifier = None
@@ -317,7 +319,7 @@ class ProvRDFSerializer(Serializer):
                     if value is None:
                         continue
                     if isinstance(value, ProvRecord):
-                        obj = URIRef(unicode(real_or_anon_id(value)))
+                        obj = URIRef(text_type(real_or_anon_id(value)))
                     else:
                         #  Assuming this is a datetime value
                         obj = self.encode_rdf_representation(value)
@@ -342,13 +344,13 @@ class ProvRDFSerializer(Serializer):
 
     def decode_document(self, content, document):
         for prefix, url in content.namespaces():
-            document.add_namespace(prefix, unicode(url))
+            document.add_namespace(prefix, text_type(url))
         if hasattr(content, 'contexts'):
             for graph in content.contexts():
                 if isinstance(graph.identifier, BNode):
                     self.decode_container(graph, document)
                 else:
-                    bundle_id = unicode(graph.identifier)
+                    bundle_id = text_type(graph.identifier)
                     bundle = document.bundle(bundle_id)
                     self.decode_container(graph, bundle)
         else:
@@ -387,15 +389,15 @@ class ProvRDFSerializer(Serializer):
                             }
         other_attributes = {}
         for stmt in graph.triples((None, RDF.type, None)):
-            id = unicode(stmt[0])
-            obj = unicode(stmt[2])
+            id = text_type(stmt[0])
+            obj = text_type(stmt[2])
             if obj in PROV_CLS_MAP:
                 if not isinstance(stmt[0], BNode) and self.valid_identifier(id) is None:
                     prefix, iri, _ = graph.namespace_manager.compute_qname(id)
                     self.document.add_namespace(prefix, iri)
                 try:
                     prov_obj = PROV_CLS_MAP[obj]
-                except AttributeError, e:
+                except AttributeError:
                     prov_obj = None
                 add_attr = True
                 if id not in ids and prov_obj and (prov_obj.uri == obj or
@@ -416,7 +418,7 @@ class ProvRDFSerializer(Serializer):
                 obj = self.decode_rdf_representation(stmt[2])
                 other_attributes[id].append((pm.PROV['type'], obj))
         for id, pred, obj in graph:
-            id = unicode(id)
+            id = text_type(id)
             if id not in other_attributes:
                 other_attributes[id] = []
             if pred == RDF.type:
@@ -426,20 +428,20 @@ class ProvRDFSerializer(Serializer):
                     mentionBundle = None
                     for stmt in graph.triples((URIRef(id), URIRef(pm.PROV['asInBundle'].uri), None)):
                         mentionBundle = stmt[2]
-                    getattr(bundle, relation_mapper[pred])(id, unicode(obj), mentionBundle)
+                    getattr(bundle, relation_mapper[pred])(id, text_type(obj), mentionBundle)
                 elif 'actedOnBehalfOf' in pred or 'wasAssociatedWith' in pred:
                     qualifier = 'qualified' + relation_mapper[pred].upper()[0] + relation_mapper[pred][1:]
                     qualifier_bnode = None
                     for stmt in graph.triples((URIRef(id), URIRef(pm.PROV[qualifier].uri), None)):
                         qualifier_bnode = stmt[2]
                     if qualifier_bnode is None:
-                        getattr(bundle, relation_mapper[pred])(id, unicode(obj))
+                        getattr(bundle, relation_mapper[pred])(id, text_type(obj))
                     else:
-                        fakeys = formal_attributes[unicode(qualifier_bnode)].keys()
-                        formal_attributes[unicode(qualifier_bnode)][fakeys[0]] = id
-                        formal_attributes[unicode(qualifier_bnode)][fakeys[1]] = unicode(obj)
+                        fakeys = formal_attributes[text_type(qualifier_bnode)].keys()
+                        formal_attributes[text_type(qualifier_bnode)][fakeys[0]] = id
+                        formal_attributes[text_type(qualifier_bnode)][fakeys[1]] = text_type(obj)
                 else:
-                    getattr(bundle, relation_mapper[pred])(id, unicode(obj))
+                    getattr(bundle, relation_mapper[pred])(id, text_type(obj))
             elif id in ids:
                 obj1 = self.decode_rdf_representation(obj)
                 if obj is not None and obj1 is None:
@@ -447,25 +449,25 @@ class ProvRDFSerializer(Serializer):
                 pred_new = pred
                 if pred in predicate_mapper:
                     pred_new = predicate_mapper[pred]
-                if ids[id] == PROV_COMMUNICATION and 'activity' in unicode(pred_new):
+                if ids[id] == PROV_COMMUNICATION and 'activity' in text_type(pred_new):
                     pred_new = PROV_ATTR_INFORMANT
-                if ids[id] == PROV_DELEGATION and 'agent' in unicode(pred_new):
+                if ids[id] == PROV_DELEGATION and 'agent' in text_type(pred_new):
                     pred_new = PROV_ATTR_RESPONSIBLE
-                if ids[id] in [PROV_END, PROV_START] and 'entity' in unicode(pred_new):
+                if ids[id] in [PROV_END, PROV_START] and 'entity' in text_type(pred_new):
                     pred_new = PROV_ATTR_TRIGGER
-                if ids[id] == PROV_DERIVATION and 'entity' in unicode(pred_new):
+                if ids[id] == PROV_DERIVATION and 'entity' in text_type(pred_new):
                     pred_new = PROV_ATTR_USED_ENTITY
-                if unicode(pred_new) in [val.uri for val in formal_attributes[id]]:
+                if text_type(pred_new) in [val.uri for val in formal_attributes[id]]:
                     qname_key = self.valid_identifier(pred_new)
                     formal_attributes[id][qname_key] = obj1
                     unique_sets[id][qname_key].append(obj1)
                     if len(unique_sets[id][qname_key]) > 1:
                         formal_attributes[id][qname_key] = None
                 else:
-                    if 'qualified' not in unicode(pred_new) and \
-                                    'asInBundle' not in unicode(pred_new):
-                        other_attributes[id].append((unicode(pred_new), obj1))
-            local_key = unicode(obj)
+                    if 'qualified' not in text_type(pred_new) and \
+                                    'asInBundle' not in text_type(pred_new):
+                        other_attributes[id].append((text_type(pred_new), obj1))
+            local_key = text_type(obj)
             if local_key in ids:
                 if 'qualified' in pred:
                     formal_attributes[local_key][formal_attributes[local_key].keys()[0]] = id
@@ -524,7 +526,7 @@ def walk(children, level=0, path=None, usename=True):
             yield child_paths
 
 def literal_rdf_representation(literal):
-    value = unicode(literal.value) if literal.value else literal
+    value = text_type(literal.value) if literal.value else literal
     if literal.langtag:
         #  a language tag can only go with prov:InternationalizedString
         return RDFLiteral(value, lang=str(literal.langtag))
