@@ -85,6 +85,16 @@ class ProvRDFSerializer(Serializer):
         if newargs and 'rdf_format' in newargs:
             newargs['format'] = newargs['rdf_format']
             del newargs['rdf_format']
+
+        if newargs['format'] == 'trig':
+            gr = ConjunctiveGraph()
+            gr.context_aware = True
+            gr.parse(data=container.serialize(format='nquads'), format='nquads')
+            for namespace in container.namespaces():
+                if namespace not in list(gr.namespaces()):
+                    gr.bind(namespace[0], namespace[1])
+            container = gr
+
         if six.PY2:
             buf = io.BytesIO()
             try:
@@ -125,7 +135,8 @@ class ProvRDFSerializer(Serializer):
         if newargs and 'rdf_format' in newargs:
             newargs['format'] = newargs['rdf_format']
             del newargs['rdf_format']
-        container = ConjunctiveGraph().parse(stream, **newargs)
+        container = ConjunctiveGraph()
+        container.parse(stream, **newargs)
         document = ProvDocument()
         self.document = document
         self.decode_document(container, document)
@@ -135,7 +146,6 @@ class ProvRDFSerializer(Serializer):
         return self.document.valid_qualified_name(value)
 
     def encode_rdf_representation(self, value):
-        #logger.debug((value, type(value))) #dbg
         if isinstance(value, URIRef):
             return value
         elif isinstance(value, Literal):
@@ -143,7 +153,7 @@ class ProvRDFSerializer(Serializer):
         elif isinstance(value, datetime.datetime):
             return RDFLiteral(value.isoformat(), datatype=XSD['dateTime'])
         elif isinstance(value, QualifiedName):
-            return URIRef(value.uri) #, datatype=XSD['QName'])
+            return URIRef(value.uri)
         elif isinstance(value, Identifier):
             return RDFLiteral(value.uri, datatype=XSD['anyURI'])
         elif type(value) in LITERAL_XSDTYPE_MAP:
@@ -160,7 +170,6 @@ class ProvRDFSerializer(Serializer):
                 value = literal
             if datatype and 'base64Binary' in datatype:
                 value = base64.standard_b64encode(value)
-            #print((value, datatype, langtag)) #dbg
             if datatype == XSD['QName']:
                 return pm.Literal(literal, datatype=XSD_QNAME)
             if datatype == XSD['dateTime']:
@@ -178,9 +187,9 @@ class ProvRDFSerializer(Serializer):
 
     def encode_document(self, document):
         container = self.encode_container(document)
-        for b_id, b in document._bundles.items():
+        for item in document.bundles:
             #  encoding the sub-bundle
-            bundle = self.encode_container(b, identifier=b_id.uri)
+            bundle = self.encode_container(item, identifier=item.identifier.uri)
             container.addN(bundle.quads())
         return container
 
@@ -189,11 +198,9 @@ class ProvRDFSerializer(Serializer):
             container = ConjunctiveGraph(identifier=identifier)
             nm = container.namespace_manager
             nm.bind('prov', PROV.uri)
-        prefixes = {}
-        for namespace in bundle._namespaces.get_registered_namespaces():
+
+        for namespace in bundle.namespaces:
             container.bind(namespace.prefix, namespace.uri)
-        if bundle._namespaces._default:
-            prefixes['default'] = bundle._namespaces._default.uri
 
         id_generator = AnonymousIDGenerator()
         real_or_anon_id = lambda record: record._identifier.uri if \
@@ -201,9 +208,7 @@ class ProvRDFSerializer(Serializer):
 
         for record in bundle._records:
             rec_type = record.get_type()
-            logger.debug(rec_type)
-            rec_label = PROV[PROV_N_MAP[rec_type]].uri
-            if hasattr(record, 'identifier') and record.identifier: #record.is_relation():
+            if hasattr(record, 'identifier') and record.identifier:
                 identifier = URIRef(unicode(real_or_anon_id(record)))
                 container.add((identifier, RDF.type, URIRef(rec_type.uri)))
             else:
@@ -215,27 +220,18 @@ class ProvRDFSerializer(Serializer):
                 printed = False
                 all_attributes = list(record.formal_attributes) + list(record.attributes)
                 formal_qualifiers = False
-                for attrid, (attr, value) in enumerate(list(record.formal_attributes)): #[1:]:
-                    #logger.debug((identifier, attrid, attr, value, formal_qualifiers))
+                for attrid, (attr, value) in enumerate(list(record.formal_attributes)):
                     if (identifier is not None and value is not None) or \
                             (identifier is None and value is not None and attrid > 1):
                         formal_qualifiers = True
                 has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
-                #print all_attributes
-                #print record, rec_type.uri
-                #print "attr", record.attributes
-                #all_attributes = set(record.formal_attributes).union(set(record.attributes))
                 for idx, (attr, value) in enumerate(all_attributes):
-                    logger.debug((identifier, idx, attr, value, record.is_relation()))
                     if record.is_relation():
                         if not printed:
-                            #print "attr", record.extra_attributes
                             printed = True
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
-                        #logger.debug(('pred', pred))
                         # create bnode relation
                         if bnode is None:
-                            #logger.debug(record.formal_attributes)
                             valid_formal_indices = set()
                             for idx, (key, val) in enumerate(record.formal_attributes):
                                 formal_objects.append(key)
@@ -245,7 +241,6 @@ class ProvRDFSerializer(Serializer):
                             subj = None
                             if record.formal_attributes[0][1]:
                                 subj = URIRef(record.formal_attributes[0][1].uri)
-                            #logger.debug("SUBJ:  ", subj, identifier, has_qualifiers)
                             if identifier is None and subj is not None:
                                 try:
                                     obj_val = record.formal_attributes[1][1]
@@ -258,7 +253,7 @@ class ProvRDFSerializer(Serializer):
                                                                 PROV_GENERATION,
                                                                 PROV_DERIVATION,
                                                                 PROV_INVALIDATION] or
-                                                (valid_formal_indices == set([0, 1]) and
+                                                (valid_formal_indices == {0, 1} and
                                                  len(record.extra_attributes) == 0)):
                                     used_objects.append(record.formal_attributes[1][0])
                                     obj_val = self.encode_rdf_representation(obj_val)
@@ -269,8 +264,6 @@ class ProvRDFSerializer(Serializer):
                                             obj_val = self.encode_rdf_representation(record.formal_attributes[2][1])
                                             container.add((subj, URIRef(PROV['asInBundle'].uri), obj_val))
                                         has_qualifiers = False
-
-                                #logger.debug(subj, pred, obj_val)
                             if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
                                 continue
                             if subj and (has_qualifiers or identifier):  #and (len(record.extra_attributes) > 0 or                                                            identifier):
@@ -278,7 +271,6 @@ class ProvRDFSerializer(Serializer):
                                 rec_uri = rec_type.uri
                                 for attr_name, val in record.extra_attributes:
                                     if attr_name == PROV['type']:
-                                        #logger.debug(("qualifier", val))
                                         if PROV['Revision'] == val or PROV['Quotation'] == val:
                                             qualifier = val._localpart
                                             rec_uri = val.uri
@@ -292,7 +284,6 @@ class ProvRDFSerializer(Serializer):
                                                    URIRef(rec_uri)))
                                                # reset identifier to BNode
                         if value is not None and attr not in used_objects:
-                            #logger.debug(('attr', attr)) #dbg
                             if attr in formal_objects:
                                 pred = attr2rdf(attr)
                             elif attr == PROV['role']:
@@ -327,7 +318,6 @@ class ProvRDFSerializer(Serializer):
                                     pred = URIRef(PROV['hadUsage'].uri)
                                 if PROV['usedEntity'].uri in pred:
                                     pred = URIRef(PROV['entity'].uri)
-                            #logger.debug(('Q:', identifier, pred, value))
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(value)))
                         continue
@@ -359,23 +349,20 @@ class ProvRDFSerializer(Serializer):
                         pred = RDFS.label
                     else:
                         pred = self.encode_rdf_representation(attr)
-                    #logger.debug((identifier, pred, obj))
                     container.add((identifier, pred, obj))
         return container
 
     def decode_document(self, content, document):
         for prefix, url in content.namespaces():
-            #if prefix in ['rdf', 'rdfs', 'xml']:
-            #    continue
             document.add_namespace(prefix, unicode(url))
-        for bundle_stmt in content.triples((None, RDF.type,
-                                            URIRef(pm.PROV['bundle'].uri))):
-            bundle_id = unicode(bundle_stmt[0])
         if hasattr(content, 'contexts'):
             for graph in content.contexts():
-                bundle_id = unicode(graph.identifier)
-                bundle = document.bundle(bundle_id)
-                self.decode_container(graph, bundle)
+                if isinstance(graph.identifier, BNode):
+                    self.decode_container(graph, document)
+                else:
+                    bundle_id = unicode(graph.identifier)
+                    bundle = document.bundle(bundle_id)
+                    self.decode_container(graph, bundle)
         else:
             self.decode_container(content, document)
 
@@ -432,7 +419,6 @@ class ProvRDFSerializer(Serializer):
                 obj = self.decode_rdf_representation(stmt[2])
                 other_attributes[id].append((pm.PROV['type'], obj))
         for id, pred, obj in graph:
-            #logger.debug((id, pred, obj)) #dbg
             id = unicode(id)
             if id not in other_attributes:
                 other_attributes[id] = []
@@ -447,9 +433,7 @@ class ProvRDFSerializer(Serializer):
                 else:
                     getattr(bundle, relation_mapper[pred])(id, unicode(obj))
             elif id in ids:
-                # logger.debug((id, pred, obj)) #dbg
                 obj1 = self.decode_rdf_representation(obj)
-                #logger.debug(('decoded:', id, pred, obj1, unicode(pred), formal_attributes[id])) #dbg
                 if pred == RDFS.label:
                     other_attributes[id].append((pm.PROV['label'], obj1))
                 elif pred == URIRef(PROV['atLocation'].uri):
@@ -499,21 +483,17 @@ class ProvRDFSerializer(Serializer):
             attrs = None
             if id in other_attributes:
                 attrs = other_attributes[id]
-            #logger.debug(('Record', formal_attributes[id], unique_sets[id], attrs))
             items_to_walk = []
             for qname, values in unique_sets[id].items():
-                #logger.debug((qname, values))
                 if values and len(values) > 1:
                     items_to_walk.append((qname, values))
             if items_to_walk:
                 for subset in list(walk(items_to_walk)):
                     for key, value in subset.items():
                         formal_attributes[id][key] = value
-                    #logger.debug(('Formal', formal_attributes[id], other_attributes[id]))
                     temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
                                                 attrs)
             else:
-                #logger.debug(('No subsets', id, formal_attributes[id], attrs))
                 temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
                                             attrs)
             ids[id] = None #temp_id
@@ -525,6 +505,7 @@ class ProvRDFSerializer(Serializer):
 
 def walk(children, level=0, path=None, usename=True):
     """Generate all the full paths in a tree, as a dict.
+
     Examples
     --------
     >>> from nipype.pipeline.engine.utils import walk
