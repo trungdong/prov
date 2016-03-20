@@ -73,7 +73,7 @@ class ProvRDFSerializer(Serializer):
     PROV-O serializer for :class:`~prov.model.ProvDocument`
     """
 
-    def serialize(self, stream=None, **kwargs):
+    def serialize(self, stream=None, rdf_format='trig', **kwargs):
         """
         Serializes a :class:`~prov.model.ProvDocument` instance to
         `Prov-O <https://www.w3.org/TR/prov-o/>`_.
@@ -82,9 +82,7 @@ class ProvRDFSerializer(Serializer):
         """
         container = self.encode_document(self.document)
         newargs = kwargs.copy()
-        if newargs and 'rdf_format' in newargs:
-            newargs['format'] = newargs['rdf_format']
-            del newargs['rdf_format']
+        newargs['format'] = rdf_format
 
         if newargs['format'] == 'trig':
             gr = ConjunctiveGraph()
@@ -124,7 +122,7 @@ class ProvRDFSerializer(Serializer):
             finally:
                 buf.close()
 
-    def deserialize(self, stream, **kwargs):
+    def deserialize(self, stream, rdf_format='trig', **kwargs):
         """
         Deserialize from the `Prov-O <https://www.w3.org/TR/prov-o/>`_
         representation to a :class:`~prov.model.ProvDocument` instance.
@@ -132,11 +130,11 @@ class ProvRDFSerializer(Serializer):
         :param stream: Input data.
         """
         newargs = kwargs.copy()
-        if newargs and 'rdf_format' in newargs:
-            newargs['format'] = newargs['rdf_format']
-            del newargs['rdf_format']
+        newargs['format'] = rdf_format
+        logger.debug('starting parsing')
         container = ConjunctiveGraph()
         container.parse(stream, **newargs)
+        logger.debug('parsed stream')
         document = ProvDocument()
         self.document = document
         self.decode_document(container, document)
@@ -179,8 +177,7 @@ class ProvRDFSerializer(Serializer):
                 # It will be automatically converted when added to a record by _auto_literal_conversion()
                 return Literal(value, self.valid_identifier(datatype), langtag)
         elif isinstance(literal, URIRef):
-            val = unicode(literal)
-            return Identifier(val)
+            return self.valid_identifier(literal)
         else:
             # simple type, just return it
             return literal
