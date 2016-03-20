@@ -131,10 +131,8 @@ class ProvRDFSerializer(Serializer):
         """
         newargs = kwargs.copy()
         newargs['format'] = rdf_format
-        logger.debug('starting parsing')
         container = ConjunctiveGraph()
         container.parse(stream, **newargs)
-        logger.debug('parsed stream')
         document = ProvDocument()
         self.document = document
         self.decode_document(container, document)
@@ -158,6 +156,7 @@ class ProvRDFSerializer(Serializer):
             return RDFLiteral(value, datatype=LITERAL_XSDTYPE_MAP[type(value)])
         else:
             return RDFLiteral(value)
+
 
     def decode_rdf_representation(self, literal):
         if isinstance(literal, RDFLiteral):
@@ -214,7 +213,6 @@ class ProvRDFSerializer(Serializer):
                 bnode = None
                 formal_objects = []
                 used_objects = []
-                printed = False
                 all_attributes = list(record.formal_attributes) + list(record.attributes)
                 formal_qualifiers = False
                 for attrid, (attr, value) in enumerate(list(record.formal_attributes)):
@@ -224,8 +222,6 @@ class ProvRDFSerializer(Serializer):
                 has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
                 for idx, (attr, value) in enumerate(all_attributes):
                     if record.is_relation():
-                        if not printed:
-                            printed = True
                         pred = URIRef(PROV[PROV_N_MAP[rec_type]].uri)
                         # create bnode relation
                         if bnode is None:
@@ -325,21 +321,16 @@ class ProvRDFSerializer(Serializer):
                     else:
                         #  Assuming this is a datetime value
                         obj = self.encode_rdf_representation(value)
-                    #print type(value), type(obj)
                     if attr == PROV['location']:
                         pred = URIRef(PROV['atLocation'].uri)
                         if False and isinstance(value, (URIRef, QualifiedName)):
                             if isinstance(value, QualifiedName):
-                                #value = RDFLiteral(unicode(value), datatype=XSD['QName'])
                                 value = URIRef(value.uri)
                             container.add((identifier, pred, value))
-                            #container.add((value, RDF.type,
-                            #               URIRef(PROV['Location'].uri)))
                         else:
                             container.add((identifier, pred,
                                            self.encode_rdf_representation(obj)))
                         continue
-                    #pred = attr2rdf(attr)
                     if attr == PROV['type']:
                         pred = RDF.type
                     elif attr == PROV['label']:
@@ -375,6 +366,7 @@ class ProvRDFSerializer(Serializer):
                            URIRef(PROV['specializationOf'].uri): 'specialization',
                            URIRef(PROV['mentionOf'].uri): 'mention',
                            URIRef(PROV['wasAssociatedWith'].uri): 'association',
+                           URIRef(PROV['wasDerivedFrom'].uri): 'derivation',
                            URIRef(PROV['wasAttributedTo'].uri): 'attribution',
                            URIRef(PROV['wasInformedBy'].uri): 'communication',
                            URIRef(PROV['wasGeneratedBy'].uri): 'generation',
@@ -385,34 +377,42 @@ class ProvRDFSerializer(Serializer):
                            URIRef(PROV['hadMember'].uri): 'membership',
                            URIRef(PROV['used'].uri): 'usage',
                            }
+        predicate_mapper = {RDFS.label: pm.PROV['label'],
+                            URIRef(PROV['atLocation'].uri): PROV_LOCATION,
+                            URIRef(PROV['hadRole'].uri): PROV_ROLE,
+                            URIRef(PROV['hadPlan'].uri): pm.PROV_ATTR_PLAN,
+                            URIRef(PROV['hadUsage'].uri): pm.PROV_ATTR_USAGE,
+                            URIRef(PROV['hadGeneration'].uri): pm.PROV_ATTR_GENERATION,
+                            URIRef(PROV['hadActivity'].uri): pm.PROV_ATTR_ACTIVITY,
+                            }
         other_attributes = {}
         for stmt in graph.triples((None, RDF.type, None)):
             id = unicode(stmt[0])
             obj = unicode(stmt[2])
-            #print obj, type(obj), obj in PROV_CLS_MAP #dbg
             if obj in PROV_CLS_MAP:
-                #print 'obj_found' #dbg
+                if not isinstance(stmt[0], BNode) and self.valid_identifier(id) is None:
+                    prefix, iri, _ = graph.namespace_manager.compute_qname(id)
+                    self.document.add_namespace(prefix, iri)
                 try:
                     prov_obj = PROV_CLS_MAP[obj]
                 except AttributeError, e:
                     prov_obj = None
-                if id not in ids and prov_obj:
+                add_attr = True
+                if id not in ids and prov_obj and (prov_obj.uri == obj or
+                                                       isinstance(stmt[0], BNode)):
                     ids[id] = prov_obj
                     klass = pm.PROV_REC_CLS[prov_obj]
                     formal_attributes[id] = OrderedDict([(key, None) for key in klass.FORMAL_ATTRIBUTES])
                     unique_sets[id] = OrderedDict([(key, []) for key in klass.FORMAL_ATTRIBUTES])
-                else:
+                    add_attr = False or (isinstance(stmt[0], BNode) and prov_obj.uri != obj)
+                if add_attr:
                     if id not in other_attributes:
                         other_attributes[id] = []
-                    other_attributes[id].append((pm.PROV['type'], obj))
-        for stmt in graph.triples((None, RDF.type, None)):
-            id = unicode(stmt[0])
-            if id not in other_attributes:
-                other_attributes[id] = []
-            obj = unicode(stmt[2]) #unicode(stmt[2]).replace('http://www.w3.org/ns/prov#', '').lower()
-            if obj in PROV_CLS_MAP:
-                continue
-            elif id in ids:
+                    obj_formatted = self.decode_rdf_representation(stmt[2])
+                    other_attributes[id].append((pm.PROV['type'], obj_formatted))
+            else:
+                if id not in other_attributes:
+                    other_attributes[id] = []
                 obj = self.decode_rdf_representation(stmt[2])
                 other_attributes[id].append((pm.PROV['type'], obj))
         for id, pred, obj in graph:
@@ -427,51 +427,44 @@ class ProvRDFSerializer(Serializer):
                     for stmt in graph.triples((URIRef(id), URIRef(pm.PROV['asInBundle'].uri), None)):
                         mentionBundle = stmt[2]
                     getattr(bundle, relation_mapper[pred])(id, unicode(obj), mentionBundle)
+                elif 'actedOnBehalfOf' in pred or 'wasAssociatedWith' in pred:
+                    qualifier = 'qualified' + relation_mapper[pred].upper()[0] + relation_mapper[pred][1:]
+                    qualifier_bnode = None
+                    for stmt in graph.triples((URIRef(id), URIRef(pm.PROV[qualifier].uri), None)):
+                        qualifier_bnode = stmt[2]
+                    if qualifier_bnode is None:
+                        getattr(bundle, relation_mapper[pred])(id, unicode(obj))
+                    else:
+                        fakeys = formal_attributes[unicode(qualifier_bnode)].keys()
+                        formal_attributes[unicode(qualifier_bnode)][fakeys[0]] = id
+                        formal_attributes[unicode(qualifier_bnode)][fakeys[1]] = unicode(obj)
                 else:
                     getattr(bundle, relation_mapper[pred])(id, unicode(obj))
             elif id in ids:
                 obj1 = self.decode_rdf_representation(obj)
-                if pred == RDFS.label:
-                    other_attributes[id].append((pm.PROV['label'], obj1))
-                elif pred == URIRef(PROV['atLocation'].uri):
-                    other_attributes[id].append((pm.PROV['location'], obj1))
-                elif 'hadRole' in pred:
-                    other_attributes[id].append((PROV_ROLE, obj1))
-                elif 'hadPlan' in pred:
-                    other_attributes[id].append((pm.PROV_ATTR_PLAN, obj1))
-                elif 'hadActivity' in pred:
-                    other_attributes[id].append((pm.PROV_ATTR_ACTIVITY, obj1))
-                elif ids[id] == PROV_COMMUNICATION and 'activity' in pred:
-                    formal_attributes[id][PROV_ATTR_INFORMANT] = obj1
-                elif ids[id] == PROV_DELEGATION and 'agent' in pred:
-                    formal_attributes[id][PROV_ATTR_RESPONSIBLE] = obj1
-                elif ids[id] == PROV_DERIVATION:
-                    if 'hadUsage' in pred:
-                        formal_attributes[id][PROV_ATTR_USAGE] = obj1
-                    elif 'hadGeneration' in pred:
-                        formal_attributes[id][PROV_ATTR_GENERATION] = obj1
-                    elif 'entity' in pred:
-                        formal_attributes[id][PROV_ATTR_USED_ENTITY] = obj1
-                    elif unicode(pred) in formal_attributes[id]:
-                        qname_key = self.valid_identifier(unicode(pred))
-                        formal_attributes[id][qname_key] = obj1
-                        unique_sets[id][qname_key].append(obj1)
-                        if len(unique_sets[id][qname_key]) > 1:
-                            formal_attributes[id][qname_key] = None
-                    else:
-                        if 'qualified' not in pred:
-                            other_attributes[id].append((unicode(pred), obj1))
-                elif ids[id] in [PROV_END, PROV_START] and 'entity' in pred:
-                    formal_attributes[id][PROV_ATTR_TRIGGER] = obj1
-                elif unicode(pred) in [val.uri for val in formal_attributes[id]]:
-                    qname_key = self.valid_identifier(unicode(pred))
+                if obj is not None and obj1 is None:
+                    raise ValueError(('Error transforming', obj))
+                pred_new = pred
+                if pred in predicate_mapper:
+                    pred_new = predicate_mapper[pred]
+                if ids[id] == PROV_COMMUNICATION and 'activity' in unicode(pred_new):
+                    pred_new = PROV_ATTR_INFORMANT
+                if ids[id] == PROV_DELEGATION and 'agent' in unicode(pred_new):
+                    pred_new = PROV_ATTR_RESPONSIBLE
+                if ids[id] in [PROV_END, PROV_START] and 'entity' in unicode(pred_new):
+                    pred_new = PROV_ATTR_TRIGGER
+                if ids[id] == PROV_DERIVATION and 'entity' in unicode(pred_new):
+                    pred_new = PROV_ATTR_USED_ENTITY
+                if unicode(pred_new) in [val.uri for val in formal_attributes[id]]:
+                    qname_key = self.valid_identifier(pred_new)
                     formal_attributes[id][qname_key] = obj1
                     unique_sets[id][qname_key].append(obj1)
                     if len(unique_sets[id][qname_key]) > 1:
                         formal_attributes[id][qname_key] = None
                 else:
-                    if 'qualified' not in pred:
-                        other_attributes[id].append((unicode(pred), obj1))
+                    if 'qualified' not in unicode(pred_new) and \
+                                    'asInBundle' not in unicode(pred_new):
+                        other_attributes[id].append((unicode(pred_new), obj1))
             local_key = unicode(obj)
             if local_key in ids:
                 if 'qualified' in pred:
@@ -488,12 +481,10 @@ class ProvRDFSerializer(Serializer):
                 for subset in list(walk(items_to_walk)):
                     for key, value in subset.items():
                         formal_attributes[id][key] = value
-                    temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
-                                                attrs)
+                    bundle.new_record(ids[id], id, formal_attributes[id], attrs)
             else:
-                temp_id = bundle.new_record(ids[id], id, formal_attributes[id],
-                                            attrs)
-            ids[id] = None #temp_id
+                bundle.new_record(ids[id], id, formal_attributes[id], attrs)
+            ids[id] = None
             if attrs is not None:
                 other_attributes[id] = []
         for key, val in other_attributes.items():
