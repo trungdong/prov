@@ -8,7 +8,7 @@
       "prov:generatedEntity": "ex:e2",
       "prov:type": {
         "$": "prov:Revision",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       },
       "prov:usage": "ex:u",
       "prov:generation": "ex:g",

@@ -3,7 +3,7 @@
     "en_o23": {
       "tag2": {
         "$": "abcde",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

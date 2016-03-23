@@ -3,7 +3,7 @@
     "en_l23": {
       "prov:location": {
         "$": "abcde",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

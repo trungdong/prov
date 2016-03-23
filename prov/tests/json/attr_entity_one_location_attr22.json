@@ -3,7 +3,7 @@
     "ex:en_l22": {
       "prov:location": {
         "$": "ex:abcd",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

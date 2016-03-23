@@ -3,7 +3,7 @@
     "ex:e3": {
       "prov:value": {
         "$": "ex:avalue",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       },
       "prov:label": "entity3"
     }

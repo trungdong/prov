@@ -20,7 +20,7 @@
         },
         {
           "$": "ex:abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:52.534+01:00",
@@ -48,7 +48,7 @@
         },
         {
           "$": "ex:abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:52.534+01:00",
@@ -78,7 +78,7 @@
         },
         {
           "$": "ex:london",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:52.535+01:00",
@@ -110,7 +110,7 @@
         },
         {
           "$": "ex:london",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:52.535+01:00",

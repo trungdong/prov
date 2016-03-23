@@ -5,7 +5,7 @@
       "prov:agent": "ex:ag1",
       "prov:role": {
         "$": "pre_0:zabc",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

@@ -100,27 +100,27 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -285,23 +285,23 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -465,27 +465,27 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -649,19 +649,19 @@
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -825,27 +825,27 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -1009,27 +1009,27 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",
@@ -1206,27 +1206,27 @@
         },
         {
           "$": "abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "abcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcd",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "pre_0:zabcde",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:41.900+01:00",

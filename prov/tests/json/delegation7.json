@@ -24,7 +24,7 @@
         },
         {
           "$": "ex:abc",
-          "type": "xsd:QName"
+          "type": "prov:QUALIFIED_NAME"
         },
         {
           "$": "2014-06-23T12:28:53.305+01:00",
