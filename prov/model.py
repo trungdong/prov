@@ -90,7 +90,7 @@ def first(a_set):
 def _ensure_multiline_string_triple_quoted(s):
     format_str = '"""%s"""' if isinstance(s, six.string_types) and '\n' in s \
         else '"%s"'
-    return format_str % s
+    return format_str % s.replace('"','\\"')
 
 
 def encoding_provn_value(value):
