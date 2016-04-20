@@ -87,11 +87,15 @@ def first(a_set):
     return next(iter(a_set), None)
 
 
-def _ensure_multiline_string_triple_quoted(s):
-    if isinstance(s, six.string_types) and '\n' in s:
-        return '"""%s"""' % s.replace('"""', '\\"\\"\\"')
+def _ensure_multiline_string_triple_quoted(value):
+    # converting the value to a string
+    s = six.text_type(value)
+    # Escaping any double quote
+    s = s.replace('"', '\\"')
+    if '\n' in s:
+        return '"""%s"""' % s
     else:
-        return '"%s"' % s.replace('"','\\"')
+        return '"%s"' % s
 
 
 def encoding_provn_value(value):
