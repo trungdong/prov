@@ -224,7 +224,7 @@ class TestLiteralRepresentation(unittest.TestCase):
     def test_literal_provn_with_triple_quotes(self):
         l = Literal('"""foo\\nbar"""')
         string_rep = l.provn_representation()
-        self.assertTrue('{\\"\\"\\"f' in string_rep)
+        self.assertTrue('\\"\\"\\"f' in string_rep)
 
 class AllTestsBase(TestExamplesBase, TestStatementsBase,
                    TestAttributesBase, TestQualifiedNamesBase):
