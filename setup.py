@@ -12,7 +12,7 @@ history = open('HISTORY.rst').read().replace('.. :changelog:', '')
 
 requirements = [
     'python-dateutil',
-    'networkx>=1.10',
+    'networkx',
     'lxml',
     'six>=1.9.0'
 ]
