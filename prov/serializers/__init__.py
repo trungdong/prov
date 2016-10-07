@@ -38,11 +38,13 @@ class Registry:
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
         from prov.serializers.provxml import ProvXMLSerializer
+        from prov.serializers.provjsonld import ProvJSONLDSerializer
 
         Registry.serializers = {
             'json': ProvJSONSerializer,
             'provn': ProvNSerializer,
-            'xml': ProvXMLSerializer
+            'xml': ProvXMLSerializer,
+            'jsonld': ProvJSONLDSerializer
         }
 
 

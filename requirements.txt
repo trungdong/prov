@@ -3,3 +3,4 @@ networkx>=1.10
 python-dateutil>=2.2
 six>=1.9.0
 pydotplus>=2.0.2
+rdflib-jsonld
