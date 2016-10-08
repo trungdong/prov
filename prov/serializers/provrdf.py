@@ -110,7 +110,7 @@ class ProvRDFSerializer(Serializer):
             finally:
                 buf.close()
         else:
-            buf = io.StringIO()
+            buf = io.BytesIO()
             try:
                 container.serialize(buf, **newargs)
                 buf.seek(0, 0)
@@ -118,9 +118,9 @@ class ProvRDFSerializer(Serializer):
                 # a text object is must be decoded. We assume utf-8 here which
                 # should be fine for almost every case.
                 if isinstance(stream, io.TextIOBase):
-                    stream.write(buf.read())
+                    stream.write(buf.read().decode('utf-8'))
                 else:
-                    stream.write(buf.read().encode('utf-8'))
+                    stream.write(buf.read()) #.encode('utf-8'))
             finally:
                 buf.close()
 
@@ -437,7 +437,7 @@ class ProvRDFSerializer(Serializer):
                     if qualifier_bnode is None:
                         getattr(bundle, relation_mapper[pred])(id, text_type(obj))
                     else:
-                        fakeys = formal_attributes[text_type(qualifier_bnode)].keys()
+                        fakeys = list(formal_attributes[text_type(qualifier_bnode)].keys())
                         formal_attributes[text_type(qualifier_bnode)][fakeys[0]] = id
                         formal_attributes[text_type(qualifier_bnode)][fakeys[1]] = text_type(obj)
                 else:
@@ -470,7 +470,7 @@ class ProvRDFSerializer(Serializer):
             local_key = text_type(obj)
             if local_key in ids:
                 if 'qualified' in pred:
-                    formal_attributes[local_key][formal_attributes[local_key].keys()[0]] = id
+                    formal_attributes[local_key][list(formal_attributes[local_key].keys())[0]] = id
         for id in ids:
             attrs = None
             if id in other_attributes:

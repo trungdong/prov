@@ -21,6 +21,7 @@ class TestExamplesBase(object):
         counter = 0
         for name, graph in examples.tests:
             if name in ['datatypes']:
+                logger.info('%d. Skipping the %s example', counter, name)
                 continue
             counter += 1
             logger.info('%d. Testing the %s example', counter, name)
@@ -30,61 +31,65 @@ class TestExamplesBase(object):
 class TestStatementsBase2(TestStatementsBase):
     @unittest.expectedFailure
     def test_scruffy_end_1(self):
-        pass
+        TestStatementsBase.test_scruffy_end_1()
     @unittest.expectedFailure
     def test_scruffy_end_2(self):
-        pass
+        TestStatementsBase.test_scruffy_end_2()
     @unittest.expectedFailure
     def test_scruffy_end_3(self):
-        pass
+        TestStatementsBase.test_scruffy_end_3()
     @unittest.expectedFailure
     def test_scruffy_end_4(self):
-        pass
+        TestStatementsBase.test_scruffy_end_4()
     @unittest.expectedFailure
     def test_scruffy_generation_1(self):
-        pass
+        TestStatementsBase.test_scruffy_generation_1()
     @unittest.expectedFailure
     def test_scruffy_generation_2(self):
-        pass
+        TestStatementsBase.test_scruffy_generation_2()
     @unittest.expectedFailure
     def test_scruffy_invalidation_1(self):
-        pass
+        TestStatementsBase.test_scruffy_invalidation_1()
     @unittest.expectedFailure
     def test_scruffy_invalidation_2(self):
-        pass
+        TestStatementsBase.test_scruffy_invalidation_2()
     @unittest.expectedFailure
     def test_scruffy_start_1(self):
-        pass
+        TestStatementsBase.test_scruffy_start_1()
     @unittest.expectedFailure
     def test_scruffy_start_2(self):
-        pass
+        TestStatementsBase.test_scruffy_start_2()
     @unittest.expectedFailure
     def test_scruffy_start_3(self):
-        pass
+        TestStatementsBase.test_scruffy_start_3()
     @unittest.expectedFailure
     def test_scruffy_start_4(self):
-        pass
+        TestStatementsBase.test_scruffy_start_4()
     @unittest.expectedFailure
     def test_scruffy_usage_1(self):
-        pass
+        TestStatementsBase.test_scruffy_usage_1()
     @unittest.expectedFailure
     def test_scruffy_usage_2(self):
-        pass
+        TestStatementsBase.test_scruffy_usage_2()
+
 
 class TestAttributesBase2(TestAttributesBase):
     @unittest.expectedFailure
     def test_entity_with_multiple_attribute(self):
-        pass
+        TestAttributesBase.test_entity_with_multiple_attribute()
     @unittest.expectedFailure
     def test_entity_with_multiple_value_attribute(self):
-        pass
+        TestAttributesBase.test_entity_with_multiple_value_attribute()
     @unittest.expectedFailure
     def test_entity_with_one_type_attribute_8(self):
-        pass
+        TestAttributesBase.test_entity_with_one_type_attribute_8()
 
 
-class AllTestsBase(TestExamplesBase, TestStatementsBase2,
-                   TestQualifiedNamesBase, TestAttributesBase2):
+class AllTestsBase(TestExamplesBase,
+                   TestStatementsBase2,
+                   TestQualifiedNamesBase,
+                   TestAttributesBase2
+                   ):
     """This is a test to include all available tests.
     """
     pass
