@@ -17,7 +17,10 @@ from __future__ import (absolute_import, division, print_function,
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
-import cgi
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 from datetime import datetime
 import pydotplus as pydot
 import six
@@ -175,12 +178,12 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
             ann_rows = [ANNOTATION_START_ROW]
             ann_rows.extend(
                 ANNOTATION_ROW_TEMPLATE % (
-                    attr.uri, cgi.escape(six.text_type(attr)),
+                    attr.uri, escape(six.text_type(attr)),
                     ' href=\"%s\"' % value.uri if isinstance(value, Identifier)
                     else '',
-                    cgi.escape(six.text_type(value)
-                               if not isinstance(value, datetime) else
-                               six.text_type(value.isoformat())))
+                    escape(six.text_type(value)
+                           if not isinstance(value, datetime) else
+                           six.text_type(value.isoformat())))
                 for attr, value in attributes
             )
             ann_rows.append(ANNOTATION_END_ROW)
