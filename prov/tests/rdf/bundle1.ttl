@@ -1,0 +1,26 @@
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ex: <http://example.org/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+
+ex:bundle2 a prov:Entity , "prov:Bundle"^^xsd:QName .
+
+ex:bundle1 a prov:Entity , "prov:Bundle"^^xsd:QName .
+
+ex:use2 a prov:Usage ;
+	prov:entity ex:ee1 .
+
+ex:aa1 prov:qualifiedUsage ex:use2 ;
+	a prov:Activity .
+
+ex:ee1 a prov:Entity .
+
+ex:use1 a prov:Usage ;
+	prov:entity ex:e1 .
+
+ex:a1 prov:qualifiedUsage ex:use1 ;
+	a prov:Activity .
+
+ex:e1 a prov:Entity .

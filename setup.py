@@ -14,7 +14,8 @@ requirements = [
     'python-dateutil',
     'networkx',
     'lxml',
-    'six>=1.9.0'
+    'six>=1.9.0',
+    'rdflib>=4.2.1'
 ]
 
 test_requirements = [
@@ -24,8 +25,8 @@ test_requirements = [
 setup(
     name='prov',
     version='1.4.1.dev1',
-    description='A library for W3C Provenance Data Model supporting PROV-JSON '
-                'and PROV-XML',
+    description='A library for W3C Provenance Data Model supporting PROV-JSON, '
+                'PROV-XML and PROV-O',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
@@ -44,7 +45,7 @@ setup(
     zip_safe=False,
     keywords=[
         'provenance', 'graph', 'model', 'PROV', 'PROV-DM', 'PROV-JSON', 'JSON',
-        'PROV-XML', 'PROV-N'
+        'PROV-XML', 'PROV-N', 'PROV-O', 'RDF'
     ],
     classifiers=[
         'Development Status :: 4 - Beta',

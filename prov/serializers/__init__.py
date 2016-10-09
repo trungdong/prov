@@ -38,9 +38,11 @@ class Registry:
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
         from prov.serializers.provxml import ProvXMLSerializer
+        from prov.serializers.provrdf import ProvRDFSerializer
 
         Registry.serializers = {
             'json': ProvJSONSerializer,
+            'rdf': ProvRDFSerializer,
             'provn': ProvNSerializer,
             'xml': ProvXMLSerializer
         }
