@@ -6,10 +6,61 @@ from prov.model import ProvDocument
 from prov.tests.utility import RoundTripTestCase
 from prov.tests.test_model import (TestStatementsBase,
                                    TestAttributesBase, TestQualifiedNamesBase)
+import os
+from glob import glob
 import logging
 logger = logging.getLogger(__name__)
 
 from prov.tests import examples
+import prov.model as pm
+
+import rdflib as rl
+from rdflib.compare import graph_diff
+from io import BytesIO, StringIO
+
+
+def find_diff(g_rdf, g0_rdf):
+    graphs_equal = True
+    in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
+    g1 = sorted(in_first.serialize(format='nt').splitlines())[1:]
+    g2 = sorted(in_second.serialize(format='nt').splitlines())[1:]
+    # Compare literals
+    if len(g1) != len(g2):
+        graphs_equal = False
+    matching_indices = [[], []]
+    for idx in range(len(g1)):
+        g1_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]),
+                                                   format='nt'))[0]
+        match_found = False
+        for idx2 in range(len(g2)):
+            if idx2 in matching_indices[1]:
+                continue
+            g2_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]),
+                                                       format='nt'))[0]
+            try:
+                all_match = all([g1_stmt[i].eq(g2_stmt[i]) for i in range(3)])
+            except TypeError as e:
+                #print(e, g1_stmt, g2_stmt)
+                all_match = False
+            if all_match:
+                matching_indices[0].append(idx)
+                matching_indices[1].append(idx2)
+                match_found = True
+                break
+        if not match_found:
+            graphs_equal = False
+    in_first2 = rl.ConjunctiveGraph()
+    for idx in range(len(g1)):
+        if idx in matching_indices[0]:
+            in_both.parse(BytesIO(g1[idx]), format='nt')
+        else:
+            in_first2.parse(BytesIO(g1[idx]), format='nt')
+    in_second2 = rl.ConjunctiveGraph()
+    for idx in range(len(g2)):
+        if not idx in matching_indices[1]:
+            in_second2.parse(BytesIO(g2[idx]), format='nt')
+    return graphs_equal, in_both, in_first2, in_second2
+
 
 class TestExamplesBase(object):
     """This is the base class for testing support for all the examples provided
@@ -27,6 +78,25 @@ class TestExamplesBase(object):
             logger.info('%d. Testing the %s example', counter, name)
             g = graph()
             self.do_tests(g)
+
+
+class TestJSONExamplesBase(object):
+    """This is the base class for testing support for all the examples provided
+    in prov.tests.examples.
+    It is not runnable and needs to be included in a subclass of
+    RoundTripTestCase.
+    """
+    def test_all_examples(self):
+        counter = 0
+        for name, graph in examples.tests:
+            if name in ['datatypes']:
+                logger.info('%d. Skipping the %s example', counter, name)
+                continue
+            counter += 1
+            logger.info('%d. Testing the %s example', counter, name)
+            g = graph()
+            self.do_tests(g)
+
 
 class TestStatementsBase2(TestStatementsBase):
     @unittest.expectedFailure
@@ -114,6 +184,61 @@ class TestRDFSerializer(unittest.TestCase):
         e1 = prov_doc.get_record('ex:unicode_char')[0]
         self.assertIn(unicode_char, e1.get_attribute('prov:label'))
 
+    def test_json_to_ttl_match(self):
+        json_files = sorted(
+            glob(os.path.join(os.path.dirname(__file__), 'json', '*.json')))
+
+        # invalid round trip files
+        skip = list(range(352, 380))
+
+        # invalid literal set representation e.g., set((1, True))
+        skip_match = [5, 6, 7, 8, 15, 27, 28, 29, 75, 76, 77, 78, 79, 80, 260,
+                      261, 262, 263, 264,
+                      306, 313, 315, 317, 322, 323, 324, 325, 330, 332, 344,
+                      346, 382, 389, 395, 397,
+                      ]
+        for idx, fname in enumerate(json_files):
+            _, ttl_file = os.path.split(fname)
+            ttl_file = os.path.join(os.path.dirname(__file__), 'rdf',
+                                    ttl_file.replace('json', 'ttl'))
+            if idx in skip:
+                logger.info('Skipping: %s' % fname)
+                continue
+            error_raised = False
+            try:
+                g = pm.ProvDocument.deserialize(fname)
+                if len(g.bundles) == 0:
+                    format = 'turtle'
+                else:
+                    format = 'trig'
+                if format == 'trig':
+                    ttl_file = ttl_file.replace('ttl', 'trig')
+
+                with open(ttl_file, 'rb') as fp:
+                    g_rdf = rl.ConjunctiveGraph().parse(fp, format=format)
+                g1 = pm.ProvDocument.deserialize(
+                    ontent=g.serialize(format='rdf', rdf_format=format),
+                    format='rdf', rdf_format=format)
+                g0_rdf = rl.ConjunctiveGraph().parse(
+                    StringIO(g.serialize(format='rdf', rdf_format=format)),
+                    format=format)
+                if idx not in skip_match:
+                    self.assertTrue(find_diff(g_rdf, g0_rdf)[0])
+                else:
+                    logger.info('Skipping match: %s' % fname)
+            except Exception as e:
+                print(e)
+                logger.info(e)
+                error_raised = True
+            self.assertFalse(error_raised)
+
 
 class RoundTripRDFTests(RoundTripTestCase, AllTestsBase):
     FORMAT = 'rdf'
+
+if __name__ == "__main__":
+    suite = unittest.TestSuite()
+    for method in dir(TestRDFSerializer):
+       if method.startswith("test"):
+          suite.addTest(TestRDFSerializer(method))
+    unittest.TextTestRunner().run(suite)
