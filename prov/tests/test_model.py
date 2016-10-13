@@ -155,9 +155,9 @@ class TestBundleUpdate(unittest.TestCase):
         b2.entity('e')
 
         self.assertRaises(ProvException, lambda: d1.update(1))
-
         d1.update(d2)
-        self.assertEqual(len(d1.get_records()), 2)
+
+        self.assertEqual(len(d1.get_records()), 5) #2 x entity(e) | 2 x entity(b2) | 1x entity(b1)
         self.assertEqual(len(d1.bundles), 2)
 
 

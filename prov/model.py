@@ -1611,6 +1611,19 @@ class ProvDocument(ProvBundle):
         if valid_id in self._bundles:
             raise ProvException('A bundle with that identifier already exists')
 
+        #Add prov_type to entry if it is the right type and identifier
+        if identifier in self._id_map:
+            bundle_entities = self._id_map[identifier]
+            #For each entry with the bundle identifier
+            for bundle_entity in bundle_entities:
+                if not isinstance(bundle_entity,ProvEntity):
+                    raise ProvException('A prov record with that identifier already exists')
+                bundle_entity.add_attributes(attributes={PROV_TYPE:PROV_BUNDLE})
+        else:
+            #Create new prov entry
+            bundle_entity = ProvEntity(bundle=self,identifier=identifier,attributes={PROV_TYPE:PROV_BUNDLE})
+            self.add_record(bundle_entity)
+
         self._bundles[valid_id] = bundle
         bundle._document = self
 
@@ -1626,8 +1639,23 @@ class ProvDocument(ProvBundle):
             )
         if valid_id in self._bundles:
             raise ProvException('A bundle with that identifier already exists')
+
         b = ProvBundle(identifier=valid_id, document=self)
         self._bundles[valid_id] = b
+
+        # Add prov_type to entry if it is the right type and identifier
+        if identifier in self._id_map:
+            bundle_entities = self._id_map[identifier]
+            # For each entry with the bundle identifier
+            for bundle_entity in bundle_entities:
+                if not isinstance(bundle_entity, ProvEntity):
+                    raise ProvException('A prov record with that identifier already exists')
+                bundle_entity.add_attributes(attributes={PROV_TYPE: PROV_BUNDLE})
+        else:
+            # Create new prov entry
+            bundle_entity = ProvEntity(bundle=self, identifier=identifier, attributes={PROV_TYPE: PROV_BUNDLE})
+            self.add_record(bundle_entity)
+
         return b
 
     # Serializing and deserializing
