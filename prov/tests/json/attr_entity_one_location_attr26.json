@@ -3,7 +3,7 @@
     "ex:en_l26": {
       "prov:location": {
         "$": "zabcde",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

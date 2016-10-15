@@ -3,7 +3,7 @@
     "ex:en_o25": {
       "ex:tag2": {
         "$": "other:zabcd",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

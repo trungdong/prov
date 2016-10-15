@@ -87,11 +87,15 @@ def first(a_set):
     return next(iter(a_set), None)
 
 
-def _ensure_multiline_string_triple_quoted(s):
-    if isinstance(s, six.string_types) and '\n' in s:
-        return '"""%s"""' % s.replace('"""', '\\"\\"\\"')
+def _ensure_multiline_string_triple_quoted(value):
+    # converting the value to a string
+    s = six.text_type(value)
+    # Escaping any double quote
+    s = s.replace('"', '\\"')
+    if '\n' in s:
+        return '"""%s"""' % s
     else:
-        return '"%s"' % s.replace('"','\\"')
+        return '"%s"' % s
 
 
 def encoding_provn_value(value):
@@ -939,15 +943,39 @@ class ProvBundle(object):
 
     @property
     def namespaces(self):
+        """
+        Returns the set of registered namespaces
+        """
         return set(self._namespaces.get_registered_namespaces())
 
     @property
+    def default_ns_uri(self):
+        """
+        Returns the default namespace's URI, if any
+        """
+        default_ns = self._namespaces.get_default_namespace()
+        return default_ns.uri if default_ns else None
+
+    @property
     def document(self):
+        """
+        Returns the parent document, if any
+        """
         return self._document
 
     @property
     def identifier(self):
+        """
+        Returns the bundle's identifier
+        """
         return self._identifier
+
+    @property
+    def records(self):
+        """
+        Returns the list of all records in the current bundle
+        """
+        return list(self._records)
 
     #  Bundle configurations
     def set_default_namespace(self, uri):

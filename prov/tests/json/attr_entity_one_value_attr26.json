@@ -3,7 +3,7 @@
     "ex:en_v26": {
       "prov:value": {
         "$": "zabcde",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

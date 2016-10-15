@@ -139,6 +139,7 @@ def htlm_link_if_uri(value):
 
 
 def prov_to_dot(bundle, show_nary=True, use_labels=False,
+                direction='BT',
                 show_element_attributes=True, show_relation_attributes=True):
     """
     Convert a provenance bundle/document into a DOT graphical representation.
@@ -150,13 +151,18 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
     :param use_labels: uses the prov:label property of an element as its name
     (instead of its identifier).
     :type use_labels: bool
+    :param direction: specifies the direction of the graph. Valid values are
+    "BT" (default), "TB", "LR", "RL".
     :param show_element_attributes: shows attributes of elements.
     :type show_element_attributes: bool
     :param show_relation_attributes: shows attributes of relations.
     :type show_relation_attributes: bool
     :returns:  :class:`pydot.Dot` -- the Dot object.
     """
-    maindot = pydot.Dot(graph_type='digraph', rankdir='BT', charset='utf-8')
+    if direction not in {'BT', 'TB', 'LR', 'RL'}:
+        # Invalid direction is provided
+        direction = 'BT'  # reset it to the default value
+    maindot = pydot.Dot(graph_type='digraph', rankdir=direction, charset='utf-8')
 
     node_map = {}
     count = [0, 0, 0, 0]  # counters for node ids

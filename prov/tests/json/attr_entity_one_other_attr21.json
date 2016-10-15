@@ -3,7 +3,7 @@
     "ex:en_o21": {
       "ex:tag2": {
         "$": "ex:abc",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },

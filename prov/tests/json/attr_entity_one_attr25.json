@@ -3,7 +3,7 @@
     "ex:et25": {
       "prov:type": {
         "$": "other:zabcd",
-        "type": "xsd:QName"
+        "type": "prov:QUALIFIED_NAME"
       }
     }
   },
