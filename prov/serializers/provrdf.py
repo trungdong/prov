@@ -60,7 +60,7 @@ LITERAL_XSDTYPE_MAP = {
 
 # Add long on Python 2
 if six.integer_types[-1] not in LITERAL_XSDTYPE_MAP:
-    LITERAL_XSDTYPE_MAP[six.integer_types[-1]] = 'xsd:long'
+    LITERAL_XSDTYPE_MAP[six.integer_types[-1]] = XSD['long']
 
 
 def valid_qualified_name(bundle, value, xsd_qname=False):
@@ -252,6 +252,8 @@ class ProvRDFSerializer(Serializer):
                                                  len(record.extra_attributes) == 0)):
                                     used_objects.append(record.formal_attributes[1][0])
                                     obj_val = self.encode_rdf_representation(obj_val)
+                                    if rec_type == PROV_ALTERNATE:
+                                        subj, obj_val = obj_val, subj
                                     container.add((subj, pred, obj_val))
                                     if rec_type == PROV_MENTION:
                                         if record.formal_attributes[2][1]:
@@ -304,6 +306,22 @@ class ProvRDFSerializer(Serializer):
                             if (rec_type in [PROV_END, PROV_START] and PROV['trigger'].uri in pred) or\
                                 (rec_type in [PROV_USAGE] and PROV['used'].uri in pred):
                                 pred = URIRef(PROV['entity'].uri)
+                            if rec_type in [PROV_GENERATION, PROV_END,
+                                            PROV_START, PROV_USAGE,
+                                            PROV_INVALIDATION]:
+                                if PROV['time'].uri in pred:
+                                    pred = URIRef(PROV['atTime'].uri)
+                                if PROV['ender'].uri in pred:
+                                    pred = URIRef(PROV['hadActivity'].uri)
+                                if PROV['starter'].uri in pred:
+                                    pred = URIRef(PROV['hadActivity'].uri)
+                                if PROV['location'].uri in pred:
+                                    pred = URIRef(PROV['atLocation'].uri)
+                            if rec_type in [PROV_ACTIVITY]:
+                                if PROV_ATTR_STARTTIME in pred:
+                                    pred = URIRef(PROV['startedAtTime'].uri)
+                                if PROV_ATTR_ENDTIME in pred:
+                                    pred = URIRef(PROV['endedAtTime'].uri)
                             if rec_type == PROV_DERIVATION:
                                 if PROV['activity'].uri in pred:
                                     pred = URIRef(PROV['hadActivity'].uri)
@@ -337,6 +355,10 @@ class ProvRDFSerializer(Serializer):
                         pred = RDF.type
                     elif attr == PROV['label']:
                         pred = RDFS.label
+                    elif attr == PROV_ATTR_STARTTIME:
+                        pred = URIRef(PROV['startedAtTime'].uri)
+                    elif attr == PROV_ATTR_ENDTIME:
+                        pred = URIRef(PROV['endedAtTime'].uri)
                     else:
                         pred = self.encode_rdf_representation(attr)
                     container.add((identifier, pred, obj))
@@ -381,6 +403,9 @@ class ProvRDFSerializer(Serializer):
                            }
         predicate_mapper = {RDFS.label: pm.PROV['label'],
                             URIRef(PROV['atLocation'].uri): PROV_LOCATION,
+                            URIRef(PROV['startedAtTime'].uri): PROV_ATTR_STARTTIME,
+                            URIRef(PROV['endedAtTime'].uri): PROV_ATTR_ENDTIME,
+                            URIRef(PROV['atTime'].uri): PROV_ATTR_TIME,
                             URIRef(PROV['hadRole'].uri): PROV_ROLE,
                             URIRef(PROV['hadPlan'].uri): pm.PROV_ATTR_PLAN,
                             URIRef(PROV['hadUsage'].uri): pm.PROV_ATTR_USAGE,
@@ -424,7 +449,9 @@ class ProvRDFSerializer(Serializer):
             if pred == RDF.type:
                 continue
             if pred in relation_mapper:
-                if 'mentionOf' in pred:
+                if 'alternateOf' in pred:
+                    getattr(bundle, relation_mapper[pred])(obj, id)
+                elif 'mentionOf' in pred:
                     mentionBundle = None
                     for stmt in graph.triples((URIRef(id), URIRef(pm.PROV['asInBundle'].uri), None)):
                         mentionBundle = stmt[2]
@@ -455,6 +482,10 @@ class ProvRDFSerializer(Serializer):
                     pred_new = PROV_ATTR_RESPONSIBLE
                 if ids[id] in [PROV_END, PROV_START] and 'entity' in text_type(pred_new):
                     pred_new = PROV_ATTR_TRIGGER
+                if ids[id] in [PROV_END] and 'activity' in text_type(pred_new):
+                    pred_new = PROV_ATTR_ENDER
+                if ids[id] in [PROV_START] and 'activity' in text_type(pred_new):
+                    pred_new = PROV_ATTR_STARTER
                 if ids[id] == PROV_DERIVATION and 'entity' in text_type(pred_new):
                     pred_new = PROV_ATTR_USED_ENTITY
                 if text_type(pred_new) in [val.uri for val in formal_attributes[id]]:
@@ -493,6 +524,7 @@ class ProvRDFSerializer(Serializer):
             if val:
                 ids[key].add_attributes(val)
 
+
 def walk(children, level=0, path=None, usename=True):
     """Generate all the full paths in a tree, as a dict.
 
@@ -525,6 +557,7 @@ def walk(children, level=0, path=None, usename=True):
         for child_paths in walk(tail, level + 1, path, usename):
             yield child_paths
 
+
 def literal_rdf_representation(literal):
     value = text_type(literal.value) if literal.value else literal
     if literal.langtag:
@@ -533,5 +566,8 @@ def literal_rdf_representation(literal):
     else:
         datatype = literal.datatype
         if 'base64Binary' in datatype.uri:
-            value = base64.standard_b64encode(value)
+            if six.PY2:
+                value = base64.standard_b64encode(value)
+            else:
+                value = literal.value.encode()
         return RDFLiteral(value, datatype=datatype.uri)
