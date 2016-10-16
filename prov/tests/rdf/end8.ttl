@@ -12,9 +12,9 @@ ex:a1 prov:qualifiedEnd ex:end8 .
 
 ex:end8 prov:atTime "2014-06-23T12:28:53.225+01:00"^^xsd:dateTime ;
 	prov:hadActivity ex:a2 ;
-	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:53.225+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:53.225+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "hello" , "bye"@en , "bonjour"@fr ;
-	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , "ex:london"^^xsd:QName , "2014-06-23T12:28:53.225+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear ;
+	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , ex:london , "2014-06-23T12:28:53.225+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear ;
 	prov:hadRole "someRole"^^xsd:string , "otherRole"^^xsd:string ;
 	ex2:tag3 "hi"^^xsd:string ;
 	ex:tag1 "hello"^^xsd:string , """hello

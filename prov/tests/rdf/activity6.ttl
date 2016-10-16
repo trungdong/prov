@@ -7,4 +7,4 @@
 
 ex:a6 a prov:Activity ;
 	rdfs:label "activity6" ;
-	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , "ex:london"^^xsd:QName , "2014-06-23T12:28:53.858+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear .
+	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , ex:london , "2014-06-23T12:28:53.858+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear .

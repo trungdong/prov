@@ -7,4 +7,4 @@
 
 
 ex:en_v25 a prov:Entity ;
-	prov:value "other:zabcd"^^xsd:QName .
+	prov:value other:zabcd .

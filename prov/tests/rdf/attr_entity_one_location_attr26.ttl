@@ -6,4 +6,4 @@
 
 
 ex:en_l26 a prov:Entity ;
-	prov:atLocation "zabcde"^^xsd:QName .
+	prov:atLocation <http://example4.org/zabcde> .

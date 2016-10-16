@@ -7,4 +7,4 @@
 
 
 ex:en_o25 a prov:Entity ;
-	ex:tag2 "other:zabcd"^^xsd:QName .
+	ex:tag2 other:zabcd .

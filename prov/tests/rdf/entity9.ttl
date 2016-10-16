@@ -6,9 +6,9 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:e9 a prov:Entity , "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:52.567+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+ex:e9 a prov:Entity , "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:52.567+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "entity9" , "hello" , "bye"@en , "bonjour"@fr ;
-	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , "ex:london"^^xsd:QName , "2014-06-23T12:28:52.568+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear ;
+	prov:atLocation "London"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:boolean , ex:london , "2014-06-23T12:28:52.568+01:00"^^xsd:dateTime , "http://example.org/london"^^xsd:anyURI , "2002"^^xsd:gYear ;
 	ex2:tag3 "hi"^^xsd:string ;
 	ex:tag1 "hello"^^xsd:string , """hello
 over

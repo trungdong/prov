@@ -11,4 +11,4 @@ ex:ass_r24 a prov:Association ;
 
 ex:a1 prov:qualifiedAssociation ex:ass_r24 .
 
-ex:ass_r24 prov:hadRole "pre_0:zabc"^^xsd:QName .
+ex:ass_r24 prov:hadRole pre_0:zabc .

@@ -6,4 +6,4 @@
 
 
 ex:en_o26 a prov:Entity ;
-	ex:tag2 "zabcde"^^xsd:QName .
+	ex:tag2 <http://example4.org/zabcde> .

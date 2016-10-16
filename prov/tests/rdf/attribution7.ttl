@@ -10,5 +10,5 @@ ex:attr7 a prov:Attribution ;
 
 ex:e1 prov:qualifiedAttribution ex:attr7 .
 
-ex:attr7 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:53.504+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+ex:attr7 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:53.504+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "hello" , "bye"@en , "bonjour"@fr .

@@ -6,4 +6,4 @@
 
 
 ex:en_v21 a prov:Entity ;
-	prov:value "ex:abc"^^xsd:QName .
+	prov:value ex:abc .

@@ -5,6 +5,6 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:ag8 a prov:Agent , "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:54.384+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+ex:ag8 a prov:Agent , "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:54.384+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "agent8" ;
 	prov:atLocation "http://example.org/london"^^xsd:anyURI .

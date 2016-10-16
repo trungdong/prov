@@ -11,5 +11,5 @@ ex:assoc7 a prov:Association ;
 ex:a1 prov:qualifiedAssociation ex:assoc7 .
 
 ex:assoc7 prov:hadPlan ex:plan1 ;
-	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:52.781+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:52.781+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "hello" , "bye"@en , "bonjour"@fr .

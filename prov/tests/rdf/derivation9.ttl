@@ -9,4 +9,4 @@ _:blank25 a prov:Derivation .
 
 ex:e2 prov:qualifiedDerivation _:blank25 .
 
-_:blank25 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:53.753+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI .
+_:blank25 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:53.753+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI .

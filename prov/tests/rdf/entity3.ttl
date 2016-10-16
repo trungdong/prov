@@ -7,4 +7,4 @@
 
 ex:e3 a prov:Entity ;
 	rdfs:label "entity3" ;
-	prov:value "ex:avalue"^^xsd:QName .
+	prov:value ex:avalue .

@@ -6,4 +6,4 @@
 
 
 ex:en_o23 a prov:Entity ;
-	ex:tag2 "abcde"^^xsd:QName .
+	ex:tag2 ex:abcde .

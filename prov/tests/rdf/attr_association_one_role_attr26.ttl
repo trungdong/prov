@@ -10,4 +10,4 @@ ex:ass_r26 a prov:Association ;
 
 ex:a1 prov:qualifiedAssociation ex:ass_r26 .
 
-ex:ass_r26 prov:hadRole "zabcde"^^xsd:QName .
+ex:ass_r26 prov:hadRole <http://example4.org/zabcde> .

@@ -6,4 +6,4 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:et24 a prov:Entity , "pre_0:zabc"^^xsd:QName .
+ex:et24 a prov:Entity , pre_0:zabc .

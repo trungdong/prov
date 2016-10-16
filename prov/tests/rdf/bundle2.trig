@@ -6,27 +6,27 @@
 
 
 {
-	ex:bundle2 a prov:Entity , "prov:Bundle"^^xsd:QName .
+	ex:bundle1 a prov:Entity , prov:Bundle .
 	
-	ex:bundle1 a prov:Entity , "prov:Bundle"^^xsd:QName .
-}
-
-ex:bundle2 {
-	ex:use2 a prov:Usage ;
-		prov:entity ex:a1 .
-	
-	ex:e1 prov:qualifiedUsage ex:use2 ;
-		a prov:Activity .
-	
-	ex:a1 a prov:Entity .
+	ex:bundle2 a prov:Entity , prov:Bundle .
 }
 
 ex:bundle1 {
+	ex:e1 a prov:Entity .
+	
 	ex:use1 a prov:Usage ;
 		prov:entity ex:e1 .
 	
 	ex:a1 prov:qualifiedUsage ex:use1 ;
 		a prov:Activity .
+}
+
+ex:bundle2 {
+	ex:a1 a prov:Entity .
 	
-	ex:e1 a prov:Entity .
+	ex:use2 a prov:Usage ;
+		prov:entity ex:a1 .
+	
+	ex:e1 prov:qualifiedUsage ex:use2 ;
+		a prov:Activity .
 }

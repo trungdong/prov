@@ -6,17 +6,11 @@
 @prefix foo: <http://example.org/> .
 
 
-foo:bundle1 a prov:Entity , "prov:Bundle"^^xsd:QName .
+foo:bundle1 a prov:Entity , prov:Bundle .
 
-ex:bundle2 a prov:Entity , "prov:Bundle"^^xsd:QName .
+ex:bundle2 a prov:Entity , prov:Bundle .
 
-ex:use2 a prov:Usage ;
-	prov:entity ex:ee1 .
-
-ex:aa1 prov:qualifiedUsage ex:use2 ;
-	a prov:Activity .
-
-ex:ee1 a prov:Entity .
+foo:e1 a prov:Entity .
 
 foo:use1 a prov:Usage ;
 	prov:entity foo:e1 .
@@ -24,4 +18,10 @@ foo:use1 a prov:Usage ;
 foo:a1 prov:qualifiedUsage foo:use1 ;
 	a prov:Activity .
 
-foo:e1 a prov:Entity .
+ex:ee1 a prov:Entity .
+
+ex:use2 a prov:Usage ;
+	prov:entity ex:ee1 .
+
+ex:aa1 prov:qualifiedUsage ex:use2 ;
+	a prov:Activity .

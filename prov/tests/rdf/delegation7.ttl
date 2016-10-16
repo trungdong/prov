@@ -11,5 +11,5 @@ ex:del7 a prov:Delegation ;
 ex:e1 prov:qualifiedDelegation ex:del7 .
 
 ex:del7 prov:hadActivity ex:a ;
-	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , "ex:abc"^^xsd:QName , "2014-06-23T12:28:53.305+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+	a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:53.305+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "hello" , "bye"@en , "bonjour"@fr .

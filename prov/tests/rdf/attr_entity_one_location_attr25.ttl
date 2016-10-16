@@ -7,4 +7,4 @@
 
 
 ex:en_l25 a prov:Entity ;
-	prov:atLocation "other:zabcd"^^xsd:QName .
+	prov:atLocation other:zabcd .

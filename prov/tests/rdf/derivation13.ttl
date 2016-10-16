@@ -5,12 +5,11 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:prim1 a prov:Derivation ;
+ex:prim1 a prov:PrimarySource ;
 	prov:entity ex:e1 .
 
-ex:e2 prov:qualifiedDerivation ex:prim1 .
+ex:e2 prov:qualifiedPrimarySource ex:prim1 .
 
 ex:prim1 prov:hadActivity ex:a ;
-	a "prov:PrimarySource"^^xsd:QName ;
 	prov:hadGeneration ex:g ;
 	prov:hadUsage ex:u .

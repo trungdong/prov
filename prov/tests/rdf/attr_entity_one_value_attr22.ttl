@@ -6,4 +6,4 @@
 
 
 other:en_v22 a prov:Entity ;
-	prov:value "ex:abcd"^^xsd:QName .
+	prov:value other:abcd .

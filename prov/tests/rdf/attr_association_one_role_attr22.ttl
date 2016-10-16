@@ -10,4 +10,4 @@ other:ass_r22 a prov:Association ;
 
 other:a1 prov:qualifiedAssociation other:ass_r22 .
 
-other:ass_r22 prov:hadRole "ex:abcd"^^xsd:QName .
+other:ass_r22 prov:hadRole other:abcd .

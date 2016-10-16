@@ -6,4 +6,4 @@
 
 
 ex:en_v26 a prov:Entity ;
-	prov:value "zabcde"^^xsd:QName .
+	prov:value <http://example4.org/zabcde> .

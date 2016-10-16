@@ -216,9 +216,6 @@ class TestRDFSerializer(unittest.TestCase):
 
                 with open(ttl_file, 'rb') as fp:
                     g_rdf = rl.ConjunctiveGraph().parse(fp, format=format)
-                g1 = pm.ProvDocument.deserialize(
-                    ontent=g.serialize(format='rdf', rdf_format=format),
-                    format='rdf', rdf_format=format)
                 g0_rdf = rl.ConjunctiveGraph().parse(
                     StringIO(g.serialize(format='rdf', rdf_format=format)),
                     format=format)

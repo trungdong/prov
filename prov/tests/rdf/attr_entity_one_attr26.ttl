@@ -5,4 +5,4 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:et26 a prov:Entity , "zabcde"^^xsd:QName .
+ex:et26 a prov:Entity , <http://example4.org/zabcde> .

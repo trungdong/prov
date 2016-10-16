@@ -6,4 +6,4 @@
 
 
 ex:en_l23 a prov:Entity ;
-	prov:atLocation "abcde"^^xsd:QName .
+	prov:atLocation ex:abcde .

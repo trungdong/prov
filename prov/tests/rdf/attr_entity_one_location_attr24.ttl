@@ -7,4 +7,4 @@
 
 
 ex:en_l24 a prov:Entity ;
-	prov:atLocation "pre_0:zabc"^^xsd:QName .
+	prov:atLocation pre_0:zabc .
