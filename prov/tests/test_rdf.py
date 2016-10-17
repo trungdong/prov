@@ -201,9 +201,6 @@ class TestRDFSerializer(unittest.TestCase):
             _, ttl_file = os.path.split(fname)
             ttl_file = os.path.join(os.path.dirname(__file__), 'rdf',
                                     ttl_file.replace('json', 'ttl'))
-            if idx in skip:
-                logger.info('Skipping: %s' % fname)
-                continue
             error_raised = False
             try:
                 g = pm.ProvDocument.deserialize(fname)
@@ -223,6 +220,12 @@ class TestRDFSerializer(unittest.TestCase):
                     self.assertTrue(find_diff(g_rdf, g0_rdf)[0])
                 else:
                     logger.info('Skipping match: %s' % fname)
+                if idx in skip:
+                    logger.info('Skipping deserialization: %s' % fname)
+                    continue
+                g1 = pm.ProvDocument.deserialize(
+                    content=g.serialize(format='rdf', rdf_format=format),
+                    format='rdf', rdf_format=format)
             except Exception as e:
                 print(e)
                 logger.info(e)
