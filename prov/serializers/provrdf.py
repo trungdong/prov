@@ -450,14 +450,7 @@ class ProvRDFSerializer(Serializer):
                 if add_attr:
                     if id not in other_attributes:
                         other_attributes[id] = []
-                    if pm.PROV['Revision'].uri in stmt[2]:
-                        obj_formatted = pm.PROV['Revision']
-                    elif pm.PROV['Quotation'].uri in stmt[2]:
-                        obj_formatted = pm.PROV['Quotation']
-                    elif pm.PROV['PrimarySource'].uri in stmt[2]:
-                        obj_formatted = pm.PROV['PrimarySource']
-                    else:
-                        obj_formatted = self.decode_rdf_representation(stmt[2], graph)
+                    obj_formatted = self.decode_rdf_representation(stmt[2], graph)
                     other_attributes[id].append((pm.PROV['type'], obj_formatted))
             else:
                 if id not in other_attributes:
