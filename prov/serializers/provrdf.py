@@ -67,7 +67,7 @@ def valid_qualified_name(bundle, value, xsd_qname=False):
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
-    return qualified_name if not xsd_qname else XSDQName(qualified_name)
+    return qualified_name if not xsd_qname else XSD_QNAME(qualified_name)
 
 
 class ProvRDFSerializer(Serializer):
@@ -160,7 +160,7 @@ class ProvRDFSerializer(Serializer):
             return RDFLiteral(value)
 
 
-    def decode_rdf_representation(self, literal):
+    def decode_rdf_representation(self, literal, graph):
         if isinstance(literal, RDFLiteral):
             value = literal.value if literal.value is not None else literal
             datatype = literal.datatype if hasattr(literal, 'datatype') else None
@@ -178,7 +178,12 @@ class ProvRDFSerializer(Serializer):
                 # It will be automatically converted when added to a record by _auto_literal_conversion()
                 return Literal(value, self.valid_identifier(datatype), langtag)
         elif isinstance(literal, URIRef):
-            return self.valid_identifier(literal)
+            rval = self.valid_identifier(literal)
+            if rval is None:
+                prefix, iri, _ = graph.namespace_manager.compute_qname(literal)
+                ns = self.document.add_namespace(prefix, iri)
+                rval = pm.QualifiedName(ns, literal.replace(ns.uri, ''))
+            return rval
         else:
             # simple type, just return it
             return literal
@@ -268,9 +273,15 @@ class ProvRDFSerializer(Serializer):
                                 rec_uri = rec_type.uri
                                 for attr_name, val in record.extra_attributes:
                                     if attr_name == PROV['type']:
-                                        if PROV['Revision'] == val or PROV['Quotation'] == val:
+                                        if PROV['Revision'] == val or \
+                                              PROV['Quotation'] == val or \
+                                                PROV['PrimarySource'] == val:
                                             qualifier = val._localpart
                                             rec_uri = val.uri
+                                            if identifier is not None:
+                                                container.remove((identifier,
+                                                                  RDF.type,
+                                                                  URIRef(rec_type.uri)))
                                 QRole = URIRef(PROV['qualified' + qualifier].uri)
                                 if identifier is not None:
                                     container.add((subj, QRole, identifier))
@@ -425,22 +436,33 @@ class ProvRDFSerializer(Serializer):
                 except AttributeError:
                     prov_obj = None
                 add_attr = True
+                isderivation = pm.PROV['Revision'].uri in stmt[2] or \
+                               pm.PROV['Quotation'].uri in stmt[2] or \
+                               pm.PROV['PrimarySource'].uri in stmt[2]
                 if id not in ids and prov_obj and (prov_obj.uri == obj or
+                                                    isderivation or
                                                        isinstance(stmt[0], BNode)):
                     ids[id] = prov_obj
                     klass = pm.PROV_REC_CLS[prov_obj]
                     formal_attributes[id] = OrderedDict([(key, None) for key in klass.FORMAL_ATTRIBUTES])
                     unique_sets[id] = OrderedDict([(key, []) for key in klass.FORMAL_ATTRIBUTES])
-                    add_attr = False or (isinstance(stmt[0], BNode) and prov_obj.uri != obj)
+                    add_attr = False or ((isinstance(stmt[0], BNode) or isderivation) and prov_obj.uri != obj)
                 if add_attr:
                     if id not in other_attributes:
                         other_attributes[id] = []
-                    obj_formatted = self.decode_rdf_representation(stmt[2])
+                    if pm.PROV['Revision'].uri in stmt[2]:
+                        obj_formatted = pm.PROV['Revision']
+                    elif pm.PROV['Quotation'].uri in stmt[2]:
+                        obj_formatted = pm.PROV['Quotation']
+                    elif pm.PROV['PrimarySource'].uri in stmt[2]:
+                        obj_formatted = pm.PROV['PrimarySource']
+                    else:
+                        obj_formatted = self.decode_rdf_representation(stmt[2], graph)
                     other_attributes[id].append((pm.PROV['type'], obj_formatted))
             else:
                 if id not in other_attributes:
                     other_attributes[id] = []
-                obj = self.decode_rdf_representation(stmt[2])
+                obj = self.decode_rdf_representation(stmt[2], graph)
                 other_attributes[id].append((pm.PROV['type'], obj))
         for id, pred, obj in graph:
             id = text_type(id)
@@ -470,7 +492,7 @@ class ProvRDFSerializer(Serializer):
                 else:
                     getattr(bundle, relation_mapper[pred])(id, text_type(obj))
             elif id in ids:
-                obj1 = self.decode_rdf_representation(obj)
+                obj1 = self.decode_rdf_representation(obj, graph)
                 if obj is not None and obj1 is None:
                     raise ValueError(('Error transforming', obj))
                 pred_new = pred
