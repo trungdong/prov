@@ -25,6 +25,14 @@ prov.serializers.provn module
     :show-inheritance:
 
 
+prov.serializers.provrdf module
+-------------------------------
+
+.. automodule:: prov.serializers.provrdf
+    :members:
+    :show-inheritance:
+
+
 prov.serializers.provxml module
 -------------------------------
 

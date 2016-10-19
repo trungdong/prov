@@ -24,9 +24,9 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.4.1.dev1',
+    version='1.5.0',
     description='A library for W3C Provenance Data Model supporting PROV-JSON, '
-                'PROV-XML and PROV-O',
+                'PROV-XML and PROV-O (RDF)',
     long_description=readme + '\n\n' + history,
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
@@ -59,6 +59,7 @@ setup(
         "Programming Language :: Python :: 3",
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
         'Topic :: Scientific/Engineering :: Information Analysis',

@@ -6,6 +6,8 @@ include README.rst
 include CHANGES.txt
 include prov/tests/json/*.json
 include prov/tests/unification/*.json
+include prov/tests/rdf/*.ttl
+include prov/tests/rdf/*.trig
 include prov/tests/xml/*.xml
 
 recursive-exclude * __pycache__

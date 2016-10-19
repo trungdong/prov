@@ -32,8 +32,7 @@ def prov_to_graph(prov_document):
     <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
     instance of the `NetworkX <https://networkx.github.io/>`_ library.
 
-    :param prov_document: The :class:`~prov.model.ProvDocument` instance to
-    convert.
+    :param prov_document: The :class:`~prov.model.ProvDocument` instance to convert.
     """
     g = nx.MultiDiGraph()
     unified = prov_document.unified()
@@ -63,6 +62,11 @@ def prov_to_graph(prov_document):
 
 
 def graph_to_prov(g):
+    """ Convert a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
+        back to a :class:`~prov.model.ProvDocument`.
+
+        :param g: The graph instance to convert.
+    """
     prov_doc = ProvDocument()
     for n in g.nodes_iter():
         if isinstance(n, ProvRecord) and n.bundle is not None:

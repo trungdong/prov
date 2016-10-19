@@ -3,6 +3,14 @@
 History
 -------
 
+1.5.0 (2015-10-19)
+^^^^^^^^^^^^^^^^^^
+* Added: Support for `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF) serialization and deserialization
+* Added: `direction` option for :py:meth:`prov.dot.prov_to_dot`
+* Added: :py:meth:`prov.graph.graph_to_prov` to convert a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_ back to a :py:class:`~prov.model.ProvDocument`
+* Testing with Python 3.5
+* Various minor bug fixes and improvements
+
 1.4.0 (2015-08-13)
 ^^^^^^^^^^^^^^^^^^
 * Changed the type of qualified names to prov:QUALIFIED_NAME (fixed #68)

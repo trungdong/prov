@@ -26,18 +26,19 @@ Introduction
   :alt: License
 
 
-A library for W3C Provenance Data Model supporting PROV-JSON and PROV-XML import/export
+A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON import/export
 
 * Free software: MIT license
-* Documentation: http://prov.readthedocs.org.
+* Documentation: http://prov.readthedocs.io/.
 
 Features
 --------
 
 * An implementation of the `W3C PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python.
 * In-memory classes for PROV assertions, which can then be output as `PROV-N <http://www.w3.org/TR/prov-n/>`_
-* Serialization and deserializtion support: `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_ and `PROV-XML <http://www.w3.org/TR/prov-xml/>`_.
+* Serialization and deserializtion support: `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF), `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ and `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_.
 * Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
+* Convert a PROV document to a `Networkx MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_ and back.
 
 
 Uses

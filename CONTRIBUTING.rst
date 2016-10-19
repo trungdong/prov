@@ -24,14 +24,14 @@ If you are reporting a bug, please include:
 Fix Bugs
 ~~~~~~~~
 
-Look through the GitHub issues for bugs. Anything tagged with "bug"
-is open to whoever wants to implement it.
+Look through the GitHub `issues <https://github.com/trungdong/prov/issues>`_ for bugs.
+Anything tagged with "bug" is open to whoever wants to implement it.
 
 Implement Features
 ~~~~~~~~~~~~~~~~~~
 
-Look through the GitHub issues for features. Anything tagged with "feature"
-is open to whoever wants to implement it.
+Look through the GitHub `issues <https://github.com/trungdong/prov/issues>`_
+for features. Anything tagged with "feature" is open to whoever wants to implement it.
 
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
@@ -66,7 +66,7 @@ Ready to contribute? Here's how to set up `prov` for local development.
 
     $ mkvirtualenv prov
     $ cd prov/
-    $ python setup.py develop
+    $ pip install -r requirements-dev.txt
 
 4. Create a branch for local development::
 
@@ -79,8 +79,6 @@ Ready to contribute? Here's how to set up `prov` for local development.
     $ flake8 prov tests
     $ python setup.py test
     $ tox
-
-   To get flake8 and tox, just pip install them into your virtualenv.
 
 6. Commit your changes and push your branch to GitHub::
 
@@ -99,10 +97,10 @@ Before you submit a pull request, check that it meets these guidelines:
 2. If the pull request adds functionality, the docs should be updated. Put
    your new functionality into a function with a docstring, and add the
    feature to the list in README.rst.
-3. The pull request should work for Python 2.6, 2.7, 3.3, 3.4, and for PyPy.
+3. The pull request should work for Python 2.7, 3.3, 3.4, 3.5, and for PyPy.
    Check https://travis-ci.org/trungdong/prov/pull_requests
    and make sure that the tests pass for all supported Python versions.
-   (See [pyenv](https://github.com/yyuu/pyenv) for help on setting up
+   (See `pyenv <https://github.com/yyuu/pyenv>`_ for help on setting up
    multiple versions of Python locally for testing.)
 
 Tips

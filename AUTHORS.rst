@@ -10,6 +10,6 @@ Development Lead
 Contributors
 ------------
 
-* Sam Millar
-* Satrajit Ghosh
+* Satrajit Ghosh (:py:mod:`prov.serializers.provrdf` module)
 * Lion Krischer (:py:mod:`prov.serializers.provxml` module and Python 3 support)
+* Sam Millar

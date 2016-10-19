@@ -1,11 +1,11 @@
 """Graphical visualisation support for prov.model.
 
 This module produces graphical visualisation for provenanve graphs.
-Requires pydot module and Graphviz.
+Requires pydotplus module and Graphviz.
 
 References:
 
-* pydot Homepage: http://code.google.com/p/pydot/
+* pydotplus homepage: http://pydotplus.readthedocs.io/
 * Graphviz:       http://www.graphviz.org/
 * DOT Language:   http://www.graphviz.org/doc/info/lang.html
 
@@ -148,11 +148,9 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
     :type name: :class:`ProvBundle`
     :param show_nary: shows all elements in n-ary relations.
     :type show_nary: bool
-    :param use_labels: uses the prov:label property of an element as its name
-    (instead of its identifier).
+    :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
     :type use_labels: bool
-    :param direction: specifies the direction of the graph. Valid values are
-    "BT" (default), "TB", "LR", "RL".
+    :param direction: specifies the direction of the graph. Valid values are "BT" (default), "TB", "LR", "RL".
     :param show_element_attributes: shows attributes of elements.
     :type show_element_attributes: bool
     :param show_relation_attributes: shows attributes of relations.
