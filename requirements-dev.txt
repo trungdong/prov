@@ -1,6 +1,6 @@
 -r requirements.txt
 coverage
 flake8
-sphinx
+sphinx==1.4.8
 tox
 wheel
