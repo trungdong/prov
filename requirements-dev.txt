@@ -3,4 +3,4 @@ coverage
 flake8
 sphinx
 tox
-wheel
+wheel==0.29.0
