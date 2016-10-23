@@ -1612,16 +1612,24 @@ class ProvDocument(ProvBundle):
             raise ProvException('A bundle with that identifier already exists')
 
         #Add prov_type to entry if it is the right type and identifier
-        if identifier in self._id_map:
-            bundle_entities = self._id_map[identifier]
+        if valid_id in self._id_map.keys():
+            bundle_entities = self._id_map[valid_id]
             #For each entry with the bundle identifier
             for bundle_entity in bundle_entities:
                 if not isinstance(bundle_entity,ProvEntity):
                     raise ProvException('A prov record with that identifier already exists')
-                bundle_entity.add_attributes(attributes={PROV_TYPE:PROV_BUNDLE})
+                # get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                found = False
+                # get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                prov_tpye_set.discard(PROV_BUNDLE)
+                prov_tpye_set.discard(str(PROV_BUNDLE))
+                prov_tpye_set.add(PROV_BUNDLE)
+
         else:
             #Create new prov entry
-            bundle_entity = ProvEntity(bundle=self,identifier=identifier,attributes={PROV_TYPE:PROV_BUNDLE})
+            bundle_entity = ProvEntity(bundle=self,identifier=valid_id,attributes={PROV_TYPE:PROV_BUNDLE})
             self.add_record(bundle_entity)
 
         self._bundles[valid_id] = bundle
@@ -1644,16 +1652,22 @@ class ProvDocument(ProvBundle):
         self._bundles[valid_id] = b
 
         # Add prov_type to entry if it is the right type and identifier
-        if identifier in self._id_map:
-            bundle_entities = self._id_map[identifier]
+        if valid_id in self._id_map.keys():
+            bundle_entities = self._id_map[valid_id]
             # For each entry with the bundle identifier
             for bundle_entity in bundle_entities:
                 if not isinstance(bundle_entity, ProvEntity):
                     raise ProvException('A prov record with that identifier already exists')
-                bundle_entity.add_attributes(attributes={PROV_TYPE: PROV_BUNDLE})
+
+                #get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                prov_tpye_set.discard(PROV_BUNDLE)
+                prov_tpye_set.discard(str(PROV_BUNDLE))
+                prov_tpye_set.add(PROV_BUNDLE)
+
         else:
             # Create new prov entry
-            bundle_entity = ProvEntity(bundle=self, identifier=identifier, attributes={PROV_TYPE: PROV_BUNDLE})
+            bundle_entity = ProvEntity(bundle=self, identifier=valid_id, attributes={PROV_TYPE: PROV_BUNDLE})
             self.add_record(bundle_entity)
 
         return b
