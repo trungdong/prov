@@ -1105,6 +1105,9 @@ class ProvBundle(object):
                 if merged not in added_merged_records:
                     unified_records.append(merged)
                     added_merged_records.add(merged)
+            elif record in unified_records:
+                #if record is allready there (prevent duplicate records)
+                pass
             else:
                 # add the original record
                 unified_records.append(record)
