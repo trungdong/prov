@@ -12,29 +12,45 @@ from prov import Error
 
 
 class Serializer(object):
+    """Serializer for PROV documents."""
+
     def __init__(self, document=None):
+        """
+        Constructor.
+
+        :param document: Document to serialize.
+        """
         self.document = document
 
     def serialize(self, stream, **kwargs):
         """
-        Abstract method for serializing
+        Abstract method for serializing.
+
+        :param stream: Stream object to serialize the document into.
         """
 
     def deserialize(self, stream, **kwargs):
         """
-        Abstract method for deserializing
+        Abstract method for deserializing.
+
+        :param stream: Stream object to deserialize the document from.
         """
 
 
 class DoNotExist(Error):
+    """Exception for the case a serializer is not available."""
     pass
 
 
 class Registry:
+    """Registry of serializers."""
+
     serializers = None
+    """Property caching all available serializers in a dict."""
 
     @staticmethod
     def load_serializers():
+        """Loads all available serializers into the registry."""
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
         from prov.serializers.provxml import ProvXMLSerializer

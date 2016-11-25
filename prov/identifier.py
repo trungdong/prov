@@ -9,16 +9,21 @@ import six
 
 @six.python_2_unicode_compatible
 class Identifier(object):
-    """Base class for all identifiers and also represents xsd:anyURI
-    """
+    """Base class for all identifiers and also represents xsd:anyURI."""
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
     # into a subclass
 
     def __init__(self, uri):
+        """
+        Constructor.
+
+        :param uri: URI string for the long namespace identifier.
+        """
         self._uri = six.text_type(uri)  # Ensure this is a unicode string
 
     @property
     def uri(self):
+        """Identifier's URI."""
         return self._uri
 
     def __str__(self):
@@ -34,12 +39,21 @@ class Identifier(object):
         return '<%s: %s>' % (self.__class__.__name__, self._uri)
 
     def provn_representation(self):
+        """PROV-N representation of qualified name in a string."""
         return '"%s" %%%% xsd:anyURI' % self._uri
 
 
 @six.python_2_unicode_compatible
 class QualifiedName(Identifier):
+    """Qualified name of an identifier in a particular namespace."""
+
     def __init__(self, namespace, localpart):
+        """
+        Constructor.
+
+        :param namespace: Namespace to use for qualified name resolution.
+        :param localpart: Portion of identifier not part of the namespace prefix.
+        """
         Identifier.__init__(self, u''.join([namespace.uri, localpart]))
         self._namespace = namespace
         self._localpart = localpart
@@ -50,10 +64,12 @@ class QualifiedName(Identifier):
 
     @property
     def namespace(self):
+        """Namespace of qualified name."""
         return self._namespace
 
     @property
     def localpart(self):
+        """Local part of qualified name."""
         return self._localpart
 
     def __str__(self):
@@ -66,30 +82,54 @@ class QualifiedName(Identifier):
         return hash(self.uri)
 
     def provn_representation(self):
+        """PROV-N representation of qualified name in a string."""
         return "'%s'" % self._str
 
 
 class Namespace(object):
+    """PROV Namespace."""
+
     def __init__(self, prefix, uri):
+        """
+        Constructor.
+
+        :param prefix: String short hand prefix for the namespace.
+        :param uri: URI string for the long namespace identifier.
+        """
         self._prefix = prefix
         self._uri = uri
         self._cache = dict()
 
     @property
     def uri(self):
+        """Namespace URI."""
         return self._uri
 
     @property
     def prefix(self):
+        """Namespace prefix."""
         return self._prefix
 
     def contains(self, identifier):
+        """
+        Indicates whether the identifier provided is contained in this namespace.
+
+        :param identifier: Identifier to check.
+        :return: bool
+        """
         uri = identifier if isinstance(identifier, six.string_types) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         return uri.startswith(self._uri) if uri else False
 
     def qname(self, identifier):
+        """
+        Returns the qualified name of the identifier given using the namespace
+        prefix.
+
+        :param identifier: Identifier to resolve to a qualified name.
+        :return: :py:class:`QualifiedName`
+        """
         uri = identifier if isinstance(identifier, six.string_types) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
