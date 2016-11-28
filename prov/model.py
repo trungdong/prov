@@ -199,7 +199,13 @@ class ProvWarning(Warning):
 @six.python_2_unicode_compatible
 class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
+
     def __init__(self, qname):
+        """
+        Constructor.
+
+        :param qname: Invalid qualified name.
+        """
         self.qname = qname
 
     def __str__(self):
@@ -249,25 +255,43 @@ class ProvRecord(object):
         )
 
     def get_type(self):
-        """Returning the PROV type of the record"""
+        """Returning the PROV type of the record."""
         pass
 
     def get_asserted_types(self):
+        """Returns the set of all asserted PROV types of this record."""
         return self._attributes[PROV_TYPE]
 
     def add_asserted_type(self, type_identifier):
+        """
+        Adds a PROV type assertion to the record.
+
+        :param type_identifier: PROV namespace identifier to add.
+        """
         self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name):
+        """
+        Returns the attribute of the given name.
+
+        :param attr_name: Name of the attribute.
+        :return: Tuple (name, value)
+        """
         attr_name = self._bundle.valid_qualified_name(attr_name)
         return self._attributes[attr_name]
 
     @property
     def identifier(self):
+        """Record's identifier."""
         return self._identifier
 
     @property
     def attributes(self):
+        """
+        All record attributes.
+
+        :return: List of tuples (name, value)
+        """
         return [
             (attr_name, value)
             for attr_name, values in self._attributes.items()
@@ -276,6 +300,11 @@ class ProvRecord(object):
 
     @property
     def args(self):
+        """
+        All values of the record's formal attributes.
+
+        :return: Tuple
+        """
         return tuple(
             first(self._attributes[attr_name])
             for attr_name in self.FORMAL_ATTRIBUTES
@@ -283,6 +312,11 @@ class ProvRecord(object):
 
     @property
     def formal_attributes(self):
+        """
+        All names and values of the record's formal attributes.
+
+        :return: Tuple of tuples (name, value)
+        """
         return tuple(
             (attr_name, first(self._attributes[attr_name]))
             for attr_name in self.FORMAL_ATTRIBUTES
@@ -290,6 +324,12 @@ class ProvRecord(object):
 
     @property
     def extra_attributes(self):
+        """
+        All names and values of the record's attributes that are not formal
+        attributes.
+
+        :return: Tuple of tuples (name, value)
+        """
         return [
             (attr_name, attr_value) for attr_name, attr_value in self.attributes
             if attr_name not in self.FORMAL_ATTRIBUTES
@@ -297,15 +337,22 @@ class ProvRecord(object):
 
     @property
     def bundle(self):
+        """
+        Bundle of the record.
+
+        :return: :py:class:`ProvBundle`
+        """
         return self._bundle
 
     @property
     def label(self):
+        """Identifying label of the record."""
         return first(self._attributes[PROV_LABEL]) \
             if self._attributes[PROV_LABEL] else self._identifier
 
     @property
     def value(self):
+        """Value of the record."""
         return self._attributes[PROV_VALUE]
 
     # Handling attributes
@@ -336,6 +383,13 @@ class ProvRecord(object):
         return literal
 
     def add_attributes(self, attributes):
+        """
+        Add attributes to the record.
+
+        :param attributes: Dictionary of attributes, with keys being qualified
+            identifiers. Alternatively an iterable of tuples (key, value) with the
+            keys satisfying the same condition.
+        """
         if attributes:
             if isinstance(attributes, dict):
                 # Converting the dictionary into a list of tuples
@@ -465,15 +519,26 @@ class ProvRecord(object):
         return prov_n
 
     def is_element(self):
+        """
+        True, if the record is an element, False otherwise.
+
+        :return: bool
+        """
         return False
 
     def is_relation(self):
+        """
+        True, if the record is a relation, False otherwise.
+
+        :return: bool
+        """
         return False
 
 
 #  Abstract classes for elements and relations
 class ProvElement(ProvRecord):
     """Provenance Element (nodes in the provenance graph)."""
+
     def __init__(self, bundle, identifier, attributes=None):
         if identifier is None:
             # All types of PROV elements require a valid identifier
@@ -482,6 +547,11 @@ class ProvElement(ProvRecord):
         super(ProvElement, self).__init__(bundle, identifier, attributes)
 
     def is_element(self):
+        """
+        True, if the record is an element, False otherwise.
+
+        :return: bool
+        """
         return True
 
     def __repr__(self):
@@ -490,7 +560,13 @@ class ProvElement(ProvRecord):
 
 class ProvRelation(ProvRecord):
     """Provenance Relationship (edge between nodes)."""
+
     def is_relation(self):
+        """
+        True, if the record is a relation, False otherwise.
+
+        :return: bool
+        """
         return True
 
     def __repr__(self):
@@ -508,17 +584,40 @@ class ProvEntity(ProvElement):
     """Provenance Entity element"""
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_ENTITY
 
     # Convenient assertions that take the current ProvEntity as the first
     # (formal) argument
     def wasGeneratedBy(self, activity, time=None, attributes=None):
+        """
+        Creates a new generation record to this entity.
+
+        :param activity: Activity or string identifier of the activity involved in
+            the generation (default: None).
+        :param time: Optional time for the generation (default: None).
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.generation(
             self, activity, time, other_attributes=attributes
         )
         return self
 
     def wasInvalidatedBy(self, activity, time=None, attributes=None):
+        """
+        Creates a new invalidation record for this entity.
+
+        :param activity: Activity or string identifier of the activity involved in
+            the invalidation (default: None).
+        :param time: Optional time for the invalidation (default: None).
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.invalidation(
             self, activity, time, other_attributes=attributes
         )
@@ -526,6 +625,17 @@ class ProvEntity(ProvElement):
 
     def wasDerivedFrom(self, usedEntity, activity=None, generation=None,
                        usage=None, attributes=None):
+        """
+        Creates a new derivation record for this entity from a used entity.
+
+        :param usedEntity: Entity or a string identifier for the used entity.
+        :param activity: Activity or string identifier of the activity involved in
+            the derivation (default: None).
+        :param generation: XXX (default: None).
+        :param usage: XXX (default: None).
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.derivation(
             self, usedEntity, activity, generation, usage,
             other_attributes=attributes
@@ -533,18 +643,41 @@ class ProvEntity(ProvElement):
         return self
 
     def wasAttributedTo(self, agent, attributes=None):
+        """
+        Creates a new attribution record between this entity and an agent.
+
+        :param agent: Agent or string identifier of the agent involved in the
+            attribution.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.attribution(self, agent, other_attributes=attributes)
         return self
 
     def alternateOf(self, alternate2):
+        """
+        Creates a new alternate record between this and another entity.
+
+        :param alternate2: Entity or a string identifier for the second entity.
+        """
         self._bundle.alternate(self, alternate2)
         return self
 
     def specializationOf(self, generalEntity):
+        """
+        Creates a new specialisation record for this from a general entity.
+
+        :param generalEntity: Entity or a string identifier for the general entity.
+        """
         self._bundle.specialization(self, generalEntity)
         return self
 
     def hadMember(self, entity):
+        """
+        Creates a new membership record to an entity for a collection.
+
+        :param entity: Entity to be added to the collection.
+        """
         self._bundle.membership(self, entity)
         return self
 
@@ -555,48 +688,118 @@ class ProvActivity(ProvElement):
     FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_ACTIVITY
 
     #  Convenient methods
     def set_time(self, startTime=None, endTime=None):
+        """
+        Sets the time this activity took place.
+
+        :param startTime: Start time for the activity.
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param endTime: Start time for the activity.
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        """
         if startTime is not None:
             self._attributes[PROV_ATTR_STARTTIME] = {startTime}
         if endTime is not None:
             self._attributes[PROV_ATTR_ENDTIME] = {endTime}
 
     def get_startTime(self):
+        """
+        Returns the time the activity started.
+
+        :return: :py:class:`datetime.datetime`
+        """
         values = self._attributes[PROV_ATTR_STARTTIME]
         return first(values) if values else None
 
     def get_endTime(self):
+        """
+        Returns the time the activity ended.
+
+        :return: :py:class:`datetime.datetime`
+        """
         values = self._attributes[PROV_ATTR_ENDTIME]
         return first(values) if values else None
 
     # Convenient assertions that take the current ProvActivity as the first
     # (formal) argument
     def used(self, entity, time=None, attributes=None):
+        """
+        Creates a new usage record for this activity.
+
+        :param entity: Entity or string identifier of the entity involved in
+            the usage relationship (default: None).
+        :param time: Optional time for the usage (default: None).
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.usage(self, entity, time, other_attributes=attributes)
         return self
 
     def wasInformedBy(self, informant, attributes=None):
+        """
+        Creates a new communication record for this activity.
+
+        :param informant: XXX
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.communication(
             self, informant, other_attributes=attributes
         )
         return self
 
     def wasStartedBy(self, trigger, starter=None, time=None, attributes=None):
+        """
+        Creates a new start record for this activity.
+
+        :param trigger: XXX
+        :param starter: XXX
+        :param time: Optional time for the start (default: None).
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.start(
             self, trigger, starter, time, other_attributes=attributes
         )
         return self
 
     def wasEndedBy(self, trigger, ender=None, time=None, attributes=None):
+        """
+        Creates a new end record for this activity.
+
+        :param trigger: XXX
+        :param ender: XXX
+        :param time: Optional time for the end (default: None).
+            Either a :py:class:`datetime.datetime` object or a string that can be
+            parsed by :py:func:`dateutil.parser`.
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.end(
             self, trigger, ender, time, other_attributes=attributes
         )
         return self
 
     def wasAssociatedWith(self, agent, plan=None, attributes=None):
+        """
+        Creates a new association record for this activity.
+
+        :param agent: Agent or string identifier of the agent involved in the
+            association (default: None).
+        :param plan: XXX (default: None).
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.association(
             self, agent, plan, other_attributes=attributes
         )
@@ -609,6 +812,7 @@ class ProvGeneration(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_GENERATION
 
 
@@ -618,6 +822,7 @@ class ProvUsage(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_ENTITY, PROV_ATTR_TIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_USAGE
 
 
@@ -627,6 +832,7 @@ class ProvCommunication(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_COMMUNICATION
 
 
@@ -637,6 +843,7 @@ class ProvStart(ProvRelation):
                          PROV_ATTR_STARTER, PROV_ATTR_TIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_START
 
 
@@ -647,6 +854,7 @@ class ProvEnd(ProvRelation):
                          PROV_ATTR_ENDER, PROV_ATTR_TIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_END
 
 
@@ -656,6 +864,7 @@ class ProvInvalidation(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_INVALIDATION
 
 
@@ -668,6 +877,7 @@ class ProvDerivation(ProvRelation):
                          PROV_ATTR_USAGE)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_DERIVATION
 
 
@@ -676,11 +886,20 @@ class ProvAgent(ProvElement):
     """Provenance Agent element."""
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_AGENT
 
     # Convenient assertions that take the current ProvAgent as the first
     # (formal) argument
     def actedOnBehalfOf(self, responsible, activity=None, attributes=None):
+        """
+        Creates a new delegation record on behalf of this agent.
+
+        :param responsible: XXX
+        :param activity: XXX (default: None).
+        :param attributes: Optional other attributes as a dictionary or list
+            of tuples to be added to the record optionally (default: None).
+        """
         self._bundle.delegation(
             self, responsible, activity, other_attributes=attributes
         )
@@ -693,6 +912,7 @@ class ProvAttribution(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_AGENT)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_ATTRIBUTION
 
 
@@ -702,6 +922,7 @@ class ProvAssociation(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_ASSOCIATION
 
 
@@ -712,6 +933,7 @@ class ProvDelegation(ProvRelation):
                          PROV_ATTR_ACTIVITY)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_DELEGATION
 
 
@@ -721,6 +943,7 @@ class ProvInfluence(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_INFLUENCEE, PROV_ATTR_INFLUENCER)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_INFLUENCE
 
 
@@ -731,6 +954,7 @@ class ProvSpecialization(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_SPECIALIZATION
 
 
@@ -740,6 +964,7 @@ class ProvAlternate(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_ALTERNATE
 
 
@@ -750,6 +975,7 @@ class ProvMention(ProvSpecialization):
                          PROV_ATTR_BUNDLE)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_MENTION
 
 
@@ -760,6 +986,7 @@ class ProvMembership(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
 
     def get_type(self):
+        """Returning the PROV type of the record."""
         return PROV_MEMBERSHIP
 
 
@@ -903,11 +1130,12 @@ class NamespaceManager(dict):
         return namespace
 
     def add_namespaces(self, namespaces):
-        """Add multiple namespaces into this manager.
+        """
+        Add multiple namespaces into this manager.
 
         :param namespaces: A collection of namespace(s) to add.
         :type namespaces: List of :py:class:`~prov.identifier.Namespace` or
-        dict of {prefix: uri}.
+            dict of {prefix: uri}.
         :returns: None
         """
         if isinstance(namespaces, dict):
@@ -921,6 +1149,14 @@ class NamespaceManager(dict):
                 self.add_namespace(ns)
 
     def valid_qualified_name(self, qname):
+        """
+        Resolves an identifier to a valid qualified name.
+
+        :param qname: Qualified name as :py:class:`~prov.identifier.QualifiedName`
+            or a tuple (namespace, identifier).
+        :return: :py:class:`~prov.identifier.QualifiedName` or None in case of
+            failure.
+        """
         if not qname:
             return None
 
@@ -999,6 +1235,13 @@ class NamespaceManager(dict):
         return None
 
     def get_anonymous_identifier(self, local_prefix='id'):
+        """
+        Returns an anonymous identifier (without a namespace prefix).
+
+        :param local_prefix: Optional local namespace prefix as a string
+            (default: 'id').
+        :return: :py:class:`~prov.identifier.Identifier`
+        """
         self._anon_id_count += 1
         return Identifier('_:%s%d' % (local_prefix, self._anon_id_count))
 
@@ -1625,7 +1868,7 @@ class ProvBundle(object):
     def delegation(self, delegate, responsible, activity=None, identifier=None,
                    other_attributes=None):
         """
-        Creates a new delegation record XXX.
+        Creates a new delegation record on behalf of an agent.
 
         :param delegate: XXX
         :param responsible: XXX
