@@ -15,9 +15,6 @@ Introduction
 .. image:: https://img.shields.io/pypi/wheel/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
-.. image:: https://img.shields.io/pypi/dm/prov.svg
-  :target: https://pypi.python.org/pypi/prov/
-  :alt: Downloads
 .. image:: https://img.shields.io/pypi/pyversions/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Supported Python version
