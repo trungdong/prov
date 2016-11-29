@@ -631,8 +631,10 @@ class ProvEntity(ProvElement):
         :param usedEntity: Entity or a string identifier for the used entity.
         :param activity: Activity or string identifier of the activity involved in
             the derivation (default: None).
-        :param generation: XXX (default: None).
-        :param usage: XXX (default: None).
+        :param generation: Optionally extra activity to state qualified derivation
+            through an internal generation (default: None).
+        :param usage: Optionally extra entity to state qualified derivation through
+            an internal usage (default: None).
         :param attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
         """
@@ -747,7 +749,7 @@ class ProvActivity(ProvElement):
         """
         Creates a new communication record for this activity.
 
-        :param informant: XXX
+        :param informant: The informing activity (relationship source).
         :param attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
         """
@@ -758,10 +760,13 @@ class ProvActivity(ProvElement):
 
     def wasStartedBy(self, trigger, starter=None, time=None, attributes=None):
         """
-        Creates a new start record for this activity.
+        Creates a new start record for this activity. The activity did not exist
+        before the start by the trigger.
 
-        :param trigger: XXX
-        :param starter: XXX
+        :param trigger: Entity triggering the start of this activity.
+        :param starter: Optionally extra activity to state a qualified start
+            through which the trigger entity for the start is generated
+            (default: None).
         :param time: Optional time for the start (default: None).
             Either a :py:class:`datetime.datetime` object or a string that can be
             parsed by :py:func:`dateutil.parser`.
@@ -777,8 +782,9 @@ class ProvActivity(ProvElement):
         """
         Creates a new end record for this activity.
 
-        :param trigger: XXX
-        :param ender: XXX
+        :param trigger: Entity triggering the end of this activity.
+        :param ender: Optionally extra activity to state a qualified end through
+            which the trigger entity for the end is generated (default: None).
         :param time: Optional time for the end (default: None).
             Either a :py:class:`datetime.datetime` object or a string that can be
             parsed by :py:func:`dateutil.parser`.
@@ -796,7 +802,8 @@ class ProvActivity(ProvElement):
 
         :param agent: Agent or string identifier of the agent involved in the
             association (default: None).
-        :param plan: XXX (default: None).
+        :param plan: Optionally extra entity to state qualified association through
+            an internal plan (default: None).
         :param attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
         """
@@ -895,8 +902,9 @@ class ProvAgent(ProvElement):
         """
         Creates a new delegation record on behalf of this agent.
 
-        :param responsible: XXX
-        :param activity: XXX (default: None).
+        :param responsible: Agent the responsibility is delegated to.
+        :param activity: Optionally extra activity to state qualified delegation
+            internally (default: None).
         :param attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
         """
@@ -1726,8 +1734,10 @@ class ProvBundle(object):
         Creates a new start record for an activity.
 
         :param activity: Activity or a string identifier for the entity.
-        :param trigger: XXX
-        :param starter: XXX
+        :param trigger: Entity triggering the start of this activity.
+        :param starter: Optionally extra activity to state a qualified start
+            through which the trigger entity for the start is generated
+            (default: None).
         :param time: Optional time for the start (default: None).
             Either a :py:class:`datetime.datetime` object or a string that can be
             parsed by :py:func:`dateutil.parser`.
@@ -1751,8 +1761,10 @@ class ProvBundle(object):
         Creates a new end record for an activity.
 
         :param activity: Activity or a string identifier for the entity.
-        :param trigger: XXX
-        :param ender: XXX
+        :param trigger: trigger: Entity triggering the end of this activity.
+        :param ender: Optionally extra activity to state a qualified end
+            through which the trigger entity for the end is generated
+            (default: None).
         :param time: Optional time for the end (default: None).
             Either a :py:class:`datetime.datetime` object or a string that can be
             parsed by :py:func:`dateutil.parser`.
@@ -1799,8 +1811,8 @@ class ProvBundle(object):
         """
         Creates a new communication record for an entity.
 
-        :param informed: XXX
-        :param informant: XXX
+        :param informed: The informed activity (relationship destination).
+        :param informant: The informing activity (relationship source).
         :param identifier: Identifier for new communication record.
         :param other_attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
@@ -1828,9 +1840,10 @@ class ProvBundle(object):
         """
         Creates a new attribution record between an entity and an agent.
 
-        :param entity: Entity or a string identifier for the entity.
+        :param entity: Entity or a string identifier for the entity (relationship
+            source).
         :param agent: Agent or string identifier of the agent involved in the
-            attribution.
+            attribution (relationship destination).
         :param identifier: Identifier for new attribution record.
         :param other_attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
@@ -1851,7 +1864,8 @@ class ProvBundle(object):
         :param activity: Activity or a string identifier for the activity.
         :param agent: Agent or string identifier of the agent involved in the
             association (default: None).
-        :param plan: XXX (default: None).
+        :param plan: Optionally extra entity to state qualified association through
+            an internal plan (default: None).
         :param identifier: Identifier for new association record.
         :param other_attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
@@ -1870,9 +1884,11 @@ class ProvBundle(object):
         """
         Creates a new delegation record on behalf of an agent.
 
-        :param delegate: XXX
-        :param responsible: XXX
-        :param activity: XXX (default: None).
+        :param delegate: Agent delegating the responsibility (relationship source).
+        :param responsible: Agent the responsibility is delegated to (relationship
+            destination).
+        :param activity: Optionally extra activity to state qualified delegation
+            internally (default: None).
         :param identifier: Identifier for new association record.
         :param other_attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
@@ -1889,11 +1905,13 @@ class ProvBundle(object):
     def influence(self, influencee, influencer, identifier=None,
                   other_attributes=None):
         """
-        Creates a new influence record XXX.
+        Creates a new influence record between two entities, activities or agents.
 
-        :param influencee: XXX
-        :param influencer: XXX
-        :param identifier: Identifier for new association record.
+        :param influencee: Influenced entity, activity or agent (relationship
+            source).
+        :param influencer: Influencing entity, activity or agent (relationship
+            destination).
+        :param identifier: Identifier for new influence record.
         :param other_attributes: Optional other attributes as a dictionary or list
             of tuples to be added to the record optionally (default: None).
         """
@@ -1912,11 +1930,13 @@ class ProvBundle(object):
         Creates a new derivation record for a generated entity from a used entity.
 
         :param generatedEntity: Entity or a string identifier for the generated
-            entity.
-        :param usedEntity: Entity or a string identifier for the used entity.
+            entity (relationship source).
+        :param usedEntity: Entity or a string identifier for the used entity
+            (relationship destination).
         :param activity: Activity or string identifier of the activity involved in
             the derivation (default: None).
-        :param generation: XXX (default: None).
+        :param generation: Optionally extra activity to state qualified generation
+            through a generation (default: None).
         :param usage: XXX (default: None).
         :param identifier: Identifier for new derivation record.
         :param other_attributes: Optional other attributes as a dictionary or list
@@ -1938,11 +1958,13 @@ class ProvBundle(object):
         Creates a new revision record for a generated entity from a used entity.
 
         :param generatedEntity: Entity or a string identifier for the generated
-            entity.
-        :param usedEntity: Entity or a string identifier for the used entity.
+            entity (relationship source).
+        :param usedEntity: Entity or a string identifier for the used entity
+            (relationship destination).
         :param activity: Activity or string identifier of the activity involved in
             the revision (default: None).
-        :param generation: XXX (default: None).
+        :param generation: Optionally to state qualified revision through a
+            generation activity (default: None).
         :param usage: XXX (default: None).
         :param identifier: Identifier for new revision record.
         :param other_attributes: Optional other attributes as a dictionary or list
@@ -1962,11 +1984,13 @@ class ProvBundle(object):
         Creates a new quotation record for a generated entity from a used entity.
 
         :param generatedEntity: Entity or a string identifier for the generated
-            entity.
-        :param usedEntity: Entity or a string identifier for the used entity.
+            entity (relationship source).
+        :param usedEntity: Entity or a string identifier for the used entity
+            (relationship destination).
         :param activity: Activity or string identifier of the activity involved in
             the quotation (default: None).
-        :param generation: XXX (default: None).
+        :param generation: Optionally to state qualified quotation through a
+            generation activity (default: None).
         :param usage: XXX (default: None).
         :param identifier: Identifier for new quotation record.
         :param other_attributes: Optional other attributes as a dictionary or list
@@ -1987,11 +2011,13 @@ class ProvBundle(object):
         entity.
 
         :param generatedEntity: Entity or a string identifier for the generated
-            entity.
-        :param usedEntity: Entity or a string identifier for the used entity.
+            entity (relationship source).
+        :param usedEntity: Entity or a string identifier for the used entity
+            (relationship destination).
         :param activity: Activity or string identifier of the activity involved in
             the primary source (default: None).
-        :param generation: XXX (default: None).
+        :param generation: Optionally to state qualified primary source through a
+            generation activity (default: None).
         :param usage: XXX (default: None).
         :param identifier: Identifier for new primary source record.
         :param other_attributes: Optional other attributes as a dictionary or list
@@ -2009,8 +2035,9 @@ class ProvBundle(object):
         Creates a new specialisation record for a specific from a general entity.
 
         :param specificEntity: Entity or a string identifier for the specific
-            entity.
-        :param generalEntity: Entity or a string identifier for the general entity.
+            entity (relationship source).
+        :param generalEntity: Entity or a string identifier for the general entity
+            (relationship destination).
         """
         return self.new_record(
             PROV_SPECIALIZATION, None, {
@@ -2023,8 +2050,10 @@ class ProvBundle(object):
         """
         Creates a new alternate record between two entities.
 
-        :param alternate1: Entity or a string identifier for the first entity.
-        :param alternate2: Entity or a string identifier for the second entity.
+        :param alternate1: Entity or a string identifier for the first entity
+            (relationship source).
+        :param alternate2: Entity or a string identifier for the second entity
+            (relationship destination).
         """
         return self.new_record(
             PROV_ALTERNATE, None, {
@@ -2038,8 +2067,9 @@ class ProvBundle(object):
         Creates a new mention record for a specific from a general entity.
 
         :param specificEntity: Entity or a string identifier for the specific
-            entity.
-        :param generalEntity: Entity or a string identifier for the general entity.
+            entity (relationship source).
+        :param generalEntity: Entity or a string identifier for the general entity
+            (relationship destination).
         :param bundle: XXX
         """
         return self.new_record(
@@ -2081,7 +2111,7 @@ class ProvBundle(object):
     def plot(self, filename=None, show_nary=True, use_labels=False,
              show_element_attributes=True, show_relation_attributes=True):
         """
-        Convenience function to plot a prov document.
+        Convenience function to plot a PROV document.
 
         :param filename: The filename to save to. If not given, it will open
             an interactive matplotlib plot. The filetype is determined from
@@ -2279,7 +2309,6 @@ class ProvDocument(ProvBundle):
 
         :param other: The other document/bundle whose records to be appended.
         :type other: :py:class:`ProvDocument` or :py:class:`ProvBundle`
-
         :returns: None.
         """
         if isinstance(other, ProvBundle):
