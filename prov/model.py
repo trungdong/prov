@@ -200,6 +200,9 @@ class ProvWarning(Warning):
 class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
 
+    qname = None
+    """Intended qualified name."""
+
     def __init__(self, qname):
         """
         Constructor.
