@@ -2,5 +2,5 @@
 coverage==4.2
 flake8
 sphinx==1.4.8
-tox
+tox==2.4.1
 wheel==0.29.0
