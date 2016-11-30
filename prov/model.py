@@ -200,6 +200,9 @@ class ProvWarning(Warning):
 class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
 
+    qname = None
+    """Intended qualified name."""
+
     def __init__(self, qname):
         """
         Constructor.
@@ -225,7 +228,11 @@ class ProvElementIdentifierRequired(ProvException):
 @six.python_2_unicode_compatible
 class ProvRecord(object):
     """Base class for PROV records."""
+
     FORMAL_ATTRIBUTES = ()
+
+    _prov_type = None
+    """PROV type of record."""
 
     def __init__(self, bundle, identifier, attributes=None):
         """
@@ -255,8 +262,8 @@ class ProvRecord(object):
         )
 
     def get_type(self):
-        """Returning the PROV type of the record."""
-        pass
+        """Returns the PROV type of the record."""
+        return self._prov_type
 
     def get_asserted_types(self):
         """Returns the set of all asserted PROV types of this record."""
@@ -583,9 +590,7 @@ class ProvRelation(ProvRecord):
 class ProvEntity(ProvElement):
     """Provenance Entity element"""
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_ENTITY
+    _prov_type = PROV_ENTITY
 
     # Convenient assertions that take the current ProvEntity as the first
     # (formal) argument
@@ -689,9 +694,7 @@ class ProvActivity(ProvElement):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_ACTIVITY
+    _prov_type = PROV_ACTIVITY
 
     #  Convenient methods
     def set_time(self, startTime=None, endTime=None):
@@ -818,9 +821,7 @@ class ProvGeneration(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_GENERATION
+    _prov_type = PROV_GENERATION
 
 
 class ProvUsage(ProvRelation):
@@ -828,9 +829,7 @@ class ProvUsage(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_ENTITY, PROV_ATTR_TIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_USAGE
+    _prov_type = PROV_USAGE
 
 
 class ProvCommunication(ProvRelation):
@@ -838,9 +837,7 @@ class ProvCommunication(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_COMMUNICATION
+    _prov_type = PROV_COMMUNICATION
 
 
 class ProvStart(ProvRelation):
@@ -849,9 +846,7 @@ class ProvStart(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER,
                          PROV_ATTR_STARTER, PROV_ATTR_TIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_START
+    _prov_type = PROV_START
 
 
 class ProvEnd(ProvRelation):
@@ -860,9 +855,7 @@ class ProvEnd(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_TRIGGER,
                          PROV_ATTR_ENDER, PROV_ATTR_TIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_END
+    _prov_type = PROV_END
 
 
 class ProvInvalidation(ProvRelation):
@@ -870,9 +863,7 @@ class ProvInvalidation(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_TIME)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_INVALIDATION
+    _prov_type = PROV_INVALIDATION
 
 
 # Component 2: Derivations
@@ -883,18 +874,14 @@ class ProvDerivation(ProvRelation):
                          PROV_ATTR_ACTIVITY, PROV_ATTR_GENERATION,
                          PROV_ATTR_USAGE)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_DERIVATION
+    _prov_type = PROV_DERIVATION
 
 
 # Component 3: Agents, Responsibility, and Influence
 class ProvAgent(ProvElement):
     """Provenance Agent element."""
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_AGENT
+    _prov_type = PROV_AGENT
 
     # Convenient assertions that take the current ProvAgent as the first
     # (formal) argument
@@ -919,9 +906,7 @@ class ProvAttribution(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ENTITY, PROV_ATTR_AGENT)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_ATTRIBUTION
+    _prov_type = PROV_ATTRIBUTION
 
 
 class ProvAssociation(ProvRelation):
@@ -929,9 +914,7 @@ class ProvAssociation(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT, PROV_ATTR_PLAN)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_ASSOCIATION
+    _prov_type = PROV_ASSOCIATION
 
 
 class ProvDelegation(ProvRelation):
@@ -940,9 +923,7 @@ class ProvDelegation(ProvRelation):
     FORMAL_ATTRIBUTES = (PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE,
                          PROV_ATTR_ACTIVITY)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_DELEGATION
+    _prov_type = PROV_DELEGATION
 
 
 class ProvInfluence(ProvRelation):
@@ -950,9 +931,7 @@ class ProvInfluence(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_INFLUENCEE, PROV_ATTR_INFLUENCER)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_INFLUENCE
+    _prov_type = PROV_INFLUENCE
 
 
 # Component 5: Alternate Entities
@@ -961,9 +940,7 @@ class ProvSpecialization(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_SPECIALIZATION
+    _prov_type = PROV_SPECIALIZATION
 
 
 class ProvAlternate(ProvRelation):
@@ -971,9 +948,7 @@ class ProvAlternate(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_ALTERNATE
+    _prov_type = PROV_ALTERNATE
 
 
 class ProvMention(ProvSpecialization):
@@ -982,9 +957,7 @@ class ProvMention(ProvSpecialization):
     FORMAL_ATTRIBUTES = (PROV_ATTR_SPECIFIC_ENTITY, PROV_ATTR_GENERAL_ENTITY,
                          PROV_ATTR_BUNDLE)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_MENTION
+    _prov_type = PROV_MENTION
 
 
 # Component 6: Collections
@@ -993,9 +966,7 @@ class ProvMembership(ProvRelation):
 
     FORMAL_ATTRIBUTES = (PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY)
 
-    def get_type(self):
-        """Returning the PROV type of the record."""
-        return PROV_MEMBERSHIP
+    _prov_type = PROV_MEMBERSHIP
 
 
 #  Class mappings from PROV record type

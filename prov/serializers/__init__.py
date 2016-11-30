@@ -14,6 +14,9 @@ from prov import Error
 class Serializer(object):
     """Serializer for PROV documents."""
 
+    document = None
+    """PROV document to serialise."""
+
     def __init__(self, document=None):
         """
         Constructor.
