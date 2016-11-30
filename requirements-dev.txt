@@ -1,5 +1,5 @@
 -r requirements.txt
-coverage
+coverage==4.2
 flake8
 sphinx==1.4.8
 tox
