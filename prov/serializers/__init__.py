@@ -30,11 +30,7 @@ class Serializer(object):
         Abstract method for serializing.
 
         :param stream: Stream object to serialize the document into.
-        """def get_type(self):def get_type(self):
-        """Returning the PROV type of the record."""
-        return
-        """Returning the PROV type of the record."""
-        return
+        """
 
     def deserialize(self, stream, **kwargs):
         """
