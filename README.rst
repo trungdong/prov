@@ -12,6 +12,9 @@ Introduction
 .. image:: https://img.shields.io/coveralls/trungdong/prov.svg
   :target: https://coveralls.io/r/trungdong/prov?branch=master
   :alt: Coverage Status
+.. image:: https://landscape.io/github/trungdong/prov/master/landscape.svg?style=flat
+  :target: https://landscape.io/github/trungdong/prov/master
+  :alt: Code Health
 .. image:: https://img.shields.io/pypi/wheel/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
