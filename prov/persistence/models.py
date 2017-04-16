@@ -74,10 +74,11 @@ class PDBundle(PDRecord):
 
     @staticmethod
     def create(bundle_id):
-        return PDBundle.objects.create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE)
+        bundle, _ = PDBundle.objects.get_or_create(rec_id=bundle_id, rec_type=prov.PROV_REC_BUNDLE)
+        return bundle
 
     def add_namespace(self, prefix, uri):
-        namespace = PDNamespace.objects.create(prefix=prefix, uri=uri, bundle=self)
+        namespace, _ = PDNamespace.objects.get_or_create(prefix=prefix, uri=uri, bundle=self)
         return namespace
 
     def add_prov_bundle(self, bundle):
@@ -145,13 +146,13 @@ def _encode_python_literal(literal):
         else:
             return value, datatype.get_uri() if isinstance(datatype, prov.Identifier) else datatype, langtag
     else:
-        return literal, type(literal), None
+        return literal, unicode(type(literal)), None
 
 DATATYPE_FUNCTIONS_MAP = {'xsd:dateTime': prov.parse_xsd_dateTime,
                           "<type 'datetime.datetime'>": prov.parse_xsd_dateTime,
                           "<type 'str'>": unicode,
                           "<type 'unicode'>": unicode,
-                          "<type 'bool'>": bool,
+                          "<type 'bool'>": lambda x: x.lower() != 'false',
                           "<type 'int'>": int,
                           "<type 'long'>": long,
                           "<type 'float'>": float}
@@ -174,11 +175,17 @@ def _create_pdrecord(prov_record, bundle, record_map):
     record_uri = None if record_id is None else record_id.get_uri()
     if prov_type != prov.PROV_REC_BUNDLE:
         # Create a normal record
-        pdrecord = PDRecord.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
+        pdrecord, _ = PDRecord.objects.get_or_create(rec_id=record_uri,
+                                                     rec_type=prov_type,
+                                                     bundle=bundle,
+                                                     asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
     else:
         # Create an bundle record
-        pdrecord = PDBundle.objects.create(rec_id=record_uri, rec_type=prov_type, bundle=bundle, asserted=prov_record.is_asserted())
+        pdrecord, _ = PDBundle.objects.get_or_create(rec_id=record_uri,
+                                                     rec_type=prov_type,
+                                                     bundle=bundle,
+                                                     asserted=prov_record.is_asserted())
         record_map[prov_record] = pdrecord
         # Recursive call to save this bundle
         _save_bundle(pdrecord, prov_record.get_records(), record_map, prov_record)
@@ -200,19 +207,19 @@ def _create_pdrecord(prov_record, bundle, record_map):
                     other_record = _create_pdrecord(value, bundle, record_map)
                 else:
                     other_record = record_map[value]
-                RecordAttribute.objects.create(record=pdrecord, value=other_record, prov_type=attr)
+                RecordAttribute.objects.get_or_create(record=pdrecord, value=other_record, prov_type=attr)
             else:
                 # Create a literal attribute
                 attr_name = prov.PROV_ID_ATTRIBUTES_MAP[attr]
                 value, datatype, langtag = _encode_python_literal(value)
-                LiteralAttribute.objects.create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype, langtag=langtag)
+                LiteralAttribute.objects.get_or_create(record=pdrecord, prov_type=attr, name=attr_name, value=value, datatype=datatype, langtag=langtag)
 
     if extra_attributes:
         for (attr, value) in extra_attributes:
             # Create a literal attribute
             attr_name = attr.get_uri() if isinstance(attr, prov.Identifier) else attr
             value, datatype, langtag = _encode_python_literal(value)
-            LiteralAttribute.objects.create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype, langtag=langtag)
+            LiteralAttribute.objects.get_or_create(record=pdrecord, prov_type=None, name=attr_name, value=value, datatype=datatype, langtag=langtag)
 
     return pdrecord
 
