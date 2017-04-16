@@ -139,7 +139,7 @@ PROV_ATTR_INFLUENCER = PROV['influencer']
 PROV_ATTR_COLLECTION = PROV['collection']
 
 #  Literal properties
-PROV_ATTR_TIME = PROV['time']
+PROV_ATTR_TIME = PROV['atTime']
 PROV_ATTR_STARTTIME = PROV['startTime']
 PROV_ATTR_ENDTIME = PROV['endTime']
 
