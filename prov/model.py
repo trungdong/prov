@@ -1527,6 +1527,9 @@ class ProvBundle(object):
                 if merged not in added_merged_records:
                     unified_records.append(merged)
                     added_merged_records.add(merged)
+            elif record in unified_records:
+                #if record is allready there (prevent duplicate records)
+                pass
             else:
                 # add the original record
                 unified_records.append(record)
@@ -2341,6 +2344,27 @@ class ProvDocument(ProvBundle):
         if valid_id in self._bundles:
             raise ProvException('A bundle with that identifier already exists')
 
+        #Add prov_type to entry if it is the right type and identifier
+        if valid_id in self._id_map.keys():
+            bundle_entities = self._id_map[valid_id]
+            #For each entry with the bundle identifier
+            for bundle_entity in bundle_entities:
+                if not isinstance(bundle_entity,ProvEntity):
+                    raise ProvException('A prov record with that identifier already exists')
+                # get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                found = False
+                # get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                prov_tpye_set.discard(PROV_BUNDLE)
+                prov_tpye_set.discard(str(PROV_BUNDLE))
+                prov_tpye_set.add(PROV_BUNDLE)
+
+        else:
+            #Create new prov entry
+            bundle_entity = ProvEntity(bundle=self,identifier=valid_id,attributes={PROV_TYPE:PROV_BUNDLE})
+            self.add_record(bundle_entity)
+
         self._bundles[valid_id] = bundle
         bundle._document = self
 
@@ -2362,8 +2386,29 @@ class ProvDocument(ProvBundle):
             )
         if valid_id in self._bundles:
             raise ProvException('A bundle with that identifier already exists')
+
         b = ProvBundle(identifier=valid_id, document=self)
         self._bundles[valid_id] = b
+
+        # Add prov_type to entry if it is the right type and identifier
+        if valid_id in self._id_map.keys():
+            bundle_entities = self._id_map[valid_id]
+            # For each entry with the bundle identifier
+            for bundle_entity in bundle_entities:
+                if not isinstance(bundle_entity, ProvEntity):
+                    raise ProvException('A prov record with that identifier already exists')
+
+                #get the PROV_TYPE attr and ensure that the PROV_TYPE => PROV_BUNDLE is set as attr. value
+                prov_tpye_set = bundle_entity.get_attribute(PROV_TYPE)
+                prov_tpye_set.discard(PROV_BUNDLE)
+                prov_tpye_set.discard(str(PROV_BUNDLE))
+                prov_tpye_set.add(PROV_BUNDLE)
+
+        else:
+            # Create new prov entry
+            bundle_entity = ProvEntity(bundle=self, identifier=valid_id, attributes={PROV_TYPE: PROV_BUNDLE})
+            self.add_record(bundle_entity)
+
         return b
 
     # Serializing and deserializing
