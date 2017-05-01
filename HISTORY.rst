@@ -3,7 +3,7 @@
 History
 -------
 
-1.5.0 (2015-10-19)
+1.5.0 (2016-10-19)
 ^^^^^^^^^^^^^^^^^^
 * Added: Support for `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF) serialization and deserialization
 * Added: `direction` option for :py:meth:`prov.dot.prov_to_dot`
