@@ -86,15 +86,6 @@ class ProvRDFSerializer(Serializer):
         newargs = kwargs.copy()
         newargs['format'] = rdf_format
 
-        if newargs['format'] == 'trig':
-            gr = ConjunctiveGraph()
-            gr.context_aware = True
-            gr.parse(data=container.serialize(format='nquads'), format='nquads')
-            for namespace in container.namespaces():
-                if namespace not in list(gr.namespaces()):
-                    gr.bind(namespace[0], namespace[1])
-            container = gr
-
         if six.PY2:
             buf = io.BytesIO()
             try:
@@ -159,7 +150,6 @@ class ProvRDFSerializer(Serializer):
         else:
             return RDFLiteral(value)
 
-
     def decode_rdf_representation(self, literal, graph):
         if isinstance(literal, RDFLiteral):
             value = literal.value if literal.value is not None else literal
@@ -173,6 +163,14 @@ class ProvRDFSerializer(Serializer):
                 return pm.Literal(literal, datatype=XSD_QNAME)
             if datatype == XSD['dateTime']:
                 return dateutil.parser.parse(literal)
+            if datatype == XSD['gYear']:
+                return Literal(dateutil.parser.parse(literal).year,
+                               datatype=self.valid_identifier(datatype))
+            if datatype == XSD['gYearMonth']:
+                parsed_info = dateutil.parser.parse(literal)
+                return Literal('{0}-{1:02d}'.format(parsed_info.year,
+                                                    parsed_info.month),
+                               datatype=self.valid_identifier(datatype))
             else:
                 # The literal of standard Python types is not converted here
                 # It will be automatically converted when added to a record by _auto_literal_conversion()
