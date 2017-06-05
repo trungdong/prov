@@ -40,7 +40,7 @@ def find_diff(g_rdf, g0_rdf):
             try:
                 all_match = all([g1_stmt[i].eq(g2_stmt[i]) for i in range(3)])
             except TypeError as e:
-                #print(e, g1_stmt, g2_stmt)
+                #logger.info(e, g1_stmt, g2_stmt)
                 all_match = False
             if all_match:
                 matching_indices[0].append(idx)
@@ -59,6 +59,8 @@ def find_diff(g_rdf, g0_rdf):
     for idx in range(len(g2)):
         if not idx in matching_indices[1]:
             in_second2.parse(BytesIO(g2[idx]), format='nt')
+    #logger.info(in_first2)
+    #logger.info(in_second2)
     return graphs_equal, in_both, in_first2, in_second2
 
 
@@ -197,11 +199,11 @@ class TestRDFSerializer(unittest.TestCase):
                       306, 313, 315, 317, 322, 323, 324, 325, 330, 332, 344,
                       346, 382, 389, 395, 397,
                       ]
+        errors = []
         for idx, fname in enumerate(json_files):
             _, ttl_file = os.path.split(fname)
             ttl_file = os.path.join(os.path.dirname(__file__), 'rdf',
                                     ttl_file.replace('json', 'ttl'))
-            error_raised = False
             try:
                 g = pm.ProvDocument.deserialize(fname)
                 if len(g.bundles) == 0:
@@ -217,7 +219,8 @@ class TestRDFSerializer(unittest.TestCase):
                     StringIO(g.serialize(format='rdf', rdf_format=format)),
                     format=format)
                 if idx not in skip_match:
-                    self.assertTrue(find_diff(g_rdf, g0_rdf)[0])
+                    match, _, in_first, in_second = find_diff(g_rdf, g0_rdf)
+                    self.assertTrue(match)
                 else:
                     logger.info('Skipping match: %s' % fname)
                 if idx in skip:
@@ -227,10 +230,9 @@ class TestRDFSerializer(unittest.TestCase):
                     content=g.serialize(format='rdf', rdf_format=format),
                     format='rdf', rdf_format=format)
             except Exception as e:
-                print(e)
-                logger.info(e)
-                error_raised = True
-            self.assertFalse(error_raised)
+                #logger.info(e)
+                errors.append((e, idx, fname, in_first, in_second))
+        self.assertFalse(errors)
 
 
 class RoundTripRDFTests(RoundTripTestCase, AllTestsBase):
