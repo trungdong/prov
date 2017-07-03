@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-try:
-    from setuptools import setup, find_packages
-except ImportError:
-    from distutils.core import setup, find_packages
+from setuptools import setup, find_packages
+from codecs import open
+from os import path
 
+here = path.abspath(path.dirname(__file__))
 
-readme = open('README.rst').read()
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
+with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
+    readme = f.read()
+
+with open(path.join(here, 'HISTORY.rst'), encoding='utf-8') as f:
+    history = f.read().replace('.. :changelog:', '')
 
 requirements = [
     'python-dateutil',
@@ -19,7 +22,7 @@ requirements = [
 ]
 
 test_requirements = [
-    'pydotplus'
+    'pydot>=1.2.0'
 ]
 
 setup(
@@ -31,7 +34,7 @@ setup(
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     url='https://github.com/trungdong/prov',
-    packages=find_packages(),
+    packages=find_packages(exclude=['dev', 'docs']),
     package_dir={
         'prov': 'prov'
     },
@@ -39,7 +42,7 @@ setup(
     include_package_data=True,
     install_requires=requirements,
     extras_require={
-        'dot': ['pydotplus'],
+        'dot': ['pydot>=1.2.0'],
     },
     license="MIT",
     zip_safe=False,
@@ -54,14 +57,15 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
-        "Programming Language :: Python :: 2",
+        'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
-        "Programming Language :: Python :: 3",
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Programming Language :: Python :: Implementation :: PyPy",
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Security',
         'Topic :: System :: Logging',

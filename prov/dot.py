@@ -1,11 +1,11 @@
 """Graphical visualisation support for prov.model.
 
 This module produces graphical visualisation for provenanve graphs.
-Requires pydotplus module and Graphviz.
+Requires pydot module and Graphviz.
 
 References:
 
-* pydotplus homepage: http://pydotplus.readthedocs.io/
+* pydot homepage: https://github.com/erocarrera/pydot
 * Graphviz:       http://www.graphviz.org/
 * DOT Language:   http://www.graphviz.org/doc/info/lang.html
 
@@ -14,15 +14,12 @@ References:
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
-
 try:
     from html import escape
 except ImportError:
     from cgi import escape
 from datetime import datetime
-import pydotplus as pydot
+import pydot
 import six
 
 from prov.model import (
@@ -33,6 +30,9 @@ from prov.model import (
     PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier,
     PROV_ATTRIBUTE_QNAMES, sorted_attributes, ProvException
 )
+
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
 
 
 # Visual styles for various elements (nodes) and relations (edges)
@@ -145,7 +145,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
     Convert a provenance bundle/document into a DOT graphical representation.
 
     :param bundle: The provenance bundle/document to be converted.
-    :type name: :class:`ProvBundle`
+    :type bundle: :class:`ProvBundle`
     :param show_nary: shows all elements in n-ary relations.
     :type show_nary: bool
     :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
@@ -210,7 +210,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 else:
                     # Fancier label if both are different. The label will be
                     # the main node text, whereas the identifier will be a
-                    # kind of suptitle.
+                    # kind of subtitle.
                     bundle_label = ('<%s<br />'
                                     '<font color="#333333" point-size="10">'
                                     '%s</font>>')
@@ -234,7 +234,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 else:
                     # Fancier label if both are different. The label will be
                     # the main node text, whereas the identifier will be a
-                    # kind of suptitle.
+                    # kind of subtitle.
                     node_label = ('<%s<br />'
                                   '<font color="#333333" point-size="10">'
                                   '%s</font>>')
