@@ -8,7 +8,7 @@ from __future__ import (absolute_import, division, print_function,
 
 import unittest
 
-# Skiping SVG tests if pydot is not installed
+# Skipping SVG tests if pydot is not installed
 from pkgutil import find_loader
 if find_loader("pydot") is not None:
 
@@ -21,7 +21,7 @@ if find_loader("pydot") is not None:
         """
         One-way output SVG with prov.dot to exercise its code
         """
-        MIN_SVG_SIZE = 900
+        MIN_SVG_SIZE = 850
 
         def do_tests(self, prov_doc, msg=None):
             dot = prov_to_dot(prov_doc)
@@ -29,8 +29,7 @@ if find_loader("pydot") is not None:
             # Very naive check of the returned SVG content as we have no way to check the graphical content
             self.assertGreater(
                 len(svg_content), self.MIN_SVG_SIZE,
-                "The size of the generated SVG content (%d) should be greater than %d bytes" %
-                    (len(svg_content), self.MIN_SVG_SIZE)
+                "The size of the generated SVG content should be greater than %d bytes" % self.MIN_SVG_SIZE
             )
 
 
