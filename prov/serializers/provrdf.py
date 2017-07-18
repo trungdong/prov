@@ -543,7 +543,7 @@ def walk(children, level=0, path=None, usename=True):
 
     :Example:
 
-    >>> from nipype.pipeline.engine.utils import walk
+    >>> from prov.serializers.provrdf import walk
     >>> iterables = [('a', lambda: [1, 2]), ('b', lambda: [3, 4])]
     >>> [val['a'] for val in walk(iterables)]
     [1, 1, 2, 2]
