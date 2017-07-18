@@ -541,8 +541,8 @@ class ProvRDFSerializer(Serializer):
 def walk(children, level=0, path=None, usename=True):
     """Generate all the full paths in a tree, as a dict.
 
-    Examples
-    --------
+    :Example:
+
     >>> from nipype.pipeline.engine.utils import walk
     >>> iterables = [('a', lambda: [1, 2]), ('b', lambda: [3, 4])]
     >>> [val['a'] for val in walk(iterables)]

@@ -1361,7 +1361,7 @@ class ProvBundle(object):
         :param class_or_type_or_tuple: A filter on the type for which records are
             to be returned (default: None). The filter checks by the type of the
             record using the `isinstance` check on the record.
-        :return: List of :py:class:`ProvRecord`s
+        :return: List of :py:class:`ProvRecord` objects.
         """
         results = list(self._records)
         if class_or_type_or_tuple:

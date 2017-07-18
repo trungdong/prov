@@ -11,40 +11,40 @@ Subpackages
 Submodules
 ----------
 
-prov.constants module
----------------------
+prov\.constants module
+----------------------
 
 .. automodule:: prov.constants
     :members:
     :undoc-members:
     :show-inheritance:
 
-prov.dot module
----------------
+prov\.dot module
+----------------
 
 .. automodule:: prov.dot
     :members:
     :undoc-members:
     :show-inheritance:
 
-prov.graph module
------------------
+prov\.graph module
+------------------
 
 .. automodule:: prov.graph
     :members:
     :undoc-members:
     :show-inheritance:
 
-prov.identifier module
-----------------------
+prov\.identifier module
+-----------------------
 
 .. automodule:: prov.identifier
     :members:
     :undoc-members:
     :show-inheritance:
 
-prov.model module
------------------
+prov\.model module
+------------------
 
 .. automodule:: prov.model
     :members:
