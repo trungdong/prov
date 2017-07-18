@@ -1,23 +1,21 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-__author__ = 'Lion Krischer'
-__email__ = 'krischer@geophysik.uni-muenchen.de'
-
 import datetime
 import logging
 from lxml import etree
 import io
 import warnings
-import six
-
-logger = logging.getLogger(__name__)
-
 import prov
 import prov.identifier
 from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.constants import *  # NOQA
 
+
+__author__ = 'Lion Krischer'
+__email__ = 'krischer@geophysik.uni-muenchen.de'
+
+logger = logging.getLogger(__name__)
 
 # Create a dictionary containing all top-level PROV XML elements for an easy
 # mapping.
@@ -371,6 +369,7 @@ def xml_qname_to_QualifiedName(element, qname_str):
     raise ProvXMLException(
         'Could not create a valid QualifiedName for "%s"' % qname_str
     )
+
 
 def _ns(ns, tag):
     return "{%s}%s" % (ns, tag)

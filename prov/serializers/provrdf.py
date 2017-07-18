@@ -3,35 +3,30 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-__author__ = 'Satrajit S. Ghosh'
-__email__ = 'satra@mit.edu'
-
-import logging
-logger = logging.getLogger('rdf')
-
-from collections import defaultdict, OrderedDict
-import datetime
+from collections import OrderedDict
 import io
-
-from prov.serializers import Serializer, Error
-from prov.constants import *
-from prov.model import (Literal, Identifier, QualifiedName,
-                        Namespace, ProvDocument, ProvBundle, first,
-                        parse_xsd_datetime, ProvRecord)
-
-from six import text_type
 
 import base64
 import datetime
-import dateutil.parser
-import prov.model as pm
 
-attr2rdf = lambda attr: URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].uri)
+import dateutil.parser
+from six import text_type
 
 from rdflib.term import URIRef, BNode
 from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph
 from rdflib.namespace import RDF, RDFS, XSD
+
+import prov.model as pm
+from prov.serializers import Serializer, Error
+from prov.constants import *
+from prov.model import Literal, Identifier, QualifiedName, ProvDocument, ProvRecord
+
+attr2rdf = lambda attr: URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].uri)
+
+__author__ = 'Satrajit S. Ghosh'
+__email__ = 'satra@mit.edu'
+
 
 class ProvRDFException(Error):
     pass
@@ -81,6 +76,7 @@ class ProvRDFSerializer(Serializer):
         `Prov-O <https://www.w3.org/TR/prov-o/>`_.
 
         :param stream: Where to save the output.
+        :param rdf_format: The RDF format of the input data, default: TRiG.
         """
         container = self.encode_document(self.document)
         newargs = kwargs.copy()
@@ -111,7 +107,7 @@ class ProvRDFSerializer(Serializer):
                 if isinstance(stream, io.TextIOBase):
                     stream.write(buf.read().decode('utf-8'))
                 else:
-                    stream.write(buf.read()) #.encode('utf-8'))
+                    stream.write(buf.read())
             finally:
                 buf.close()
 
@@ -120,7 +116,8 @@ class ProvRDFSerializer(Serializer):
         Deserialize from the `Prov-O <https://www.w3.org/TR/prov-o/>`_
         representation to a :class:`~prov.model.ProvDocument` instance.
 
-        :param stream: Input data.
+        :param stream: Output stream.
+        :param rdf_format: The RDF format of the output, default to TRiG.
         """
         newargs = kwargs.copy()
         newargs['format'] = rdf_format
@@ -264,9 +261,9 @@ class ProvRDFSerializer(Serializer):
                                             obj_val = self.encode_rdf_representation(record.formal_attributes[2][1])
                                             container.add((subj, URIRef(PROV['asInBundle'].uri), obj_val))
                                         has_qualifiers = False
-                            if rec_type in [PROV_ALTERNATE]: #, PROV_ASSOCIATION]:
+                            if rec_type in [PROV_ALTERNATE]:
                                 continue
-                            if subj and (has_qualifiers or identifier):  #and (len(record.extra_attributes) > 0 or                                                            identifier):
+                            if subj and (has_qualifiers or identifier):
                                 qualifier = rec_type._localpart
                                 rec_uri = rec_type.uri
                                 for attr_name, val in record.extra_attributes:

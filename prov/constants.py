@@ -1,15 +1,12 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import six
+from prov.identifier import Namespace
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
-import six
-
-#  # PROV record constants - PROV-DM
-
-# Built-in namespaces
-from prov.identifier import Namespace
 
 XSD = Namespace('xsd', 'http://www.w3.org/2001/XMLSchema#')
 PROV = Namespace('prov', 'http://www.w3.org/ns/prov#')

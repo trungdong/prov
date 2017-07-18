@@ -1,14 +1,14 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+from prov import Error
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
 __all__ = [
     'get'
 ]
-
-from prov import Error
 
 
 class Serializer(object):

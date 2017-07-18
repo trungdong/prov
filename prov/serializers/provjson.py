@@ -1,12 +1,6 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
-
-import logging
-logger = logging.getLogger(__name__)
-
 from collections import defaultdict
 import datetime
 import io
@@ -17,6 +11,12 @@ from prov.constants import *
 from prov.model import (Literal, Identifier, QualifiedName,
                         Namespace, ProvDocument, ProvBundle, first,
                         parse_xsd_datetime)
+
+import logging
+logger = logging.getLogger(__name__)
+
+__author__ = 'Trung Dong Huynh'
+__email__ = 'trungdong@donggiang.com'
 
 
 class ProvJSONException(Error):
@@ -150,10 +150,9 @@ def encode_json_container(bundle):
         container['prefix'] = prefixes
 
     id_generator = AnonymousIDGenerator()
-    real_or_anon_id = \
-        lambda r: (
-            r._identifier if r._identifier else id_generator.get_anon_id(r)
-        )
+
+    def real_or_anon_id(r):
+        return r._identifier if r._identifier else id_generator.get_anon_id(r)
 
     for record in bundle._records:
         rec_type = record.get_type()

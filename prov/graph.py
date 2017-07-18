@@ -1,12 +1,19 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import networkx as nx
+from prov.model import (
+    ProvDocument, ProvRecord, ProvElement, ProvEntity, ProvActivity, ProvAgent,
+    ProvRelation, PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT,
+    PROV_ATTR_TRIGGER, PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
+    PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE, PROV_ATTR_SPECIFIC_ENTITY,
+    PROV_ATTR_GENERAL_ENTITY, PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2,
+    PROV_ATTR_COLLECTION, PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT
+)
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
-import networkx as nx
-
-from prov.model import *
 
 INFERRED_ELEMENT_CLASS = {
     PROV_ATTR_ENTITY: ProvEntity,

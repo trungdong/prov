@@ -1,10 +1,10 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
+import six
+
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
-
-import six
 
 
 @six.python_2_unicode_compatible

@@ -2465,10 +2465,11 @@ def sorted_attributes(element, attributes):
     # sorting. We now interpret it as sorting by tag including the prefix
     # first and then sorting by the text, also including the namespace
     # prefix if given.
-    sort_fct = lambda x: (
-        six.text_type(x[0]),
-        six.text_type(x[1].value if hasattr(x[1], "value") else x[1])
-    )
+    def sort_fct(x):
+        return (
+            six.text_type(x[0]),
+            six.text_type(x[1].value if hasattr(x[1], "value") else x[1])
+        )
 
     sorted_elements = []
     for item in order:
