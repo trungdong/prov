@@ -3,6 +3,13 @@
 History
 -------
 
+1.5.1 (2017-07-18)
+^^^^^^^^^^^^^^^^^^
+* Replaced pydotplus with pydot (see #111)
+* Fixed datetime and bundle error in RDF serialisation
+* Tested against Python 3.6
+* Improved documentation
+
 1.5.0 (2016-10-19)
 ^^^^^^^^^^^^^^^^^^
 * Added: Support for `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF) serialization and deserialization
