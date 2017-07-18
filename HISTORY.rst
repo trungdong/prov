@@ -14,7 +14,7 @@ History
 ^^^^^^^^^^^^^^^^^^
 * Added: Support for `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF) serialization and deserialization
 * Added: `direction` option for :py:meth:`prov.dot.prov_to_dot`
-* Added: :py:meth:`prov.graph.graph_to_prov` to convert a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_ back to a :py:class:`~prov.model.ProvDocument`
+* Added: :py:meth:`prov.graph.graph_to_prov` to convert a `MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_ back to a :py:class:`~prov.model.ProvDocument`
 * Testing with Python 3.5
 * Various minor bug fixes and improvements
 
@@ -46,7 +46,7 @@ History
 
 1.2.0 (2014-12-19)
 ^^^^^^^^^^^^^^^^^^
-* Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_
+* Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_
 * Added: PROV-N serializer
 * Fixed: None values for empty formal attributes in PROV-N output (issue #60)
 * Fixed: PROV-N representation for xsd:dateTime (issue #58)
