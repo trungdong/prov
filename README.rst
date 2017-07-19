@@ -36,9 +36,9 @@ Features
 
 * An implementation of the `W3C PROV Data Model <http://www.w3.org/TR/prov-dm/>`_ in Python.
 * In-memory classes for PROV assertions, which can then be output as `PROV-N <http://www.w3.org/TR/prov-n/>`_
-* Serialization and deserializtion support: `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF), `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ and `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_.
+* Serialization and deserialization support: `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF), `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ and `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_.
 * Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
-* Convert a PROV document to a `Networkx MultiDiGraph <http://networkx.github.io/documentation/latest/reference/classes.multidigraph.html>`_ and back.
+* Convert a PROV document to a `Networkx MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_ and back.
 
 
 Uses
