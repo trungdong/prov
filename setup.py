@@ -10,9 +10,6 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     readme = f.read()
 
-with open(path.join(here, 'HISTORY.rst'), encoding='utf-8') as f:
-    history = f.read().replace('.. :changelog:', '')
-
 requirements = [
     'python-dateutil',
     'networkx',
@@ -30,7 +27,7 @@ setup(
     version='1.5.1',
     description='A library for W3C Provenance Data Model supporting PROV-JSON, '
                 'PROV-XML and PROV-O (RDF)',
-    long_description=readme + '\n\n' + history,
+    long_description=readme,
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     url='https://github.com/trungdong/prov',
