@@ -79,10 +79,10 @@ def graph_to_prov(g):
     :param g: The graph instance to convert.
     """
     prov_doc = ProvDocument()
-    for n in g.nodes_iter():
+    for n in g.nodes():
         if isinstance(n, ProvRecord) and n.bundle is not None:
             prov_doc.add_record(n)
-    for _, _, edge_data in g.edges_iter(data=True):
+    for _, _, edge_data in g.edges(data=True):
         try:
             relation = edge_data['relation']
             if isinstance(relation, ProvRecord):
