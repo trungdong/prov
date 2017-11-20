@@ -23,7 +23,7 @@ from prov.constants import (
     PROV_ALTERNATE, PROV_MENTION, PROV_DELEGATION, PROV_ACTIVITY, PROV_ATTR_STARTTIME,
     PROV_ATTR_ENDTIME, PROV_LOCATION, PROV_ATTR_TIME, PROV_ROLE, PROV_COMMUNICATION,
     PROV_ATTR_INFORMANT, PROV_ATTR_RESPONSIBLE, PROV_ATTR_TRIGGER, PROV_ATTR_ENDER,
-    PROV_ATTR_STARTER, PROV_ATTR_USED_ENTITY)
+    PROV_ATTR_STARTER, PROV_ATTR_USED_ENTITY, PROV_ASSOCIATION)
 from prov.serializers import Serializer, Error
 
 
@@ -252,13 +252,15 @@ class ProvRDFSerializer(Serializer):
                                     # TODO: Why is obj_attr above not used anywhere?
                                 except IndexError:
                                     obj_val = None
-                                if obj_val and (rec_type not in {PROV_END,
-                                                                PROV_START,
-                                                                PROV_USAGE,
-                                                                PROV_GENERATION,
-                                                                PROV_DERIVATION,
-                                                                PROV_INVALIDATION} or
-                                                (valid_formal_indices == {0, 1} and
+                                if obj_val and (rec_type not in
+                                                    {PROV_END,
+                                                     PROV_START,
+                                                     PROV_USAGE,
+                                                     PROV_GENERATION,
+                                                     PROV_DERIVATION,
+                                                     PROV_ASSOCIATION,
+                                                     PROV_INVALIDATION} or
+                                            (valid_formal_indices == {0, 1} and
                                                  len(record.extra_attributes) == 0)):
                                     used_objects.append(record.formal_attributes[1][0])
                                     obj_val = self.encode_rdf_representation(obj_val)
@@ -317,10 +319,13 @@ class ProvRDFSerializer(Serializer):
                                 pred = URIRef(PROV['activity'].uri)
                             if PROV['responsible'].uri in pred:
                                 pred = URIRef(PROV['agent'].uri)
-                            if rec_type == PROV_DELEGATION and PROV['activity'].uri in pred:
+                            if rec_type == PROV_DELEGATION and \
+                                            PROV['activity'].uri in pred:
                                 pred = URIRef(PROV['hadActivity'].uri)
-                            if (rec_type in [PROV_END, PROV_START] and PROV['trigger'].uri in pred) or\
-                                (rec_type in [PROV_USAGE] and PROV['used'].uri in pred):
+                            if (rec_type in [PROV_END, PROV_START] and
+                                            PROV['trigger'].uri in pred) or\
+                                (rec_type in [PROV_USAGE] and
+                                         PROV['used'].uri in pred):
                                 pred = URIRef(PROV['entity'].uri)
                             if rec_type in [PROV_GENERATION, PROV_END,
                                             PROV_START, PROV_USAGE,
