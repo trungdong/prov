@@ -11,9 +11,9 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     readme = f.read()
 
 requirements = [
-    'python-dateutil',
-    'networkx',
-    'lxml',
+    'python-dateutil>=2.2',
+    'networkx>=2.0',
+    'lxml>=3.3.5',
     'six>=1.9.0',
     'rdflib>=4.2.1'
 ]
@@ -24,7 +24,7 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.5.1',
+    version='1.5.2',
     description='A library for W3C Provenance Data Model supporting PROV-JSON, '
                 'PROV-XML and PROV-O (RDF)',
     long_description=readme,
