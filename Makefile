@@ -17,7 +17,7 @@ clean: clean-build clean-pyc
 clean-build:
 	rm -fr build/
 	rm -fr dist/
-	rm -fr *.egg-info
+	rm -fr src/*.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -25,7 +25,7 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	flake8 prov
+	flake8 src/ prov
 
 test:
 	python setup.py test
@@ -42,7 +42,7 @@ coverage:
 docs:
 	rm -f docs/prov.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ prov prov/tests
+	sphinx-apidoc -o docs/ src/prov src/prov/tests
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html

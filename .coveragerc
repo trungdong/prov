@@ -1,7 +1,14 @@
 [run]
+branch = True
 source = prov
 omit =
     */tests*
+
+[paths]
+source =
+   src/prov
+   .tox/*/lib/python*/site-packages/prov
+   .tox/pypy*/site-packages/prov
 
 [report]
 exclude_lines =

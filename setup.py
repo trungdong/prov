@@ -31,10 +31,8 @@ setup(
     author='Trung Dong Huynh',
     author_email='trungdong@donggiang.com',
     url='https://github.com/trungdong/prov',
-    packages=find_packages(exclude=['dev', 'docs']),
-    package_dir={
-        'prov': 'prov'
-    },
+    packages=find_packages(where="src"),
+    package_dir={'': 'src'},
     scripts=['scripts/prov-convert', 'scripts/prov-compare'],
     include_package_data=True,
     install_requires=requirements,
