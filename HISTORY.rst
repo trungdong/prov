@@ -3,6 +3,11 @@
 History
 -------
 
+1.5.2 (2018-02-06)
+^^^^^^^^^^^^^^^^^^
+* Fixed association relation in RDF serialisation
+* Fixed compatibility with networkx 2.0+
+
 1.5.1 (2017-07-18)
 ^^^^^^^^^^^^^^^^^^
 * Replaced pydotplus with pydot (see #111)
