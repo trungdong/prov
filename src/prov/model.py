@@ -461,6 +461,8 @@ class ProvRecord(object):
                 self._attributes[attr].add(value)
 
     def __eq__(self, other):
+        if not isinstance(other, ProvRecord):
+            return False
         if self.get_type() != other.get_type():
             return False
         if self._identifier and not (self._identifier == other._identifier):
