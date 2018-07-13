@@ -18,7 +18,7 @@ cache:
 
 # Install packages
 install:
-  - pip install --upgrade setuptools
+  - pip install --upgrade "setuptools<40.0.0"
   - pip install -r requirements.txt
   - pip install coverage coveralls
 
