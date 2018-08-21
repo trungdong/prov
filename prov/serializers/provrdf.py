@@ -62,6 +62,34 @@ LITERAL_XSDTYPE_MAP = {
 if six.integer_types[-1] not in LITERAL_XSDTYPE_MAP:
     LITERAL_XSDTYPE_MAP[six.integer_types[-1]] = XSD['long']
 
+relation_mapper = {URIRef(PROV['alternateOf'].uri): 'alternate',
+                   URIRef(PROV['actedOnBehalfOf'].uri): 'delegation',
+                   URIRef(PROV['specializationOf'].uri): 'specialization',
+                   URIRef(PROV['mentionOf'].uri): 'mention',
+                   URIRef(PROV['wasAssociatedWith'].uri): 'association',
+                   URIRef(PROV['wasDerivedFrom'].uri): 'derivation',
+                   URIRef(PROV['wasAttributedTo'].uri): 'attribution',
+                   URIRef(PROV['wasInformedBy'].uri): 'communication',
+                   URIRef(PROV['wasGeneratedBy'].uri): 'generation',
+                   URIRef(PROV['wasInfluencedBy'].uri): 'influence',
+                   URIRef(PROV['wasInvalidatedBy'].uri): 'invalidation',
+                   URIRef(PROV['wasEndedBy'].uri): 'end',
+                   URIRef(PROV['wasStartedBy'].uri): 'start',
+                   URIRef(PROV['hadMember'].uri): 'membership',
+                   URIRef(PROV['used'].uri): 'usage',
+                   }
+predicate_mapper = {RDFS.label: pm.PROV['label'],
+                    URIRef(PROV['atLocation'].uri): PROV_LOCATION,
+                    URIRef(PROV['startedAtTime'].uri): PROV_ATTR_STARTTIME,
+                    URIRef(PROV['endedAtTime'].uri): PROV_ATTR_ENDTIME,
+                    URIRef(PROV['atTime'].uri): PROV_ATTR_TIME,
+                    URIRef(PROV['hadRole'].uri): PROV_ROLE,
+                    URIRef(PROV['hadPlan'].uri): pm.PROV_ATTR_PLAN,
+                    URIRef(PROV['hadUsage'].uri): pm.PROV_ATTR_USAGE,
+                    URIRef(PROV['hadGeneration'].uri): pm.PROV_ATTR_GENERATION,
+                    URIRef(PROV['hadActivity'].uri): pm.PROV_ATTR_ACTIVITY,
+                    }
+
 
 def attr2rdf(attr):
     return URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split('prov:')[1]].uri)
@@ -79,7 +107,8 @@ class ProvRDFSerializer(Serializer):
     PROV-O serializer for :class:`~prov.model.ProvDocument`
     """
 
-    def serialize(self, stream=None, rdf_format='trig', **kwargs):
+    def serialize(self, stream=None, rdf_format='trig', PROV_N_MAP=PROV_N_MAP,
+                  **kwargs):
         """
         Serializes a :class:`~prov.model.ProvDocument` instance to
         `PROV-O <https://www.w3.org/TR/prov-o/>`_.
@@ -87,7 +116,7 @@ class ProvRDFSerializer(Serializer):
         :param stream: Where to save the output.
         :param rdf_format: The RDF format of the output, default to TRiG.
         """
-        container = self.encode_document(self.document)
+        container = self.encode_document(self.document, PROV_N_MAP=PROV_N_MAP)
         newargs = kwargs.copy()
         newargs['format'] = rdf_format
 
@@ -120,7 +149,9 @@ class ProvRDFSerializer(Serializer):
             finally:
                 buf.close()
 
-    def deserialize(self, stream, rdf_format='trig', **kwargs):
+    def deserialize(self, stream, rdf_format='trig',
+                    relation_mapper=relation_mapper,
+                    predicate_mapper=predicate_mapper, **kwargs):
         """
         Deserialize from the `PROV-O <https://www.w3.org/TR/prov-o/>`_
         representation to a :class:`~prov.model.ProvDocument` instance.
@@ -134,7 +165,9 @@ class ProvRDFSerializer(Serializer):
         container.parse(stream, **newargs)
         document = pm.ProvDocument()
         self.document = document
-        self.decode_document(container, document)
+        self.decode_document(container, document,
+                             relation_mapper=relation_mapper,
+                             predicate_mapper=predicate_mapper)
         return document
 
     def valid_identifier(self, value):
@@ -192,15 +225,17 @@ class ProvRDFSerializer(Serializer):
             # simple type, just return it
             return literal
 
-    def encode_document(self, document):
+    def encode_document(self, document, PROV_N_MAP=PROV_N_MAP):
         container = self.encode_container(document)
         for item in document.bundles:
             #  encoding the sub-bundle
-            bundle = self.encode_container(item, identifier=item.identifier.uri)
+            bundle = self.encode_container(item, identifier=item.identifier.uri,
+                                           PROV_N_MAP=PROV_N_MAP)
             container.addN(bundle.quads())
         return container
 
-    def encode_container(self, bundle, container=None, identifier=None):
+    def encode_container(self, bundle, PROV_N_MAP=PROV_N_MAP,
+                         container=None, identifier=None):
         if container is None:
             container = ConjunctiveGraph(identifier=identifier)
             nm = container.namespace_manager
@@ -385,54 +420,36 @@ class ProvRDFSerializer(Serializer):
                     container.add((identifier, pred, obj))
         return container
 
-    def decode_document(self, content, document):
+    def decode_document(self, content, document,
+                        relation_mapper=relation_mapper,
+                        predicate_mapper=predicate_mapper):
         for prefix, url in content.namespaces():
             document.add_namespace(prefix, six.text_type(url))
         if hasattr(content, 'contexts'):
             for graph in content.contexts():
                 if isinstance(graph.identifier, BNode):
-                    self.decode_container(graph, document)
+                    self.decode_container(graph, document,
+                                          relation_mapper=relation_mapper,
+                                          predicate_mapper=predicate_mapper)
                 else:
                     bundle_id = six.text_type(graph.identifier)
                     bundle = document.bundle(bundle_id)
-                    self.decode_container(graph, bundle)
+                    self.decode_container(graph, bundle,
+                                          relation_mapper=relation_mapper,
+                                          predicate_mapper=predicate_mapper)
         else:
-            self.decode_container(content, document)
+            self.decode_container(content, document,
+                                          relation_mapper=relation_mapper,
+                                          predicate_mapper=predicate_mapper)
 
-    def decode_container(self, graph, bundle):
+    def decode_container(self, graph, bundle, relation_mapper=relation_mapper,
+                         predicate_mapper=predicate_mapper):
         ids = {}
         PROV_CLS_MAP = {}
         formal_attributes = {}
         unique_sets = {}
         for key, val in PROV_BASE_CLS.items():
             PROV_CLS_MAP[key.uri] = PROV_BASE_CLS[key]
-        relation_mapper = {URIRef(PROV['alternateOf'].uri): 'alternate',
-                           URIRef(PROV['actedOnBehalfOf'].uri): 'delegation',
-                           URIRef(PROV['specializationOf'].uri): 'specialization',
-                           URIRef(PROV['mentionOf'].uri): 'mention',
-                           URIRef(PROV['wasAssociatedWith'].uri): 'association',
-                           URIRef(PROV['wasDerivedFrom'].uri): 'derivation',
-                           URIRef(PROV['wasAttributedTo'].uri): 'attribution',
-                           URIRef(PROV['wasInformedBy'].uri): 'communication',
-                           URIRef(PROV['wasGeneratedBy'].uri): 'generation',
-                           URIRef(PROV['wasInfluencedBy'].uri): 'influence',
-                           URIRef(PROV['wasInvalidatedBy'].uri): 'invalidation',
-                           URIRef(PROV['wasEndedBy'].uri): 'end',
-                           URIRef(PROV['wasStartedBy'].uri): 'start',
-                           URIRef(PROV['hadMember'].uri): 'membership',
-                           URIRef(PROV['used'].uri): 'usage',
-                           }
-        predicate_mapper = {RDFS.label: pm.PROV['label'],
-                            URIRef(PROV['atLocation'].uri): PROV_LOCATION,
-                            URIRef(PROV['startedAtTime'].uri): PROV_ATTR_STARTTIME,
-                            URIRef(PROV['endedAtTime'].uri): PROV_ATTR_ENDTIME,
-                            URIRef(PROV['atTime'].uri): PROV_ATTR_TIME,
-                            URIRef(PROV['hadRole'].uri): PROV_ROLE,
-                            URIRef(PROV['hadPlan'].uri): pm.PROV_ATTR_PLAN,
-                            URIRef(PROV['hadUsage'].uri): pm.PROV_ATTR_USAGE,
-                            URIRef(PROV['hadGeneration'].uri): pm.PROV_ATTR_GENERATION,
-                            URIRef(PROV['hadActivity'].uri): pm.PROV_ATTR_ACTIVITY,
-                            }
         other_attributes = {}
         for stmt in graph.triples((None, RDF.type, None)):
             id = six.text_type(stmt[0])
