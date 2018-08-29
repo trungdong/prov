@@ -25,7 +25,7 @@ if find_loader("pydot") is not None:
 
         def do_tests(self, prov_doc, msg=None):
             dot = prov_to_dot(prov_doc)
-            svg_content = dot.create(format="svg")
+            svg_content = dot.create(format="svg", encoding="utf-8")
             # Very naive check of the returned SVG content as we have no way to check the graphical content
             self.assertGreater(
                 len(svg_content), self.MIN_SVG_SIZE,
