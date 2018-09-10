@@ -14,15 +14,12 @@ References:
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
 from datetime import datetime
-import pydot
 import six
 
+from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.model import (
+    ProvEntity, ProvActivity, ProvAgent, ProvBundle,
     PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION,
     PROV_ATTRIBUTION, PROV_BUNDLE, PROV_COMMUNICATION, PROV_DERIVATION,
     PROV_DELEGATION, PROV_ENTITY, PROV_GENERATION, PROV_INFLUENCE,
@@ -30,6 +27,12 @@ from prov.model import (
     PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier,
     PROV_ATTRIBUTE_QNAMES, sorted_attributes, ProvException
 )
+import pydot
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
@@ -37,6 +40,28 @@ __email__ = 'trungdong@donggiang.com'
 
 # Visual styles for various elements (nodes) and relations (edges)
 # see http://graphviz.org/content/attrs
+GENERIC_NODE_STYLE = {
+    None: {
+        'shape': 'oval', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
+    ProvEntity: {
+        'shape': 'oval', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
+    ProvActivity: {
+        'shape': 'box', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
+    ProvAgent: {
+        'shape': 'house', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
+    ProvBundle: {
+        'shape': 'folder', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    }
+}
 DOT_PROV_STYLE = {
     # Generic node
     0: {
@@ -255,13 +280,13 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 _attach_attribute_annotation(node, rec)
             return node
 
-        def _add_generic_node(qname):
+        def _add_generic_node(qname, prov_type=None):
             count[0] += 1
             node_id = 'n%d' % count[0]
             node_label = '"%s"' % six.text_type(qname)
 
             uri = qname.uri
-            style = DOT_PROV_STYLE[0]
+            style = GENERIC_NODE_STYLE[prov_type] if prov_type else DOT_PROV_STYLE[0]
             node = pydot.Node(
                 node_id, label=node_label, URL='"%s"' % uri, **style
             )
@@ -278,12 +303,12 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
             dot.add_node(bnode)
             return bnode
 
-        def _get_node(qname):
+        def _get_node(qname, prov_type=None):
             if qname is None:
                 return _get_bnode()
             uri = qname.uri
             if uri not in node_map:
-                _add_generic_node(qname)
+                _add_generic_node(qname, prov_type)
             return node_map[uri]
 
         records = bundle.get_records()
@@ -305,10 +330,11 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
             if not args:
                 continue
             # picking element nodes
-            nodes = [
-                value for attr_name, value in rec.formal_attributes
+            attr_names, nodes = zip(*(
+                (attr_name, value) for attr_name, value in rec.formal_attributes
                 if attr_name in PROV_ATTRIBUTE_QNAMES
-            ]
+            ))
+            inferred_types = list(map(INFERRED_ELEMENT_CLASS.get, attr_names))
             other_attributes = [
                 (attr_name, value) for attr_name, value in rec.attributes
                 if attr_name not in PROV_ATTRIBUTE_QNAMES
@@ -328,19 +354,19 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 # the first segment
                 dot.add_edge(
                     pydot.Edge(
-                        _get_node(nodes[0]), bnode, arrowhead='none', **style
+                        _get_node(nodes[0], inferred_types[0]), bnode, arrowhead='none', **style
                     )
                 )
                 style = dict(style)  # copy the style
                 del style['label']  # not showing label in the second segment
                 # the second segment
-                dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1]), **style))
+                dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1], inferred_types[1]), **style))
                 if add_nary_elements:
                     style['color'] = 'gray'  # all remaining segment to be gray
-                    for node in nodes[2:]:
+                    for node, inferred_type in zip(nodes[2:], inferred_types[2:]):
                         if node is not None:
                             dot.add_edge(
-                                pydot.Edge(bnode, _get_node(node), **style)
+                                pydot.Edge(bnode, _get_node(node, inferred_type), **style)
                             )
                 if add_attribute_annotation:
                     _attach_attribute_annotation(bnode, rec)
@@ -348,7 +374,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 # show a simple binary relations with no annotation
                 dot.add_edge(
                     pydot.Edge(
-                        _get_node(nodes[0]), _get_node(nodes[1]), **style
+                        _get_node(nodes[0], inferred_types[0]), _get_node(nodes[1], inferred_types[1]), **style
                     )
                 )
 
