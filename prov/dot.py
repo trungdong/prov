@@ -17,6 +17,7 @@ from __future__ import (absolute_import, division, print_function,
 from datetime import datetime
 import six
 
+from prov import constants
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.model import (
     ProvEntity, ProvActivity, ProvAgent, ProvBundle,
@@ -137,7 +138,7 @@ DOT_PROV_STYLE = {
     PROV_MEMBERSHIP: {
         'label': 'hadMember', 'fontsize': '10.0'
     },
-    }
+}
 
 ANNOTATION_STYLE = {
     'shape': 'note', 'color': 'gray',
@@ -362,6 +363,9 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 # the second segment
                 dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1], inferred_types[1]), **style))
                 if add_nary_elements:
+                    if attr_names[-1].uri == constants.PROV['plan'].uri:
+                        # For the special case we know, there's the label.
+                        style['label'] = 'hadPlan'
                     style['color'] = 'gray'  # all remaining segment to be gray
                     for node, inferred_type in zip(nodes[2:], inferred_types[2:]):
                         if node is not None:
