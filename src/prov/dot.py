@@ -363,8 +363,10 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 dot.add_edge(pydot.Edge(bnode, _get_node(nodes[1], inferred_types[1]), **style))
                 if add_nary_elements:
                     style['color'] = 'gray'  # all remaining segment to be gray
-                    for node, inferred_type in zip(nodes[2:], inferred_types[2:]):
+                    style['fontcolor'] = 'dimgray'  # text in darker gray
+                    for attr_name, node, inferred_type in zip(attr_names[2:], nodes[2:], inferred_types[2:]):
                         if node is not None:
+                            style['label'] = attr_name.localpart
                             dot.add_edge(
                                 pydot.Edge(bnode, _get_node(node, inferred_type), **style)
                             )
