@@ -14,14 +14,10 @@ References:
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
 from datetime import datetime
-import pydot
 import six
 
+from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.model import (
     ProvEntity, ProvActivity, ProvAgent, ProvBundle,
     PROV_ACTIVITY, PROV_AGENT, PROV_ALTERNATE, PROV_ASSOCIATION,
@@ -31,7 +27,12 @@ from prov.model import (
     PROV_SPECIALIZATION, PROV_START, PROV_USAGE, Identifier,
     PROV_ATTRIBUTE_QNAMES, sorted_attributes, ProvException
 )
-from prov.graph import INFERRED_ELEMENT_CLASS
+import pydot
+
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
@@ -62,6 +63,11 @@ GENERIC_NODE_STYLE = {
     }
 }
 DOT_PROV_STYLE = {
+    # Generic node
+    0: {
+        'shape': 'oval', 'style': 'filled',
+        'fillcolor': 'lightgray', 'color': 'dimgray'
+    },
     # Elements
     PROV_ENTITY: {
         'shape': 'oval', 'style': 'filled',
@@ -274,13 +280,13 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
                 _attach_attribute_annotation(node, rec)
             return node
 
-        def _add_generic_node(qname, prov_type):
+        def _add_generic_node(qname, prov_type=None):
             count[0] += 1
             node_id = 'n%d' % count[0]
             node_label = '"%s"' % six.text_type(qname)
 
             uri = qname.uri
-            style = GENERIC_NODE_STYLE[prov_type]
+            style = GENERIC_NODE_STYLE[prov_type] if prov_type else DOT_PROV_STYLE[0]
             node = pydot.Node(
                 node_id, label=node_label, URL='"%s"' % uri, **style
             )
@@ -297,7 +303,7 @@ def prov_to_dot(bundle, show_nary=True, use_labels=False,
             dot.add_node(bnode)
             return bnode
 
-        def _get_node(qname, prov_type):
+        def _get_node(qname, prov_type=None):
             if qname is None:
                 return _get_bnode()
             uri = qname.uri
