@@ -3,6 +3,13 @@
 History
 -------
 
+1.5.3 (2018-11-20)
+^^^^^^^^^^^^^^^^^^
+* Reorganised source code to /src 
+* Added Python 3.7 support
+* Removed Python 3.3 support due to end-of-life
+* plus minor improvements and bug fixes
+
 1.5.2 (2018-02-06)
 ^^^^^^^^^^^^^^^^^^
 * Fixed association relation in RDF serialisation
