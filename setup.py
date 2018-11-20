@@ -24,7 +24,7 @@ test_requirements = [
 
 setup(
     name='prov',
-    version='1.5.2',
+    version='1.5.3',
     description='A library for W3C Provenance Data Model supporting PROV-JSON, '
                 'PROV-XML and PROV-O (RDF)',
     long_description=readme,
