@@ -1,4 +1,5 @@
-sudo: false
+sudo: required
+dist: xenial
 language: python
 python:
   - 2.7
@@ -20,7 +21,7 @@ cache:
 
 # Install packages
 install:
-  - pip install --upgrade "setuptools<40.0.0"
+  - pip install --upgrade setuptools
   - pip install -r requirements.txt
   - pip install coverage coveralls
 
