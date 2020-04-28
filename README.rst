@@ -46,5 +46,5 @@ Uses
 
 See `a short tutorial  <http://trungdong.github.io/prov-python-short-tutorial.html>`_ for using this package.
 
-This package is used extensively by `ProvStore <https://provenance.ecs.soton.ac.uk/store/>`_,
+This package is used extensively by `ProvStore <https://openprovenance.org/store/>`_,
 a free online repository for provenance documents.

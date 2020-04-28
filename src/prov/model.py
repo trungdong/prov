@@ -4,7 +4,7 @@ support for PROV-JSON import/export
 References:
 
 PROV-DM: http://www.w3.org/TR/prov-dm/
-PROV-JSON: https://provenance.ecs.soton.ac.uk/prov-json/
+PROV-JSON: https://openprovenance.org/prov-json/
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)

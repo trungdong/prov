@@ -57,7 +57,7 @@ class ProvJSONSerializer(Serializer):
     def serialize(self, stream, **kwargs):
         """
         Serializes a :class:`~prov.model.ProvDocument` instance to
-        `PROV-JSON <https://provenance.ecs.soton.ac.uk/prov-json/>`_.
+        `PROV-JSON <https://openprovenance.org/prov-json/>`_.
 
         :param stream: Where to save the output.
         """
@@ -95,7 +95,7 @@ class ProvJSONSerializer(Serializer):
     def deserialize(self, stream, **kwargs):
         """
         Deserialize from the `PROV JSON
-        <https://provenance.ecs.soton.ac.uk/prov-json/>`_ representation to a
+        <https://openprovenance.org/prov-json/>`_ representation to a
         :class:`~prov.model.ProvDocument` instance.
 
         :param stream: Input data.
