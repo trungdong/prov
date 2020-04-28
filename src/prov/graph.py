@@ -43,7 +43,7 @@ INFERRED_ELEMENT_CLASS = {
 def prov_to_graph(prov_document):
     """
     Convert a :class:`~prov.model.ProvDocument` to a `MultiDiGraph
-    <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_
+    <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
     instance of the `NetworkX <https://networkx.github.io/>`_ library.
 
     :param prov_document: The :class:`~prov.model.ProvDocument` instance to convert.
@@ -78,7 +78,7 @@ def prov_to_graph(prov_document):
 def graph_to_prov(g):
     """
     Convert a `MultiDiGraph
-    <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_
+    <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
     that was previously produced by :func:`prov_to_graph` back to a
     :class:`~prov.model.ProvDocument`.
 

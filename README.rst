@@ -38,7 +38,7 @@ Features
 * In-memory classes for PROV assertions, which can then be output as `PROV-N <http://www.w3.org/TR/prov-n/>`_
 * Serialization and deserialization support: `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF), `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ and `PROV-JSON <http://www.w3.org/Submission/prov-json/>`_.
 * Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
-* Convert a PROV document to a `Networkx MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_ and back.
+* Convert a PROV document to a `Networkx MultiDiGraph <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_ and back.
 
 
 Uses
