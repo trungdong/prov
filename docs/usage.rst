@@ -84,4 +84,4 @@ PROV document with a bundle
 More examples
 -------------
 
-See `prov/tests/examples.py <https://github.com/trungdong/prov/blob/master/prov/tests/examples.py>`_
+See `prov/tests/examples.py <https://github.com/trungdong/prov/blob/master/src/prov/tests/examples.py>`_
