@@ -17,6 +17,7 @@ class RoundTripTestCase(DocumentBaseTestCase):
     """A serializer test should subclass this class and set the class property
     FORMAT to the correct value (e.g. 'json', 'xml', 'rdf').
     """
+
     FORMAT = None  # a subclass should change this
 
     def do_tests(self, prov_doc, msg=None):
@@ -31,13 +32,14 @@ class RoundTripTestCase(DocumentBaseTestCase):
             prov_doc.serialize(destination=stream, format=self.FORMAT, indent=4)
             stream.seek(0, 0)
 
-            prov_doc_new = ProvDocument.deserialize(source=stream,
-                                                    format=self.FORMAT)
+            prov_doc_new = ProvDocument.deserialize(source=stream, format=self.FORMAT)
             stream.seek(0, 0)
             # Assume UTF-8 encoding which is forced by the particular
             # PROV XML implementation and should also work for the PROV
             # JSON implementation.
-            msg_extra = u"'%s' serialization content:\n%s" % (
-                self.FORMAT, stream.read().decode("utf-8"))
-            msg = u'\n'.join((msg, msg_extra)) if msg else msg_extra
+            msg_extra = "'%s' serialization content:\n%s" % (
+                self.FORMAT,
+                stream.read().decode("utf-8"),
+            )
+            msg = "\n".join((msg, msg_extra)) if msg else msg_extra
             self.assertEqual(prov_doc, prov_doc_new, msg)

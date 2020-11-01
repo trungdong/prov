@@ -1,11 +1,9 @@
 from prov import Error
 
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
+__author__ = "Trung Dong Huynh"
+__email__ = "trungdong@donggiang.com"
 
-__all__ = [
-    'get', 'Serializer'
-]
+__all__ = ["get", "Serializer"]
 
 
 class Serializer(object):
@@ -39,6 +37,7 @@ class Serializer(object):
 
 class DoNotExist(Error):
     """Exception for the case a serializer is not available."""
+
     pass
 
 
@@ -57,10 +56,10 @@ class Registry:
         from prov.serializers.provrdf import ProvRDFSerializer
 
         Registry.serializers = {
-            'json': ProvJSONSerializer,
-            'rdf': ProvRDFSerializer,
-            'provn': ProvNSerializer,
-            'xml': ProvXMLSerializer
+            "json": ProvJSONSerializer,
+            "rdf": ProvRDFSerializer,
+            "provn": ProvNSerializer,
+            "xml": ProvXMLSerializer,
         }
 
 
@@ -74,6 +73,4 @@ def get(format_name):
     try:
         return Registry.serializers[format_name]
     except KeyError:
-        raise DoNotExist(
-            'No serializer available for the format "%s"' % format_name
-        )
+        raise DoNotExist('No serializer available for the format "%s"' % format_name)

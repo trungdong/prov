@@ -12,4 +12,8 @@ class ProvGraphTestCase(unittest.TestCase):
                 # Cannot round-trip with documents containing bundles, skipping
                 continue
             prov_doc = graph_to_prov(g)
-            self.assertEqual(prov_doc, prov_org, "Round trip graph conversion for '{}' failed.".format(name))
+            self.assertEqual(
+                prov_doc,
+                prov_org,
+                "Round trip graph conversion for '{}' failed.".format(name),
+            )

@@ -10,8 +10,8 @@ from prov.constants import *  # NOQA
 from prov.serializers import Serializer
 
 
-__author__ = 'Lion Krischer'
-__email__ = 'krischer@geophysik.uni-muenchen.de'
+__author__ = "Lion Krischer"
+__email__ = "krischer@geophysik.uni-muenchen.de"
 
 logger = logging.getLogger(__name__)
 
@@ -20,10 +20,11 @@ logger = logging.getLogger(__name__)
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
 # Inverse mapping.
-FULL_PROV_RECORD_IDS_MAP = dict((FULL_NAMES_MAP[rec_type_id], rec_type_id) for
-                                rec_type_id in FULL_NAMES_MAP)
+FULL_PROV_RECORD_IDS_MAP = dict(
+    (FULL_NAMES_MAP[rec_type_id], rec_type_id) for rec_type_id in FULL_NAMES_MAP
+)
 
-XML_XSD_URI = 'http://www.w3.org/2001/XMLSchema'
+XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
 
 class ProvXMLException(prov.Error):
@@ -31,8 +32,8 @@ class ProvXMLException(prov.Error):
 
 
 class ProvXMLSerializer(Serializer):
-    """PROV-XML serializer for :class:`~prov.model.ProvDocument`
-    """
+    """PROV-XML serializer for :class:`~prov.model.ProvDocument`"""
+
     def serialize(self, stream, force_types=False, **kwargs):
         """
         Serializes a :class:`~prov.model.ProvDocument` instance to `PROV-XML
@@ -48,21 +49,23 @@ class ProvXMLSerializer(Serializer):
             types will always be set if the Python type requires it. False
             is a good default and it should rarely require changing.
         """
-        xml_root = self.serialize_bundle(bundle=self.document,
-                                         force_types=force_types)
+        xml_root = self.serialize_bundle(bundle=self.document, force_types=force_types)
         for bundle in self.document.bundles:
-            self.serialize_bundle(bundle=bundle, element=xml_root,
-                                  force_types=force_types)
+            self.serialize_bundle(
+                bundle=bundle, element=xml_root, force_types=force_types
+            )
         # No encoding must be specified when writing to String object which
         # does not have the concept of an encoding as it should already
         # represent unicode code points.
         et = etree.ElementTree(xml_root)
         if isinstance(stream, io.TextIOBase):
-            stream.write(etree.tostring(et, xml_declaration=True,
-                                        pretty_print=True).decode('utf-8'))
+            stream.write(
+                etree.tostring(et, xml_declaration=True, pretty_print=True).decode(
+                    "utf-8"
+                )
+            )
         else:
-            et.write(stream, pretty_print=True, xml_declaration=True,
-                     encoding="UTF-8")
+            et.write(stream, pretty_print=True, xml_declaration=True, encoding="UTF-8")
 
     def serialize_bundle(self, bundle, element=None, force_types=False):
         """
@@ -82,7 +85,8 @@ class ProvXMLSerializer(Serializer):
         # Build the namespace map for lxml and attach it to the root XML
         # element.
         nsmap = {
-            ns.prefix: ns.uri for ns in self.document._namespaces.get_registered_namespaces()
+            ns.prefix: ns.uri
+            for ns in self.document._namespaces.get_registered_namespaces()
         }
         if self.document._namespaces._default:
             nsmap[None] = self.document._namespaces._default.uri
@@ -100,18 +104,17 @@ class ProvXMLSerializer(Serializer):
 
         if element is not None:
             xml_bundle_root = etree.SubElement(
-                element, _ns_prov("bundleContent"), nsmap=nsmap)
+                element, _ns_prov("bundleContent"), nsmap=nsmap
+            )
         else:
             xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
 
         if bundle.identifier:
-            xml_bundle_root.attrib[_ns_prov("id")] = \
-                str(bundle.identifier)
+            xml_bundle_root.attrib[_ns_prov("id")] = str(bundle.identifier)
 
         for record in bundle._records:
             rec_type = record.get_type()
-            identifier = str(record._identifier) \
-                if record._identifier else None
+            identifier = str(record._identifier) if record._identifier else None
 
             if identifier:
                 attrs = {_ns_prov("id"): identifier}
@@ -123,18 +126,18 @@ class ProvXMLSerializer(Serializer):
             attributes = list(record.attributes)
             rec_label = self._derive_record_label(rec_type, attributes)
 
-            elem = etree.SubElement(xml_bundle_root,
-                                    _ns_prov(rec_label), attrs)
+            elem = etree.SubElement(xml_bundle_root, _ns_prov(rec_label), attrs)
 
             for attr, value in sorted_attributes(rec_type, attributes):
                 subelem = etree.SubElement(
-                    elem, _ns(attr.namespace.uri, attr.localpart))
+                    elem, _ns(attr.namespace.uri, attr.localpart)
+                )
                 if isinstance(value, prov.model.Literal):
-                    if value.datatype not in \
-                            [None, PROV["InternationalizedString"]]:
+                    if value.datatype not in [None, PROV["InternationalizedString"]]:
                         subelem.attrib[_ns_xsi("type")] = "%s:%s" % (
                             value.datatype.namespace.prefix,
-                            value.datatype.localpart)
+                            value.datatype.localpart,
+                        )
                     if value.langtag is not None:
                         subelem.attrib[_ns_xml("lang")] = value.langtag
                     v = value.value
@@ -160,15 +163,25 @@ class ProvXMLSerializer(Serializer):
                 #
                 # To enable a mapping of Python types to XML and back,
                 # the XSD type must be written for these types.
-                ALWAYS_CHECK = [bool, datetime.datetime, float, int, prov.identifier.Identifier]
+                ALWAYS_CHECK = [
+                    bool,
+                    datetime.datetime,
+                    float,
+                    int,
+                    prov.identifier.Identifier,
+                ]
                 ALWAYS_CHECK = tuple(ALWAYS_CHECK)
-                if (force_types or
-                        type(value) in ALWAYS_CHECK or
-                        attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
-                        _ns_xsi("type") not in subelem.attrib and \
-                        not str(value).startswith("prov:") and \
-                        not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
-                        attr not in [PROV_ATTR_TIME, PROV_LABEL]:
+                if (
+                    (
+                        force_types
+                        or type(value) in ALWAYS_CHECK
+                        or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
+                    )
+                    and _ns_xsi("type") not in subelem.attrib
+                    and not str(value).startswith("prov:")
+                    and not (attr in PROV_ATTRIBUTE_QNAMES and v)
+                    and attr not in [PROV_ATTR_TIME, PROV_LABEL]
+                ):
                     xsd_type = None
                     if isinstance(value, bool):
                         xsd_type = XSD_BOOLEAN
@@ -185,15 +198,16 @@ class ProvXMLSerializer(Serializer):
                         # attributes in the PROV namespaces as the type is
                         # already declared in the XSD and PROV XML also does
                         # not specify it in the docs.
-                        if attr.namespace.prefix != "prov" \
-                                or "time" not in attr.localpart.lower():
+                        if (
+                            attr.namespace.prefix != "prov"
+                            or "time" not in attr.localpart.lower()
+                        ):
                             xsd_type = XSD_DATETIME
                     elif isinstance(value, prov.identifier.Identifier):
                         xsd_type = XSD_ANYURI
 
                     if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = \
-                            str(xsd_type)
+                        subelem.attrib[_ns_xsi("type")] = str(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -210,7 +224,7 @@ class ProvXMLSerializer(Serializer):
         """
         if isinstance(stream, io.TextIOBase):
             with io.BytesIO() as buf:
-                buf.write(stream.read().encode('utf-8'))
+                buf.write(stream.read().encode("utf-8"))
                 buf.seek(0, 0)
                 xml_doc = etree.parse(buf).getroot()
         else:
@@ -237,19 +251,20 @@ class ProvXMLSerializer(Serializer):
         for element in xml_doc:
             qname = etree.QName(element)
             if qname.namespace != DEFAULT_NAMESPACES["prov"].uri:
-                raise ProvXMLException("Non PROV element discovered in "
-                                       "document or bundle.")
+                raise ProvXMLException(
+                    "Non PROV element discovered in " "document or bundle."
+                )
             # Ignore the <prov:other> element storing non-PROV information.
             if qname.localname == "other":
                 warnings.warn(
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
-                    UserWarning)
+                    UserWarning,
+                )
                 continue
 
             id_tag = _ns_prov("id")
-            rec_id = element.attrib[id_tag] if id_tag in element.attrib \
-                else None
+            rec_id = element.attrib[id_tag] if id_tag in element.attrib else None
 
             if rec_id is not None:
                 # Try to make a qualified name out of it!
@@ -331,9 +346,10 @@ def _extract_attributes(element):
                 warnings.warn(
                     "The element '%s' contains an attribute %s='%s' "
                     "which is not representable in the prov module's "
-                    "internal data model and will thus be ignored." %
-                    (_t, str(key), str(value)),
-                    UserWarning)
+                    "internal data model and will thus be ignored."
+                    % (_t, str(key), str(value)),
+                    UserWarning,
+                )
 
         if not subel.attrib:
             _v = subel.text
@@ -344,8 +360,8 @@ def _extract_attributes(element):
 
 
 def xml_qname_to_QualifiedName(element, qname_str):
-    if ':' in qname_str:
-        prefix, localpart = qname_str.split(':', 1)
+    if ":" in qname_str:
+        prefix, localpart = qname_str.split(":", 1)
         if prefix in element.nsmap:
             ns_uri = element.nsmap[prefix]
             if ns_uri == XML_XSD_URI:
@@ -359,7 +375,7 @@ def xml_qname_to_QualifiedName(element, qname_str):
     # case 2: unknown prefix
     if None in element.nsmap:
         ns_uri = element.nsmap[None]
-        ns = Namespace('', ns_uri)
+        ns = Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace
     raise ProvXMLException(
@@ -372,11 +388,11 @@ def _ns(ns, tag):
 
 
 def _ns_prov(tag):
-    return _ns(DEFAULT_NAMESPACES['prov'].uri, tag)
+    return _ns(DEFAULT_NAMESPACES["prov"].uri, tag)
 
 
 def _ns_xsi(tag):
-    return _ns(DEFAULT_NAMESPACES['xsi'].uri, tag)
+    return _ns(DEFAULT_NAMESPACES["xsi"].uri, tag)
 
 
 def _ns_xml(tag):

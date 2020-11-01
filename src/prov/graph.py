@@ -1,17 +1,36 @@
 import networkx as nx
 from prov.model import (
-    ProvDocument, ProvRecord, ProvElement, ProvEntity, ProvActivity, ProvAgent,
-    ProvRelation, PROV_ATTR_ENTITY, PROV_ATTR_ACTIVITY, PROV_ATTR_AGENT,
-    PROV_ATTR_TRIGGER, PROV_ATTR_GENERATED_ENTITY, PROV_ATTR_USED_ENTITY,
-    PROV_ATTR_DELEGATE, PROV_ATTR_RESPONSIBLE, PROV_ATTR_SPECIFIC_ENTITY,
-    PROV_ATTR_GENERAL_ENTITY, PROV_ATTR_ALTERNATE1, PROV_ATTR_ALTERNATE2,
-    PROV_ATTR_COLLECTION, PROV_ATTR_INFORMED, PROV_ATTR_INFORMANT,
-    PROV_ATTR_BUNDLE, PROV_ATTR_PLAN, PROV_ATTR_ENDER, PROV_ATTR_STARTER,
+    ProvDocument,
+    ProvRecord,
+    ProvElement,
+    ProvEntity,
+    ProvActivity,
+    ProvAgent,
+    ProvRelation,
+    PROV_ATTR_ENTITY,
+    PROV_ATTR_ACTIVITY,
+    PROV_ATTR_AGENT,
+    PROV_ATTR_TRIGGER,
+    PROV_ATTR_GENERATED_ENTITY,
+    PROV_ATTR_USED_ENTITY,
+    PROV_ATTR_DELEGATE,
+    PROV_ATTR_RESPONSIBLE,
+    PROV_ATTR_SPECIFIC_ENTITY,
+    PROV_ATTR_GENERAL_ENTITY,
+    PROV_ATTR_ALTERNATE1,
+    PROV_ATTR_ALTERNATE2,
+    PROV_ATTR_COLLECTION,
+    PROV_ATTR_INFORMED,
+    PROV_ATTR_INFORMANT,
+    PROV_ATTR_BUNDLE,
+    PROV_ATTR_PLAN,
+    PROV_ATTR_ENDER,
+    PROV_ATTR_STARTER,
     ProvBundle,
 )
 
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
+__author__ = "Trung Dong Huynh"
+__email__ = "trungdong@donggiang.com"
 
 
 INFERRED_ELEMENT_CLASS = {
@@ -60,11 +79,9 @@ def prov_to_graph(prov_document):
         if qn1 and qn2:  # only proceed if both ends of the relation exist
             try:
                 if qn1 not in node_map:
-                    node_map[qn1] = \
-                        INFERRED_ELEMENT_CLASS[attr_pair_1[0]](None, qn1)
+                    node_map[qn1] = INFERRED_ELEMENT_CLASS[attr_pair_1[0]](None, qn1)
                 if qn2 not in node_map:
-                    node_map[qn2] = \
-                        INFERRED_ELEMENT_CLASS[attr_pair_2[0]](None, qn2)
+                    node_map[qn2] = INFERRED_ELEMENT_CLASS[attr_pair_2[0]](None, qn2)
             except KeyError:
                 # Unsupported attribute; cannot infer the type of the element
                 continue  # skipping this relation
@@ -87,7 +104,7 @@ def graph_to_prov(g):
             prov_doc.add_record(n)
     for _, _, edge_data in g.edges(data=True):
         try:
-            relation = edge_data['relation']
+            relation = edge_data["relation"]
             if isinstance(relation, ProvRecord):
                 prov_doc.add_record(relation)
         except KeyError:

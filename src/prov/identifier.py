@@ -1,9 +1,10 @@
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
+__author__ = "Trung Dong Huynh"
+__email__ = "trungdong@donggiang.com"
 
 
 class Identifier(object):
     """Base class for all identifiers and also represents xsd:anyURI."""
+
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
     # into a subclass
 
@@ -30,7 +31,7 @@ class Identifier(object):
         return hash((self.uri, self.__class__))
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._uri)
+        return "<%s: %s>" % (self.__class__.__name__, self._uri)
 
     def provn_representation(self):
         """PROV-N representation of qualified name in a string."""
@@ -47,12 +48,11 @@ class QualifiedName(Identifier):
         :param namespace: Namespace to use for qualified name resolution.
         :param localpart: Portion of identifier not part of the namespace prefix.
         """
-        Identifier.__init__(self, u''.join([namespace.uri, localpart]))
+        Identifier.__init__(self, "".join([namespace.uri, localpart]))
         self._namespace = namespace
         self._localpart = localpart
         self._str = (
-            ':'.join([namespace.prefix, localpart])
-            if namespace.prefix else localpart
+            ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
         )
 
     @property
@@ -69,7 +69,7 @@ class QualifiedName(Identifier):
         return self._str
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._str)
+        return "<%s: %s>" % (self.__class__.__name__, self._str)
 
     def __hash__(self):
         return hash(self.uri)
@@ -110,8 +110,10 @@ class Namespace(object):
         :param identifier: Identifier to check.
         :return: bool
         """
-        uri = identifier if isinstance(identifier, str) else (
-            identifier.uri if isinstance(identifier, Identifier) else None
+        uri = (
+            identifier
+            if isinstance(identifier, str)
+            else (identifier.uri if isinstance(identifier, Identifier) else None)
         )
         return uri.startswith(self._uri) if uri else False
 
@@ -123,34 +125,35 @@ class Namespace(object):
         :param identifier: Identifier to resolve to a qualified name.
         :return: :py:class:`QualifiedName`
         """
-        uri = identifier if isinstance(identifier, str) else (
-            identifier.uri if isinstance(identifier, Identifier) else None
+        uri = (
+            identifier
+            if isinstance(identifier, str)
+            else (identifier.uri if isinstance(identifier, Identifier) else None)
         )
         if uri and uri.startswith(self._uri):
-            return QualifiedName(self, uri[len(self._uri):])
+            return QualifiedName(self, uri[len(self._uri) :])
         else:
             return None
 
     def __eq__(self, other):
         return (
             (self._uri == other.uri and self._prefix == other.prefix)
-            if isinstance(other, Namespace) else False
+            if isinstance(other, Namespace)
+            else False
         )
 
     def __ne__(self, other):
         return (
-            not isinstance(other, Namespace) or
-            self._uri != other.uri or
-            self._prefix != other.prefix
+            not isinstance(other, Namespace)
+            or self._uri != other.uri
+            or self._prefix != other.prefix
         )
 
     def __hash__(self):
         return hash((self._uri, self._prefix))
 
     def __repr__(self):
-        return '<%s: %s {%s}>' % (
-            self.__class__.__name__, self._prefix, self._uri
-        )
+        return "<%s: %s {%s}>" % (self.__class__.__name__, self._prefix, self._uri)
 
     def __getitem__(self, localpart):
         if localpart in self._cache:

@@ -14,12 +14,13 @@ from prov.tests.test_model import AllTestsBase
 from prov.tests.utility import RoundTripTestCase
 
 
-EX_NS = ('ex', 'http://example.com/ns/ex#')
-EX_TR = ('tr', 'http://example.com/ns/tr#')
+EX_NS = ("ex", "http://example.com/ns/ex#")
+EX_TR = ("tr", "http://example.com/ns/tr#")
 
 # Most general way to get the path.
-DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(inspect.getfile(
-    inspect.currentframe()))), "xml")
+DATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe()))), "xml"
+)
 
 
 def remove_empty_tags(tree):
@@ -88,13 +89,13 @@ class ProvXMLTestCase(unittest.TestCase):
         ex_ns = document.add_namespace(*EX_NS)
         document.add_namespace(*EX_TR)
 
-        document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, ex_ns["Document"]),
-            ("ex:version", "2")
-        ))
+        document.entity(
+            "tr:WD-prov-dm-20111215",
+            ((prov.PROV_TYPE, ex_ns["Document"]), ("ex:version", "2")),
+        )
 
         with io.BytesIO() as actual:
-            document.serialize(format='xml', destination=actual)
+            document.serialize(format="xml", destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_06.xml"), actual)
 
     def test_serialization_example_7(self):
@@ -107,12 +108,15 @@ class ProvXMLTestCase(unittest.TestCase):
         document.activity(
             "ex:a1",
             "2011-11-16T16:05:00",
-            "2011-11-16T16:06:00", [
+            "2011-11-16T16:06:00",
+            [
                 (prov.PROV_TYPE, prov.Literal("ex:edit", prov.XSD_QNAME)),
-                ("ex:host", "server.example.org")])
+                ("ex:host", "server.example.org"),
+            ],
+        )
 
         with io.BytesIO() as actual:
-            document.serialize(format='xml', destination=actual)
+            document.serialize(format="xml", destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_07.xml"), actual)
 
     def test_serialization_example_8(self):
@@ -125,18 +129,24 @@ class ProvXMLTestCase(unittest.TestCase):
         e1 = document.entity("ex:e1")
         a1 = document.activity("ex:a1")
 
-        document.wasGeneratedBy(entity=e1, activity=a1,
-                                time="2001-10-26T21:32:52",
-                                other_attributes={"ex:port": "p1"})
+        document.wasGeneratedBy(
+            entity=e1,
+            activity=a1,
+            time="2001-10-26T21:32:52",
+            other_attributes={"ex:port": "p1"},
+        )
 
         e2 = document.entity("ex:e2")
 
-        document.wasGeneratedBy(entity=e2, activity=a1,
-                                time="2001-10-26T10:00:00",
-                                other_attributes={"ex:port": "p2"})
+        document.wasGeneratedBy(
+            entity=e2,
+            activity=a1,
+            time="2001-10-26T10:00:00",
+            other_attributes={"ex:port": "p2"},
+        )
 
         with io.BytesIO() as actual:
-            document.serialize(format='xml', destination=actual)
+            document.serialize(format="xml", destination=actual)
             compare_xml(os.path.join(DATA_PATH, "example_08.xml"), actual)
 
     def test_deserialization_example_6(self):
@@ -145,17 +155,17 @@ class ProvXMLTestCase(unittest.TestCase):
         description.
         """
         actual_doc = prov.ProvDocument.deserialize(
-            source=os.path.join(DATA_PATH, "example_06.xml"),
-            format="xml")
+            source=os.path.join(DATA_PATH, "example_06.xml"), format="xml"
+        )
 
         expected_document = prov.ProvDocument()
         ex_ns = expected_document.add_namespace(*EX_NS)
         expected_document.add_namespace(*EX_TR)
 
-        expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, ex_ns["Document"]),
-            ("ex:version", "2")
-        ))
+        expected_document.entity(
+            "tr:WD-prov-dm-20111215",
+            ((prov.PROV_TYPE, ex_ns["Document"]), ("ex:version", "2")),
+        )
 
         self.assertEqual(actual_doc, expected_document)
 
@@ -165,8 +175,8 @@ class ProvXMLTestCase(unittest.TestCase):
         description.
         """
         actual_doc = prov.ProvDocument.deserialize(
-            source=os.path.join(DATA_PATH, "example_07.xml"),
-            format="xml")
+            source=os.path.join(DATA_PATH, "example_07.xml"), format="xml"
+        )
 
         expected_document = prov.ProvDocument()
         ex_ns = Namespace(*EX_NS)
@@ -175,9 +185,12 @@ class ProvXMLTestCase(unittest.TestCase):
         expected_document.activity(
             "ex:a1",
             "2011-11-16T16:05:00",
-            "2011-11-16T16:06:00", [
+            "2011-11-16T16:06:00",
+            [
                 (prov.PROV_TYPE, QualifiedName(ex_ns, "edit")),
-                ("ex:host", "server.example.org")])
+                ("ex:host", "server.example.org"),
+            ],
+        )
 
         self.assertEqual(actual_doc, expected_document)
 
@@ -206,8 +219,7 @@ class ProvXMLTestCase(unittest.TestCase):
         with io.StringIO() as xml:
             xml.write(xml_string)
             xml.seek(0, 0)
-            actual_document = prov.ProvDocument.deserialize(source=xml,
-                                                            format="xml")
+            actual_document = prov.ProvDocument.deserialize(source=xml, format="xml")
 
         expected_document = prov.ProvDocument()
         ex_ns = Namespace(*EX_NS)
@@ -215,9 +227,13 @@ class ProvXMLTestCase(unittest.TestCase):
         expected_document.add_namespace(*EX_TR)
 
         # The xsi:type attribute is mapped to a proper PROV attribute.
-        expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
-            (prov.PROV_TYPE, PROV["Plan"])))
+        expected_document.entity(
+            "tr:WD-prov-dm-20111215",
+            (
+                (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
+                (prov.PROV_TYPE, PROV["Plan"]),
+            ),
+        )
 
         self.assertEqual(actual_document, expected_document, "example_04")
 
@@ -241,19 +257,21 @@ class ProvXMLTestCase(unittest.TestCase):
         with io.StringIO() as xml:
             xml.write(xml_string)
             xml.seek(0, 0)
-            actual_document = prov.ProvDocument.deserialize(source=xml,
-                                                            format="xml")
+            actual_document = prov.ProvDocument.deserialize(source=xml, format="xml")
 
         expected_document = prov.ProvDocument()
         expected_document.add_namespace(*EX_NS)
         expected_document.add_namespace(*EX_TR)
 
         # The xsi:type attribute is mapped to a proper PROV attribute.
-        expected_document.entity("tr:WD-prov-dm-20111215", (
-            (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
-            (prov.PROV_TYPE, PROV["Entity"]),
-            (prov.PROV_TYPE, PROV["Plan"])
-        ))
+        expected_document.entity(
+            "tr:WD-prov-dm-20111215",
+            (
+                (prov.PROV_TYPE, QualifiedName(ex_ns, "Workflow")),
+                (prov.PROV_TYPE, PROV["Entity"]),
+                (prov.PROV_TYPE, PROV["Plan"]),
+            ),
+        )
 
         self.assertEqual(actual_document, expected_document, "example_05")
 
@@ -294,7 +312,8 @@ class ProvXMLTestCase(unittest.TestCase):
         self.assertEqual(len(w), 1)
         self.assertTrue(
             "Document contains non-PROV information in <prov:other>. It will "
-            "be ignored in this package." in str(w[0].message))
+            "be ignored in this package." in str(w[0].message)
+        )
 
         # This document contains nothing else.
         self.assertEqual(len(doc._records), 0)
@@ -318,8 +337,9 @@ class ProvXMLTestCase(unittest.TestCase):
         """
         Test the behaviour when namespaces are redefined at the element level.
         """
-        filename = os.path.join(DATA_PATH,
-                                "namespace_redefined_but_does_not_change.xml")
+        filename = os.path.join(
+            DATA_PATH, "namespace_redefined_but_does_not_change.xml"
+        )
         doc = prov.ProvDocument.deserialize(source=filename, format="xml")
         # This has one record part of the original namespace.
         self.assertEqual(len(doc._records), 1)
@@ -336,29 +356,30 @@ class ProvXMLTestCase(unittest.TestCase):
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
-        document = prov.ProvDocument.deserialize(
-            source=filename, format="xml")
+        document = prov.ProvDocument.deserialize(source=filename, format="xml")
 
         with io.BytesIO() as new_xml:
-            document.serialize(format='xml', destination=new_xml,
-                               force_types=force_types)
+            document.serialize(
+                format="xml", destination=new_xml, force_types=force_types
+            )
             compare_xml(filename, new_xml)
 
 
 # Add one test for each found file. Lazy way to do metaprogramming...
 # I think parametrized tests are justified in this case as the test
 # function names make it clear what is going on.
-for filename in glob.iglob(os.path.join(
-        DATA_PATH, "*" + os.path.extsep + "xml")):
+for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")):
     name = os.path.splitext(os.path.basename(filename))[0]
     test_name = "test_roundtrip_from_xml_%s" % name
 
     # Cannot round trip this one as the namespace in the PROV data model are
     # always defined per bundle and not per element.
-    if name in ("nested_default_namespace",
-                "nested_changing_default_namespace",
-                "namespace_redefined_but_does_not_change",
-                "namespace_redefined"):
+    if name in (
+        "nested_default_namespace",
+        "nested_changing_default_namespace",
+        "namespace_redefined_but_does_not_change",
+        "namespace_redefined",
+    ):
         continue
 
     # Python creates closures on function calls...
@@ -371,6 +392,7 @@ for filename in glob.iglob(os.path.join(
 
         def fct(self):
             self._perform_round_trip(f, force_types=force_types)
+
         return fct
 
     fct = get_fct(filename)
@@ -385,8 +407,8 @@ for filename in glob.iglob(os.path.join(
 
 
 class RoundTripXMLTests(RoundTripTestCase, AllTestsBase):
-    FORMAT = 'xml'
+    FORMAT = "xml"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

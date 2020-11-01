@@ -1,6 +1,7 @@
 -r requirements.txt
 bumpversion
 coverage
+black
 flake8
 sphinx
 tox

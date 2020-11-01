@@ -1,12 +1,13 @@
-__author__ = 'Trung Dong Huynh'
-__email__ = 'trungdong@donggiang.com'
-__version__ = '2.0.0'
+__author__ = "Trung Dong Huynh"
+__email__ = "trungdong@donggiang.com"
+__version__ = "2.0.0"
 
 __all__ = ["Error", "model", "read"]
 
 
 class Error(Exception):
     """Base class for all errors in this package."""
+
     pass
 
 
@@ -27,6 +28,7 @@ def read(source, format=None):
     from prov.model import ProvDocument
 
     from prov.serializers import Registry
+
     Registry.load_serializers()
     serializers = Registry.serializers.keys()
 
@@ -39,6 +41,8 @@ def read(source, format=None):
         except:
             pass
     else:
-        raise TypeError("Could not read from the source. To get a proper "
-                        "error message, specify the format with the 'format' "
-                        "parameter.")
+        raise TypeError(
+            "Could not read from the source. To get a proper "
+            "error message, specify the format with the 'format' "
+            "parameter."
+        )

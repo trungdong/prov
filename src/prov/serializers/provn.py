@@ -7,9 +7,7 @@ from prov.serializers import Serializer
 
 
 class ProvNSerializer(Serializer):
-    """PROV-N serializer for ProvDocument
-
-    """
+    """PROV-N serializer for ProvDocument"""
 
     def serialize(self, stream, **kwargs):
         """

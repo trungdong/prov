@@ -1,8 +1,11 @@
 import unittest
 from prov.model import ProvDocument
 from prov.tests.utility import RoundTripTestCase
-from prov.tests.test_model import (TestStatementsBase,
-                                   TestAttributesBase, TestQualifiedNamesBase)
+from prov.tests.test_model import (
+    TestStatementsBase,
+    TestAttributesBase,
+    TestQualifiedNamesBase,
+)
 import os
 from glob import glob
 import logging
@@ -21,21 +24,21 @@ logger = logging.getLogger(__name__)
 def find_diff(g_rdf, g0_rdf):
     graphs_equal = True
     in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
-    g1 = sorted(in_first.serialize(format='nt').splitlines())[1:]
-    g2 = sorted(in_second.serialize(format='nt').splitlines())[1:]
+    g1 = sorted(in_first.serialize(format="nt").splitlines())[1:]
+    g2 = sorted(in_second.serialize(format="nt").splitlines())[1:]
     # Compare literals
     if len(g1) != len(g2):
         graphs_equal = False
     matching_indices = [[], []]
     for idx in range(len(g1)):
-        g1_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]),
-                                                   format='nt'))[0]
+        g1_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]), format="nt"))[0]
         match_found = False
         for idx2 in range(len(g2)):
             if idx2 in matching_indices[1]:
                 continue
-            g2_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]),
-                                                       format='nt'))[0]
+            g2_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]), format="nt"))[
+                0
+            ]
             try:
                 all_match = all([g1_stmt[i].eq(g2_stmt[i]) for i in range(3)])
             except TypeError:
@@ -50,13 +53,13 @@ def find_diff(g_rdf, g0_rdf):
     in_first2 = rl.ConjunctiveGraph()
     for idx in range(len(g1)):
         if idx in matching_indices[0]:
-            in_both.parse(BytesIO(g1[idx]), format='nt')
+            in_both.parse(BytesIO(g1[idx]), format="nt")
         else:
-            in_first2.parse(BytesIO(g1[idx]), format='nt')
+            in_first2.parse(BytesIO(g1[idx]), format="nt")
     in_second2 = rl.ConjunctiveGraph()
     for idx in range(len(g2)):
         if idx not in matching_indices[1]:
-            in_second2.parse(BytesIO(g2[idx]), format='nt')
+            in_second2.parse(BytesIO(g2[idx]), format="nt")
     return graphs_equal, in_both, in_first2, in_second2
 
 
@@ -66,14 +69,15 @@ class TestExamplesBase(object):
     It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.
     """
+
     def test_all_examples(self):
         counter = 0
         for name, graph in examples.tests:
-            if name in ['datatypes']:
-                logger.info('%d. Skipping the %s example', counter, name)
+            if name in ["datatypes"]:
+                logger.info("%d. Skipping the %s example", counter, name)
                 continue
             counter += 1
-            logger.info('%d. Testing the %s example', counter, name)
+            logger.info("%d. Testing the %s example", counter, name)
             g = graph()
             self.do_tests(g)
 
@@ -84,14 +88,15 @@ class TestJSONExamplesBase(object):
     It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.
     """
+
     def test_all_examples(self):
         counter = 0
         for name, graph in examples.tests:
-            if name in ['datatypes']:
-                logger.info('%d. Skipping the %s example', counter, name)
+            if name in ["datatypes"]:
+                logger.info("%d. Skipping the %s example", counter, name)
                 continue
             counter += 1
-            logger.info('%d. Testing the %s example', counter, name)
+            logger.info("%d. Testing the %s example", counter, name)
             g = graph()
             self.do_tests(g)
 
@@ -168,20 +173,19 @@ class TestAttributesBase2(TestAttributesBase):
         TestAttributesBase.test_entity_with_one_type_attribute_8(self)
 
 
-class AllTestsBase(TestExamplesBase,
-                   TestStatementsBase2,
-                   TestQualifiedNamesBase,
-                   TestAttributesBase2
-                   ):
-    """This is a test to include all available tests.
-    """
+class AllTestsBase(
+    TestExamplesBase, TestStatementsBase2, TestQualifiedNamesBase, TestAttributesBase2
+):
+    """This is a test to include all available tests."""
+
     pass
 
 
 class TestRDFSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
-        unicode_char = '\u2019'
-        rdf_content = '''
+        unicode_char = "\u2019"
+        rdf_content = (
+            """
 @prefix ex: <http://www.example.org/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -191,62 +195,102 @@ class TestRDFSerializer(unittest.TestCase):
 
     ex:unicode_char a prov:Entity ;
         rdfs:label "%s"^^xsd:string .
-''' % unicode_char
-        prov_doc = ProvDocument.deserialize(content=rdf_content,
-                                            format='rdf', rdf_format='turtle')
-        e1 = prov_doc.get_record('ex:unicode_char')[0]
-        self.assertIn(unicode_char, e1.get_attribute('prov:label'))
+"""
+            % unicode_char
+        )
+        prov_doc = ProvDocument.deserialize(
+            content=rdf_content, format="rdf", rdf_format="turtle"
+        )
+        e1 = prov_doc.get_record("ex:unicode_char")[0]
+        self.assertIn(unicode_char, e1.get_attribute("prov:label"))
 
     def test_json_to_ttl_match(self):
         json_files = sorted(
-            glob(os.path.join(os.path.dirname(__file__), 'json', '*.json')))
+            glob(os.path.join(os.path.dirname(__file__), "json", "*.json"))
+        )
 
         # invalid round trip files
         skip = list(range(352, 380))
 
         # invalid literal set representation e.g., set((1, True))
-        skip_match = [5, 6, 7, 8, 15, 27, 28, 29, 75, 76, 77, 78, 79, 80, 260,
-                      261, 262, 263, 264,
-                      306, 313, 315, 317, 322, 323, 324, 325, 330, 332, 344,
-                      346, 382, 389, 395, 397,
-                      ]
+        skip_match = [
+            5,
+            6,
+            7,
+            8,
+            15,
+            27,
+            28,
+            29,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            260,
+            261,
+            262,
+            263,
+            264,
+            306,
+            313,
+            315,
+            317,
+            322,
+            323,
+            324,
+            325,
+            330,
+            332,
+            344,
+            346,
+            382,
+            389,
+            395,
+            397,
+        ]
         errors = []
         for idx, fname in enumerate(json_files):
             _, ttl_file = os.path.split(fname)
-            ttl_file = os.path.join(os.path.dirname(__file__), 'rdf',
-                                    ttl_file.replace('json', 'ttl'))
+            ttl_file = os.path.join(
+                os.path.dirname(__file__), "rdf", ttl_file.replace("json", "ttl")
+            )
             try:
                 g = pm.ProvDocument.deserialize(fname)
                 if len(g.bundles) == 0:
-                    format = 'turtle'
+                    format = "turtle"
                 else:
-                    format = 'trig'
-                if format == 'trig':
-                    ttl_file = ttl_file.replace('ttl', 'trig')
+                    format = "trig"
+                if format == "trig":
+                    ttl_file = ttl_file.replace("ttl", "trig")
 
-                with open(ttl_file, 'rb') as fp:
+                with open(ttl_file, "rb") as fp:
                     g_rdf = rl.ConjunctiveGraph().parse(fp, format=format)
                 g0_rdf = rl.ConjunctiveGraph().parse(
-                    StringIO(g.serialize(format='rdf', rdf_format=format)),
-                    format=format)
+                    StringIO(g.serialize(format="rdf", rdf_format=format)),
+                    format=format,
+                )
                 if idx not in skip_match:
                     match, _, in_first, in_second = find_diff(g_rdf, g0_rdf)
                     self.assertTrue(match)
                 else:
-                    logger.info('Skipping match: %s' % fname)
+                    logger.info("Skipping match: %s" % fname)
                 if idx in skip:
-                    logger.info('Skipping deserialization: %s' % fname)
+                    logger.info("Skipping deserialization: %s" % fname)
                     continue
                 g1 = pm.ProvDocument.deserialize(
-                    content=g.serialize(format='rdf', rdf_format=format),
-                    format='rdf', rdf_format=format)
+                    content=g.serialize(format="rdf", rdf_format=format),
+                    format="rdf",
+                    rdf_format=format,
+                )
             except Exception as e:
                 errors.append((e, idx, fname, in_first, in_second))
         self.assertFalse(errors)
 
 
 class RoundTripRDFTests(RoundTripTestCase, AllTestsBase):
-    FORMAT = 'rdf'
+    FORMAT = "rdf"
 
 
 if __name__ == "__main__":

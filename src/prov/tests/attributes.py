@@ -1,8 +1,8 @@
 from prov.model import *
 
 
-EX_NS = Namespace('ex', 'http://example.org/')
-EX_OTHER_NS = Namespace('other', 'http://example.org/')
+EX_NS = Namespace("ex", "http://example.org/")
+EX_OTHER_NS = Namespace("other", "http://example.org/")
 
 
 class TestAttributesBase(object):
@@ -13,8 +13,8 @@ class TestAttributesBase(object):
 
     attribute_values = [
         "un lieu",
-        Literal("un lieu", langtag='fr'),
-        Literal("a place", langtag='en'),
+        Literal("un lieu", langtag="fr"),
+        Literal("a place", langtag="en"),
         Literal(1, XSD_INT),
         Literal(1, XSD_LONG),
         Literal(1, XSD_SHORT),
@@ -32,15 +32,14 @@ class TestAttributesBase(object):
         Literal(-10, XSD_NONPOSITIVEINTEGER),
         Literal(10, XSD_POSITIVEINTEGER),
         Literal(10, XSD_UNSIGNEDBYTE),
-        Identifier('http://example.org'),
-        Literal('http://example.org', XSD_ANYURI),
-        EX_NS['abc'],
-        EX_OTHER_NS['abcd'],
-        Namespace('ex', 'http://example4.org/')['zabc'],
-        Namespace('other', 'http://example4.org/')['zabcd'],
-
+        Identifier("http://example.org"),
+        Literal("http://example.org", XSD_ANYURI),
+        EX_NS["abc"],
+        EX_OTHER_NS["abcd"],
+        Namespace("ex", "http://example4.org/")["zabc"],
+        Namespace("other", "http://example4.org/")["zabcd"],
         datetime.datetime.now(),
-        Literal(datetime.datetime.now().isoformat(), XSD_DATETIME)
+        Literal(datetime.datetime.now().isoformat(), XSD_DATETIME),
     ]
 
     def new_document(self):
@@ -48,9 +47,7 @@ class TestAttributesBase(object):
 
     def run_entity_with_one_type_attribute(self, n):
         document = self.new_document()
-        document.entity(
-            EX_NS['et%d' % n], {'prov:type': self.attribute_values[n]}
-        )
+        document.entity(EX_NS["et%d" % n], {"prov:type": self.attribute_values[n]})
         self.do_tests(document)
 
     def test_entity_with_one_type_attribute_0(self):
@@ -140,17 +137,15 @@ class TestAttributesBase(object):
     def test_entity_with_multiple_attribute(self):
         document = self.new_document()
         attributes = [
-            (EX_NS['v_%d' % i], value)
-            for i, value in enumerate(self.attribute_values)
+            (EX_NS["v_%d" % i], value) for i, value in enumerate(self.attribute_values)
         ]
-        document.entity(EX_NS['emov'], attributes)
+        document.entity(EX_NS["emov"], attributes)
         self.do_tests(document)
 
     def test_entity_with_multiple_value_attribute(self):
         document = self.new_document()
         attributes = [
-            ('prov:value', value)
-            for i, value in enumerate(self.attribute_values)
+            ("prov:value", value) for i, value in enumerate(self.attribute_values)
         ]
-        document.entity(EX_NS['emv'], attributes)
+        document.entity(EX_NS["emv"], attributes)
         self.do_tests(document)
