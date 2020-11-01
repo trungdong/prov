@@ -20,6 +20,7 @@ Desktop.ini
 *.so
 
 # Packages
+.eggs
 *.egg
 *.egg-info
 dist
