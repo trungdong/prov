@@ -3,7 +3,7 @@ from __future__ import (absolute_import, division, print_function,
 
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
-__version__ = '1.5.3'
+__version__ = '2.0.0'
 
 __all__ = ["Error", "model", "read"]
 
