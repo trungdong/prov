@@ -1,14 +1,10 @@
-# coding: utf8
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from prov.model import ProvDocument, Namespace, Literal, PROV, Identifier
 import datetime
 
 
 def primer_example():
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/primer.pn
-    #===========================================================================
+    # ===========================================================================
     # document
     g = ProvDocument()
 

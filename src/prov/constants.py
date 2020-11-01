@@ -1,7 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import six
 from prov.identifier import Namespace
 
 __author__ = 'Trung Dong Huynh'
@@ -172,7 +168,7 @@ PROV_ATTRIBUTE_LITERALS = {
 
 # Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
-PROV_RECORD_ATTRIBUTES = list((attr, six.text_type(attr)) for attr in
+PROV_RECORD_ATTRIBUTES = list((attr, str(attr)) for attr in
                               PROV_ATTRIBUTES)
 
 PROV_RECORD_IDS_MAP = dict(

@@ -1,13 +1,7 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-import six
-
 __author__ = 'Trung Dong Huynh'
 __email__ = 'trungdong@donggiang.com'
 
 
-@six.python_2_unicode_compatible
 class Identifier(object):
     """Base class for all identifiers and also represents xsd:anyURI."""
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
@@ -19,7 +13,7 @@ class Identifier(object):
 
         :param uri: URI string for the long namespace identifier.
         """
-        self._uri = six.text_type(uri)  # Ensure this is a unicode string
+        self._uri = str(uri)  # Ensure this is a unicode string
 
     @property
     def uri(self):
@@ -43,7 +37,6 @@ class Identifier(object):
         return '"%s" %%%% xsd:anyURI' % self._uri
 
 
-@six.python_2_unicode_compatible
 class QualifiedName(Identifier):
     """Qualified name of an identifier in a particular namespace."""
 
@@ -117,7 +110,7 @@ class Namespace(object):
         :param identifier: Identifier to check.
         :return: bool
         """
-        uri = identifier if isinstance(identifier, six.string_types) else (
+        uri = identifier if isinstance(identifier, str) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         return uri.startswith(self._uri) if uri else False
@@ -130,7 +123,7 @@ class Namespace(object):
         :param identifier: Identifier to resolve to a qualified name.
         :return: :py:class:`QualifiedName`
         """
-        uri = identifier if isinstance(identifier, six.string_types) else (
+        uri = identifier if isinstance(identifier, str) else (
             identifier.uri if isinstance(identifier, Identifier) else None
         )
         if uri and uri.startswith(self._uri):

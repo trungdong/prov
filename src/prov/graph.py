@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import networkx as nx
 from prov.model import (
     ProvDocument, ProvRecord, ProvElement, ProvEntity, ProvActivity, ProvAgent,

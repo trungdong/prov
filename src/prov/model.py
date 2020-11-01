@@ -6,9 +6,6 @@ References:
 PROV-DM: http://www.w3.org/TR/prov-dm/
 PROV-JSON: https://openprovenance.org/prov-json/
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from collections import defaultdict
 from copy import deepcopy
 import datetime
@@ -18,12 +15,12 @@ import logging
 import os
 import shutil
 import tempfile
+from urllib.parse import urlparse
 
 import dateutil.parser
 from prov import Error, serializers
 from prov.constants import *
 from prov.identifier import Identifier, QualifiedName, Namespace
-from six.moves.urllib.parse import urlparse
 
 
 __author__ = 'Trung Dong Huynh'
@@ -35,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 # Data Types
 def _ensure_datetime(value):
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return dateutil.parser.parse(value)
     else:
         return value
@@ -57,6 +54,7 @@ def parse_boolean(value):
     else:
         return None
 
+
 DATATYPE_PARSERS = {
     datetime.datetime: parse_xsd_datetime,
 }
@@ -64,10 +62,9 @@ DATATYPE_PARSERS = {
 
 # Mappings for XSD datatypes to Python standard types
 XSD_DATATYPE_PARSERS = {
-    XSD_STRING: six.text_type,
+    XSD_STRING: str,
     XSD_DOUBLE: float,
-    # long on Python 2, int on Python 3
-    XSD_LONG: six.integer_types[-1],
+    XSD_LONG: int,
     XSD_INT: int,
     XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
@@ -88,7 +85,7 @@ def first(a_set):
 
 def _ensure_multiline_string_triple_quoted(value):
     # converting the value to a string
-    s = six.text_type(value)
+    s = str(value)
     # Escaping any double quote
     s = s.replace('"', '\\"')
     if '\n' in s:
@@ -98,7 +95,7 @@ def _ensure_multiline_string_triple_quoted(value):
 
 
 def encoding_provn_value(value):
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
         return u'"{0}" %% xsd:dateTime'.format(value.isoformat())
@@ -108,13 +105,12 @@ def encoding_provn_value(value):
         return u'"%i" %%%% xsd:boolean' % value
     else:
         # TODO: QName export
-        return six.text_type(value)
+        return str(value)
 
 
-@six.python_2_unicode_compatible
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
-        self._value = six.text_type(value)  # value is always a string
+        self._value = str(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -126,7 +122,7 @@ class Literal(object):
             # using the lang attribute and PROV XML requires it to be an
             # internationalized string.
             elif datatype != PROV["InternationalizedString"]:
-                logger.warn(
+                logger.warning(
                     'Invalid data type (%s) for "%s"@%s, overridden as '
                     'prov:InternationalizedString.' %
                     (datatype, value, langtag)
@@ -134,7 +130,7 @@ class Literal(object):
                 datatype = PROV["InternationalizedString"]
         self._datatype = datatype
         # langtag is always a string
-        self._langtag = six.text_type(langtag) if langtag is not None else None
+        self._langtag = str(langtag) if langtag is not None else None
 
     def __str__(self):
         return self.provn_representation()
@@ -176,12 +172,12 @@ class Literal(object):
             # a language tag can only go with prov:InternationalizedString
             return '%s@%s' % (
                 _ensure_multiline_string_triple_quoted(self._value),
-                six.text_type(self._langtag)
+                str(self._langtag)
             )
         else:
             return '%s %%%% %s' % (
                 _ensure_multiline_string_triple_quoted(self._value),
-                six.text_type(self._datatype)
+                str(self._datatype)
             )
 
 
@@ -196,7 +192,6 @@ class ProvWarning(Warning):
     pass
 
 
-@six.python_2_unicode_compatible
 class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
 
@@ -215,7 +210,6 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         return u'Invalid Qualified Name: %s' % self.qname
 
 
-@six.python_2_unicode_compatible
 class ProvElementIdentifierRequired(ProvException):
     """Exception for a missing element identifier."""
 
@@ -225,7 +219,6 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 #  PROV records
-@six.python_2_unicode_compatible
 class ProvRecord(object):
     """Base class for PROV records."""
 
@@ -371,7 +364,7 @@ class ProvRecord(object):
             literal = literal.identifier
 
         if isinstance(literal, str):
-            return six.text_type(literal)
+            return str(literal)
         elif isinstance(literal, QualifiedName):
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
@@ -484,7 +477,7 @@ class ProvRecord(object):
         # Generating identifier
         relation_id = ''  # default blank
         if self._identifier:
-            identifier = six.text_type(self._identifier)  # TODO: QName export
+            identifier = str(self._identifier)  # TODO: QName export
             if self.is_element():
                 items.append(identifier)
             else:
@@ -500,7 +493,7 @@ class ProvRecord(object):
                 # TODO: QName export
                 items.append(
                     value.isoformat() if isinstance(value, datetime.datetime)
-                    else six.text_type(value)
+                    else str(value)
                 )
             else:
                 items.append('-')
@@ -517,7 +510,7 @@ class ProvRecord(object):
                         provn_represenation = encoding_provn_value(value)
                     # TODO: QName export
                     extra.append(
-                        '%s=%s' % (six.text_type(attr), provn_represenation)
+                        '%s=%s' % (str(attr), provn_represenation)
                     )
 
         if extra:
@@ -1178,12 +1171,12 @@ class NamespaceManager(dict):
             return new_qname
 
         # Trying to guess from here
-        if not isinstance(qname, (six.string_types, Identifier)):
+        if not isinstance(qname, (str, Identifier)):
             # Only proceed for string or URI values
             return None
         # Try to generate a Qualified Name
         str_value = \
-            qname.uri if isinstance(qname, Identifier) else six.text_type(qname)
+            qname.uri if isinstance(qname, Identifier) else str(qname)
         if str_value.startswith('_:'):
             # this is a blank node ID
             return None
@@ -1231,7 +1224,7 @@ class NamespaceManager(dict):
             return original_prefix
         count = 1
         while True:
-            new_prefix = '_'.join((original_prefix, six.text_type(count)))
+            new_prefix = '_'.join((original_prefix, str(count)))
             if new_prefix in self:
                 count += 1
             else:
@@ -1491,7 +1484,7 @@ class ProvBundle(object):
             if not found:
                 logger.debug(
                     'Equality (ProvBundle): Could not find this record: %s',
-                    six.text_type(record_a)
+                    str(record_a)
                 )
                 return False
         return True
@@ -2433,10 +2426,7 @@ class ProvDocument(ProvBundle):
 
         if content is not None:
             # io.StringIO only accepts unicode strings
-            stream = io.StringIO(
-                content if not isinstance(content, six.binary_type)
-                else content.decode()
-            )
+            stream = io.StringIO(content if isinstance(content, str) else content.decode())
             return serializer.deserialize(stream, **args)
 
         if source is not None:
@@ -2469,8 +2459,8 @@ def sorted_attributes(element, attributes):
     # prefix if given.
     def sort_fct(x):
         return (
-            six.text_type(x[0]),
-            six.text_type(x[1].value if hasattr(x[1], "value") else x[1])
+            str(x[0]),
+            str(x[1].value if hasattr(x[1], "value") else x[1])
         )
 
     sorted_elements = []

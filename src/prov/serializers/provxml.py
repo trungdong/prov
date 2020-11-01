@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import datetime
 import logging
 from lxml import etree
@@ -10,6 +7,7 @@ import prov
 import prov.identifier
 from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.constants import *  # NOQA
+from prov.serializers import Serializer
 
 
 __author__ = 'Lion Krischer'
@@ -32,7 +30,7 @@ class ProvXMLException(prov.Error):
     pass
 
 
-class ProvXMLSerializer(prov.serializers.Serializer):
+class ProvXMLSerializer(Serializer):
     """PROV-XML serializer for :class:`~prov.model.ProvDocument`
     """
     def serialize(self, stream, force_types=False, **kwargs):
@@ -82,9 +80,10 @@ class ProvXMLSerializer(prov.serializers.Serializer):
             is a good default and it should rarely require changing.
         """
         # Build the namespace map for lxml and attach it to the root XML
-        # element. No dictionary comprehension in Python 2.6!
-        nsmap = dict((ns.prefix, ns.uri) for ns in
-                     self.document._namespaces.get_registered_namespaces())
+        # element.
+        nsmap = {
+            ns.prefix: ns.uri for ns in self.document._namespaces.get_registered_namespaces()
+        }
         if self.document._namespaces._default:
             nsmap[None] = self.document._namespaces._default.uri
         for namespace in bundle.namespaces:
@@ -107,11 +106,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
         if bundle.identifier:
             xml_bundle_root.attrib[_ns_prov("id")] = \
-                six.text_type(bundle.identifier)
+                str(bundle.identifier)
 
         for record in bundle._records:
             rec_type = record.get_type()
-            identifier = six.text_type(record._identifier) \
+            identifier = str(record._identifier) \
                 if record._identifier else None
 
             if identifier:
@@ -142,11 +141,11 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 elif isinstance(value, prov.model.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
                         subelem.attrib[_ns_xsi("type")] = "xsd:QName"
-                    v = six.text_type(value)
+                    v = str(value)
                 elif isinstance(value, datetime.datetime):
                     v = value.isoformat()
                 else:
-                    v = six.text_type(value)
+                    v = str(value)
 
                 # xsd type inference.
                 #
@@ -161,27 +160,24 @@ class ProvXMLSerializer(prov.serializers.Serializer):
                 #
                 # To enable a mapping of Python types to XML and back,
                 # the XSD type must be written for these types.
-                ALWAYS_CHECK = [bool, datetime.datetime, float,
-                                prov.identifier.Identifier]
-                # Add long and int on Python 2, only int on Python 3.
-                ALWAYS_CHECK.extend(six.integer_types)
+                ALWAYS_CHECK = [bool, datetime.datetime, float, int, prov.identifier.Identifier]
                 ALWAYS_CHECK = tuple(ALWAYS_CHECK)
                 if (force_types or
                         type(value) in ALWAYS_CHECK or
                         attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]) and \
                         _ns_xsi("type") not in subelem.attrib and \
-                        not six.text_type(value).startswith("prov:") and \
+                        not str(value).startswith("prov:") and \
                         not (attr in PROV_ATTRIBUTE_QNAMES and v) and \
                         attr not in [PROV_ATTR_TIME, PROV_LABEL]:
                     xsd_type = None
                     if isinstance(value, bool):
                         xsd_type = XSD_BOOLEAN
                         v = v.lower()
-                    elif isinstance(value, six.string_types):
+                    elif isinstance(value, str):
                         xsd_type = XSD_STRING
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
-                    elif isinstance(value, six.integer_types):
+                    elif isinstance(value, int):
                         xsd_type = XSD_INT
                     elif isinstance(value, datetime.datetime):
                         # Exception of the exception, while technically
@@ -197,7 +193,7 @@ class ProvXMLSerializer(prov.serializers.Serializer):
 
                     if xsd_type is not None:
                         subelem.attrib[_ns_xsi("type")] = \
-                            six.text_type(xsd_type)
+                            str(xsd_type)
 
                 if attr in PROV_ATTRIBUTE_QNAMES and v:
                     subelem.attrib[_ns_prov("ref")] = v
@@ -336,7 +332,7 @@ def _extract_attributes(element):
                     "The element '%s' contains an attribute %s='%s' "
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored." %
-                    (_t, six.text_type(key), six.text_type(value)),
+                    (_t, str(key), str(value)),
                     UserWarning)
 
         if not subel.attrib:

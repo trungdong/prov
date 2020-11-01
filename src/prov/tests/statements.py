@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 from prov.model import *
 
 EX_NS = Namespace('ex', 'http://example.org/')
@@ -72,8 +69,6 @@ class TestStatementsBase(object):
             (EX_NS['tag2'], Literal("hola", langtag="es")),
             (EX2_NS['tag3'], "hi"),
             (EX_NS['tag'], 1),
-            # Long on Python 2, just int on Python 3.
-            (EX_NS['tag'], six.integer_types[-1](1)),
             (EX_NS['tag'], Literal(1, datatype=XSD_SHORT)),
             (EX_NS['tag'], Literal(1, datatype=XSD_DOUBLE)),
             (EX_NS['tag'], 1.0),

@@ -1,6 +1,3 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import unittest
 from prov.model import ProvDocument
 from prov.tests.utility import RoundTripTestCase
@@ -9,7 +6,6 @@ from prov.tests.test_model import (TestStatementsBase,
 import os
 from glob import glob
 import logging
-logger = logging.getLogger(__name__)
 
 from prov.tests import examples
 import prov.model as pm
@@ -17,6 +13,9 @@ import prov.model as pm
 import rdflib as rl
 from rdflib.compare import graph_diff
 from io import BytesIO, StringIO
+
+
+logger = logging.getLogger(__name__)
 
 
 def find_diff(g_rdf, g0_rdf):
@@ -39,8 +38,7 @@ def find_diff(g_rdf, g0_rdf):
                                                        format='nt'))[0]
             try:
                 all_match = all([g1_stmt[i].eq(g2_stmt[i]) for i in range(3)])
-            except TypeError as e:
-                #logger.info(e, g1_stmt, g2_stmt)
+            except TypeError:
                 all_match = False
             if all_match:
                 matching_indices[0].append(idx)
@@ -57,10 +55,8 @@ def find_diff(g_rdf, g0_rdf):
             in_first2.parse(BytesIO(g1[idx]), format='nt')
     in_second2 = rl.ConjunctiveGraph()
     for idx in range(len(g2)):
-        if not idx in matching_indices[1]:
+        if idx not in matching_indices[1]:
             in_second2.parse(BytesIO(g2[idx]), format='nt')
-    #logger.info(in_first2)
-    #logger.info(in_second2)
     return graphs_equal, in_both, in_first2, in_second2
 
 
@@ -103,58 +99,73 @@ class TestJSONExamplesBase(object):
 class TestStatementsBase2(TestStatementsBase):
     @unittest.expectedFailure
     def test_scruffy_end_1(self):
-        TestStatementsBase.test_scruffy_end_1()
+        TestStatementsBase.test_scruffy_end_1(self)
+
     @unittest.expectedFailure
     def test_scruffy_end_2(self):
-        TestStatementsBase.test_scruffy_end_2()
+        TestStatementsBase.test_scruffy_end_2(self)
+
     @unittest.expectedFailure
     def test_scruffy_end_3(self):
-        TestStatementsBase.test_scruffy_end_3()
+        TestStatementsBase.test_scruffy_end_3(self)
+
     @unittest.expectedFailure
     def test_scruffy_end_4(self):
-        TestStatementsBase.test_scruffy_end_4()
+        TestStatementsBase.test_scruffy_end_4(self)
+
     @unittest.expectedFailure
     def test_scruffy_generation_1(self):
-        TestStatementsBase.test_scruffy_generation_1()
+        TestStatementsBase.test_scruffy_generation_1(self)
+
     @unittest.expectedFailure
     def test_scruffy_generation_2(self):
-        TestStatementsBase.test_scruffy_generation_2()
+        TestStatementsBase.test_scruffy_generation_2(self)
+
     @unittest.expectedFailure
     def test_scruffy_invalidation_1(self):
-        TestStatementsBase.test_scruffy_invalidation_1()
+        TestStatementsBase.test_scruffy_invalidation_1(self)
+
     @unittest.expectedFailure
     def test_scruffy_invalidation_2(self):
-        TestStatementsBase.test_scruffy_invalidation_2()
+        TestStatementsBase.test_scruffy_invalidation_2(self)
+
     @unittest.expectedFailure
     def test_scruffy_start_1(self):
-        TestStatementsBase.test_scruffy_start_1()
+        TestStatementsBase.test_scruffy_start_1(self)
+
     @unittest.expectedFailure
     def test_scruffy_start_2(self):
-        TestStatementsBase.test_scruffy_start_2()
+        TestStatementsBase.test_scruffy_start_2(self)
+
     @unittest.expectedFailure
     def test_scruffy_start_3(self):
-        TestStatementsBase.test_scruffy_start_3()
+        TestStatementsBase.test_scruffy_start_3(self)
+
     @unittest.expectedFailure
     def test_scruffy_start_4(self):
-        TestStatementsBase.test_scruffy_start_4()
+        TestStatementsBase.test_scruffy_start_4(self)
+
     @unittest.expectedFailure
     def test_scruffy_usage_1(self):
-        TestStatementsBase.test_scruffy_usage_1()
+        TestStatementsBase.test_scruffy_usage_1(self)
+
     @unittest.expectedFailure
     def test_scruffy_usage_2(self):
-        TestStatementsBase.test_scruffy_usage_2()
+        TestStatementsBase.test_scruffy_usage_2(self)
 
 
 class TestAttributesBase2(TestAttributesBase):
     @unittest.expectedFailure
     def test_entity_with_multiple_attribute(self):
-        TestAttributesBase.test_entity_with_multiple_attribute()
+        TestAttributesBase.test_entity_with_multiple_attribute(self)
+
     @unittest.expectedFailure
     def test_entity_with_multiple_value_attribute(self):
-        TestAttributesBase.test_entity_with_multiple_value_attribute()
+        TestAttributesBase.test_entity_with_multiple_value_attribute(self)
+
     @unittest.expectedFailure
     def test_entity_with_one_type_attribute_8(self):
-        TestAttributesBase.test_entity_with_one_type_attribute_8()
+        TestAttributesBase.test_entity_with_one_type_attribute_8(self)
 
 
 class AllTestsBase(TestExamplesBase,
@@ -169,8 +180,8 @@ class AllTestsBase(TestExamplesBase,
 
 class TestRDFSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
-        unicode_char = u'\u2019'
-        rdf_content = u'''
+        unicode_char = '\u2019'
+        rdf_content = '''
 @prefix ex: <http://www.example.org/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -230,7 +241,6 @@ class TestRDFSerializer(unittest.TestCase):
                     content=g.serialize(format='rdf', rdf_format=format),
                     format='rdf', rdf_format=format)
             except Exception as e:
-                #logger.info(e)
                 errors.append((e, idx, fname, in_first, in_second))
         self.assertFalse(errors)
 
@@ -238,9 +248,10 @@ class TestRDFSerializer(unittest.TestCase):
 class RoundTripRDFTests(RoundTripTestCase, AllTestsBase):
     FORMAT = 'rdf'
 
+
 if __name__ == "__main__":
     suite = unittest.TestSuite()
     for method in dir(TestRDFSerializer):
-       if method.startswith("test"):
-          suite.addTest(TestRDFSerializer(method))
+        if method.startswith("test"):
+            suite.addTest(TestRDFSerializer(method))
     unittest.TextTestRunner().run(suite)

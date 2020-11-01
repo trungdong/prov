@@ -3,9 +3,14 @@
 History
 -------
 
+2.0.0 (2020-11-01)
+^^^^^^^^^^^^^^^^^^
+* Removed support for EOL Python 2
+* Testing against Python 3.6+ and Pypy3
+
 1.5.3 (2018-11-20)
 ^^^^^^^^^^^^^^^^^^
-* Reorganised source code to /src 
+* Reorganised source code to /src
 * Added Python 3.7 support
 * Removed Python 3.3 support due to end-of-life
 * plus minor improvements and bug fixes
@@ -92,6 +97,6 @@ History
 * The underlying data model has been rewritten and is **incompatible** with pre-1.0 versions.
 * References to PROV elements (i.e. entities, activities, agents) in relation records are now QualifiedName instances.
 * A document or bundle can have multiple records with the same identifier.
-* PROV-JSON serializer and deserializer are now separated from the data model. 
+* PROV-JSON serializer and deserializer are now separated from the data model.
 * Many tests added, including round-trip PROV-JSON encoding/decoding.
 * For changes pre-1.0, see CHANGES.txt.

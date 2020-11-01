@@ -3,9 +3,6 @@ Created on Aug 13, 2015
 
 @author: Trung Dong Huynh
 """
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
 import unittest
 
 # Skipping SVG tests if pydot is not installed

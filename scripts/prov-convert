@@ -18,7 +18,6 @@ import os
 import sys
 import logging
 import traceback
-import six
 
 from prov.model import ProvDocument
 from prov import serializers
@@ -42,7 +41,6 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
 }
 
 
-@six.python_2_unicode_compatible
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
     def __init__(self, msg):
@@ -132,6 +130,7 @@ USAGE
         sys.stderr.write(program_name + ": " + str(e) + "\n")
         sys.stderr.write(indent + "  for help use --help")
         return 2
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=(logging.DEBUG if DEBUG else logging.INFO))

@@ -1,7 +1,4 @@
-from __future__ import (absolute_import, division, print_function,
-                        unicode_literals)
-
-from prov.model import ProvDocument, Namespace
+from prov.model import ProvDocument
 
 
 def document_with_n_bundles_having_default_namespace(n):

@@ -1,3 +1,6 @@
+Change log for pre-1.0 versions
+-------------------------------
+
 v0.5.3, 13/12/2013 -- Bug fixes
 - Changed: Allowed namespaces at bundle level
 - Fixed: Only check equality of ProvBundles on asserted records
