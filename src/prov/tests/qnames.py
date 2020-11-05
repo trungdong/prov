@@ -2,6 +2,12 @@ from prov.model import ProvDocument
 
 
 def document_with_n_bundles_having_default_namespace(n):
+    """
+    Add a doc to the docstrings.
+
+    Args:
+        n: (todo): write your description
+    """
     prov_doc = ProvDocument()
     prov_doc.add_namespace("ex", "http://www.example.org/")
     for i in range(n):
@@ -19,6 +25,12 @@ class TestQualifiedNamesBase(object):
     """
 
     def test_namespace_inheritance(self):
+        """
+        Add all entities inheritance entity.
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = ProvDocument()
         prov_doc.add_namespace("ex", "http://www.example.org/")
         bundle = prov_doc.bundle("ex:bundle")
@@ -27,6 +39,12 @@ class TestQualifiedNamesBase(object):
         self.do_tests(prov_doc)
 
     def test_default_namespace_inheritance(self):
+        """
+        Add the default entity to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = ProvDocument()
         prov_doc.set_default_namespace("http://www.example.org/")
         bundle = prov_doc.bundle("bundle")
@@ -35,27 +53,57 @@ class TestQualifiedNamesBase(object):
         self.do_tests(prov_doc)
 
     def test_flattening_1_bundle_with_default_namespace(self):
+        """
+        Test for globening a document is_flattened.
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = document_with_n_bundles_having_default_namespace(1)
         flattened = prov_doc.flattened()
         self.do_tests(flattened)
 
     def test_flattening_2_bundles_with_default_namespace(self):
+        """
+        Flattened docstrings of docstrings.
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = document_with_n_bundles_having_default_namespace(2)
         flattened = prov_doc.flattened()
         self.do_tests(flattened)
 
     def test_flattening_3_bundles_with_default_namespace(self):
+        """
+        Test for flattened docstrings.
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = document_with_n_bundles_having_default_namespace(3)
         flattened = prov_doc.flattened()
         self.do_tests(flattened)
 
     def test_flattening_1_bundle_with_default_namespaces(self):
+        """
+        Flattened bundle bundle documents
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = document_with_n_bundles_having_default_namespace(1)
         prov_doc.set_default_namespace("http://www.example.org/default/0")
         flattened = prov_doc.flattened()
         self.do_tests(flattened)
 
     def test_flattening_2_bundle_with_default_namespaces(self):
+        """
+        Flattattattattrs
+
+        Args:
+            self: (todo): write your description
+        """
         prov_doc = document_with_n_bundles_having_default_namespace(2)
         prov_doc.set_default_namespace("http://www.example.org/default/0")
         flattened = prov_doc.flattened()

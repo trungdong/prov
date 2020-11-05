@@ -5,6 +5,12 @@ from prov.graph import prov_to_graph, graph_to_prov
 
 class ProvGraphTestCase(unittest.TestCase):
     def test_simple_graph_conversion(self):
+        """
+        Test if all simple simple simple simple simple simple simple simple simple simple simple simple simple simple simple simple simple simple simple graph conversion.
+
+        Args:
+            self: (todo): write your description
+        """
         for name, doc_func in tests:
             prov_org = doc_func()
             g = prov_to_graph(prov_org)

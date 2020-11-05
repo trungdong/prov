@@ -22,6 +22,13 @@ logger = logging.getLogger(__name__)
 
 
 def find_diff(g_rdf, g0_rdf):
+    """
+    Find the difference between two graph.
+
+    Args:
+        g_rdf: (array): write your description
+        g0_rdf: (array): write your description
+    """
     graphs_equal = True
     in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
     g1 = sorted(in_first.serialize(format="nt").splitlines())[1:]
@@ -71,6 +78,12 @@ class TestExamplesBase(object):
     """
 
     def test_all_examples(self):
+        """
+        Run all tests in - place.
+
+        Args:
+            self: (todo): write your description
+        """
         counter = 0
         for name, graph in examples.tests:
             if name in ["datatypes"]:
@@ -90,6 +103,12 @@ class TestJSONExamplesBase(object):
     """
 
     def test_all_examples(self):
+        """
+        Run all tests in - place.
+
+        Args:
+            self: (todo): write your description
+        """
         counter = 0
         for name, graph in examples.tests:
             if name in ["datatypes"]:
@@ -104,72 +123,174 @@ class TestJSONExamplesBase(object):
 class TestStatementsBase2(TestStatementsBase):
     @unittest.expectedFailure
     def test_scruffy_end_1(self):
+        """
+        Test if test test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_end_1(self)
 
     @unittest.expectedFailure
     def test_scruffy_end_2(self):
+        """
+        Test if the test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_end_2(self)
 
     @unittest.expectedFailure
     def test_scruffy_end_3(self):
+        """
+        !
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_end_3(self)
 
     @unittest.expectedFailure
     def test_scruffy_end_4(self):
+        """
+        !
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_end_4(self)
 
     @unittest.expectedFailure
     def test_scruffy_generation_1(self):
+        """
+        Set the test test test test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_generation_1(self)
 
     @unittest.expectedFailure
     def test_scruffy_generation_2(self):
+        """
+        Test if the test test test test_generationy_2_2.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_generation_2(self)
 
     @unittest.expectedFailure
     def test_scruffy_invalidation_1(self):
+        """
+        Test if the test test test test is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_invalidation_1(self)
 
     @unittest.expectedFailure
     def test_scruffy_invalidation_2(self):
+        """
+        Test if the test test is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_invalidation_2(self)
 
     @unittest.expectedFailure
     def test_scruffy_start_1(self):
+        """
+        Test if the test test test_scruff.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_start_1(self)
 
     @unittest.expectedFailure
     def test_scruffy_start_2(self):
+        """
+        Test if the test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_start_2(self)
 
     @unittest.expectedFailure
     def test_scruffy_start_3(self):
+        """
+        !
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_start_3(self)
 
     @unittest.expectedFailure
     def test_scruffy_start_4(self):
+        """
+        !
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_start_4(self)
 
     @unittest.expectedFailure
     def test_scruffy_usage_1(self):
+        """
+        Test if the test usage usage usage.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_usage_1(self)
 
     @unittest.expectedFailure
     def test_scruffy_usage_2(self):
+        """
+        Test if the test usage of the test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestStatementsBase.test_scruffy_usage_2(self)
 
 
 class TestAttributesBase2(TestAttributesBase):
     @unittest.expectedFailure
     def test_entity_with_multiple_attribute(self):
+        """
+        Sets the test_entity of the test.
+
+        Args:
+            self: (todo): write your description
+        """
         TestAttributesBase.test_entity_with_multiple_attribute(self)
 
     @unittest.expectedFailure
     def test_entity_with_multiple_value_attribute(self):
+        """
+        Sets the value of the attribute value.
+
+        Args:
+            self: (todo): write your description
+        """
         TestAttributesBase.test_entity_with_multiple_value_attribute(self)
 
     @unittest.expectedFailure
     def test_entity_with_one_type_attribute_8(self):
+        """
+        Sets the test type of the test type.
+
+        Args:
+            self: (todo): write your description
+        """
         TestAttributesBase.test_entity_with_one_type_attribute_8(self)
 
 
@@ -183,6 +304,12 @@ class AllTestsBase(
 
 class TestRDFSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
+        """
+        Parse the decode record.
+
+        Args:
+            self: (todo): write your description
+        """
         unicode_char = "\u2019"
         rdf_content = (
             """
@@ -205,6 +332,12 @@ class TestRDFSerializer(unittest.TestCase):
         self.assertIn(unicode_char, e1.get_attribute("prov:label"))
 
     def test_json_to_ttl_match(self):
+        """
+        Convert to tsv file.
+
+        Args:
+            self: (todo): write your description
+        """
         json_files = sorted(
             glob(os.path.join(os.path.dirname(__file__), "json", "*.json"))
         )

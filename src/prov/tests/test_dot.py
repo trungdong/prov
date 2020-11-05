@@ -22,6 +22,14 @@ if find_loader("pydot") is not None:
         MIN_SVG_SIZE = 850
 
         def do_tests(self, prov_doc, msg=None):
+            """
+            \
+
+            Args:
+                self: (todo): write your description
+                prov_doc: (str): write your description
+                msg: (str): write your description
+            """
             dot = prov_to_dot(prov_doc)
             svg_content = dot.create(format="svg", encoding="utf-8")
             # Very naive check of the returned SVG content as we have no way to check the graphical content

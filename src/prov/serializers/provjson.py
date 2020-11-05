@@ -31,10 +31,24 @@ class ProvJSONException(Error):
 
 class AnonymousIDGenerator:
     def __init__(self):
+        """
+        Initialize the cache.
+
+        Args:
+            self: (todo): write your description
+        """
         self._cache = {}
         self._count = 0
 
     def get_anon_id(self, obj, local_prefix="id"):
+        """
+        Returns the unique identifier.
+
+        Args:
+            self: (todo): write your description
+            obj: (todo): write your description
+            local_prefix: (str): write your description
+        """
         if obj not in self._cache:
             self._count += 1
             self._cache[obj] = Identifier("_:%s%d" % (local_prefix, self._count))
@@ -92,6 +106,13 @@ class ProvJSONSerializer(Serializer):
 
 class ProvJSONEncoder(json.JSONEncoder):
     def default(self, o):
+        """
+        Default encoder. json serialization.
+
+        Args:
+            self: (todo): write your description
+            o: (todo): write your description
+        """
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
         else:
@@ -100,6 +121,13 @@ class ProvJSONEncoder(json.JSONEncoder):
 
 class ProvJSONDecoder(json.JSONDecoder):
     def decode(self, s, *args, **kwargs):
+        """
+        Deserialize document into a json.
+
+        Args:
+            self: (todo): write your description
+            s: (todo): write your description
+        """
         container = super(ProvJSONDecoder, self).decode(s, *args, **kwargs)
         document = ProvDocument()
         decode_json_document(container, document)
@@ -108,6 +136,13 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 # Encoding/decoding functions
 def valid_qualified_name(bundle, value):
+    """
+    Validate a bundle name.
+
+    Args:
+        bundle: (todo): write your description
+        value: (str): write your description
+    """
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
@@ -115,6 +150,12 @@ def valid_qualified_name(bundle, value):
 
 
 def encode_json_document(document):
+    """
+    Encode a json document into json document.
+
+    Args:
+        document: (todo): write your description
+    """
     container = encode_json_container(document)
     for bundle in document.bundles:
         #  encoding the sub-bundle
@@ -124,6 +165,12 @@ def encode_json_document(document):
 
 
 def encode_json_container(bundle):
+    """
+    Encode a json container to - serializable dict.
+
+    Args:
+        bundle: (todo): write your description
+    """
     container = defaultdict(dict)
     prefixes = {}
     for namespace in bundle._namespaces.get_registered_namespaces():
@@ -136,6 +183,12 @@ def encode_json_container(bundle):
     id_generator = AnonymousIDGenerator()
 
     def real_or_anon_id(r):
+        """
+        Return a random real id for the given id.
+
+        Args:
+            r: (todo): write your description
+        """
         return r._identifier if r._identifier else id_generator.get_anon_id(r)
 
     for record in bundle._records:
@@ -183,6 +236,13 @@ def encode_json_container(bundle):
 
 
 def decode_json_document(content, document):
+    """
+    Decode a json document.
+
+    Args:
+        content: (str): write your description
+        document: (todo): write your description
+    """
     bundles = dict()
     if "bundle" in content:
         bundles = content["bundle"]
@@ -197,6 +257,13 @@ def decode_json_document(content, document):
 
 
 def decode_json_container(jc, bundle):
+    """
+    Decode a json container.
+
+    Args:
+        jc: (todo): write your description
+        bundle: (todo): write your description
+    """
     if "prefix" in jc:
         prefixes = jc["prefix"]
         for prefix, uri in prefixes.items():
@@ -285,6 +352,12 @@ def decode_json_container(jc, bundle):
 
 
 def encode_json_representation(value):
+    """
+    Encode a json representation of a value.
+
+    Args:
+        value: (todo): write your description
+    """
     if isinstance(value, Literal):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
@@ -302,6 +375,13 @@ def encode_json_representation(value):
 
 
 def decode_json_representation(literal, bundle):
+    """
+    Decode a json representation of a json representation.
+
+    Args:
+        literal: (int): write your description
+        bundle: (todo): write your description
+    """
     if isinstance(literal, dict):
         # complex type
         value = literal["$"]
@@ -323,6 +403,12 @@ def decode_json_representation(literal, bundle):
 
 
 def literal_json_representation(literal):
+    """
+    Represent the json representation of a literal literal.
+
+    Args:
+        literal: (int): write your description
+    """
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:

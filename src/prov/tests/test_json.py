@@ -10,6 +10,12 @@ logger = logging.getLogger(__name__)
 
 class TestJSONSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
+        """
+        Deserialize the unicode.
+
+        Args:
+            self: (todo): write your description
+        """
         unicode_char = "\u2019"
         json_content = (
             """{

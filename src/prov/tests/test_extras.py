@@ -12,10 +12,22 @@ EX_OTHER_NS = Namespace("other", "http://exceptions.example.org/")
 
 
 def add_label(record):
+    """
+    Add label to record.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes([("prov:label", Literal("hello"))])
 
 
 def add_labels(record):
+    """
+    Add labels to the language.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             ("prov:label", Literal("hello")),
@@ -26,6 +38,12 @@ def add_labels(record):
 
 
 def add_types(record):
+    """
+    Add attributes.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             ("prov:type", "a"),
@@ -43,6 +61,12 @@ def add_types(record):
 
 
 def add_locations(record):
+    """
+    Add locations to the locations.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             ("prov:Location", "Southampton"),
@@ -58,10 +82,22 @@ def add_locations(record):
 
 
 def add_value(record):
+    """
+    Add a record to the record.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes([("prov:value", EX_NS["avalue"])])
 
 
 def add_further_attributes(record):
+    """
+    Add attributes to further attributes.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -73,6 +109,12 @@ def add_further_attributes(record):
 
 
 def add_further_attributes0(record):
+    """
+    Add attributes to record attributes record.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -92,6 +134,12 @@ def add_further_attributes0(record):
 
 
 def add_further_attributes_with_qnames(record):
+    """
+    Add attributes to the attributes.
+
+    Args:
+        record: (todo): write your description
+    """
     record.add_attributes(
         [
             (EX_NS["tag"], EX2_NS["newyork"]),
@@ -102,6 +150,12 @@ def add_further_attributes_with_qnames(record):
 
 class TestExtras(unittest.TestCase):
     def test_dot(self):
+        """
+        Create a dot file.
+
+        Args:
+            self: (todo): write your description
+        """
         # This is naive, since we can't programatically check the output is
         # correct
         document = ProvDocument()
@@ -126,6 +180,12 @@ class TestExtras(unittest.TestCase):
         prov_to_dot(document)
 
     def test_extra_attributes(self):
+        """
+        Test for extra extra extra extra extra extra extra extra attributes.
+
+        Args:
+            self: (todo): write your description
+        """
 
         document = ProvDocument()
 
@@ -139,6 +199,12 @@ class TestExtras(unittest.TestCase):
         )
 
     def test_serialize_to_path(self):
+        """
+        Serialize the document to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
         document.serialize("output.json")
         os.remove("output.json")
@@ -146,15 +212,32 @@ class TestExtras(unittest.TestCase):
         document.serialize("http://netloc/outputmyprov/submit.php")
 
     def test_bundle_no_id(self):
+        """
+        Add a bundle id to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
 
         def test():
+            """
+            Add a bundle to the bundle.
+
+            Args:
+            """
             bundle = ProvBundle()
             document.add_bundle(bundle)
 
         self.assertRaises(ProvException, test)
 
     def test_use_set_time_helpers(self):
+        """
+        Test for the document for the test.
+
+        Args:
+            self: (todo): write your description
+        """
         dt = datetime.datetime.now()
         document1 = ProvDocument()
         document1.activity(EX_NS["a8"], startTime=dt, endTime=dt)
@@ -168,28 +251,62 @@ class TestExtras(unittest.TestCase):
         self.assertEqual(a.get_endTime(), dt)
 
     def test_bundle_add_garbage(self):
+        """
+        Add a bundle documents to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
 
         def test():
+            """
+            Add a bundle to the bundle.
+
+            Args:
+            """
             document.add_bundle(document.entity(EX_NS["entity_trying_to_be_a_bundle"]))
 
         self.assertRaises(ProvException, test)
 
         def test():
+            """
+            Add a bundle to the bundle.
+
+            Args:
+            """
             bundle = ProvBundle()
             document.add_bundle(bundle)
 
         self.assertRaises(ProvException, test)
 
     def test_bundle_equality_garbage(self):
+        """
+        Test if the bundle of the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvBundle()
         self.assertNotEqual(document, 1)
 
     def test_bundle_is_bundle(self):
+        """
+        Set the bundle bundle is bundle bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvBundle()
         self.assertTrue(document.is_bundle())
 
     def test_bundle_get_record_by_id(self):
+        """
+        Test if a single record was executed.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
         self.assertEqual(document.get_record(None), None)
 
@@ -200,6 +317,12 @@ class TestExtras(unittest.TestCase):
         # self.assertEqual(bundle.get_record(EX_NS['e1']), record)
 
     def test_bundle_get_records(self):
+        """
+        Load the bundle bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
 
         document.entity(identifier=EX_NS["e1"])
@@ -208,9 +331,20 @@ class TestExtras(unittest.TestCase):
         self.assertEqual(len(document.get_records()), 2)
 
     def test_bundle_name_clash(self):
+        """
+        Test if the bundle is_clash.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
 
         def test():
+            """
+            Called when a bundle tomodbus.
+
+            Args:
+            """
             document.bundle(EX_NS["indistinct"])
             document.bundle(EX_NS["indistinct"])
 
@@ -219,6 +353,11 @@ class TestExtras(unittest.TestCase):
         document = ProvDocument()
 
         def test():
+            """
+            Add a bundle to the bundle.
+
+            Args:
+            """
             document.bundle(EX_NS["indistinct"])
             bundle = ProvBundle(identifier=EX_NS["indistinct"])
             document.add_bundle(bundle)
@@ -226,6 +365,12 @@ class TestExtras(unittest.TestCase):
         self.assertRaises(ProvException, test)
 
     def test_document_helper_methods(self):
+        """
+        Register a document document document document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = ProvDocument()
         self.assertFalse(document.is_bundle())
         self.assertFalse(document.has_bundles())
@@ -272,6 +417,12 @@ class TestExtras(unittest.TestCase):
     #     self.assertEqual(len(unified._bundles[0]._records), 1)
 
     def test_primer_alternate(self):
+        """
+        Determine whether this isa is the weighted cycle.
+
+        Args:
+            self: (todo): write your description
+        """
         g1 = primer_example()
         g2 = primer_example_alternate()
         self.assertEqual(g1, g2)

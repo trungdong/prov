@@ -3,6 +3,11 @@ import datetime
 
 
 def primer_example():
+    """
+    Generate an example
+
+    Args:
+    """
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/primer.pn
     # ===========================================================================
     # document
@@ -134,6 +139,11 @@ def primer_example():
 
 
 def primer_example_alternate():
+    """
+    Generate an example report
+
+    Args:
+    """
     g = ProvDocument(
         namespaces={
             "ex": "http://example/",
@@ -204,6 +214,11 @@ def primer_example_alternate():
 
 
 def w3c_publication_1():
+    """
+    Generate a w3c_1c entity.
+
+    Args:
+    """
     # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/w3c-publication1.prov-asn
     # ===========================================================================
     # bundle
@@ -289,6 +304,11 @@ def w3c_publication_1():
 
 
 def w3c_publication_2():
+    """
+    Generate w3c 2 - 2 - 2 2 - 2 2 2 - 2 - 2 - 5 - 2 2 2 - 3 - 2 2
+
+    Args:
+    """
     # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/w3c-publication2.prov-asn
     # ===========================================================================
     # bundle
@@ -364,6 +384,11 @@ def w3c_publication_2():
 
 
 def bundles1():
+    """
+    Bundles a bundles of a }.
+
+    Args:
+    """
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles1.provn
     # ===============================================================================
     # document
@@ -421,6 +446,11 @@ def bundles1():
 
 
 def bundles2():
+    """
+    Bundles the elasticsearch framework.
+
+    Args:
+    """
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles2.provn
     # ===========================================================================
     # document
@@ -479,6 +509,11 @@ def bundles2():
 
 
 def collections():
+    """
+    Return a list of collections.
+
+    Args:
+    """
     g = ProvDocument()
     ex = Namespace("ex", "http://example.org/")
 
@@ -490,6 +525,11 @@ def collections():
 
 
 def datatypes():
+    """
+    Generate a datatypes object.
+
+    Args:
+    """
     g = ProvDocument()
     ex = Namespace("ex", "http://example.org/")
     g.add_namespace(ex)
@@ -515,6 +555,11 @@ Line3"""
 
 
 def long_literals():
+    """
+    Generate long - qualified long - qualified long - running.
+
+    Args:
+    """
     g = ProvDocument()
 
     long_uri = (

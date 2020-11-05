@@ -57,10 +57,24 @@ class ProvRDFException(Error):
 
 class AnonymousIDGenerator:
     def __init__(self):
+        """
+        Initialize the cache.
+
+        Args:
+            self: (todo): write your description
+        """
         self._cache = {}
         self._count = 0
 
     def get_anon_id(self, obj, local_prefix="id"):
+        """
+        Returns a unique id for the given object.
+
+        Args:
+            self: (todo): write your description
+            obj: (todo): write your description
+            local_prefix: (str): write your description
+        """
         if obj not in self._cache:
             self._count += 1
             self._cache[obj] = pm.Identifier("_:%s%d" % (local_prefix, self._count)).uri
@@ -108,10 +122,24 @@ predicate_mapper = {
 
 
 def attr2rdf(attr):
+    """
+    Return the rdf attribute to rdfvalue
+
+    Args:
+        attr: (str): write your description
+    """
     return URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split("prov:")[1]].uri)
 
 
 def valid_qualified_name(bundle, value, xsd_qname=False):
+    """
+    Validate a xsd name.
+
+    Args:
+        bundle: (todo): write your description
+        value: (str): write your description
+        xsd_qname: (str): write your description
+    """
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
@@ -181,9 +209,23 @@ class ProvRDFSerializer(Serializer):
         return document
 
     def valid_identifier(self, value):
+        """
+        Validate the identifier.
+
+        Args:
+            self: (todo): write your description
+            value: (str): write your description
+        """
         return self.document.valid_qualified_name(value)
 
     def encode_rdf_representation(self, value):
+        """
+        Encode rdf representation of the value.
+
+        Args:
+            self: (todo): write your description
+            value: (todo): write your description
+        """
         if isinstance(value, URIRef):
             return value
         elif isinstance(value, pm.Literal):
@@ -200,6 +242,14 @@ class ProvRDFSerializer(Serializer):
             return RDFLiteral(value)
 
     def decode_rdf_representation(self, literal, graph):
+        """
+        Decode rdf rdf rdf rdf representation
+
+        Args:
+            self: (todo): write your description
+            literal: (str): write your description
+            graph: (todo): write your description
+        """
         if isinstance(literal, RDFLiteral):
             value = literal.value if literal.value is not None else literal
             datatype = literal.datatype if hasattr(literal, "datatype") else None
@@ -240,6 +290,15 @@ class ProvRDFSerializer(Serializer):
             return literal
 
     def encode_document(self, document, PROV_N_MAP=PROV_N_MAP):
+        """
+        Encode a single document.
+
+        Args:
+            self: (todo): write your description
+            document: (todo): write your description
+            PROV_N_MAP: (int): write your description
+            PROV_N_MAP: (int): write your description
+        """
         container = self.encode_container(document)
         for item in document.bundles:
             #  encoding the sub-bundle
@@ -252,6 +311,17 @@ class ProvRDFSerializer(Serializer):
     def encode_container(
         self, bundle, PROV_N_MAP=PROV_N_MAP, container=None, identifier=None
     ):
+        """
+        Encode this bundle into a single bundle into a single bundle.
+
+        Args:
+            self: (todo): write your description
+            bundle: (todo): write your description
+            PROV_N_MAP: (todo): write your description
+            PROV_N_MAP: (todo): write your description
+            container: (todo): write your description
+            identifier: (todo): write your description
+        """
         if container is None:
             container = ConjunctiveGraph(identifier=identifier)
             nm = container.namespace_manager
@@ -487,6 +557,18 @@ class ProvRDFSerializer(Serializer):
         relation_mapper=relation_mapper,
         predicate_mapper=predicate_mapper,
     ):
+        """
+        Decode a document into a document.
+
+        Args:
+            self: (todo): write your description
+            content: (todo): write your description
+            document: (todo): write your description
+            relation_mapper: (todo): write your description
+            relation_mapper: (todo): write your description
+            predicate_mapper: (bool): write your description
+            predicate_mapper: (bool): write your description
+        """
         for prefix, url in content.namespaces():
             document.add_namespace(prefix, str(url))
         if hasattr(content, "contexts"):
@@ -522,6 +604,18 @@ class ProvRDFSerializer(Serializer):
         relation_mapper=relation_mapper,
         predicate_mapper=predicate_mapper,
     ):
+        """
+        Decode a bel graph.
+
+        Args:
+            self: (todo): write your description
+            graph: (todo): write your description
+            bundle: (todo): write your description
+            relation_mapper: (todo): write your description
+            relation_mapper: (todo): write your description
+            predicate_mapper: (bool): write your description
+            predicate_mapper: (bool): write your description
+        """
         ids = {}
         PROV_CLS_MAP = {}
         formal_attributes = {}
@@ -705,6 +799,12 @@ def walk(children, level=0, path=None, usename=True):
 
 
 def literal_rdf_representation(literal):
+    """
+    Encode literal literal literal.
+
+    Args:
+        literal: (int): write your description
+    """
     value = str(literal.value) if literal.value else literal
     if literal.langtag:
         #  a language tag can only go with prov:InternationalizedString

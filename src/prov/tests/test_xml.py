@@ -24,6 +24,12 @@ DATA_PATH = os.path.join(
 
 
 def remove_empty_tags(tree):
+    """
+    Removes empty tags.
+
+    Args:
+        tree: (todo): write your description
+    """
     if tree.text is not None and tree.text.strip() == "":
         tree.text = None
     for elem in tree:
@@ -356,6 +362,14 @@ class ProvXMLTestCase(unittest.TestCase):
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
+        """
+        Perform an element to a file.
+
+        Args:
+            self: (todo): write your description
+            filename: (str): write your description
+            force_types: (str): write your description
+        """
         document = prov.ProvDocument.deserialize(source=filename, format="xml")
 
         with io.BytesIO() as new_xml:
@@ -384,6 +398,12 @@ for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")
 
     # Python creates closures on function calls...
     def get_fct(f):
+        """
+        Return the : class :
+
+        Args:
+            f: (todo): write your description
+        """
         # Some test files have a lot of type declarations...
         if name in ["pc1"]:
             force_types = True
@@ -391,6 +411,12 @@ for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")
             force_types = False
 
         def fct(self):
+            """
+            Fctction.
+
+            Args:
+                self: (todo): write your description
+            """
             self._perform_round_trip(f, force_types=force_types)
 
         return fct
