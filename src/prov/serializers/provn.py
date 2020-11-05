@@ -22,4 +22,11 @@ class ProvNSerializer(Serializer):
         stream.write(provn_content)
 
     def deserialize(self, stream, **kwargs):
+        """
+        Deserialize the stream.
+
+        Args:
+            self: (todo): write your description
+            stream: (str): write your description
+        """
         raise NotImplementedError

@@ -167,6 +167,12 @@ ANNOTATION_END_ROW = "    </TABLE>>"
 
 
 def htlm_link_if_uri(value):
+    """
+    Return the uri of a uri.
+
+    Args:
+        value: (todo): write your description
+    """
     try:
         uri = value.uri
         return '<a href="%s">%s</a>' % (uri, str(value))
@@ -207,7 +213,21 @@ def prov_to_dot(
     count = [0, 0, 0, 0]  # counters for node ids
 
     def _bundle_to_dot(dot, bundle):
+        """
+        Bundle graph to dot format.
+
+        Args:
+            dot: (todo): write your description
+            bundle: (todo): write your description
+        """
         def _attach_attribute_annotation(node, record):
+            """
+            Annotate an annotation record.
+
+            Args:
+                node: (todo): write your description
+                record: (todo): write your description
+            """
             # Adding a node to show all attributes
             attributes = list(
                 (attr_name, value)
@@ -245,6 +265,12 @@ def prov_to_dot(
             dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
         def _add_bundle(bundle):
+            """
+            Add a bundle to the given bundle.
+
+            Args:
+                bundle: (todo): write your description
+            """
             count[2] += 1
             subdot = pydot.Cluster(
                 graph_name="c%d" % count[2], URL=f'"{bundle.identifier.uri}"'
@@ -268,6 +294,12 @@ def prov_to_dot(
             return subdot
 
         def _add_node(record):
+            """
+            Add a new record.
+
+            Args:
+                record: (todo): write your description
+            """
             count[0] += 1
             node_id = "n%d" % count[0]
             if use_labels:
@@ -296,6 +328,13 @@ def prov_to_dot(
             return node
 
         def _add_generic_node(qname, prov_type=None):
+            """
+            Adds a generic generic generic generic generic generic node.
+
+            Args:
+                qname: (str): write your description
+                prov_type: (str): write your description
+            """
             count[0] += 1
             node_id = "n%d" % count[0]
             node_label = f'"{qname}"'
@@ -308,6 +347,11 @@ def prov_to_dot(
             return node
 
         def _get_bnode():
+            """
+            Returns a pydode object.
+
+            Args:
+            """
             count[1] += 1
             bnode_id = "b%d" % count[1]
             bnode = pydot.Node(bnode_id, label='""', shape="point", color="gray")
@@ -315,6 +359,13 @@ def prov_to_dot(
             return bnode
 
         def _get_node(qname, prov_type=None):
+            """
+            Return a node from the given qname.
+
+            Args:
+                qname: (str): write your description
+                prov_type: (str): write your description
+            """
             if qname is None:
                 return _get_bnode()
             uri = qname.uri

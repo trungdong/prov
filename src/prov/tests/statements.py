@@ -11,12 +11,32 @@ class TestStatementsBase(object):
     """
 
     def new_document(self):
+        """
+        Creates a new document. document.
+
+        Args:
+            self: (todo): write your description
+        """
         return ProvDocument()
 
     def add_label(self, record):
+        """
+        Add a label to the record.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes([("prov:label", Literal("hello"))])
 
     def add_labels(self, record):
+        """
+        Add labels to the language.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 ("prov:label", Literal("hello")),
@@ -26,6 +46,13 @@ class TestStatementsBase(object):
         )
 
     def add_types(self, record):
+        """
+        Add a record.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 ("prov:type", "a"),
@@ -42,6 +69,13 @@ class TestStatementsBase(object):
         )
 
     def add_locations(self, record):
+        """
+        Add locations.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 ("prov:Location", "Southampton"),
@@ -56,9 +90,23 @@ class TestStatementsBase(object):
         )
 
     def add_value(self, record):
+        """
+        Add a record to the record.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes([("prov:value", EX_NS["avalue"])])
 
     def add_further_attributes(self, record):
+        """
+        Add attributes to further attributes.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 (EX_NS["tag1"], "hello"),
@@ -69,6 +117,13 @@ class TestStatementsBase(object):
         )
 
     def add_further_attributes0(self, record):
+        """
+        Add attributes to the record.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 (EX_NS["tag1"], "hello"),
@@ -87,6 +142,13 @@ class TestStatementsBase(object):
         self.add_further_attributes_with_qnames(record)
 
     def add_further_attributes_with_qnames(self, record):
+        """
+        Add attributes to record.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         record.add_attributes(
             [
                 (EX_NS["tag"], EX2_NS["newyork"]),
@@ -98,6 +160,12 @@ class TestStatementsBase(object):
 
     # ENTITIES
     def test_entity_0(self):
+        """
+        Test for a test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e0"])
         a.add_attributes(
@@ -112,17 +180,35 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_1(self):
+        """
+        Test for the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.entity(EX_NS["e1"])
         self.do_tests(document)
 
     def test_entity_2(self):
+        """
+        Test for test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e2"])
         a.add_attributes([(PROV_LABEL, "entity2")])
         self.do_tests(document)
 
     def test_entity_3(self):
+        """
+        Test for entity entity to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e3"])
         a.add_attributes([(PROV_LABEL, "entity3")])
@@ -130,6 +216,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_4(self):
+        """
+        Test for the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e4"])
         a.add_attributes([(PROV_LABEL, "entity4")])
@@ -137,6 +229,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_5(self):
+        """
+        Add a new entity to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e5"])
         a.add_attributes([(PROV_LABEL, "entity5")])
@@ -144,6 +242,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_6(self):
+        """
+        Add a new entities.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e6"])
         a.add_attributes([(PROV_LABEL, "entity6")])
@@ -151,6 +255,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_7(self):
+        """
+        Test for entity documents.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e7"])
         a.add_attributes([(PROV_LABEL, "entity7")])
@@ -160,6 +270,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_8(self):
+        """
+        Test for the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e8"])
         a.add_attributes([(PROV_LABEL, "entity8")])
@@ -172,6 +288,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_9(self):
+        """
+        Add a new document and add it to document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e9"])
         a.add_attributes([(PROV_LABEL, "entity9")])
@@ -182,6 +304,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_entity_10(self):
+        """
+        Add a new entities to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.entity(EX_NS["e10"])
         a.add_attributes([(PROV_LABEL, "entity10")])
@@ -193,17 +321,35 @@ class TestStatementsBase(object):
 
     # ACTIVITIES
     def test_activity_1(self):
+        """
+        Test for activity activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.activity(EX_NS["a1"])
         self.do_tests(document)
 
     def test_activity_2(self):
+        """
+        Test if activity exists.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a2"])
         a.add_attributes([(PROV_LABEL, "activity2")])
         self.do_tests(document)
 
     def test_activity_3(self):
+        """
+        Test for activity activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.activity(
             EX_NS["a3"],
@@ -213,6 +359,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_4(self):
+        """
+        Create a new activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a4"])
         a.add_attributes([(PROV_LABEL, "activity4")])
@@ -220,6 +372,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_5(self):
+        """
+        Test the activity activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a5"])
         a.add_attributes([(PROV_LABEL, "activity5")])
@@ -227,6 +385,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_6(self):
+        """
+        Test the activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a6"])
         a.add_attributes([(PROV_LABEL, "activity6")])
@@ -234,6 +398,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_7(self):
+        """
+        Create activity activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a7"])
         a.add_attributes([(PROV_LABEL, "activity7")])
@@ -243,6 +413,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_8(self):
+        """
+        Create activity activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(
             EX_NS["a8"],
@@ -259,6 +435,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_activity_9(self):
+        """
+        Create a new activity.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.activity(EX_NS["a9"])
         a.add_attributes([(PROV_LABEL, "activity9")])
@@ -270,17 +452,35 @@ class TestStatementsBase(object):
 
     # AGENTS
     def test_agent_1(self):
+        """
+        Test the test agent agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.agent(EX_NS["ag1"])
         self.do_tests(document)
 
     def test_agent_2(self):
+        """
+        Run test agent agent test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag2"])
         a.add_attributes([(PROV_LABEL, "agent2")])
         self.do_tests(document)
 
     def test_agent_3(self):
+        """
+        Test for the test agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag3"])
         a.add_attributes(
@@ -292,6 +492,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_agent_4(self):
+        """
+        Add an agent agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag4"])
         a.add_attributes(
@@ -304,6 +510,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_agent_5(self):
+        """
+        Test the agent agent agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag5"])
         a.add_attributes(
@@ -317,6 +529,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_agent_6(self):
+        """
+        Add a new agent agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag6"])
         a.add_attributes([(PROV_LABEL, "agent6")])
@@ -324,6 +542,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_agent_7(self):
+        """
+        Add the agent agent agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag7"])
         a.add_attributes([(PROV_LABEL, "agent7")])
@@ -332,6 +556,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_agent_8(self):
+        """
+        Run the test agent.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.agent(EX_NS["ag8"])
         a.add_attributes([(PROV_LABEL, "agent8")])
@@ -343,16 +573,34 @@ class TestStatementsBase(object):
 
     # GENERATIONS
     def test_generation_1(self):
+        """
+        Test if a new generation.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.generation(EX_NS["e1"], identifier=EX_NS["gen1"])
         self.do_tests(document)
 
     def test_generation_2(self):
+        """
+        Test for generation.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.generation(EX_NS["e1"], identifier=EX_NS["gen2"], activity=EX_NS["a1"])
         self.do_tests(document)
 
     def test_generation_3(self):
+        """
+        Test for generation. sphinx.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.generation(
             EX_NS["e1"], identifier=EX_NS["gen3"], activity=EX_NS["a1"]
@@ -366,6 +614,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_generation_4(self):
+        """
+        Test for generation.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.new_record(
             PROV_GENERATION,
@@ -380,6 +634,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_generation_5(self):
+        """
+        Test for generation and store to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.generation(
             EX_NS["e1"],
@@ -399,6 +659,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_generation_6(self):
+        """
+        Test if we have a new generation.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.generation(
             EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now()
@@ -406,6 +672,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_generation_7(self):
+        """
+        Test for the test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         a = document.generation(
             EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now()
@@ -419,22 +691,46 @@ class TestStatementsBase(object):
 
     # USAGE
     def test_usage_1(self):
+        """
+        Test for usage of - usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.usage(None, entity=EX_NS["e1"], identifier=EX_NS["use1"])
         self.do_tests(document)
 
     def test_usage_2(self):
+        """
+        Test for usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.usage(EX_NS["a1"], entity=EX_NS["e1"], identifier=EX_NS["use2"])
         self.do_tests(document)
 
     def test_usage_3(self):
+        """
+        Test for usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         use = document.usage(EX_NS["a1"], entity=EX_NS["e1"], identifier=EX_NS["use3"])
         use.add_attributes([(PROV_ROLE, "somerole"), (PROV_ROLE, "otherRole")])
         self.do_tests(document)
 
     def test_usage_4(self):
+        """
+        Add usage : attributes.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         use = document.usage(
             EX_NS["a1"],
@@ -446,6 +742,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_usage_5(self):
+        """
+        Test for usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         use = document.usage(
             EX_NS["a1"],
@@ -461,11 +763,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_usage_6(self):
+        """
+        Test usage usage usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.usage(EX_NS["a1"], entity=EX_NS["e1"])
         self.do_tests(document)
 
     def test_usage_7(self):
+        """
+        Add usage to elasticsearch.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         use = document.usage(
             EX_NS["a1"], entity=EX_NS["e1"], time=datetime.datetime.now()
@@ -479,11 +793,23 @@ class TestStatementsBase(object):
 
     # INVALIDATIONS
     def test_invalidation_1(self):
+        """
+        Test if the document is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.invalidation(EX_NS["e1"], identifier=EX_NS["inv1"])
         self.do_tests(document)
 
     def test_invalidation_2(self):
+        """
+        Run test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.invalidation(
             EX_NS["e1"], identifier=EX_NS["inv2"], activity=EX_NS["a1"]
@@ -491,6 +817,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_invalidation_3(self):
+        """
+        Test if a test document in the test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inv = document.invalidation(
             EX_NS["e1"], identifier=EX_NS["inv3"], activity=EX_NS["a1"]
@@ -504,6 +836,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_invalidation_4(self):
+        """
+        Test if the test is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inv = document.invalidation(
             EX_NS["e1"],
@@ -519,6 +857,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_invalidation_5(self):
+        """
+        Test for invalid invalid document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inv = document.invalidation(
             EX_NS["e1"],
@@ -538,11 +882,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_invalidation_6(self):
+        """
+        Perform test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.invalidation(EX_NS["e1"], activity=EX_NS["a1"])
         self.do_tests(document)
 
     def test_invalidation_7(self):
+        """
+        Run the test test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inv = document.invalidation(
             EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now()
@@ -560,21 +916,45 @@ class TestStatementsBase(object):
 
     # STARTS
     def test_start_1(self):
+        """
+        Start a start start of document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(None, trigger=EX_NS["e1"], identifier=EX_NS["start1"])
         self.do_tests(document)
 
     def test_start_2(self):
+        """
+        Run test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(EX_NS["a1"], trigger=EX_NS["e1"], identifier=EX_NS["start2"])
         self.do_tests(document)
 
     def test_start_3(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(EX_NS["a1"], identifier=EX_NS["start3"])
         self.do_tests(document)
 
     def test_start_4(self):
+        """
+        Start a test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(
             None, trigger=EX_NS["e1"], identifier=EX_NS["start4"], starter=EX_NS["a2"]
@@ -582,6 +962,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_start_5(self):
+        """
+        Test for start start and start.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(
             EX_NS["a1"],
@@ -592,11 +978,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_start_6(self):
+        """
+        Test start start start start_start.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(EX_NS["a1"], identifier=EX_NS["start6"], starter=EX_NS["a2"])
         self.do_tests(document)
 
     def test_start_7(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(
             EX_NS["a1"],
@@ -607,6 +1005,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_start_8(self):
+        """
+        !
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         start = document.start(
             EX_NS["a1"],
@@ -627,11 +1031,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_start_9(self):
+        """
+        Test for test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(EX_NS["a1"], trigger=EX_NS["e1"])
         self.do_tests(document)
 
     def test_start_10(self):
+        """
+        Run a test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         start = document.start(
             EX_NS["a1"], starter=EX_NS["a2"], time=datetime.datetime.now()
@@ -650,21 +1066,45 @@ class TestStatementsBase(object):
 
     # ENDS
     def test_end_1(self):
+        """
+        Perform the end of the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(None, trigger=EX_NS["e1"], identifier=EX_NS["end1"])
         self.do_tests(document)
 
     def test_end_2(self):
+        """
+        Called when the end document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(EX_NS["a1"], trigger=EX_NS["e1"], identifier=EX_NS["end2"])
         self.do_tests(document)
 
     def test_end_3(self):
+        """
+        Called when a document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(EX_NS["a1"], identifier=EX_NS["end3"])
         self.do_tests(document)
 
     def test_end_4(self):
+        """
+        Called by the test when the test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(
             None, trigger=EX_NS["e1"], identifier=EX_NS["end4"], ender=EX_NS["a2"]
@@ -672,6 +1112,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_end_5(self):
+        """
+        Test for the end of the end.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(
             EX_NS["a1"],
@@ -682,11 +1128,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_end_6(self):
+        """
+        Called bytestring.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(EX_NS["a1"], identifier=EX_NS["end6"], ender=EX_NS["a2"])
         self.do_tests(document)
 
     def test_end_7(self):
+        """
+        Called when a test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(
             EX_NS["a1"],
@@ -697,6 +1155,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_end_8(self):
+        """
+        Test for test for test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         end = document.end(
             EX_NS["a1"],
@@ -717,11 +1181,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_end_9(self):
+        """
+        Called when the document document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(EX_NS["a1"], trigger=EX_NS["e1"])
         self.do_tests(document)
 
     def test_end_10(self):
+        """
+        Add a test to the test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         end = document.end(EX_NS["a1"], ender=EX_NS["a2"], time=datetime.datetime.now())
         end.add_attributes(
@@ -738,16 +1214,34 @@ class TestStatementsBase(object):
 
     # DERIVATIONS
     def test_derivation_1(self):
+        """
+        Derive the document to the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(None, usedEntity=EX_NS["e1"], identifier=EX_NS["der1"])
         self.do_tests(document)
 
     def test_derivation_2(self):
+        """
+        Derive test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(EX_NS["e2"], usedEntity=None, identifier=EX_NS["der2"])
         self.do_tests(document)
 
     def test_derivation_3(self):
+        """
+        Derive a document document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(
             EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der3"]
@@ -755,6 +1249,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_4(self):
+        """
+        Test if the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         der = document.derivation(
             EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der4"]
@@ -763,6 +1263,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_5(self):
+        """
+        Derive the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(
             EX_NS["e2"],
@@ -773,6 +1279,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_6(self):
+        """
+        Derive the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(
             EX_NS["e2"],
@@ -784,6 +1296,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_7(self):
+        """
+        Derive test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(
             EX_NS["e2"],
@@ -796,6 +1314,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_8(self):
+        """
+        Add a test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         der = document.derivation(
             EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der8"]
@@ -806,12 +1330,24 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_9(self):
+        """
+        Add test test test test document *
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         der = document.derivation(EX_NS["e2"], usedEntity=None)
         self.add_types(der)
         self.do_tests(document)
 
     def test_derivation_10(self):
+        """
+        Derive test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.derivation(
             EX_NS["e2"],
@@ -823,6 +1359,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_11(self):
+        """
+        Derive the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.revision(
             EX_NS["e2"],
@@ -835,6 +1377,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_12(self):
+        """
+        Derive the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.quotation(
             EX_NS["e2"],
@@ -847,6 +1395,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_derivation_13(self):
+        """
+        Test for the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.primary_source(
             EX_NS["e2"],
@@ -860,16 +1414,34 @@ class TestStatementsBase(object):
 
     # ASSOCIATIONS
     def test_association_1(self):
+        """
+        Test if the association * to test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.association(EX_NS["a1"], identifier=EX_NS["assoc1"])
         self.do_tests(document)
 
     def test_association_2(self):
+        """
+        Test for association association association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.association(None, agent=EX_NS["ag1"], identifier=EX_NS["assoc2"])
         self.do_tests(document)
 
     def test_association_3(self):
+        """
+        This function association association association association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.association(
             EX_NS["a1"], agent=EX_NS["ag1"], identifier=EX_NS["assoc3"]
@@ -877,6 +1449,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_4(self):
+        """
+        Test for the association association association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.association(
             EX_NS["a1"],
@@ -887,11 +1465,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_5(self):
+        """
+        Test if the association of an association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.association(EX_NS["a1"], agent=EX_NS["ag1"])
         self.do_tests(document)
 
     def test_association_6(self):
+        """
+        Add an association to an association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         assoc = document.association(
             EX_NS["a1"],
@@ -903,6 +1493,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_7(self):
+        """
+        This function *
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         assoc = document.association(
             EX_NS["a1"],
@@ -915,6 +1511,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_8(self):
+        """
+        Add association for association association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         assoc = document.association(
             EX_NS["a1"],
@@ -931,6 +1533,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_9(self):
+        """
+        Test for indra association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         assoc = document.association(
             EX_NS["a1"],
@@ -944,6 +1552,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_association_10(self):
+        """
+        Add association association to the association.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         assoc1 = document.association(
             EX_NS["a1"], agent=EX_NS["ag1"], identifier=EX_NS["assoc10a"]
@@ -965,31 +1579,67 @@ class TestStatementsBase(object):
 
     # ATTRIBUTIONS
     def test_attribution_1(self):
+        """
+        Test if a test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.attribution(EX_NS["e1"], None, identifier=EX_NS["attr1"])
         self.do_tests(document)
 
     def test_attribution_2(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.attribution(None, EX_NS["ag1"], identifier=EX_NS["attr2"])
         self.do_tests(document)
 
     def test_attribution_3(self):
+        """
+        Test for the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr3"])
         self.do_tests(document)
 
     def test_attribution_4(self):
+        """
+        Add a test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr4"])
         self.do_tests(document)
 
     def test_attribution_5(self):
+        """
+        Test if the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.attribution(EX_NS["e1"], EX_NS["ag1"])
         self.do_tests(document)
 
     def test_attribution_6(self):
+        """
+        Add a test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         attr = document.attribution(
             EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr6"]
@@ -998,6 +1648,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_attribution_7(self):
+        """
+        Add the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         attr = document.attribution(
             EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr7"]
@@ -1007,6 +1663,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_attribution_8(self):
+        """
+        Add a test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         attr = document.attribution(
             EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr8"]
@@ -1018,21 +1680,45 @@ class TestStatementsBase(object):
 
     # DELEGATIONS
     def test_delegation_1(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.delegation(EX_NS["e1"], None, identifier=EX_NS["dele1"])
         self.do_tests(document)
 
     def test_delegation_2(self):
+        """
+        Test for test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.delegation(None, EX_NS["ag1"], identifier=EX_NS["dele2"])
         self.do_tests(document)
 
     def test_delegation_3(self):
+        """
+        Test to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.delegation(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["dele3"])
         self.do_tests(document)
 
     def test_delegation_4(self):
+        """
+        Create a test test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.delegation(
             EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele4"]
@@ -1040,11 +1726,23 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_delegation_5(self):
+        """
+        Test if the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.delegation(EX_NS["e1"], EX_NS["ag1"])
         self.do_tests(document)
 
     def test_delegation_6(self):
+        """
+        Add the test test test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         dele = document.delegation(
             EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele6"]
@@ -1053,6 +1751,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_delegation_7(self):
+        """
+        Test for test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         dele = document.delegation(
             EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele7"]
@@ -1062,6 +1766,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_delegation_8(self):
+        """
+        Create a test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         dele = document.delegation(
             EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele8"]
@@ -1073,32 +1783,68 @@ class TestStatementsBase(object):
 
     # COMMUNICATIONS
     def test_communication_1(self):
+        """
+        Test if a document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.communication(EX_NS["a2"], None, identifier=EX_NS["inf1"])
         self.do_tests(document)
 
     def test_communication_2(self):
+        """
+        Test if the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.communication(None, EX_NS["a1"], identifier=EX_NS["inf2"])
         self.do_tests(document)
 
     def test_communication_3(self):
+        """
+        Test for test test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf3"])
         self.do_tests(document)
 
     def test_communication_4(self):
+        """
+        * test test test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.communication(EX_NS["a2"], EX_NS["a1"])
         self.do_tests(document)
 
     def test_communication_5(self):
+        """
+        Add test test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf5"])
         self.add_labels(inf)
         self.do_tests(document)
 
     def test_communication_6(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf6"])
         self.add_labels(inf)
@@ -1106,6 +1852,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_communication_7(self):
+        """
+        Test for influxdb.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf7"])
         self.add_labels(inf)
@@ -1115,32 +1867,68 @@ class TestStatementsBase(object):
 
     # INFLUENCES
     def test_influence_1(self):
+        """
+        Test if influence influence test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.influence(EX_NS["a2"], None, identifier=EX_NS["inf1"])
         self.do_tests(document)
 
     def test_influence_2(self):
+        """
+        Test for influence test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.influence(None, EX_NS["a1"], identifier=EX_NS["inf2"])
         self.do_tests(document)
 
     def test_influence_3(self):
+        """
+        Test for influence influence.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf3"])
         self.do_tests(document)
 
     def test_influence_4(self):
+        """
+        Test for influence test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.influence(EX_NS["a2"], EX_NS["a1"])
         self.do_tests(document)
 
     def test_influence_5(self):
+        """
+        Test for influence influence.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf5"])
         self.add_labels(inf)
         self.do_tests(document)
 
     def test_influence_6(self):
+        """
+        Test influence influence influence.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf6"])
         self.add_labels(inf)
@@ -1148,6 +1936,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_influence_7(self):
+        """
+        Add influence influence.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf7"])
         self.add_labels(inf)
@@ -1157,37 +1951,79 @@ class TestStatementsBase(object):
 
     # OTHERS
     def test_alternate_1(self):
+        """
+        * test document to document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.alternate(EX_NS["e2"], EX_NS["e1"])
         self.do_tests(document)
 
     def test_specialization_1(self):
+        """
+        Called when the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.specialization(EX_NS["e2"], EX_NS["e1"])
         self.do_tests(document)
 
     def test_mention_1(self):
+        """
+        Test if the test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.mention(EX_NS["e2"], EX_NS["e1"], None)
         self.do_tests(document)
 
     def test_mention_2(self):
+        """
+        Test for test test.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.mention(EX_NS["e2"], EX_NS["e1"], EX_NS["b"])
         self.do_tests(document)
 
     def test_membership_1(self):
+        """
+        Set the membership document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.membership(EX_NS["c"], EX_NS["e1"])
         self.do_tests(document)
 
     def test_membership_2(self):
+        """
+        Set membership to document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.membership(EX_NS["c"], EX_NS["e1"])
         document.membership(EX_NS["c"], EX_NS["e2"])
         self.do_tests(document)
 
     def test_membership_3(self):
+        """
+        Set membership.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.membership(EX_NS["c"], EX_NS["e1"])
         document.membership(EX_NS["c"], EX_NS["e2"])
@@ -1196,6 +2032,12 @@ class TestStatementsBase(object):
 
     # SCRUFFY
     def test_scruffy_generation_1(self):
+        """
+        Test if there isochrone.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.generation(
             EX_NS["e1"],
@@ -1214,6 +2056,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_generation_2(self):
+        """
+        Test the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         gen1 = document.generation(
             EX_NS["e1"],
@@ -1234,6 +2082,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_invalidation_1(self):
+        """
+        Test if the document is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.invalidation(
             EX_NS["e1"],
@@ -1252,6 +2106,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_invalidation_2(self):
+        """
+        Test if the test is valid.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         inv1 = document.invalidation(
             EX_NS["e1"],
@@ -1272,6 +2132,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_usage_1(self):
+        """
+        Scruff usage usage usage_usage.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.usage(
             EX_NS["a1"],
@@ -1290,6 +2156,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_usage_2(self):
+        """
+        Test usage usage toclruff
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         use1 = document.usage(
             EX_NS["a1"],
@@ -1310,6 +2182,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_start_1(self):
+        """
+        Test if document the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.start(
             EX_NS["a1"],
@@ -1328,6 +2206,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_start_2(self):
+        """
+        Test if the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         start1 = document.start(
             EX_NS["a1"],
@@ -1348,6 +2232,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_start_3(self):
+        """
+        Test if the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         start1 = document.start(
             EX_NS["a1"],
@@ -1372,6 +2262,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_start_4(self):
+        """
+        Test the test document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         start1 = document.start(
             EX_NS["a1"],
@@ -1397,6 +2293,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_end_1(self):
+        """
+        Test if the document is closed.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         document.end(
             EX_NS["a1"],
@@ -1415,6 +2317,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_end_2(self):
+        """
+        Test if the end of the endpoints of the document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         end1 = document.end(
             EX_NS["a1"],
@@ -1435,6 +2343,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_end_3(self):
+        """
+        Test for sig_scruff.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         end1 = document.end(
             EX_NS["a1"],
@@ -1459,6 +2373,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_scruffy_end_4(self):
+        """
+        Test if a document.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
         end1 = document.end(
             EX_NS["a1"],
@@ -1484,6 +2404,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_bundle_1(self):
+        """
+        Create a bundle bundle bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1506,6 +2432,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_bundle_2(self):
+        """
+        Create a bundle to the bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1528,6 +2460,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_bundle_3(self):
+        """
+        Create a new bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1550,6 +2488,12 @@ class TestStatementsBase(object):
         self.do_tests(document)
 
     def test_bundle_4(self):
+        """
+        Create a bundle of the bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         document = self.new_document()
 
         bundle1 = ProvBundle(identifier=EX_NS["bundle1"])

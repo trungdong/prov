@@ -22,15 +22,40 @@ class Identifier(object):
         return self._uri
 
     def __str__(self):
+        """
+        Return the string representation of this node.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._uri
 
     def __eq__(self, other):
+        """
+        Return true if other is equal false otherwise.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return self.uri == other.uri if isinstance(other, Identifier) else False
 
     def __hash__(self):
+        """
+        Return hash of the hash
+
+        Args:
+            self: (todo): write your description
+        """
         return hash((self.uri, self.__class__))
 
     def __repr__(self):
+        """
+        Return a representation of this method.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s: %s>" % (self.__class__.__name__, self._uri)
 
     def provn_representation(self):
@@ -66,12 +91,30 @@ class QualifiedName(Identifier):
         return self._localpart
 
     def __str__(self):
+        """
+        Return the string representation of the object.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._str
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s: %s>" % (self.__class__.__name__, self._str)
 
     def __hash__(self):
+        """
+        Returns the hash of the uri.
+
+        Args:
+            self: (todo): write your description
+        """
         return hash(self.uri)
 
     def provn_representation(self):
@@ -136,6 +179,13 @@ class Namespace(object):
             return None
 
     def __eq__(self, other):
+        """
+        Return true if other is equal false otherwise.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return (
             (self._uri == other.uri and self._prefix == other.prefix)
             if isinstance(other, Namespace)
@@ -143,6 +193,13 @@ class Namespace(object):
         )
 
     def __ne__(self, other):
+        """
+        Return true if this set of : class : class :.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return (
             not isinstance(other, Namespace)
             or self._uri != other.uri
@@ -150,12 +207,31 @@ class Namespace(object):
         )
 
     def __hash__(self):
+        """
+        Returns the hash of the hash.
+
+        Args:
+            self: (todo): write your description
+        """
         return hash((self._uri, self._prefix))
 
     def __repr__(self):
+        """
+        Return a repr representation of this class.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s: %s {%s}>" % (self.__class__.__name__, self._prefix, self._uri)
 
     def __getitem__(self, localpart):
+        """
+        Return the item from the local cache.
+
+        Args:
+            self: (todo): write your description
+            localpart: (todo): write your description
+        """
         if localpart in self._cache:
             return self._cache[localpart]
         else:

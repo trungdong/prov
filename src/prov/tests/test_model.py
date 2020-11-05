@@ -29,6 +29,12 @@ class TestExamplesBase(object):
     """
 
     def test_all_examples(self):
+        """
+        Run all examples in the given set of examples.
+
+        Args:
+            self: (todo): write your description
+        """
         counter = 0
         for name, graph in examples.tests:
             counter += 1
@@ -39,6 +45,12 @@ class TestExamplesBase(object):
 
 class TestLoadingProvToolboxJSON(unittest.TestCase):
     def setUp(self):
+        """
+        Sets the json document.
+
+        Args:
+            self: (todo): write your description
+        """
         self.json_path = os.path.dirname(os.path.abspath(__file__)) + "/json/"
         filenames = os.listdir(self.json_path)
         self.fails = []
@@ -58,6 +70,12 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                         self.fails.append(filename)
 
     def test_loading_all_json(self):
+        """
+        Saves all json files to disk.
+
+        Args:
+            self: (todo): write your description
+        """
         # self.assertFalse(fails, 'Failed to load/round-trip %d JSON files (%s)' % (len(fails), ', '.join(fails)))
 
         # Code for debugging the failed tests
@@ -77,6 +95,12 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
 
 class TestFlattening(unittest.TestCase):
     def test_flattening(self):
+        """
+        Flattens is a set of - genes.
+
+        Args:
+            self: (todo): write your description
+        """
         for name, graph in examples.tests:
             logger.info("Testing flattening of the %s example", name)
             document = graph()
@@ -96,6 +120,12 @@ class TestFlattening(unittest.TestCase):
 
 class TestUnification(unittest.TestCase):
     def test_unifying(self):
+        """
+        Test if there are no longer test.
+
+        Args:
+            self: (todo): write your description
+        """
         # This is a very trivial test just to exercise the unified() function
         # TODO: Create a proper unification test
         json_path = os.path.dirname(os.path.abspath(__file__)) + "/unification/"
@@ -117,6 +147,12 @@ class TestUnification(unittest.TestCase):
 
 class TestBundleUpdate(unittest.TestCase):
     def test_bundle_update_simple(self):
+        """
+        Updates the bundle bundle to the bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         doc = ProvDocument()
         doc.set_default_namespace(EX_URI)
 
@@ -133,6 +169,12 @@ class TestBundleUpdate(unittest.TestCase):
         self.assertEqual(len(b1.get_records()), 2)
 
     def test_document_update_simple(self):
+        """
+        Updates the document update.
+
+        Args:
+            self: (todo): write your description
+        """
         d1 = ProvDocument()
         d1.set_default_namespace(EX_URI)
         d1.entity("e")
@@ -158,26 +200,55 @@ class TestBundleUpdate(unittest.TestCase):
 
 class TestAddBundle(unittest.TestCase):
     def document_1(self):
+        """
+        Create a document document to the document.
+
+        Args:
+            self: (todo): write your description
+        """
         d1 = ProvDocument()
         ns_ex = d1.add_namespace("ex", EX_URI)
         d1.entity(ns_ex["e1"])
         return d1
 
     def document_2(self):
+        """
+        Provide docstring for the activity.
+
+        Args:
+            self: (todo): write your description
+        """
         d2 = ProvDocument()
         ns_ex = d2.add_namespace("ex", EX2_URI)
         d2.activity(ns_ex["a1"])
         return d2
 
     def bundle_0(self):
+        """
+        Return the bundle bundle bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         b = ProvBundle(namespaces={"ex": EX2_URI})
         return b
 
     def test_add_bundle_simple(self):
+        """
+        Add a simple bundle bundle to the bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         d1 = self.document_1()
         b0 = self.bundle_0()
 
         def sub_test_1():
+            """
+            Add a test_1.
+
+            Args:
+            """
             d1.add_bundle(b0)
 
         self.assertRaises(ProvException, sub_test_1)
@@ -188,6 +259,11 @@ class TestAddBundle(unittest.TestCase):
         self.assertIn(b0, d1.bundles)
 
         def sub_test_2():
+            """
+            Add a bundle to the bundle
+
+            Args:
+            """
             ex2_b0 = b0.identifier
             d1.add_bundle(ProvBundle(identifier=ex2_b0))
 
@@ -197,10 +273,21 @@ class TestAddBundle(unittest.TestCase):
         self.assertEqual(len(d1.bundles), 2)
 
     def test_add_bundle_document(self):
+        """
+        Add a bundle bundle.
+
+        Args:
+            self: (todo): write your description
+        """
         d1 = self.document_1()
         d2 = self.document_2()
 
         def sub_test_1():
+            """
+            Sub - command_1 test for test
+
+            Args:
+            """
             d1.add_bundle(d2)
 
         self.assertRaises(ProvException, sub_test_1)
@@ -216,11 +303,23 @@ class TestAddBundle(unittest.TestCase):
 
 class TestLiteralRepresentation(unittest.TestCase):
     def test_literal_provn_with_single_quotes(self):
+        """
+        Set the literal literal literal string.
+
+        Args:
+            self: (todo): write your description
+        """
         l = Literal('{"foo": "bar"}')
         string_rep = l.provn_representation()
         self.assertTrue('{\\"f' in string_rep)
 
     def test_literal_provn_with_triple_quotes(self):
+        """
+        Evaluate a literal literal literal.
+
+        Args:
+            self: (todo): write your description
+        """
         l = Literal('"""foo\\nbar"""')
         string_rep = l.provn_representation()
         self.assertTrue('\\"\\"\\"f' in string_rep)

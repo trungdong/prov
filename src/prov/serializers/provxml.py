@@ -360,6 +360,13 @@ def _extract_attributes(element):
 
 
 def xml_qname_to_QualifiedName(element, qname_str):
+    """
+    Convert an element into the given element.
+
+    Args:
+        element: (todo): write your description
+        qname_str: (str): write your description
+    """
     if ":" in qname_str:
         prefix, localpart = qname_str.split(":", 1)
         if prefix in element.nsmap:
@@ -384,17 +391,42 @@ def xml_qname_to_QualifiedName(element, qname_str):
 
 
 def _ns(ns, tag):
+    """
+    Generate a namespace.
+
+    Args:
+        ns: (todo): write your description
+        tag: (str): write your description
+    """
     return "{%s}%s" % (ns, tag)
 
 
 def _ns_prov(tag):
+    """
+    Return the name of the given tag.
+
+    Args:
+        tag: (str): write your description
+    """
     return _ns(DEFAULT_NAMESPACES["prov"].uri, tag)
 
 
 def _ns_xsi(tag):
+    """
+    Return the namespace namespace for the given tag.
+
+    Args:
+        tag: (str): write your description
+    """
     return _ns(DEFAULT_NAMESPACES["xsi"].uri, tag)
 
 
 def _ns_xml(tag):
+    """
+    Return the xml namespace for an element.
+
+    Args:
+        tag: (str): write your description
+    """
     NS_XML = "http://www.w3.org/XML/1998/namespace"
     return _ns(NS_XML, tag)

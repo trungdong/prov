@@ -10,6 +10,14 @@ logger = logging.getLogger(__name__)
 
 class DocumentBaseTestCase(unittest.TestCase):
     def do_tests(self, prov_doc, msg=None):
+        """
+        \ docstrings.
+
+        Args:
+            self: (todo): write your description
+            prov_doc: (str): write your description
+            msg: (str): write your description
+        """
         pass
 
 
@@ -21,9 +29,25 @@ class RoundTripTestCase(DocumentBaseTestCase):
     FORMAT = None  # a subclass should change this
 
     def do_tests(self, prov_doc, msg=None):
+        """
+        \ docself. filter.
+
+        Args:
+            self: (todo): write your description
+            prov_doc: (str): write your description
+            msg: (str): write your description
+        """
         self.assertRoundTripEquivalence(prov_doc, msg)
 
     def assertRoundTripEquivalence(self, prov_doc, msg=None):
+        """
+        Asserts the docstringerror is raised.
+
+        Args:
+            self: (todo): write your description
+            prov_doc: (todo): write your description
+            msg: (str): write your description
+        """
         if self.FORMAT is None:
             # This is a dummy test, just return
             return

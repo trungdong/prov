@@ -32,6 +32,12 @@ logger = logging.getLogger(__name__)
 
 # Data Types
 def _ensure_datetime(value):
+    """
+    Coerce value to datetime.
+
+    Args:
+        value: (todo): write your description
+    """
     if isinstance(value, str):
         return dateutil.parser.parse(value)
     else:
@@ -39,6 +45,12 @@ def _ensure_datetime(value):
 
 
 def parse_xsd_datetime(value):
+    """
+    Parse a datetime.
+
+    Args:
+        value: (todo): write your description
+    """
     try:
         return dateutil.parser.parse(value)
     except ValueError:
@@ -47,6 +59,12 @@ def parse_xsd_datetime(value):
 
 
 def parse_boolean(value):
+    """
+    Convert a string into a boolean.
+
+    Args:
+        value: (str): write your description
+    """
     if value.lower() in ("false", "0"):
         return False
     elif value.lower() in ("true", "1"):
@@ -73,6 +91,13 @@ XSD_DATATYPE_PARSERS = {
 
 
 def parse_xsd_types(value, datatype):
+    """
+    Convert xsd datatype.
+
+    Args:
+        value: (todo): write your description
+        datatype: (str): write your description
+    """
     return (
         XSD_DATATYPE_PARSERS[datatype](value)
         if datatype in XSD_DATATYPE_PARSERS
@@ -81,10 +106,22 @@ def parse_xsd_types(value, datatype):
 
 
 def first(a_set):
+    """
+    Return the first item in the iterable.
+
+    Args:
+        a_set: (todo): write your description
+    """
     return next(iter(a_set), None)
 
 
 def _ensure_multiline_string_triple_quoted(value):
+    """
+    Return a string representation of a multiline string.
+
+    Args:
+        value: (str): write your description
+    """
     # converting the value to a string
     s = str(value)
     # Escaping any double quote
@@ -96,6 +133,12 @@ def _ensure_multiline_string_triple_quoted(value):
 
 
 def encoding_provn_value(value):
+    """
+    Encodes a string to bytes.
+
+    Args:
+        value: (todo): write your description
+    """
     if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
@@ -111,6 +154,15 @@ def encoding_provn_value(value):
 
 class Literal(object):
     def __init__(self, value, datatype=None, langtag=None):
+        """
+        Initialize a new language.
+
+        Args:
+            self: (todo): write your description
+            value: (todo): write your description
+            datatype: (str): write your description
+            langtag: (str): write your description
+        """
         self._value = str(value)  # value is always a string
         if langtag:
             if datatype is None:
@@ -133,12 +185,31 @@ class Literal(object):
         self._langtag = str(langtag) if langtag is not None else None
 
     def __str__(self):
+        """
+        Returns the string representation of the string.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.provn_representation()
 
     def __repr__(self):
+        """
+        Return a representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<Literal: %s>" % self.provn_representation()
 
     def __eq__(self, other):
+        """
+        Determine if two strings are equal.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return (
             (
                 self._value == other.value
@@ -150,27 +221,70 @@ class Literal(object):
         )
 
     def __ne__(self, other):
+        """
+        Returns true if self is a and false otherwise.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return not (self == other)
 
     def __hash__(self):
+        """
+        Return the hash of this field.
+
+        Args:
+            self: (todo): write your description
+        """
         return hash((self._value, self._datatype, self._langtag))
 
     @property
     def value(self):
+        """
+        Returns the value of the field.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._value
 
     @property
     def datatype(self):
+        """
+        Return the datatype of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._datatype
 
     @property
     def langtag(self):
+        """
+        The langtag.
+
+        Args:
+            self: (todo): write your description
+        """
         return self._langtag
 
     def has_no_langtag(self):
+        """
+        Return true if the lang?
+
+        Args:
+            self: (todo): write your description
+        """
         return self._langtag is None
 
     def provn_representation(self):
+        """
+        Return a string representation of this language.
+
+        Args:
+            self: (todo): write your description
+        """
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString
             return "%s@%s" % (
@@ -212,6 +326,12 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         self.qname = qname
 
     def __str__(self):
+        """
+        Return the string representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "Invalid Qualified Name: %s" % self.qname
 
 
@@ -219,6 +339,12 @@ class ProvElementIdentifierRequired(ProvException):
     """Exception for a missing element identifier."""
 
     def __str__(self):
+        """
+        Return a string representation of the object.
+
+        Args:
+            self: (todo): write your description
+        """
         return (
             "An identifier is missing. All PROV elements require a valid " "identifier."
         )
@@ -248,6 +374,12 @@ class ProvRecord(object):
             self.add_attributes(attributes)
 
     def __hash__(self):
+        """
+        Returns the identifier of the identifier.
+
+        Args:
+            self: (todo): write your description
+        """
         return hash((self.get_type(), self._identifier, frozenset(self.attributes)))
 
     def copy(self):
@@ -364,6 +496,13 @@ class ProvRecord(object):
 
     # Handling attributes
     def _auto_literal_conversion(self, literal):
+        """
+        Convert a literal literal to a literal.
+
+        Args:
+            self: (todo): write your description
+            literal: (todo): write your description
+        """
         # This method normalise datatype for literals
 
         if isinstance(literal, ProvRecord):
@@ -466,6 +605,13 @@ class ProvRecord(object):
                 self._attributes[attr].add(value)
 
     def __eq__(self, other):
+        """
+        Return true if other objects are equal.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         if not isinstance(other, ProvRecord):
             return False
         if self.get_type() != other.get_type():
@@ -476,6 +622,12 @@ class ProvRecord(object):
         return set(self.attributes) == set(other.attributes)
 
     def __str__(self):
+        """
+        Returns the string representation of the api.
+
+        Args:
+            self: (todo): write your description
+        """
         return self.get_provn()
 
     def get_provn(self):
@@ -555,6 +707,15 @@ class ProvElement(ProvRecord):
     """Provenance Element (nodes in the provenance graph)."""
 
     def __init__(self, bundle, identifier, attributes=None):
+        """
+        Initialize a bundle.
+
+        Args:
+            self: (todo): write your description
+            bundle: (todo): write your description
+            identifier: (todo): write your description
+            attributes: (list): write your description
+        """
         if identifier is None:
             # All types of PROV elements require a valid identifier
             raise ProvElementIdentifierRequired()
@@ -570,6 +731,12 @@ class ProvElement(ProvRecord):
         return True
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s: %s>" % (self.__class__.__name__, self._identifier)
 
 
@@ -585,6 +752,12 @@ class ProvRelation(ProvRecord):
         return True
 
     def __repr__(self):
+        """
+        Return a repr representation of the class.
+
+        Args:
+            self: (todo): write your description
+        """
         identifier = " %s" % self._identifier if self._identifier else ""
         element_1, element_2 = [qname for _, qname in self.formal_attributes[:2]]
         return "<%s:%s (%s, %s)>" % (
@@ -1233,6 +1406,13 @@ class NamespaceManager(dict):
         return Identifier("_:%s%d" % (local_prefix, self._anon_id_count))
 
     def _get_unused_prefix(self, original_prefix):
+        """
+        Get the prefix of the original prefix.
+
+        Args:
+            self: (todo): write your description
+            original_prefix: (str): write your description
+        """
         if original_prefix not in self:
             return original_prefix
         count = 1
@@ -1271,6 +1451,12 @@ class ProvBundle(object):
                 self.add_record(record)
 
     def __repr__(self):
+        """
+        Return a human - readable representation of this object.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<%s: %s>" % (self.__class__.__name__, self._identifier)
 
     @property
@@ -1355,6 +1541,13 @@ class ProvBundle(object):
         return self._namespaces.get_registered_namespaces()
 
     def valid_qualified_name(self, identifier):
+        """
+        Validate the given identifier.
+
+        Args:
+            self: (todo): write your description
+            identifier: (todo): write your description
+        """
         return self._namespaces.valid_qualified_name(identifier)
 
     def get_records(self, class_or_type_or_tuple=None):
@@ -1472,6 +1665,13 @@ class ProvBundle(object):
         return provn_str
 
     def __eq__(self, other):
+        """
+        Determine if two record objects are equal.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         if not isinstance(other, ProvBundle):
             return False
         other_records = set(other.get_records())
@@ -1496,6 +1696,13 @@ class ProvBundle(object):
         return True
 
     def __ne__(self, other):
+        """
+        Returns true if self is a and false otherwise.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         return not (self == other)
 
     __hash__ = None
@@ -1568,6 +1775,13 @@ class ProvBundle(object):
 
     # Provenance statements
     def _add_record(self, record):
+        """
+        Adds a new record to the database.
+
+        Args:
+            self: (todo): write your description
+            record: (todo): write your description
+        """
         # IMPORTANT: All records need to be added to a bundle/document via this
         # method. Otherwise, the _id_map dict will not be correctly updated
         identifier = record.identifier
@@ -2276,9 +2490,22 @@ class ProvDocument(ProvBundle):
         self._bundles = dict()
 
     def __repr__(self):
+        """
+        Return a repr representation of a repr__.
+
+        Args:
+            self: (todo): write your description
+        """
         return "<ProvDocument>"
 
     def __eq__(self, other):
+        """
+        Determine if this bundle objects of other.
+
+        Args:
+            self: (todo): write your description
+            other: (todo): write your description
+        """
         if not isinstance(other, ProvDocument):
             return False
         # Comparing the documents' content
@@ -2556,6 +2783,12 @@ def sorted_attributes(element, attributes):
     # first and then sorting by the text, also including the namespace
     # prefix if given.
     def sort_fct(x):
+        """
+        Sort the fct string
+
+        Args:
+            x: (todo): write your description
+        """
         return (str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1]))
 
     sorted_elements = []
