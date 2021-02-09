@@ -2,11 +2,8 @@
 Installation
 ============
 
+**Python 3 is required**.
+
 At the command line::
 
-    $ easy_install prov
-
-Or, if you have virtualenvwrapper installed::
-
-    $ mkvirtualenv prov
-    $ pip install prov
+    $ python -m pip install prov

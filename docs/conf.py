@@ -57,7 +57,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "prov"
-copyright = "2018, Trung Dong Huynh"
+copyright = "2021, Trung Dong Huynh"
 
 # The version info for the project you're documenting, acts as replacement
 # for |version| and |release|, also used in various other places throughout
@@ -207,7 +207,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "prov.tex", "prov Documentation", "Trung Dong Huynh", "manual"),
+    ("index", "prov.tex", "PROV Python Package Documentation", "Trung Dong Huynh", "manual"),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -235,7 +235,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "prov", "prov Documentation", ["Trung Dong Huynh"], 1)]
+man_pages = [("index", "prov", "PROV Python Package Documentation", ["Trung Dong Huynh"], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -250,7 +250,7 @@ texinfo_documents = [
     (
         "index",
         "prov",
-        "prov Documentation",
+        "PROV Python Package Documentation",
         "Trung Dong Huynh",
         "prov",
         "A Python library for the World Wide Web Consortium's PROV Data Model",
