@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 def find_diff(g_rdf, g0_rdf):
     graphs_equal = True
     in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
-    g1 = sorted(in_first.serialize(format="nt").splitlines())[1:]
-    g2 = sorted(in_second.serialize(format="nt").splitlines())[1:]
+    g1 = sorted(in_first.serialize(format="nt", encoding="utf-8").splitlines())[1:]
+    g2 = sorted(in_second.serialize(format="nt", encoding="utf-8").splitlines())[1:]
     # Compare literals
     if len(g1) != len(g2):
         graphs_equal = False
@@ -285,7 +285,8 @@ class TestRDFSerializer(unittest.TestCase):
                     rdf_format=format,
                 )
             except Exception as e:
-                errors.append((e, idx, fname, in_first, in_second))
+                raise e;
+                # errors.append((e, idx, fname, in_first, in_second))
         self.assertFalse(errors)
 
 
