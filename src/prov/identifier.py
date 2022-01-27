@@ -82,13 +82,15 @@ class QualifiedName(Identifier):
 class Namespace(object):
     """PROV Namespace."""
 
-    def __init__(self, prefix, uri):
+    def __init__(self, prefix: str, uri: str):
         """
         Constructor.
 
         :param prefix: String short hand prefix for the namespace.
-        :param uri: URI string for the long namespace identifier.
+        :param uri: URI string for the long namespace identifier (cannot be blank).
         """
+        if not uri or uri.isspace():
+            raise ValueError("Not a valid URI to create a namespace.")
         self._prefix = prefix
         self._uri = uri
         self._cache = dict()
