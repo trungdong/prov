@@ -249,20 +249,7 @@ def prov_to_dot(
             subdot = pydot.Cluster(
                 graph_name="c%d" % count[2], URL=f'"{bundle.identifier.uri}"'
             )
-            if use_labels:
-                if bundle.label == bundle.identifier:
-                    bundle_label = f'"{bundle.label}"'
-                else:
-                    # Fancier label if both are different. The label will be the main
-                    # node text, whereas the identifier will be a kind of subtitle.
-                    bundle_label = (
-                        f"<{bundle.label}<br />"
-                        f'<font color="#333333" point-size="10">'
-                        f'{bundle.identifier}</font>>'
-                    )
-                subdot.set_label(f'"{bundle_label}"')
-            else:
-                subdot.set_label('"%s"' % str(bundle.identifier))
+            subdot.set_label('"%s"' % str(bundle.identifier))
             _bundle_to_dot(subdot, bundle)
             dot.add_subgraph(subdot)
             return subdot
