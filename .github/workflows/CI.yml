@@ -35,5 +35,10 @@ jobs:
       - name: Run tox targets for ${{ matrix.python-version }}
         run: coverage run -m tox
 
+      - name: Coverage report
+        run: coverage xml
+
       - name: Coveralls
         uses: coverallsapp/github-action@v2
+        with:
+          format: cobertura
