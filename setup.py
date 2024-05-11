@@ -8,7 +8,7 @@ here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.rst").read_text(encoding="utf-8")
 
-requirements = ["python-dateutil>=2.2", "networkx>=2.0", "lxml>=3.3.5", "rdflib>=4.2.1"]
+requirements = ["python-dateutil>=2.2", "networkx>=2.0", "lxml>=3.3.5", "rdflib>=4.2.1,<7"]
 
 test_requirements = ["pydot>=1.2.0"]
 
