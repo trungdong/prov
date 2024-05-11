@@ -12,8 +12,6 @@ jobs:
   tests:
     name: tox on ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-    env:
-      USING_COVERAGE: '3.12'
 
     strategy:
       matrix:
@@ -36,3 +34,6 @@ jobs:
 
       - name: Run tox targets for ${{ matrix.python-version }}
         run: coverage run -m tox
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@v2
