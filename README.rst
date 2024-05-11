@@ -6,15 +6,12 @@ Introduction
 .. image:: https://badge.fury.io/py/prov.svg
   :target: http://badge.fury.io/py/prov
   :alt: Latest Release
-.. image:: https://travis-ci.org/trungdong/prov.svg
-  :target: https://travis-ci.org/trungdong/prov
-  :alt: Build Status
+.. image:: https://github.com/trungdong/prov/workflows/CI/badge.svg?branch=master
+  :target: https://github.com/trungdong/prov/actions?workflow=CI
+  :alt: CI Status
 .. image:: https://img.shields.io/coveralls/trungdong/prov.svg
   :target: https://coveralls.io/r/trungdong/prov?branch=master
   :alt: Coverage Status
-.. image:: https://landscape.io/github/trungdong/prov/master/landscape.svg?style=flat
-  :target: https://landscape.io/github/trungdong/prov/master
-  :alt: Code Health
 .. image:: https://img.shields.io/pypi/wheel/prov.svg
   :target: https://pypi.python.org/pypi/prov/
   :alt: Wheel Status
