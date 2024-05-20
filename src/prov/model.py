@@ -1178,6 +1178,7 @@ class NamespaceManager(dict):
                     new_qname = existing_ns[local_part]
             else:
                 # Do not reuse the namespace object
+                namespace._cache = dict()  # Do not deepcopy the cache!
                 ns = self.add_namespace(deepcopy(namespace))
                 # minting the same Qualified Name from the namespace's copy
                 new_qname = ns[qname.localpart]
