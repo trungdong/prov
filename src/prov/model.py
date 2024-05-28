@@ -7,7 +7,6 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 PROV-JSON: https://openprovenance.org/prov-json/
 """
 from collections import defaultdict
-from copy import deepcopy
 import datetime
 import io
 import itertools
@@ -1177,9 +1176,8 @@ class NamespaceManager(dict):
                     # reuse the existing namespace
                     new_qname = existing_ns[local_part]
             else:
-                # Do not reuse the namespace object
-                namespace._cache = dict()  # Do not deepcopy the cache!
-                ns = self.add_namespace(deepcopy(namespace))
+                # Do not reuse the namespace object, making an identical copy
+                ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
                 # minting the same Qualified Name from the namespace's copy
                 new_qname = ns[qname.localpart]
             # returning the new qname
