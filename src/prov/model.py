@@ -242,7 +242,7 @@ class ProvRecord(object):
         """
         self._bundle = bundle
         self._identifier = identifier
-        self._attributes = defaultdict(set)
+        self._attributes: dict[QualifiedName, set] = defaultdict(set)
         if attributes:
             self.add_attributes(attributes)
 
@@ -273,12 +273,13 @@ class ProvRecord(object):
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
-    def get_attribute(self, attr_name):
+    def get_attribute(self, attr_name) -> set:
         """
         Returns the attribute of the given name.
 
         :param attr_name: Name of the attribute.
-        :return: Tuple (name, value)
+        :return: Set of value(s) of the specified attribute.
+        :rtype: set
         """
         attr_name = self._bundle.valid_qualified_name(attr_name)
         return self._attributes[attr_name]
