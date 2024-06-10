@@ -3,6 +3,16 @@
 History
 -------
 
+2.0.1 (2024-06-10)
+^^^^^^^^^^^^^^^^^^
+* Removed support for EOL Python 3.6 and 3.7
+* Minor documentation update (#153)
+* Stopped using deepcopy when duplicating Namespace (#158
+* Restricting rdflib package version to "<7" (#156
+* Raise an exception when an empty URI is registered as a namespace (#142)
+* Ensure rdflib 6+ returns bytes when serializing tests (fixed #151)
+* Removed fancy label output for bundle
+
 2.0.0 (2020-11-01)
 ^^^^^^^^^^^^^^^^^^
 * Removed support for EOL Python 2

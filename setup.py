@@ -14,7 +14,7 @@ test_requirements = ["pydot>=1.2.0"]
 
 setup(
     name="prov",
-    version="2.0.0",
+    version="2.0.1",
     description="A library for W3C Provenance Data Model supporting PROV-JSON, "
     "PROV-XML and PROV-O (RDF)",
     long_description=long_description,
