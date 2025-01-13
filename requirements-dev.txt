@@ -5,4 +5,5 @@ black
 flake8
 sphinx
 tox
+setuptools
 wheel
