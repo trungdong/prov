@@ -8,4 +8,6 @@ formats: all
 python:
    version: 3
    install:
-    - requirements: requirements.txt
+    - extra_requirements:
+        - xml
+        - rdf
