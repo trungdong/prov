@@ -6,9 +6,9 @@ Created on Aug 13, 2015
 import unittest
 
 # Skipping SVG tests if pydot is not installed
-from pkgutil import find_loader
+from importlib.util import find_spec
 
-if find_loader("pydot") is not None:
+if find_spec("pydot") is not None:
 
     from prov.dot import prov_to_dot
     from prov.tests.test_model import AllTestsBase
