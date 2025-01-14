@@ -6,7 +6,7 @@ Introduction
 .. image:: https://badge.fury.io/py/prov.svg
   :target: http://badge.fury.io/py/prov
   :alt: Latest Release
-.. image:: https://github.com/trungdong/prov/workflows/CI/badge.svg?branch=master
+.. image:: https://github.com/trungdong/prov/workflows/CI/badge.svg
   :target: https://github.com/trungdong/prov/actions?workflow=CI
   :alt: CI Status
 .. image:: https://img.shields.io/coveralls/trungdong/prov.svg
