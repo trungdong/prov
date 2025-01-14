@@ -1,5 +1,0 @@
-lxml>=3.3.5
-networkx>=2.0
-python-dateutil>=2.2
-pydot>=1.2.0
-rdflib>=4.2.1,<7
