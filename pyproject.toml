@@ -1,6 +1,6 @@
 [project]
 name = "prov"
-version = "2.0.1"
+dynamic = ["version"]
 description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML and PROV-O (RDF)"
 readme = "README.rst"
 authors = [
@@ -53,6 +53,9 @@ Changelog = "https://prov.readthedocs.io/en/latest/history.html"
 [build-system]
 requires = ["setuptools>=40.8.0", "wheel"]  # PEP 508 specifications.
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "prov.__version__"}
 
 [dependency-groups]
 dev = [
