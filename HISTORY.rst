@@ -3,9 +3,10 @@
 History
 -------
 
-New changes
-^^^^^^^^^^^
+2.0.2 (2025-06-07)
+^^^^^^^^^^^^^^^^^^
 * Removed support for EOL Python 3.8
+* Using pyproject.toml for project configurations (instead of setup.py)
 
 2.0.1 (2024-06-10)
 ^^^^^^^^^^^^^^^^^^
