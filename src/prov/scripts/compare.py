@@ -5,12 +5,12 @@ prov-compare -- Compare two PROV-JSON, PROV-XML, or RDF (PROV-O) files for equiv
 
 @author:     Trung Dong Huynh
 
-@copyright:  2016 University of Southampton, United Kingdom. All rights reserved.
+@copyright:  2025 Trung Dong Huynh
 
 @license:    MIT Licence
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2016-10-19
+@deffield    updated: 2025-06-07
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 __all__ = []
 __version__ = 0.1
-__date__ = '2015-06-16'
-__updated__ = '2016-10-19'
+__date__ = "2015-06-16"
+__updated__ = "2025-06-07"
 
 DEBUG = 0
 TESTRUN = 0
@@ -36,6 +36,7 @@ PROFILE = 0
 
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
+
     def __init__(self, msg):
         super(CLIError).__init__(type(self))
         self.msg = "E: %s" % msg
@@ -55,12 +56,15 @@ def main(argv=None):  # IGNORE:C0111
     program_name = os.path.basename(sys.argv[0])
     program_version = "v%s" % __version__
     program_build_date = str(__updated__)
-    program_version_message = '%%(prog)s %s (%s)' % (program_version, program_build_date)
-    program_shortdesc = __import__('__main__').__doc__.split("\n")[1]
-    program_license = '''%s
+    program_version_message = "%%(prog)s %s (%s)" % (
+        program_version,
+        program_build_date,
+    )
+    program_shortdesc = __doc__.split("\n")[1]
+    program_license = (
+        """%s
 
-  Created by Trung Dong Huynh on %s.
-  Copyright 2016 University of Southampton. All rights reserved.
+  Copyright 2025 Trung Dong Huynh.
 
   Licensed under the MIT License
   https://github.com/trungdong/prov/blob/master/LICENSE
@@ -69,18 +73,36 @@ def main(argv=None):  # IGNORE:C0111
   or conditions of any kind, either express or implied.
 
 USAGE
-''' % (program_shortdesc, str(__date__))
+"""
+        % program_shortdesc
+    )
 
     try:
         # Setup argument parser
-        parser = ArgumentParser(description=program_license, formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument('file1', nargs='?', type=FileType('r'))
-        parser.add_argument('file2', nargs='?', type=FileType('r'))
-        parser.add_argument('-f', '--format1', dest='format1', action='store', default='json',
-                            help='File 1\'s format: json or xml')
-        parser.add_argument('-F', '--format2', dest='format2', action='store', default='json',
-                            help='File 2\'s format: json or xml')
-        parser.add_argument('-V', '--version', action='version', version=program_version_message)
+        parser = ArgumentParser(
+            description=program_license, formatter_class=RawDescriptionHelpFormatter
+        )
+        parser.add_argument("file1", nargs="?", type=FileType("r"))
+        parser.add_argument("file2", nargs="?", type=FileType("r"))
+        parser.add_argument(
+            "-f",
+            "--format1",
+            dest="format1",
+            action="store",
+            default="json",
+            help="File 1's format: json or xml",
+        )
+        parser.add_argument(
+            "-F",
+            "--format2",
+            dest="format2",
+            action="store",
+            default="json",
+            help="File 2's format: json or xml",
+        )
+        parser.add_argument(
+            "-V", "--version", action="version", version=program_version_message
+        )
 
         args = None
         try:
@@ -111,15 +133,17 @@ if __name__ == "__main__":
     logging.basicConfig(level=(logging.DEBUG if DEBUG else logging.INFO))
     if TESTRUN:
         import doctest
+
         doctest.testmod()
     if PROFILE:
         import cProfile
         import pstats
-        profile_filename = 'prov_compare_profile.txt'
-        cProfile.run('main()', profile_filename)
+
+        profile_filename = "prov_compare_profile.txt"
+        cProfile.run("main()", profile_filename)
         statsfile = open("profile_stats.txt", "wb")
         p = pstats.Stats(profile_filename, stream=statsfile)
-        stats = p.strip_dirs().sort_stats('cumulative')
+        stats = p.strip_dirs().sort_stats("cumulative")
         stats.print_stats()
         statsfile.close()
         sys.exit(0)

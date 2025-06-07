@@ -43,6 +43,10 @@ xml = [
     "lxml>=3.3.5",
 ]
 
+[project.scripts]
+prov-convert = "prov.scripts.convert:main"
+prov-compare = "prov.scripts.compare:main"
+
 [project.urls]
 Homepage = "https://github.com/trungdong/prov"
 Documentation = "https://prov.readthedocs.io"
