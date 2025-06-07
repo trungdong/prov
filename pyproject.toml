@@ -7,12 +7,12 @@ authors = [
     { name = "Trung Dong Huynh", email = "trungdong@donggiang.com" }
 ]
 keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C", "PROV-XML", "PROV-N", "PROV-O", "RDF"]
-license = {file = "LICENSE"}
+license = "MIT"
+license-files = ["LICENSE"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
