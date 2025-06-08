@@ -7,7 +7,7 @@ from prov.model import ProvDocument
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
-__all__ = ["get", "Serializer"]
+__all__ = ["get", "Registry", "Serializer"]
 
 
 class Serializer(ABC):
