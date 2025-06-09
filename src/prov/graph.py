@@ -56,7 +56,7 @@ INFERRED_ELEMENT_CLASS = {
 }
 
 
-def prov_to_graph(prov_document):
+def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph:
     """
     Convert a :class:`~prov.model.ProvDocument` to a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
@@ -64,7 +64,7 @@ def prov_to_graph(prov_document):
 
     :param prov_document: The :class:`~prov.model.ProvDocument` instance to convert.
     """
-    g = nx.MultiDiGraph()
+    g = nx.MultiDiGraph()  # type: nx.MultiDiGraph
     unified = prov_document.unified()
     node_map = dict()
     for element in unified.get_records(ProvElement):
@@ -89,7 +89,7 @@ def prov_to_graph(prov_document):
     return g
 
 
-def graph_to_prov(g):
+def graph_to_prov(g: nx.MultiDiGraph) -> ProvDocument:
     """
     Convert a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
