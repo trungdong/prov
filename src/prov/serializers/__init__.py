@@ -1,6 +1,7 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 from abc import ABC, abstractmethod
 import io
+from typing import Any
 from prov import Error
 from prov.model import ProvDocument
 
@@ -25,7 +26,7 @@ class Serializer(ABC):
         self.document = document
 
     @abstractmethod
-    def serialize(self, stream: io.IOBase) -> None:
+    def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """
         Abstract method for serializing.
 
@@ -34,7 +35,7 @@ class Serializer(ABC):
         pass
 
     @abstractmethod
-    def deserialize(self, stream: io.IOBase) -> ProvDocument | None:
+    def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument | None:
         """
         Abstract method for deserializing.
 
