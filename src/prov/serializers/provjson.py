@@ -1,7 +1,9 @@
+from __future__ import annotations  # needed for | type annotations in Python < 3.10
 from collections import defaultdict
 import datetime
 import io
 import json
+from typing import Any, Optional
 
 from prov import Error
 from prov.serializers import Serializer
@@ -15,6 +17,8 @@ from prov.model import (
     ProvBundle,
     first,
     parse_xsd_datetime,
+    ProvRecord,
+    QualifiedNameCandidate,
 )
 
 import logging
@@ -25,16 +29,19 @@ __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
 
+ProvJSONDict = dict[str, dict[str, Any]]
+
+
 class ProvJSONException(Error):
     pass
 
 
 class AnonymousIDGenerator:
-    def __init__(self):
-        self._cache = {}
-        self._count = 0
+    def __init__(self) -> None:
+        self._cache = {}  # type: dict[ProvRecord, Identifier]
+        self._count = 0  # type: int
 
-    def get_anon_id(self, obj, local_prefix="id"):
+    def get_anon_id(self, obj: ProvRecord, local_prefix: str = "id") -> Identifier:
         if obj not in self._cache:
             self._count += 1
             self._cache[obj] = Identifier("_:%s%d" % (local_prefix, self._count))
@@ -44,7 +51,7 @@ class AnonymousIDGenerator:
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
     float: "xsd:double",
-    int: "xsd:int"
+    int: "xsd:int",
     # boolean, string values are supported natively by PROV-JSON
     # datetime values are converted separately
 }
@@ -55,7 +62,7 @@ class ProvJSONSerializer(Serializer):
     PROV-JSON serializer for :class:`~prov.model.ProvDocument`
     """
 
-    def serialize(self, stream, **kwargs):
+    def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """
         Serializes a :class:`~prov.model.ProvDocument` instance to
         `PROV-JSON <https://openprovenance.org/prov-json/>`_.
@@ -64,10 +71,10 @@ class ProvJSONSerializer(Serializer):
         """
         buf = io.StringIO()
         try:
-            json.dump(self.document, buf, cls=ProvJSONEncoder, **kwargs)
+            json.dump(self.document, buf, cls=ProvJSONEncoder, **args)
             buf.seek(0, 0)
             # Right now this is a bytestream. If the object to stream to is
-            # a text object is must be decoded. We assume utf-8 here which
+            # a text object, it must be decoded. We assume utf-8 here, which
             # should be fine for almost every case.
             if isinstance(stream, io.TextIOBase):
                 stream.write(buf.read())
@@ -76,7 +83,7 @@ class ProvJSONSerializer(Serializer):
         finally:
             buf.close()
 
-    def deserialize(self, stream, **kwargs):
+    def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
         """
         Deserialize from the `PROV JSON
         <https://openprovenance.org/prov-json/>`_ representation to a
@@ -87,11 +94,11 @@ class ProvJSONSerializer(Serializer):
         if not isinstance(stream, io.TextIOBase):
             buf = io.StringIO(stream.read().decode("utf-8"))
             stream = buf
-        return json.load(stream, cls=ProvJSONDecoder, **kwargs)
+        return json.load(stream, cls=ProvJSONDecoder, **args)
 
 
 class ProvJSONEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
         else:
@@ -99,7 +106,7 @@ class ProvJSONEncoder(json.JSONEncoder):
 
 
 class ProvJSONDecoder(json.JSONDecoder):
-    def decode(self, s, *args, **kwargs):
+    def decode(self, s: str, *args: Any, **kwargs: Any) -> Any:
         container = super(ProvJSONDecoder, self).decode(s, *args, **kwargs)
         document = ProvDocument()
         decode_json_document(container, document)
@@ -107,14 +114,16 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 
 # Encoding/decoding functions
-def valid_qualified_name(bundle, value):
+def valid_qualified_name(
+    bundle: ProvBundle, value: Optional[QualifiedNameCandidate]
+) -> QualifiedName | None:
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
     return qualified_name
 
 
-def encode_json_document(document):
+def encode_json_document(document: ProvDocument) -> ProvJSONDict:
     container = encode_json_container(document)
     for bundle in document.bundles:
         #  encoding the sub-bundle
@@ -123,9 +132,9 @@ def encode_json_document(document):
     return container
 
 
-def encode_json_container(bundle):
-    container = defaultdict(dict)
-    prefixes = {}
+def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
+    container = defaultdict(dict)  # type: dict[str, dict]
+    prefixes = {}  # type: dict[str, str]
     for namespace in bundle._namespaces.get_registered_namespaces():
         prefixes[namespace.prefix] = namespace.uri
     if bundle._namespaces._default:
@@ -135,7 +144,7 @@ def encode_json_container(bundle):
 
     id_generator = AnonymousIDGenerator()
 
-    def real_or_anon_id(r):
+    def real_or_anon_id(r: ProvRecord) -> Identifier:
         return r._identifier if r._identifier else id_generator.get_anon_id(r)
 
     for record in bundle._records:
@@ -143,9 +152,9 @@ def encode_json_container(bundle):
         rec_label = PROV_N_MAP[rec_type]
         identifier = str(real_or_anon_id(record))
 
-        record_json = {}
+        record_json = {}  # type: dict[str, Any]
         if record._attributes:
-            for (attr, values) in record._attributes.items():
+            for attr, values in record._attributes.items():
                 if not values:
                     continue
                 attr_name = str(attr)
@@ -153,7 +162,7 @@ def encode_json_container(bundle):
                     # TODO: QName export
                     record_json[attr_name] = str(first(values))
                 elif attr in PROV_ATTRIBUTE_LITERALS:
-                    record_json[attr_name] = first(values).isoformat()
+                    record_json[attr_name] = first(values).isoformat()  # type: ignore[union-attr]
                 else:
                     if len(values) == 1:
                         # single value
@@ -182,7 +191,7 @@ def encode_json_container(bundle):
     return container
 
 
-def decode_json_document(content, document):
+def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     bundles = dict()
     if "bundle" in content:
         bundles = content["bundle"]
@@ -196,12 +205,12 @@ def decode_json_document(content, document):
         document.add_bundle(bundle, bundle.valid_qualified_name(bundle_id))
 
 
-def decode_json_container(jc, bundle):
+def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     if "prefix" in jc:
         prefixes = jc["prefix"]
         for prefix, uri in prefixes.items():
             if prefix != "default":
-                bundle.add_namespace(Namespace(prefix, uri))
+                bundle.add_namespace(Namespace(prefix, uri))  # type: ignore
             else:
                 bundle.set_default_namespace(uri)
         del jc["prefix"]
@@ -217,16 +226,16 @@ def decode_json_container(jc, bundle):
                 elements = content
 
             for element in elements:
-                attributes = dict()
-                other_attributes = []
+                attributes = dict()  # type: dict[QualifiedNameCandidate, Any]
+                other_attributes = []  # type: list[tuple[QualifiedNameCandidate, Any]]
                 # this is for the multiple-entity membership hack to come
                 membership_extra_members = None
                 for attr_name, values in element.items():
                     attr = (
                         PROV_ATTRIBUTES_ID_MAP[attr_name]
                         if attr_name in PROV_ATTRIBUTES_ID_MAP
-                        else valid_qualified_name(bundle, attr_name)
-                    )
+                        else bundle.mandatory_valid_qname(attr_name)
+                    )  # type: QualifiedName
                     if attr in PROV_ATTRIBUTES:
                         if isinstance(values, list):
                             # only one value is allowed
@@ -280,11 +289,11 @@ def decode_json_container(jc, bundle):
                     collection = attributes[PROV_ATTR_COLLECTION]
                     for member in membership_extra_members:
                         bundle.membership(
-                            collection, valid_qualified_name(bundle, member)
+                            collection, bundle.mandatory_valid_qname(member)
                         )
 
 
-def encode_json_representation(value):
+def encode_json_representation(value: Any) -> Any:
     if isinstance(value, Literal):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
@@ -301,12 +310,12 @@ def encode_json_representation(value):
         return value
 
 
-def decode_json_representation(literal, bundle):
+def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
     if isinstance(literal, dict):
         # complex type
         value = literal["$"]
-        datatype = literal["type"] if "type" in literal else None
-        datatype = valid_qualified_name(bundle, datatype)
+        datatype_str = literal["type"] if "type" in literal else None  # type: Optional[str]
+        datatype = valid_qualified_name(bundle, datatype_str)
         langtag = literal["lang"] if "lang" in literal else None
         if datatype == XSD_ANYURI:
             return Identifier(value)
@@ -322,7 +331,7 @@ def decode_json_representation(literal, bundle):
         return literal
 
 
-def literal_json_representation(literal):
+def literal_json_representation(literal: Literal) -> dict[str, str]:
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:
