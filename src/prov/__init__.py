@@ -12,13 +12,15 @@ __version__ = "2.0.2"
 __all__ = ["Error", "model", "read"]
 
 
+
+
 class Error(Exception):
     """Base class for all errors in this package."""
 
     pass
 
 
-def read(source: os.PathLike, format: str | None = None) -> ProvDocument | None:
+def read(source: str | bytes | os.PathLike, format: str | None = None) -> ProvDocument | None:
     """
     Convenience function returning a ProvDocument instance.
 
