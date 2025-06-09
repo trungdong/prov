@@ -18,13 +18,14 @@ import os
 import sys
 import logging
 import traceback
+from typing import Optional
 
 from prov.model import ProvDocument
 
 
 logger = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = []  # type: ignore
 __version__ = 0.1
 __date__ = "2015-06-16"
 __updated__ = "2025-06-07"
@@ -37,15 +38,15 @@ PROFILE = 0
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
 
-    def __init__(self, msg):
-        super(CLIError).__init__(type(self))
+    def __init__(self, msg: str):
+        super(CLIError, self).__init__(type(self))
         self.msg = "E: %s" % msg
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg
 
 
-def main(argv=None):  # IGNORE:C0111
+def main(argv: Optional[list] = None) -> int:  # IGNORE:C0111
     """Command line options."""
 
     if argv is None:

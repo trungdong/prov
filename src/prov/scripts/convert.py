@@ -14,10 +14,12 @@ convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG
 """
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
+import io
 import os
 import sys
 import logging
 import traceback
+from typing import Optional
 
 from prov.model import ProvDocument
 from prov import serializers
@@ -25,7 +27,7 @@ from prov import serializers
 
 logger = logging.getLogger(__name__)
 
-__all__ = []
+__all__ = []  # type: ignore
 __version__ = 0.1
 __date__ = "2014-03-14"
 __updated__ = "2025-06-07"
@@ -74,15 +76,15 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
 class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
 
-    def __init__(self, msg):
-        super(CLIError).__init__(type(self))
+    def __init__(self, msg: str):
+        super(CLIError, self).__init__(type(self))
         self.msg = "E: %s" % msg
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg
 
 
-def convert_file(infile, outfile, output_format):
+def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> None:
     prov_doc = ProvDocument.deserialize(infile)
 
     # Formats not supported by prov.serializers
@@ -102,7 +104,7 @@ def convert_file(infile, outfile, output_format):
             raise CLIError('Output format "%s" is not supported.' % output_format)
 
 
-def main(argv=None):  # IGNORE:C0111
+def main(argv: Optional[list] = None) -> int:  # IGNORE:C0111
     """Command line options."""
 
     if argv is None:
