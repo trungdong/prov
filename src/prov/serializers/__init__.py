@@ -37,7 +37,7 @@ class Serializer(ABC):
         pass
 
     @abstractmethod
-    def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument | None:
+    def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
         """
         Abstract method for deserializing.
 
