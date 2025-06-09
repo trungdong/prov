@@ -1,6 +1,9 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 import os
-from prov.model import ProvDocument
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prov.model import ProvDocument
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
