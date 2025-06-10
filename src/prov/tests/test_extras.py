@@ -135,7 +135,7 @@ class TestExtras(unittest.TestCase):
         add_further_attributes(inf)
 
         self.assertEqual(
-            len(inf.attributes), len(list(inf.formal_attributes) + inf.extra_attributes)
+            len(inf.attributes), len(list(inf.formal_attributes) + list(inf.extra_attributes))
         )
 
     def test_serialize_to_path(self):
@@ -191,13 +191,10 @@ class TestExtras(unittest.TestCase):
 
     def test_bundle_get_record_by_id(self):
         document = ProvDocument()
-        self.assertEqual(document.get_record(None), None)
+        self.assertEqual(0, len(document.get_record("nonexistentid")))
 
-        # record = document.entity(identifier=EX_NS['e1'])
-        # self.assertEqual(document.get_record(EX_NS['e1']), record)
-        #
-        # bundle = document.bundle(EX_NS['b'])
-        # self.assertEqual(bundle.get_record(EX_NS['e1']), record)
+        record = document.entity(identifier=EX_NS['e1'])
+        self.assertEqual(record, document.get_record(EX_NS['e1'])[0])
 
     def test_bundle_get_records(self):
         document = ProvDocument()

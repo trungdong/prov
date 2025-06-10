@@ -11,9 +11,14 @@ References:
 
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
+
+from __future__ import annotations  # needed for | type annotations in Python < 3.10
 from datetime import datetime
+from html import escape
+from typing import Any, Optional
 
 from prov.graph import INFERRED_ELEMENT_CLASS
+from prov.identifier import QualifiedName
 from prov.model import (
     ProvEntity,
     ProvActivity,
@@ -42,13 +47,10 @@ from prov.model import (
     PROV_ATTRIBUTE_QNAMES,
     sorted_attributes,
     ProvException,
+    ProvRecord,
+    ProvElement,
 )
-import pydot
-
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
+import pydot  # type: ignore[import]
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -87,7 +89,7 @@ GENERIC_NODE_STYLE = {
         "fillcolor": "lightgray",
         "color": "dimgray",
     },
-}
+}  # type: dict[Optional[type[ProvElement | ProvBundle]], dict[str, str]]
 DOT_PROV_STYLE = {
     # Generic node
     0: {
@@ -166,7 +168,7 @@ ANNOTATION_ROW_TEMPLATE = """    <TR>
 ANNOTATION_END_ROW = "    </TABLE>>"
 
 
-def htlm_link_if_uri(value):
+def htlm_link_if_uri(value: Any) -> str:
     try:
         uri = value.uri
         return '<a href="%s">%s</a>' % (uri, str(value))
@@ -175,13 +177,13 @@ def htlm_link_if_uri(value):
 
 
 def prov_to_dot(
-    bundle,
-    show_nary=True,
-    use_labels=False,
-    direction="BT",
-    show_element_attributes=True,
-    show_relation_attributes=True,
-):
+    bundle: ProvBundle,
+    show_nary: bool = True,
+    use_labels: bool = False,
+    direction: str = "BT",
+    show_element_attributes: bool = True,
+    show_relation_attributes: bool = True,
+) -> pydot.Dot:
     """
     Convert a provenance bundle/document into a DOT graphical representation.
 
@@ -203,11 +205,11 @@ def prov_to_dot(
         direction = "BT"  # reset it to the default value
     maindot = pydot.Dot(graph_type="digraph", rankdir=direction, charset="utf-8")
 
-    node_map = {}
+    node_map = {}  # type: dict[str, pydot.Node]
     count = [0, 0, 0, 0]  # counters for node ids
 
-    def _bundle_to_dot(dot, bundle):
-        def _attach_attribute_annotation(node, record):
+    def _bundle_to_dot(dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle) -> None:
+        def _attach_attribute_annotation(node: pydot.Node, record: ProvRecord) -> None:
             # Adding a node to show all attributes
             attributes = list(
                 (attr_name, value)
@@ -244,17 +246,17 @@ def prov_to_dot(
             dot.add_node(annotations)
             dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
-        def _add_bundle(bundle):
+        def _add_bundle(bundle: ProvBundle) -> pydot.Cluster:
             count[2] += 1
             subdot = pydot.Cluster(
-                graph_name="c%d" % count[2], URL=f'"{bundle.identifier.uri}"'
+                graph_name="c%d" % count[2], URL=f'"{bundle.identifier.uri}"'  # type: ignore[union-attr]
             )
             subdot.set_label('"%s"' % str(bundle.identifier))
             _bundle_to_dot(subdot, bundle)
             dot.add_subgraph(subdot)
             return subdot
 
-        def _add_node(record):
+        def _add_node(record: ProvRecord) -> pydot.Node:
             count[0] += 1
             node_id = "n%d" % count[0]
             if use_labels:
@@ -267,12 +269,12 @@ def prov_to_dot(
                     node_label = (
                         f"<{record.label}<br />"
                         f'<font color="#333333" point-size="10">'
-                        f'{record.identifier}</font>>'
+                        f"{record.identifier}</font>>"
                     )
             else:
                 node_label = f'"{record.identifier}"'
 
-            uri = record.identifier.uri
+            uri = record.identifier.uri  # type: ignore[union-attr]
             style = DOT_PROV_STYLE[record.get_type()]
             node = pydot.Node(node_id, label=node_label, URL='"%s"' % uri, **style)
             node_map[uri] = node
@@ -282,7 +284,9 @@ def prov_to_dot(
                 _attach_attribute_annotation(node, rec)
             return node
 
-        def _add_generic_node(qname, prov_type=None):
+        def _add_generic_node(
+            qname: QualifiedName, prov_type: Optional[type[ProvElement]] = None
+        ) -> pydot.Node:
             count[0] += 1
             node_id = "n%d" % count[0]
             node_label = f'"{qname}"'
@@ -294,14 +298,17 @@ def prov_to_dot(
             dot.add_node(node)
             return node
 
-        def _get_bnode():
+        def _get_bnode() -> pydot.Node:
             count[1] += 1
             bnode_id = "b%d" % count[1]
             bnode = pydot.Node(bnode_id, label='""', shape="point", color="gray")
             dot.add_node(bnode)
             return bnode
 
-        def _get_node(qname, prov_type=None):
+        def _get_node(
+            qname: Optional[QualifiedName],
+            prov_type: Optional[type[ProvElement]] = None,
+        ) -> pydot.Node:
             if qname is None:
                 return _get_bnode()
             uri = qname.uri
@@ -382,7 +389,7 @@ def prov_to_dot(
                 if add_attribute_annotation:
                     _attach_attribute_annotation(bnode, rec)
             else:
-                # show a simple binary relations with no annotation
+                # show a simple binary relation with no annotation
                 dot.add_edge(
                     pydot.Edge(
                         _get_node(nodes[0], inferred_types[0]),

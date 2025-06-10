@@ -1,8 +1,17 @@
+from __future__ import annotations  # needed for | type annotations in Python < 3.10
+import os
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from prov.model import ProvDocument
+
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 __version__ = "2.0.2"
 
 __all__ = ["Error", "model", "read"]
+
+
 
 
 class Error(Exception):
@@ -11,7 +20,7 @@ class Error(Exception):
     pass
 
 
-def read(source, format=None):
+def read(source: str | bytes | os.PathLike, format: str | None = None) -> ProvDocument | None:
     """
     Convenience function returning a ProvDocument instance.
 
@@ -39,6 +48,7 @@ def read(source, format=None):
         try:
             return ProvDocument.deserialize(source=source, format=format)
         except:
+            # TODO: Specify an exception type for failing to deserialize.
             pass
     else:
         raise TypeError(
