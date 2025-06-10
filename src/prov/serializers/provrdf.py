@@ -10,10 +10,10 @@ import warnings
 
 import dateutil.parser
 
-from rdflib.term import URIRef, BNode
+from rdflib.term import URIRef, BNode  # type: ignore[import-not-found]
 from rdflib.term import Literal as RDFLiteral
-from rdflib.graph import ConjunctiveGraph
-from rdflib.namespace import RDF, RDFS, XSD
+from rdflib.graph import ConjunctiveGraph  # type: ignore[import-not-found]
+from rdflib.namespace import RDF, RDFS, XSD  # type: ignore[import-not-found]
 
 from prov import Error
 import prov.model as pm
