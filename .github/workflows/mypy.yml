@@ -14,8 +14,6 @@ jobs:
       with:
         python-version: '3.x'
     - run: pip install mypy
-    - name: Install type stubs for third-party packages
-      run: mypy --install-types src
-    - name: mypy main
-      run: mypy  --ignore-missing-imports src
+    - name: Type checking and install type stubs for third-party packages
+      run: mypy --install-types --non-interactive src
 

@@ -104,3 +104,4 @@ exclude = ["prov/tests/*"]
 module = "prov.*"
 disallow_untyped_defs = true
 check_untyped_defs = true
+ignore_missing_imports = true
