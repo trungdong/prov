@@ -159,16 +159,16 @@ class Literal(object):
                     "Assuming prov:InternationalizedString as the type of "
                     '"%s"@%s' % (value, langtag)
                 )
-                datatype = PROV["InternationalizedString"]
+                datatype = PROV_INTERNATIONALIZEDSTRING
             # PROV JSON states that the type field must not be set when
             # using the lang attribute and PROV XML requires it to be an
             # internationalized string.
-            elif datatype != PROV["InternationalizedString"]:
+            elif datatype != PROV_INTERNATIONALIZEDSTRING:
                 logger.warning(
                     'Invalid data type (%s) for "%s"@%s, overridden as '
                     "prov:InternationalizedString." % (datatype, value, langtag)
                 )
-                datatype = PROV["InternationalizedString"]
+                datatype = PROV_INTERNATIONALIZEDSTRING
         self._datatype: Optional[QualifiedName] = datatype
         # langtag is always a string
         self._langtag: Optional[str] = str(langtag) if langtag is not None else None
