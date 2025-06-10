@@ -1,7 +1,7 @@
 name: mypy check
 on:
   push:
-    branches: [main, master, 143-type-hints]
+    branches: [main, master]
   pull_request:
     branches: [main, master, dev]
 
