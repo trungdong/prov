@@ -3,6 +3,11 @@
 History
 -------
 
+2.1.0 (2025-06-24)
+^^^^^^^^^^^^^^^^^^
+* Added type annotations and mypy checks
+* Added support for Python 3.13
+
 2.0.2 (2025-06-07)
 ^^^^^^^^^^^^^^^^^^
 * Removed support for EOL Python 3.8
