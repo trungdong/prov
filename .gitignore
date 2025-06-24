@@ -43,6 +43,7 @@ pip-log.txt
 .tox
 nosetests.xml
 htmlcov
+coverage.xml
 
 # Translations
 *.mo

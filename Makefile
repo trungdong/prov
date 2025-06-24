@@ -12,7 +12,7 @@ help:
 	@echo "dist - package"
 
 clean: clean-build clean-pyc
-	rm -fr htmlcov/
+	rm -fr htmlcov/ .coverage coverage.xml
 
 clean-build:
 	rm -fr build/
