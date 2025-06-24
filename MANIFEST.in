@@ -10,6 +10,7 @@ include src/prov/tests/unification/*.json
 include src/prov/tests/rdf/*.ttl
 include src/prov/tests/rdf/*.trig
 include src/prov/tests/xml/*.xml
+include docs/requirements.txt
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
