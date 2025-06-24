@@ -42,7 +42,7 @@ coverage:
 docs:
 	rm -f docs/prov.rst
 	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ src/prov src/prov/tests
+	sphinx-apidoc -o docs/ src/prov
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
 	open docs/_build/html/index.html
