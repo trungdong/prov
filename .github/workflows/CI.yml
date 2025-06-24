@@ -34,3 +34,20 @@ jobs:
 
       - name: Run tox targets for ${{ matrix.python-version }}
         run: python -m tox
+
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@v2
+        with:
+          flag-name: Python${{ matrix.python-version }}
+          parallel: true
+
+  finish:
+    needs: tests
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          parallel-finished: true
+          carryforward: "Python3.9,Python3.10,Python3.11,Python3.12,Python3.13"
