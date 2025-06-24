@@ -3,6 +3,10 @@
 History
 -------
 
+2.1.1 (2025-06-24)
+^^^^^^^^^^^^^^^^^^
+* No change - fixing the previous botched release
+
 2.1.0 (2025-06-24)
 ^^^^^^^^^^^^^^^^^^
 * Added type annotations and mypy checks
