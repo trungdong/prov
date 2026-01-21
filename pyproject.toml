@@ -31,8 +31,6 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "networkx>=2.0",
-    # Supporting graphic outputs (e.g. PNG, SVG, PDF) - a local graphviz is required
-    "pydot>=1.2.0",
     "python-dateutil>=2.2",  # TODO: is this really needed?
 ]
 
@@ -42,6 +40,11 @@ rdf = [
 ]
 xml = [
     "lxml>=3.3.5",
+]
+dot = [
+    # Supporting graphic outputs (e.g. PNG, SVG, PDF) - a local graphviz is required
+    "pydot>=1.2.0",
+    "matplotlib>=3.9.0",
 ]
 
 [project.scripts]
