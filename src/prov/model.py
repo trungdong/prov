@@ -2429,7 +2429,7 @@ class ProvBundle(object):
         from prov import dot
 
         if filename:
-            format = str(os.path.splitext(filename))[-1].lower().strip(os.path.extsep)
+            format = str(os.path.splitext(filename)[-1]).lower().strip(os.path.extsep)
         else:
             format = "png"
         format = format.lower()
