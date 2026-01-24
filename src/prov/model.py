@@ -321,16 +321,18 @@ class ProvRecord(object):
         Adds a PROV type assertion to the record.
 
         :param type_identifier: PROV namespace identifier to add.
+        :raises ProvExceptionInvalidQualifiedName: If the type identifier is invalid.
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name: QualifiedNameCandidate) -> set:
         """
-        Returns the attribute values (if any) for the specified attribute name).
+        Returns the attribute values (if any) for the specified attribute name.
 
         :param attr_name: Name of the attribute.
         :return: Set of value(s) of the specified attribute.
         :rtype: set
+        :raises ProvExceptionInvalidQualifiedName: If the attribute name is invalid.
         """
         attr_name_qn = self._bundle.mandatory_valid_qname(attr_name)
         return self._attributes[attr_name_qn]
@@ -457,10 +459,7 @@ class ProvRecord(object):
             # Check if one of the attributes specifies that the current type
             # is a collection. In that case multiple attributes of the same
             # type are allowed.
-            if PROV_ATTR_COLLECTION in [_i[0] for _i in attributes]:
-                is_collection = True
-            else:
-                is_collection = False
+            is_collection = any(attr_name == PROV_ATTR_COLLECTION for attr_name, _ in attributes)
 
             for attr_name, original_value in attributes:
                 if original_value is None:
@@ -481,7 +480,7 @@ class ProvRecord(object):
                             )
                     else:
                         qname = original_value
-                    value = self._bundle.mandatory_valid_qname(qname)  # type: Any
+                    value = self._bundle.mandatory_valid_qname(qname)
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     # Expecting a datetime object or a string that can be parsed as a datetime
                     if isinstance(original_value, str):
