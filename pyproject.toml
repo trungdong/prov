@@ -87,7 +87,7 @@ dev = [
 [tool.ruff]
 line-length = 88
 target-version = "py39"
-extend-exclude = ["build", "dist", ".eggs"]
+extend-exclude = ["build"]  # dist/.eggs are already in ruff's default excludes
 
 [tool.ruff.lint]
 select = [

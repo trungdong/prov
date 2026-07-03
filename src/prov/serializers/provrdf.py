@@ -321,10 +321,6 @@ class ProvRDFSerializer(Serializer):
                             if identifier is None and subj is not None:
                                 try:
                                     obj_val = record.formal_attributes[1][1]
-                                    # TODO: this URIRef is constructed but never used
-                                    URIRef(
-                                        record.formal_attributes[1][0].uri
-                                    )
                                 except IndexError:
                                     obj_val = None
                                 if obj_val and (
