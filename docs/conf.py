@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # complexity documentation build configuration file, created by
 # sphinx-quickstart on Tue Jul  9 22:26:36 2013.
@@ -32,7 +31,7 @@ src_dir = os.path.join(project_root, "src")
 # version is used.
 sys.path.insert(0, src_dir)
 
-import prov
+import prov  # noqa: E402
 
 # -- General configuration ---------------------------------------------
 
@@ -207,7 +206,13 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ("index", "prov.tex", "PROV Python Package Documentation", "Trung Dong Huynh", "manual"),
+    (
+        "index",
+        "prov.tex",
+        "PROV Python Package Documentation",
+        "Trung Dong Huynh",
+        "manual",
+    ),
 ]
 
 # The name of an image file (relative to this directory) to place at
@@ -235,7 +240,9 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [("index", "prov", "PROV Python Package Documentation", ["Trung Dong Huynh"], 1)]
+man_pages = [
+    ("index", "prov", "PROV Python Package Documentation", ["Trung Dong Huynh"], 1)
+]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False

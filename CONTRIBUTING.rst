@@ -70,25 +70,31 @@ Ready to contribute? Here's how to set up `prov` for local development.
 
 (NOTE: To be updated. The above step is no longer correct.)
 
-4. Create a branch for local development::
+4. Set up pre-commit hooks to ensure code quality checks run automatically::
+
+    $ uv run pre-commit install
+
+   This installs the pre-commit framework hooks that will run ruff (linting and
+   formatting) and hygiene checks (trailing whitespace, end-of-file newlines,
+   YAML/TOML validation) on every commit, catching issues before they're pushed.
+
+5. Create a branch for local development::
 
     $ git checkout -b name-of-your-bugfix-or-feature
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox::
+6. When you're done making changes, check that your changes pass the tests, including testing other Python versions with tox::
 
-    $ flake8 prov tests
-    $ python setup.py test
     $ tox
 
-6. Commit your changes and push your branch to GitHub::
+7. Commit your changes and push your branch to GitHub::
 
     $ git add .
     $ git commit -m "Your detailed description of your changes."
     $ git push origin name-of-your-bugfix-or-feature
 
-7. Submit a pull request through the GitHub website.
+8. Submit a pull request through the GitHub website.
 
 Pull Request Guidelines
 -----------------------
