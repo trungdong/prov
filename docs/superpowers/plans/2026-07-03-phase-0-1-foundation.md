@@ -1063,7 +1063,7 @@ gh pr create --title "Fix XML deserialization with prov as default namespace" --
 
 - [x] **Step 2: For each, decide and document:** Can it be fixed without changing any currently-correct observable output? If yes → candidate for 2.x, note the fix sketch. If no (output/equality semantics change) → 3.0, note what changes and who is affected. Write all three verdicts with repro snippets into the triage doc.
 
-- [ ] **Step 3: Assign milestones per verdict and comment on each issue** with a one-paragraph status (drafts reviewed by maintainer before posting — STOP for approval):
+- [x] **Step 3: Assign milestones per verdict and comment on each issue** with a one-paragraph status (drafts reviewed by maintainer before posting — STOP for approval):
 
 ```bash
 gh issue edit 34 --milestone "3.0.0"   # (or 2.2.0/2.3.0 per verdict)
