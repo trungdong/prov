@@ -38,6 +38,13 @@ stability is paramount. Current state at the time of writing:
 - Nothing changes the public API in 2.x. A public-API smoke test (added in Phase 1)
   asserts every documented name is importable from its historic location and guards
   every subsequent step.
+- The public surface includes the `prov-convert`/`prov-compare` console scripts
+  (declared in `[project.scripts]`): downstream packagers (Debian, Fedora, Arch/AUR,
+  conda-forge) ship them, so their entry points and CLI behaviour stay stable through
+  2.x and the sdist remains buildable for distro packaging. A CLI smoke test (Phase 1,
+  step 7b) guards the entry points; full CLI test coverage lands in Phase 2 (step 18).
+- Advisory CI (coverage upload, Codacy) must never block required checks: external
+  service outages are not build failures (`continue-on-error: true` on upload steps).
 - Ratchets, not aspirations: mypy strictness and coverage thresholds are enforced
   per-module/globally in CI as they are achieved, so regressions are impossible.
 - Releases cut when there is user-visible value; 3.0 is the only release allowed to break.
@@ -64,6 +71,9 @@ stability is paramount. Current state at the time of writing:
 
 7. Add the public-API smoke test (imports + one round-trip per serializer) before
    any other change.
+7b. Add a CLI smoke test for `prov-convert`/`prov-compare`: entry-point functions
+   exist and an end-to-end convert/compare of a small document succeeds (full CLI
+   coverage remains Phase 2, step 18).
 8. Adopt ruff lint replacing flake8: conservative rule set first (E/F/W, bugbear,
    pyupgrade-for-3.9); config + mechanical autofixes in one PR.
 9. Adopt ruff format replacing black (near-zero diff expected from black 24).

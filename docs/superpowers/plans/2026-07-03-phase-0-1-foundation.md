@@ -22,6 +22,7 @@ Each task names the model to execute it. Rationale: **Haiku** for purely mechani
 | 4 | B | ROADMAP.md + milestones + pinned issue | Opus |
 | 5 | C | Public-API smoke test | Opus |
 | 6 | D | ruff lint (replace flake8) | Sonnet |
+| 5b | D2 | CLI entry-point smoke test (`prov-convert`/`prov-compare`) | Sonnet |
 | 7 | E | ruff format (replace black) | Haiku |
 | 8 | F | pre-commit | Haiku |
 | 9 | G | pytest as runner | Sonnet |
@@ -400,6 +401,96 @@ git push -u origin chore/ruff-lint
 gh pr create --title "Adopt ruff lint" --body "Roadmap Phase 1 step 8. Replaces flake8; rule set E/F/W/B/UP; mechanical autofixes only."
 ```
 
+### Task 5b: CLI entry-point smoke test — PR D2 (Sonnet)
+
+Guards the `prov-convert`/`prov-compare` console scripts, which downstream packagers
+(Debian, Fedora, Arch/AUR, conda-forge) ship. Their entry points are declared in
+`[project.scripts]`; nothing exercises them today (0% coverage). This smoke test locks
+the entry points and a happy-path run until full CLI coverage lands in Phase 2.
+
+**Files:**
+- Create: `src/prov/tests/test_cli_smoke.py`
+
+- [ ] **Step 1: Write the test.** Use subprocess (NOT in-process `main()` calls —
+  `main(argv)` mutates `sys.argv`). Starting point (verify flags against
+  `src/prov/scripts/convert.py` / `compare.py` parser definitions before finalising):
+
+```python
+"""Smoke tests for the prov-convert / prov-compare console scripts.
+
+Downstream packagers ship these entry points; they must keep working
+throughout the 2.x line. Full CLI coverage is a Phase 2 task.
+"""
+import os
+import shutil
+import subprocess
+import tempfile
+import unittest
+
+from prov.tests.examples import primer_example
+
+
+class TestCLISmoke(unittest.TestCase):
+    def test_entry_point_functions_exist(self):
+        from prov.scripts.compare import main as compare_main
+        from prov.scripts.convert import main as convert_main
+
+        self.assertTrue(callable(convert_main))
+        self.assertTrue(callable(compare_main))
+
+    def test_console_scripts_on_path(self):
+        for script in ("prov-convert", "prov-compare"):
+            self.assertIsNotNone(
+                shutil.which(script), "%s not installed on PATH" % script
+            )
+
+    def test_prov_convert_and_compare_end_to_end(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            infile = os.path.join(tmp, "doc.json")
+            outfile = os.path.join(tmp, "doc.xml")
+            primer_example().serialize(infile, format="json")
+
+            result = subprocess.run(
+                ["prov-convert", "-f", "xml", infile, outfile],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(os.path.getsize(outfile) > 0)
+
+            result = subprocess.run(
+                ["prov-compare", "-f", "json", "-F", "xml", infile, outfile],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+Check the real flag names first: `convert.py` defines the output-format option and
+positionals around lines 141–160, `compare.py` its two format options around lines
+83–90. Adjust the subprocess argument lists to the real interface — do not change the
+scripts themselves. If `prov-compare`'s exit code for "equivalent" isn't 0, mirror the
+actual documented behaviour and add a comment.
+
+- [ ] **Step 2: Run the new test — must pass:**
+
+```bash
+uv run python -m unittest prov.tests.test_cli_smoke -v
+```
+
+- [ ] **Step 3: Full suite, commit, PR:**
+
+```bash
+uv run python -m unittest discover -s src/    # 964 + new tests, OK (expected failures=17)
+git checkout master && git pull && git checkout -b test/cli-smoke
+git add src/prov/tests/test_cli_smoke.py
+git commit -m "test: add CLI smoke test for prov-convert and prov-compare"
+git push -u origin test/cli-smoke
+gh pr create --title "Add CLI entry-point smoke test" --body "Roadmap Phase 1 step 7b. Guards the console scripts downstream packagers rely on."
+```
+
 ### Task 7: ruff format replacing black — PR E (Haiku)
 
 **Files:**
@@ -585,6 +676,10 @@ jobs:
           uv run coverage xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
+        # Advisory upload: a Coveralls outage must not fail the build (rule added
+        # after the 2026-07-03 outage blocked PR #174; hotfixed on master in PR #176 —
+        # keep continue-on-error on all coverage-upload steps in the rewrite)
+        continue-on-error: true
         with:
           flag-name: Python${{ matrix.python-version }}
           parallel: true
