@@ -272,7 +272,7 @@ class ProvXMLSerializer(Serializer):
             qname = etree.QName(element)
             if qname.namespace != DEFAULT_NAMESPACES["prov"].uri:
                 raise ProvXMLException(
-                    "Non PROV element discovered in " "document or bundle."
+                    "Non PROV element discovered in document or bundle."
                 )
             # Ignore the <prov:other> element storing non-PROV information.
             if qname.localname == "other":
@@ -310,7 +310,8 @@ class ProvXMLSerializer(Serializer):
 
             if _ns_xsi("type") in element.attrib:
                 value = xml_qname_to_QualifiedName(
-                    element, element.attrib[_ns_xsi("type")]  # type: ignore[arg-type]
+                    element,
+                    element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
                 )
                 attributes.append((PROV["type"], value))
 

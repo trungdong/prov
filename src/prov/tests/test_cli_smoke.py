@@ -3,6 +3,7 @@
 Downstream packagers ship these entry points; they must keep working
 throughout the 2.x line. Full CLI coverage is a Phase 2 task.
 """
+
 import os
 import shutil
 import subprocess
@@ -32,9 +33,7 @@ class TestCLISmoke(unittest.TestCase):
 
     def test_console_scripts_installed(self):
         for script in ("prov-convert", "prov-compare"):
-            self.assertIsNotNone(
-                _console_script(script), "%s not installed" % script
-            )
+            self.assertIsNotNone(_console_script(script), "%s not installed" % script)
 
     def test_prov_convert_and_compare_end_to_end(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,8 +61,12 @@ class TestCLISmoke(unittest.TestCase):
             result = subprocess.run(
                 [
                     _console_script("prov-compare"),
-                    "-f", "json", "-F", "xml",
-                    infile, outfile,
+                    "-f",
+                    "json",
+                    "-F",
+                    "xml",
+                    infile,
+                    outfile,
                 ],
                 capture_output=True,
                 text=True,
