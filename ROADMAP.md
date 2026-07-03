@@ -69,6 +69,7 @@ most users need no code changes; the guide demonstrates the exceptions.
 ## Feedback
 
 Community input is welcome, especially on the 3.0 compatibility changes and the
-priority of open issues. Please share your thoughts on the roadmap tracking issue
-(link to be added once it is opened), or browse and comment on the
+priority of open issues. Please share your thoughts on the
+[roadmap tracking issue](https://github.com/trungdong/prov/issues/181),
+or browse and comment on the
 [issue tracker](https://github.com/trungdong/prov/issues).
