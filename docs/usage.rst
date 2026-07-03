@@ -33,7 +33,7 @@ Simple PROV document
     # document
     #   default <http://anotherexample.org/>
     #   prefix ex <http://example.org/>
-    #   
+    #
     #   entity(e2, [prov:type="File", ex:creator="Alice",
     #               ex:content="There was a lot of crime in London last month",
     #               ex:path="/shared/crime.txt"])
@@ -68,11 +68,11 @@ PROV document with a bundle
     #   default <http://example.org/0/>
     #   prefix ex2 <http://example.org/2/>
     #   prefix ex1 <http://example.org/1/>
-    #   
+    #
     #   entity(e001)
     #   bundle e001
     #     default <http://example.org/2/>
-    #     
+    #
     #     entity(e001)
     #   endBundle
     # endDocument

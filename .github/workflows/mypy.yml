@@ -16,4 +16,3 @@ jobs:
     - run: pip install mypy
     - name: Type checking and install type stubs for third-party packages
       run: mypy --install-types --non-interactive src
-
