@@ -89,8 +89,13 @@ GENERIC_NODE_STYLE = {
         "fillcolor": "lightgray",
         "color": "dimgray",
     },
-}  # type: dict[Optional[type[ProvElement | ProvBundle]], dict[str, str]]
-DOT_PROV_STYLE = {
+}  # type: dict[Optional[type[ProvElement | ProvBundle]], dict[str, Any]]
+# Value type is widened to Any (rather than str) because mypy treats a
+# dict[str, str] unpacked via `**style` as needing to satisfy *every*
+# named parameter pydot.Node/Edge/Cluster declare (e.g. `obj_dict`), not
+# just their `**attrs: Any` catch-all, due to dict invariance; see
+# https://github.com/python/mypy/issues/6799
+DOT_PROV_STYLE: dict[Any, dict[str, Any]] = {
     # Generic node
     0: {
         "shape": "oval",
@@ -153,13 +158,17 @@ DOT_PROV_STYLE = {
     PROV_MEMBERSHIP: {"label": "hadMember", "fontsize": "10.0"},
 }
 
-ANNOTATION_STYLE = {
+ANNOTATION_STYLE: dict[str, Any] = {
     "shape": "note",
     "color": "gray",
     "fontcolor": "black",
     "fontsize": "10",
 }
-ANNOTATION_LINK_STYLE = {"arrowhead": "none", "style": "dashed", "color": "gray"}
+ANNOTATION_LINK_STYLE: dict[str, Any] = {
+    "arrowhead": "none",
+    "style": "dashed",
+    "color": "gray",
+}
 ANNOTATION_START_ROW = '<<TABLE cellpadding="0" border="0">'
 ANNOTATION_ROW_TEMPLATE = """    <TR>
         <TD align=\"left\" href=\"%s\">%s</TD>
@@ -252,9 +261,15 @@ def prov_to_dot(
                 graph_name="c%d" % count[2],
                 URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
             )
-            subdot.set_label('"%s"' % str(bundle.identifier))
+            # set_label is generated at runtime by pydot via setattr() for
+            # every Graphviz attribute (see pydot.core.__generate_attribute_methods),
+            # so it exists on Cluster instances but isn't visible to mypy.
+            subdot.set_label('"%s"' % str(bundle.identifier))  # type: ignore[attr-defined]
             _bundle_to_dot(subdot, bundle)
-            dot.add_subgraph(subdot)
+            # pydot types Graph.add_subgraph() as accepting only a Subgraph,
+            # but Cluster (a Graph subclass, not a Subgraph subclass) is the
+            # documented/idiomatic way to add a cluster subgraph in pydot.
+            dot.add_subgraph(subdot)  # type: ignore[arg-type]
             return subdot
 
         def _add_node(record: ProvRecord) -> pydot.Node:
