@@ -274,6 +274,27 @@ class TestExtras(unittest.TestCase):
         g2 = primer_example_alternate()
         self.assertEqual(g1, g2)
 
+    def test_plot_without_matplotlib_raises_helpful_error(self):
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name.startswith("matplotlib"):
+                raise ImportError("No module named %r" % name)
+            return real_import(name, *args, **kwargs)
+
+        document = ProvDocument()
+        ex = document.add_namespace("ex", "https://example.org/")
+        document.entity(ex["e1"])
+        builtins.__import__ = fake_import
+        try:
+            with self.assertRaises(ImportError) as ctx:
+                document.plot()  # no filename -> interactive path -> needs matplotlib
+            self.assertIn("prov[plot]", str(ctx.exception))
+        finally:
+            builtins.__import__ = real_import
+
 
 if __name__ == "__main__":
     unittest.main()
