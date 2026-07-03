@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-03
 **Status:** Approved design, pending implementation planning
-**Scope:** Modernise and harden the `prov` package (tooling, typing, tests, docs, standards conformance) plus known bug fixes, followed by one new feature: a PROV-JSONLD serializer (Phase 5). Other large features (PROV-N parser, PROV-Dictionary, PROV-CONSTRAINTS validation) are out of scope, tracked as a separate post-3.0 features backlog.
+**Scope:** Modernise and harden the `prov` package (tooling, typing, tests, docs, standards conformance) plus known bug fixes, followed by new serialization features: a PROV-JSONLD serializer (Phase 5) and a PROV-N parser (Phase 5b). Spec-conformant unification per PROV-CONSTRAINTS is in scope (audited in Phase 3.5, reimplemented in 3.0 — steps 30b/36b). Other large features (PROV-Dictionary, a full PROV-CONSTRAINTS validation engine) are out of scope, tracked as a separate post-3.0 features backlog.
 
 ## Context
 
@@ -187,10 +187,25 @@ specs. Already-open issues #89, #168, #154 are conformance findings; expect more
 30. Check serializer mappings against normative companion specs: PROV-N grammar
     (W3C test files exist), PROV-O mapping tables (PROV-DM Appendix A), PROV-JSON
     member submission, PROV-XML XSD (add lxml schema-validation test).
+30b. Audit unification against PROV-CONSTRAINTS
+    (https://www.w3.org/TR/prov-constraints/). `ProvBundle._unified_records()`
+    (`model.py`, TODO comment dates from the original implementation) simply
+    unions the attributes of records sharing an identifier; the spec instead
+    defines merging via key constraints (Section 5.1) over a unification
+    algorithm for terms: placeholder (`-`) arguments unify with concrete
+    values, records only merge when their formal attributes unify pairwise,
+    incompatible types must be rejected, and constraints apply within each
+    bundle independently (Section 8) — never across bundle boundaries.
+    Deliverable: a documented gap analysis (current behaviour vs spec, with
+    failing examples as test cases under `tests/unification/`) feeding the
+    step 31 triage and the 3.0 reimplementation (step 36b).
 31. Triage findings: cheap non-breaking fixes → 2.x; behaviour/output-changing
     fixes → Phase 4 list; feature gaps (PROV-Dictionary #129, convenience methods
-    #154, PROV-N parser #122) → post-3.0 features backlog.
-32. Out of scope: PROV-CONSTRAINTS validation engine (#62) — features backlog.
+    #154) → post-3.0 features backlog.
+32. Out of scope: the full PROV-CONSTRAINTS *validation engine* (#62 —
+    inferences, event ordering, typing and impossibility checks) stays on the
+    features backlog. Only the unification/merging rules that back
+    `unified()` (step 30b/36b) are in scope for the roadmap.
 
 ## Phase 4 — prov 3.0: the compatibility release
 
@@ -208,6 +223,16 @@ specs. Already-open issues #89, #168, #154 are conformance findings; expect more
     (merging same-value/different-type attributes), #77 (Decimal literal
     comparison), #168 (`xsd:QName` typing in PROV-JSON — interop-affecting output
     change), plus Phase 3.5 findings.
+36b. Reimplement unification per PROV-CONSTRAINTS, driven by the step 30b gap
+    analysis: `ProvBundle.unified()` / `ProvDocument.unified()` merge records
+    per the spec's key constraints and term-unification rules (placeholders
+    unify with concrete values; merging fails on non-unifiable formal
+    attributes or incompatible types; bundles unify independently of their
+    parent document and of each other). Merge failures raise a documented
+    exception rather than silently producing a wrong merge. Behaviour-changing
+    for existing `unified()` users, hence 3.0; #34's attribute-merging fix
+    lands as part of the same rework. The `tests/unification/` fixture corpus
+    is extended to cover each rule, including the failure cases.
 37. Remove everything deprecated in 2.4.0.
 38. Migration guide docs page ("Upgrading to 3.0") — most users should need zero
     code changes; the guide demonstrates it.

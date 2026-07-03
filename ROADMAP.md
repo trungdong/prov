@@ -46,10 +46,15 @@ companion specifications, whose findings feed into this list. The planned change
   forward is to support all non-EOL CPython versions and to drop a version in the next
   release after it reaches end of life.
 - **`rdflib` version floor raised**, shedding compatibility shims for older releases.
+- **Unification reworked to follow [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)**:
+  `unified()` currently just merges the attributes of records that share an
+  identifier; in 3.0 it applies the specification's merging rules (key constraints
+  and term unification), rejecting merges the spec disallows instead of silently
+  combining records. The gap analysis happens during the pre-3.0 conformance audit.
 - **Behaviour-changing bug fixes**, each individually reviewed with tests showing the
   old and new behaviour:
   - [#34](https://github.com/trungdong/prov/issues/34) — merging attributes with the
-    same value but different types.
+    same value but different types (folded into the unification rework above).
   - [#77](https://github.com/trungdong/prov/issues/77) — comparison of `Decimal`
     literals.
   - [#89](https://github.com/trungdong/prov/issues/89) — handling of literals with and
