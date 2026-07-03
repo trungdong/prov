@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Run tests
         run: |
-          uv sync --extra rdf --extra xml --group dev
+          uv sync --locked --extra rdf --extra xml --group dev
           uv run coverage run -m pytest
           uv run coverage xml
       - name: Coveralls Parallel
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v8.2.0
       - run: |
-          uv sync --group dev
+          uv sync --locked --group dev
           uv run ruff check src/
           uv run ruff format --check src/
 
@@ -53,7 +53,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v8.2.0
       - run: |
-          uv sync --extra rdf --extra xml --group dev
+          uv sync --locked --extra rdf --extra xml --group dev
           uv run mypy src
 
   package:
