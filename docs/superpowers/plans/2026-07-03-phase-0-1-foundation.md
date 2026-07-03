@@ -1080,7 +1080,7 @@ gh issue edit 89 --milestone "3.0.0"
 
 Precondition: PRs A–K merged; TestPyPI dry-run (Task 12 step 3) verified.
 
-- [ ] **Step 1: Write the changelog entry** at the top of `HISTORY.rst`:
+- [x] **Step 1: Write the changelog entry** at the top of `HISTORY.rst`:
 
 ```rst
 2.2.0 (2026-XX-XX)
@@ -1095,11 +1095,11 @@ Precondition: PRs A–K merged; TestPyPI dry-run (Task 12 step 3) verified.
 
 (Adjust to what actually merged; date = release day.)
 
-- [ ] **Step 2: Bump version**
+- [x] **Step 2: Bump version**
 
 In `src/prov/__init__.py`: `__version__ = "2.2.0"`.
 
-- [ ] **Step 3: PR, merge, then STOP — maintainer creates the release** (outward-facing; triggers publication):
+- [x] **Step 3: PR, merge, then STOP — maintainer creates the release** (outward-facing; triggers publication):
 
 ```bash
 git checkout -b release/2.2.0
