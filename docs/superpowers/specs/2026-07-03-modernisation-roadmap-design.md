@@ -143,10 +143,25 @@ stability is paramount. Current state at the time of writing:
     - **Explanation:** PROV-DM primer mapping W3C concepts to the class model;
       unification/flattening semantics.
 23. Docstring pass over the public API (napoleon style, consistent with type hints).
-24. pytest idiom migration, module-by-module: convert shared mixins
-    (`RoundTripTestCase`, `attributes.py`, `statements.py`) to parametrized
-    fixtures; one format's test module first as pattern-setter. Test count and
-    assertions provably preserved (`pytest --collect-only` before/after).
+24. Test methodology review & redesign — a short design doc first, deliberately
+    NOT constrained by the legacy structure. Assess every inherited pattern on its
+    merits: mixin-based sharing (`RoundTripTestCase`, `attributes.py`,
+    `statements.py`, `qnames.py`), the per-format test-module duplication, the
+    fixture-directory round-trips, the 17 `expectedFailure` markers (re-justify
+    each — an expected failure with no tracking issue is a silent bug), and
+    assertion quality (bare document-equality asserts give useless diffs on
+    failure). Adopt pytest-native design where it wins: parametrized fixtures
+    across the document×format matrix, `tmp_path`, custom equality diffing for
+    ProvDocument. Then migrate module-by-module, one format first as
+    pattern-setter; test count and assertions provably preserved
+    (`pytest --collect-only` before/after) except where the design doc explicitly
+    retires or merges tests, each with a stated reason.
+24b. Hardening beyond parity (same PR series, new tests): property-based
+    round-trip tests with Hypothesis (a strategy generating random valid PROV
+    documents, run across all serializers); a malformed-input corpus for every
+    deserializer (error paths are nearly untested today); a minimal-install CI
+    job (no rdf/xml extras) asserting clean degradation instead of
+    `ModuleNotFoundError` at import time.
 25. Split `model.py` into a package: ~`records.py` (ProvRecord/elements/relations),
     `bundle.py` (ProvBundle/ProvDocument), `namespaces.py` (NamespaceManager);
     `prov/model/__init__.py` re-exports everything at historic names. Pure moves,
