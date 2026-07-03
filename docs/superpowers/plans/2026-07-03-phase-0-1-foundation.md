@@ -1059,9 +1059,9 @@ gh pr create --title "Fix XML deserialization with prov as default namespace" --
 **Files:**
 - Create: `docs/superpowers/triage/2026-07-behaviour-bugs.md`
 
-- [ ] **Step 1: For each issue, reproduce.** Write a minimal script per issue against the current code, using the scenario from the issue thread (#34 merging same-value/different-type attributes; #77 Decimal literal comparison; #89 literal with vs without explicit datatype). Record actual behaviour.
+- [x] **Step 1: For each issue, reproduce.** Write a minimal script per issue against the current code, using the scenario from the issue thread (#34 merging same-value/different-type attributes; #77 Decimal literal comparison; #89 literal with vs without explicit datatype). Record actual behaviour.
 
-- [ ] **Step 2: For each, decide and document:** Can it be fixed without changing any currently-correct observable output? If yes → candidate for 2.x, note the fix sketch. If no (output/equality semantics change) → 3.0, note what changes and who is affected. Write all three verdicts with repro snippets into the triage doc.
+- [x] **Step 2: For each, decide and document:** Can it be fixed without changing any currently-correct observable output? If yes → candidate for 2.x, note the fix sketch. If no (output/equality semantics change) → 3.0, note what changes and who is affected. Write all three verdicts with repro snippets into the triage doc.
 
 - [ ] **Step 3: Assign milestones per verdict and comment on each issue** with a one-paragraph status (drafts reviewed by maintainer before posting — STOP for approval):
 
@@ -1071,7 +1071,7 @@ gh issue edit 77 --milestone "3.0.0"
 gh issue edit 89 --milestone "3.0.0"
 ```
 
-- [ ] **Step 4: Commit the triage doc to master via a docs PR or fold into PR L.**
+- [x] **Step 4: Commit the triage doc to master via a docs PR or fold into PR L.**
 
 ### Task 16: Cut release 2.2.0 — PR L (Sonnet 5 + maintainer)
 
