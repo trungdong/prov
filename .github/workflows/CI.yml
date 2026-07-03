@@ -10,40 +10,60 @@ on:
 
 jobs:
   tests:
-    name: tox on ${{ matrix.python-version }}
+    name: pytest on ${{ matrix.python-version }}
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.11"]
     steps:
-      - uses: actions/checkout@v4
-      - name: Remove broken apt repos (runner image issue)
-        run: sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.sources /etc/apt/sources.list.d/azure-cli.list
+      - uses: actions/checkout@v7
       - name: Setup Graphviz
         uses: ts-graphviz/setup-graphviz@v2
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v8.2.0
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-      - name: Install dependencies
+      - name: Run tests
         run: |
-          python -VV
-          python -m site
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade coverage[toml] tox tox-gh-actions
-
-      - name: Run tox targets for ${{ matrix.python-version }}
-        run: python -m tox
-
+          uv sync --extra rdf --extra xml --group dev
+          uv run coverage run -m pytest
+          uv run coverage xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
-        # Coverage upload is advisory; a Coveralls outage must not fail the build
+        # Advisory upload: a Coveralls outage must not fail the build (rule added
+        # after the 2026-07-03 outage blocked PR #174; hotfixed on master in PR #176 —
+        # keep continue-on-error on all coverage-upload steps in the rewrite)
         continue-on-error: true
         with:
           flag-name: Python${{ matrix.python-version }}
           parallel: true
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: |
+          uv sync --group dev
+          uv run ruff check src/
+          uv run ruff format --check src/
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: |
+          uv sync --extra rdf --extra xml --group dev
+          uv run mypy src
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: |
+          uv build
+          uvx twine check dist/*
 
   finish:
     needs: tests
@@ -55,4 +75,4 @@ jobs:
         continue-on-error: true
         with:
           parallel-finished: true
-          carryforward: "Python3.9,Python3.10,Python3.11,Python3.12,Python3.13"
+          carryforward: "Python3.9,Python3.10,Python3.11,Python3.12,Python3.13,Python3.14,Pythonpypy3.11"
