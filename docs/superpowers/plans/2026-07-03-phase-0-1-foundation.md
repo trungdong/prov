@@ -970,7 +970,7 @@ Write the draft comment for PR #167 into the PR J description or hand it to the 
 
 Root cause (verified 2026-07-03): for a sub-element in the default namespace, `subel.prefix` is `None`, so line 361 builds the string `"None:value"`; additionally the default-namespace branch of `xml_qname_to_QualifiedName` does not map the PROV/XSD URIs onto the canonical `PROV`/`XSD` namespace objects.
 
-- [ ] **Step 1: Write the failing round-trip test** (in `test_xml.py`, alongside the other `ProvXMLSerializer` tests — mirror their style):
+- [x] **Step 1: Write the failing round-trip test** (in `test_xml.py`, alongside the other `ProvXMLSerializer` tests — mirror their style):
 
 ```python
     def test_deserialization_with_prov_as_default_namespace(self):
@@ -998,13 +998,13 @@ Root cause (verified 2026-07-03): for a sub-element in the default namespace, `s
 
 Check `ProvDocument.deserialize`'s parameter name for string input (`content=`) and `get_attribute`'s exact name/signature in `model.py` before finalising; adjust to the real API.
 
-- [ ] **Step 2: Run — expect FAIL** (attribute comes back as `None:value` and/or re-serialization raises `ValueError: Invalid tag name 'None:value'`):
+- [x] **Step 2: Run — expect FAIL** (attribute comes back as `None:value` and/or re-serialization raises `ValueError: Invalid tag name 'None:value'`):
 
 ```bash
 uv run pytest src/prov/tests/test_xml.py -k default_namespace -v
 ```
 
-- [ ] **Step 3: Fix.** In `_extract_attributes` (line ~360), don't fabricate a `"None:..."` qname:
+- [x] **Step 3: Fix.** In `_extract_attributes` (line ~360), don't fabricate a `"None:..."` qname:
 
 ```python
         _t = xml_qname_to_QualifiedName(
@@ -1029,14 +1029,14 @@ In `xml_qname_to_QualifiedName`, make the default-namespace branch consistent wi
         return ns[qname_str]
 ```
 
-- [ ] **Step 4: Run the new test (PASS) and the FULL suite** — this function is on the hot path for all XML fixtures; any regression in `test_xml.py`'s fixture round-trips means the fix is wrong, not the fixtures:
+- [x] **Step 4: Run the new test (PASS) and the FULL suite** — this function is on the hot path for all XML fixtures; any regression in `test_xml.py`'s fixture round-trips means the fix is wrong, not the fixtures:
 
 ```bash
 uv run pytest src/prov/tests/test_xml.py -v 2>&1 | tail -5
 uv run pytest -q | tail -2
 ```
 
-- [ ] **Step 5: Commit, PR**
+- [x] **Step 5: Commit, PR**
 
 ```bash
 git checkout -b fix/xml-default-namespace
@@ -1045,6 +1045,14 @@ git commit -m "fix: handle default-namespace elements in PROV-XML deserializatio
 git push -u origin fix/xml-default-namespace
 gh pr create --title "Fix XML deserialization with prov as default namespace" --body "Fixes #155. Elements without a prefix produced 'None:value' qualified names, breaking round-trips of ProvToolbox output."
 ```
+
+> **Accepted deviation (2026-07-03, PR #185):** Step 3's sketch mapped the default
+> namespace onto the canonical `PROV` namespace (`elif ns_uri == PROV.uri: ns = PROV`).
+> Spec review showed that arm changed serialized output for previously-accepted
+> documents (blank prefix → `prov:` prefix), violating the 2.x freeze, and it was not
+> needed for the fix (`QualifiedName` equality is URI-based). It was dropped; only the
+> XSD mapping (whose old output was corrupt `...XMLSchemaint` URIs) was kept, with a
+> comment in `xml_qname_to_QualifiedName` documenting the deliberate asymmetry.
 
 ### Task 15: Triage #34, #77, #89 — no PR (Opus)
 
