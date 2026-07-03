@@ -44,11 +44,11 @@ Run from the repo root; `uv run` picks up the project's managed venv.
 
 ```bash
 # Full test suite (as CI/tox runs it) — needs the rdf/xml extras installed
-uv run python -m unittest discover -s src/
+uv run pytest
 
 # Single test module / class / method
-uv run python -m unittest prov.tests.test_model.TestFlattening
-uv run python -m unittest prov.tests.test_model.TestFlattening.test_flattening
+uv run pytest src/prov/tests/test_model.py::TestFlattening
+uv run pytest src/prov/tests/test_model.py::TestFlattening::test_flattening -v
 
 # Lint
 uv run ruff check src/
@@ -60,7 +60,7 @@ uv run ruff format src/
 uv run mypy src
 
 # Coverage
-uv run coverage run --source prov -m unittest discover -s src/
+uv run coverage run -m pytest
 uv run coverage report -m
 
 # tox (all supported interpreters, matches CI.yml exactly)
@@ -126,8 +126,10 @@ extras in `pyproject.toml`); JSON and PROV-N have no extra dependencies.
 
 ### Tests (`src/prov/tests/`)
 
-Tests are plain `unittest`, run via `unittest discover`, not pytest-specific. Shared test
-scaffolding lives in a few base-class modules rather than being duplicated per format:
+Test code is plain `unittest` (`TestCase` classes/`assert*` methods, `expectedFailure`, etc.),
+not pytest-specific; the runner is `pytest`, which collects and runs unittest-style classes
+natively (`expectedFailure` surfaces as `xfailed`). Shared test scaffolding lives in a few
+base-class modules rather than being duplicated per format:
 
 - `examples.py` — canonical example PROV documents (built programmatically) reused across
   serializer/model tests.
