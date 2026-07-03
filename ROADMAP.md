@@ -3,7 +3,7 @@
 `prov` is a mature Python implementation of the W3C PROV Data Model. This roadmap
 summarises where the library is heading: a staged programme of modernisation and
 hardening (tooling, type hints, tests, documentation, standards conformance),
-a batch of long-standing bug fixes, and one new serialization format.
+a batch of long-standing bug fixes, and new serialization capabilities.
 
 The full design detail lives in the
 [modernisation roadmap design](docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md).
@@ -34,6 +34,7 @@ code changes.
 | **2.4.0** | Documentation & internals | Refreshed, reorganised documentation (tutorials, how-to guides, API reference, explanations), including guides for graphics export ([#141](https://github.com/trungdong/prov/issues/141)) and for the `prov-convert`/`prov-compare` CLI tools ([#83](https://github.com/trungdong/prov/issues/83)). Internal restructuring behind the stable public API, plus deprecation warnings signposting the 3.0 changes. |
 | **3.0.0** | Compatibility release | The one release allowed to break compatibility (see the explicit list below). |
 | **3.1.0** | PROV-JSONLD support | A new serializer and deserializer for [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), the W3C member submission for representing PROV-DM natively in JSON-LD. Purely additive. |
+| **3.2.0** | Two-way PROV-N | A parser for [PROV-N](https://www.w3.org/TR/prov-n/), built from the specification's grammar, making the notation readable as well as writable (today `prov` can only write PROV-N). Purely additive. |
 
 ## What changes in 3.0
 

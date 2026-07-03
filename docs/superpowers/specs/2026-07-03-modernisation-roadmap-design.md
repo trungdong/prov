@@ -106,6 +106,19 @@ stability is paramount. Current state at the time of writing:
     the file-output path.
 19. Coverage ratchet in CI: `fail_under` at current figure, raised as gaps close
     (target ~95% source coverage).
+19b. Lint & type ratchet alongside the typing work:
+    - mypy: as the last module flips to strict, replace the per-module overrides
+      with global `strict = true`.
+    - ruff: expand rule families once typing/tests can absorb them safely — `I`
+      (import sorting), `C4` (comprehensions), `SIM` (simplify), `RUF`; `PT`
+      follows the Phase 3 pytest-idiom migration. One family per PR, autofix
+      diffs reviewed like Phase 1's.
+    - Revisit the deferred `UP045`/`UP031` ignores during the module-by-module
+      typing pass (annotations are modernised as each module is typed).
+    - Resolve the noqa'd bugbear sites from Phase 1: `B904` (exception chaining)
+      and `B028` (warning stacklevel) only affect diagnostic output, so they may
+      land in 2.x with a changelog note; each removed noqa gets a test where
+      practical.
 20. Cut 2.3.0.
 
 ## Phase 3 — Docs, pytest idioms, structural refactor → release 2.4.0
@@ -204,6 +217,29 @@ behaviour. It is a purely additive feature, so it ships in a minor release.
 43. Extend the conformance matrix and docs: JSON-LD column in the reference
     matrix, a how-to page for the format, changelog and `ROADMAP.md` updates.
 44. Cut 3.1.0.
+
+## Phase 5b — PROV-N deserializer (two-way PROV-N) → release 3.2.0
+
+Add a PROV-N parser, completing two-way support for the PROV-N notation
+(https://www.w3.org/TR/prov-n/ publishes a normative EBNF grammar). Today PROV-N
+is write-only. Placed after PROV-JSONLD for the same reasons: purely additive, so
+a minor release; built once against the typed, conformance-audited codebase; and
+the shared round-trip fixtures make the new direction cheap to test. It may be
+pulled earlier (alongside Phase 3.5) if the conformance audit needs to consume
+PROV-N test fixtures directly.
+
+45. Design note: grammar-driven parser — spike two approaches against the spec's
+    examples before committing: (a) Lark with the spec's EBNF translated to its
+    dialect, shipped as an optional `[provn]` extra; (b) a hand-rolled
+    recursive-descent parser with no new dependency. Pick by maintainability and
+    error-message quality.
+46. Implement `deserialize()` in `serializers/provn.py`, registered so
+    `prov.read()` auto-detection includes PROV-N; fully typed and docstringed;
+    round-trip tests via the shared parametrized fixtures (PROV-N becomes a full
+    column in the round-trip matrix instead of serialize-only).
+47. Validate against every example in the PROV-N spec and the W3C PROV test
+    cases; cross-check interop with ProvToolbox.
+48. Docs, changelog, `ROADMAP.md` update; cut 3.2.0.
 
 ## Cross-cutting (start early, maintain throughout)
 
