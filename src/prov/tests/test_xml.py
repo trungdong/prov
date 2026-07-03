@@ -369,9 +369,29 @@ class ProvXMLTestCase(unittest.TestCase):
         # the <value> element is in the default (PROV) namespace:
         # it must parse as prov:value, not "None:value"
         values = list(entity.get_attribute(PROV["value"]))
-        self.assertEqual(len(values), 1)
-        # and the document must serialize back to XML without error
-        self.assertTrue(document.serialize(format="xml"))
+        self.assertEqual(values, [1])
+        # and the document must round-trip through XML unchanged
+        round_tripped = prov.ProvDocument.deserialize(
+            content=document.serialize(format="xml"), format="xml"
+        )
+        self.assertEqual(round_tripped, document)
+
+    def test_deserialization_with_xsd_as_default_namespace(self):
+        # An unprefixed xsi:type resolved against an XSD default namespace must
+        # map to the canonical xsd namespace (with #); previously it produced a
+        # corrupt datatype URI (http://www.w3.org/2001/XMLSchemaint).
+        xml_string = """<prov:document xmlns="http://www.w3.org/2001/XMLSchema"
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:ex="https://example.org/">
+          <prov:entity prov:id="ex:e">
+            <prov:value xsi:type="int">1</prov:value>
+          </prov:entity>
+        </prov:document>"""
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+        entity = list(document.get_records(prov.ProvEntity))[0]
+        values = list(entity.get_attribute(PROV["value"]))
+        self.assertEqual(values, [1])
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):

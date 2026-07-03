@@ -360,12 +360,12 @@ def _extract_attributes(
     attributes = []  # type: list[tuple[prov.model.QualifiedName, Any]]
     for subel in element:
         sqname = etree.QName(subel)
-        _t = xml_qname_to_QualifiedName(
-            subel,
+        qname_str = (
             "%s:%s" % (subel.prefix, sqname.localname)
             if subel.prefix
-            else sqname.localname,
+            else sqname.localname
         )
+        _t = xml_qname_to_QualifiedName(subel, qname_str)
 
         for key, value in subel.attrib.items():
             value_str = value.decode("utf-8") if isinstance(value, bytes) else value
@@ -419,6 +419,10 @@ def xml_qname_to_QualifiedName(
         if ns_uri == XML_XSD_URI:
             ns = XSD  # use the standard xsd namespace (i.e. with #)
         else:
+            # Deliberately not mapping PROV.uri to the canonical PROV namespace
+            # here (unlike the prefixed branch above): doing so would change the
+            # serialized output for previously-accepted documents, breaking the
+            # 2.x output-compatibility promise.
             ns = Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace
