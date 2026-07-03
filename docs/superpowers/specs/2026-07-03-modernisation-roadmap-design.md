@@ -126,6 +126,24 @@ stability is paramount. Current state at the time of writing:
       and `B028` (warning stacklevel) only affect diagnostic output, so they may
       land in 2.x with a changelog note; each removed noqa gets a test where
       practical.
+19c. Dependency audit — smallest possible list at every layer:
+    - Runtime (currently `networkx`, `pydot`, `python-dateutil` + `rdf`/`xml`
+      extras): document why each exists and what imports it. Candidates for the
+      3.0 list (step 36c): `python-dateutil` is only used for ISO-8601 parsing
+      (`dateutil.parser`) and carries a long-standing "is this really needed?"
+      TODO in pyproject.toml — replaceable by `datetime.fromisoformat` once the
+      floor is ≥3.11; `pydot` (only `dot.py`) and `networkx` (only `graph.py`)
+      are candidates for optional extras like `rdf`/`xml`. Non-breaking in 2.x:
+      nothing — moving any of these changes the install contract, so 2.x only
+      documents.
+    - Dev group: split docs tooling (`sphinx`, `sphinx-rtd-theme`) into a
+      separate `docs` dependency group so day-to-day dev installs stop pulling
+      the Sphinx tree (incl. transitive `requests`); drop `bumpversion`/`wheel`/
+      `setuptools` from the group if the release workflow (step 12/13) makes
+      them redundant; decide whether `tox` stays (local multi-interpreter
+      convenience only — CI runs pytest directly since PR #182) or is dropped
+      in favour of `uv run --python X`.
+    - CI: verify no job installs more than it needs (e.g. lint needs no extras).
 20. Cut 2.3.0.
 
 ## Phase 3 — Docs, pytest idioms, structural refactor → release 2.4.0
@@ -233,6 +251,13 @@ specs. Already-open issues #89, #168, #154 are conformance findings; expect more
     for existing `unified()` users, hence 3.0; #34's attribute-merging fix
     lands as part of the same rework. The `tests/unification/` fixture corpus
     is extended to cover each rule, including the failure cases.
+36c. Shrink the runtime dependency footprint, per the step 19c audit: drop
+    `python-dateutil` in favour of stdlib `datetime.fromisoformat` (floor is
+    ≥3.10/3.11 by then; verify parity for the timestamp shapes PROV documents
+    actually contain, with tests); move `pydot` and `networkx` behind optional
+    extras (e.g. `prov[dot]`, `prov[graph]`) with lazy imports raising a clear
+    error naming the extra — install-contract change, hence 3.0, signposted by
+    2.4.0 deprecation warnings where feasible.
 37. Remove everything deprecated in 2.4.0.
 38. Migration guide docs page ("Upgrading to 3.0") — most users should need zero
     code changes; the guide demonstrates it.
