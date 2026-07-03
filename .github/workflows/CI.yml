@@ -39,6 +39,8 @@ jobs:
 
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
+        # Coverage upload is advisory; a Coveralls outage must not fail the build
+        continue-on-error: true
         with:
           flag-name: Python${{ matrix.python-version }}
           parallel: true
@@ -50,6 +52,7 @@ jobs:
     steps:
       - name: Coveralls Finished
         uses: coverallsapp/github-action@v2
+        continue-on-error: true
         with:
           parallel-finished: true
           carryforward: "Python3.9,Python3.10,Python3.11,Python3.12,Python3.13"
