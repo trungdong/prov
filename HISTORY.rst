@@ -123,4 +123,124 @@ History
 * A document or bundle can have multiple records with the same identifier.
 * PROV-JSON serializer and deserializer are now separated from the data model.
 * Many tests added, including round-trip PROV-JSON encoding/decoding.
-* For changes pre-1.0, see CHANGES.txt.
+* For changes pre-1.0, see the "Pre-1.0 change log" section below.
+
+Pre-1.0 change log
+------------------
+
+0.5.3 (2013-12-13)
+^^^^^^^^^^^^^^^^^^
+- Changed: Allowed namespaces at bundle level
+- Fixed: Only check equality of ProvBundles on asserted records
+- Fixed: Some string literals are wrongly converted to QNames
+- Updated test cases from ProvToolbox (v4.1)
+- Added text explanations for some ProvException subclasses
+- Added support for langtag in prov.persistence.LiteralAttribute
+- Fixed: Support for prov:InternationalizedString literals
+- Fixed: Keep timezone information when parsing xsd:dateTime
+
+0.5.2 (2013-10-18)
+^^^^^^^^^^^^^^^^^^
+- Added South migrations for prov.persistence
+- Fixed: Support for unlimited-length record identifier
+- Fixed: Support for unlimited-length URI in namespace
+- Fixed: Support for long literals (i.e. longer than 255 characters)
+- Fixed: (JSON) Support for membership with multiple members
+- Fixed: UnicodeEncodeError error
+- Fixed: Support for JSON having records sharing the same identifier
+- Fixed: Refactor the flattening code
+- Fixed: Parsing XSD dateTime
+- Fixed: Triple quoted multi-line string literals in PROV-N
+- Added: Support initialising namespaces when creating a ProvBundle
+
+0.5.1 (2013-09-13)
+^^^^^^^^^^^^^^^^^^
+- Added: JSON membership relation with a single entity (in a list)
+- Fixed: Not generating inferred records in JSON encoding.
+- Fixed: Generating JSON arrays for multi-value attributes
+- Fixed: Comparing unicode literal values (fixed #12)
+- Fixed: Returning the identifier of a record if the required attribute type is Identifier
+- Fixed: No longer trying to find the actual generalEntity record when creating a Mention record
+- Added informative arguments to ProvException classes
+- Fixed: Attribute validation does not fail if the attribute is already a ProvRecord
+
+0.5.0 (2013-09-02)
+^^^^^^^^^^^^^^^^^^
+- Allow inferred records to be retyped when flattening
+- prov.model.graph: check if a node of a relation already drawn
+- Add get_flattened() function to ProvBundle
+- Added: hash functions for Literal and Namespace
+- Changed: Add new bundle's namespaces to parent document
+- Fixed: prov.persistence only saves namespaces at document level
+- Added: is_document() and is_bundle() for ProvBundle
+- Fixed: Stop outputting prefix in an bundle's PROV-JSON
+- Changed: Removed namespace declarations in example bundles
+- Better handling of ids when generating PROV-JSON
+- Changed: Bundles cannot have their own namespace prefixes
+- When exporting a bundle as a document add namespaces from parent
+- Return pdbundle when calling add_prov_bundle
+- Fixed support for the default namespace
+- Fixed minor bugs.
+
+0.4.9 (2013-08-09)
+^^^^^^^^^^^^^^^^^^
+- Fixed: Cannot get_label() when self._extra_attributes is None
+
+0.4.8 (2013-08-06)
+^^^^^^^^^^^^^^^^^^
+- Added: Option to show attributes of relations in DOT graph generation
+- Added: option to show attributes of nodes in DOT graph representation
+- Added: Convenient methods for (de)serialising PROV-JSON (closes #17)
+- Fixed: No longer output inferred records in PROV-N and PROV-JSON
+- Fixed: Bundles now can have own namespaces
+- Fixed: missing return Literal(...)
+- Fixed: Error getting the value and datatype of Literal
+
+0.4.7 (2013-07-10)
+^^^^^^^^^^^^^^^^^^
+- Changed: Removed out-dated example_graph()
+- Changed: Improved mappings between default Python and XSD data types
+- Changed: Removed ProvElement as the inferred record for influence
+- Changed: Updated examples (primer, bundles1, bundles2)
+- Fixed: Removed the duplicated Bundle definition in PROV_RECORD_TYPES
+- Added JSON test files from ProvToolbox and a test for loading these
+- Changed: Improved Literal equality test
+- Added langtag getter to Literal
+
+0.4.6 (2013-04-24)
+^^^^^^^^^^^^^^^^^^
+- Fixed: Removed the 'activity' attribute from Influence expression
+- Fixed: Inferred records couldn't be created when the expected types provided as a list
+
+0.4.5 (2013-03-13)
+^^^^^^^^^^^^^^^^^^
+- Changed: ProvActivity.set_time() can now accept just one argument. It previously sets the time of the missing argument to None.
+- Changed: ProvAgent is now eligible for entity arguments and ProvEntity for agent ones
+- Fixed: Producing the right PROV-N representation for float values
+
+0.4.4
+^^^^^
+- Added float data type support for prov.persistence
+- Removed ProvCollection class since collections should be instantiated as entities
+- Added get_attribute() and get_value() to ProvRecord
+- Changed: Check if an attribute's value is a valid QName and return the QName
+- Fixed exception rendering graphs with empty records
+
+0.4.3
+^^^^^
+- Fixed: PROV-N export - top-level bundle -> document
+- Fixed: Bug when renaming prefixes
+
+0.4.2
+^^^^^
+- Updated graph colors to the PROV style
+
+0.4.1
+^^^^^
+- Restructured package folder
+- Moved to a new repo.
+- Fixed: 'memberof' -> 'hadMember'
+
+0.4.0 (2012-10-31)
+^^^^^^^^^^^^^^^^^^
+- Initial release.
