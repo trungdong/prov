@@ -100,10 +100,17 @@ stability is paramount. Current state at the time of writing:
     (per-module `disallow_untyped_defs` ratchet).
 17. Ship `py.typed` (PEP 561) once mypy is clean and strict across `src/prov` —
     downstream users get real type checking against prov's API.
+17b. Test-gap audit (before writing new tests, so effort goes where it matters):
+    switch coverage to branch coverage and produce a per-module line+branch report;
+    inventory each module's public behaviours against the tests that exercise them
+    (error/exception paths and CLI failure modes included — line coverage alone
+    missed #164); time-boxed mutation-testing spike (e.g. `mutmut`) on `model.py`
+    as a signal for weakly-asserted tests. Output: a gap checklist committed under
+    `docs/`, which drives step 18's PRs and is revisited at each release.
 18. Close coverage gaps: `scripts/convert.py` and `compare.py` (0% — add CLI tests
     with tmp files across formats); `prov/__init__.py` `read()` auto-detection (40%);
     `graph.py` (82%). The #164 regression shipped precisely because nothing exercised
-    the file-output path.
+    the file-output path. Scope beyond these known gaps comes from the 17b audit.
 19. Coverage ratchet in CI: `fail_under` at current figure, raised as gaps close
     (target ~95% source coverage).
 19b. Lint & type ratchet alongside the typing work:
