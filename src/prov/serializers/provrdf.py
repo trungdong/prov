@@ -255,8 +255,8 @@ class ProvRDFSerializer(Serializer):
             #  encoding the sub-bundle
             bundle = self.encode_container(
                 item,
-                identifier=item.identifier.uri,
-                PROV_N_MAP=PROV_N_MAP,  # type: ignore[union-attr]
+                identifier=item.identifier.uri,  # type: ignore[union-attr]
+                PROV_N_MAP=PROV_N_MAP,
             )
             container.addN(bundle.quads())
         return container
@@ -706,8 +706,8 @@ class ProvRDFSerializer(Serializer):
 def walk(
     children: list,
     level: int = 0,
-    path: dict = None,
-    usename: bool = True,  # type: ignore[assignment]
+    path: dict = None,  # type: ignore[assignment]
+    usename: bool = True,
 ) -> Generator[dict]:
     """Generate all the full paths in a tree, as a dict.
 
