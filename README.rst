@@ -46,3 +46,12 @@ See `a short tutorial  <http://trungdong.github.io/prov-python-short-tutorial.ht
 
 This package is used extensively by `ProvStore <https://openprovenance.org/store/>`_,
 a free online repository for provenance documents.
+
+
+Roadmap
+-------
+
+The library is undergoing a staged modernisation (tooling, type hints, tests,
+documentation, standards conformance), a batch of bug fixes, and new format support.
+See `ROADMAP.md <ROADMAP.md>`_ for the plan and the 2.x API-stability promise.
+Feedback is welcome on the `issue tracker <https://github.com/trungdong/prov/issues>`_.
