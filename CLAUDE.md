@@ -51,7 +51,7 @@ uv run python -m unittest prov.tests.test_model.TestFlattening
 uv run python -m unittest prov.tests.test_model.TestFlattening.test_flattening
 
 # Lint
-uv run flake8 src/ prov
+uv run ruff check src/
 
 # Format
 uv run black src/

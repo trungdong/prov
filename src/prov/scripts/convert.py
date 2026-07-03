@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# encoding: utf-8
 """
 convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG, PDF, PNG)
 
@@ -77,7 +76,7 @@ class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
 
     def __init__(self, msg: str):
-        super(CLIError, self).__init__(type(self))
+        super().__init__(type(self))
         self.msg = "E: %s" % msg
 
     def __str__(self) -> str:
@@ -101,7 +100,9 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
         try:
             prov_doc.serialize(outfile, format=output_format)
         except serializers.DoNotExist:
-            raise CLIError('Output format "%s" is not supported.' % output_format)
+            # Not chaining with `from` to preserve the historic CLIError
+            # traceback/behaviour; revisit in a follow-up.
+            raise CLIError('Output format "%s" is not supported.' % output_format)  # noqa: B904
 
 
 def main(argv: Optional[list] = None) -> int:  # IGNORE:C0111

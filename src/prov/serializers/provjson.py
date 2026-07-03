@@ -102,12 +102,12 @@ class ProvJSONEncoder(json.JSONEncoder):
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
         else:
-            return super(ProvJSONEncoder, self).encode(o)
+            return super().encode(o)
 
 
 class ProvJSONDecoder(json.JSONDecoder):
     def decode(self, s: str, *args: Any, **kwargs: Any) -> Any:
-        container = super(ProvJSONDecoder, self).decode(s, *args, **kwargs)
+        container = super().decode(s, *args, **kwargs)
         document = ProvDocument()
         decode_json_document(container, document)
         return document

@@ -154,7 +154,7 @@ def primer_example_alternate():
     blogEntry = g.entity("ex:blogEntry")
 
     compile = g.activity("ex:compile")
-    compile2 = g.activity("ex:compile2")
+    g.activity("ex:compile2")
     compose = g.activity("ex:compose")
     correct = g.activity("ex:correct", "2012-03-31T09:21:00", "2012-04-01T15:21:00")
     illustrate = g.activity("ex:illustrate")

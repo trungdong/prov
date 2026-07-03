@@ -5,7 +5,7 @@ __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
 
-class Identifier(object):
+class Identifier:
     """Base class for all identifiers and also represents xsd:anyURI."""
 
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
@@ -62,7 +62,7 @@ class QualifiedName(Identifier):
     hashing, and retrieval of individual components (namespace or local part).
     """
 
-    def __init__(self, namespace: "Namespace", localpart: str):
+    def __init__(self, namespace: Namespace, localpart: str):
         """
         Initializes a new qualified name with the provided namespace and localpart
         values. It combines the namespace URI and localpart to form an identifier and
@@ -81,7 +81,7 @@ class QualifiedName(Identifier):
         )
 
     @property
-    def namespace(self) -> "Namespace":
+    def namespace(self) -> Namespace:
         """Namespace of qualified name."""
         return self._namespace
 
@@ -104,7 +104,7 @@ class QualifiedName(Identifier):
         return "'%s'" % self._str
 
 
-class Namespace(object):
+class Namespace:
     """PROV Namespace."""
 
     def __init__(self, prefix: str, uri: str):

@@ -12,7 +12,7 @@ def document_with_n_bundles_having_default_namespace(n):
     return prov_doc
 
 
-class TestQualifiedNamesBase(object):
+class TestQualifiedNamesBase:
     """This is the base class for testing support for qualified names and
     namespaces. It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.

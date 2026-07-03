@@ -63,7 +63,7 @@ def find_diff(g_rdf, g0_rdf):
     return graphs_equal, in_both, in_first2, in_second2
 
 
-class TestExamplesBase(object):
+class TestExamplesBase:
     """This is the base class for testing support for all the examples provided
     in prov.tests.examples.
     It is not runnable and needs to be included in a subclass of
@@ -82,7 +82,7 @@ class TestExamplesBase(object):
             self.do_tests(g)
 
 
-class TestJSONExamplesBase(object):
+class TestJSONExamplesBase:
     """This is the base class for testing support for all the examples provided
     in prov.tests.examples.
     It is not runnable and needs to be included in a subclass of
@@ -279,13 +279,13 @@ class TestRDFSerializer(unittest.TestCase):
                 if idx in skip:
                     logger.info("Skipping deserialization: %s" % fname)
                     continue
-                g1 = pm.ProvDocument.deserialize(
+                pm.ProvDocument.deserialize(
                     content=g.serialize(format="rdf", rdf_format=format),
                     format="rdf",
                     rdf_format=format,
                 )
             except Exception as e:
-                raise e;
+                raise e
                 # errors.append((e, idx, fname, in_first, in_second))
         self.assertFalse(errors)
 

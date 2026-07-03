@@ -4,7 +4,7 @@ EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
 
 
-class TestStatementsBase(object):
+class TestStatementsBase:
     """This is the base class for testing different PROV statements.
     It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.

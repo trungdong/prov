@@ -21,7 +21,7 @@ EX_URI = "http://www.example.org/"
 EX2_URI = "http://www.example2.org/"
 
 
-class TestExamplesBase(object):
+class TestExamplesBase:
     """This is the base class for testing support for all the examples provided
     in prov.tests.examples.
     It is not runnable and needs to be included in a subclass of
@@ -54,7 +54,7 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                             g2,
                             "Round-trip JSON encoding/decoding failed:  %s." % filename,
                         )
-                    except:
+                    except:  # noqa: E722 -- intentionally broad to catch any failure
                         self.fails.append(filename)
 
     def test_loading_all_json(self):
@@ -216,13 +216,13 @@ class TestAddBundle(unittest.TestCase):
 
 class TestLiteralRepresentation(unittest.TestCase):
     def test_literal_provn_with_single_quotes(self):
-        l = Literal('{"foo": "bar"}')
-        string_rep = l.provn_representation()
+        literal = Literal('{"foo": "bar"}')
+        string_rep = literal.provn_representation()
         self.assertTrue('{\\"f' in string_rep)
 
     def test_literal_provn_with_triple_quotes(self):
-        l = Literal('"""foo\\nbar"""')
-        string_rep = l.provn_representation()
+        literal = Literal('"""foo\\nbar"""')
+        string_rep = literal.provn_representation()
         self.assertTrue('\\"\\"\\"f' in string_rep)
 
 
