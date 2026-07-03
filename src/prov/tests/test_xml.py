@@ -353,6 +353,26 @@ class ProvXMLTestCase(unittest.TestCase):
         self.assertNotEqual(new_ns, ns)
         self.assertEqual(new_ns.uri, "http://example.com/ns/new_ex#")
 
+    def test_deserialization_with_prov_as_default_namespace(self):
+        # https://github.com/trungdong/prov/issues/155
+        xml_string = """<document xmlns="http://www.w3.org/ns/prov#"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:ex="https://example.org/">
+          <entity prov:id="ex:e">
+            <value xsi:type="xsd:int">1</value>
+          </entity>
+        </document>"""
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+        entity = list(document.get_records(prov.ProvEntity))[0]
+        # the <value> element is in the default (PROV) namespace:
+        # it must parse as prov:value, not "None:value"
+        values = list(entity.get_attribute(PROV["value"]))
+        self.assertEqual(len(values), 1)
+        # and the document must serialize back to XML without error
+        self.assertTrue(document.serialize(format="xml"))
+
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):

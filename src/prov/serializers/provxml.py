@@ -361,7 +361,10 @@ def _extract_attributes(
     for subel in element:
         sqname = etree.QName(subel)
         _t = xml_qname_to_QualifiedName(
-            subel, "%s:%s" % (subel.prefix, sqname.localname)
+            subel,
+            "%s:%s" % (subel.prefix, sqname.localname)
+            if subel.prefix
+            else sqname.localname,
         )
 
         for key, value in subel.attrib.items():
@@ -413,7 +416,12 @@ def xml_qname_to_QualifiedName(
     # case 2: unknown prefix
     if None in element.nsmap:
         ns_uri = element.nsmap[None]
-        ns = Namespace("", ns_uri)
+        if ns_uri == XML_XSD_URI:
+            ns = XSD  # use the standard xsd namespace (i.e. with #)
+        elif ns_uri == PROV.uri:
+            ns = PROV
+        else:
+            ns = Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace
     raise ProvXMLException(
