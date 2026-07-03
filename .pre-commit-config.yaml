@@ -9,8 +9,8 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
-        exclude: ^src/prov/tests/(json|rdf|unification)/
+        exclude: ^src/prov/tests/(json|rdf|xml|unification)/
       - id: trailing-whitespace
-        exclude: ^src/prov/tests/(json|rdf|unification)/
+        exclude: ^src/prov/tests/(json|rdf|xml|unification)/
       - id: check-yaml
       - id: check-toml
