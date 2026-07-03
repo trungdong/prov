@@ -6,10 +6,20 @@ throughout the 2.x line. Full CLI coverage is a Phase 2 task.
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
 from prov.tests.examples import primer_example
+
+
+def _console_script(name):
+    # Prefer the script installed alongside the interpreter running this
+    # test (the tox/uv env under test) over a same-named script that might
+    # appear earlier on PATH (e.g. a stray global `pip install prov` on a
+    # contributor's machine).
+    candidate = os.path.join(os.path.dirname(sys.executable), name)
+    return candidate if os.path.exists(candidate) else shutil.which(name)
 
 
 class TestCLISmoke(unittest.TestCase):
@@ -20,10 +30,10 @@ class TestCLISmoke(unittest.TestCase):
         self.assertTrue(callable(convert_main))
         self.assertTrue(callable(compare_main))
 
-    def test_console_scripts_on_path(self):
+    def test_console_scripts_installed(self):
         for script in ("prov-convert", "prov-compare"):
             self.assertIsNotNone(
-                shutil.which(script), "%s not installed on PATH" % script
+                _console_script(script), "%s not installed" % script
             )
 
     def test_prov_convert_and_compare_end_to_end(self):
@@ -35,7 +45,7 @@ class TestCLISmoke(unittest.TestCase):
             # prov-convert positional args are: infile outfile; -f/--format
             # selects the *output* format (default json).
             result = subprocess.run(
-                ["prov-convert", "-f", "xml", infile, outfile],
+                [_console_script("prov-convert"), "-f", "xml", infile, outfile],
                 capture_output=True,
                 text=True,
             )
@@ -50,7 +60,11 @@ class TestCLISmoke(unittest.TestCase):
             # its XML round trip are semantically equivalent, so we expect
             # exit code 0 here.
             result = subprocess.run(
-                ["prov-compare", "-f", "json", "-F", "xml", infile, outfile],
+                [
+                    _console_script("prov-compare"),
+                    "-f", "json", "-F", "xml",
+                    infile, outfile,
+                ],
                 capture_output=True,
                 text=True,
             )
