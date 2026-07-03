@@ -46,9 +46,7 @@ QualifiedNameCandidate = Union[QualifiedName, str, Identifier]  # type: typing.T
 OptionalID = Optional[QualifiedNameCandidate]  # type: typing.TypeAlias
 EntityRef = Union["ProvEntity", QualifiedNameCandidate]  # type: typing.TypeAlias
 ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
-AgentRef = Union[
-    "ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate
-]  # type: typing.TypeAlias
+AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 GenrationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
 UsageRef = Union["ProvUsage", QualifiedNameCandidate]  # type: typing.TypeAlias
 RecordAttributesArg = Union[
@@ -260,9 +258,7 @@ class ProvElementIdentifierRequired(ProvException):
     """Exception for a missing element identifier."""
 
     def __str__(self) -> str:
-        return (
-            "An identifier is missing. All PROV elements require a valid " "identifier."
-        )
+        return "An identifier is missing. All PROV elements require a valid identifier."
 
 
 #  PROV records
@@ -459,7 +455,9 @@ class ProvRecord:
             # Check if one of the attributes specifies that the current type
             # is a collection. In that case multiple attributes of the same
             # type are allowed.
-            is_collection = any(attr_name == PROV_ATTR_COLLECTION for attr_name, _ in attributes)
+            is_collection = any(
+                attr_name == PROV_ATTR_COLLECTION for attr_name, _ in attributes
+            )
 
             for attr_name, original_value in attributes:
                 if original_value is None:
@@ -2655,8 +2653,7 @@ class ProvDocument(ProvBundle):
         """
         if not isinstance(bundle, ProvBundle):
             raise ProvException(
-                "Only a ProvBundle instance can be added as a bundle in a "
-                "ProvDocument."
+                "Only a ProvBundle instance can be added as a bundle in a ProvDocument."
             )
 
         if bundle.is_document():

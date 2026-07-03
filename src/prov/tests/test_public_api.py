@@ -3,6 +3,7 @@
 Every name listed here must remain importable from its historic location.
 Additions are fine; removals or moves are a breaking change (3.0 only).
 """
+
 import importlib
 import io
 import unittest
@@ -15,33 +16,77 @@ PUBLIC_API = {
     "prov": ["Error", "read"],
     "prov.model": [
         # containers
-        "ProvDocument", "ProvBundle",
+        "ProvDocument",
+        "ProvBundle",
         # base classes
-        "ProvRecord", "ProvElement", "ProvRelation",
+        "ProvRecord",
+        "ProvElement",
+        "ProvRelation",
         # elements
-        "ProvEntity", "ProvActivity", "ProvAgent",
+        "ProvEntity",
+        "ProvActivity",
+        "ProvAgent",
         # relations
-        "ProvGeneration", "ProvUsage", "ProvCommunication", "ProvStart",
-        "ProvEnd", "ProvInvalidation", "ProvDerivation", "ProvAttribution",
-        "ProvAssociation", "ProvDelegation", "ProvInfluence",
-        "ProvSpecialization", "ProvAlternate", "ProvMention", "ProvMembership",
+        "ProvGeneration",
+        "ProvUsage",
+        "ProvCommunication",
+        "ProvStart",
+        "ProvEnd",
+        "ProvInvalidation",
+        "ProvDerivation",
+        "ProvAttribution",
+        "ProvAssociation",
+        "ProvDelegation",
+        "ProvInfluence",
+        "ProvSpecialization",
+        "ProvAlternate",
+        "ProvMention",
+        "ProvMembership",
         # exceptions
-        "ProvException", "ProvWarning", "ProvExceptionInvalidQualifiedName",
+        "ProvException",
+        "ProvWarning",
+        "ProvExceptionInvalidQualifiedName",
         "ProvElementIdentifierRequired",
         # identifiers & literals (historically importable from prov.model too)
-        "Namespace", "QualifiedName", "Identifier", "Literal",
-        "NamespaceManager", "PROV", "XSD", "XSI",
-        "parse_xsd_datetime", "sorted_attributes",
+        "Namespace",
+        "QualifiedName",
+        "Identifier",
+        "Literal",
+        "NamespaceManager",
+        "PROV",
+        "XSD",
+        "XSI",
+        "parse_xsd_datetime",
+        "sorted_attributes",
     ],
     "prov.identifier": ["Identifier", "QualifiedName", "Namespace"],
     "prov.constants": [
-        "PROV_ENTITY", "PROV_ACTIVITY", "PROV_AGENT", "PROV_GENERATION",
-        "PROV_USAGE", "PROV_COMMUNICATION", "PROV_START", "PROV_END",
-        "PROV_INVALIDATION", "PROV_DERIVATION", "PROV_ATTRIBUTION",
-        "PROV_ASSOCIATION", "PROV_DELEGATION", "PROV_INFLUENCE",
-        "PROV_SPECIALIZATION", "PROV_ALTERNATE", "PROV_MENTION",
-        "PROV_MEMBERSHIP", "PROV_BUNDLE", "PROV_N_MAP", "PROV_BASE_CLS",
-        "PROV_TYPE", "PROV_LABEL", "PROV_VALUE", "PROV_LOCATION", "PROV_ROLE",
+        "PROV_ENTITY",
+        "PROV_ACTIVITY",
+        "PROV_AGENT",
+        "PROV_GENERATION",
+        "PROV_USAGE",
+        "PROV_COMMUNICATION",
+        "PROV_START",
+        "PROV_END",
+        "PROV_INVALIDATION",
+        "PROV_DERIVATION",
+        "PROV_ATTRIBUTION",
+        "PROV_ASSOCIATION",
+        "PROV_DELEGATION",
+        "PROV_INFLUENCE",
+        "PROV_SPECIALIZATION",
+        "PROV_ALTERNATE",
+        "PROV_MENTION",
+        "PROV_MEMBERSHIP",
+        "PROV_BUNDLE",
+        "PROV_N_MAP",
+        "PROV_BASE_CLS",
+        "PROV_TYPE",
+        "PROV_LABEL",
+        "PROV_VALUE",
+        "PROV_LOCATION",
+        "PROV_ROLE",
     ],
     "prov.serializers": ["get", "Serializer", "Registry", "DoNotExist"],
     "prov.dot": ["prov_to_dot"],
@@ -74,9 +119,7 @@ class TestPublicAPI(unittest.TestCase):
                 stream = io.StringIO()
                 document.serialize(destination=stream, format=fmt)
                 stream.seek(0)
-                round_tripped = ProvDocument.deserialize(
-                    source=stream, format=fmt
-                )
+                round_tripped = ProvDocument.deserialize(source=stream, format=fmt)
                 self.assertEqual(document, round_tripped, fmt)
         # PROV-N is write-only: serialize must succeed
         self.assertTrue(document.serialize(format="provn"))

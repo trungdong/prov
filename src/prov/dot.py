@@ -249,7 +249,8 @@ def prov_to_dot(
         def _add_bundle(bundle: ProvBundle) -> pydot.Cluster:
             count[2] += 1
             subdot = pydot.Cluster(
-                graph_name="c%d" % count[2], URL=f'"{bundle.identifier.uri}"'  # type: ignore[union-attr]
+                graph_name="c%d" % count[2],
+                URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
             )
             subdot.set_label('"%s"' % str(bundle.identifier))
             _bundle_to_dot(subdot, bundle)

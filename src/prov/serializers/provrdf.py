@@ -254,7 +254,9 @@ class ProvRDFSerializer(Serializer):
         for item in document.bundles:
             #  encoding the sub-bundle
             bundle = self.encode_container(
-                item, identifier=item.identifier.uri, PROV_N_MAP=PROV_N_MAP  # type: ignore[union-attr]
+                item,
+                identifier=item.identifier.uri,  # type: ignore[union-attr]
+                PROV_N_MAP=PROV_N_MAP,
             )
             container.addN(bundle.quads())
         return container
@@ -536,17 +538,11 @@ class ProvRDFSerializer(Serializer):
     ) -> None:
         record_types = {}  # type: dict[str, pm.QualifiedName]
         PROV_CLS_MAP = {}  # type: dict[str, pm.QualifiedName]
-        formal_attributes = (
-            {}
-        )  # type: dict[str, dict[pm.QualifiedName, Optional[pm.QualifiedNameCandidate | datetime.datetime]]]
-        unique_sets = (
-            {}
-        )  # type: dict[str, dict[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
+        formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, Optional[pm.QualifiedNameCandidate | datetime.datetime]]]
+        unique_sets = {}  # type: dict[str, dict[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
         for prov_type, _ in PROV_BASE_CLS.items():
             PROV_CLS_MAP[prov_type.uri] = PROV_BASE_CLS[prov_type]
-        other_attributes = (
-            {}
-        )  # type: dict[str, list[tuple[pm.QualifiedNameCandidate, Any]]]
+        other_attributes = {}  # type: dict[str, list[tuple[pm.QualifiedNameCandidate, Any]]]
         for stmt in graph.triples((None, RDF.type, None)):
             subj = str(stmt[0])
             obj = str(stmt[2])
@@ -679,9 +675,7 @@ class ProvRDFSerializer(Serializer):
             attrs = None
             if subj in other_attributes:
                 attrs = other_attributes[subj]
-            items_to_walk = (
-                []
-            )  # type: list[tuple[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
+            items_to_walk = []  # type: list[tuple[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
             for qname, values in unique_sets[subj].items():
                 if values and len(values) > 1:
                     items_to_walk.append((qname, values))
@@ -710,7 +704,10 @@ class ProvRDFSerializer(Serializer):
 
 
 def walk(
-    children: list, level: int = 0, path: dict = None, usename: bool = True  # type: ignore[assignment]
+    children: list,
+    level: int = 0,
+    path: dict = None,  # type: ignore[assignment]
+    usename: bool = True,
 ) -> Generator[dict]:
     """Generate all the full paths in a tree, as a dict.
 

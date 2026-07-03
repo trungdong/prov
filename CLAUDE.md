@@ -54,7 +54,7 @@ uv run python -m unittest prov.tests.test_model.TestFlattening.test_flattening
 uv run ruff check src/
 
 # Format
-uv run black src/
+uv run ruff format src/
 
 # Type check (mirrors the mypy.yml workflow; some untyped-3rd-party-stub errors are pre-existing)
 uv run mypy src
