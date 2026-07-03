@@ -49,7 +49,9 @@ stability is paramount. Current state at the time of writing:
    `.pytest_cache/`, `.idea/`, `build/`).
 2. Delete `setup.py`, `setup.cfg`, `MANIFEST.in`; replace `python setup.py check` +
    `check-manifest` in tox with `uv build` + `twine check`.
-3. Fix `[tool.mypy] exclude` path (`prov/tests/*` does not match the src layout).
+3. Tidy `[tool.mypy] exclude`: the current `prov/tests/*` works (mypy regex-search
+   semantics) but reads like a broken glob; make it an explicit anchored regex
+   (`^src/prov/tests/`) and verify the checked-file count stays at 14.
 4. Consolidate `CHANGES.txt` + `HISTORY.rst` into one changelog.
 5. Bump Trove classifier `4 - Beta` → `5 - Production/Stable`.
 6. Publish the public-facing roadmap: `ROADMAP.md` in the repo root (phase/release
