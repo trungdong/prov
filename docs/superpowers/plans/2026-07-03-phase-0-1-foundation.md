@@ -12,26 +12,26 @@
 
 ## Model assignment
 
-Each task names the model to execute it. Rationale: **Sonnet 5** for mechanical, well-specified config/tooling work with objective verification; **Opus** for tasks needing judgment (API-surface design, community-facing writing/triage, real type-bug fixes, the XML namespace bug).
+Each task names the model to execute it. Rationale: **Haiku** for purely mechanical steps with a complete recipe in the plan and objective pass/fail verification (run a formatter, drop in a config file); **Sonnet** for well-specified config/tooling work that still needs to resolve fallout across the codebase or touch CI/release machinery; **Opus** for tasks needing judgment (API-surface design, community-facing writing/triage, the XML namespace bug).
 
 | Task | PR | What | Model |
 |---|---|---|---|
-| 1 | A | Housekeeping commit (.gitignore, uv.lock, CLAUDE.md) | Sonnet 5 |
-| 2 | A | Remove legacy packaging; tidy tox/mypy config | Sonnet 5 |
-| 3 | A | Changelog consolidation + classifier bump | Sonnet 5 |
+| 1 | A | Housekeeping commit (.gitignore, uv.lock, CLAUDE.md) | Sonnet ✅ done |
+| 2 | A | Remove legacy packaging; tidy tox/mypy config | Sonnet ✅ done |
+| 3 | A | Changelog consolidation + classifier bump | Sonnet ✅ done |
 | 4 | B | ROADMAP.md + milestones + pinned issue | Opus |
 | 5 | C | Public-API smoke test | Opus |
-| 6 | D | ruff lint (replace flake8) | Sonnet 5 |
-| 7 | E | ruff format (replace black) | Sonnet 5 |
-| 8 | F | pre-commit | Sonnet 5 |
-| 9 | G | pytest as runner | Sonnet 5 |
-| 10 | H | CI modernisation (uv, 3.14, merge mypy job) | Sonnet 5 |
-| 11 | H | Fix the 8 mypy errors | Opus |
-| 12 | I | Release workflow (Trusted Publishing) | Sonnet 5 |
-| 13 | J | matplotlib `[plot]` extra (#166, supersedes PR #167 approach) | Sonnet 5 |
+| 6 | D | ruff lint (replace flake8) | Sonnet |
+| 7 | E | ruff format (replace black) | Haiku |
+| 8 | F | pre-commit | Haiku |
+| 9 | G | pytest as runner | Sonnet |
+| 10 | H | CI modernisation (uv, 3.14, merge mypy job) | Sonnet |
+| 11 | H | Remaining mypy stub fixes (the 2 real type errors were fixed in PR A) | Sonnet |
+| 12 | I | Release workflow (Trusted Publishing) | Sonnet |
+| 13 | J | matplotlib `[plot]` extra (#166, supersedes PR #167 approach) | Sonnet |
 | 14 | K | XML default-namespace fix (#155) | Opus |
 | 15 | — | Triage #34 / #77 / #89 (analysis only) | Opus |
-| 16 | L | Cut release 2.2.0 | Sonnet 5 + maintainer |
+| 16 | L | Cut release 2.2.0 | Sonnet + maintainer |
 
 **Conventions for every task:**
 - Branch from up-to-date `master`: `git checkout master && git pull && git checkout -b <branch>`.
@@ -400,7 +400,7 @@ git push -u origin chore/ruff-lint
 gh pr create --title "Adopt ruff lint" --body "Roadmap Phase 1 step 8. Replaces flake8; rule set E/F/W/B/UP; mechanical autofixes only."
 ```
 
-### Task 7: ruff format replacing black — PR E (Sonnet 5)
+### Task 7: ruff format replacing black — PR E (Haiku)
 
 **Files:**
 - Modify: `pyproject.toml` (remove `[tool.black]` and black dev dep), `CLAUDE.md`, `Makefile` (if referencing black)
@@ -435,7 +435,7 @@ git push -u origin chore/ruff-format
 gh pr create --title "Adopt ruff format" --body "Roadmap Phase 1 step 9. Replaces black; formatting diff reviewed and minimal."
 ```
 
-### Task 8: pre-commit — PR F (Sonnet 5)
+### Task 8: pre-commit — PR F (Haiku)
 
 **Files:**
 - Create: `.pre-commit-config.yaml`
@@ -651,7 +651,9 @@ git add -A
 git commit -m "ci: switch to uv, add Python 3.14, merge lint/typecheck/package jobs"
 ```
 
-### Task 11: Fix the 8 mypy errors — PR H (Opus)
+### Task 11: Remaining mypy stub fixes — PR H (Sonnet)
+
+> **Scope note (post-PR A):** the two genuine type errors listed in Steps 2–3 below were already fixed in PR A (#169). What remains is Step 1 (add mypy + stub packages to the dev dependency group) and handling any new errors surfaced by `types-networkx`.
 
 **Files:**
 - Modify: `pyproject.toml` (dev deps), `src/prov/serializers/__init__.py:58`, `src/prov/model.py:~455-500`
