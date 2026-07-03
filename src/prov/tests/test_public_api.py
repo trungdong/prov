@@ -7,6 +7,10 @@ import importlib
 import io
 import unittest
 
+import prov.serializers
+from prov.model import ProvDocument
+from prov.tests.examples import primer_example
+
 PUBLIC_API = {
     "prov": ["Error", "read"],
     "prov.model": [
@@ -56,19 +60,20 @@ class TestPublicAPI(unittest.TestCase):
         self.assertEqual(missing, [], "Public API names missing: %s" % missing)
 
     def test_serializer_registry_formats(self):
-        import prov.serializers
         for fmt in ("json", "xml", "rdf", "provn"):
-            self.assertIsNotNone(prov.serializers.get(fmt))
+            with self.subTest(format=fmt):
+                # get() raises DoNotExist for unknown formats
+                self.assertTrue(
+                    issubclass(prov.serializers.get(fmt), prov.serializers.Serializer)
+                )
 
     def test_round_trip_each_format(self):
-        from prov.tests.examples import primer_example
         document = primer_example()
         for fmt in ("json", "xml", "rdf"):
             with self.subTest(format=fmt):
                 stream = io.StringIO()
                 document.serialize(destination=stream, format=fmt)
                 stream.seek(0)
-                from prov.model import ProvDocument
                 round_tripped = ProvDocument.deserialize(
                     source=stream, format=fmt
                 )
