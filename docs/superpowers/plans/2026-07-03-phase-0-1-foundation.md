@@ -755,6 +755,8 @@ git commit -m "ci: switch to uv, add Python 3.14, merge lint/typecheck/package j
 
 > **Scope note (post-PR A):** the two genuine type errors listed in Steps 2–3 below were already fixed in PR A (#169). What remains is Step 1 (add mypy + stub packages to the dev dependency group) and handling any new errors surfaced by `types-networkx`.
 
+> **Accepted deviation (PR #182):** the old `mypy.yml` never installed the `rdf`/`xml` extras, so rdflib/lxml/pydot usage was silently checked as `Any`. The new `typecheck` job installs the extras, surfacing ~44 pre-existing type mismatches in `serializers/provrdf.py` and `scripts/convert.py`. Rather than fix out-of-scope files, PR #182 added two commented `[[tool.mypy.overrides]]` blocks (`disable_error_code`) for those modules. These overrides are explicit debt: Phase 2's typing steps must delete them when annotating each module (tracked by the step 19b ratchet).
+
 **Files:**
 - Modify: `pyproject.toml` (dev deps), `src/prov/serializers/__init__.py:58`, `src/prov/model.py:~455-500`
 
