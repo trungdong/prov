@@ -44,6 +44,9 @@ rdf = [
 xml = [
     "lxml>=3.3.5",
 ]
+plot = [
+    "matplotlib>=3.6",
+]
 
 [project.scripts]
 prov-convert = "prov.scripts.convert:main"

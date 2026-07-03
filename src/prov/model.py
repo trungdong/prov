@@ -2458,8 +2458,14 @@ class ProvBundle:
             else:
                 # Use matplotlib to show the image as it likely is more
                 # widespread than PIL and works nicely in the ipython notebook.
-                import matplotlib.pylab as plt  # type: ignore
-                import matplotlib.image as mpimg  # type: ignore
+                try:
+                    import matplotlib.pylab as plt  # type: ignore
+                    import matplotlib.image as mpimg  # type: ignore
+                except ImportError as e:
+                    raise ImportError(
+                        "The plot() method requires matplotlib when no filename"
+                        ' is provided. Install it with: pip install "prov[plot]"'
+                    ) from e
 
                 max_size = 30
 
