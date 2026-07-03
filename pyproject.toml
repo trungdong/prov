@@ -76,6 +76,8 @@ dev = [
     "bumpversion>=0.6.0",
     "coverage>=7.6.10",
     "pre-commit>=4.0.1",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.1.0",
     "ruff>=0.15.20",
     "setuptools>=75.8.0",
     "sphinx>=8.1.3; python_version >= '3.11'",
@@ -118,6 +120,38 @@ ignore = [
 "src/prov/tests/attributes.py" = ["F403", "F405"]
 "src/prov/tests/statements.py" = ["F403", "F405"]
 "src/prov/tests/test_extras.py" = ["F403", "F405"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/prov/tests"]
+# Rely solely on pytest's unittest.TestCase collection; disabling the
+# plain-class "Test*" heuristic avoids also collecting the shared mixin
+# base classes (TestAttributesBase, TestStatementsBase,
+# TestQualifiedNamesBase in prov/tests/{attributes,statements,qnames}.py),
+# which are imported by name into test_model.py/test_rdf.py but are not
+# meant to run standalone (unittest discover never picked them up either,
+# since they aren't TestCase subclasses).
+python_classes = []
+
+[tool.coverage.run]
+branch = true
+source = ["prov"]
+omit = ["*/tests*"]
+
+[tool.coverage.paths]
+source = [
+    "src/prov",
+    ".tox/*/lib/python*/site-packages/prov",
+    ".tox/pypy*/site-packages/prov",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
 
 [tool.mypy]
 python_version = "3.12"
