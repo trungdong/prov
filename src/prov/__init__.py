@@ -39,6 +39,7 @@ def read(source: str | bytes | os.PathLike, format: str | None = None) -> ProvDo
     from prov.serializers import Registry
 
     Registry.load_serializers()
+    assert Registry.serializers is not None  # populated by load_serializers()
     serializers = Registry.serializers.keys()
 
     if format:

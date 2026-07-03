@@ -1,7 +1,7 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 from abc import ABC, abstractmethod
 import io
-from typing import Any, TYPE_CHECKING
+from typing import Any, ClassVar, TYPE_CHECKING
 from prov import Error
 
 if TYPE_CHECKING:
@@ -55,7 +55,7 @@ class DoNotExist(Error):
 class Registry:
     """Registry of serializers."""
 
-    serializers = None  # type: dict[str, type[Serializer]]
+    serializers: ClassVar[dict[str, type[Serializer]] | None] = None
     """Property caching all available serializers in a dict."""
 
     @staticmethod
@@ -81,7 +81,9 @@ def get(format_name: str) -> type[Serializer]:
     # Lazily initialize the list of serializers to avoid cyclic imports
     if Registry.serializers is None:
         Registry.load_serializers()
+    serializers = Registry.serializers
+    assert serializers is not None  # load_serializers() always populates it
     try:
-        return Registry.serializers[format_name]
+        return serializers[format_name]
     except KeyError:
         raise DoNotExist('No serializer available for the format "%s"' % format_name)

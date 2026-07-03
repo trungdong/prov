@@ -468,6 +468,14 @@ class ProvRecord(object):
                 # make sure the attribute name is valid
                 attr = self._bundle.mandatory_valid_qname(attr_name)
 
+                # the branches below bind `value` to different types
+                value: (
+                    QualifiedName
+                    | datetime.datetime
+                    | Literal
+                    | SupportedXSDParsedTypes
+                )
+
                 if attr in PROV_ATTRIBUTE_QNAMES:
                     # Expecting a qualified name
                     if isinstance(original_value, ProvRecord):
