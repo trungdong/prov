@@ -1,0 +1,62 @@
+name: Release
+
+# One-time setup required before the first run: register this repo + workflow as a
+# Trusted Publisher on PyPI (environment "pypi") and TestPyPI (environment
+# "testpypi"), and create both environments in GitHub Settings → Environments
+# (add required reviewers on "pypi" if desired). Until then, a publish job fails
+# cleanly at the OIDC token exchange; the built artifact stays downloadable from
+# the build job and the job can simply be re-run after the setup is done.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:   # dry-run to TestPyPI
+
+# Least privilege for the build job (which runs third-party build backends);
+# the publish jobs override this with their own id-token: write blocks.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+      - run: |
+          uv build
+          uvx twine check dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish-testpypi:
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    if: github.event_name == 'release'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
