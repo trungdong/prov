@@ -2464,7 +2464,7 @@ class ProvBundle:
                 except ImportError as e:
                     raise ImportError(
                         "The plot() method requires matplotlib when no filename"
-                        " is provided. Install it with: pip install prov[plot]"
+                        ' is provided. Install it with: pip install "prov[plot]"'
                     ) from e
 
                 max_size = 30
