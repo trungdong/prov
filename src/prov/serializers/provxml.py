@@ -418,8 +418,6 @@ def xml_qname_to_QualifiedName(
         ns_uri = element.nsmap[None]
         if ns_uri == XML_XSD_URI:
             ns = XSD  # use the standard xsd namespace (i.e. with #)
-        elif ns_uri == PROV.uri:
-            ns = PROV
         else:
             ns = Namespace("", ns_uri)
         return ns[qname_str]
