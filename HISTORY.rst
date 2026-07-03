@@ -3,6 +3,15 @@
 History
 -------
 
+2.2.0 (2026-07-03)
+^^^^^^^^^^^^^^^^^^
+* Fixed graphical output when a filename is supplied (#164)
+* Fixed PROV-XML deserialization when prov is the default namespace (#155)
+* New ``plot`` extra: ``pip install prov[plot]`` for matplotlib support (#166)
+* Marked as Production/Stable; added Python 3.14 to the test matrix
+* Tooling: ruff (lint+format), pytest runner, uv-based CI, automated PyPI
+  releases via Trusted Publishing. No public API changes.
+
 2.1.1 (2025-06-24)
 ^^^^^^^^^^^^^^^^^^
 * No change - fixing the previous botched release
