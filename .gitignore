@@ -84,3 +84,14 @@ docs/_build
 .idea/**/dynamic.xml
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
+
+# Tool caches and local environments
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage.*
+
+# Claude Code local settings
+.claude/settings.local.json

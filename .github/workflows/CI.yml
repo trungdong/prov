@@ -19,6 +19,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - name: Remove broken apt repos (runner image issue)
+        run: sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/azure-cli.sources /etc/apt/sources.list.d/azure-cli.list
       - name: Setup Graphviz
         uses: ts-graphviz/setup-graphviz@v2
       - uses: actions/setup-python@v5

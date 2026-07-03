@@ -10,7 +10,7 @@ keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
     "Natural Language :: English",
@@ -62,6 +62,15 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.dynamic]
 version = {attr = "prov.__version__"}
 
+[tool.setuptools.package-data]
+"prov.tests" = [
+    "json/*.json",
+    "xml/*.xml",
+    "rdf/*.ttl",
+    "rdf/*.trig",
+    "unification/*.json",
+]
+
 [dependency-groups]
 dev = [
     "black>=24.10.0",
@@ -99,8 +108,8 @@ disable = "C0330, C0326"
 max-line-length = "88"
 
 [tool.mypy]
-python_version = 3.12
-exclude = ["prov/tests/*"]
+python_version = "3.12"
+exclude = ["^src/prov/tests/"]
 
 [[tool.mypy.overrides]]
 module = "prov.*"
