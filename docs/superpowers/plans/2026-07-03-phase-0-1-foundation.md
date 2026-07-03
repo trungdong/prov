@@ -373,8 +373,13 @@ select = [
 ignore = [
     "E203",  # whitespace before ':' (black/ruff-format compatible)
     "E501",  # line length handled by the formatter
+    "UP045", # Optional[X] -> X | None: only unsafe fixes under py39 target; ~114 sites, defer to typing phase
+    "UP031", # %-format -> f-string: only unsafe fixes; ~72 sites, defer
 ]
 ```
+
+(The two UP deferrals were an accepted deviation during execution: bulk-editing ~180
+sites with unsafe fixes contradicts the mechanical-only rule; revisit in Phase 2.)
 
 - [ ] **Step 3: Run and auto-fix**
 
