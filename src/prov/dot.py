@@ -326,7 +326,9 @@ def prov_to_dot(
                 relations.append(rec)
 
         if not bundle.is_bundle():
-            for bundle in bundle.bundles:
+            # `bundle.bundles` is evaluated once before the loop starts, so
+            # reassigning `bundle` as the loop variable here is safe.
+            for bundle in bundle.bundles:  # noqa: B020
                 _add_bundle(bundle)
 
         for rec in relations:

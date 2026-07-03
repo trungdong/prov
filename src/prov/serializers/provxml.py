@@ -108,7 +108,7 @@ class ProvXMLSerializer(Serializer):
             if namespace not in nsmap:
                 nsmap[namespace.prefix] = namespace.uri
 
-        for key, value in DEFAULT_NAMESPACES.items():
+        for _key, value in DEFAULT_NAMESPACES.items():
             uri = value.uri
             if value.prefix == "xsd":
                 # The XSD namespace for some reason has no hash at the end
@@ -276,7 +276,9 @@ class ProvXMLSerializer(Serializer):
                 )
             # Ignore the <prov:other> element storing non-PROV information.
             if qname.localname == "other":
-                warnings.warn(
+                # No explicit stacklevel to preserve historic warning behaviour;
+                # revisit in a follow-up.
+                warnings.warn(  # noqa: B028
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
                     UserWarning,
@@ -374,7 +376,9 @@ def _extract_attributes(
             elif key == _ns_xml("lang"):
                 _v = prov.model.Literal(subel.text, langtag=value_str)
             else:
-                warnings.warn(
+                # No explicit stacklevel to preserve historic warning behaviour;
+                # revisit in a follow-up.
+                warnings.warn(  # noqa: B028
                     "The element '%s' contains an attribute %s='%s' "
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored."

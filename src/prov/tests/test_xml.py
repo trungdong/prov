@@ -384,8 +384,10 @@ for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")
 
     # Python creates closures on function calls...
     def get_fct(f):
-        # Some test files have a lot of type declarations...
-        if name in ["pc1"]:
+        # `name` is the outer loop variable, but it is only read here,
+        # synchronously, on the same iteration it was set -- not from the
+        # returned `fct` closure below, so late-binding is not an issue.
+        if name in ["pc1"]:  # noqa: B023
             force_types = True
         else:
             force_types = False
@@ -393,7 +395,9 @@ for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")
         def fct(self):
             self._perform_round_trip(f, force_types=force_types)
 
-        return fct
+        # `fct` here is this function's own name (defined two lines above),
+        # not the outer loop's `fct` variable assigned below.
+        return fct  # noqa: B023
 
     fct = get_fct(filename)
     fct.__name__ = str(test_name)

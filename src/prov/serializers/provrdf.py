@@ -5,7 +5,8 @@ import base64
 from collections import OrderedDict
 import datetime
 import io
-from typing import Any, Optional, Generator
+from typing import Any, Optional
+from collections.abc import Generator
 import warnings
 
 import dateutil.parser
@@ -225,7 +226,7 @@ class ProvRDFSerializer(Serializer):
             if datatype == XSD["gYearMonth"]:
                 parsed_info = dateutil.parser.parse(literal)
                 return pm.Literal(
-                    "{0}-{1:02d}".format(parsed_info.year, parsed_info.month),
+                    f"{parsed_info.year}-{parsed_info.month:02d}",
                     datatype=self.valid_identifier(datatype),
                 )
             else:
@@ -274,11 +275,13 @@ class ProvRDFSerializer(Serializer):
             container.bind(namespace.prefix, namespace.uri)
 
         id_generator = AnonymousIDGenerator()
-        real_or_anon_id = lambda record: (
-            record._identifier.uri
-            if record._identifier
-            else id_generator.get_anon_id(record)
-        )
+
+        def real_or_anon_id(record: pm.ProvRecord) -> str:
+            return (
+                record._identifier.uri
+                if record._identifier
+                else id_generator.get_anon_id(record)
+            )
 
         for record in bundle._records:
             rec_type = record.get_type()
@@ -295,7 +298,7 @@ class ProvRDFSerializer(Serializer):
                     record.attributes
                 )
                 formal_qualifiers = False
-                for attrid, (attr, value) in enumerate(list(record.formal_attributes)):
+                for attrid, (_attr, value) in enumerate(list(record.formal_attributes)):
                     if (identifier is not None and value is not None) or (
                         identifier is None and value is not None and attrid > 1
                     ):
@@ -318,10 +321,10 @@ class ProvRDFSerializer(Serializer):
                             if identifier is None and subj is not None:
                                 try:
                                     obj_val = record.formal_attributes[1][1]
-                                    obj_attr = URIRef(
+                                    # TODO: this URIRef is constructed but never used
+                                    URIRef(
                                         record.formal_attributes[1][0].uri
                                     )
-                                    # TODO: Why is obj_attr above not used anywhere?
                                 except IndexError:
                                     obj_val = None
                                 if obj_val and (
@@ -702,7 +705,9 @@ class ProvRDFSerializer(Serializer):
                 del other_attributes[subj]
 
         if other_attributes:
-            warnings.warn(
+            # No explicit stacklevel to preserve historic warning behaviour;
+            # revisit in a follow-up.
+            warnings.warn(  # noqa: B028
                 "The following attributes were not converted: " + str(other_attributes),
                 UserWarning,
             )
@@ -740,8 +745,7 @@ def walk(
         else:
             path[level] = child
         # Recurse into the next level
-        for child_paths in walk(tail, level + 1, path, usename):
-            yield child_paths
+        yield from walk(tail, level + 1, path, usename)
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:

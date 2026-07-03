@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# encoding: utf-8
 """
 prov-compare -- Compare two PROV-JSON, PROV-XML, or RDF (PROV-O) files for equivalence
 
@@ -39,7 +38,7 @@ class CLIError(Exception):
     """Generic exception to raise and log different fatal errors."""
 
     def __init__(self, msg: str):
-        super(CLIError, self).__init__(type(self))
+        super().__init__(type(self))
         self.msg = "E: %s" % msg
 
     def __str__(self) -> str:

@@ -21,11 +21,11 @@ from io import IOBase
 from typing import (
     Any,
     Callable,
-    Iterable,
     Optional,
     Union,
 )
-import typing  # to use typing.TypeAlias in comments for compatibility with Python 3.9
+from collections.abc import Iterable
+import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 from urllib.parse import urlparse
 
 import dateutil.parser
@@ -135,7 +135,7 @@ def encoding_provn_value(
     if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
-        return '"{0}" %% xsd:dateTime'.format(value.isoformat())
+        return f'"{value.isoformat()}" %% xsd:dateTime'
     elif isinstance(value, float):
         return '"%g" %%%% xsd:float' % value
     elif isinstance(value, bool):
@@ -145,7 +145,7 @@ def encoding_provn_value(
         return str(value)
 
 
-class Literal(object):
+class Literal:
     def __init__(
         self,
         value: Any,
@@ -266,7 +266,7 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 #  PROV records
-class ProvRecord(object):
+class ProvRecord:
     """Base class for PROV records."""
 
     FORMAL_ATTRIBUTES = ()  # type: tuple[QualifiedName, ...]
@@ -297,7 +297,7 @@ class ProvRecord(object):
     def __hash__(self) -> int:
         return hash((self.get_type(), self._identifier, frozenset(self.attributes)))
 
-    def copy(self) -> "ProvRecord":
+    def copy(self) -> ProvRecord:
         """
         Return an exact copy of this record.
         """
@@ -630,7 +630,7 @@ class ProvElement(ProvRecord):
             # All types of PROV elements require a valid identifier
             raise ProvElementIdentifierRequired()
 
-        super(ProvElement, self).__init__(bundle, identifier, attributes)
+        super().__init__(bundle, identifier, attributes)
 
     def is_element(self) -> bool:
         """
@@ -1377,7 +1377,7 @@ class NamespaceManager(dict):
                 return new_prefix
 
 
-class ProvBundle(object):
+class ProvBundle:
     """PROV Bundle"""
 
     def __init__(
@@ -1385,7 +1385,7 @@ class ProvBundle(object):
         records: Optional[Iterable[ProvRecord]] = None,
         identifier: Optional[QualifiedName] = None,
         namespaces: Optional[NSCollection] = None,
-        document: Optional["ProvDocument"] = None,
+        document: Optional[ProvDocument] = None,
     ):
         """
         Constructor.
@@ -1658,7 +1658,7 @@ class ProvBundle(object):
         # TODO: Check unification rules in the PROV-CONSTRAINTS document
         # This method simply merges the records having the same name
         merged_records = dict()
-        for identifier, records in self._id_map.items():
+        for _identifier, records in self._id_map.items():
             if len(records) > 1:
                 # more than one record having the same identifier
                 # merge the records
@@ -2531,7 +2531,7 @@ class ProvDocument(ProvBundle):
         if not isinstance(other, ProvDocument):
             return False
         # Comparing the documents' content
-        if not super(ProvDocument, self).__eq__(other):
+        if not super().__eq__(other):
             return False
 
         # Comparing the documents' bundles

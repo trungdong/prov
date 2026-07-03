@@ -5,7 +5,7 @@ EX_NS = Namespace("ex", "http://example.org/")
 EX_OTHER_NS = Namespace("other", "http://example.org/")
 
 
-class TestAttributesBase(object):
+class TestAttributesBase:
     """This is the base class for testing support for various datatypes.
     It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.

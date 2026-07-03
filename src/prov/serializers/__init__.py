@@ -86,4 +86,8 @@ def get(format_name: str) -> type[Serializer]:
     try:
         return serializers[format_name]
     except KeyError:
-        raise DoNotExist('No serializer available for the format "%s"' % format_name)
+        # Not chaining with `from` to preserve the historic DoNotExist
+        # traceback/behaviour; revisit in a follow-up.
+        raise DoNotExist(  # noqa: B904
+            'No serializer available for the format "%s"' % format_name
+        )

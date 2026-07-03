@@ -15,5 +15,5 @@ class ProvGraphTestCase(unittest.TestCase):
             self.assertEqual(
                 prov_doc,
                 prov_org,
-                "Round trip graph conversion for '{}' failed.".format(name),
+                f"Round trip graph conversion for '{name}' failed.",
             )

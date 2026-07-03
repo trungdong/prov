@@ -48,7 +48,7 @@ def read(source: str | bytes | os.PathLike, format: str | None = None) -> ProvDo
     for format in serializers:
         try:
             return ProvDocument.deserialize(source=source, format=format)
-        except (TypeError, ValueError, AttributeError, KeyError) as e:
+        except (TypeError, ValueError, AttributeError, KeyError):
             # Catch specific exceptions that can occur during deserialization
             # This allows for better debugging information
             continue
