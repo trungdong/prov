@@ -516,9 +516,11 @@ class ProvRecord:
                 ):
                     existing_value = first(self._attributes[attr])
                     is_not_same_value = True
-                    # contextlib.suppress() adds a context-manager call on every
-                    # attribute added (add_attributes() runs per-attribute for every
-                    # record parsed/built), so the plain try/except stays here.
+                    # This duplicate-value branch runs at scale in
+                    # _unified_records()'s merge loop (unified()/flattened() on
+                    # large documents), where contextlib.suppress()'s per-call
+                    # context-manager overhead adds up — the plain try/except
+                    # stays here.
                     try:  # noqa: SIM105
                         is_not_same_value = value != existing_value
                     except TypeError:
