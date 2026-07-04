@@ -273,12 +273,11 @@ class ProvXMLSerializer(Serializer):
                 )
             # Ignore the <prov:other> element storing non-PROV information.
             if qname.localname == "other":
-                # No explicit stacklevel to preserve historic warning behaviour;
-                # revisit in a follow-up.
-                warnings.warn(  # noqa: B028
+                warnings.warn(
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
                     UserWarning,
+                    stacklevel=2,
                 )
                 continue
 
@@ -375,13 +374,12 @@ def _extract_attributes(
             elif key == _ns_xml("lang"):
                 _v = prov.model.Literal(subel.text, langtag=value_str)
             else:
-                # No explicit stacklevel to preserve historic warning behaviour;
-                # revisit in a follow-up.
-                warnings.warn(  # noqa: B028
+                warnings.warn(
                     f"The element '{_t}' contains an attribute {key!s}='{value!s}' "
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored.",
                     UserWarning,
+                    stacklevel=2,
                 )
 
         if not subel.attrib:

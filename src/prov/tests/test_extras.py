@@ -2,7 +2,7 @@ import unittest
 
 from prov.dot import prov_to_dot
 from prov.model import *
-from prov.serializers import Registry
+from prov.serializers import DoNotExist, Registry, get as get_serializer
 from prov.tests.examples import primer_example, primer_example_alternate
 
 EX_NS = Namespace("ex", "http://example.org/")
@@ -272,6 +272,11 @@ class TestExtras(unittest.TestCase):
         g1 = primer_example()
         g2 = primer_example_alternate()
         self.assertEqual(g1, g2)
+
+    def test_get_serializer_for_unknown_format_chains_key_error(self):
+        with self.assertRaises(DoNotExist) as ctx:
+            get_serializer("no-such-format")
+        self.assertIsInstance(ctx.exception.__cause__, KeyError)
 
     def test_plot_without_matplotlib_raises_helpful_error(self):
         import builtins

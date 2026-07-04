@@ -726,11 +726,10 @@ class ProvRDFSerializer(Serializer):
                 del other_attributes[subj]
 
         if other_attributes:
-            # No explicit stacklevel to preserve historic warning behaviour;
-            # revisit in a follow-up.
-            warnings.warn(  # noqa: B028
+            warnings.warn(
                 "The following attributes were not converted: " + str(other_attributes),
                 UserWarning,
+                stacklevel=2,
             )
 
 

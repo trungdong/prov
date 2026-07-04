@@ -103,10 +103,8 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
         # Try supported serializers:
         try:
             prov_doc.serialize(outfile, format=output_format)
-        except serializers.DoNotExist:
-            # Not chaining with `from` to preserve the historic CLIError
-            # traceback/behaviour; revisit in a follow-up.
-            raise CLIError(f'Output format "{output_format}" is not supported.')  # noqa: B904
+        except serializers.DoNotExist as e:
+            raise CLIError(f'Output format "{output_format}" is not supported.') from e
 
 
 def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
