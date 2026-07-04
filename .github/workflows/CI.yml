@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.11"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "pypy3.11"]
     steps:
       - uses: actions/checkout@v7
       - name: Setup Graphviz
@@ -75,4 +75,4 @@ jobs:
         continue-on-error: true
         with:
           parallel-finished: true
-          carryforward: "Python3.9,Python3.10,Python3.11,Python3.12,Python3.13,Python3.14,Pythonpypy3.11"
+          carryforward: "Python3.10,Python3.11,Python3.12,Python3.13,Python3.14,Pythonpypy3.11"

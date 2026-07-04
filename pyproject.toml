@@ -16,7 +16,6 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -29,7 +28,7 @@ classifiers = [
     "Topic :: Security",
     "Topic :: System :: Logging",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "networkx>=2.0",
     # Supporting graphic outputs (e.g. PNG, SVG, PDF) - a local graphviz is required
@@ -96,7 +95,7 @@ dev = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py39"
+target-version = "py310"
 extend-exclude = ["build"]  # dist/.eggs are already in ruff's default excludes
 
 [tool.ruff.lint]
@@ -105,7 +104,7 @@ select = [
     "F",   # pyflakes
     "W",   # pycodestyle warnings
     "B",   # flake8-bugbear
-    "UP",  # pyupgrade (3.9-safe)
+    "UP",  # pyupgrade (3.10-safe)
 ]
 ignore = [
     "E203",  # whitespace before ':' (black/ruff-format compatible)
