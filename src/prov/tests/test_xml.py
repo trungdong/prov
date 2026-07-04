@@ -407,7 +407,7 @@ class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
 # function names make it clear what is going on.
 for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")):
     name = os.path.splitext(os.path.basename(filename))[0]
-    test_name = "test_roundtrip_from_xml_%s" % name
+    test_name = f"test_roundtrip_from_xml_{name}"
 
     # Cannot round trip this one as the namespace in the PROV data model are
     # always defined per bundle and not per element.

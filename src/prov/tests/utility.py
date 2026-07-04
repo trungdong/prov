@@ -36,7 +36,9 @@ class RoundTripTestCase(DocumentBaseTestCase):
             # Assume UTF-8 encoding which is forced by the particular
             # PROV XML implementation and should also work for the PROV
             # JSON implementation.
-            msg_extra = "'%s' serialization content:\n%s" % (
+            # .format(), not an f-string: the nested "utf-8" literal reuses the
+            # same quote character, which f-strings only allow from py3.12 (PEP 701)
+            msg_extra = "'{}' serialization content:\n{}".format(
                 self.FORMAT,
                 stream.read().decode("utf-8"),
             )

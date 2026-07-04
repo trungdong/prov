@@ -91,5 +91,5 @@ def get(format_name: str) -> type[Serializer]:
         # Not chaining with `from` to preserve the historic DoNotExist
         # traceback/behaviour; revisit in a follow-up.
         raise DoNotExist(  # noqa: B904
-            'No serializer available for the format "%s"' % format_name
+            f'No serializer available for the format "{format_name}"'
         )

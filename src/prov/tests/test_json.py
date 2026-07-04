@@ -11,19 +11,16 @@ logger = logging.getLogger(__name__)
 class TestJSONSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
         unicode_char = "\u2019"
-        json_content = (
-            """{
-    "prefix": {
+        json_content = f"""{{
+    "prefix": {{
         "ex": "http://www.example.org"
-    },
-    "entity": {
-        "ex:unicode_char": {
-            "prov:label": "%s"
-        }
-    }
-}"""
-            % unicode_char
-        )
+    }},
+    "entity": {{
+        "ex:unicode_char": {{
+            "prov:label": "{unicode_char}"
+        }}
+    }}
+}}"""
 
         prov_doc = ProvDocument.deserialize(content=json_content, format="json")
         e1 = prov_doc.get_record("ex:unicode_char")[0]

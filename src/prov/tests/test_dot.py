@@ -28,8 +28,8 @@ if find_spec("pydot") is not None:
             self.assertGreater(
                 len(svg_content),
                 self.MIN_SVG_SIZE,
-                "The size of the generated SVG content should be greater than %d bytes"
-                % self.MIN_SVG_SIZE,
+                "The size of the generated SVG content should be greater than "
+                f"{self.MIN_SVG_SIZE} bytes",
             )
 
 

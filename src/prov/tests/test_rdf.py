@@ -183,8 +183,7 @@ class AllTestsBase(
 class TestRDFSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
         unicode_char = "\u2019"
-        rdf_content = (
-            """
+        rdf_content = f"""
 @prefix ex: <http://www.example.org/> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -193,10 +192,8 @@ class TestRDFSerializer(unittest.TestCase):
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
     ex:unicode_char a prov:Entity ;
-        rdfs:label "%s"^^xsd:string .
+        rdfs:label "{unicode_char}"^^xsd:string .
 """
-            % unicode_char
-        )
         prov_doc = ProvDocument.deserialize(
             content=rdf_content, format="rdf", rdf_format="turtle"
         )
@@ -271,9 +268,9 @@ class TestRDFSerializer(unittest.TestCase):
                     match, _, _in_first, _in_second = find_diff(g_rdf, g0_rdf)
                     self.assertTrue(match)
                 else:
-                    logger.info("Skipping match: %s" % fname)
+                    logger.info(f"Skipping match: {fname}")
                 if idx in skip:
-                    logger.info("Skipping deserialization: %s" % fname)
+                    logger.info(f"Skipping deserialization: {fname}")
                     continue
                 pm.ProvDocument.deserialize(
                     content=g.serialize(format="rdf", rdf_format=format),

@@ -102,7 +102,7 @@ class TestPublicAPI(unittest.TestCase):
             for name in names:
                 if not hasattr(module, name):
                     missing.append(f"{module_name}.{name}")
-        self.assertEqual(missing, [], "Public API names missing: %s" % missing)
+        self.assertEqual(missing, [], f"Public API names missing: {missing}")
 
     def test_serializer_registry_formats(self):
         for fmt in ("json", "xml", "rdf", "provn"):

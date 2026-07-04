@@ -51,7 +51,7 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                         self.assertEqual(
                             g1,
                             g2,
-                            "Round-trip JSON encoding/decoding failed:  %s." % filename,
+                            f"Round-trip JSON encoding/decoding failed:  {filename}.",
                         )
                     except:  # noqa: E722 -- intentionally broad to catch any failure
                         self.fails.append(filename)
@@ -70,7 +70,9 @@ class TestLoadingProvToolboxJSON(unittest.TestCase):
                 json_str = g1.serialize(indent=4)
                 g2 = ProvDocument.deserialize(content=json_str)
                 self.assertEqual(
-                    g1, g2, "Round-trip JSON encoding/decoding failed:  %s." % filename
+                    g1,
+                    g2,
+                    f"Round-trip JSON encoding/decoding failed:  {filename}.",
                 )
 
 

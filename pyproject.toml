@@ -126,13 +126,6 @@ select = [
 ignore = [
     "E203",  # whitespace before ':' (black/ruff-format compatible)
     "E501",  # line length handled by the formatter
-    # These two pyupgrade rules only offer *unsafe* fixes when targeting py39
-    # (ruff can't prove nothing relies on runtime evaluation of the old
-    # syntax, e.g. via typing.get_type_hints()), so they fire on almost every
-    # annotated/`%`-formatted line in the project without an autofix.
-    # Deferred to a dedicated follow-up rather than mass hand-editing here.
-    "UP045",  # non-pep604-annotation-optional (`Optional[X]` -> `X | None`)
-    "UP031",  # printf-string-formatting (`%` -> `.format()`/f-string)
 ]
 
 [tool.ruff.lint.isort]
