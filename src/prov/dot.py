@@ -358,7 +358,8 @@ def prov_to_dot(
                     (attr_name, value)
                     for attr_name, value in rec.formal_attributes
                     if attr_name in PROV_ATTRIBUTE_QNAMES
-                )
+                ),
+                strict=False,
             )
             inferred_types = list(map(INFERRED_ELEMENT_CLASS.get, attr_names))
             other_attributes = [
@@ -395,7 +396,7 @@ def prov_to_dot(
                     style["color"] = "gray"  # all remaining segment to be gray
                     style["fontcolor"] = "dimgray"  # text in darker gray
                     for attr_name, node, inferred_type in zip(
-                        attr_names[2:], nodes[2:], inferred_types[2:]
+                        attr_names[2:], nodes[2:], inferred_types[2:], strict=False
                     ):
                         if node is not None:
                             style["label"] = attr_name.localpart
