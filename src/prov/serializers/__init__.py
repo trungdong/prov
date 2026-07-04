@@ -1,7 +1,9 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
-from abc import ABC, abstractmethod
+
 import io
-from typing import Any, ClassVar, TYPE_CHECKING
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, ClassVar
+
 from prov import Error
 
 if TYPE_CHECKING:
@@ -63,8 +65,8 @@ class Registry:
         """Loads all available serializers into the registry."""
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
-        from prov.serializers.provxml import ProvXMLSerializer
         from prov.serializers.provrdf import ProvRDFSerializer
+        from prov.serializers.provxml import ProvXMLSerializer
 
         Registry.serializers = {
             "json": ProvJSONSerializer,

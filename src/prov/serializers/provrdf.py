@@ -1,56 +1,55 @@
 """PROV-RDF serializers for ProvDocument"""
 
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
+
 import base64
-from collections import OrderedDict
 import datetime
 import io
-from typing import Any, Optional, cast
-from collections.abc import Generator, Iterable
 import warnings
+from collections import OrderedDict
+from collections.abc import Generator, Iterable
+from typing import Any, Optional, cast
 
 import dateutil.parser
-
 from rdflib import RDF, RDFS, XSD
-from rdflib.term import URIRef, BNode, Node
-from rdflib.term import Literal as RDFLiteral
 from rdflib.graph import ConjunctiveGraph, Graph
+from rdflib.term import BNode, Node, URIRef
+from rdflib.term import Literal as RDFLiteral
 
-from prov import Error
 import prov.model as pm
+from prov import Error
 from prov.constants import (
     PROV,
-    PROV_ID_ATTRIBUTES_MAP,
-    PROV_N_MAP,
-    PROV_BASE_CLS,
-    XSD_QNAME,
-    PROV_END,
-    PROV_START,
-    PROV_USAGE,
-    PROV_GENERATION,
-    PROV_DERIVATION,
-    PROV_INVALIDATION,
-    PROV_ALTERNATE,
-    PROV_MENTION,
-    PROV_DELEGATION,
     PROV_ACTIVITY,
-    PROV_ATTR_STARTTIME,
+    PROV_ALTERNATE,
+    PROV_ASSOCIATION,
+    PROV_ATTR_ENDER,
     PROV_ATTR_ENDTIME,
-    PROV_LOCATION,
-    PROV_ATTR_TIME,
-    PROV_ROLE,
-    PROV_COMMUNICATION,
     PROV_ATTR_INFORMANT,
     PROV_ATTR_RESPONSIBLE,
-    PROV_ATTR_TRIGGER,
-    PROV_ATTR_ENDER,
     PROV_ATTR_STARTER,
+    PROV_ATTR_STARTTIME,
+    PROV_ATTR_TIME,
+    PROV_ATTR_TRIGGER,
     PROV_ATTR_USED_ENTITY,
-    PROV_ASSOCIATION,
+    PROV_BASE_CLS,
+    PROV_COMMUNICATION,
+    PROV_DELEGATION,
+    PROV_DERIVATION,
+    PROV_END,
+    PROV_GENERATION,
+    PROV_ID_ATTRIBUTES_MAP,
+    PROV_INVALIDATION,
+    PROV_LOCATION,
+    PROV_MENTION,
+    PROV_N_MAP,
+    PROV_ROLE,
+    PROV_START,
+    PROV_USAGE,
+    XSD_QNAME,
 )
 from prov.identifier import QualifiedName
 from prov.serializers import Serializer
-
 
 __author__ = "Satrajit S. Ghosh"
 __email__ = "satra@mit.edu"

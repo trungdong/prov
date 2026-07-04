@@ -12,17 +12,16 @@ convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG
 @deffield    updated: 2025-06-07
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
 import io
+import logging
 import os
 import sys
-import logging
 import traceback
+from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
 from typing import Optional, cast
 
-from prov.model import ProvDocument
 from prov import serializers
-
+from prov.model import ProvDocument
 
 logger = logging.getLogger(__name__)
 

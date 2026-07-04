@@ -9,7 +9,6 @@ PROV-JSON: https://openprovenance.org/prov-json/
 
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
-from collections import defaultdict
 import datetime
 import io
 import itertools
@@ -17,25 +16,30 @@ import logging
 import os
 import shutil
 import tempfile
+import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
+from collections import defaultdict
+from collections.abc import Callable, Iterable
 from io import IOBase
 from typing import (
     Any,
     Optional,
     Union,
 )
-from collections.abc import Callable, Iterable
-import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 from urllib.parse import urlparse
 
 import dateutil.parser
+
 from prov import Error, serializers
 from prov.constants import *
 from prov.identifier import (
     Identifier as Identifier,
-    QualifiedName as QualifiedName,
+)
+from prov.identifier import (
     Namespace as Namespace,
 )
-
+from prov.identifier import (
+    QualifiedName as QualifiedName,
+)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -2461,8 +2465,8 @@ class ProvBundle:
                 # Use matplotlib to show the image as it likely is more
                 # widespread than PIL and works nicely in the ipython notebook.
                 try:
-                    import matplotlib.pylab as plt  # type: ignore
                     import matplotlib.image as mpimg  # type: ignore
+                    import matplotlib.pylab as plt  # type: ignore
                 except ImportError as e:
                     raise ImportError(
                         "The plot() method requires matplotlib when no filename"

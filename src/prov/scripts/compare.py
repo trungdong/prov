@@ -12,15 +12,14 @@ prov-compare -- Compare two PROV-JSON, PROV-XML, or RDF (PROV-O) files for equiv
 @deffield    updated: 2025-06-07
 """
 
-from argparse import ArgumentParser, RawDescriptionHelpFormatter, FileType
+import logging
 import os
 import sys
-import logging
 import traceback
+from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
 from typing import Optional
 
 from prov.model import ProvDocument
-
 
 logger = logging.getLogger(__name__)
 

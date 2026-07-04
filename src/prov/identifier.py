@@ -1,4 +1,5 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
+
 from typing import Any
 
 __author__ = "Trung Dong Huynh"

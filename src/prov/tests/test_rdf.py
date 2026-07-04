@@ -1,22 +1,21 @@
-import unittest
-from prov.model import ProvDocument
-from prov.tests.utility import RoundTripTestCase
-from prov.tests.test_model import (
-    TestStatementsBase,
-    TestAttributesBase,
-    TestQualifiedNamesBase,
-)
-import os
-from glob import glob
 import logging
-
-from prov.tests import examples
-import prov.model as pm
+import os
+import unittest
+from glob import glob
+from io import BytesIO, StringIO
 
 import rdflib as rl
 from rdflib.compare import graph_diff
-from io import BytesIO, StringIO
 
+import prov.model as pm
+from prov.model import ProvDocument
+from prov.tests import examples
+from prov.tests.test_model import (
+    TestAttributesBase,
+    TestQualifiedNamesBase,
+    TestStatementsBase,
+)
+from prov.tests.utility import RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 

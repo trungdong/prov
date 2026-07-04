@@ -4,7 +4,6 @@ import unittest
 
 from prov.model import ProvDocument
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -1,17 +1,18 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
+
 import datetime
-import logging
-from lxml import etree
 import io
-from typing import Any, Optional
+import logging
 import warnings
+from typing import Any, Optional
+
+from lxml import etree
 
 import prov
 import prov.identifier
-from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.constants import *  # NOQA
+from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.serializers import Serializer
-
 
 __author__ = "Lion Krischer"
 __email__ = "krischer@geophysik.uni-muenchen.de"

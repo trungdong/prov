@@ -1,5 +1,6 @@
-from prov.model import ProvDocument, Namespace, Literal, PROV, Identifier
 import datetime
+
+from prov.model import PROV, Identifier, Literal, Namespace, ProvDocument
 
 
 def primer_example():

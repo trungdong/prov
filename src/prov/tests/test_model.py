@@ -4,11 +4,11 @@ Created on Jan 25, 2012
 @author: Trung Dong Huynh
 """
 
-import unittest
 import logging
 import os
+import unittest
 
-from prov.model import ProvDocument, ProvBundle, ProvException, first, Literal
+from prov.model import Literal, ProvBundle, ProvDocument, ProvException, first
 from prov.tests import examples
 from prov.tests.attributes import TestAttributesBase
 from prov.tests.qnames import TestQualifiedNamesBase
