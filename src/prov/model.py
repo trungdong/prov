@@ -138,6 +138,7 @@ def encoding_provn_value(
     elif isinstance(value, float):
         return f'"{value:g}" %% xsd:float'
     elif isinstance(value, bool):
+        # bool is an int subtype, so :d renders "1"/"0" (not "True"/"False")
         return f'"{value:d}" %% xsd:boolean'
     else:
         # TODO: QName export
@@ -211,11 +212,12 @@ class Literal:
         return self._langtag is None
 
     def provn_representation(self) -> str:
+        quoted_value = _ensure_multiline_string_triple_quoted(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString
-            return f"{_ensure_multiline_string_triple_quoted(self._value)}@{self._langtag!s}"
+            return f"{quoted_value}@{self._langtag!s}"
         else:
-            return f"{_ensure_multiline_string_triple_quoted(self._value)} %% {self._datatype!s}"
+            return f"{quoted_value} %% {self._datatype!s}"
 
 
 # Exceptions and warnings
@@ -590,6 +592,8 @@ class ProvRecord:
                     extra.append(f"{attr!s}={provn_represenation}")
 
         if extra:
+            # .format(), not an f-string: the nested string literals reuse the
+            # same quote character, which f-strings only allow from py3.12 (PEP 701)
             items.append("[{}]".format(", ".join(extra)))
         prov_n = "{}({}{})".format(
             PROV_N_MAP[self.get_type()],

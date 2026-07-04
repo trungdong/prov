@@ -426,6 +426,7 @@ def xml_qname_to_QualifiedName(
 
 
 def _ns(ns: str, tag: str) -> str:
+    # Clark notation ("{uri}tag") as used by lxml/ElementTree
     return f"{{{ns}}}{tag}"
 
 
