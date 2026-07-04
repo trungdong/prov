@@ -2,17 +2,17 @@ import difflib
 import glob
 import inspect
 import io
-from lxml import etree
 import os
 import unittest
 import warnings
 
-from prov.identifier import Namespace, QualifiedName
-from prov.constants import PROV
+from lxml import etree
+
 import prov.model as prov
+from prov.constants import PROV
+from prov.identifier import Namespace, QualifiedName
 from prov.tests.test_model import AllTestsBase
 from prov.tests.utility import RoundTripTestCase
-
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")

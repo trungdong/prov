@@ -1,4 +1,5 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
+
 import os
 from typing import TYPE_CHECKING
 
@@ -35,7 +36,6 @@ def read(
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument
-
     from prov.serializers import Registry
 
     Registry.load_serializers()

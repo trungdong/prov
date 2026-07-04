@@ -1,25 +1,25 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
-from collections import defaultdict
+
 import datetime
 import io
 import json
+import logging
+from collections import defaultdict
 from typing import Any, Optional, cast
 
 from prov import Error
-from prov.identifier import Identifier, QualifiedName, Namespace
-from prov.serializers import Serializer
 from prov.constants import *
+from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
     Literal,
-    ProvDocument,
     ProvBundle,
-    first,
-    parse_xsd_datetime,
+    ProvDocument,
     ProvRecord,
     QualifiedNameCandidate,
+    first,
+    parse_xsd_datetime,
 )
-
-import logging
+from prov.serializers import Serializer
 
 logger = logging.getLogger(__name__)
 

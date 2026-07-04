@@ -117,6 +117,7 @@ select = [
     "F",   # pyflakes
     "W",   # pycodestyle warnings
     "B",   # flake8-bugbear
+    "I",   # isort (import sorting)
     "UP",  # pyupgrade (3.10-safe)
 ]
 ignore = [
@@ -130,6 +131,9 @@ ignore = [
     "UP045",  # non-pep604-annotation-optional (`Optional[X]` -> `X | None`)
     "UP031",  # printf-string-formatting (`%` -> `.format()`/f-string)
 ]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true  # keep multi-name `X as X` re-export blocks compact
 
 [tool.ruff.lint.per-file-ignores]
 # These modules intentionally re-export everything from another module with

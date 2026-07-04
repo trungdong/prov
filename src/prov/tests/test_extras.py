@@ -1,10 +1,9 @@
 import unittest
 
-from prov.model import *
 from prov.dot import prov_to_dot
+from prov.model import *
 from prov.serializers import Registry
 from prov.tests.examples import primer_example, primer_example_alternate
-
 
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")

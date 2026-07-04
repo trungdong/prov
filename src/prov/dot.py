@@ -13,44 +13,46 @@ References:
 """
 
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
+
 from datetime import datetime
 from html import escape
 from typing import Any, Optional
 
+import pydot
+
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.identifier import QualifiedName
 from prov.model import (
-    ProvEntity,
-    ProvActivity,
-    ProvAgent,
-    ProvBundle,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
     PROV_ASSOCIATION,
+    PROV_ATTRIBUTE_QNAMES,
     PROV_ATTRIBUTION,
     PROV_BUNDLE,
     PROV_COMMUNICATION,
-    PROV_DERIVATION,
     PROV_DELEGATION,
+    PROV_DERIVATION,
+    PROV_END,
     PROV_ENTITY,
     PROV_GENERATION,
     PROV_INFLUENCE,
     PROV_INVALIDATION,
-    PROV_END,
     PROV_MEMBERSHIP,
     PROV_MENTION,
     PROV_SPECIALIZATION,
     PROV_START,
     PROV_USAGE,
     Identifier,
-    PROV_ATTRIBUTE_QNAMES,
-    sorted_attributes,
+    ProvActivity,
+    ProvAgent,
+    ProvBundle,
+    ProvElement,
+    ProvEntity,
     ProvException,
     ProvRecord,
-    ProvElement,
+    sorted_attributes,
 )
-import pydot
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"

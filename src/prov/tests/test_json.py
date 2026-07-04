@@ -1,9 +1,9 @@
-import unittest
-from prov.model import ProvDocument
-from prov.tests.utility import RoundTripTestCase
-from prov.tests.test_model import AllTestsBase
-
 import logging
+import unittest
+
+from prov.model import ProvDocument
+from prov.tests.test_model import AllTestsBase
+from prov.tests.utility import RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 

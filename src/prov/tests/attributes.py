@@ -1,6 +1,5 @@
 from prov.model import *
 
-
 EX_NS = Namespace("ex", "http://example.org/")
 EX_OTHER_NS = Namespace("other", "http://example.org/")
 
