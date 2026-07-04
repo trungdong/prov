@@ -26,9 +26,14 @@ jobs:
         run: |
           uv sync --locked --extra rdf --extra xml --group dev
           uv run coverage run -m pytest
-          # Enforces the fail_under ratchet from pyproject.toml (exit 2 if below)
-          uv run coverage report
           uv run coverage xml
+      - name: Enforce coverage ratchet
+        # Enforces the fail_under ratchet from pyproject.toml (exit 2 if below).
+        # Gated to one interpreter: the measured TOTAL varies ~0.04pt across
+        # CPython minor versions (compiler/arc differences, not our code), and
+        # the margin over the ratchet is thin.
+        if: matrix.python-version == '3.12'
+        run: uv run coverage report
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
         # Advisory upload: a Coveralls outage must not fail the build (rule added
