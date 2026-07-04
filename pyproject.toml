@@ -168,14 +168,3 @@ exclude = ["^src/prov/tests/"]
 module = "prov.*"
 disallow_untyped_defs = true
 check_untyped_defs = true
-
-[[tool.mypy.overrides]]
-# rdflib ships its own inline types (py.typed) that are far stricter than
-# this module's historic behaviour of freely mixing rdflib term types
-# (URIRef/BNode/Literal/Node) with prov.model's QualifiedName/str
-# identifiers at runtime -- which works correctly (see the RDF round-trip
-# tests in prov.tests.test_rdf). Untangling that is a real typing refactor,
-# deferred to a follow-up; suppress the resulting noise for this module only
-# rather than scatter dozens of individually-justified ignores.
-module = "prov.serializers.provrdf"
-disable_error_code = ["arg-type", "assignment", "operator", "index"]
