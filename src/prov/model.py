@@ -1164,9 +1164,9 @@ class NamespaceManager(dict[str, Namespace]):
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
-        self._uri_map = dict()  # type: dict[str, Namespace]
-        self._rename_map = dict()  # type: dict[Namespace, Namespace]
-        self._prefix_renamed_map = dict()  # type: dict[str, Namespace]
+        self._uri_map = {}  # type: dict[str, Namespace]
+        self._rename_map = {}  # type: dict[Namespace, Namespace]
+        self._prefix_renamed_map = {}  # type: dict[str, Namespace]
         if namespaces is not None:
             self.add_namespaces(namespaces)
 
@@ -1399,7 +1399,7 @@ class ProvBundle:
         """
         #  Initializing bundle-specific attributes
         self._identifier = identifier
-        self._records = list()  # type: list[ProvRecord]
+        self._records = []  # type: list[ProvRecord]
         self._id_map = defaultdict(list)  # type: dict[QualifiedName, list[ProvRecord]]
         self._document = document
         self._namespaces = NamespaceManager(
@@ -1657,7 +1657,7 @@ class ProvBundle:
         """Returns a list of unified records."""
         # TODO: Check unification rules in the PROV-CONSTRAINTS document
         # This method simply merges the records having the same name
-        merged_records = dict()
+        merged_records = {}
         for _identifier, records in self._id_map.items():
             if len(records) > 1:
                 # more than one record having the same identifier
@@ -1673,7 +1673,7 @@ class ProvBundle:
             return list(self._records)
 
         added_merged_records = set()
-        unified_records = list()
+        unified_records = []
         for record in self._records:
             if record in merged_records:
                 merged = merged_records[record]
@@ -2528,7 +2528,7 @@ class ProvDocument(ProvBundle):
         ProvBundle.__init__(
             self, records=records, identifier=None, namespaces=namespaces
         )
-        self._bundles = dict()  # type: dict[QualifiedName, ProvBundle]
+        self._bundles = {}  # type: dict[QualifiedName, ProvBundle]
 
     def __repr__(self) -> str:
         return "<ProvDocument>"

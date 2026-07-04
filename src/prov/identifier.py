@@ -119,7 +119,7 @@ class Namespace:
             raise ValueError("Not a valid URI to create a namespace.")
         self._prefix = prefix
         self._uri = uri
-        self._cache: dict[str, QualifiedName] = dict()
+        self._cache: dict[str, QualifiedName] = {}
 
     @property
     def uri(self) -> str:

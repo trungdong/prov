@@ -169,9 +169,9 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
                         )
                     else:
                         # multiple values
-                        record_json[attr_name] = list(
+                        record_json[attr_name] = [
                             encode_json_representation(value) for value in values
-                        )
+                        ]
         # Check if the container already has the id of the record
         if identifier not in container[rec_label]:
             # this is the first instance, just put in the new record
@@ -190,7 +190,7 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
 
 
 def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
-    bundles = dict()
+    bundles = {}
     if "bundle" in content:
         bundles = content["bundle"]
         del content["bundle"]
@@ -224,7 +224,7 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
                 elements = content
 
             for element in elements:
-                attributes = dict()  # type: dict[QualifiedNameCandidate, Any]
+                attributes = {}  # type: dict[QualifiedNameCandidate, Any]
                 other_attributes = []  # type: list[tuple[QualifiedNameCandidate, Any]]
                 # this is for the multiple-entity membership hack to come
                 membership_extra_members = None

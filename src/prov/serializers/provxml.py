@@ -24,9 +24,9 @@ logger = logging.getLogger(__name__)
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
 # Inverse mapping.
-FULL_PROV_RECORD_IDS_MAP = dict(
-    (FULL_NAMES_MAP[rec_type_id], rec_type_id) for rec_type_id in FULL_NAMES_MAP
-)
+FULL_PROV_RECORD_IDS_MAP = {
+    FULL_NAMES_MAP[rec_type_id]: rec_type_id for rec_type_id in FULL_NAMES_MAP
+}
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
