@@ -77,11 +77,11 @@ gaps: 8 of the 9 non-equivalent surviving mutants live here.
 - [ ] `graph_to_prov()` ignores graph nodes that are not `ProvRecord`s or whose `bundle` is `None` (mutmut: `and` → `or` survived) — **T12**
 - [ ] `graph_to_prov()` ignores edges without a `"relation"` key in their edge data — **T12**
 
-## src/prov/serializers/__init__.py — 91% (missed: 39, 48)
+## src/prov/serializers/__init__.py — 91% (missed: 10, 39, 48)
 
-- [ ] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12**
+- [ ] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12** (the chaining itself is already tested by `test_extras.py::test_get_serializer_for_unknown_format_chains_key_error` from T9 — dedupe with it, one module owns it; only the format-name-in-message assertion is new)
 - [ ] `serializers.get()` lazily populates `Registry.serializers` on first call (registry starts as `None`, holds exactly the four formats json/rdf/provn/xml) — **T12**
-- [ ] `Serializer.serialize`/`.deserialize` abstract bodies (lines 39, 48) — **defer** (unreachable `pass` bodies of abstractmethods; consider `pragma: no cover` in T13 instead of tests)
+- [ ] `Serializer.serialize`/`.deserialize` abstract bodies (lines 39, 48) and the `if TYPE_CHECKING:` import (line 10) — **defer** (never executed at runtime by design; consider `pragma: no cover` in T13 instead of tests)
 
 ## src/prov/identifier.py — 87% (missed: 119, 141–146, 156–164)
 
