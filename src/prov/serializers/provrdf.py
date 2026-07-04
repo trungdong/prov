@@ -700,7 +700,7 @@ class ProvRDFSerializer(Serializer):
             local_key = str(obj)
             if local_key in record_types and "qualified" in pred:
                 formal_attributes[local_key][
-                    list(formal_attributes[local_key].keys())[0]
+                    next(iter(formal_attributes[local_key].keys()))
                 ] = subj
         for subj in record_types:
             attrs = None
@@ -737,7 +737,7 @@ class ProvRDFSerializer(Serializer):
 def walk(
     children: list[tuple[Any, Any]],
     level: int = 0,
-    path: dict[Any, Any] = None,  # type: ignore[assignment]
+    path: dict[Any, Any] | None = None,
     usename: bool = True,
 ) -> Generator[dict[Any, Any]]:
     """Generate all the full paths in a tree, as a dict.
@@ -752,7 +752,7 @@ def walk(
     [3, 4, 3, 4]
     """
     # Entry point
-    if level == 0:
+    if path is None:
         path = {}
 
     # Exit condition

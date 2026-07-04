@@ -570,9 +570,10 @@ class ProvRecord:
 
         # Writing out the formal attributes
         for attr in self.FORMAL_ATTRIBUTES:
-            if attr in self._attributes and self._attributes[attr]:
+            values = self._attributes.get(attr)
+            if values:
                 # Formal attributes always have single values
-                value = first(self._attributes[attr])
+                value = first(values)
                 # TODO: QName export
                 items.append(
                     value.isoformat()
@@ -2749,7 +2750,7 @@ class ProvDocument(ProvBundle):
             serializer.serialize(stream, **args)
         else:
             location = str(destination)
-            scheme, netloc, path, params, _query, fragment = urlparse(location)
+            _scheme, netloc, path, _params, _query, _fragment = urlparse(location)
             if netloc != "":
                 print(
                     "WARNING: not saving as location " + "is not a local file reference"

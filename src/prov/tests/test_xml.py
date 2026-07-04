@@ -362,7 +362,7 @@ class ProvXMLTestCase(unittest.TestCase):
           </entity>
         </document>"""
         document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
-        entity = list(document.get_records(prov.ProvEntity))[0]
+        entity = next(iter(document.get_records(prov.ProvEntity)))
         # the <value> element is in the default (PROV) namespace:
         # it must parse as prov:value, not "None:value"
         values = list(entity.get_attribute(PROV["value"]))
@@ -386,7 +386,7 @@ class ProvXMLTestCase(unittest.TestCase):
           </prov:entity>
         </prov:document>"""
         document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
-        entity = list(document.get_records(prov.ProvEntity))[0]
+        entity = next(iter(document.get_records(prov.ProvEntity)))
         values = list(entity.get_attribute(PROV["value"]))
         self.assertEqual(values, [1])
 

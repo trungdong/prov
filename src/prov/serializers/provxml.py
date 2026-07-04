@@ -10,7 +10,7 @@ from lxml import etree
 
 import prov
 import prov.identifier
-from prov.constants import *  # NOQA
+from prov.constants import *
 from prov.model import DEFAULT_NAMESPACES, sorted_attributes
 from prov.serializers import Serializer
 
