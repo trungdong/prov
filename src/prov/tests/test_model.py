@@ -30,9 +30,7 @@ class TestExamplesBase:
     """
 
     def test_all_examples(self):
-        counter = 0
-        for name, graph in examples.tests:
-            counter += 1
+        for counter, (name, graph) in enumerate(examples.tests, start=1):
             logger.info("%d. Testing the %s example", counter, name)
             g = graph()
             self.do_tests(g)

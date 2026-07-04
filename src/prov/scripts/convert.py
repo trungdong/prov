@@ -198,10 +198,9 @@ if __name__ == "__main__":
 
         profile_filename = "converter_profile.txt"
         cProfile.run("main()", profile_filename)
-        statsfile = open("profile_stats.txt", "wb")
-        p = pstats.Stats(profile_filename, stream=statsfile)
-        stats = p.strip_dirs().sort_stats("cumulative")
-        stats.print_stats()
-        statsfile.close()
+        with open("profile_stats.txt", "wb") as statsfile:
+            p = pstats.Stats(profile_filename, stream=statsfile)
+            stats = p.strip_dirs().sort_stats("cumulative")
+            stats.print_stats()
         sys.exit(0)
     sys.exit(main())

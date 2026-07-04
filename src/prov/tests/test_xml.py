@@ -1,3 +1,4 @@
+import contextlib
 import difflib
 import glob
 import inspect
@@ -36,14 +37,10 @@ def compare_xml(doc1, doc2):
     Helper function to compare two XML files. It will parse both once again
     and write them in a canonical fashion.
     """
-    try:
+    with contextlib.suppress(AttributeError):
         doc1.seek(0, 0)
-    except AttributeError:
-        pass
-    try:
+    with contextlib.suppress(AttributeError):
         doc2.seek(0, 0)
-    except AttributeError:
-        pass
 
     obj1 = etree.parse(doc1)
     obj2 = etree.parse(doc2)
@@ -427,10 +424,7 @@ for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")
         # `name` is the outer loop variable, but it is only read here,
         # synchronously, on the same iteration it was set -- not from the
         # returned `fct` closure below, so late-binding is not an issue.
-        if name in ["pc1"]:  # noqa: B023
-            force_types = True
-        else:
-            force_types = False
+        force_types = name in ["pc1"]  # noqa: B023
 
         def fct(self):
             self._perform_round_trip(f, force_types=force_types)

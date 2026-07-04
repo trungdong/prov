@@ -131,10 +131,7 @@ class ProvXMLSerializer(Serializer):
             rec_type = record.get_type()
             identifier = str(record._identifier) if record._identifier else None
 
-            if identifier:
-                attrs = {_ns_prov("id"): identifier}
-            else:
-                attrs = None
+            attrs = {_ns_prov("id"): identifier} if identifier else None
 
             # Derive the record label from its attributes which is sometimes
             # needed.
@@ -287,10 +284,10 @@ class ProvXMLSerializer(Serializer):
                 continue
 
             id_tag = _ns_prov("id")
-            rec_id = element.attrib[id_tag] if id_tag in element.attrib else None
+            rec_id = element.attrib.get(id_tag, None)
             # Try to make a qualified name out of it!
             prov_rec_id = (
-                xml_qname_to_QualifiedName(element, rec_id)  # type: ignore[arg-type]
+                xml_qname_to_QualifiedName(element, rec_id)
                 if rec_id is not None
                 else None
             )
@@ -417,13 +414,15 @@ def xml_qname_to_QualifiedName(
     # case 2: unknown prefix
     if None in element.nsmap:
         ns_uri = element.nsmap[None]
-        if ns_uri == XML_XSD_URI:
+        if ns_uri == XML_XSD_URI:  # noqa: SIM108
             ns = XSD  # use the standard xsd namespace (i.e. with #)
         else:
             # Deliberately not mapping PROV.uri to the canonical PROV namespace
             # here (unlike the prefixed branch above): doing so would change the
             # serialized output for previously-accepted documents, breaking the
-            # 2.x output-compatibility promise.
+            # 2.x output-compatibility promise. Kept as an if/else (not a
+            # ternary) so this explanation stays attached to the branch it
+            # documents.
             ns = prov.identifier.Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace

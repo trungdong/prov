@@ -516,7 +516,12 @@ class ProvRecord:
                 ):
                     existing_value = first(self._attributes[attr])
                     is_not_same_value = True
-                    try:
+                    # This duplicate-value branch runs at scale in
+                    # _unified_records()'s merge loop (unified()/flattened() on
+                    # large documents), where contextlib.suppress()'s per-call
+                    # context-manager overhead adds up — the plain try/except
+                    # stays here.
+                    try:  # noqa: SIM105
                         is_not_same_value = value != existing_value
                     except TypeError:
                         # Cannot compare them
@@ -2475,10 +2480,7 @@ class ProvBundle:
                 # pydot makes a border around the image. remove it.
                 img = img[1:-1, 1:-1]
                 size = (img.shape[1] / 100.0, img.shape[0] / 100.0)
-                if max(size) > max_size:
-                    scale = max_size / max(size)
-                else:
-                    scale = 1.0
+                scale = max_size / max(size) if max(size) > max_size else 1.0
                 size = (scale * size[0], scale * size[1])
 
                 plt.figure(figsize=size)
