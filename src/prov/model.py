@@ -20,11 +20,10 @@ import tempfile
 from io import IOBase
 from typing import (
     Any,
-    Callable,
     Optional,
     Union,
 )
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 from urllib.parse import urlparse
 
@@ -42,21 +41,20 @@ logger = logging.getLogger(__name__)
 
 
 # Type aliases for convenience
-QualifiedNameCandidate = Union[QualifiedName, str, Identifier]  # type: typing.TypeAlias
+QualifiedNameCandidate = QualifiedName | str | Identifier  # type: typing.TypeAlias
 OptionalID = Optional[QualifiedNameCandidate]  # type: typing.TypeAlias
 EntityRef = Union["ProvEntity", QualifiedNameCandidate]  # type: typing.TypeAlias
 ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 GenrationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
 UsageRef = Union["ProvUsage", QualifiedNameCandidate]  # type: typing.TypeAlias
-RecordAttributesArg = Union[
-    dict[QualifiedNameCandidate, Any],
-    Iterable[tuple[QualifiedNameCandidate, Any]],
-]  # type: typing.TypeAlias
+RecordAttributesArg = (
+    dict[QualifiedNameCandidate, Any] | Iterable[tuple[QualifiedNameCandidate, Any]]
+)  # type: typing.TypeAlias
 NameValuePair = tuple[QualifiedName, Any]  # type: typing.TypeAlias
-DatetimeOrStr = Union[datetime.datetime, str]  # type: typing.TypeAlias
-NSCollection = Union[dict[str, str], Iterable[Namespace]]  # type: typing.TypeAlias
-PathLike = Union[str, bytes, os.PathLike]  # type: typing.TypeAlias
+DatetimeOrStr = datetime.datetime | str  # type: typing.TypeAlias
+NSCollection = dict[str, str] | Iterable[Namespace]  # type: typing.TypeAlias
+PathLike = str | bytes | os.PathLike  # type: typing.TypeAlias
 
 
 # Data Types
@@ -90,9 +88,9 @@ DATATYPE_PARSERS = {
 
 
 # Mappings for XSD datatypes to Python standard types
-SupportedXSDParsedTypes = Union[
-    str, datetime.datetime, float, int, bool, Identifier, None
-]  # type: typing.TypeAlias
+SupportedXSDParsedTypes = (
+    str | datetime.datetime | float | int | bool | Identifier | None
+)  # type: typing.TypeAlias
 XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedTypes]] = {
     XSD_STRING: str,
     XSD_DOUBLE: float,

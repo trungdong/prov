@@ -30,7 +30,7 @@ code changes.
 | Release | Theme | Highlights |
 |---|---|---|
 | **2.2.0** | Tooling & bug fixes | Modernised linting/formatting and test tooling; CI refresh; release automation. Bug fixes: graphics output regression ([#164](https://github.com/trungdong/prov/issues/164)), matplotlib as an optional extra ([#166](https://github.com/trungdong/prov/issues/166)), PROV-XML default-namespace parsing ([#155](https://github.com/trungdong/prov/issues/155)). |
-| **2.3.0** | Typing & test coverage | Complete type annotations across the codebase and ship `py.typed` (PEP 561), so downstream projects get real type checking against `prov`'s API. Coverage gaps closed, including the CLI scripts and format auto-detection. Progressively stricter lint and type-check rules enforced in CI as modules are annotated. A dependency audit documents why each runtime dependency exists, aiming for the smallest possible footprint. |
+| **2.3.0** | Typing & test coverage | Complete type annotations across the codebase and ship `py.typed` (PEP 561), so downstream projects get real type checking against `prov`'s API. Coverage gaps closed, including the CLI scripts and format auto-detection. Progressively stricter lint and type-check rules enforced in CI as modules are annotated. A dependency audit documents why each runtime dependency exists, aiming for the smallest possible footprint. **Python 3.9 support dropped** (originally planned for 3.0, pulled forward because security fixes in transitive dependencies are only released for Python 3.10+). |
 | **2.4.0** | Documentation & internals | Refreshed, reorganised documentation (tutorials, how-to guides, API reference, explanations), including guides for graphics export ([#141](https://github.com/trungdong/prov/issues/141)) and for the `prov-convert`/`prov-compare` CLI tools ([#83](https://github.com/trungdong/prov/issues/83)). Internal restructuring behind the stable public API, plus deprecation warnings signposting the 3.0 changes. |
 | **3.0.0** | Compatibility release | The one release allowed to break compatibility (see the explicit list below). |
 | **3.1.0** | PROV-JSONLD support | A new serializer and deserializer for [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), the W3C member submission for representing PROV-DM natively in JSON-LD. Purely additive. |
@@ -42,9 +42,11 @@ code changes.
 release. It is preceded by a standards-conformance audit against W3C PROV-DM and its
 companion specifications, whose findings feed into this list. The planned changes are:
 
-- **Python floor raised to 3.10** (3.9 is past end of life). The support policy going
-  forward is to support all non-EOL CPython versions and to drop a version in the next
-  release after it reaches end of life.
+- ~~**Python floor raised to 3.10**~~ *Moved into 2.3.0* (July 2026): security fixes
+  for several transitive dependencies are only published for Python 3.10+, so keeping
+  a 3.9 resolution branch pinned the lock file to versions with known CVEs. The support
+  policy going forward is to support all non-EOL CPython versions and to drop a version
+  in the next release after it reaches end of life.
 - **`rdflib` version floor raised**, shedding compatibility shims for older releases.
 - **Smaller install footprint**, informed by the 2.3.0 dependency audit:
   `python-dateutil` replaced by the standard library, and the graphics/graph-interop

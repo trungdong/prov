@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 in-memory classes for building provenance graphs and serializing/deserializing them as
 PROV-JSON, PROV-XML, PROV-O (RDF), and PROV-N, plus export to graphical formats (PDF/PNG/SVG
 via Graphviz) and conversion to/from a NetworkX `MultiDiGraph`. Source lives under `src/prov`
-(src-layout package), Python 3.9+ only.
+(src-layout package), Python 3.10+ only.
 
 This library is used by ProvStore, an external online repository for provenance documents, so
 public API changes should be made carefully.
