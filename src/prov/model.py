@@ -33,11 +33,7 @@ from prov import Error, serializers
 from prov.constants import *
 from prov.identifier import (
     Identifier as Identifier,
-)
-from prov.identifier import (
     Namespace as Namespace,
-)
-from prov.identifier import (
     QualifiedName as QualifiedName,
 )
 

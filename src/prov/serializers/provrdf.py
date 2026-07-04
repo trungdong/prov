@@ -13,8 +13,7 @@ from typing import Any, Optional, cast
 import dateutil.parser
 from rdflib import RDF, RDFS, XSD
 from rdflib.graph import ConjunctiveGraph, Graph
-from rdflib.term import BNode, Node, URIRef
-from rdflib.term import Literal as RDFLiteral
+from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
 from prov import Error

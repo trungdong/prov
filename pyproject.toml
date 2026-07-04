@@ -132,6 +132,9 @@ ignore = [
     "UP031",  # printf-string-formatting (`%` -> `.format()`/f-string)
 ]
 
+[tool.ruff.lint.isort]
+combine-as-imports = true  # keep multi-name `X as X` re-export blocks compact
+
 [tool.ruff.lint.per-file-ignores]
 # These modules intentionally re-export everything from another module with
 # `import *`; pyflakes can't tell which of the resulting names are "used".
