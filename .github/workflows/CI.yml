@@ -26,6 +26,8 @@ jobs:
         run: |
           uv sync --locked --extra rdf --extra xml --group dev
           uv run coverage run -m pytest
+          # Enforces the fail_under ratchet from pyproject.toml (exit 2 if below)
+          uv run coverage report
           uv run coverage xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
