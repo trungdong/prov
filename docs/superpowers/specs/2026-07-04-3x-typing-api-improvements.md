@@ -380,6 +380,17 @@ explanation; the fixed shape needs neither.
 - `pydot`/`networkx` behind extras; `rdflib` floor raise — `ROADMAP.md` 3.0 list.
 - PROV-N parser, PROV-JSONLD — 3.1/3.2.
 
+### Reference implementations for the roadmapped work (maintainer pointers, 2026-07-04)
+
+- **PROV-N parser and PROV-JSONLD (3.1/3.2):** ProvToolbox (Java) has working
+  implementations under `~/projects/ProvToolbox/modules-core/` — use as the
+  behavioural reference (grammar handling, JSON-LD context/framing choices).
+- **PROV-CONSTRAINTS (3.0 unification rework):** probably implemented in
+  `~/projects/ProvToolbox/modules-validation` — check there before designing
+  `unified()`'s constraint-based merging.
+- **rdflib upgrade context (Phase-2 T15 and the 3.0 rdflib floor raise):**
+  https://github.com/RDFLib/rdflib/blob/main/docs/upgrade6to7.md
+
 ## Suggested sequencing
 
 1. **2.4.0:** deprecation warnings for B2 (string datetimes), D1 (dual-mode
