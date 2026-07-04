@@ -119,6 +119,7 @@ select = [
     "B",   # flake8-bugbear
     "C4",  # flake8-comprehensions
     "I",   # isort (import sorting)
+    "SIM", # flake8-simplify
     "UP",  # pyupgrade (3.10-safe)
 ]
 ignore = [

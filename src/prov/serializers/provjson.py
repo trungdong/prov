@@ -216,12 +216,9 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     for rec_type_str in jc:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
         for rec_id, content in jc[rec_type_str].items():
-            if hasattr(content, "items"):  # it is a dict
-                #  There is only one element, create a singleton list
-                elements = [content]
-            else:
-                # expect it to be a list of dictionaries
-                elements = content
+            #  If it is a dict, there is only one element: make a singleton list.
+            #  Otherwise, it is expected to already be a list of dictionaries.
+            elements = [content] if hasattr(content, "items") else content
 
             for element in elements:
                 attributes = {}  # type: dict[QualifiedNameCandidate, Any]
@@ -312,9 +309,9 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
     if isinstance(literal, dict):
         # complex type
         value = literal["$"]
-        datatype_str = literal["type"] if "type" in literal else None  # type: Optional[str]
+        datatype_str = literal.get("type", None)  # type: Optional[str]
         datatype = valid_qualified_name(bundle, datatype_str)
-        langtag = literal["lang"] if "lang" in literal else None
+        langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:
             return Identifier(value)
         elif datatype == PROV_QUALIFIEDNAME:

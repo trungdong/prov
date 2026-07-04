@@ -257,10 +257,7 @@ class TestRDFSerializer(unittest.TestCase):
             )
             try:
                 g = pm.ProvDocument.deserialize(fname)
-                if len(g.bundles) == 0:
-                    format = "turtle"
-                else:
-                    format = "trig"
+                format = "turtle" if len(g.bundles) == 0 else "trig"
                 if format == "trig":
                     ttl_file = ttl_file.replace("ttl", "trig")
 

@@ -377,22 +377,21 @@ class ProvRDFSerializer(Serializer):
                                 qualifier = rec_type._localpart
                                 rec_uri = rec_type.uri
                                 for attr_name, val in record.extra_attributes:
-                                    if attr_name == PROV["type"]:
-                                        if (
-                                            PROV["Revision"] == val
-                                            or PROV["Quotation"] == val
-                                            or PROV["PrimarySource"] == val
-                                        ):
-                                            qualifier = val._localpart
-                                            rec_uri = val.uri
-                                            if identifier is not None:
-                                                container.remove(
-                                                    (
-                                                        identifier,
-                                                        RDF.type,
-                                                        URIRef(rec_type.uri),
-                                                    )
+                                    if attr_name == PROV["type"] and (
+                                        PROV["Revision"] == val
+                                        or PROV["Quotation"] == val
+                                        or PROV["PrimarySource"] == val
+                                    ):
+                                        qualifier = val._localpart
+                                        rec_uri = val.uri
+                                        if identifier is not None:
+                                            container.remove(
+                                                (
+                                                    identifier,
+                                                    RDF.type,
+                                                    URIRef(rec_type.uri),
                                                 )
+                                            )
                                 QRole = URIRef(PROV["qualified" + qualifier].uri)
                                 if identifier is not None:
                                     container.add((subj, QRole, identifier))
@@ -486,7 +485,11 @@ class ProvRDFSerializer(Serializer):
                         obj = self.encode_rdf_representation(value)
                     if attr == PROV["location"]:
                         pred = URIRef(PROV["atLocation"].uri)
-                        if False and isinstance(value, (URIRef, pm.QualifiedName)):
+                        # `False and ...` deliberately disables this branch (see
+                        # git history back to 2014): it is kept as documentation
+                        # of the alternative encoding rather than deleted, and
+                        # touching it risks changing frozen RDF output.
+                        if False and isinstance(value, (URIRef, pm.QualifiedName)):  # noqa: SIM223
                             if isinstance(value, pm.QualifiedName):
                                 value = URIRef(value.uri)
                             container.add((identifier, pred, value))
@@ -694,11 +697,10 @@ class ProvRDFSerializer(Serializer):
                     ):
                         other_attributes[subj].append((str(pred_new), obj1))
             local_key = str(obj)
-            if local_key in record_types:
-                if "qualified" in pred:
-                    formal_attributes[local_key][
-                        list(formal_attributes[local_key].keys())[0]
-                    ] = subj
+            if local_key in record_types and "qualified" in pred:
+                formal_attributes[local_key][
+                    list(formal_attributes[local_key].keys())[0]
+                ] = subj
         for subj in record_types:
             attrs = None
             if subj in other_attributes:
