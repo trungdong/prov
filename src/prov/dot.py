@@ -50,7 +50,7 @@ from prov.model import (
     ProvRecord,
     ProvElement,
 )
-import pydot  # type: ignore[import]
+import pydot
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"

@@ -19,7 +19,7 @@ class Error(Exception):
 
 
 def read(
-    source: str | bytes | os.PathLike, format: str | None = None
+    source: str | bytes | os.PathLike[str], format: str | None = None
 ) -> ProvDocument | None:
     """
     Convenience function returning a ProvDocument instance.

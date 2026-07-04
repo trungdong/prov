@@ -158,7 +158,7 @@ class ProvXMLSerializer(Serializer):
                     if value.langtag is not None:
                         subelem.attrib[_ns_xml("lang")] = value.langtag
                     v = value.value
-                elif isinstance(value, prov.model.QualifiedName):
+                elif isinstance(value, prov.identifier.QualifiedName):
                     if attr not in PROV_ATTRIBUTE_QNAMES:
                         subelem.attrib[_ns_xsi("type")] = "xsd:QName"
                     v = str(value)
@@ -324,8 +324,8 @@ class ProvXMLSerializer(Serializer):
 
     def _derive_record_label(
         self,
-        rec_type: prov.model.QualifiedName,
-        attributes: list[tuple[prov.model.QualifiedName, Any]],
+        rec_type: prov.identifier.QualifiedName,
+        attributes: list[tuple[prov.identifier.QualifiedName, Any]],
     ) -> str:
         """
         Helper function trying to derive the record label taking care of
@@ -351,13 +351,13 @@ class ProvXMLSerializer(Serializer):
 
 def _extract_attributes(
     element: etree._Element,
-) -> list[tuple[prov.model.QualifiedName, Any]]:
+) -> list[tuple[prov.identifier.QualifiedName, Any]]:
     """
     Extract the PROV attributes from an etree element.
 
     :param element: The lxml.etree.Element instance.
     """
-    attributes = []  # type: list[tuple[prov.model.QualifiedName, Any]]
+    attributes = []  # type: list[tuple[prov.identifier.QualifiedName, Any]]
     for subel in element:
         sqname = etree.QName(subel)
         qname_str = (
@@ -400,7 +400,7 @@ def _extract_attributes(
 
 def xml_qname_to_QualifiedName(
     element: etree._Element, qname_str: str
-) -> prov.model.QualifiedName:
+) -> prov.identifier.QualifiedName:
     if ":" in qname_str:
         prefix, localpart = qname_str.split(":", 1)
         if prefix in element.nsmap:
@@ -410,7 +410,7 @@ def xml_qname_to_QualifiedName(
             elif ns_uri == PROV.uri:
                 ns = PROV
             else:
-                ns = Namespace(prefix, ns_uri)
+                ns = prov.identifier.Namespace(prefix, ns_uri)
             return ns[localpart]
     # case 1: no colon
     # case 2: unknown prefix
@@ -423,7 +423,7 @@ def xml_qname_to_QualifiedName(
             # here (unlike the prefixed branch above): doing so would change the
             # serialized output for previously-accepted documents, breaking the
             # 2.x output-compatibility promise.
-            ns = Namespace("", ns_uri)
+            ns = prov.identifier.Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace
     raise ProvXMLException(

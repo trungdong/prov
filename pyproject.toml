@@ -179,10 +179,3 @@ check_untyped_defs = true
 # rather than scatter dozens of individually-justified ignores.
 module = "prov.serializers.provrdf"
 disable_error_code = ["arg-type", "assignment", "operator", "index"]
-
-[[tool.mypy.overrides]]
-# pydot.Dot.create() is annotated to return `str`, but its own docstring
-# says (and it actually does, for binary Graphviz formats) return `bytes`;
-# this is an inaccuracy in pydot's stub, not a bug in this module.
-module = "prov.scripts.convert"
-disable_error_code = ["arg-type"]
