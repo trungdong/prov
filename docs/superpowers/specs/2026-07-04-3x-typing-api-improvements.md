@@ -370,7 +370,14 @@ because switching the guard to `path is None` would (theoretically) change behav
 invariant "`path is None` ⟺ `level == 0`" holds at every call site in the repo
 (one external call using both defaults; the recursive call always passes a non-None
 path with level ≥ 1). `walk()` is an internal helper, so no API-freeze concern.
-Remaining for 3.0: only the `Any` parametrisation once A1's value union exists.
+Remaining for 3.0:
+- the `Any` parametrisation once A1's value union exists;
+- `level`/`usename=False` are vestigial — no caller ever passes `usename=False`, so
+  the `path[level] = child` branch is dead in practice; drop both or document why
+  they stay (found during PR #198's quality review);
+- the function's doctest has been broken since inception (`for child in func:`
+  iterates the lambda instead of calling it) and doctests aren't wired into pytest —
+  fix or delete it when the function is reworked.
 
 ---
 
