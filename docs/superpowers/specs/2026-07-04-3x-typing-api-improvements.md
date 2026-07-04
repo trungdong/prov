@@ -265,6 +265,113 @@ have to do.
 **Rationale:** the public-API smoke test currently has to guard names nobody chose
 to publish. A deliberate surface is smaller, documentable, and testable.
 
+### E2. Typing-only imports and `if TYPE_CHECKING:` — policy, not blanket adoption
+
+**Evidence:** the strict pass added imports used only in annotations (e.g.
+`QualifiedName` in `graph.py`, `Node`/`Graph` in `provrdf.py`). The natural question
+is whether these belong under `if TYPE_CHECKING:`. Assessment: mostly no —
+`model.py`'s alias zoo is *runtime-evaluated* (`QualifiedName | str` executes at
+import), so its imports must stay real; `provrdf.py` already imports rdflib wholesale
+at runtime, so guarding two extra names saves nothing; and no import cycle currently
+forces the guard. The one honest use case is annotation-only imports in light modules
+(`graph.py`'s `QualifiedName`), where the win is documentation ("this name is not
+used at runtime"), not performance.
+
+**Change (3.0):** adopt ruff's `TC` (flake8-type-checking) rule family once the 3.x
+value-model work lands (after A1/B1, which decide which aliases remain runtime
+objects), and let it mechanically police the split. Until then, don't hand-maintain
+`TYPE_CHECKING` blocks — a half-applied policy is worse than none.
+
+**Rationale:** `TYPE_CHECKING` guards pay off for expensive/optional/cyclic imports;
+none of those pressures exist here today. Deferring to a lint rule makes the policy
+enforceable instead of aspirational.
+
+---
+
+## F. Serializer layer (evidence from the provrdf strict pass, Task 2)
+
+### F1. `Serializer.document` should not be `Optional`
+
+**Evidence:** the `Serializer` ABC (`serializers/__init__.py`) stores
+`document: ProvDocument | None`, so *every* `self.document.<anything>` in every
+serializer is a strict-mypy `union-attr` error. provrdf alone carries four
+`# type: ignore[union-attr]` sites for this one design choice; the other three
+serializers only avoid it because their access patterns are simpler. At runtime a
+serializer without a document only makes sense for `deserialize()`, which *produces*
+the document.
+
+**Change (3.0):** split the roles: serialization requires a document
+(`__init__(self, document: ProvDocument)`), deserialization is a classmethod/factory
+that returns one. Or, minimally, a non-optional `_document` property that raises a
+clear error when unset. Either kills all four ignores at the root.
+
+**Rationale:** one Optional in a base class radiates ignores through every subclass
+forever; the None state is not a real state of a *serializer*, it's an artifact of
+one class serving two directions of I/O (cf. D1's serialize/deserialize split).
+
+### F2. Delete provrdf's provably-dead code
+
+**Evidence:** two spots the typing pass had to annotate *around* rather than fix
+(deleting code was out of scope for a typing-only task):
+- `provrdf.py:455-461` — a `rec_type in [PROV_ACTIVITY]` branch inside the
+  `is_relation()` path. Unreachable (`ProvActivity` is an element, never a relation),
+  and ill-typed if it ever ran (`QualifiedName in URIRef` raises `TypeError`); it now
+  wears two `# type: ignore[operator]` with an explanatory comment.
+- `provrdf.py:491` — `if False and isinstance(value, (URIRef, pm.QualifiedName)):`
+  — explicitly disabled logic kept as a fossil.
+
+**Change (3.0):** delete both (with a round-trip test run proving no fixture notices).
+
+**Rationale:** dead branches cost every future reader the analysis we just paid;
+the ignores now marking them are tombstones, not fixes.
+
+### F3. Make the relation-identifier invariant explicit in `encode_container`
+
+**Evidence:** in provrdf's relation-encoding path, `identifier` is `None`-able until
+the qualifier/bnode block conditionally assigns it; three
+`cast("URIRef | BNode", identifier)` sites then assert it's non-None where it's
+passed to `container.add()`. The casts are correct today, but the invariant lives in
+the reviewer's head — reorder the qualifier block and mypy stays silent while `None`
+flows into rdflib.
+
+**Change (3.0):** restructure so the invariant is structural: compute the identifier
+unconditionally before the add-sites (or `assert identifier is not None` at the join
+point), and drop the casts.
+
+**Rationale:** a cast asserting "always set by this point" is the type-system
+equivalent of a TODO; one assert converts a silent latent bug into a loud one.
+
+### F4. Honest `None` contract for `valid_qualified_name` (feeds B1)
+
+**Evidence:** `NamespaceManager.valid_qualified_name` is annotated as taking a
+non-optional candidate but actually implements `if not qname: return None` — provrdf
+passes `literal.datatype` (optional) into it via `valid_identifier`, needing a
+`# type: ignore[arg-type]`. The signature and the behaviour disagree; strict mode
+noticed.
+
+**Change (3.0):** as part of the B1 single-coercion-point rework, give the coercion
+helper an honest signature (`candidate: QualifiedNameCandidate | None ->
+QualifiedName | None`) and a strict companion that raises instead of returning None
+(most callers immediately treat None as an error anyway).
+
+**Rationale:** every caller currently re-derives "can this be None?" from folklore;
+two small functions with true signatures end that.
+
+### F5. Retire `walk()`'s untypeable sentinel
+
+**Evidence:** `provrdf.py:736-739` — `path: dict[Any, Any] = None
+# type: ignore[assignment]`, with the "is this the first call?" test keyed on
+`level == 0` rather than `path is None`. The idiom is a pre-annotations mutable-default
+workaround that cannot be typed honestly; the strict pass had to keep the ignore
+because switching the guard to `path is None` would (theoretically) change behaviour.
+
+**Change (3.0):** internal helper — retype as `path: dict[Any, Any] | None = None`
+with a `path is None` guard, or fold the recursion's seed into a small wrapper
+function. Also parametrise properly once A1's value union exists.
+
+**Rationale:** the current shape needs a permanent ignore *and* a paragraph of
+explanation; the fixed shape needs neither.
+
 ---
 
 ## Out of scope here (already roadmapped elsewhere)
@@ -279,9 +386,10 @@ to publish. A deliberate surface is smaller, documentable, and testable.
    serialize + URL print-path), E1 (star re-export, docs-level); add `GenerationRef`
    alias next to the B3 typo.
 2. **3.0, first wave (mechanical):** B3 removal, C3 honest returns, C4 identifier
-   narrowing, C2 typed factories — internal, low-risk, delete most remaining
-   casts/ignores.
-3. **3.0, second wave (design):** A1→A2→A3 as one arc (value model), then B1
-   (coercion point), C1 (NamespaceManager), D1/D2 (I/O split) — each needs a short
-   design note + tests showing old vs new behaviour, per the roadmap's rule for
-   behaviour-changing fixes.
+   narrowing, C2 typed factories, F2 dead-code deletion, F3 identifier invariant,
+   F5 walk() sentinel — internal, low-risk, delete most remaining casts/ignores.
+3. **3.0, second wave (design):** A1→A2→A3 as one arc (value model), then B1+F4
+   (coercion point with honest None contracts), C1 (NamespaceManager), D1/D2+F1
+   (I/O split and non-optional serializer document), E2 (TC lint rules last) — each
+   needs a short design note + tests showing old vs new behaviour, per the roadmap's
+   rule for behaviour-changing fixes.
