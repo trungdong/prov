@@ -87,9 +87,7 @@ def get(format_name: str) -> type[Serializer]:
     assert serializers is not None  # load_serializers() always populates it
     try:
         return serializers[format_name]
-    except KeyError:
-        # Not chaining with `from` to preserve the historic DoNotExist
-        # traceback/behaviour; revisit in a follow-up.
-        raise DoNotExist(  # noqa: B904
+    except KeyError as e:
+        raise DoNotExist(
             f'No serializer available for the format "{format_name}"'
-        )
+        ) from e
