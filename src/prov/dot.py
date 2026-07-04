@@ -222,11 +222,11 @@ def prov_to_dot(
     def _bundle_to_dot(dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle) -> None:
         def _attach_attribute_annotation(node: pydot.Node, record: ProvRecord) -> None:
             # Adding a node to show all attributes
-            attributes = list(
+            attributes = [
                 (attr_name, value)
                 for attr_name, value in record.attributes
                 if attr_name not in PROV_ATTRIBUTE_QNAMES
-            )
+            ]
 
             if not attributes:
                 return  # No attribute to display

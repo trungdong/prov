@@ -39,7 +39,7 @@ def find_diff(g_rdf, g0_rdf):
                 0
             ]
             try:
-                all_match = all([g1_stmt[i].eq(g2_stmt[i]) for i in range(3)])
+                all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
             except TypeError:
                 all_match = False
             if all_match:

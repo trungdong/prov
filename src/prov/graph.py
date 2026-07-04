@@ -72,7 +72,7 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()
-    node_map: dict[QualifiedName | None, ProvRecord] = dict()
+    node_map: dict[QualifiedName | None, ProvRecord] = {}
     for element in unified.get_records(ProvElement):
         g.add_node(element)
         node_map[element.identifier] = element

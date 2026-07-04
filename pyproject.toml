@@ -117,6 +117,7 @@ select = [
     "F",   # pyflakes
     "W",   # pycodestyle warnings
     "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
     "I",   # isort (import sorting)
     "UP",  # pyupgrade (3.10-safe)
 ]
