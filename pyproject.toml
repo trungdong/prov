@@ -66,6 +66,7 @@ build-backend = "setuptools.build_meta"
 version = {attr = "prov.__version__"}
 
 [tool.setuptools.package-data]
+prov = ["py.typed"]
 "prov.tests" = [
     "json/*.json",
     "xml/*.xml",
@@ -92,6 +93,18 @@ dev = [
     "types-python-dateutil>=2.9.0.20260124",
     "wheel>=0.45.1",
 ]
+
+[tool.uv]
+# numpy is a transitive typing dependency (via types-networkx/matplotlib), not
+# something prov imports itself. numpy 2.5 switched its inline stubs to
+# unconditional PEP 695 `type` statements, which mypy refuses to parse once
+# `[tool.mypy] python_version` is below 3.12 (see below) regardless of the
+# interpreter actually running mypy. Cap it below that until numpy's stubs
+# gate the new syntax on `python_version`, or this project's mypy floor rises
+# to 3.12. If a Dependabot bump of matplotlib or types-networkx ever fails to
+# resolve, this pin is the likely cause: lift it, run `uv run mypy src`, and
+# keep it lifted only if mypy stays green.
+constraint-dependencies = ["numpy<2.5"]
 
 [tool.ruff]
 line-length = 88
@@ -161,10 +174,6 @@ exclude_lines = [
 ]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
+strict = true
 exclude = ["^src/prov/tests/"]
-
-[[tool.mypy.overrides]]
-module = "prov.*"
-disallow_untyped_defs = true
-check_untyped_defs = true
