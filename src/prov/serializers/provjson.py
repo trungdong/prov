@@ -3,16 +3,14 @@ from collections import defaultdict
 import datetime
 import io
 import json
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from prov import Error
+from prov.identifier import Identifier, QualifiedName, Namespace
 from prov.serializers import Serializer
 from prov.constants import *
 from prov.model import (
     Literal,
-    Identifier,
-    QualifiedName,
-    Namespace,
     ProvDocument,
     ProvBundle,
     first,
@@ -94,7 +92,7 @@ class ProvJSONSerializer(Serializer):
         if not isinstance(stream, io.TextIOBase):
             buf = io.StringIO(stream.read().decode("utf-8"))
             stream = buf
-        return json.load(stream, cls=ProvJSONDecoder, **args)
+        return cast(ProvDocument, json.load(stream, cls=ProvJSONDecoder, **args))
 
 
 class ProvJSONEncoder(json.JSONEncoder):
@@ -133,7 +131,7 @@ def encode_json_document(document: ProvDocument) -> ProvJSONDict:
 
 
 def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
-    container = defaultdict(dict)  # type: dict[str, dict]
+    container = defaultdict(dict)  # type: dict[str, dict[str, Any]]
     prefixes = {}  # type: dict[str, str]
     for namespace in bundle._namespaces.get_registered_namespaces():
         prefixes[namespace.prefix] = namespace.uri
@@ -210,7 +208,7 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
         prefixes = jc["prefix"]
         for prefix, uri in prefixes.items():
             if prefix != "default":
-                bundle.add_namespace(Namespace(prefix, uri))  # type: ignore
+                bundle.add_namespace(Namespace(prefix, uri))
             else:
                 bundle.set_default_namespace(uri)
         del jc["prefix"]

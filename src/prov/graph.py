@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import networkx as nx
 from prov.model import (
     ProvDocument,
@@ -56,7 +60,7 @@ INFERRED_ELEMENT_CLASS = {
 }
 
 
-def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph:
+def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     """
     Convert a :class:`~prov.model.ProvDocument` to a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
@@ -64,9 +68,9 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph:
 
     :param prov_document: The :class:`~prov.model.ProvDocument` instance to convert.
     """
-    g = nx.MultiDiGraph()  # type: nx.MultiDiGraph
+    g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()
-    node_map = dict()
+    node_map: dict[Any, ProvRecord] = dict()
     for element in unified.get_records(ProvElement):
         g.add_node(element)
         node_map[element.identifier] = element
@@ -89,7 +93,7 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph:
     return g
 
 
-def graph_to_prov(g: nx.MultiDiGraph) -> ProvDocument:
+def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     """
     Convert a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_

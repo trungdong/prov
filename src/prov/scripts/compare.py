@@ -24,7 +24,7 @@ from prov.model import ProvDocument
 
 logger = logging.getLogger(__name__)
 
-__all__ = []  # type: ignore
+__all__: list[str] = []
 __version__ = 0.1
 __date__ = "2015-06-16"
 __updated__ = "2025-06-07"
@@ -45,7 +45,7 @@ class CLIError(Exception):
         return self.msg
 
 
-def main(argv: Optional[list] = None) -> int:  # IGNORE:C0111
+def main(argv: Optional[list[str]] = None) -> int:  # IGNORE:C0111
     """Command line options."""
 
     if argv is None:

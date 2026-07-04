@@ -30,7 +30,11 @@ from urllib.parse import urlparse
 import dateutil.parser
 from prov import Error, serializers
 from prov.constants import *
-from prov.identifier import Identifier, QualifiedName, Namespace
+from prov.identifier import (
+    Identifier as Identifier,
+    QualifiedName as QualifiedName,
+    Namespace as Namespace,
+)
 
 
 __author__ = "Trung Dong Huynh"
@@ -54,7 +58,7 @@ RecordAttributesArg = (
 NameValuePair = tuple[QualifiedName, Any]  # type: typing.TypeAlias
 DatetimeOrStr = datetime.datetime | str  # type: typing.TypeAlias
 NSCollection = dict[str, str] | Iterable[Namespace]  # type: typing.TypeAlias
-PathLike = str | bytes | os.PathLike  # type: typing.TypeAlias
+PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
 
 
 # Data Types
@@ -284,7 +288,7 @@ class ProvRecord:
         """
         self._bundle = bundle
         self._identifier = identifier
-        self._attributes: dict[QualifiedName, set] = defaultdict(set)
+        self._attributes: dict[QualifiedName, set[Any]] = defaultdict(set)
         if attributes:
             self.add_attributes(attributes)
 
@@ -319,7 +323,7 @@ class ProvRecord:
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
-    def get_attribute(self, attr_name: QualifiedNameCandidate) -> set:
+    def get_attribute(self, attr_name: QualifiedNameCandidate) -> set[Any]:
         """
         Returns the attribute values (if any) for the specified attribute name.
 
@@ -350,7 +354,7 @@ class ProvRecord:
         ]
 
     @property
-    def args(self) -> tuple:
+    def args(self) -> tuple[Any, ...]:
         """
         All values of the record's formal attributes.
 
@@ -1127,7 +1131,7 @@ DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
 
 
 #  Bundle
-class NamespaceManager(dict):
+class NamespaceManager(dict[str, Namespace]):
     """Manages namespaces for PROV documents and bundles."""
 
     parent = None  # type: Optional[NamespaceManager]
@@ -1646,9 +1650,9 @@ class ProvBundle:
     def __ne__(self, other: Any) -> bool:
         return not (self == other)
 
-    __hash__ = None  # type: ignore
+    __hash__ = None  # type: ignore[assignment]
 
-    # type: ignore # type: ignore # Transformations
+    # Transformations
     def _unified_records(self) -> list[ProvRecord]:
         """Returns a list of unified records."""
         # TODO: Check unification rules in the PROV-CONSTRAINTS document
@@ -2304,7 +2308,7 @@ class ProvBundle:
             other_attributes,
         )
         record.add_asserted_type(PROV["PrimarySource"])
-        return record  # type: ignore
+        return record
 
     def specialization(
         self, specificEntity: EntityRef, generalEntity: EntityRef
