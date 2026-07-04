@@ -357,7 +357,7 @@ QualifiedName | None`) and a strict companion that raises instead of returning N
 **Rationale:** every caller currently re-derives "can this be None?" from folklore;
 two small functions with true signatures end that.
 
-### F5. Retire `walk()`'s untypeable sentinel
+### F5. ~~Retire `walk()`'s untypeable sentinel~~ — DONE early, in 2.x (PR #198)
 
 **Evidence:** `provrdf.py:736-739` — `path: dict[Any, Any] = None
 # type: ignore[assignment]`, with the "is this the first call?" test keyed on
@@ -365,12 +365,12 @@ two small functions with true signatures end that.
 workaround that cannot be typed honestly; the strict pass had to keep the ignore
 because switching the guard to `path is None` would (theoretically) change behaviour.
 
-**Change (3.0):** internal helper — retype as `path: dict[Any, Any] | None = None`
-with a `path is None` guard, or fold the recursion's seed into a small wrapper
-function. Also parametrise properly once A1's value union exists.
-
-**Rationale:** the current shape needs a permanent ignore *and* a paragraph of
-explanation; the fixed shape needs neither.
+**Resolution (2026-07-04, PR #198):** the RUF-family lint task (RUF013) retyped it as
+`path: dict[Any, Any] | None = None` with a `path is None` guard after proving the
+invariant "`path is None` ⟺ `level == 0`" holds at every call site in the repo
+(one external call using both defaults; the recursive call always passes a non-None
+path with level ≥ 1). `walk()` is an internal helper, so no API-freeze concern.
+Remaining for 3.0: only the `Any` parametrisation once A1's value union exists.
 
 ---
 
@@ -397,8 +397,9 @@ explanation; the fixed shape needs neither.
    serialize + URL print-path), E1 (star re-export, docs-level); add `GenerationRef`
    alias next to the B3 typo.
 2. **3.0, first wave (mechanical):** B3 removal, C3 honest returns, C4 identifier
-   narrowing, C2 typed factories, F2 dead-code deletion, F3 identifier invariant,
-   F5 walk() sentinel — internal, low-risk, delete most remaining casts/ignores.
+   narrowing, C2 typed factories, F2 dead-code deletion, F3 identifier invariant
+   — internal, low-risk, delete most remaining casts/ignores. (F5's walk() sentinel
+   already landed in 2.x via PR #198.)
 3. **3.0, second wave (design):** A1→A2→A3 as one arc (value model), then B1+F4
    (coercion point with honest None contracts), C1 (NamespaceManager), D1/D2+F1
    (I/O split and non-optional serializer document), E2 (TC lint rules last) — each
