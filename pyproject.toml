@@ -165,6 +165,9 @@ source = [
 ]
 
 [tool.coverage.report]
+# Coverage ratchet (docs/test-gap-checklist.md): measured 91.218% at the Phase 2
+# audit. Raise as T11-T13 close gaps; never lower without a documented reason.
+fail_under = 91
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
