@@ -172,6 +172,7 @@ PROV_RECORD_IDS_MAP = {
     PROV_N_MAP[rec_type_id]: rec_type_id for rec_type_id in PROV_N_MAP
 }
 PROV_ID_ATTRIBUTES_MAP = dict(PROV_RECORD_ATTRIBUTES)
+# inverse of PROV_ID_ATTRIBUTES_MAP: maps each attribute name back to its QName
 PROV_ATTRIBUTES_ID_MAP = {
     attribute: prov_id for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES
 }
