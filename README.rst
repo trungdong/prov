@@ -55,3 +55,11 @@ The library is undergoing a staged modernisation (tooling, type hints, tests,
 documentation, standards conformance), a batch of bug fixes, and new format support.
 See `ROADMAP.md <ROADMAP.md>`_ for the plan and the 2.x API-stability promise.
 Feedback is welcome on the `issue tracker <https://github.com/trungdong/prov/issues>`_.
+
+
+Supported versions
+-------------------
+
+Only the latest 2.x release is supported; 1.x and earlier no longer receive
+fixes. See `SECURITY.md <SECURITY.md>`_ for the full support table and how to
+report a vulnerability.
