@@ -57,7 +57,8 @@ uv run ruff check src/
 uv run ruff format src/
 
 # Type check (mirrors the `typecheck` job in CI.yml; `[tool.mypy] strict = true`,
-# codebase is strict-clean, and the package ships inline types via `py.typed` — PEP 561)
+# codebase is strict-clean apart from src/prov/tests/ which is excluded from mypy,
+# and the package ships inline types via `py.typed` — PEP 561)
 uv run mypy src
 
 # Coverage

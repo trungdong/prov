@@ -101,7 +101,9 @@ dev = [
 # `[tool.mypy] python_version` is below 3.12 (see below) regardless of the
 # interpreter actually running mypy. Cap it below that until numpy's stubs
 # gate the new syntax on `python_version`, or this project's mypy floor rises
-# to 3.12.
+# to 3.12. If a Dependabot bump of matplotlib or types-networkx ever fails to
+# resolve, this pin is the likely cause: lift it, run `uv run mypy src`, and
+# keep it lifted only if mypy stays green.
 constraint-dependencies = ["numpy<2.5"]
 
 [tool.ruff]
