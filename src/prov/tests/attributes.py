@@ -1,3 +1,5 @@
+from typing import Any, ClassVar
+
 from prov.model import *
 
 EX_NS = Namespace("ex", "http://example.org/")
@@ -10,7 +12,7 @@ class TestAttributesBase:
     RoundTripTestCase.
     """
 
-    attribute_values = [
+    attribute_values: ClassVar[list[Any]] = [
         "un lieu",
         Literal("un lieu", langtag="fr"),
         Literal("a place", langtag="en"),

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
-__all__ = ["get", "Registry", "Serializer"]
+__all__ = ["Registry", "Serializer", "get"]
 
 
 class Serializer(ABC):

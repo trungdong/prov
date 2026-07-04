@@ -121,6 +121,7 @@ select = [
     "I",   # isort (import sorting)
     "SIM", # flake8-simplify
     "UP",  # pyupgrade (3.10-safe)
+    "RUF", # ruff-specific rules
 ]
 ignore = [
     "E203",  # whitespace before ':' (black/ruff-format compatible)

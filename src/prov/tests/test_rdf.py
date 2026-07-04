@@ -30,14 +30,14 @@ def find_diff(g_rdf, g0_rdf):
         graphs_equal = False
     matching_indices = [[], []]
     for idx in range(len(g1)):
-        g1_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]), format="nt"))[0]
+        g1_stmt = next(iter(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]), format="nt")))
         match_found = False
         for idx2 in range(len(g2)):
             if idx2 in matching_indices[1]:
                 continue
-            g2_stmt = list(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]), format="nt"))[
-                0
-            ]
+            g2_stmt = next(
+                iter(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]), format="nt"))
+            )
             try:
                 all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
             except TypeError:
@@ -268,7 +268,7 @@ class TestRDFSerializer(unittest.TestCase):
                     format=format,
                 )
                 if idx not in skip_match:
-                    match, _, in_first, in_second = find_diff(g_rdf, g0_rdf)
+                    match, _, _in_first, _in_second = find_diff(g_rdf, g0_rdf)
                     self.assertTrue(match)
                 else:
                     logger.info("Skipping match: %s" % fname)
