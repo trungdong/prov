@@ -4,7 +4,7 @@ import datetime
 import io
 import logging
 import warnings
-from typing import Any, Optional
+from typing import Any
 
 from lxml import etree
 
@@ -79,7 +79,7 @@ class ProvXMLSerializer(Serializer):
     def serialize_bundle(
         self,
         bundle: prov.model.ProvBundle,
-        element: Optional[etree._Element] = None,
+        element: etree._Element | None = None,
         force_types: bool = False,
     ) -> etree._Element:
         """
@@ -149,9 +149,8 @@ class ProvXMLSerializer(Serializer):
                         value.datatype is not None
                         and value.datatype != PROV_INTERNATIONALIZEDSTRING
                     ):
-                        subelem.attrib[_ns_xsi("type")] = "%s:%s" % (
-                            value.datatype.namespace.prefix,
-                            value.datatype.localpart,
+                        subelem.attrib[_ns_xsi("type")] = (
+                            f"{value.datatype.namespace.prefix}:{value.datatype.localpart}"
                         )
                     if value.langtag is not None:
                         subelem.attrib[_ns_xml("lang")] = value.langtag
@@ -359,9 +358,7 @@ def _extract_attributes(
     for subel in element:
         sqname = etree.QName(subel)
         qname_str = (
-            "%s:%s" % (subel.prefix, sqname.localname)
-            if subel.prefix
-            else sqname.localname
+            f"{subel.prefix}:{sqname.localname}" if subel.prefix else sqname.localname
         )
         _t = xml_qname_to_QualifiedName(subel, qname_str)
 
@@ -381,10 +378,9 @@ def _extract_attributes(
                 # No explicit stacklevel to preserve historic warning behaviour;
                 # revisit in a follow-up.
                 warnings.warn(  # noqa: B028
-                    "The element '%s' contains an attribute %s='%s' "
+                    f"The element '{_t}' contains an attribute {key!s}='{value!s}' "
                     "which is not representable in the prov module's "
-                    "internal data model and will thus be ignored."
-                    % (_t, str(key), str(value)),
+                    "internal data model and will thus be ignored.",
                     UserWarning,
                 )
 
@@ -426,13 +422,11 @@ def xml_qname_to_QualifiedName(
             ns = prov.identifier.Namespace("", ns_uri)
         return ns[qname_str]
     # no default namespace
-    raise ProvXMLException(
-        'Could not create a valid QualifiedName for "%s"' % qname_str
-    )
+    raise ProvXMLException(f'Could not create a valid QualifiedName for "{qname_str}"')
 
 
 def _ns(ns: str, tag: str) -> str:
-    return "{%s}%s" % (ns, tag)
+    return f"{{{ns}}}{tag}"
 
 
 def _ns_prov(tag: str) -> str:

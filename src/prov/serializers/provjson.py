@@ -5,7 +5,7 @@ import io
 import json
 import logging
 from collections import defaultdict
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from prov import Error
 from prov.constants import *
@@ -42,7 +42,7 @@ class AnonymousIDGenerator:
     def get_anon_id(self, obj: ProvRecord, local_prefix: str = "id") -> Identifier:
         if obj not in self._cache:
             self._count += 1
-            self._cache[obj] = Identifier("_:%s%d" % (local_prefix, self._count))
+            self._cache[obj] = Identifier(f"_:{local_prefix}{self._count}")
         return self._cache[obj]
 
 
@@ -113,7 +113,7 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 # Encoding/decoding functions
 def valid_qualified_name(
-    bundle: ProvBundle, value: Optional[QualifiedNameCandidate]
+    bundle: ProvBundle, value: QualifiedNameCandidate | None
 ) -> QualifiedName | None:
     if value is None:
         return None
@@ -309,7 +309,7 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
     if isinstance(literal, dict):
         # complex type
         value = literal["$"]
-        datatype_str = literal.get("type", None)  # type: Optional[str]
+        datatype_str = literal.get("type", None)  # type: str | None
         datatype = valid_qualified_name(bundle, datatype_str)
         langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:

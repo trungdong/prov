@@ -12,13 +12,15 @@ convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG
 @deffield    updated: 2025-06-07
 """
 
+from __future__ import annotations
+
 import io
 import logging
 import os
 import sys
 import traceback
 from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
-from typing import Optional, cast
+from typing import cast
 
 from prov import serializers
 from prov.model import ProvDocument
@@ -76,7 +78,7 @@ class CLIError(Exception):
 
     def __init__(self, msg: str):
         super().__init__(type(self))
-        self.msg = "E: %s" % msg
+        self.msg = f"E: {msg}"
 
     def __str__(self) -> str:
         return self.msg
@@ -104,10 +106,10 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
         except serializers.DoNotExist:
             # Not chaining with `from` to preserve the historic CLIError
             # traceback/behaviour; revisit in a follow-up.
-            raise CLIError('Output format "%s" is not supported.' % output_format)  # noqa: B904
+            raise CLIError(f'Output format "{output_format}" is not supported.')  # noqa: B904
 
 
-def main(argv: Optional[list[str]] = None) -> int:  # IGNORE:C0111
+def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     """Command line options."""
 
     if argv is None:
@@ -116,15 +118,11 @@ def main(argv: Optional[list[str]] = None) -> int:  # IGNORE:C0111
         sys.argv.extend(argv)
 
     program_name = os.path.basename(sys.argv[0])
-    program_version = "v%s" % __version__
+    program_version = f"v{__version__}"
     program_build_date = str(__updated__)
-    program_version_message = "%%(prog)s %s (%s)" % (
-        program_version,
-        program_build_date,
-    )
+    program_version_message = f"%(prog)s {program_version} ({program_build_date})"
     program_shortdesc = __doc__.split("\n")[1]
-    program_license = (
-        """%s
+    program_license = f"""{program_shortdesc}
 
   Copyright 2025 Trung Dong Huynh.
 
@@ -136,8 +134,6 @@ def main(argv: Optional[list[str]] = None) -> int:  # IGNORE:C0111
 
 USAGE
 """
-        % program_shortdesc
-    )
 
     try:
         # Setup argument parser

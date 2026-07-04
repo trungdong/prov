@@ -40,7 +40,7 @@ class Identifier:
         return hash((self.uri, self.__class__))
 
     def __repr__(self) -> str:
-        return "<%s: %s>" % (self.__class__.__name__, self._uri)
+        return f"<{self.__class__.__name__}: {self._uri}>"
 
     def provn_representation(self) -> str:
         """
@@ -49,7 +49,7 @@ class Identifier:
         Returns:
             str: The PROV-N representation of the URI.
         """
-        return '"%s" %%%% xsd:anyURI' % self._uri
+        return f'"{self._uri}" %% xsd:anyURI'
 
 
 class QualifiedName(Identifier):
@@ -95,14 +95,14 @@ class QualifiedName(Identifier):
         return self._str
 
     def __repr__(self) -> str:
-        return "<%s: %s>" % (self.__class__.__name__, self._str)
+        return f"<{self.__class__.__name__}: {self._str}>"
 
     def __hash__(self) -> int:
         return hash(self.uri)
 
     def provn_representation(self) -> str:
         """PROV-N representation of qualified name in a string."""
-        return "'%s'" % self._str
+        return f"'{self._str}'"
 
 
 class Namespace:
@@ -181,7 +181,7 @@ class Namespace:
         return hash((self._uri, self._prefix))
 
     def __repr__(self) -> str:
-        return "<%s: %s {%s}>" % (self.__class__.__name__, self._prefix, self._uri)
+        return f"<{self.__class__.__name__}: {self._prefix} {{{self._uri}}}>"
 
     def __getitem__(self, localpart: str) -> QualifiedName:
         if localpart in self._cache:

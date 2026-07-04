@@ -8,7 +8,7 @@ import io
 import warnings
 from collections import OrderedDict
 from collections.abc import Generator, Iterable
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import dateutil.parser
 from rdflib import RDF, RDFS, XSD
@@ -66,7 +66,7 @@ class AnonymousIDGenerator:
     def get_anon_id(self, obj: pm.ProvRecord, local_prefix: str = "id") -> str:
         if obj not in self._cache:
             self._count += 1
-            self._cache[obj] = "_:%s%d" % (local_prefix, self._count)
+            self._cache[obj] = f"_:{local_prefix}{self._count}"
         return self._cache[obj]
 
 
@@ -272,8 +272,8 @@ class ProvRDFSerializer(Serializer):
         self,
         bundle: pm.ProvBundle,
         PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
-        container: Optional[ConjunctiveGraph] = None,
-        identifier: Optional[str] = None,
+        container: ConjunctiveGraph | None = None,
+        identifier: str | None = None,
     ) -> ConjunctiveGraph:
         if container is None:
             container = ConjunctiveGraph(identifier=identifier)
@@ -562,7 +562,7 @@ class ProvRDFSerializer(Serializer):
     ) -> None:
         record_types = {}  # type: dict[str, pm.QualifiedName]
         PROV_CLS_MAP = {}  # type: dict[str, pm.QualifiedName]
-        formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, Optional[pm.QualifiedNameCandidate | datetime.datetime]]]
+        formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, pm.QualifiedNameCandidate | datetime.datetime | None]]
         unique_sets = {}  # type: dict[str, dict[pm.QualifiedName, list[pm.QualifiedNameCandidate | datetime.datetime]]]
         for prov_type, _ in PROV_BASE_CLS.items():
             PROV_CLS_MAP[prov_type.uri] = PROV_BASE_CLS[prov_type]

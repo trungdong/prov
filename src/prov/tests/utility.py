@@ -36,7 +36,7 @@ class RoundTripTestCase(DocumentBaseTestCase):
             # Assume UTF-8 encoding which is forced by the particular
             # PROV XML implementation and should also work for the PROV
             # JSON implementation.
-            msg_extra = "'%s' serialization content:\n%s" % (
+            msg_extra = "'{}' serialization content:\n{}".format(
                 self.FORMAT,
                 stream.read().decode("utf-8"),
             )

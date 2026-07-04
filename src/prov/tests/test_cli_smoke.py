@@ -33,7 +33,7 @@ class TestCLISmoke(unittest.TestCase):
 
     def test_console_scripts_installed(self):
         for script in ("prov-convert", "prov-compare"):
-            self.assertIsNotNone(_console_script(script), "%s not installed" % script)
+            self.assertIsNotNone(_console_script(script), f"{script} not installed")
 
     def test_prov_convert_and_compare_end_to_end(self):
         with tempfile.TemporaryDirectory() as tmp:

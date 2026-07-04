@@ -280,7 +280,7 @@ class TestExtras(unittest.TestCase):
 
         def fake_import(name, *args, **kwargs):
             if name.startswith("matplotlib"):
-                raise ImportError("No module named %r" % name)
+                raise ImportError(f"No module named {name!r}")
             return real_import(name, *args, **kwargs)
 
         document = ProvDocument()

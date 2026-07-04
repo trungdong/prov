@@ -22,7 +22,6 @@ from collections.abc import Callable, Iterable
 from io import IOBase
 from typing import (
     Any,
-    Optional,
     Union,
 )
 from urllib.parse import urlparse
@@ -46,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 # Type aliases for convenience
 QualifiedNameCandidate = QualifiedName | str | Identifier  # type: typing.TypeAlias
-OptionalID = Optional[QualifiedNameCandidate]  # type: typing.TypeAlias
+OptionalID = QualifiedNameCandidate | None  # type: typing.TypeAlias
 EntityRef = Union["ProvEntity", QualifiedNameCandidate]  # type: typing.TypeAlias
 ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
@@ -62,14 +61,14 @@ PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
 
 
 # Data Types
-def _ensure_datetime(value: Optional[DatetimeOrStr]) -> Optional[datetime.datetime]:
+def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
     if isinstance(value, str):
         return dateutil.parser.parse(value)
     else:
         return value
 
 
-def parse_xsd_datetime(value: str) -> Optional[datetime.datetime]:
+def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     try:
         return dateutil.parser.parse(value)
     except ValueError:
@@ -77,7 +76,7 @@ def parse_xsd_datetime(value: str) -> Optional[datetime.datetime]:
     return None
 
 
-def parse_boolean(value: str) -> Optional[bool]:
+def parse_boolean(value: str) -> bool | None:
     if value.lower() in ("false", "0"):
         return False
     elif value.lower() in ("true", "1"):
@@ -124,9 +123,9 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
     # Escaping any double quote
     s = s.replace('"', '\\"')
     if "\n" in s:
-        return '"""%s"""' % s
+        return f'"""{s}"""'
     else:
-        return '"%s"' % s
+        return f'"{s}"'
 
 
 def encoding_provn_value(
@@ -137,9 +136,9 @@ def encoding_provn_value(
     elif isinstance(value, datetime.datetime):
         return f'"{value.isoformat()}" %% xsd:dateTime'
     elif isinstance(value, float):
-        return '"%g" %%%% xsd:float' % value
+        return f'"{value:g}" %% xsd:float'
     elif isinstance(value, bool):
-        return '"%i" %%%% xsd:boolean' % value
+        return f'"{value:d}" %% xsd:boolean'
     else:
         # TODO: QName export
         return str(value)
@@ -149,15 +148,15 @@ class Literal:
     def __init__(
         self,
         value: Any,
-        datatype: Optional[QualifiedName] = None,
-        langtag: Optional[str] = None,
+        datatype: QualifiedName | None = None,
+        langtag: str | None = None,
     ):
         self._value: str = str(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug(
                     "Assuming prov:InternationalizedString as the type of "
-                    '"%s"@%s' % (value, langtag)
+                    f'"{value}"@{langtag}'
                 )
                 datatype = PROV_INTERNATIONALIZEDSTRING
             # PROV JSON states that the type field must not be set when
@@ -165,19 +164,19 @@ class Literal:
             # internationalized string.
             elif datatype != PROV_INTERNATIONALIZEDSTRING:
                 logger.warning(
-                    'Invalid data type (%s) for "%s"@%s, overridden as '
-                    "prov:InternationalizedString." % (datatype, value, langtag)
+                    f'Invalid data type ({datatype}) for "{value}"@{langtag}, overridden as '
+                    "prov:InternationalizedString."
                 )
                 datatype = PROV_INTERNATIONALIZEDSTRING
-        self._datatype: Optional[QualifiedName] = datatype
+        self._datatype: QualifiedName | None = datatype
         # langtag is always a string
-        self._langtag: Optional[str] = str(langtag) if langtag is not None else None
+        self._langtag: str | None = str(langtag) if langtag is not None else None
 
     def __str__(self) -> str:
         return self.provn_representation()
 
     def __repr__(self) -> str:
-        return "<Literal: %s>" % self.provn_representation()
+        return f"<Literal: {self.provn_representation()}>"
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -214,15 +213,9 @@ class Literal:
     def provn_representation(self) -> str:
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString
-            return "%s@%s" % (
-                _ensure_multiline_string_triple_quoted(self._value),
-                str(self._langtag),
-            )
+            return f"{_ensure_multiline_string_triple_quoted(self._value)}@{self._langtag!s}"
         else:
-            return "%s %%%% %s" % (
-                _ensure_multiline_string_triple_quoted(self._value),
-                str(self._datatype),
-            )
+            return f"{_ensure_multiline_string_triple_quoted(self._value)} %% {self._datatype!s}"
 
 
 # Exceptions and warnings
@@ -253,7 +246,7 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         self.qname = qname
 
     def __str__(self) -> str:
-        return "Invalid Qualified Name: %s" % self.qname
+        return f"Invalid Qualified Name: {self.qname}"
 
 
 class ProvElementIdentifierRequired(ProvException):
@@ -270,14 +263,14 @@ class ProvRecord:
     FORMAL_ATTRIBUTES = ()  # type: tuple[QualifiedName, ...]
     """Formal attributes names of this record type, in the expected order."""
 
-    _prov_type: Optional[QualifiedName] = None
+    _prov_type: QualifiedName | None = None
     """PROV type of record."""
 
     def __init__(
         self,
         bundle: ProvBundle,
-        identifier: Optional[QualifiedName],
-        attributes: Optional[RecordAttributesArg] = None,
+        identifier: QualifiedName | None,
+        attributes: RecordAttributesArg | None = None,
     ):
         """
         Constructor.
@@ -506,7 +499,7 @@ class ProvRecord:
 
                 if value is None:
                     raise ProvException(
-                        "Invalid value for attribute %s: %s" % (attr, original_value)
+                        f"Invalid value for attribute {attr}: {original_value}"
                     )
 
                 if (
@@ -529,7 +522,7 @@ class ProvRecord:
 
                     if is_not_same_value:
                         raise ProvException(
-                            "Cannot have more than one value for attribute %s" % attr
+                            f"Cannot have more than one value for attribute {attr}"
                         )
                     else:
                         # Same value, ignore it
@@ -594,11 +587,11 @@ class ProvRecord:
                     except AttributeError:
                         provn_represenation = encoding_provn_value(value)
                     # TODO: QName export
-                    extra.append("%s=%s" % (str(attr), provn_represenation))
+                    extra.append(f"{attr!s}={provn_represenation}")
 
         if extra:
-            items.append("[%s]" % ", ".join(extra))
-        prov_n = "%s(%s%s)" % (
+            items.append("[{}]".format(", ".join(extra)))
+        prov_n = "{}({}{})".format(
             PROV_N_MAP[self.get_type()],
             relation_id,
             ", ".join(items),
@@ -629,8 +622,8 @@ class ProvElement(ProvRecord):
     def __init__(
         self,
         bundle: ProvBundle,
-        identifier: Optional[QualifiedName],
-        attributes: Optional[RecordAttributesArg] = None,
+        identifier: QualifiedName | None,
+        attributes: RecordAttributesArg | None = None,
     ):
         if identifier is None:
             # All types of PROV elements require a valid identifier
@@ -647,7 +640,7 @@ class ProvElement(ProvRecord):
         return True
 
     def __repr__(self) -> str:
-        return "<%s: %s>" % (self.__class__.__name__, self._identifier)
+        return f"<{self.__class__.__name__}: {self._identifier}>"
 
 
 class ProvRelation(ProvRecord):
@@ -662,14 +655,9 @@ class ProvRelation(ProvRecord):
         return True
 
     def __repr__(self) -> str:
-        identifier = " %s" % self._identifier if self._identifier else ""
+        identifier = f" {self._identifier}" if self._identifier else ""
         element_1, element_2 = [qname for _, qname in self.formal_attributes[:2]]
-        return "<%s:%s (%s, %s)>" % (
-            self.__class__.__name__,
-            identifier,
-            element_1,
-            element_2,
-        )
+        return f"<{self.__class__.__name__}:{identifier} ({element_1}, {element_2})>"
 
 
 # Component 1: Entities and Activities
@@ -682,9 +670,9 @@ class ProvEntity(ProvElement):
     # (formal) argument
     def wasGeneratedBy(
         self,
-        activity: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        activity: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """
         Creates a new generation record to this entity.
@@ -702,9 +690,9 @@ class ProvEntity(ProvElement):
 
     def wasInvalidatedBy(
         self,
-        activity: Optional[ActivityRef],
-        time: Optional[DatetimeOrStr] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        activity: ActivityRef | None,
+        time: DatetimeOrStr | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """
         Creates a new invalidation record for this entity.
@@ -723,10 +711,10 @@ class ProvEntity(ProvElement):
     def wasDerivedFrom(
         self,
         usedEntity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        generation: Optional[GenrationRef] = None,
-        usage: Optional[UsageRef] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """
         Creates a new derivation record for this entity from a used entity.
@@ -747,7 +735,7 @@ class ProvEntity(ProvElement):
         return self
 
     def wasAttributedTo(
-        self, agent: AgentRef, attributes: Optional[RecordAttributesArg] = None
+        self, agent: AgentRef, attributes: RecordAttributesArg | None = None
     ) -> ProvEntity:
         """
         Creates a new attribution record between this entity and an agent.
@@ -798,8 +786,8 @@ class ProvActivity(ProvElement):
     #  Convenient methods
     def set_time(
         self,
-        startTime: Optional[datetime.datetime] = None,
-        endTime: Optional[datetime.datetime] = None,
+        startTime: datetime.datetime | None = None,
+        endTime: datetime.datetime | None = None,
     ) -> None:
         """
         Sets the time this activity took place.
@@ -839,8 +827,8 @@ class ProvActivity(ProvElement):
     def used(
         self,
         entity: EntityRef,
-        time: Optional[DatetimeOrStr] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        time: DatetimeOrStr | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """
         Creates a new usage record for this activity.
@@ -857,7 +845,7 @@ class ProvActivity(ProvElement):
         return self
 
     def wasInformedBy(
-        self, informant: ActivityRef, attributes: Optional[RecordAttributesArg] = None
+        self, informant: ActivityRef, attributes: RecordAttributesArg | None = None
     ) -> ProvActivity:
         """
         Creates a new communication record for this activity.
@@ -871,10 +859,10 @@ class ProvActivity(ProvElement):
 
     def wasStartedBy(
         self,
-        trigger: Optional[EntityRef],
-        starter: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        trigger: EntityRef | None,
+        starter: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """
         Creates a new start record for this activity. The activity did not exist
@@ -895,10 +883,10 @@ class ProvActivity(ProvElement):
 
     def wasEndedBy(
         self,
-        trigger: Optional[EntityRef],
-        ender: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        trigger: EntityRef | None,
+        ender: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """
         Creates a new end record for this activity.
@@ -918,8 +906,8 @@ class ProvActivity(ProvElement):
     def wasAssociatedWith(
         self,
         agent: AgentRef,
-        plan: Optional[EntityRef] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        plan: EntityRef | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """
         Creates a new association record for this activity.
@@ -1019,8 +1007,8 @@ class ProvAgent(ProvElement):
     def actedOnBehalfOf(
         self,
         responsible: AgentRef,
-        activity: Optional[ActivityRef] = None,
-        attributes: Optional[RecordAttributesArg] = None,
+        activity: ActivityRef | None = None,
+        attributes: RecordAttributesArg | None = None,
     ) -> ProvAgent:
         """
         Creates a new delegation record on behalf of this agent.
@@ -1140,14 +1128,14 @@ DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
 class NamespaceManager(dict[str, Namespace]):
     """Manages namespaces for PROV documents and bundles."""
 
-    parent = None  # type: Optional[NamespaceManager]
+    parent = None  # type: NamespaceManager | None
     """Parent :py:class:`NamespaceManager` this manager one is a child of."""
 
     def __init__(
         self,
-        namespaces: Optional[NSCollection] = None,
-        default: Optional[str] = None,
-        parent: Optional[NamespaceManager] = None,
+        namespaces: NSCollection | None = None,
+        default: str | None = None,
+        parent: NamespaceManager | None = None,
     ):
         """
         Constructor.
@@ -1166,7 +1154,7 @@ class NamespaceManager(dict[str, Namespace]):
         if default is not None:
             self.set_default_namespace(default)
         else:
-            self._default = None  # type: Optional[Namespace]
+            self._default = None  # type: Namespace | None
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
@@ -1369,7 +1357,7 @@ class NamespaceManager(dict[str, Namespace]):
         :return: :py:class:`~prov.identifier.Identifier`
         """
         self._anon_id_count += 1
-        return Identifier("_:%s%d" % (local_prefix, self._anon_id_count))
+        return Identifier(f"_:{local_prefix}{self._anon_id_count}")
 
     def _get_unused_prefix(self, original_prefix: str) -> str:
         if original_prefix not in self:
@@ -1388,10 +1376,10 @@ class ProvBundle:
 
     def __init__(
         self,
-        records: Optional[Iterable[ProvRecord]] = None,
-        identifier: Optional[QualifiedName] = None,
-        namespaces: Optional[NSCollection] = None,
-        document: Optional[ProvDocument] = None,
+        records: Iterable[ProvRecord] | None = None,
+        identifier: QualifiedName | None = None,
+        namespaces: NSCollection | None = None,
+        document: ProvDocument | None = None,
     ):
         """
         Constructor.
@@ -1416,7 +1404,7 @@ class ProvBundle:
                 self.add_record(record)
 
     def __repr__(self) -> str:
-        return "<%s: %s>" % (self.__class__.__name__, self._identifier)
+        return f"<{self.__class__.__name__}: {self._identifier}>"
 
     @property
     def namespaces(self) -> set[Namespace]:
@@ -1478,7 +1466,7 @@ class ProvBundle:
         return self._namespaces.get_default_namespace()
 
     def add_namespace(
-        self, namespace_or_prefix: Namespace | str, uri: Optional[str] = None
+        self, namespace_or_prefix: Namespace | str, uri: str | None = None
     ) -> Namespace:
         """
         Adds a namespace (if not available, yet).
@@ -1508,7 +1496,7 @@ class ProvBundle:
 
     def valid_qualified_name(
         self, identifier: QualifiedNameCandidate
-    ) -> Optional[QualifiedName]:
+    ) -> QualifiedName | None:
         return self._namespaces.valid_qualified_name(identifier)
 
     def mandatory_valid_qname(
@@ -1525,7 +1513,7 @@ class ProvBundle:
             raise ProvExceptionInvalidQualifiedName(identifier)
 
     def get_records(
-        self, class_or_type_or_tuple: Optional[type | tuple[type]] = None
+        self, class_or_type_or_tuple: type | tuple[type] | None = None
     ) -> Iterable[ProvRecord]:
         """
         Returns all records. Returned records may be filtered by the optional
@@ -1597,17 +1585,17 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        lines = ["document"] if self.is_document() else ["bundle %s" % self._identifier]
+        lines = ["document"] if self.is_document() else [f"bundle {self._identifier}"]
 
         default_namespace = self._namespaces.get_default_namespace()
         if default_namespace:
-            lines.append("default <%s>" % default_namespace.uri)
+            lines.append(f"default <{default_namespace.uri}>")
 
         registered_namespaces = self._namespaces.get_registered_namespaces()
         if registered_namespaces:
             lines.extend(
                 [
-                    "prefix %s <%s>" % (namespace.prefix, namespace.uri)
+                    f"prefix {namespace.prefix} <{namespace.uri}>"
                     for namespace in registered_namespaces
                 ]
             )
@@ -1721,7 +1709,7 @@ class ProvBundle:
         else:
             raise ProvException(
                 "ProvBundle.update(): The other bundle is not a ProvBundle "
-                "instance (%s)" % type(other)
+                f"instance ({type(other)})"
             )
 
     # Provenance statements
@@ -1737,8 +1725,8 @@ class ProvBundle:
         self,
         record_type: QualifiedName,
         identifier: OptionalID,
-        attributes: Optional[RecordAttributesArg] = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        attributes: RecordAttributesArg | None = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvRecord:
         """
         Creates a new record.
@@ -1786,7 +1774,7 @@ class ProvBundle:
     def entity(
         self,
         identifier: QualifiedNameCandidate,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """
         Creates a new entity.
@@ -1800,9 +1788,9 @@ class ProvBundle:
     def activity(
         self,
         identifier: QualifiedNameCandidate,
-        startTime: Optional[DatetimeOrStr] = None,
-        endTime: Optional[DatetimeOrStr] = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        startTime: DatetimeOrStr | None = None,
+        endTime: DatetimeOrStr | None = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """
         Creates a new activity.
@@ -1831,10 +1819,10 @@ class ProvBundle:
     def generation(
         self,
         entity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
+        activity: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvRecord:
         """
         Creates a new generation record for an entity.
@@ -1864,10 +1852,10 @@ class ProvBundle:
     def usage(
         self,
         activity: ActivityRef,
-        entity: Optional[EntityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
+        entity: EntityRef | None = None,
+        time: DatetimeOrStr | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvUsage:
         """
         Creates a new usage record for an activity.
@@ -1897,11 +1885,11 @@ class ProvBundle:
     def start(
         self,
         activity: ActivityRef,
-        trigger: Optional[EntityRef] = None,
-        starter: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
+        trigger: EntityRef | None = None,
+        starter: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvStart:
         """
         Creates a new start record for an activity.
@@ -1934,11 +1922,11 @@ class ProvBundle:
     def end(
         self,
         activity: ActivityRef,
-        trigger: Optional[EntityRef] = None,
-        ender: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
+        trigger: EntityRef | None = None,
+        ender: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEnd:
         """
         Creates a new end record for an activity.
@@ -1971,10 +1959,10 @@ class ProvBundle:
     def invalidation(
         self,
         entity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        time: Optional[DatetimeOrStr] = None,
+        activity: ActivityRef | None = None,
+        time: DatetimeOrStr | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvInvalidation:
         """
         Creates a new invalidation record for an entity.
@@ -2006,7 +1994,7 @@ class ProvBundle:
         informed: ActivityRef,
         informant: ActivityRef,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvCommunication:
         """
         Creates a new communication record for an entity.
@@ -2031,7 +2019,7 @@ class ProvBundle:
     def agent(
         self,
         identifier: QualifiedNameCandidate,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAgent:
         """
         Creates a new agent.
@@ -2047,7 +2035,7 @@ class ProvBundle:
         entity: EntityRef,
         agent: AgentRef,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAttribution:
         """
         Creates a new attribution record between an entity and an agent.
@@ -2074,10 +2062,10 @@ class ProvBundle:
     def association(
         self,
         activity: ActivityRef,
-        agent: Optional[AgentRef] = None,
-        plan: Optional[EntityRef] = None,
+        agent: AgentRef | None = None,
+        plan: EntityRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAssociation:
         """
         Creates a new association record for an activity.
@@ -2107,9 +2095,9 @@ class ProvBundle:
         self,
         delegate: AgentRef,
         responsible: AgentRef,
-        activity: Optional[ActivityRef] = None,
+        activity: ActivityRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDelegation:
         """
         Creates a new delegation record on behalf of an agent.
@@ -2140,7 +2128,7 @@ class ProvBundle:
         influencee: EntityRef | ActivityRef | AgentRef,
         influencer: EntityRef | ActivityRef | AgentRef,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvInfluence:
         """
         Creates a new influence record between two entities, activities or agents.
@@ -2168,11 +2156,11 @@ class ProvBundle:
         self,
         generatedEntity: EntityRef,
         usedEntity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        generation: Optional[GenrationRef] = None,
-        usage: Optional[UsageRef] = None,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
         """
         Creates a new derivation record for a generated entity from a used entity.
@@ -2205,11 +2193,11 @@ class ProvBundle:
         self,
         generatedEntity: EntityRef,
         usedEntity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        generation: Optional[GenrationRef] = None,
-        usage: Optional[UsageRef] = None,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
         """
         Creates a new revision record for a generated entity from a used entity.
@@ -2243,11 +2231,11 @@ class ProvBundle:
         self,
         generatedEntity: EntityRef,
         usedEntity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        generation: Optional[GenrationRef] = None,
-        usage: Optional[UsageRef] = None,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
         """
         Creates a new quotation record for a generated entity from a used entity.
@@ -2281,11 +2269,11 @@ class ProvBundle:
         self,
         generatedEntity: EntityRef,
         usedEntity: EntityRef,
-        activity: Optional[ActivityRef] = None,
-        generation: Optional[GenrationRef] = None,
-        usage: Optional[UsageRef] = None,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
         identifier: OptionalID = None,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
         """
         Creates a new primary source record for a generated entity from a used
@@ -2382,7 +2370,7 @@ class ProvBundle:
     def collection(
         self,
         identifier: QualifiedNameCandidate,
-        other_attributes: Optional[RecordAttributesArg] = None,
+        other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """
         Creates a new collection record for a particular record.
@@ -2414,7 +2402,7 @@ class ProvBundle:
 
     def plot(
         self,
-        filename: Optional[PathLike] = None,
+        filename: PathLike | None = None,
         show_nary: bool = True,
         use_labels: bool = False,
         show_element_attributes: bool = True,
@@ -2453,9 +2441,9 @@ class ProvBundle:
             show_element_attributes=show_element_attributes,
             show_relation_attributes=show_relation_attributes,
         )
-        method = "create_%s" % format
+        method = f"create_{format}"
         if not hasattr(d, method):
-            raise ValueError("Format '%s' cannot be saved." % format)
+            raise ValueError(f"Format '{format}' cannot be saved.")
         with io.BytesIO() as buf:
             buf.write(getattr(d, method)())
 
@@ -2518,8 +2506,8 @@ class ProvDocument(ProvBundle):
 
     def __init__(
         self,
-        records: Optional[Iterable[ProvRecord]] = None,
-        namespaces: Optional[NSCollection] = None,
+        records: Iterable[ProvRecord] | None = None,
+        namespaces: NSCollection | None = None,
     ):
         """
         Constructor.
@@ -2646,12 +2634,12 @@ class ProvDocument(ProvBundle):
         else:
             raise ProvException(
                 "ProvDocument.update(): The other is not a ProvDocument or "
-                "ProvBundle instance (%s)" % type(other)
+                f"ProvBundle instance ({type(other)})"
             )
 
     # Bundle operations
     def add_bundle(
-        self, bundle: ProvBundle, identifier: Optional[QualifiedName] = None
+        self, bundle: ProvBundle, identifier: QualifiedName | None = None
     ) -> None:
         """
         Add a bundle to the current document.
@@ -2709,9 +2697,7 @@ class ProvDocument(ProvBundle):
             )
         valid_id = self.valid_qualified_name(identifier)
         if valid_id is None:
-            raise ProvException(
-                'The provided identifier "%s" is not valid' % identifier
-            )
+            raise ProvException(f'The provided identifier "{identifier}" is not valid')
         if valid_id in self._bundles:
             raise ProvException("A bundle with that identifier already exists")
         b = ProvBundle(identifier=valid_id, document=self)
@@ -2721,7 +2707,7 @@ class ProvDocument(ProvBundle):
     # Serializing and deserializing
     def serialize(
         self,
-        destination: Optional[io.IOBase | PathLike] = None,
+        destination: io.IOBase | PathLike | None = None,
         format: str = "json",
         **args: Any,
     ) -> str | None:
@@ -2769,8 +2755,8 @@ class ProvDocument(ProvBundle):
 
     @staticmethod
     def deserialize(
-        source: Optional[io.IOBase | PathLike] = None,
-        content: Optional[str | bytes] = None,
+        source: io.IOBase | PathLike | None = None,
+        content: str | bytes | None = None,
         format: str = "json",
         **args: Any,
     ) -> ProvDocument:
