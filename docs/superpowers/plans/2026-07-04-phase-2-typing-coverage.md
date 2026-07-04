@@ -24,6 +24,7 @@
 
 - **Drop tox** (T14): delete `tox.ini`, remove tox from the dev group; local multi-interpreter testing via `uv run --python 3.X pytest`. CI matrix is unaffected.
 - **RTD fix** = pin `sphinx>=8.1.3,<9` in `docs/requirements.txt`, shipped immediately as Task 0.
+- **Python floor → 3.10 in 2.3.0** (decided 2026-07-04, supersedes spec step 33's Phase-4 timing): the 12 Dependabot alerts are all vulnerable versions kept in `uv.lock` solely by the `python_full_version < '3.10'` marker (patched releases dropped 3.9). User chose to pull the floor bump forward rather than dismiss the alerts. T17 implements it; T16's changelog must call the support change out prominently.
 
 ## Model assignment
 
@@ -391,6 +392,45 @@ Build inputs from `prov.tests.examples.primer_example()` in `tempfile.TemporaryD
 **Acceptance criteria:** a definitive, recorded outcome — widened pin with dual-version CI proof, **or** a filed issue with root-cause analysis and the pin untouched. No half-applied changes.
 
 **Verify:** code path: `uv run pytest -q` + CI green on both rdflib versions; fallback: issue URL exists and pin unchanged (`grep 'rdflib' pyproject.toml`).
+
+---
+
+### Task 17: Raise Python floor to 3.10 and clear the Dependabot alerts (standard) — rescoped 2026-07-04
+
+**Goal:** Spec step 33 pulled forward by user decision: `requires-python >= 3.10`, classifiers, CI matrix, ruff target — then re-lock so the 12 Dependabot alerts (all pinned to the `< '3.10'` resolution branch of `uv.lock`) actually clear. First attempt as a plain lock refresh failed (PR #188, closed): every patched release (pillow 12.2+, urllib3 2.7+, requests 2.33+, filelock 3.20.3+, pytest 9.0.3+) dropped Python 3.9.
+
+**Files:** `pyproject.toml`, `.github/workflows/CI.yml`, `tox.ini`, `CLAUDE.md`, `uv.lock`.
+
+- [ ] **Step 1:** Branch `chore/python-3.10-floor`. In `pyproject.toml`: `requires-python = ">=3.10"` (line ~32); delete the `"Programming Language :: Python :: 3.9"` classifier (line ~19); `[tool.ruff] target-version = "py310"` (line ~99). Do NOT touch the ruff ignore list or the UP045/UP031 ignores (T8 owns those rules); adjust the "(3.9-safe)" comment wording only if it becomes false.
+- [ ] **Step 2:** `.github/workflows/CI.yml`: drop `"3.9"` from the test matrix (line ~17) and `Python3.9,` from the coveralls `carryforward` list (line ~78). `tox.ini`: drop `py39` from envlist and the `3.9: py39` gh-actions mapping (file is deleted later in T14; keep it consistent meanwhile).
+- [ ] **Step 3:** `CLAUDE.md`: "Python 3.9+ only" → "Python 3.10+ only".
+- [ ] **Step 4:** `uv lock --upgrade` (re-resolves for ≥3.10 — the dual-marker entries collapse to patched versions), `uv sync --extra rdf --extra xml`.
+- [ ] **Step 5:** Confirm no vulnerable versions remain in `uv.lock`: no pillow 11.x, no urllib3 <2.7, no requests <2.33, no filelock <3.20.3, no pytest <9.0.3, and no `python_full_version < '3.10'` resolution markers left for these packages. `uv run pytest -q`, `uv run mypy src`, `uv run ruff check src/` all green.
+- [ ] **Step 6:** Commit (`chore: raise Python floor to 3.10 and refresh lock`), PR explaining the support change + alert rationale, merge after CI; confirm the Dependabot alert count drops to 0 after the default-branch rescan.
+
+**Acceptance criteria:** floor raised consistently across pyproject/CI/tox/CLAUDE.md; lock has no vulnerable 3.9-marker entries; suite/mypy/ruff green; prominent "Python 3.9 support dropped" entry flagged for T16's changelog.
+
+**Verify:** `grep 'requires-python' pyproject.toml && uv run pytest -q && uv run mypy src && uv run ruff check src/`; post-merge alert count 0.
+
+---
+
+### Task 18: Security hygiene — Dependabot updates, SECURITY.md, support policy (standard) — added 2026-07-04
+
+**Goal:** Implement the spec's "Cross-cutting (start early, maintain throughout)" security items that no phase plan had scheduled: automated dependency updates and a security policy.
+
+**Files:**
+- Create: `.github/dependabot.yml`, `SECURITY.md`
+- Modify: `README.rst` (version-support statement)
+
+- [ ] **Step 1:** `.github/dependabot.yml` with two ecosystems: `github-actions` (weekly) and `uv` (weekly, so lockfile bumps arrive as PRs; if GitHub rejects the `uv` ecosystem, fall back to `pip`). Group minor/patch updates to cut PR noise.
+- [ ] **Step 2:** `SECURITY.md`: supported versions table (2.x current; 1.x unsupported; note Python ≥3.10 as of 2.3.0 per T17), private reporting via GitHub security advisories, expected response window.
+- [ ] **Step 3:** README: short "Supported versions" note linking SECURITY.md.
+- [ ] **Step 4:** Consider pyup.io/safety overlap: it scans manifests, not `uv.lock` (it reported green while 12 lock alerts were open). Recommend removal of the pyup integration in the PR description — but **do not** remove its config/badge without maintainer approval; flag it for T14/T16 review.
+- [ ] **Step 5:** Suite green (no code changes expected); PR.
+
+**Acceptance criteria:** dependabot.yml valid (GitHub accepts it after merge); SECURITY.md + README statement present; pyup overlap flagged, not unilaterally removed.
+
+**Verify:** post-merge, GitHub shows Dependabot version updates enabled; files exist.
 
 ---
 
