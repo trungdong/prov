@@ -17,11 +17,11 @@ public API changes should be made carefully.
 
 A staged modernisation/hardening effort is underway; the approved plan lives in
 `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md` and the public summary in
-`ROADMAP.md` (once created). Rules while it is in flight:
+`ROADMAP.md`. Rules while it is in flight:
 
 - **No public API changes in 2.x.** Every documented name must stay importable from its
   historic location; behaviour-changing fixes are deferred to 3.0. The public-API smoke test
-  guards this once added.
+  (`src/prov/tests/test_public_api.py`) guards this.
 - Work in atomic steps: one focused PR per roadmap step, green CI before merge.
 - When a step changes tooling (e.g. flake8/black → ruff, unittest → pytest), update the
   affected sections of this file in the same PR — the commands below describe the current
