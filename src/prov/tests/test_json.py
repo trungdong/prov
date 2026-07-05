@@ -48,9 +48,11 @@ class TestJSONSerializer(unittest.TestCase):
         )
 
     def test_encoder_default_fallback_for_non_document(self):
-        # ProvJSONEncoder.default() is only ever invoked by json.dump() for
-        # objects it does not natively know how to encode; for anything
-        # other than a ProvDocument it falls back to the base encoder.
+        # Pins the isolated method's contract: for anything other than a
+        # ProvDocument, default() falls back to the base encoder. In the
+        # real serialize() path json.dump() only ever hands default() the
+        # top-level ProvDocument (everything nested is already plain
+        # dicts/strings), so this branch is not reachable end-to-end today.
         encoder = ProvJSONEncoder()
         self.assertEqual(encoder.default("plain string"), '"plain string"')
 
