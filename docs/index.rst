@@ -27,6 +27,13 @@ Prov Python package's documentation
 
 .. toctree::
    :maxdepth: 1
+   :caption: Explanation
+
+   explanation/prov-dm
+   explanation/unification-flattening
+
+.. toctree::
+   :maxdepth: 1
    :caption: Project
 
    readme
