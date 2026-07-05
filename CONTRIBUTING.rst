@@ -62,13 +62,13 @@ Ready to contribute? Here's how to set up `prov` for local development.
 
     $ git clone git@github.com:your_name_here/prov.git
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+3. Set up the development environment with `uv <https://docs.astral.sh/uv/>`_, which creates and manages the project virtualenv for you::
 
-    $ mkvirtualenv prov
     $ cd prov/
-    $ pip install -r requirements-dev.txt
+    $ uv sync --extra rdf --extra xml
 
-(NOTE: To be updated. The above step is no longer correct.)
+   The ``rdf`` and ``xml`` extras are required for the full test suite to pass. See
+   ``docs/dependencies.md`` for what each dependency is for.
 
 4. Set up pre-commit hooks to ensure code quality checks run automatically::
 
@@ -84,9 +84,12 @@ Ready to contribute? Here's how to set up `prov` for local development.
 
    Now you can make your changes locally.
 
-6. When you're done making changes, check that your changes pass the tests, including testing other Python versions with tox::
+6. When you're done making changes, check that your changes pass the tests, including testing other supported Python versions via uv::
 
-    $ tox
+    $ for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do uv run --python $py --extra rdf --extra xml pytest || break; done
+
+   The first run downloads any interpreter you don't already have cached, so
+   expect some network traffic.
 
 7. Commit your changes and push your branch to GitHub::
 

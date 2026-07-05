@@ -5,7 +5,7 @@ help:
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "lint - check style with ruff"
 	@echo "test - run tests quickly with the default Python"
-	@echo "test-all - run tests on every Python version with tox"
+	@echo "test-all - run tests on every supported Python version via uv"
 	@echo "coverage - check code coverage quickly with the default Python"
 	@echo "docs - generate Sphinx HTML documentation, including API docs"
 	@echo "release - package and upload a release"
@@ -31,7 +31,9 @@ test:
 	python setup.py test
 
 test-all:
-	tox
+	for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do \
+		uv run --python $$py --extra rdf --extra xml pytest || exit 1; \
+	done
 
 coverage:
 	coverage run --source prov setup.py test

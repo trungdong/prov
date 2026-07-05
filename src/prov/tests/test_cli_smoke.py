@@ -16,7 +16,7 @@ from prov.tests.examples import primer_example
 
 def _console_script(name):
     # Prefer the script installed alongside the interpreter running this
-    # test (the tox/uv env under test) over a same-named script that might
+    # test (the uv env under test) over a same-named script that might
     # appear earlier on PATH (e.g. a stray global `pip install prov` on a
     # contributor's machine).
     candidate = os.path.join(os.path.dirname(sys.executable), name)

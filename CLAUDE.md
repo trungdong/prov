@@ -38,12 +38,17 @@ them or many tests will fail with `ModuleNotFoundError`:
 uv sync --extra rdf --extra xml
 ```
 
+Dev tools (ruff, mypy, pytest, ...) live in the `dev` dependency group; building the Sphinx
+docs needs the separate `docs` group (`uv sync --group docs`). See `docs/dependencies.md`
+for why each runtime dependency, extra, and dev/docs-group entry exists and why it's pinned
+the way it is.
+
 ## Common commands
 
 Run from the repo root; `uv run` picks up the project's managed venv.
 
 ```bash
-# Full test suite (as CI/tox runs it) — needs the rdf/xml extras installed
+# Full test suite (as CI runs it) — needs the rdf/xml extras installed
 uv run pytest
 
 # Single test module / class / method
@@ -65,8 +70,10 @@ uv run mypy src
 uv run coverage run -m pytest
 uv run coverage report -m
 
-# tox (all supported interpreters, matches CI.yml exactly)
-uv run tox
+# Local multi-version testing (all supported interpreters, matches CI.yml's matrix)
+for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
+    uv run --python $py --extra rdf --extra xml pytest || break
+done
 ```
 
 There are `prov-convert` and `prov-compare` console scripts (`src/prov/scripts/convert.py`,
