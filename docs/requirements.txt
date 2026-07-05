@@ -1,5 +1,0 @@
-# ReadTheDocs installs from this file directly (it doesn't support uv/dependency
-# groups natively); the `docs` group in pyproject.toml is the source of truth —
-# keep the two in sync manually. See docs/dependencies.md for pin rationale.
-sphinx>=8.1.3,<9
-sphinx_rtd_theme

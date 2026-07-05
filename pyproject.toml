@@ -89,7 +89,9 @@ dev = [
 ]
 docs = [
     "sphinx>=8.1.3,<9",
-    "sphinx-rtd-theme",
+    "furo",
+    "myst-parser",
+    "sphinx-copybutton",
 ]
 
 [tool.uv]
