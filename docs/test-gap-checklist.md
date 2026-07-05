@@ -59,10 +59,10 @@ Same subprocess-only situation as `convert.py`.
 
 `prov.read()` is a documented public entry point with zero coverage.
 
-- [ ] `read(source, format="json"|"xml"|"rdf")` with an explicit format deserializes via that serializer (and lower-cases the format string) — **T12**
-- [ ] `read(source)` without a format auto-detects by trying each registered deserializer in turn — one test per detectable format (json, xml, rdf) — **T12**
-- [ ] `read()` on undetectable/garbage input raises `TypeError` with the "specify the format" message after exhausting all serializers — **T12**
-- [ ] `read()` accepts both a filename (`str`/`PathLike`) and a file object, matching `ProvDocument.deserialize` — **T12**
+- [x] `read(source, format="json"|"xml"|"rdf")` with an explicit format deserializes via that serializer (and lower-cases the format string) — **T12**
+- [x] `read(source)` without a format auto-detects by trying each registered deserializer in turn — one test per detectable format (json, xml, rdf) — **T12** (finding: json and rdf/trig genuinely auto-detect; an xml document does not — the registry tries rdf, as trig, before xml, and rdflib's `BadSyntax` on the xml content is a `SyntaxError` that read()'s except clause doesn't catch, so it propagates before xml is ever tried. Test pins this actual behaviour rather than asserting the aspirational "all three auto-detect")
+- [x] `read()` on undetectable/garbage input raises `TypeError` with the "specify the format" message after exhausting all serializers — **T12** (finding: unreachable via any real file — `ProvNSerializer.deserialize()` unconditionally raises uncaught `NotImplementedError` and is tried third, before the loop can ever exhaust normally; test reaches the branch by mocking all four deserializers to raise a caught exception type)
+- [x] `read()` accepts both a filename (`str`/`PathLike`) and a file object, matching `ProvDocument.deserialize` — **T12**
 - [ ] Auto-detection swallows only `(TypeError, ValueError, AttributeError, KeyError)` from candidate deserializers — **T13** (behavioural pin: a deserializer raising something else, e.g. the PROV-N serializer's `NotImplementedError`, must propagate — document the intended behaviour when writing the test)
 
 ## src/prov/graph.py — 83% (missed: 88, 90–93, 116–117 + partial branches)
@@ -71,16 +71,16 @@ The only existing test is one round-trip over the example documents; the inferen
 robustness paths are untested. The mutation spike (below) confirmed these as the real
 gaps: 8 of the 9 non-equivalent surviving mutants live here.
 
-- [ ] `prov_to_graph()` infers element nodes (with the correct inferred class, e.g. `ProvEntity` vs `ProvActivity`) for relation endpoints that have **no** corresponding element record in the document — **T12**
-- [ ] `prov_to_graph()` skips a relation whose endpoint attribute is not in `INFERRED_ELEMENT_CLASS` (the `except KeyError: continue` path) and still processes subsequent relations (mutmut: `continue` → `break` survived) — **T12**
-- [ ] `prov_to_graph()` skips relations where either endpoint QName is `None` — **T12**
-- [ ] `graph_to_prov()` ignores graph nodes that are not `ProvRecord`s or whose `bundle` is `None` (mutmut: `and` → `or` survived) — **T12**
-- [ ] `graph_to_prov()` ignores edges without a `"relation"` key in their edge data — **T12**
+- [x] `prov_to_graph()` infers element nodes (with the correct inferred class, e.g. `ProvEntity` vs `ProvActivity`) for relation endpoints that have **no** corresponding element record in the document — **T12**
+- [x] `prov_to_graph()` skips a relation whose endpoint attribute is not in `INFERRED_ELEMENT_CLASS` (the `except KeyError: continue` path) and still processes subsequent relations (mutmut: `continue` → `break` survived) — **T12**
+- [x] `prov_to_graph()` skips relations where either endpoint QName is `None` — **T12**
+- [x] `graph_to_prov()` ignores graph nodes that are not `ProvRecord`s or whose `bundle` is `None` (mutmut: `and` → `or` survived) — **T12**
+- [x] `graph_to_prov()` ignores edges without a `"relation"` key in their edge data — **T12**
 
 ## src/prov/serializers/__init__.py — 91% (missed: 10, 39, 48)
 
-- [ ] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12** (the chaining itself is already tested by `test_extras.py::test_get_serializer_for_unknown_format_chains_key_error` from T9 — dedupe with it, one module owns it; only the format-name-in-message assertion is new)
-- [ ] `serializers.get()` lazily populates `Registry.serializers` on first call (registry starts as `None`, holds exactly the four formats json/rdf/provn/xml) — **T12**
+- [x] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12** (the chaining itself is already tested by `test_extras.py::test_get_serializer_for_unknown_format_chains_key_error` from T9 — extended in place with the format-name-in-message assertion, one module owns it)
+- [x] `serializers.get()` lazily populates `Registry.serializers` on first call (registry starts as `None`, holds exactly the four formats json/rdf/provn/xml) — **T12**
 - [ ] `Serializer.serialize`/`.deserialize` abstract bodies (lines 39, 48) and the `if TYPE_CHECKING:` import (line 10) — **defer** (never executed at runtime by design; consider `pragma: no cover` in T13 instead of tests)
 
 ## src/prov/identifier.py — 87% (missed: 119, 141–146, 156–164)

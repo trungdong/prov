@@ -277,6 +277,31 @@ class TestExtras(unittest.TestCase):
         with self.assertRaises(DoNotExist) as ctx:
             get_serializer("no-such-format")
         self.assertIsInstance(ctx.exception.__cause__, KeyError)
+        self.assertIn("no-such-format", str(ctx.exception))
+
+    def test_get_serializer_returns_class_for_each_known_format(self):
+        from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provn import ProvNSerializer
+        from prov.serializers.provrdf import ProvRDFSerializer
+        from prov.serializers.provxml import ProvXMLSerializer
+
+        self.assertIs(get_serializer("json"), ProvJSONSerializer)
+        self.assertIs(get_serializer("rdf"), ProvRDFSerializer)
+        self.assertIs(get_serializer("provn"), ProvNSerializer)
+        self.assertIs(get_serializer("xml"), ProvXMLSerializer)
+
+    def test_get_serializer_lazily_populates_registry(self):
+        original = Registry.serializers
+        Registry.serializers = None
+        try:
+            self.assertIsNone(Registry.serializers)
+            get_serializer("json")
+            self.assertIsNotNone(Registry.serializers)
+            self.assertEqual(
+                set(Registry.serializers.keys()), {"json", "rdf", "provn", "xml"}
+            )
+        finally:
+            Registry.serializers = original
 
     def test_plot_without_matplotlib_raises_helpful_error(self):
         import builtins
