@@ -38,7 +38,7 @@ dependencies = [
 
 [project.optional-dependencies]
 rdf = [
-    "rdflib>=4.2.1,<7",
+    "rdflib>=6.0.0,<8",
 ]
 xml = [
     "lxml>=3.3.5",

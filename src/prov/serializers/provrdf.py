@@ -537,7 +537,13 @@ class ProvRDFSerializer(Serializer):
                         predicate_mapper=predicate_mapper,
                     )
                 else:
-                    bundle_id = str(graph.identifier)
+                    # Resolve the bundle IRI to a qualified name; if no
+                    # registered namespace matches (rdflib >= 7 no longer
+                    # carries bundle-graph prefix bindings into TriG output,
+                    # so re-parsed documents may lack them), fall back to
+                    # minting a namespace via compute_qname, as
+                    # decode_rdf_representation does for all other IRIs.
+                    bundle_id = self.decode_rdf_representation(graph.identifier, graph)
                     bundle = document.bundle(bundle_id)
                     self.decode_container(
                         graph,
