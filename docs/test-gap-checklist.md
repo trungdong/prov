@@ -33,26 +33,26 @@ The existing `test_cli_smoke.py` runs the console script in a subprocess, so not
 this module is *measured* even though the happy path is smoke-tested. T11 should call
 `main()`/`convert_file()` in-process.
 
-- [ ] `convert_file()` writes PROV-N output for `-f provn` (the `get_provn().encode()` path) — **T11**
-- [ ] `convert_file()` routes Graphviz formats (e.g. `dot`) through `prov_to_dot(...).create()` and writes bytes — **T11** (use `-f dot`; it needs a local `graphviz` binary, which CI installs via `setup-graphviz`)
-- [ ] `convert_file()` dispatches remaining formats to `ProvDocument.serialize()` (e.g. `-f xml`, `-f json`) — **T11**
-- [ ] `convert_file()` raises `CLIError` (with the format name in the message) for an unsupported output format, and `main()` turns that into exit code 2 plus a message on stderr — **T11**
-- [ ] `CLIError.__str__` returns the `E: ...` message — **T11** (falls out of the item above)
-- [ ] `main()` parses `-f/--format` (case-insensitively), positional infile/outfile, and returns 0 on success — **T11**
-- [ ] `main()` closes infile/outfile in the `finally` block even when conversion fails — **T11**
-- [ ] `main()` returns 0 on `KeyboardInterrupt` — **T11** (raise from a stub via monkeypatched `convert_file`)
-- [ ] `--version` prints the version message and exits — **T11**
+- [x] `convert_file()` writes PROV-N output for `-f provn` (the `get_provn().encode()` path) — **T11**
+- [x] `convert_file()` routes Graphviz formats (e.g. `dot`) through `prov_to_dot(...).create()` and writes bytes — **T11** (use `-f dot`; it needs a local `graphviz` binary, which CI installs via `setup-graphviz`)
+- [x] `convert_file()` dispatches remaining formats to `ProvDocument.serialize()` (e.g. `-f xml`, `-f json`) — **T11**
+- [x] `convert_file()` raises `CLIError` (with the format name in the message) for an unsupported output format, and `main()` turns that into exit code 2 plus a message on stderr — **T11**
+- [x] `CLIError.__str__` returns the `E: ...` message — **T11** (falls out of the item above)
+- [x] `main()` parses `-f/--format` (case-insensitively), positional infile/outfile, and returns 0 on success — **T11**
+- [x] `main()` closes infile/outfile in the `finally` block even when conversion fails — **T11**
+- [x] `main()` returns 0 on `KeyboardInterrupt` — **T11** (raise from a stub via monkeypatched `convert_file`)
+- [x] `--version` prints the version message and exits — **T11**
 - [ ] `if __name__ == "__main__"` block incl. `TESTRUN`/`PROFILE` scaffolding — **defer** (dead debug scaffolding, excluded by the `if __name__ == .__main__.:` exclude_lines rule already; not worth executing)
 
 ## src/prov/scripts/compare.py — 30% (missed: 41–45, 51–123)
 
 Same subprocess-only situation as `convert.py`.
 
-- [ ] `main()` returns 0 for two equivalent documents in different formats (json vs xml) — **T11** (in-process version of the existing smoke test)
-- [ ] `main()` returns 1 for two non-equivalent documents — **T11** (currently untested anywhere: the smoke test only checks the "equal" outcome)
-- [ ] `main()` returns 2 and writes to stderr when a file cannot be parsed / wrong `-f`/`-F` format is given — **T11**
-- [ ] `main()` closes both files in the `finally` block — **T11**
-- [ ] `--version` prints the version message and exits — **T11**
+- [x] `main()` returns 0 for two equivalent documents in different formats (json vs xml) — **T11** (in-process version of the existing smoke test)
+- [x] `main()` returns 1 for two non-equivalent documents — **T11** (currently untested anywhere: the smoke test only checks the "equal" outcome)
+- [x] `main()` returns 2 and writes to stderr when a file cannot be parsed / wrong `-f`/`-F` format is given — **T11**
+- [x] `main()` closes both files in the `finally` block — **T11**
+- [x] `--version` prints the version message and exits — **T11**
 - [ ] `__main__`/`TESTRUN`/`PROFILE` scaffolding — **defer** (same reason as convert.py)
 
 ## src/prov/__init__.py — 39% (missed: 38–56, i.e. the whole body of `read()`)
