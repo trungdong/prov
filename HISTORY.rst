@@ -3,6 +3,31 @@
 History
 -------
 
+2.3.0 (2026-07-05)
+^^^^^^^^^^^^^^^^^^
+* **Dropped Python 3.9 support; minimum is now Python 3.10** (security fixes
+  in transitive dependencies are only released for Python 3.10+) (#189)
+* **Widened ``rdflib`` to ``>=6.0.0,<8``** (was ``>=4.2.1,<7``): rdflib 7 now
+  supported; the floor rose because 4.2.1 no longer installs on supported
+  Pythons (#207)
+* Diagnostic improvement: ``DoNotExist`` (serializer lookup) and the CLI's
+  ``CLIError`` now set ``__cause__`` via exception chaining, so tracebacks
+  show the original error; exception types and messages are unchanged, so
+  existing ``except`` blocks are unaffected (#200)
+* Whole package passes ``mypy --strict``; ships a ``py.typed`` marker
+  (PEP 561) so downstream type-checkers see inline types (#192, #193, #194)
+* Coverage raised to 97%, enforced in CI; new tests for the CLI scripts,
+  ``prov.read()`` auto-detection, graph interop, and the serializer
+  registry (#201, #202, #203, #204)
+* Internal code quality: ruff rule families I/C4/SIM/RUF/UP045/UP031 enabled
+  and long-standing lint suppressions resolved (#195, #196, #197, #198,
+  #199, #200); dependency audit documented in ``docs/dependencies.md``; tox
+  removed (use ``uv run --python 3.X pytest`` for local multi-version
+  testing) (#205)
+* Security hygiene: ``SECURITY.md``, Dependabot version updates, and a
+  documented support policy (#190)
+* Fixed ReadTheDocs build (Sphinx pinned ``<9``) (#187)
+
 2.2.0 (2026-07-03)
 ^^^^^^^^^^^^^^^^^^
 * Fixed graphical output when a filename is supplied (#164)
