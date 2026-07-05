@@ -44,6 +44,30 @@ jobs:
           flag-name: Python${{ matrix.python-version }}
           parallel: true
 
+  rdflib-compat:
+    # The main matrix tests the locked rdflib; this job proves the declared
+    # bounds of the `rdf` extra (rdflib>=6.0.0,<8) by running the RDF tests
+    # against the floor and the newest allowed 7.x (see docs/dependencies.md).
+    name: rdf tests on rdflib ${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - rdflib-version: "==6.0.0"
+            label: "6.0.0 (floor)"
+          - rdflib-version: ">=7,<8"
+            label: "latest 7.x"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+        with:
+          python-version: "3.12"
+      - run: |
+          uv sync --locked --extra rdf --extra xml --group dev
+          uv pip install "rdflib${{ matrix.rdflib-version }}"
+          uv run --no-sync python -c "import rdflib; print('rdflib', rdflib.__version__)"
+          uv run --no-sync pytest src/prov/tests/test_rdf.py
+
   lint:
     runs-on: ubuntu-latest
     steps:

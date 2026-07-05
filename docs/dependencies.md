@@ -37,15 +37,20 @@ without an extra installed.
 Install with `prov[extra]`; omitting them makes the corresponding serializer/module raise
 `ModuleNotFoundError` when used, not at `import prov` time.
 
-- **`rdf` → `rdflib>=4.2.1,<7`** — backs `prov.serializers.provrdf` (PROV-O/RDF
-  serialization). Floor `4.2.1` is the oldest version this project has tested against.
-  The `<7` ceiling is deliberate, not incidental: rdflib 7.6.0 fails 5 tests
-  (`RoundTripRDFTests::test_bundle_1..4`, `::test_default_namespace_inheritance` in
-  `src/prov/tests/test_rdf.py`), traced to rdflib 7's `Dataset`/graph-identifier and
-  namespace-binding changes (e.g. `bind_namespaces` defaults). Widening to `<8` is T15, a
-  separate, explicitly time-boxed investigation — its outcome (fixed-and-widened, or kept
-  pinned with a filed issue) is not yet known as of this writing; check T15's PR/issue
-  before assuming either way.
+- **`rdf` → `rdflib>=6.0.0,<8`** — backs `prov.serializers.provrdf` (PROV-O/RDF
+  serialization). Both bounds revised 2026-07-05 (T15). Floor: the historic `4.2.1` no
+  longer builds on the Pythons this project supports and 5.x fails xsd:base64Binary
+  literal round-trips, so `6.0.0` is the oldest version that passes the suite. Ceiling:
+  rdflib 7's `Memory` store stopped retaining foreign context `Graph`s passed through
+  `addN()` (rdflib 6 accidentally carried bundle prefix bindings into TriG output that
+  way), which broke re-parsing of serialized bundles; fixed deserialize-side only
+  (`decode_document` falls back to `compute_qname` for bundle IRIs), leaving rdflib-6
+  serialization output unchanged. The `rdflib-compat` CI job proves both bounds (floor
+  and newest 7.x); the main matrix uses the locked version. Under rdflib 7,
+  bundle-local namespaces serialize as full IRIs instead of their original prefixes
+  (round-trips stay equivalent — `QualifiedName` equality is by IRI) and
+  `ConjunctiveGraph` deprecation warnings appear; the `Dataset` migration is deferred
+  to 3.0 (its defaults, e.g. `default_union`, are not behaviour-neutral for 2.x).
 - **`xml` → `lxml>=3.3.5`** — backs `prov.serializers.provxml` (PROV-XML). Floor predates
   this project's adoption; no known upper-bound issue.
 - **`plot` → `matplotlib>=3.6`** — backs the interactive-display path of

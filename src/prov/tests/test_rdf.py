@@ -298,6 +298,36 @@ class TestRDFSerializer(unittest.TestCase):
 
         self.assertEqual(len(document.get_records()), 1)
 
+    def test_decode_document_bundle_iri_without_registered_namespace(self):
+        # rdflib >= 7 no longer carries bundle-graph prefix bindings into
+        # TriG output, so a re-parsed document may name a bundle context by
+        # an IRI matching no registered namespace; decode_document() must
+        # fall back to compute_qname instead of raising ProvException.
+        from rdflib import RDF, URIRef
+        from rdflib.graph import ConjunctiveGraph
+
+        from prov.serializers.provrdf import ProvRDFSerializer
+
+        content = ConjunctiveGraph()
+        bundle_graph = content.get_context(URIRef("http://example.org/bundle1"))
+        bundle_graph.add(
+            (
+                URIRef("http://example.org/e1"),
+                RDF.type,
+                URIRef("http://www.w3.org/ns/prov#Entity"),
+            )
+        )
+
+        document = ProvDocument()
+        serializer = ProvRDFSerializer()
+        serializer.document = document
+        serializer.decode_document(content, document)
+
+        bundles = list(document.bundles)
+        self.assertEqual(len(bundles), 1)
+        self.assertEqual(bundles[0].identifier.uri, "http://example.org/bundle1")
+        self.assertEqual(len(bundles[0].get_records()), 1)
+
     def test_decode_multi_valued_qualified_relation_produces_cartesian_product(self):
         # A hand-authored (non-2.x-encoder-produced) PROV-O document may
         # legally repeat a formal-attribute predicate on the same qualified-

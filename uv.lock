@@ -1639,7 +1639,7 @@ requires-dist = [
     { name = "networkx", specifier = ">=2.0" },
     { name = "pydot", specifier = ">=1.2.0" },
     { name = "python-dateutil", specifier = ">=2.2" },
-    { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=4.2.1,<7" },
+    { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=6.0.0,<8" },
 ]
 provides-extras = ["rdf", "xml", "plot"]
 
