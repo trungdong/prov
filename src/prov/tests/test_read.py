@@ -107,9 +107,11 @@ class TestRead(unittest.TestCase):
         reached if every registered deserializer raises one of the caught
         exception types. In practice ProvNSerializer.deserialize() always
         raises NotImplementedError (uncaught by read()) regardless of
-        content, and it is tried third, so that branch is unreachable via
-        any real file. Mock all four deserializers to make it reachable and
-        pin the resulting error message.
+        content, and the rdf/xml parsers raise SyntaxError subclasses on
+        garbage, so that branch is unreachable via any real file. (The real
+        json deserializer already fails with a caught JSONDecodeError; it
+        is mocked here too only for uniformity.) Mock the deserializers to
+        make the branch reachable and pin the resulting error message.
         """
 
         def boom(self, stream, **kwargs):

@@ -106,3 +106,13 @@ class GraphToProvTestCase(unittest.TestCase):
         prov_doc = graph_to_prov(g)
 
         self.assertEqual(list(prov_doc.get_records()), [])
+
+    def test_ignores_edges_whose_relation_is_not_a_prov_record(self):
+        g = nx.MultiDiGraph()
+        g.add_node("a")
+        g.add_node("b")
+        g.add_edge("a", "b", relation="not-a-record")
+
+        prov_doc = graph_to_prov(g)
+
+        self.assertEqual(list(prov_doc.get_records()), [])
