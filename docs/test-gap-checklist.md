@@ -63,7 +63,7 @@ Same subprocess-only situation as `convert.py`.
 - [x] `read(source)` without a format auto-detects by trying each registered deserializer in turn — one test per detectable format (json, xml, rdf) — **T12** (finding: json and rdf/trig genuinely auto-detect; an xml document does not — the registry tries rdf, as trig, before xml, and rdflib's `BadSyntax` on the xml content is a `SyntaxError` that read()'s except clause doesn't catch, so it propagates before xml is ever tried. Test pins this actual behaviour rather than asserting the aspirational "all three auto-detect")
 - [x] `read()` on undetectable/garbage input raises `TypeError` with the "specify the format" message after exhausting all serializers — **T12** (finding: unreachable via any real file — `ProvNSerializer.deserialize()` unconditionally raises uncaught `NotImplementedError` and is tried third, before the loop can ever exhaust normally; test reaches the branch by mocking all four deserializers to raise a caught exception type)
 - [x] `read()` accepts both a filename (`str`/`PathLike`) and a file object, matching `ProvDocument.deserialize` — **T12**
-- [ ] Auto-detection swallows only `(TypeError, ValueError, AttributeError, KeyError)` from candidate deserializers — **T13** (behavioural pin: a deserializer raising something else, e.g. the PROV-N serializer's `NotImplementedError`, must propagate — document the intended behaviour when writing the test)
+- [x] Auto-detection swallows only `(TypeError, ValueError, AttributeError, KeyError)` from candidate deserializers — **T13** (`test_read.py::test_read_auto_detect_only_swallows_the_documented_exception_types` mocks a deserializer to raise `RuntimeError` and asserts it propagates instead of being swallowed)
 
 ## src/prov/graph.py — 83% (missed: 88, 90–93, 116–117 + partial branches)
 
@@ -81,48 +81,57 @@ gaps: 8 of the 9 non-equivalent surviving mutants live here.
 
 - [x] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12** (the chaining itself is already tested by `test_extras.py::test_get_serializer_for_unknown_format_chains_key_error` from T9 — extended in place with the format-name-in-message assertion, one module owns it)
 - [x] `serializers.get()` lazily populates `Registry.serializers` on first call (registry starts as `None`, holds exactly the four formats json/rdf/provn/xml) — **T12**
-- [ ] `Serializer.serialize`/`.deserialize` abstract bodies (lines 39, 48) and the `if TYPE_CHECKING:` import (line 10) — **defer** (never executed at runtime by design; consider `pragma: no cover` in T13 instead of tests)
+- [x] `Serializer.serialize`/`.deserialize` abstract bodies (lines 39, 48) and the `if TYPE_CHECKING:` import (line 10) — **T13 defer, resolved via config**: added `# pragma: no cover` to both abstract `pass` bodies and `"if TYPE_CHECKING:"` to `[tool.coverage.report] exclude_lines` in `pyproject.toml` (also fixes the matching `prov/__init__.py:7` TYPE_CHECKING guard). Both modules are now 100%.
 
-## src/prov/identifier.py — 87% (missed: 119, 141–146, 156–164)
+## src/prov/identifier.py — 87% → 100% (T13)
 
-- [ ] `Namespace(prefix, uri)` rejects an empty/whitespace URI with `ValueError` — **T13**
-- [ ] `Namespace.contains()` for a str, an `Identifier`, a non-matching URI, and a non-str/non-Identifier argument (returns False) — **T13**
-- [ ] `Namespace.qname()` returns a `QualifiedName` for a contained URI (str and `Identifier` inputs) and `None` for a non-contained or non-string input — **T13**
+- [x] `Namespace(prefix, uri)` rejects an empty/whitespace URI with `ValueError` — **T13** (`test_identifier.py::TestNamespace::test_namespace_rejects_empty_uri` / `test_namespace_rejects_whitespace_only_uri`)
+- [x] `Namespace.contains()` for a str, an `Identifier`, a non-matching URI, and a non-str/non-Identifier argument (returns False) — **T13** (new `test_identifier.py`)
+- [x] `Namespace.qname()` returns a `QualifiedName` for a contained URI (str and `Identifier` inputs) and `None` for a non-contained or non-string input — **T13** (new `test_identifier.py`)
 
-## src/prov/model.py — 90% (79 missed lines, 31 partial branches)
+## src/prov/model.py — 90% → 98% (T13)
 
-Large module; misses are scattered single lines, but they cluster into these behaviours:
+Large module; misses were scattered single lines, clustering into these behaviours (all
+in `test_model.py` unless noted):
 
-- [ ] Literal handling: `parse_xsd_datetime` returning `None` on unparseable input; `parse_boolean` on `"true"/"1"/"false"/"0"/other`; `Literal.__eq__`/`__ne__`/`__hash__`; langtag forcing datatype to `prov:InternationalizedString` with a warning (lines 74–85, 167–194, 248–258) — **T13**
-- [ ] Attribute validation errors: `ProvException` on a `None`-identifier record used as an attribute value, on unparseable datetime formal attributes, on `None` literal conversion, and on conflicting duplicate values for a single-valued PROV attribute (lines 480–537) — **T13**
-- [ ] `ProvElement` creation without an identifier raises `ProvElementIdentifierRequired` (line 634) — **T13**
-- [ ] Element convenience methods not exercised by `examples.py`: `ProvEntity.wasInvalidatedBy`, `ProvActivity.wasStartedBy`/`wasEndedBy` fluent wrappers, membership helper (712–713, 779–780, 861–908) — **T13**
-- [ ] `NamespaceManager`: default-namespace-less construction, `get_namespace()` miss/hit, rename-map reuse of already-renamed namespaces, blank-node (`_:`) and non-str/Identifier inputs to `valid_qualified_name` returning `None`, `get_anonymous_identifier()`, `_get_unused_prefix` counting (1159–1181, 1219, 1320–1373) — **T13**
-- [ ] `ProvBundle` API edges: `ProvBundle.bundles` raising `ProvException`, `.records`/`.identifier`/`.document` properties on standalone bundles, `add_namespace` without URI raising, `mandatory_valid_qname` failure, `__eq__` early-outs (1429–1517, 1570–1630) — **T13**
-- [ ] `ProvDocument` bundle management errors: `bundle(None)`, invalid/duplicate bundle identifier, `add_bundle` of a document with nested bundles, `update()` merging bundles with the same id (2664–2704) — **T13**
-- [ ] `plot()` (2437–2485): format inference from filename, unknown format `ValueError`, matplotlib `ImportError` message — **defer** for the interactive/matplotlib display path (needs matplotlib + a display; not in the test env); the filename-based save path and the `ValueError` are testable if graphviz is present, park under **T13** as optional
-- [ ] `serialize()` to a file path via the tempfile+move path, and `deserialize()` `TypeError` when neither source nor content given (2756–2757, 2801) — **T12** (natural neighbours of the `read()` tests)
+- [x] Literal handling: `parse_xsd_datetime` returning `None` on unparseable input; `parse_boolean` on `"true"/"1"/"false"/"0"/other`; `Literal.__eq__`/`__ne__`/`__hash__`; langtag forcing datatype to `prov:InternationalizedString` with a warning (lines 74–85, 167–194, 248–258) — **T13** (`TestLiteralHandling`)
+- [x] Attribute validation errors: `ProvException` on a `None`-identifier record used as an attribute value, on unparseable datetime formal attributes, and on conflicting duplicate values for a single-valued PROV attribute (lines 480–537) — **T13** (`TestAttributeValidationErrors`). Two sub-branches deferred: line 503 (`_auto_literal_conversion`'s "value is None" guard) and 521-523 (`except TypeError` on the duplicate-value comparison) are dead for any value this library can construct — `_auto_literal_conversion` never returns `None` for a non-`None` input (traced all branches), and no `PROV_ATTRIBUTES` value type (`QualifiedName`/`Identifier`, `datetime.datetime`) raises `TypeError` on `!=` (confirmed empirically, including naive-vs-aware datetimes, which return `True` rather than raising).
+- [x] `ProvElement` creation without an identifier raises `ProvElementIdentifierRequired` (line 634) — **T13** (`TestElementIdentifierRequired`, plus both exceptions' `__str__`)
+- [x] Element convenience methods not exercised by `examples.py`: `ProvEntity.wasInvalidatedBy`/`hadMember`, `ProvActivity.wasStartedBy`/`wasEndedBy`/`wasInformedBy`, `set_time()` — **T13** (`TestElementConvenienceMethods`)
+- [x] `NamespaceManager`: default-namespace-less/with-default construction, `get_namespace()` miss/hit, rename-map reuse of already-renamed namespaces, blank-node (`_:`) and non-str/Identifier inputs to `valid_qualified_name` returning `None`, `get_anonymous_identifier()`, `_get_unused_prefix` counting and its "prefix free" branch, empty `add_namespaces()` — **T13** (`TestNamespaceManagerEdges`)
+- [x] `ProvBundle` API edges: `ProvBundle.bundles` raising `ProvException`, `.records`/`.identifier`/`.document`/`.default_ns_uri`/`get_registered_namespaces()`/`has_bundles()` on standalone bundles, `add_namespace` without URI raising, `mandatory_valid_qname` failure, `__eq__` early-outs — **T13** (`TestProvBundleEdges`, `TestRecordMiscProperties`)
+- [x] `ProvDocument` bundle management errors: `bundle(None)`, `bundle()` with an unresolvable/duplicate identifier, `add_bundle` of a document with nested bundles, `update()` merging bundles with the same id and skipping the merge block when `other` has no bundles, `__eq__` bundle-mismatch early-outs, `unified()` with no bundles — **T13** (`TestAddBundle`, `TestBundleUpdate`, `TestDocumentEqualityAndUnification`)
+- [x] `plot()` (2437–2485): format inference from filename and the unknown-format `ValueError` are covered (`TestPlot`, guarded by `skipUnless(shutil.which("dot"))`). The matplotlib-requiring interactive-display path (2463, 2470–2485) stays **deferred**: matplotlib is an optional `plot` extra not installed in this dev/CI environment, and `test_extras.py::test_plot_without_matplotlib_raises_helpful_error` (pre-existing) already covers the `ImportError`-message branch by mocking the import to fail — line 2463 specifically (`import matplotlib.pylab`) can't be reached without the real package.
+- [x] `serialize()` to a file path via the tempfile+move path, and `deserialize()` `TypeError` when neither source nor content given — **T13** (`TestSerializeDeserializeEdgeCases`; natural neighbours of the T12 `read()` tests). The `shutil.move`-missing `else` fallback (2756-2757) stays **deferred**: `shutil.move` always exists on every supported interpreter, so `hasattr(shutil, "move")` is always `True`.
 
-## src/prov/serializers/provrdf.py — 88% (40 missed lines, 18 partial branches)
+## src/prov/serializers/provrdf.py — 88% → 95% (T13)
 
-- [ ] `serialize()`/`deserialize()` datatype corner cases: `xsd:QName`, `xsd:gYear`, `xsd:gYearMonth`, XMLLiteral, base64Binary decoding (221–231, 754–771) — **T13**
-- [ ] `literal_rdf_representation()`: langtag branch, base64 encode branch, `ValueError` on datatype-less literal (754–771) — **T13**
-- [ ] Decode robustness: `ValueError` on untransformable objects, "attributes not converted" warning path, multi-valued unique-set walking (690–730) — **T13**
-- [ ] `ProvRDFException` "No document to serialize." (137) — **T13**
-- [ ] Known-dead branches: the `False and ...`-disabled block (~549) and the unreachable `rec_type in [PROV_ACTIVITY]` relation branch (~493–506) — **defer** (documented in-source as frozen 2.x behaviour, scheduled for deletion in 3.0; do not write tests against dead code)
+- [x] `serialize()`/`deserialize()` datatype corner cases: `xsd:QName`, `xsd:gYear`, `xsd:gYearMonth`, base64Binary decoding — **T13** (`test_rdf.py::TestRDFSerializer::test_decode_xsd_qname_gyear_gyearmonth_round_trip`, `test_literal_rdf_representation_base64binary`). XMLLiteral decoding is a one-line passthrough (`value = literal`, no distinct branch to hit beyond the datatype check already exercised) — no separate test needed.
+- [x] `literal_rdf_representation()`: langtag branch, base64 encode branch, `ValueError` on datatype-less literal — **T13** (`test_literal_rdf_representation_langtag`, `test_literal_rdf_representation_base64binary`, `test_literal_rdf_representation_without_datatype_raises`)
+- [x] Decode robustness: "attributes not converted" warning path (already exercised by the pre-existing `RoundTripRDFTests::test_membership_*`/`test_json_to_ttl_match`, visible as `UserWarning` output in the suite), multi-valued unique-set walking — **T13** (`test_decode_multi_valued_qualified_relation_produces_cartesian_product`: a hand-authored qualified-`Usage` bnode with two `prov:entity` triples decodes into two separate `Usage` records via `walk()`'s cartesian product). `ValueError` on untransformable objects (line 669, `if obj is not None and obj1 is None: raise ValueError`) is **deferred**: traced `decode_rdf_representation()` exhaustively — for any non-`None` RDF term (`RDFLiteral`, `URIRef`, or the implicit `BNode`/other passthrough) it always returns a non-`None` value, so `obj1 is None` cannot occur for a real triple.
+- [x] `ProvRDFException` "No document to serialize." (137) — **T13** (`test_serialize_without_a_document_raises`)
+- [x] `encode_container()`'s `container=` parameter (defaults to `None` at every internal call site, so the "reuse a provided container" branch was previously dead code from the test suite's perspective) — **T13** (`test_encode_container_reuses_a_provided_container`, calling the method directly as an external caller would)
+- [x] `decode_document()`'s `hasattr(content, "contexts")` `else` branch, for a plain `rdflib.Graph` rather than a `ConjunctiveGraph` — **T13** (`test_decode_document_without_contexts_uses_plain_graph_path`)
+- [ ] Known-dead branches, confirmed unreachable via any value this library can construct (traced each, left **deferred**, do not write tests against dead code):
+  - the `False and ...`-disabled block (~493, documented in-source as frozen 2.x behaviour scheduled for deletion in 3.0) and the unreachable `rec_type in [PROV_ACTIVITY]` relation branch (~456-459, also documented in-source: unreachable inside the `is_relation()` path)
+  - `AnonymousIDGenerator.get_anon_id()` (67-70) and the `isinstance(value, pm.ProvRecord)` branch that would call it (482): `_auto_literal_conversion()` already converts any `ProvRecord` attribute value to its identifier before storage, so `encode_container()` never sees a raw `ProvRecord` value
+  - the `IndexError` fallback at 335-336 (`record.formal_attributes[1]`): every relation subclass has ≥2 `FORMAL_ATTRIBUTES`, so the tuple always has a second element
+  - the `elif isinstance(attr, pm.QualifiedName): ... else:` fallback at 418 and the `elif attr == PROV["plan"]:` branch at 410: for a formal `prov:plan` attribute, `attr in formal_objects` (line 405) always intercepts first: exercising 410 legitimately would require a non-`Association` relation carrying a generic extra attribute literally named `prov:plan`, which is a contrived construction with no realistic PROV-O source
+  - the `except AttributeError` at 586-587: guards a `dict[obj]` lookup already proven present by the enclosing `if obj in PROV_CLS_MAP:`, so a `KeyError` (not `AttributeError`) would be the only possible failure, and it can't happen here either
 
-## src/prov/serializers/provxml.py — 97% / provjson.py — 96% / provn.py — 87%
+## src/prov/serializers/provxml.py — 97% → 99% / provjson.py — 96% → 99% / provn.py — 87% → 100% (T13)
 
-- [ ] XML: "Non PROV element discovered" `ProvXMLException`, ignored-attribute warning, "Could not create a valid QualifiedName" error (59, 271, 377, 423) — **T13**
-- [ ] JSON: `ProvJSONException` on multi-valued PROV attributes; encoder fallback for non-document objects (103, 254–259) — **T13**
-- [ ] PROV-N: "No document to serialize" error (22) — **T13**
+- [x] XML: "Non PROV element discovered" `ProvXMLException` (`test_xml.py::ProvXMLSerializerErrorsTestCase::test_non_prov_top_level_element_raises`), "No document to serialize." (`test_serialize_without_a_document_raises`, line 59), ignored-attribute warning (`test_unrepresentable_sub_element_attribute_warns_and_is_ignored`), "Could not create a valid QualifiedName" error (`test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises`) — **T13**. Two deep partial branches left unaddressed (not explicit checklist items, low value): 109->108 (a bundle reusing a namespace prefix already registered at the document level — needs a contrived multi-namespace nested-bundle fixture) and 398->409 (an XML sub-element with no attributes at all combined with one that has some, in the same `_extract_attributes` call).
+- [x] JSON: `ProvJSONException` on multi-valued PROV attributes; encoder fallback for non-document objects; the "attribute touched but never explicitly set" defaultdict-skip (`if not values: continue`, found while writing these tests — accessing `.label`/`.value` auto-vivifies an empty attribute-set entry that the encoder must not emit); the third-or-later record sharing an identifier appending directly to the existing list — **T13** (`test_json.py::TestJSONSerializer`, 4 new tests). One deep partial branch left (not an explicit checklist item): 43->46 in `AnonymousIDGenerator.get_anon_id` (the "already cached" branch, needs the same anonymous record referenced twice during one encode pass).
+- [x] PROV-N: "No document to serialize" error (22) — **T13** (`test_extras.py::TestProvNSerializer`). Module now 100%.
 
-## src/prov/dot.py — 89% (missed: 183–187, 216, 281–287, 356, 376)
+## src/prov/dot.py — 89% → 96% (T13)
 
-- [ ] `htlm_link_if_uri()` returns an `<a href>` for values with a `.uri` and `str(value)` otherwise — **T13**
-- [ ] Invalid `direction` argument falls back to `"BT"` — **T13**
-- [ ] `use_labels=True` rendering, both label==identifier and label!=identifier variants (281–287) — **T13**
-- [ ] Skipping relations with fewer than two endpoint nodes / empty-args records (356, 376) — **T13**
+- [x] `htlm_link_if_uri()` returns an `<a href>` for values with a `.uri` and `str(value)` otherwise — **T13** (`test_dot.py::HtlmLinkIfUriTest`; the function is unused internally by `prov_to_dot()` but is a public module-level helper)
+- [x] Invalid `direction` argument falls back to `"BT"` — **T13** (`ProvToDotDirectionTest`)
+- [x] `show_element_attributes=False` skips the attribute-annotation node (found while covering this module; every other test left it at its `True` default) — **T13** (`ProvToDotShowElementAttributesTest`)
+- [x] `use_labels=True` rendering, `label != identifier` variant (the realistic case) — **T13** (`ProvToDotUseLabelsTest`). The `label == identifier` variant (dot.py:281-282) is **deferred**: `ProvRecord.label` always returns a plain `str`, `.identifier` is always a `QualifiedName`, and `str.__eq__`/`QualifiedName.__eq__` can never consider the two equal regardless of content (confirmed empirically: `entity.label == entity.identifier` is `False` even when their string forms match) — this branch is dead for any real record.
+- [ ] Skipping relations with fewer than two endpoint nodes / empty-args records (356, 376) — **defer**: both branches require a `ProvRelation` with `FORMAL_ATTRIBUTES` shorter than the 2 entries every concrete relation subclass in `model.py` declares. The only way to construct such a record is instantiating the abstract base `ProvRelation` directly (bypassing every named subclass), and any document containing it fails earlier: `prov_to_dot()` unconditionally calls `bundle.unified()`, which reconstructs every record via `add_record()` → `record.get_type()`, and `ProvRelation.get_type()` raises `NotImplementedError` (no `_prov_type` set) before the drawing loop is ever reached. Confirmed by tracing the call chain; not worth a contrived monkeypatch-heavy test.
 
 ---
 
@@ -133,7 +142,7 @@ Large module; misses are scattered single lines, but they cluster into these beh
 lifting TOTAL from 87.4% (package only) to 91.2%. CI has always measured it this way, so
 the `fail_under = 91` ratchet set by this task is consistent with what CI enforces, but:
 
-- [ ] Fix the omit pattern (e.g. `omit = ["*/prov/tests/*"]`) so the report reflects package code only, and re-base `fail_under` to the package-only number in the same commit — **T13** (do this *before* ratcheting toward 95, otherwise the target is measured against inflated numbers)
+- [x] Fix the omit pattern (e.g. `omit = ["*/prov/tests/*"]`) so the report reflects package code only, and re-base `fail_under` to the package-only number in the same commit — **T13**: changed to `omit = ["*/prov/tests/*"]`; re-measured before doing any further test work (see closing note below for the before/after numbers).
 
 ---
 
@@ -187,3 +196,36 @@ Survivor analysis — every survivor was informative:
   harvesting survivors into test items. Do not wire it into CI, do not add it to
   project dependencies, and re-evaluate mutmut 3.x (or `cosmic-ray`) only if the ad hoc
   workflow proves too manual.
+
+---
+
+## T13 closing note
+
+Every checklist item above is now either ticked or explicitly marked **defer** with a
+one-line (or longer, where the reasoning wasn't obvious) rationale; none are left
+unresolved.
+
+**Coverage, before/after this task, `uv run coverage run -m pytest && uv run coverage
+report -m` (branch coverage on):**
+
+| Scope | Before T13 | After T13 |
+|---|---|---|
+| TOTAL as CI measured it pre-fix (inflated by `src/prov/tests/`, buggy omit) | 91.218% | n/a, omit fixed |
+| Package-only TOTAL (honest, `omit = ["*/prov/tests/*"]`) | 91.458% | **97.42%** |
+
+Per-module: `__init__.py`, `graph.py`, `identifier.py`, `serializers/__init__.py`,
+`serializers/provn.py` all reached 100%; `model.py` 98%; `provjson.py`/`provxml.py` 99%;
+`dot.py` 96%; `provrdf.py` 95% (the largest/most complex serializer, with several
+confirmed-dead branches around 2.x-frozen RDF encoding quirks); `scripts/convert.py`
+93% and `scripts/compare.py` 86% (unchanged from T11, already fully ticked there).
+
+The new coverage ratchet is `fail_under = 97` (rounded down from 97.42%, comfortably
+above the ≥95 target and the ≥93 floor), measured against the fixed omit pattern — i.e.
+package code only, matching what `[tool.coverage.run] source = ["prov"]` +
+`omit = ["*/prov/tests/*"]` actually reports. CI's 3.12 job (the only one that runs
+`coverage report`) should land within a few hundredths of the same number; the ~0.4
+point margin above the 97 floor absorbs the cross-interpreter drift noted in T10.
+
+Test suite: 1083 passed, 17 xfailed (up from the 992 passed / 17 xfailed baseline
+recorded before this task — all 91 new tests pass, none of the pre-existing ones were
+modified in behaviour). `ruff check`, `ruff format --check`, and `mypy src` all clean.

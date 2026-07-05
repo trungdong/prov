@@ -391,6 +391,81 @@ class ProvXMLTestCase(unittest.TestCase):
         self.assertEqual(values, [1])
 
 
+class ProvXMLSerializerErrorsTestCase(unittest.TestCase):
+    """Covers ProvXMLSerializer error/warning paths not reached by the
+    round-trip fixtures (docs/test-gap-checklist.md, T13 item under
+    serializers/provxml.py)."""
+
+    def test_serialize_without_a_document_raises(self):
+        from prov.serializers.provxml import ProvXMLException, ProvXMLSerializer
+
+        serializer = ProvXMLSerializer(document=None)
+        with self.assertRaises(ProvXMLException) as ctx:
+            serializer.serialize(io.BytesIO())
+        self.assertIn("No document to serialize", str(ctx.exception))
+
+    def test_non_prov_top_level_element_raises(self):
+        from prov.serializers.provxml import ProvXMLException
+
+        xml_string = """<?xml version="1.0" encoding="UTF-8"?>
+        <prov:document
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:ex="http://example.com/ns/ex#">
+          <ex:notAProvElement/>
+        </prov:document>
+        """
+        with (
+            self.assertRaises(ProvXMLException) as ctx,
+            io.StringIO(xml_string) as xml,
+        ):
+            prov.ProvDocument.deserialize(source=xml, format="xml")
+        self.assertIn("Non PROV element discovered", str(ctx.exception))
+
+    def test_unrepresentable_sub_element_attribute_warns_and_is_ignored(self):
+        # An attribute on a PROV-XML sub-element other than prov:ref,
+        # xsi:type, or xml:lang cannot be represented in the internal data
+        # model; it is dropped with a warning rather than raising.
+        xml_string = """<?xml version="1.0" encoding="UTF-8"?>
+        <prov:document
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            xmlns:prov="http://www.w3.org/ns/prov#"
+            xmlns:ex="http://example.com/ns/ex#">
+          <prov:entity prov:id="ex:e1">
+            <ex:version xsi:type="xsd:string" custom="oops">2</ex:version>
+          </prov:entity>
+        </prov:document>
+        """
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            with io.StringIO(xml_string) as xml:
+                doc = prov.ProvDocument.deserialize(source=xml, format="xml")
+
+        self.assertTrue(
+            any(
+                "not representable in the prov module's internal data model"
+                in str(warning.message)
+                for warning in w
+            )
+        )
+        e1 = doc.get_record("ex:e1")[0]
+        self.assertEqual(list(e1.get_attribute("ex:version")), ["2"])
+
+    def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises(self):
+        from prov.serializers.provxml import (
+            ProvXMLException,
+            xml_qname_to_QualifiedName,
+        )
+
+        element = etree.fromstring(
+            '<root xmlns:ex="http://example.com/ns/ex#"><child/></root>'
+        )
+        child = element[0]
+        with self.assertRaises(ProvXMLException) as ctx:
+            xml_qname_to_QualifiedName(child, "noColonNoDefaultNs")
+        self.assertIn("Could not create a valid QualifiedName", str(ctx.exception))
+
+
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
     def _perform_round_trip(self, filename, force_types=False):
         document = prov.ProvDocument.deserialize(source=filename, format="xml")
