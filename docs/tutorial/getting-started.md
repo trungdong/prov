@@ -154,7 +154,7 @@ endDocument
 - **How-to guides** — task-focused recipes: serialising to the other formats (PROV-XML,
   PROV-O/RDF, PROV-N), producing graphics, converting to and from a NetworkX graph, and
   using the command-line tools.
-- **Reference** — the full API, generated from the source, under {doc}`../modules`.
+- **Reference** — the full API, generated from the source, under {doc}`../reference/index`.
 - **The PROV data model** — for the concepts behind entities, activities, agents and the
   relations between them, read the W3C
   [PROV-DM Primer](https://www.w3.org/TR/prov-primer/).
