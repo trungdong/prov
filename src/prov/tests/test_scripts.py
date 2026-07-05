@@ -14,8 +14,6 @@ full desired argv (program name included) and then call ``main()`` with no
 argument, rather than passing ``argv=[...]`` to ``main()``.
 """
 
-from __future__ import annotations
-
 import io
 import os
 import shutil
@@ -60,6 +58,19 @@ class TestConvertMain(unittest.TestCase):
             sys, "argv", ["prov-convert", "-f", "XML", self.infile, outfile]
         ):
             rc = convert_main()
+        self.assertEqual(rc, 0)
+        self.assertTrue(os.path.getsize(outfile) > 0)
+
+    def test_convert_explicit_argv_extends_sys_argv(self):
+        # Pin the documented quirk: main(argv) *extends* sys.argv rather than
+        # replacing it, and argparse then reads the combined sys.argv. A
+        # future "fix" that silently changes this to replacement should trip
+        # this test so the behaviour change is a deliberate (3.0) decision.
+        outfile = self._outfile("doc.xml")
+        argv = ["-f", "xml", self.infile, outfile]
+        with unittest.mock.patch.object(sys, "argv", ["prov-convert"]):
+            rc = convert_main(argv)
+            self.assertEqual(sys.argv, ["prov-convert", *argv])
         self.assertEqual(rc, 0)
         self.assertTrue(os.path.getsize(outfile) > 0)
 
@@ -249,6 +260,7 @@ class TestCompareMain(unittest.TestCase):
             unittest.mock.patch.object(
                 sys, "argv", ["prov-compare", missing, self.json_file]
             ),
+            unittest.mock.patch.object(sys, "stderr", io.StringIO()),
             self.assertRaises(SystemExit) as ctx,
         ):
             compare_main()
