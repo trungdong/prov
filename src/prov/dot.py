@@ -1,6 +1,6 @@
 """Graphical visualisation support for prov.model.
 
-This module produces graphical visualisation for provenanve graphs.
+This module produces graphical visualisation for provenance graphs.
 Requires pydot module and Graphviz.
 
 References:
@@ -180,6 +180,17 @@ ANNOTATION_END_ROW = "    </TABLE>>"
 
 
 def htlm_link_if_uri(value: Any) -> str:
+    """Render an attribute value as an HTML anchor if it has a ``uri``, else as plain text.
+
+    Args:
+        value: Attribute value to render; typically an
+            :class:`~prov.identifier.Identifier`/:class:`~prov.identifier.QualifiedName`
+            (which have a ``uri`` attribute) or a plain literal.
+
+    Returns:
+        An ``<a href="...">`` HTML fragment linking to ``value.uri`` if
+        ``value`` has a ``uri`` attribute, otherwise ``str(value)``.
+    """
     try:
         uri = value.uri
         return f'<a href="{uri}">{value!s}</a>'
@@ -195,21 +206,29 @@ def prov_to_dot(
     show_element_attributes: bool = True,
     show_relation_attributes: bool = True,
 ) -> pydot.Dot:
-    """
-    Convert a provenance bundle/document into a DOT graphical representation.
+    """Convert a provenance bundle/document into a DOT graphical representation.
 
-    :param bundle: The provenance bundle/document to be converted.
-    :type bundle: :class:`ProvBundle`
-    :param show_nary: shows all elements in n-ary relations.
-    :type show_nary: bool
-    :param use_labels: uses the prov:label property of an element as its name (instead of its identifier).
-    :type use_labels: bool
-    :param direction: specifies the direction of the graph. Valid values are "BT" (default), "TB", "LR", "RL".
-    :param show_element_attributes: shows attributes of elements.
-    :type show_element_attributes: bool
-    :param show_relation_attributes: shows attributes of relations.
-    :type show_relation_attributes: bool
-    :returns:  :class:`pydot.Dot` -- the Dot object.
+    The bundle is first :meth:`~prov.model.ProvBundle.unified`; if that
+    raises :class:`~prov.model.ProvException` (the bundle cannot be
+    unified), the original, non-unified bundle is rendered instead.
+
+    Args:
+        bundle: The provenance bundle/document to be converted.
+        show_nary: Show all elements of n-ary relations (i.e. relations with
+            more than two formal attributes), not just the first two.
+        use_labels: Use the ``prov:label`` property of an element as its
+            displayed name (instead of its identifier), where available.
+        direction: Direction of the graph, passed to Graphviz as
+            ``rankdir``. Valid values are ``"BT"`` (default), ``"TB"``,
+            ``"LR"``, ``"RL"``; any other value is silently replaced with
+            ``"BT"``.
+        show_element_attributes: Show attributes of elements as annotation
+            nodes.
+        show_relation_attributes: Show attributes of relations as annotation
+            nodes.
+
+    Returns:
+        The :class:`pydot.Dot` graph object.
     """
     if direction not in {"BT", "TB", "LR", "RL"}:
         # Invalid direction is provided

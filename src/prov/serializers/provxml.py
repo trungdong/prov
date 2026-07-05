@@ -1,3 +1,5 @@
+"""PROV-XML serializer for ProvDocument."""
+
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
 import datetime
@@ -23,15 +25,22 @@ logger = logging.getLogger(__name__)
 # mapping.
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
+"""Maps every PROV record/subtype QualifiedName (including PROV-XML's
+top-level subtypes from :data:`~prov.constants.ADDITIONAL_N_MAP`) to its
+PROV-XML element name."""
 # Inverse mapping.
 FULL_PROV_RECORD_IDS_MAP = {
     FULL_NAMES_MAP[rec_type_id]: rec_type_id for rec_type_id in FULL_NAMES_MAP
 }
+"""Inverse of :data:`FULL_NAMES_MAP`: maps each PROV-XML element name back to
+its record/subtype QualifiedName."""
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
 
 class ProvXMLException(prov.Error):
+    """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
+
     pass
 
 
@@ -41,19 +50,25 @@ class ProvXMLSerializer(Serializer):
     def serialize(
         self, stream: io.IOBase, force_types: bool = False, **kwargs: Any
     ) -> None:
-        """
-        Serializes a :class:`~prov.model.ProvDocument` instance to `PROV-XML
-        <http://www.w3.org/TR/prov-xml/>`_.
+        """Serialize ``self.document`` to `PROV-XML <http://www.w3.org/TR/prov-xml/>`_.
 
-        :param stream: Where to save the output.
-        :type force_types: boolean, optional
-        :param force_types: Will force xsd:types to be written for most
-            attributes mainly PROV-"attributes", e.g. tags not in the
-            PROV namespace. Off by default meaning xsd:type attributes will
-            only be set for prov:type, prov:location, and prov:value as is
-            done in the official PROV-XML specification. Furthermore the
-            types will always be set if the Python type requires it. False
-            is a good default and it should rarely require changing.
+        Args:
+            stream: Stream to write the output to. Text streams receive the
+                XML text directly; other (binary) streams are written to via
+                ``lxml``'s own UTF-8 encoding.
+            force_types: If ``True``, force ``xsi:type`` to be written for
+                most attributes, including non-PROV-namespaced ones. Off by
+                default, meaning ``xsi:type`` attributes are only set for
+                ``prov:type``, ``prov:location``, and ``prov:value`` as done
+                in the official PROV-XML specification. Regardless of this
+                flag, the type is always set if the Python type of the value
+                requires it (e.g. ``bool``, ``float``, ``datetime``). A good
+                default; it should rarely require changing.
+            **kwargs: Unused; accepted for interface compatibility with
+                :meth:`~prov.serializers.Serializer.serialize`.
+
+        Raises:
+            ProvXMLException: If ``self.document`` is ``None``.
         """
         if self.document is None:
             raise ProvXMLException("No document to serialize.")
@@ -82,19 +97,23 @@ class ProvXMLSerializer(Serializer):
         element: etree._Element | None = None,
         force_types: bool = False,
     ) -> etree._Element:
-        """
-        Serializes a bundle or document to PROV XML.
+        """Serialize a bundle or document to a PROV-XML etree element.
 
-        :param bundle: The bundle or document.
-        :param element: The XML element to write to. Will be created if None.
-        :type force_types: boolean, optional
-        :param force_types: Will force xsd:types to be written for most
-            attributes mainly PROV-"attributes", e.g. tags not in the
-            PROV namespace. Off by default meaning xsd:type attributes will
-            only be set for prov:type, prov:location, and prov:value as is
-            done in the official PROV-XML specification. Furthermore the
-            types will always be set if the Python type requires it. False
-            is a good default and it should rarely require changing.
+        Namespaces are collected from ``self.document`` (the top-level
+        document being serialized) plus ``bundle``'s own namespaces and the
+        package's default namespaces.
+
+        Args:
+            bundle: The bundle or document to serialize.
+            element: Parent XML element to attach a ``<prov:bundleContent>``
+                child to. If ``None``, a new top-level ``<prov:document>``
+                element is created and returned instead.
+            force_types: See :meth:`serialize`.
+
+        Returns:
+            The XML element created for ``bundle``: a new
+            ``<prov:document>`` element if ``element`` was ``None``, or the
+            ``<prov:bundleContent>`` child added to ``element`` otherwise.
         """
         # Build the namespace map for lxml and attach it to the root XML
         # element.
@@ -229,11 +248,19 @@ class ProvXMLSerializer(Serializer):
         return xml_bundle_root
 
     def deserialize(self, stream: io.IOBase, **kwargs: Any) -> prov.model.ProvDocument:
-        """
-        Deserialize from `PROV-XML <http://www.w3.org/TR/prov-xml/>`_
-        representation to a :class:`~prov.model.ProvDocument` instance.
+        """Deserialize a `PROV-XML <http://www.w3.org/TR/prov-xml/>`_
+        stream into a :class:`~prov.model.ProvDocument`.
 
-        :param stream: Input data.
+        XML comments in the input are discarded before parsing.
+
+        Args:
+            stream: Input data; text streams are UTF-8-encoded before
+                parsing.
+            **kwargs: Unused; accepted for interface compatibility with
+                :meth:`~prov.serializers.Serializer.deserialize`.
+
+        Returns:
+            The deserialized :class:`~prov.model.ProvDocument`.
         """
         if isinstance(stream, io.TextIOBase):
             with io.BytesIO() as buf:
@@ -257,12 +284,28 @@ class ProvXMLSerializer(Serializer):
         xml_doc: etree._Element,
         bundle: prov.model.ProvDocument | prov.model.ProvBundle,
     ) -> prov.model.ProvDocument | prov.model.ProvBundle:
-        """
-        Deserialize an etree element containing a PROV document or a bundle
-        and write it to the provided internal object.
+        """Deserialize an etree element containing a PROV document or bundle.
 
-        :param xml_doc: An etree element containing the information to read.
-        :param bundle: The bundle object to write to.
+        Mutates ``bundle`` in place, adding one record per child element of
+        ``xml_doc``; ``<prov:bundleContent>`` children are recursively
+        deserialized into new named bundles added to ``bundle`` (which must
+        then be a :class:`~prov.model.ProvDocument`). A ``<prov:other>``
+        child (non-PROV information) is skipped with a warning.
+
+        Args:
+            xml_doc: The etree element (document or bundle content) to read.
+            bundle: The document or bundle object to populate.
+
+        Returns:
+            ``bundle``, mutated in place.
+
+        Raises:
+            ProvXMLException: If a child element is not in the PROV
+                namespace.
+
+        Warns:
+            UserWarning: For each ``<prov:other>`` child, which is otherwise
+                ignored.
         """
 
         for element in xml_doc:
@@ -323,13 +366,22 @@ class ProvXMLSerializer(Serializer):
         rec_type: prov.identifier.QualifiedName,
         attributes: list[tuple[prov.identifier.QualifiedName, Any]],
     ) -> str:
-        """
-        Helper function trying to derive the record label taking care of
-        subtypes and what not. It will also remove the type declaration for
-        the attributes if it was used to specialize the type.
+        """Derive the PROV-XML element name for a record, honouring subtypes.
 
-        :param rec_type: The type of records.
-        :param attributes: The attributes of the record.
+        If a ``prov:type`` attribute's value names a subtype of ``rec_type``
+        (per :data:`~prov.constants.PROV_BASE_CLS`), that subtype's element
+        name is used instead of ``rec_type``'s, and the matching
+        ``(PROV_TYPE, value)`` entry is removed from ``attributes`` in place
+        (it is then encoded as the element name rather than duplicated as a
+        ``prov:type`` attribute).
+
+        Args:
+            rec_type: The record's (base) type.
+            attributes: The record's attributes; mutated in place if a
+                subtype is found.
+
+        Returns:
+            The PROV-XML element name to use for the record.
         """
         rec_label = FULL_NAMES_MAP[rec_type]
 
@@ -348,10 +400,26 @@ class ProvXMLSerializer(Serializer):
 def _extract_attributes(
     element: etree._Element,
 ) -> list[tuple[prov.identifier.QualifiedName, Any]]:
-    """
-    Extract the PROV attributes from an etree element.
+    """Extract a record's attributes from its PROV-XML etree element.
 
-    :param element: The lxml.etree.Element instance.
+    Each child of ``element`` becomes one ``(QualifiedName, value)`` pair:
+    a ``prov:ref`` attribute yields a :class:`~prov.identifier.QualifiedName`
+    value, an ``xsi:type`` attribute yields a typed
+    :class:`~prov.model.Literal` (or, for ``xsd:QName``, a
+    :class:`~prov.identifier.QualifiedName`), an ``xml:lang`` attribute
+    yields a language-tagged :class:`~prov.model.Literal`, and a child with
+    no attributes yields its plain text content.
+
+    Args:
+        element: The PROV-XML record element whose children are its
+            attributes.
+
+    Returns:
+        The extracted ``(QualifiedName, value)`` pairs, in document order.
+
+    Warns:
+        UserWarning: For any child attribute that is none of ``prov:ref``,
+            ``xsi:type``, or ``xml:lang``; such attributes are ignored.
     """
     attributes = []  # type: list[tuple[prov.identifier.QualifiedName, Any]]
     for subel in element:
@@ -393,6 +461,25 @@ def _extract_attributes(
 def xml_qname_to_QualifiedName(
     element: etree._Element, qname_str: str
 ) -> prov.identifier.QualifiedName:
+    """Resolve an XML QName-like string to a :class:`~prov.identifier.QualifiedName`.
+
+    Args:
+        element: The etree element ``qname_str`` was read from; its
+            ``nsmap`` (in scope at that point in the document) is used to
+            resolve the prefix.
+        qname_str: A ``"prefix:localpart"`` string, or a bare local name to
+            be resolved against the default namespace.
+
+    Returns:
+        The resolved qualified name. The XSD and PROV namespaces are mapped
+        to this package's canonical :data:`~prov.constants.XSD`/
+        :data:`~prov.constants.PROV` namespace objects; any other namespace
+        URI becomes a new :class:`~prov.identifier.Namespace`.
+
+    Raises:
+        ProvXMLException: If ``qname_str`` has no recognized prefix and
+            ``element`` has no default namespace in scope.
+    """
     if ":" in qname_str:
         prefix, localpart = qname_str.split(":", 1)
         if prefix in element.nsmap:

@@ -46,7 +46,26 @@ class CLIError(Exception):
 
 
 def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
-    """Command line options."""
+    """Run the ``prov-compare`` command-line tool.
+
+    Parses two positional file arguments plus ``-f/--format1`` and
+    ``-F/--format2`` (each defaulting to ``"json"``), deserializes both
+    files, and compares the resulting documents for equality.
+
+    Args:
+        argv: Extra command-line arguments. If not ``None``, they are
+            appended to ``sys.argv`` (which is *not* replaced) before
+            argument parsing, so ``sys.argv[0]`` is still used as the
+            program name.
+
+    Returns:
+        ``0`` if the two documents are equal, ``1`` if they differ (the
+        truthiness of ``doc1 != doc2``), or ``2`` if an exception was raised
+        while parsing arguments or deserializing a file (unless
+        ``DEBUG``/``TESTRUN`` is set, in which case the exception propagates
+        instead). Unlike ``prov-convert``, ``KeyboardInterrupt`` is not
+        caught here and will propagate.
+    """
 
     if argv is None:
         argv = sys.argv

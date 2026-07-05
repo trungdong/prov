@@ -71,6 +71,8 @@ GRAPHVIZ_SUPPORTED_FORMATS = {
     "xdot",
     "xlib",
 }
+"""Graphviz output format names accepted by :func:`convert_file` in addition
+to the formats registered in :class:`~prov.serializers.Registry`."""
 
 
 class CLIError(Exception):
@@ -85,6 +87,28 @@ class CLIError(Exception):
 
 
 def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> None:
+    """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
+
+    ``infile`` is auto-detected across all registered deserialization
+    formats (see :meth:`~prov.model.ProvDocument.deserialize`). For
+    ``output_format``, ``"provn"`` is written directly via
+    :meth:`~prov.model.ProvDocument.get_provn`, a name in
+    :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
+    :func:`~prov.dot.prov_to_dot` and Graphviz, and any other format is
+    delegated to :meth:`~prov.model.ProvDocument.serialize`.
+
+    Args:
+        infile: File-like object to read the source document from.
+        outfile: File-like object (opened in binary mode) to write the
+            converted output to.
+        output_format: Target format name (e.g. ``"json"``, ``"xml"``,
+            ``"rdf"``, ``"provn"``, or a Graphviz output format such as
+            ``"svg"``/``"pdf"``/``"png"``).
+
+    Raises:
+        CLIError: If ``output_format`` is not ``"provn"``, not a Graphviz
+            format, and not a registered serializer format.
+    """
     prov_doc = ProvDocument.deserialize(infile)
 
     # Formats not supported by prov.serializers
@@ -108,7 +132,24 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
 
 
 def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
-    """Command line options."""
+    """Run the ``prov-convert`` command-line tool.
+
+    Parses ``-f/--format``, an optional input file (default stdin), and an
+    optional output file (default stdout), then converts between them via
+    :func:`convert_file`.
+
+    Args:
+        argv: Extra command-line arguments. If not ``None``, they are
+            appended to ``sys.argv`` (which is *not* replaced) before
+            argument parsing, so ``sys.argv[0]`` is still used as the
+            program name.
+
+    Returns:
+        ``0`` on success or on ``KeyboardInterrupt``; ``2`` if an exception
+        was raised while parsing arguments or converting the file (unless
+        ``DEBUG``/``TESTRUN`` is set, in which case the exception
+        propagates instead).
+    """
 
     if argv is None:
         argv = sys.argv

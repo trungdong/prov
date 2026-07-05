@@ -22,28 +22,43 @@ class Serializer(ABC):
     """PROV document to serialise."""
 
     def __init__(self, document: ProvDocument | None = None):
-        """
-        Constructor.
+        """Create a serializer bound to a document.
 
-        :param document: Document to serialize.
+        Args:
+            document: Document this serializer will serialize, or
+                deserialize into. May be ``None`` when only deserialization
+                (which produces its own new document) is needed.
         """
         self.document = document
 
     @abstractmethod
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
-        """
-        Abstract method for serializing.
+        """Serialize ``self.document`` and write it to a stream.
 
-        :param stream: Stream object to serialize the document into.
+        Subclasses implement this to encode the bound document and write the
+        result to ``stream``.
+
+        Args:
+            stream: Stream to write the serialized document into.
+            **args: Format-specific serialization options, passed through by
+                subclasses.
         """
         pass  # pragma: no cover -- abstract body, never executed directly
 
     @abstractmethod
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
-        """
-        Abstract method for deserializing.
+        """Read and parse a document from a stream.
 
-        :param stream: Stream object to deserialize the document from.
+        Subclasses implement this to parse ``stream`` and build a new
+        :class:`~prov.model.ProvDocument` from it.
+
+        Args:
+            stream: Stream to deserialize the document from.
+            **args: Format-specific deserialization options, passed through
+                by subclasses.
+
+        Returns:
+            The deserialized :class:`~prov.model.ProvDocument`.
         """
         pass  # pragma: no cover -- abstract body, never executed directly
 
@@ -62,7 +77,13 @@ class Registry:
 
     @staticmethod
     def load_serializers() -> None:
-        """Loads all available serializers into the registry."""
+        """Populate :attr:`serializers` with the four built-in serializer classes.
+
+        Imports the ``json``, ``rdf``, ``provn``, and ``xml`` serializer
+        modules lazily (to avoid import cycles) and (re-)registers them in
+        :attr:`serializers`, unconditionally overwriting any previous
+        contents.
+        """
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
         from prov.serializers.provrdf import ProvRDFSerializer
@@ -77,8 +98,17 @@ class Registry:
 
 
 def get(format_name: str) -> type[Serializer]:
-    """
-    Returns the serializer class for the specified format. Raises a DoNotExist
+    """Return the serializer class registered for a format.
+
+    Args:
+        format_name: Registry key, e.g. ``"json"``, ``"xml"``, ``"rdf"``,
+            ``"provn"``.
+
+    Returns:
+        The :class:`Serializer` subclass for the format.
+
+    Raises:
+        DoNotExist: If no serializer is registered under ``format_name``.
     """
     # Lazily initialize the list of serializers to avoid cyclic imports
     if Registry.serializers is None:

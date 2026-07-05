@@ -1,3 +1,14 @@
+"""The PROV-DM/PROV-O vocabulary as module-level data.
+
+Defines one :class:`~prov.identifier.QualifiedName` constant per PROV record
+type and per formal attribute (``PROV_ENTITY``, ``PROV_ACTIVITY``,
+``PROV_ATTR_TIME``, ...), plus the lookup tables used to translate between
+those constants, PROV-N keywords, and the Python model classes:
+``PROV_N_MAP`` (record type to PROV-N keyword), ``PROV_BASE_CLS`` (record
+type to base record type), and the various ``PROV_ATTRIBUTE*``/
+``PROV_RECORD*`` sets and dicts consulted while parsing and serializing.
+"""
+
 from prov.identifier import Namespace
 
 __author__ = "Trung Dong Huynh"
@@ -57,6 +68,7 @@ PROV_N_MAP = {
     PROV_MEMBERSHIP: "hadMember",
     PROV_BUNDLE: "bundle",
 }
+"""Maps each top-level PROV record type QualifiedName to its PROV-N keyword."""
 
 # Records defined as subtypes in PROV-N but top level types in for example
 # PROV XML also need a mapping.
@@ -71,6 +83,8 @@ ADDITIONAL_N_MAP = {
     PROV["Collection"]: "collection",
     PROV["EmptyCollection"]: "emptyCollection",
 }
+"""Maps PROV-N subtype QualifiedNames (top-level types in e.g. PROV-XML) to
+their PROV-N keyword; not included in :data:`PROV_N_MAP` itself."""
 
 # Maps qualified names from the PROV namespace to their base class. If it
 # has no baseclass it maps to itsself. This is needed for example for PROV
@@ -105,6 +119,8 @@ PROV_BASE_CLS = {
     PROV_MEMBERSHIP: PROV_MEMBERSHIP,
     PROV_BUNDLE: PROV_ENTITY,
 }
+"""Maps each PROV record/subtype QualifiedName to its base record type
+QualifiedName (mapping to itself if it has no base type)."""
 
 # Identifiers for PROV's attributes
 PROV_ATTR_ENTITY = PROV["entity"]
@@ -162,20 +178,29 @@ PROV_ATTRIBUTE_QNAMES = {
     PROV_ATTR_INFLUENCER,
     PROV_ATTR_COLLECTION,
 }
+"""Set of QualifiedName-valued formal attributes of PROV records."""
 PROV_ATTRIBUTE_LITERALS = {PROV_ATTR_TIME, PROV_ATTR_STARTTIME, PROV_ATTR_ENDTIME}
+"""Set of literal-valued (non-QualifiedName) formal attributes of PROV records."""
 
 # Set of formal attributes of PROV records
 PROV_ATTRIBUTES = PROV_ATTRIBUTE_QNAMES | PROV_ATTRIBUTE_LITERALS
+"""All formal attributes of PROV records, QualifiedName- and literal-valued."""
 PROV_RECORD_ATTRIBUTES = [(attr, str(attr)) for attr in PROV_ATTRIBUTES]
+"""``(QualifiedName, str)`` pairs for every entry in :data:`PROV_ATTRIBUTES`."""
 
 PROV_RECORD_IDS_MAP = {
     PROV_N_MAP[rec_type_id]: rec_type_id for rec_type_id in PROV_N_MAP
 }
+"""Inverse of :data:`PROV_N_MAP`: maps each PROV-N keyword back to its record
+type QualifiedName."""
 PROV_ID_ATTRIBUTES_MAP = dict(PROV_RECORD_ATTRIBUTES)
+"""Maps each formal attribute QualifiedName to its string form."""
 # inverse of PROV_ID_ATTRIBUTES_MAP: maps each attribute name back to its QName
 PROV_ATTRIBUTES_ID_MAP = {
     attribute: prov_id for (prov_id, attribute) in PROV_RECORD_ATTRIBUTES
 }
+"""Inverse of :data:`PROV_ID_ATTRIBUTES_MAP`: maps each attribute's string
+form back to its QualifiedName."""
 
 # Extra definition for convenience
 PROV_TYPE = PROV["type"]

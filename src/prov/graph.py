@@ -60,15 +60,34 @@ INFERRED_ELEMENT_CLASS = {
     PROV_ATTR_ENDER: ProvEntity,
     PROV_ATTR_STARTER: ProvEntity,
 }
+"""Maps a relation's first/second formal attribute (e.g. ``PROV_ATTR_ENTITY``)
+to the :class:`~prov.model.ProvElement` subclass used to create a bare node
+for an element referenced by a relation but not otherwise declared."""
 
 
 def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
-    """
-    Convert a :class:`~prov.model.ProvDocument` to a `MultiDiGraph
+    """Convert a :class:`~prov.model.ProvDocument` to a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
     instance of the `NetworkX <https://networkx.github.io/>`_ library.
 
-    :param prov_document: The :class:`~prov.model.ProvDocument` instance to convert.
+    The document is first :meth:`~prov.model.ProvBundle.unified` so that
+    records referring to the same real-world thing are merged before the
+    graph is built. Every PROV element becomes a graph node. Each relation
+    becomes an edge between the elements named in its first two formal
+    attributes, with the relation record stored under the edge's
+    ``"relation"`` attribute; if either of those two elements was not
+    already added as a node, a bare node is created for it using
+    :data:`INFERRED_ELEMENT_CLASS`. Relations whose first two formal
+    attributes are not both populated, or whose attribute type is not in
+    :data:`INFERRED_ELEMENT_CLASS`, are silently skipped.
+
+    Args:
+        prov_document: The :class:`~prov.model.ProvDocument` instance to
+            convert.
+
+    Returns:
+        A NetworkX ``MultiDiGraph`` with PROV elements as nodes and PROV
+        relations as edges.
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()
@@ -96,13 +115,23 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
 
 
 def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
-    """
-    Convert a `MultiDiGraph
+    """Convert a `MultiDiGraph
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
     that was previously produced by :func:`prov_to_graph` back to a
     :class:`~prov.model.ProvDocument`.
 
-    :param g: The graph instance to convert.
+    Every node that is a :class:`~prov.model.ProvRecord` already attached to
+    a bundle is added to the new document; nodes without a bundle (e.g. bare
+    nodes inferred by :func:`prov_to_graph`) are skipped. Every edge whose
+    ``"relation"`` data is a :class:`~prov.model.ProvRecord` is likewise
+    added; edges without relation data are skipped.
+
+    Args:
+        g: The graph instance to convert.
+
+    Returns:
+        A new :class:`~prov.model.ProvDocument` containing the elements and
+        relations recovered from ``g``.
     """
     prov_doc = ProvDocument()
     for n in g.nodes():

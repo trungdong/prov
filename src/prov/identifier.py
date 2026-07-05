@@ -13,21 +13,17 @@ class Identifier:
     # into a subclass
 
     def __init__(self, uri: str):
-        """
-        Constructor.
+        """Create an identifier for the given URI.
 
-        :param uri: URI string for the long namespace identifier.
+        Args:
+            uri: URI string for the identifier. Converted to ``str`` if not
+                already one.
         """
         self._uri: str = str(uri)  # Ensure this is a unicode string
 
     @property
     def uri(self) -> str:
-        """
-        Returns the URI associated with the current identifier.
-
-        Returns:
-            str: The URI representing the resource identifier.
-        """
+        """The URI associated with the current identifier."""
         return self._uri
 
     def __str__(self) -> str:
@@ -43,12 +39,7 @@ class Identifier:
         return f"<{self.__class__.__name__}: {self._uri}>"
 
     def provn_representation(self) -> str:
-        """
-        Returns the PROV-N representation of the URI.
-
-        Returns:
-            str: The PROV-N representation of the URI.
-        """
+        """Return the PROV-N representation of this identifier as an xsd:anyURI literal."""
         return f'"{self._uri}" %% xsd:anyURI'
 
 
@@ -101,7 +92,7 @@ class QualifiedName(Identifier):
         return hash(self.uri)
 
     def provn_representation(self) -> str:
-        """PROV-N representation of qualified name in a string."""
+        """Return the PROV-N representation of this qualified name as a quoted string."""
         return f"'{self._str}'"
 
 
@@ -109,11 +100,14 @@ class Namespace:
     """PROV Namespace."""
 
     def __init__(self, prefix: str, uri: str):
-        """
-        Constructor.
+        """Create a namespace with the given prefix and URI.
 
-        :param prefix: String short hand prefix for the namespace.
-        :param uri: URI string for the long namespace identifier (cannot be blank).
+        Args:
+            prefix: Short-hand prefix for the namespace.
+            uri: URI string for the namespace (cannot be blank).
+
+        Raises:
+            ValueError: If ``uri`` is empty or contains only whitespace.
         """
         if not uri or uri.isspace():
             raise ValueError("Not a valid URI to create a namespace.")
@@ -132,11 +126,14 @@ class Namespace:
         return self._prefix
 
     def contains(self, identifier: Identifier) -> bool:
-        """
-        Indicates whether the identifier provided is contained in this namespace.
+        """Check whether the given identifier's URI is contained in this namespace.
 
-        :param identifier: Identifier to check.
-        :return: bool
+        Args:
+            identifier: Identifier (or URI string) to check.
+
+        Returns:
+            ``True`` if the identifier's URI starts with this namespace's URI,
+            ``False`` otherwise (including when the URI cannot be determined).
         """
         uri = (
             identifier
@@ -146,12 +143,14 @@ class Namespace:
         return uri.startswith(self._uri) if uri else False
 
     def qname(self, identifier: str | Identifier) -> QualifiedName | None:
-        """
-        Returns the qualified name of the identifier given using the namespace
-        prefix.
+        """Resolve an identifier to a :class:`QualifiedName` in this namespace.
 
-        :param identifier: Identifier to resolve to a qualified name.
-        :return: :py:class:`QualifiedName`
+        Args:
+            identifier: Identifier (or URI string) to resolve.
+
+        Returns:
+            A new :class:`QualifiedName` in this namespace if ``identifier``'s
+            URI starts with this namespace's URI, otherwise ``None``.
         """
         uri = (
             identifier

@@ -22,17 +22,31 @@ class Error(Exception):
 def read(
     source: str | bytes | os.PathLike[str], format: str | None = None
 ) -> ProvDocument | None:
-    """
-    Convenience function returning a ProvDocument instance.
+    """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.
 
-    It does a lazy format detection by simply using try/except for all known
-    formats. The deserializers should fail fairly early when data of the
-    wrong type is passed to them thus the try/except is likely cheap. One
+    If ``format`` is not given, the format is detected lazily by trying each
+    registered serializer's ``deserialize()`` in turn and returning the first
+    one that succeeds. The deserializers should fail fairly early when data of
+    the wrong type is passed to them thus the try/except is likely cheap. One
     could of course also do some more advanced format auto-detection but I am
     not sure that is necessary.
 
-    The downside is that no proper error messages will be produced, use the
-    format parameter to get the actual traceback.
+    The downside of auto-detection is that no proper error messages will be
+    produced; pass the ``format`` parameter explicitly to get the actual
+    traceback from the matching deserializer.
+
+    Args:
+        source: File-like stream, path, or raw content to deserialize.
+        format: Serialization format to use (e.g. ``"json"``, ``"xml"``,
+            ``"rdf"``, ``"provn"``). If ``None``, every registered format is
+            tried in turn.
+
+    Returns:
+        The deserialized :class:`~prov.model.ProvDocument`.
+
+    Raises:
+        TypeError: If ``format`` is ``None`` and none of the registered
+            serializers could deserialize ``source``.
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument
