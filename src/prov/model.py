@@ -62,6 +62,11 @@ PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
 
 # Data Types
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
+    """Coerce a value to a :class:`datetime.datetime`.
+
+    A string is parsed with :func:`dateutil.parser.parse`; a
+    :class:`~datetime.datetime` or ``None`` is returned unchanged.
+    """
     if isinstance(value, str):
         return dateutil.parser.parse(value)
     else:
@@ -69,6 +74,15 @@ def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
 
 
 def parse_xsd_datetime(value: str) -> datetime.datetime | None:
+    """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
+
+    Args:
+        value: The date/time string to parse.
+
+    Returns:
+        The parsed :class:`~datetime.datetime`, or ``None`` if ``value`` could
+        not be parsed.
+    """
     try:
         return dateutil.parser.parse(value)
     except ValueError:
@@ -77,6 +91,16 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
 
 
 def parse_boolean(value: str) -> bool | None:
+    """Parse an ``xsd:boolean`` string into a Python :class:`bool`.
+
+    Args:
+        value: The string to interpret; ``"false"``/``"0"`` map to ``False``
+            and ``"true"``/``"1"`` map to ``True`` (case-insensitively).
+
+    Returns:
+        The parsed boolean, or ``None`` if ``value`` is not a recognised
+        boolean literal.
+    """
     if value.lower() in ("false", "0"):
         return False
     elif value.lower() in ("true", "1"):
@@ -106,6 +130,16 @@ XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedType
 
 
 def parse_xsd_types(value: str, datatype: QualifiedName) -> SupportedXSDParsedTypes:
+    """Parse a string into a Python value according to its XSD datatype.
+
+    Args:
+        value: The lexical string value to parse.
+        datatype: The qualified name of the XSD datatype (e.g. ``xsd:int``).
+
+    Returns:
+        The parsed value in the corresponding Python type, or ``None`` if
+        ``datatype`` has no registered parser in :data:`XSD_DATATYPE_PARSERS`.
+    """
     return (
         XSD_DATATYPE_PARSERS[datatype](value)
         if datatype in XSD_DATATYPE_PARSERS
@@ -114,6 +148,7 @@ def parse_xsd_types(value: str, datatype: QualifiedName) -> SupportedXSDParsedTy
 
 
 def first(a_set: set[Any]) -> Any | None:
+    """Return an arbitrary element from a set, or ``None`` if it is empty."""
     return next(iter(a_set), None)
 
 
@@ -131,6 +166,12 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
 def encoding_provn_value(
     value: str | datetime.datetime | float | bool | QualifiedName,
 ) -> str:
+    """Return the PROV-N literal representation of a Python value.
+
+    Strings are quoted (triple-quoted when they span multiple lines); dates,
+    floats and booleans are rendered with their XSD datatype suffix. Any other
+    value is rendered via :func:`str`.
+    """
     if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
@@ -146,12 +187,30 @@ def encoding_provn_value(
 
 
 class Literal:
+    """A typed (and optionally language-tagged) PROV literal value.
+
+    A literal pairs a string value with an optional datatype and an optional
+    language tag. Supplying a language tag forces the datatype to
+    ``prov:InternationalizedString``: if no datatype was given one is assumed,
+    and any other datatype is overridden (with a warning) to comply with the
+    PROV-JSON/PROV-XML rules for language-tagged strings.
+    """
+
     def __init__(
         self,
         value: Any,
         datatype: QualifiedName | None = None,
         langtag: str | None = None,
     ):
+        """Initialise the literal.
+
+        Args:
+            value: The literal's value; it is stored as its string form.
+            datatype: The qualified name of the value's datatype (default:
+                ``None``).
+            langtag: An optional language tag. When given, ``datatype`` is
+                coerced to ``prov:InternationalizedString`` (default: ``None``).
+        """
         self._value: str = str(value)  # value is always a string
         if langtag:
             if datatype is None:
@@ -198,20 +257,25 @@ class Literal:
 
     @property
     def value(self) -> str:
+        """The literal's value as a string."""
         return self._value
 
     @property
     def datatype(self) -> QualifiedName | None:
+        """The literal's datatype, or ``None`` if it has none."""
         return self._datatype
 
     @property
     def langtag(self) -> str | None:
+        """The literal's language tag, or ``None`` if it has none."""
         return self._langtag
 
     def has_no_langtag(self) -> bool:
+        """Return ``True`` if the literal has no language tag."""
         return self._langtag is None
 
     def provn_representation(self) -> str:
+        """Return the PROV-N representation of the literal."""
         quoted_value = _ensure_multiline_string_triple_quoted(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString
@@ -237,13 +301,13 @@ class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
 
     qname = None
-    """Intended qualified name."""
+    """The invalid qualified name that triggered the exception."""
 
     def __init__(self, qname: Any):
-        """
-        Constructor.
+        """Initialise the exception.
 
-        :param qname: Invalid qualified name.
+        Args:
+            qname: The invalid qualified name.
         """
         self.qname = qname
 
@@ -274,12 +338,13 @@ class ProvRecord:
         identifier: QualifiedName | None,
         attributes: RecordAttributesArg | None = None,
     ):
-        """
-        Constructor.
+        """Initialise the record.
 
-        :param bundle: Bundle for the PROV record.
-        :param identifier: (Unique) identifier of the record.
-        :param attributes: Attributes to associate with the record (default: None).
+        Args:
+            bundle: The bundle owning this PROV record.
+            identifier: The (unique) identifier of the record.
+            attributes: Attributes to associate with the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
         """
         self._bundle = bundle
         self._identifier = identifier
@@ -291,56 +356,62 @@ class ProvRecord:
         return hash((self.get_type(), self._identifier, frozenset(self.attributes)))
 
     def copy(self) -> ProvRecord:
-        """
-        Return an exact copy of this record.
-        """
+        """Return an exact copy of this record."""
         return PROV_REC_CLS[self.get_type()](
             self._bundle, self.identifier, self.attributes
         )
 
     def get_type(self) -> QualifiedName:
-        """Returns the PROV type of the record."""
+        """Return the PROV type of the record.
+
+        Raises:
+            NotImplementedError: If the record type is undefined (i.e. on the
+                abstract base classes).
+        """
         if self._prov_type is not None:
             return self._prov_type
         else:
             raise NotImplementedError("Type not defined for this record.")
 
     def get_asserted_types(self) -> set[QualifiedName]:
-        """Returns the set of all asserted PROV types of this record."""
+        """Return the set of all asserted PROV types of this record."""
         return self._attributes[PROV_TYPE]
 
     def add_asserted_type(self, type_identifier: QualifiedName) -> None:
-        """
-        Adds a PROV type assertion to the record.
+        """Add a PROV type assertion to the record.
 
-        :param type_identifier: PROV namespace identifier to add.
-        :raises ProvExceptionInvalidQualifiedName: If the type identifier is invalid.
+        Args:
+            type_identifier: The qualified name of the type to assert.
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
     def get_attribute(self, attr_name: QualifiedNameCandidate) -> set[Any]:
-        """
-        Returns the attribute values (if any) for the specified attribute name.
+        """Return the values (if any) for the named attribute.
 
-        :param attr_name: Name of the attribute.
-        :return: Set of value(s) of the specified attribute.
-        :rtype: set
-        :raises ProvExceptionInvalidQualifiedName: If the attribute name is invalid.
+        Args:
+            attr_name: The name of the attribute.
+
+        Returns:
+            The set of values held for the attribute (empty if none).
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If ``attr_name`` cannot be
+                resolved to a valid qualified name.
         """
         attr_name_qn = self._bundle.mandatory_valid_qname(attr_name)
         return self._attributes[attr_name_qn]
 
     @property
     def identifier(self) -> QualifiedName | None:
-        """Record's identifier."""
+        """The record's identifier, or ``None`` if it has none."""
         return self._identifier
 
     @property
     def attributes(self) -> list[tuple[QualifiedName, Any]]:
-        """
-        All record attributes.
+        """All of the record's attributes as a list of ``(name, value)`` pairs.
 
-        :return: List of tuples (name, value)
+        Attributes with multiple values appear once per value, so the same name
+        may occur more than once.
         """
         return [
             (attr_name, value)
@@ -350,10 +421,9 @@ class ProvRecord:
 
     @property
     def args(self) -> tuple[Any, ...]:
-        """
-        All values of the record's formal attributes.
+        """The values of the record's formal attributes, in declaration order.
 
-        :return: Tuple
+        Missing formal attributes are represented by ``None``.
         """
         return tuple(
             first(self._attributes[attr_name]) for attr_name in self.FORMAL_ATTRIBUTES
@@ -361,10 +431,10 @@ class ProvRecord:
 
     @property
     def formal_attributes(self) -> tuple[tuple[QualifiedName, Any], ...]:
-        """
-        All names and values of the record's formal attributes.
+        """The record's formal attributes as ``(name, value)`` pairs.
 
-        :return: Tuple of tuples (name, value)
+        Pairs are in declaration order; a missing attribute has a value of
+        ``None``.
         """
         return tuple(
             (attr_name, first(self._attributes[attr_name]))
@@ -373,12 +443,7 @@ class ProvRecord:
 
     @property
     def extra_attributes(self) -> tuple[tuple[QualifiedName, Any], ...]:
-        """
-        All names and values of the record's attributes that are not formal
-        attributes.
-
-        :return: Tuple of tuples (name, value)
-        """
+        """The record's non-formal attributes as ``(name, value)`` pairs."""
         return tuple(
             (attr_name, attr_value)
             for attr_name, attr_value in self.attributes
@@ -387,16 +452,16 @@ class ProvRecord:
 
     @property
     def bundle(self) -> ProvBundle:
-        """
-        Bundle of the record.
-
-        :return: :py:class:`ProvBundle`
-        """
+        """The bundle that owns this record."""
         return self._bundle
 
     @property
     def label(self) -> str:
-        """Identifying label of the record."""
+        """The record's identifying label.
+
+        This is the record's ``prov:label`` attribute if set, otherwise its
+        identifier.
+        """
         return str(
             first(self._attributes[PROV_LABEL])
             if self._attributes[PROV_LABEL]
@@ -405,7 +470,7 @@ class ProvRecord:
 
     @property
     def value(self) -> Any:
-        """Value of the record."""
+        """The set of the record's ``prov:value`` attribute values."""
         return self._attributes[PROV_VALUE]
 
     # Handling attributes
@@ -436,12 +501,23 @@ class ProvRecord:
         return literal
 
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
-        """
-        Add attributes to the record.
+        """Add attributes to the record.
 
-        :param attributes: Dictionary of attributes, with keys being qualified
-            identifiers. Alternatively, an iterable of tuples (key, value) with the
-            keys satisfying the same condition.
+        Attribute names are resolved to qualified names, and values are
+        normalised to the datatype expected for the attribute. ``None`` values
+        are skipped.
+
+        Args:
+            attributes: The attributes to add, either as a dict keyed by
+                qualified-name identifiers or an iterable of ``(name, value)``
+                pairs whose names satisfy the same condition.
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If an attribute name cannot be
+                resolved to a valid qualified name.
+            ProvException: If a value is invalid for its attribute, or a
+                second, different value is supplied for a single-valued
+                (non-collection) attribute.
         """
         if attributes:
             if isinstance(attributes, dict):
@@ -546,11 +622,7 @@ class ProvRecord:
         return self.get_provn()
 
     def get_provn(self) -> str:
-        """
-        Returns the PROV-N representation of the record.
-
-        :return: String
-        """
+        """Return the PROV-N representation of the record."""
         items = []
 
         # Generating identifier
@@ -603,19 +675,11 @@ class ProvRecord:
         return prov_n
 
     def is_element(self) -> bool:
-        """
-        True, if the record is an element, False otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if the record is an element, ``False`` otherwise."""
         return False
 
     def is_relation(self) -> bool:
-        """
-        True, if the record is a relation, False otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if the record is a relation, ``False`` otherwise."""
         return False
 
 
@@ -636,11 +700,7 @@ class ProvElement(ProvRecord):
         super().__init__(bundle, identifier, attributes)
 
     def is_element(self) -> bool:
-        """
-        True, if the record is an element, False otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if the record is an element, ``False`` otherwise."""
         return True
 
     def __repr__(self) -> str:
@@ -651,11 +711,7 @@ class ProvRelation(ProvRecord):
     """Provenance Relationship (edge between nodes)."""
 
     def is_relation(self) -> bool:
-        """
-        True, if the record is a relation, False otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if the record is a relation, ``False`` otherwise."""
         return True
 
     def __repr__(self) -> str:
@@ -678,16 +734,19 @@ class ProvEntity(ProvElement):
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
-        """
-        Creates a new generation record to this entity.
+        """Create a new generation record to this entity.
 
-        :param activity: Activity or string identifier of the activity involved in
-            the generation (default: None).
-        :param time: Optional time for the generation (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The activity (or its string identifier) involved in the
+                generation (default: ``None``).
+            time: Optional time of the generation, as a
+                :class:`datetime.datetime` or a string parseable by
+                :func:`dateutil.parser.parse` (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.generation(self, activity, time, other_attributes=attributes)
         return self
@@ -698,16 +757,19 @@ class ProvEntity(ProvElement):
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
-        """
-        Creates a new invalidation record for this entity.
+        """Create a new invalidation record for this entity.
 
-        :param activity: Activity or string identifier of the activity involved in
-            the invalidation (default: None).
-        :param time: Optional time for the invalidation (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The activity (or its string identifier) involved in the
+                invalidation; may be ``None``.
+            time: Optional time of the invalidation, as a
+                :class:`datetime.datetime` or a string parseable by
+                :func:`dateutil.parser.parse` (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.invalidation(self, activity, time, other_attributes=attributes)
         return self
@@ -720,18 +782,21 @@ class ProvEntity(ProvElement):
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
-        """
-        Creates a new derivation record for this entity from a used entity.
+        """Create a new derivation record for this entity from a used entity.
 
-        :param usedEntity: Entity or a string identifier for the used entity.
-        :param activity: Activity or string identifier of the activity involved in
-            the derivation (default: None).
-        :param generation: Optional generation record to state qualified derivation
-            through an internal generation (default: None).
-        :param usage: Optional usage record to state qualified derivation through
-            an internal usage (default: None).
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            usedEntity: The used entity (or its string identifier).
+            activity: The activity (or its string identifier) involved in the
+                derivation (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                through an internal generation (default: ``None``).
+            usage: Optional usage record qualifying the derivation through an
+                internal usage (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.derivation(
             self, usedEntity, activity, generation, usage, other_attributes=attributes
@@ -741,40 +806,53 @@ class ProvEntity(ProvElement):
     def wasAttributedTo(
         self, agent: AgentRef, attributes: RecordAttributesArg | None = None
     ) -> ProvEntity:
-        """
-        Creates a new attribution record between this entity and an agent.
+        """Create a new attribution record between this entity and an agent.
 
-        :param agent: Agent or string identifier of the agent involved in the
-            attribution.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            agent: The agent (or its string identifier) involved in the
+                attribution.
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.attribution(self, agent, other_attributes=attributes)
         return self
 
     def alternateOf(self, alternate2: EntityRef) -> ProvEntity:
-        """
-        Creates a new alternate record between this and another entity.
+        """Create a new alternate record between this and another entity.
 
-        :param alternate2: Entity or a string identifier for the second entity.
+        Args:
+            alternate2: The other entity (or its string identifier).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.alternate(self, alternate2)
         return self
 
     def specializationOf(self, generalEntity: EntityRef) -> ProvEntity:
-        """
-        Creates a new specialisation record for this from a general entity.
+        """Create a new specialisation record for this from a general entity.
 
-        :param generalEntity: Entity or a string identifier for the general entity.
+        Args:
+            generalEntity: The general entity (or its string identifier).
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.specialization(self, generalEntity)
         return self
 
     def hadMember(self, entity: EntityRef) -> ProvEntity:
-        """
-        Creates a new membership record to an entity for a collection.
+        """Create a new membership record adding an entity to this collection.
 
-        :param entity: Entity to be added to the collection.
+        Args:
+            entity: The entity (or its string identifier) to add to the
+                collection.
+
+        Returns:
+            This entity (to allow chaining).
         """
         self._bundle.membership(self, entity)
         return self
@@ -793,15 +871,16 @@ class ProvActivity(ProvElement):
         startTime: datetime.datetime | None = None,
         endTime: datetime.datetime | None = None,
     ) -> None:
-        """
-        Sets the time this activity took place.
+        """Set the start and/or end time of this activity.
 
-        :param startTime: Start time for the activity.
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param endTime: Start time for the activity.
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
+        Only non-``None`` arguments are applied; the values are stored as
+        given (no string parsing is performed here).
+
+        Args:
+            startTime: The start time as a :class:`datetime.datetime`
+                (default: ``None``).
+            endTime: The end time as a :class:`datetime.datetime`
+                (default: ``None``).
         """
         if startTime is not None:
             self._attributes[PROV_ATTR_STARTTIME] = {startTime}
@@ -809,20 +888,12 @@ class ProvActivity(ProvElement):
             self._attributes[PROV_ATTR_ENDTIME] = {endTime}
 
     def get_startTime(self) -> datetime.datetime | None:
-        """
-        Returns the time the activity started.
-
-        :return: :py:class:`datetime.datetime`
-        """
+        """Return the activity's start time, or ``None`` if unset."""
         values = self._attributes[PROV_ATTR_STARTTIME]
         return first(values) if values else None
 
     def get_endTime(self) -> datetime.datetime | None:
-        """
-        Returns the time the activity ended.
-
-        :return: :py:class:`datetime.datetime`
-        """
+        """Return the activity's end time, or ``None`` if unset."""
         values = self._attributes[PROV_ATTR_ENDTIME]
         return first(values) if values else None
 
@@ -834,16 +905,19 @@ class ProvActivity(ProvElement):
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
-        """
-        Creates a new usage record for this activity.
+        """Create a new usage record for this activity.
 
-        :param entity: Entity or string identifier of the entity involved in
-            the usage relationship (default: None).
-        :param time: Optional time for the usage (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            entity: The entity (or its string identifier) involved in the
+                usage relationship.
+            time: Optional time of the usage, as a :class:`datetime.datetime`
+                or a string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
         """
         self._bundle.usage(self, entity, time, other_attributes=attributes)
         return self
@@ -851,12 +925,15 @@ class ProvActivity(ProvElement):
     def wasInformedBy(
         self, informant: ActivityRef, attributes: RecordAttributesArg | None = None
     ) -> ProvActivity:
-        """
-        Creates a new communication record for this activity.
+        """Create a new communication record for this activity.
 
-        :param informant: The informing activity (relationship source).
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            informant: The informing activity (relationship source).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
         """
         self._bundle.communication(self, informant, other_attributes=attributes)
         return self
@@ -868,19 +945,23 @@ class ProvActivity(ProvElement):
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
-        """
-        Creates a new start record for this activity. The activity did not exist
-        before the start by the trigger.
+        """Create a new start record for this activity.
 
-        :param trigger: Entity triggering the start of this activity.
-        :param starter: Optional extra activity to state a qualified start
-            through which the trigger entity for the start is generated
-            (default: None).
-        :param time: Optional time for the start (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        The activity did not exist before being started by the trigger.
+
+        Args:
+            trigger: The entity triggering the start of this activity; may be
+                ``None``.
+            starter: Optional activity qualifying the start, through which the
+                trigger entity is generated (default: ``None``).
+            time: Optional time of the start, as a :class:`datetime.datetime`
+                or a string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
         """
         self._bundle.start(self, trigger, starter, time, other_attributes=attributes)
         return self
@@ -892,17 +973,21 @@ class ProvActivity(ProvElement):
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
-        """
-        Creates a new end record for this activity.
+        """Create a new end record for this activity.
 
-        :param trigger: Entity triggering the end of this activity.
-        :param ender: Optionally extra activity to state a qualified end through
-            which the trigger entity for the end is generated (default: None).
-        :param time: Optional time for the end (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            trigger: The entity triggering the end of this activity; may be
+                ``None``.
+            ender: Optional activity qualifying the end, through which the
+                trigger entity is generated (default: ``None``).
+            time: Optional time of the end, as a :class:`datetime.datetime` or
+                a string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
         """
         self._bundle.end(self, trigger, ender, time, other_attributes=attributes)
         return self
@@ -913,15 +998,18 @@ class ProvActivity(ProvElement):
         plan: EntityRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
-        """
-        Creates a new association record for this activity.
+        """Create a new association record for this activity.
 
-        :param agent: Agent or string identifier of the agent involved in the
-            association (default: None).
-        :param plan: Optionally extra entity to state qualified association through
-            an internal plan (default: None).
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            agent: The agent (or its string identifier) involved in the
+                association.
+            plan: Optional entity qualifying the association through an
+                internal plan (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
         """
         self._bundle.association(self, agent, plan, other_attributes=attributes)
         return self
@@ -1014,14 +1102,18 @@ class ProvAgent(ProvElement):
         activity: ActivityRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvAgent:
-        """
-        Creates a new delegation record on behalf of this agent.
+        """Create a new delegation record on behalf of this agent.
 
-        :param responsible: Agent the responsibility is delegated to.
-        :param activity: Optionally extra activity to state qualified delegation
-            internally (default: None).
-        :param attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            responsible: The agent (or its string identifier) that the
+                responsibility is delegated to.
+            activity: Optional activity qualifying the delegation
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This agent (to allow chaining).
         """
         self._bundle.delegation(
             self, responsible, activity, other_attributes=attributes
@@ -1133,7 +1225,7 @@ class NamespaceManager(dict[str, Namespace]):
     """Manages namespaces for PROV documents and bundles."""
 
     parent = None  # type: NamespaceManager | None
-    """Parent :py:class:`NamespaceManager` this manager one is a child of."""
+    """Parent :class:`NamespaceManager` this manager is a child of, if any."""
 
     def __init__(
         self,
@@ -1141,14 +1233,15 @@ class NamespaceManager(dict[str, Namespace]):
         default: str | None = None,
         parent: NamespaceManager | None = None,
     ):
-        """
-        Constructor.
+        """Initialise the namespace manager.
 
-        :param namespaces: Optional namespaces to add to the manager
-            (default: None).
-        :param default: Optional default namespace to use (default: None).
-        :param parent: Optional parent :py:class:`NamespaceManager` to make this
-            namespace manager a child of (default: None).
+        Args:
+            namespaces: Optional namespaces to add, as a ``{prefix: uri}`` dict
+                or an iterable of :class:`~prov.identifier.Namespace`
+                (default: ``None``).
+            default: Optional default namespace URI (default: ``None``).
+            parent: Optional parent :class:`NamespaceManager` to make this one a
+                child of (default: ``None``).
         """
         dict.__init__(self)
         self._default_namespaces = DEFAULT_NAMESPACES
@@ -1169,11 +1262,14 @@ class NamespaceManager(dict[str, Namespace]):
             self.add_namespaces(namespaces)
 
     def get_namespace(self, uri: str) -> Namespace | None:
-        """
-        Returns the namespace prefix for the given URI.
+        """Return the known namespace with the given URI.
 
-        :param uri: Namespace URI.
-        :return: :py:class:`~prov.identifier.Namespace`.
+        Args:
+            uri: The namespace URI to look up.
+
+        Returns:
+            The matching :class:`~prov.identifier.Namespace`, or ``None`` if no
+            known namespace has that URI.
         """
         for namespace in self.values():
             if uri == namespace._uri:
@@ -1181,35 +1277,40 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def get_registered_namespaces(self) -> Iterable[Namespace]:
-        """
-        Returns all registered namespaces.
+        """Return all explicitly registered namespaces.
 
-        :return: Iterable of :py:class:`~prov.identifier.Namespace`.
+        Returns:
+            An iterable of :class:`~prov.identifier.Namespace`. This excludes
+            the default namespaces (``prov``, ``xsd``, ``xsi``).
         """
         return self._namespaces.values()
 
     def set_default_namespace(self, uri: str) -> None:
-        """
-        Sets the default namespace to the one of a given URI.
+        """Set the default namespace to one with the given URI.
 
-        :param uri: Namespace URI.
+        Args:
+            uri: The URI of the default namespace.
         """
         self._default = Namespace("", uri)
         self[""] = self._default
 
     def get_default_namespace(self) -> Namespace | None:
-        """
-        Returns the default namespace.
-
-        :return: :py:class:`~prov.identifier.Namespace`
-        """
+        """Return the default namespace, or ``None`` if none is set."""
         return self._default
 
     def add_namespace(self, namespace: Namespace) -> Namespace:
-        """
-        Adds a namespace (if not available, yet).
+        """Add a namespace, unless an equivalent one is already registered.
 
-        :param namespace: :py:class:`~prov.identifier.Namespace` to add.
+        If a namespace with the same URI already exists, that existing
+        namespace is returned. If the prefix conflicts with a different
+        namespace, the added namespace is renamed to an unused prefix.
+
+        Args:
+            namespace: The :class:`~prov.identifier.Namespace` to add.
+
+        Returns:
+            The registered namespace, which may be the existing or renamed one
+            rather than the argument.
         """
         if namespace in self.values():
             #  no need to do anything
@@ -1248,13 +1349,11 @@ class NamespaceManager(dict[str, Namespace]):
         return namespace
 
     def add_namespaces(self, namespaces: NSCollection) -> None:
-        """
-        Add multiple namespaces into this manager.
+        """Add multiple namespaces into this manager.
 
-        :param namespaces: A collection of namespace(s) to add.
-        :type namespaces: List of :py:class:`~prov.identifier.Namespace` or
-            dict of {prefix: uri}.
-        :returns: None
+        Args:
+            namespaces: The namespaces to add, as a ``{prefix: uri}`` dict or an
+                iterable of :class:`~prov.identifier.Namespace`.
         """
         if isinstance(namespaces, dict):
             # expecting a dictionary of {prefix: uri},
@@ -1267,13 +1366,21 @@ class NamespaceManager(dict[str, Namespace]):
     def valid_qualified_name(
         self, qname: QualifiedNameCandidate
     ) -> QualifiedName | None:
-        """
-        Resolves an identifier to a valid qualified name.
+        """Resolve an identifier to a valid qualified name.
 
-        :param qname: Qualified name as :py:class:`~prov.identifier.QualifiedName`
-            or a tuple (namespace, identifier).
-        :return: :py:class:`~prov.identifier.QualifiedName` or None in case of
-            failure.
+        Registers the namespace of the resolved name if it was not registered
+        already. Where the identifier is a string or :class:`Identifier`, an
+        attempt is made to expand a known prefix or compact a known namespace
+        URI, delegating to the parent manager if all local attempts fail.
+
+        Args:
+            qname: The candidate to resolve, as a
+                :class:`~prov.identifier.QualifiedName`,
+                :class:`~prov.identifier.Identifier`, or string.
+
+        Returns:
+            The resolved :class:`~prov.identifier.QualifiedName`, or ``None`` if
+            it could not be resolved.
         """
         if not qname:
             return None
@@ -1353,12 +1460,18 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:
-        """
-        Returns an anonymous identifier (without a namespace prefix).
+        """Return a fresh anonymous (blank-node) identifier.
 
-        :param local_prefix: Optional local namespace prefix as a string
-            (default: 'id').
-        :return: :py:class:`~prov.identifier.Identifier`
+        Each call increments an internal counter, so successive calls return
+        distinct identifiers.
+
+        Args:
+            local_prefix: Prefix for the local part of the identifier
+                (default: ``"id"``).
+
+        Returns:
+            A new :class:`~prov.identifier.Identifier` of the form
+            ``_:<local_prefix><n>``.
         """
         self._anon_id_count += 1
         return Identifier(f"_:{local_prefix}{self._anon_id_count}")
@@ -1385,15 +1498,17 @@ class ProvBundle:
         namespaces: NSCollection | None = None,
         document: ProvDocument | None = None,
     ):
-        """
-        Constructor.
+        """Initialise the bundle.
 
-        :param records: Optional iterable of records to add to the bundle
-            (default: None).
-        :param identifier: Optional identifier of the bundle (default: None).
-        :param namespaces: Optional iterable of :py:class:`~prov.identifier.Namespace`s
-            to set the document up with (default: None).
-        :param document: Optional document to add to the bundle (default: None).
+        Args:
+            records: Optional iterable of records to add to the bundle
+                (default: ``None``).
+            identifier: Optional identifier of the bundle (default: ``None``).
+            namespaces: Optional namespaces to register, as a ``{prefix: uri}``
+                dict or an iterable of :class:`~prov.identifier.Namespace`
+                (default: ``None``).
+            document: Optional parent document for the bundle (default:
+                ``None``).
         """
         #  Initializing bundle-specific attributes
         self._identifier = identifier
@@ -1412,73 +1527,59 @@ class ProvBundle:
 
     @property
     def namespaces(self) -> set[Namespace]:
-        """
-        Returns the set of registered namespaces.
-
-        :return: Set of :py:class:`~prov.identifier.Namespace`.
-        """
+        """The set of the bundle's registered namespaces."""
         return set(self._namespaces.get_registered_namespaces())
 
     @property
     def default_ns_uri(self) -> str | None:
-        """
-        Returns the default namespace's URI, if any.
-
-        :return: URI as string.
-        """
+        """The bundle's default namespace URI, or ``None`` if none is set."""
         default_ns = self._namespaces.get_default_namespace()
         return default_ns.uri if default_ns else None
 
     @property
     def document(self) -> ProvDocument | None:
-        """
-        Returns the parent document, if any.
-
-        :return: :py:class:`ProvDocument`.
-        """
+        """The parent document of this bundle, or ``None`` if it has none."""
         return self._document
 
     @property
     def identifier(self) -> QualifiedName | None:
-        """
-        Returns the bundle's identifier
-        """
+        """The bundle's identifier, or ``None`` if it has none."""
         return self._identifier
 
     @property
     def records(self) -> list[ProvRecord]:
-        """
-        Returns the list of all records in the current bundle
-        """
+        """A copy of the list of all records in this bundle."""
         return list(self._records)
 
     #  Bundle configurations
     def set_default_namespace(self, uri: str) -> None:
-        """
-        Sets the default namespace through a given URI.
+        """Set the bundle's default namespace to one with the given URI.
 
-        :param uri: Namespace URI.
+        Args:
+            uri: The URI of the default namespace.
         """
         self._namespaces.set_default_namespace(uri)
 
     def get_default_namespace(self) -> Namespace | None:
-        """
-        Returns the default namespace.
-
-        :return: :py:class:`~prov.identifier.Namespace`
-        """
+        """Return the default namespace, or ``None`` if none is set."""
         return self._namespaces.get_default_namespace()
 
     def add_namespace(
         self, namespace_or_prefix: Namespace | str, uri: str | None = None
     ) -> Namespace:
-        """
-        Adds a namespace (if not available, yet).
+        """Add a namespace to the bundle, unless an equivalent one exists.
 
-        :param namespace_or_prefix: :py:class:`~prov.identifier.Namespace` or its
-            prefix as a string to add.
-        :param uri: Namespace URI (default: None). Must be present if only a
-            prefix is given in the previous parameter.
+        Args:
+            namespace_or_prefix: A :class:`~prov.identifier.Namespace` to add,
+                or a prefix string (in which case ``uri`` is required).
+            uri: The namespace URI; required when ``namespace_or_prefix`` is a
+                prefix string (default: ``None``).
+
+        Returns:
+            The registered namespace (which may be an existing or renamed one).
+
+        Raises:
+            ProvException: If a prefix string is given without a ``uri``.
         """
         if isinstance(namespace_or_prefix, Namespace):
             return self._namespaces.add_namespace(namespace_or_prefix)
@@ -1491,24 +1592,41 @@ class ProvBundle:
                 raise ProvException("Cannot add a namespace without a URI")
 
     def get_registered_namespaces(self) -> Iterable[Namespace]:
-        """
-        Returns all registered namespaces.
+        """Return all namespaces registered on the bundle.
 
-        :return: Iterable of :py:class:`~prov.identifier.Namespace`.
+        Returns:
+            An iterable of :class:`~prov.identifier.Namespace`.
         """
         return self._namespaces.get_registered_namespaces()
 
     def valid_qualified_name(
         self, identifier: QualifiedNameCandidate
     ) -> QualifiedName | None:
+        """Resolve an identifier to a qualified name using this bundle.
+
+        Args:
+            identifier: The candidate to resolve.
+
+        Returns:
+            The resolved :class:`~prov.identifier.QualifiedName`, or ``None`` if
+            it could not be resolved.
+        """
         return self._namespaces.valid_qualified_name(identifier)
 
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate
     ) -> QualifiedName:
-        """
-        Determines if the given identifier is a valid qualified name and returns it.
-        If the provided identifier is not valid, an exception is raised.
+        """Resolve an identifier to a qualified name, requiring success.
+
+        Args:
+            identifier: The candidate to resolve.
+
+        Returns:
+            The resolved :class:`~prov.identifier.QualifiedName`.
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If the identifier cannot be
+                resolved to a valid qualified name.
         """
         valid_qname = self.valid_qualified_name(identifier)
         if valid_qname is not None:
@@ -1519,14 +1637,16 @@ class ProvBundle:
     def get_records(
         self, class_or_type_or_tuple: type | tuple[type] | None = None
     ) -> Iterable[ProvRecord]:
-        """
-        Returns all records. Returned records may be filtered by the optional
-        argument.
+        """Return the bundle's records, optionally filtered by type.
 
-        :param class_or_type_or_tuple: A filter on the type for which records are
-            to be returned (default: None). The filter checks by the type of the
-            record using the `isinstance` check on the record.
-        :return: List of :py:class:`ProvRecord` objects.
+        Args:
+            class_or_type_or_tuple: An optional class or tuple of classes; only
+                records passing ``isinstance()`` against it are returned
+                (default: ``None``, meaning all records).
+
+        Returns:
+            The matching :class:`ProvRecord` objects (a list when unfiltered,
+            otherwise a filter iterator).
         """
         results = list(self._records)  # make a (shallow) copy of the record list
         if class_or_type_or_tuple:
@@ -1535,55 +1655,43 @@ class ProvBundle:
             return results
 
     def get_record(self, identifier: QualifiedNameCandidate) -> list[ProvRecord]:
-        """
-        Returns one or more records matching a given identifier.
+        """Return all records matching a given identifier.
 
-        :param identifier: Record identifier.
-        :return: List of :py:class:`ProvRecord`
+        Args:
+            identifier: The record identifier to look up.
+
+        Returns:
+            The matching :class:`ProvRecord` objects, or an empty list if the
+            identifier is invalid or unknown.
         """
         valid_id = self.valid_qualified_name(identifier)
         return list(self._id_map[valid_id]) if valid_id is not None else []
 
     # Miscellaneous functions
     def is_document(self) -> bool:
-        """
-        `True` if the object is a document, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if this is a document, ``False`` otherwise."""
         return False
 
     def is_bundle(self) -> bool:
-        """
-        `True` if the object is a bundle, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if this is a (named) bundle, ``False`` otherwise."""
         return True
 
     def has_bundles(self) -> bool:
-        """
-        `True` if the object has at least one bundle, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if this object contains bundles, ``False`` otherwise."""
         return False
 
     @property
     def bundles(self) -> Iterable[ProvBundle]:
-        """
-        Returns bundles contained in the document
+        """The bundles contained in this object.
 
-        :return: Iterable of :py:class:`ProvBundle`.
+        Raises:
+            ProvException: Always, since a plain bundle cannot contain
+                sub-bundles. Only :class:`ProvDocument` overrides this.
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
 
     def get_provn(self, _indent_level: int = 0) -> str:
-        """
-        Returns the PROV-N representation of the bundle.
-
-        :return: String
-        """
+        """Return the PROV-N representation of the bundle."""
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))
 
@@ -1684,22 +1792,32 @@ class ProvBundle:
         return unified_records
 
     def unified(self) -> ProvBundle:
-        """
-        Unifies all records in the bundle that haves same identifiers
+        """Return a new bundle with records sharing an identifier merged.
 
-        :returns: :py:class:`ProvBundle` -- the new unified bundle.
+        For each identifier carried by more than one record, a single merged
+        record is produced by unioning the attributes of all records with that
+        identifier onto a copy of the first. Records with a unique identifier,
+        or no identifier, pass through unchanged. This is a simple
+        identifier-keyed attribute union, not the full PROV-CONSTRAINTS
+        unification: no type/attribute conflicts are detected and no inference
+        is performed. The original bundle is left untouched.
+
+        Returns:
+            The new, unified :class:`ProvBundle`.
         """
         unified_records = self._unified_records()
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
         return bundle
 
     def update(self, other: ProvBundle) -> None:
-        """
-        Append all the records of the *other* ProvBundle into this bundle.
+        """Append all records of another bundle into this bundle.
 
-        :param other: the other bundle whose records to be appended.
-        :type other: :py:class:`ProvBundle`
-        :returns: None.
+        Args:
+            other: The :class:`ProvBundle` whose records are appended.
+
+        Raises:
+            ProvException: If ``other`` is not a :class:`ProvBundle`, or is a
+                document that itself contains sub-bundles.
         """
         if isinstance(other, ProvBundle):
             if other.is_document() and other.has_bundles():
@@ -1732,15 +1850,20 @@ class ProvBundle:
         attributes: RecordAttributesArg | None = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvRecord:
-        """
-        Creates a new record.
+        """Create a new record, add it to the bundle, and return it.
 
-        :param record_type: Type of record (one of :py:const:`PROV_REC_CLS`).
-        :param identifier: Identifier for new record.
-        :param attributes: Attributes as a dictionary or list of tuples to be added
-            to the record optionally (default: None).
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            record_type: The record type, one of the keys of
+                :data:`PROV_REC_CLS`.
+            identifier: The identifier for the new record (may be ``None`` for
+                relations).
+            attributes: Formal attributes of the record, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Additional (non-formal) attributes, in the same
+                forms (default: ``None``).
+
+        Returns:
+            The newly created and added :class:`ProvRecord`.
         """
         attr_list = []  # type: list[tuple[QualifiedNameCandidate, Any]]
         if attributes:
@@ -1763,10 +1886,17 @@ class ProvBundle:
         return new_record
 
     def add_record(self, record: ProvRecord) -> ProvRecord:
-        """
-        Adds a new record that to the bundle.
+        """Add a copy of a record to this bundle.
 
-        :param record: :py:class:`ProvRecord` to be added.
+        The record is re-created within this bundle (resolving its identifier
+        and attributes against this bundle's namespaces), so the returned
+        record is a new object, not ``record`` itself.
+
+        Args:
+            record: The :class:`ProvRecord` to copy into the bundle.
+
+        Returns:
+            The newly created :class:`ProvRecord` belonging to this bundle.
         """
         return self.new_record(
             record.get_type(),
@@ -1780,12 +1910,15 @@ class ProvBundle:
         identifier: QualifiedNameCandidate,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
-        """
-        Creates a new entity.
+        """Create a new entity and add it to the bundle.
 
-        :param identifier: Identifier for new entity.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            identifier: The identifier for the new entity.
+            other_attributes: Optional attributes for the entity, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvEntity`.
         """
         return self.new_record(PROV_ENTITY, identifier, None, other_attributes)  # type: ignore
 
@@ -1796,18 +1929,19 @@ class ProvBundle:
         endTime: DatetimeOrStr | None = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
-        """
-        Creates a new activity.
+        """Create a new activity and add it to the bundle.
 
-        :param identifier: Identifier for new activity.
-        :param startTime: Optional start time for the activity (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param endTime: Optional start time for the activity (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            identifier: The identifier for the new activity.
+            startTime: Optional start time, as a :class:`datetime.datetime` or a
+                string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            endTime: Optional end time, in the same forms (default: ``None``).
+            other_attributes: Optional attributes for the activity, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvActivity`.
         """
         attributes = {
             PROV_ATTR_STARTTIME: _ensure_datetime(startTime),
@@ -1828,18 +1962,22 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvRecord:
-        """
-        Creates a new generation record for an entity.
+        """Create a new generation record for an entity.
 
-        :param entity: Entity or a string identifier for the entity.
-        :param activity: Activity or string identifier of the activity involved in
-            the generation (default: None).
-        :param time: Optional time for the generation (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param identifier: Identifier for new generation record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            entity: The generated entity (or its string identifier).
+            activity: The activity (or its string identifier) involved in the
+                generation (default: ``None``).
+            time: Optional time of the generation, as a
+                :class:`datetime.datetime` or a string parseable by
+                :func:`dateutil.parser.parse` (default: ``None``).
+            identifier: Optional identifier for the generation record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new generation record.
         """
         attributes = {
             PROV_ATTR_ENTITY: entity,
@@ -1861,18 +1999,22 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvUsage:
-        """
-        Creates a new usage record for an activity.
+        """Create a new usage record for an activity.
 
-        :param activity: Activity or a string identifier for the entity.
-        :param entity: Entity or string identifier of the entity involved in
-            the usage relationship (default: None).
-        :param time: Optional time for the usage (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param identifier: Identifier for new usage record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The using activity (or its string identifier).
+            entity: The entity (or its string identifier) involved in the usage
+                relationship (default: ``None``).
+            time: Optional time of the usage, as a :class:`datetime.datetime` or
+                a string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            identifier: Optional identifier for the usage record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvUsage` record.
         """
         attributes = {
             PROV_ATTR_ACTIVITY: activity,
@@ -1895,20 +2037,24 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvStart:
-        """
-        Creates a new start record for an activity.
+        """Create a new start record for an activity.
 
-        :param activity: Activity or a string identifier for the entity.
-        :param trigger: Entity triggering the start of this activity.
-        :param starter: Optionally extra activity to state a qualified start
-            through which the trigger entity for the start is generated
-            (default: None).
-        :param time: Optional time for the start (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param identifier: Identifier for new start record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The started activity (or its string identifier).
+            trigger: The entity (or its string identifier) triggering the start
+                (default: ``None``).
+            starter: Optional activity qualifying the start, through which the
+                trigger entity is generated (default: ``None``).
+            time: Optional time of the start, as a :class:`datetime.datetime` or
+                a string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            identifier: Optional identifier for the start record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvStart` record.
         """
         attributes = {
             PROV_ATTR_ACTIVITY: activity,
@@ -1932,20 +2078,24 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEnd:
-        """
-        Creates a new end record for an activity.
+        """Create a new end record for an activity.
 
-        :param activity: Activity or a string identifier for the entity.
-        :param trigger: trigger: Entity triggering the end of this activity.
-        :param ender: Optionally extra activity to state a qualified end
-            through which the trigger entity for the end is generated
-            (default: None).
-        :param time: Optional time for the end (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param identifier: Identifier for new end record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The ended activity (or its string identifier).
+            trigger: The entity (or its string identifier) triggering the end
+                (default: ``None``).
+            ender: Optional activity qualifying the end, through which the
+                trigger entity is generated (default: ``None``).
+            time: Optional time of the end, as a :class:`datetime.datetime` or a
+                string parseable by :func:`dateutil.parser.parse`
+                (default: ``None``).
+            identifier: Optional identifier for the end record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvEnd` record.
         """
         attributes = {
             PROV_ATTR_ACTIVITY: activity,
@@ -1968,18 +2118,22 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvInvalidation:
-        """
-        Creates a new invalidation record for an entity.
+        """Create a new invalidation record for an entity.
 
-        :param entity: Entity or a string identifier for the entity.
-        :param activity: Activity or string identifier of the activity involved in
-            the invalidation (default: None).
-        :param time: Optional time for the invalidation (default: None).
-            Either a :py:class:`datetime.datetime` object or a string that can be
-            parsed by :py:func:`dateutil.parser`.
-        :param identifier: Identifier for the new invalidation record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            entity: The invalidated entity (or its string identifier).
+            activity: The activity (or its string identifier) involved in the
+                invalidation (default: ``None``).
+            time: Optional time of the invalidation, as a
+                :class:`datetime.datetime` or a string parseable by
+                :func:`dateutil.parser.parse` (default: ``None``).
+            identifier: Optional identifier for the invalidation record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvInvalidation` record.
         """
         attributes = {
             PROV_ATTR_ENTITY: entity,
@@ -2000,14 +2154,18 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvCommunication:
-        """
-        Creates a new communication record for an entity.
+        """Create a new communication record between two activities.
 
-        :param informed: The informed activity (relationship destination).
-        :param informant: The informing activity (relationship source).
-        :param identifier: Identifier for new communication record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            informed: The informed activity (relationship destination).
+            informant: The informing activity (relationship source).
+            identifier: Optional identifier for the communication record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvCommunication` record.
         """
         attributes = {
             PROV_ATTR_INFORMED: informed,
@@ -2025,12 +2183,15 @@ class ProvBundle:
         identifier: QualifiedNameCandidate,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAgent:
-        """
-        Creates a new agent.
+        """Create a new agent and add it to the bundle.
 
-        :param identifier: Identifier for new agent.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            identifier: The identifier for the new agent.
+            other_attributes: Optional attributes for the agent, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvAgent`.
         """
         return self.new_record(PROV_AGENT, identifier, None, other_attributes)  # type: ignore
 
@@ -2041,16 +2202,20 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAttribution:
-        """
-        Creates a new attribution record between an entity and an agent.
+        """Create a new attribution record between an entity and an agent.
 
-        :param entity: Entity or a string identifier for the entity (relationship
-            source).
-        :param agent: Agent or string identifier of the agent involved in the
-            attribution (relationship destination).
-        :param identifier: Identifier for new attribution record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            entity: The entity (or its string identifier) being attributed
+                (relationship source).
+            agent: The agent (or its string identifier) the entity is attributed
+                to (relationship destination).
+            identifier: Optional identifier for the attribution record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvAttribution` record.
         """
         attributes = {
             PROV_ATTR_ENTITY: entity,
@@ -2071,17 +2236,21 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvAssociation:
-        """
-        Creates a new association record for an activity.
+        """Create a new association record for an activity.
 
-        :param activity: Activity or a string identifier for the activity.
-        :param agent: Agent or string identifier of the agent involved in the
-            association (default: None).
-        :param plan: Optionally extra entity to state qualified association through
-            an internal plan (default: None).
-        :param identifier: Identifier for new association record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            activity: The activity (or its string identifier).
+            agent: The agent (or its string identifier) associated with the
+                activity (default: ``None``).
+            plan: Optional entity qualifying the association through an internal
+                plan (default: ``None``).
+            identifier: Optional identifier for the association record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvAssociation` record.
         """
         attributes = {
             PROV_ATTR_ACTIVITY: activity,
@@ -2103,17 +2272,22 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDelegation:
-        """
-        Creates a new delegation record on behalf of an agent.
+        """Create a new delegation record between two agents.
 
-        :param delegate: Agent delegating the responsibility (relationship source).
-        :param responsible: Agent the responsibility is delegated to (relationship
-            destination).
-        :param activity: Optionally extra activity to state qualified delegation
-            internally (default: None).
-        :param identifier: Identifier for new association record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            delegate: The agent (or its string identifier) delegating the
+                responsibility (relationship source).
+            responsible: The agent (or its string identifier) the responsibility
+                is delegated to (relationship destination).
+            activity: Optional activity qualifying the delegation
+                (default: ``None``).
+            identifier: Optional identifier for the delegation record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvDelegation` record.
         """
         attributes = {
             PROV_ATTR_DELEGATE: delegate,
@@ -2134,16 +2308,20 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvInfluence:
-        """
-        Creates a new influence record between two entities, activities or agents.
+        """Create a new influence record between two entities, activities or agents.
 
-        :param influencee: Influenced entity, activity or agent (relationship
-            source).
-        :param influencer: Influencing entity, activity or agent (relationship
-            destination).
-        :param identifier: Identifier for new influence record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            influencee: The influenced entity, activity or agent (relationship
+                source).
+            influencer: The influencing entity, activity or agent (relationship
+                destination).
+            identifier: Optional identifier for the influence record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvInfluence` record.
         """
         attributes = {
             PROV_ATTR_INFLUENCEE: influencee,
@@ -2166,21 +2344,27 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
-        """
-        Creates a new derivation record for a generated entity from a used entity.
+        """Create a new derivation record for a generated entity from a used entity.
 
-        :param generatedEntity: Entity or a string identifier for the generated
-            entity (relationship source).
-        :param usedEntity: Entity or a string identifier for the used entity
-            (relationship destination).
-        :param activity: Activity or string identifier of the activity involved in
-            the derivation (default: None).
-        :param generation: Optionally extra activity to state qualified generation
-            through a generation (default: None).
-        :param usage: XXX (default: None).
-        :param identifier: Identifier for new derivation record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        Args:
+            generatedEntity: The generated entity (or its string identifier),
+                the relationship source.
+            usedEntity: The used entity (or its string identifier), the
+                relationship destination.
+            activity: The activity (or its string identifier) involved in the
+                derivation (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                through the activity's generation of the generated entity
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation through the
+                activity's use of the used entity (default: ``None``).
+            identifier: Optional identifier for the derivation record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvDerivation` record.
         """
         attributes = {
             PROV_ATTR_GENERATED_ENTITY: generatedEntity,
@@ -2203,21 +2387,28 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
-        """
-        Creates a new revision record for a generated entity from a used entity.
+        """Create a new revision record for a generated entity from a used entity.
 
-        :param generatedEntity: Entity or a string identifier for the generated
-            entity (relationship source).
-        :param usedEntity: Entity or a string identifier for the used entity
-            (relationship destination).
-        :param activity: Activity or string identifier of the activity involved in
-            the revision (default: None).
-        :param generation: Optionally to state qualified revision through a
-            generation activity (default: None).
-        :param usage: XXX (default: None).
-        :param identifier: Identifier for new revision record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        A revision is a derivation with an additional ``prov:Revision`` type.
+
+        Args:
+            generatedEntity: The generated (revised) entity (or its string
+                identifier), the relationship source.
+            usedEntity: The used (original) entity (or its string identifier),
+                the relationship destination.
+            activity: The activity (or its string identifier) involved in the
+                revision (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            identifier: Optional identifier for the revision record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvDerivation` record, typed as a revision.
         """
         record = self.derivation(
             generatedEntity,
@@ -2241,21 +2432,28 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
-        """
-        Creates a new quotation record for a generated entity from a used entity.
+        """Create a new quotation record for a generated entity from a used entity.
 
-        :param generatedEntity: Entity or a string identifier for the generated
-            entity (relationship source).
-        :param usedEntity: Entity or a string identifier for the used entity
-            (relationship destination).
-        :param activity: Activity or string identifier of the activity involved in
-            the quotation (default: None).
-        :param generation: Optionally to state qualified quotation through a
-            generation activity (default: None).
-        :param usage: XXX (default: None).
-        :param identifier: Identifier for new quotation record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        A quotation is a derivation with an additional ``prov:Quotation`` type.
+
+        Args:
+            generatedEntity: The quoting entity (or its string identifier), the
+                relationship source.
+            usedEntity: The quoted entity (or its string identifier), the
+                relationship destination.
+            activity: The activity (or its string identifier) involved in the
+                quotation (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            identifier: Optional identifier for the quotation record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvDerivation` record, typed as a quotation.
         """
         record = self.derivation(
             generatedEntity,
@@ -2279,22 +2477,30 @@ class ProvBundle:
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvDerivation:
-        """
-        Creates a new primary source record for a generated entity from a used
+        """Create a new primary-source record for a generated entity from a used
         entity.
 
-        :param generatedEntity: Entity or a string identifier for the generated
-            entity (relationship source).
-        :param usedEntity: Entity or a string identifier for the used entity
-            (relationship destination).
-        :param activity: Activity or string identifier of the activity involved in
-            the primary source (default: None).
-        :param generation: Optionally to state qualified primary source through a
-            generation activity (default: None).
-        :param usage: XXX (default: None).
-        :param identifier: Identifier for new primary source record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        A primary source is a derivation with an additional
+        ``prov:PrimarySource`` type.
+
+        Args:
+            generatedEntity: The derived entity (or its string identifier), the
+                relationship source.
+            usedEntity: The primary-source entity (or its string identifier),
+                the relationship destination.
+            activity: The activity (or its string identifier) involved
+                (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            identifier: Optional identifier for the primary-source record
+                (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or an
+                iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvDerivation` record, typed as a primary source.
         """
         record = self.derivation(
             generatedEntity,
@@ -2311,13 +2517,16 @@ class ProvBundle:
     def specialization(
         self, specificEntity: EntityRef, generalEntity: EntityRef
     ) -> ProvSpecialization:
-        """
-        Creates a new specialisation record for a specific from a general entity.
+        """Create a new specialisation record from a general entity.
 
-        :param specificEntity: Entity or a string identifier for the specific
-            entity (relationship source).
-        :param generalEntity: Entity or a string identifier for the general entity
-            (relationship destination).
+        Args:
+            specificEntity: The specific entity (or its string identifier), the
+                relationship source.
+            generalEntity: The general entity (or its string identifier), the
+                relationship destination.
+
+        Returns:
+            The new :class:`ProvSpecialization` record.
         """
         attributes = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
@@ -2330,13 +2539,16 @@ class ProvBundle:
         )  # type: ignore
 
     def alternate(self, alternate1: EntityRef, alternate2: EntityRef) -> ProvAlternate:
-        """
-        Creates a new alternate record between two entities.
+        """Create a new alternate record between two entities.
 
-        :param alternate1: Entity or a string identifier for the first entity
-            (relationship source).
-        :param alternate2: Entity or a string identifier for the second entity
-            (relationship destination).
+        Args:
+            alternate1: The first entity (or its string identifier), the
+                relationship source.
+            alternate2: The second entity (or its string identifier), the
+                relationship destination.
+
+        Returns:
+            The new :class:`ProvAlternate` record.
         """
         attributes = {
             PROV_ATTR_ALTERNATE1: alternate1,
@@ -2351,14 +2563,18 @@ class ProvBundle:
     def mention(
         self, specificEntity: EntityRef, generalEntity: EntityRef, bundle: EntityRef
     ) -> ProvMention:
-        """
-        Creates a new mention record for a specific from a general entity.
+        """Create a new mention record from a general entity in a bundle.
 
-        :param specificEntity: Entity or a string identifier for the specific
-            entity (relationship source).
-        :param generalEntity: Entity or a string identifier for the general entity
-            (relationship destination).
-        :param bundle: XXX
+        Args:
+            specificEntity: The specific entity (or its string identifier), the
+                relationship source.
+            generalEntity: The general entity (or its string identifier), the
+                relationship destination.
+            bundle: The bundle (or its string identifier) that the general
+                entity is described in.
+
+        Returns:
+            The new :class:`ProvMention` record.
         """
         attributes = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
@@ -2376,23 +2592,33 @@ class ProvBundle:
         identifier: QualifiedNameCandidate,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
-        """
-        Creates a new collection record for a particular record.
+        """Create a new collection entity and add it to the bundle.
 
-        :param identifier: Identifier for new collection record.
-        :param other_attributes: Optional other attributes as a dictionary or list
-            of tuples to be added to the record optionally (default: None).
+        A collection is an entity with an additional ``prov:Collection`` type.
+
+        Args:
+            identifier: The identifier for the new collection.
+            other_attributes: Optional attributes for the collection, as a dict
+                or an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            The new :class:`ProvEntity`, typed as a collection.
         """
         record = self.new_record(PROV_ENTITY, identifier, None, other_attributes)
         record.add_asserted_type(PROV["Collection"])
         return record  # type: ignore
 
     def membership(self, collection: EntityRef, entity: EntityRef) -> ProvMembership:
-        """
-        Creates a new membership record for an entity to a collection.
+        """Create a new membership record adding an entity to a collection.
 
-        :param collection: Collection the entity is to be added to.
-        :param entity: Entity to be added to the collection.
+        Args:
+            collection: The collection (or its string identifier) the entity is
+                added to.
+            entity: The entity (or its string identifier) added to the
+                collection.
+
+        Returns:
+            The new :class:`ProvMembership` record.
         """
         attributes = {
             PROV_ATTR_COLLECTION: collection,
@@ -2412,22 +2638,25 @@ class ProvBundle:
         show_element_attributes: bool = True,
         show_relation_attributes: bool = True,
     ) -> None:
-        """
-        Convenience function to plot a PROV document.
+        """Plot the bundle as a graph, saving to a file or displaying it.
 
-        :param filename: The filename to save to. If not given, it will open
-            an interactive matplotlib plot. The filetype is determined from
-            the filename ending.
-        :type filename: String
-        :param show_nary: Shows all elements in n-ary relations.
-        :type show_nary: bool
-        :param use_labels: Uses the `prov:label` property of an element as its
-            name (instead of its identifier).
-        :type use_labels: bool
-        :param show_element_attributes: Shows attributes of elements.
-        :type show_element_attributes: bool
-        :param show_relation_attributes: Shows attributes of relations.
-        :type show_relation_attributes: bool
+        Args:
+            filename: The path to save the plot to; the image format is derived
+                from its extension. If not given, the plot is shown in an
+                interactive matplotlib window (default: ``None``).
+            show_nary: Whether to show all elements in n-ary relations
+                (default: ``True``).
+            use_labels: Whether to label elements by their ``prov:label``
+                property instead of their identifier (default: ``False``).
+            show_element_attributes: Whether to show element attributes
+                (default: ``True``).
+            show_relation_attributes: Whether to show relation attributes
+                (default: ``True``).
+
+        Raises:
+            ValueError: If the format implied by ``filename`` cannot be saved.
+            ImportError: If no ``filename`` is given but matplotlib is not
+                installed.
         """
         # Lazy imports to have soft dependencies on pydot and matplotlib
         # (imported even later).
@@ -2513,12 +2742,14 @@ class ProvDocument(ProvBundle):
         records: Iterable[ProvRecord] | None = None,
         namespaces: NSCollection | None = None,
     ):
-        """
-        Constructor.
+        """Initialise the document.
 
-        :param records: Optional records to add to the document (default: None).
-        :param namespaces: Optional iterable of :py:class:`~prov.identifier.Namespace`s
-            to set the document up with (default: None).
+        Args:
+            records: Optional iterable of records to add to the document
+                (default: ``None``).
+            namespaces: Optional namespaces to register, as a ``{prefix: uri}``
+                dict or an iterable of :class:`~prov.identifier.Namespace`
+                (default: ``None``).
         """
         ProvBundle.__init__(
             self, records=records, identifier=None, namespaces=namespaces
@@ -2547,45 +2778,35 @@ class ProvDocument(ProvBundle):
         return True
 
     def is_document(self) -> bool:
-        """
-        `True` if the object is a document, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if this is a document, ``False`` otherwise."""
         return True
 
     def is_bundle(self) -> bool:
-        """
-        `True` if the object is a bundle, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if this is a (named) bundle, ``False`` otherwise."""
         return False
 
     def has_bundles(self) -> bool:
-        """
-        `True` if the object has at least one bundle, `False` otherwise.
-
-        :return: bool
-        """
+        """Return ``True`` if the document contains bundles, ``False`` otherwise."""
         return len(self._bundles) > 0
 
     @property
     def bundles(self) -> Iterable[ProvBundle]:
-        """
-        Returns bundles contained in the document
-
-        :return: Iterable of :py:class:`ProvBundle`.
-        """
+        """The bundles contained in this document."""
         return self._bundles.values()
 
     # Transformations
     def flattened(self) -> ProvDocument:
-        """
-        Flattens the document by moving all the records in its bundles up
-        to the document level.
+        """Return a new document with all bundle records lifted to the top level.
 
-        :returns: :py:class:`ProvDocument` -- the (new) flattened document.
+        Every record from every bundle is moved up alongside the document's own
+        records and the bundle structure is discarded; this is purely
+        structural (nothing is merged or deduplicated). If the document has no
+        bundles, it is returned unchanged. The original document is left
+        untouched.
+
+        Returns:
+            The (new) flattened :class:`ProvDocument`, or this document itself
+            if it has no bundles.
         """
         if self._bundles:
             # Creating a new document for all the records
@@ -2601,11 +2822,15 @@ class ProvDocument(ProvBundle):
             return self
 
     def unified(self) -> ProvDocument:
-        """
-        Returns a new document containing all records having the same identifiers
-        unified (including those inside bundles).
+        """Return a new document with records sharing an identifier merged.
 
-        :return: :py:class:`ProvDocument`
+        The identifier-keyed attribute union (see :meth:`ProvBundle.unified`) is
+        applied to the document's top-level records and, recursively, to each
+        contained bundle, preserving the bundle structure. The original
+        document is left untouched.
+
+        Returns:
+            The new, unified :class:`ProvDocument`.
         """
         document = ProvDocument(self._unified_records())
         document._namespaces = self._namespaces
@@ -2615,13 +2840,19 @@ class ProvDocument(ProvBundle):
         return document
 
     def update(self, other: ProvBundle) -> None:
-        """
-        Append all the records of the *other* document/bundle into this document.
-        Bundles having the same identifiers will be merged.
+        """Append all records of another document or bundle into this document.
 
-        :param other: The other document/bundle whose records to be appended.
-        :type other: :py:class:`ProvDocument` or :py:class:`ProvBundle`
-        :returns: None.
+        Any bundles of ``other`` are also merged in: a bundle whose identifier
+        already exists in this document is updated in place, otherwise a new
+        bundle is created.
+
+        Args:
+            other: The :class:`ProvDocument` or :class:`ProvBundle` whose
+                records are appended.
+
+        Raises:
+            ProvException: If ``other`` is not a :class:`ProvBundle` (or
+                subclass).
         """
         if isinstance(other, ProvBundle):
             for record in other.get_records():
@@ -2645,14 +2876,21 @@ class ProvDocument(ProvBundle):
     def add_bundle(
         self, bundle: ProvBundle, identifier: QualifiedName | None = None
     ) -> None:
-        """
-        Add a bundle to the current document.
+        """Add a bundle to this document.
 
-        :param bundle: The bundle to add to the document.
-        :type bundle: :py:class:`ProvBundle`
-        :param identifier: The (optional) identifier to use for the bundle
-            (default: None). If none given, use the identifier from the bundle
-            itself.
+        If a document (with no nested bundles) is passed, its records are copied
+        into a fresh bundle. The bundle's identifier is normalised against this
+        document's namespaces.
+
+        Args:
+            bundle: The :class:`ProvBundle` to add.
+            identifier: Optional identifier to use for the bundle; if not given,
+                the bundle's own identifier is used (default: ``None``).
+
+        Raises:
+            ProvException: If ``bundle`` is not a :class:`ProvBundle`, is a
+                document with nested bundles, has no usable identifier, or an
+                identifier collides with an existing bundle.
         """
         if not isinstance(bundle, ProvBundle):
             raise ProvException(
@@ -2689,11 +2927,17 @@ class ProvDocument(ProvBundle):
         bundle._document = self
 
     def bundle(self, identifier: QualifiedNameCandidate) -> ProvBundle:
-        """
-        Returns a new bundle from the current document.
+        """Create a new, empty named bundle in this document.
 
-        :param identifier: The identifier to use for the bundle.
-        :return: :py:class:`ProvBundle`
+        Args:
+            identifier: The identifier to use for the bundle.
+
+        Returns:
+            The newly created :class:`ProvBundle`.
+
+        Raises:
+            ProvException: If ``identifier`` is ``None`` or invalid, or a bundle
+                with that identifier already exists.
         """
         if identifier is None:
             raise ProvException(
@@ -2715,19 +2959,23 @@ class ProvDocument(ProvBundle):
         format: str = "json",
         **args: Any,
     ) -> str | None:
-        """
-        Serialize the :py:class:`ProvDocument` to the destination.
+        """Serialize this document to a destination or return it as a string.
 
-        Available serializers can be queried by the value of
-        `:py:attr:~prov.serializers.Registry.serializers` after loading them via
-        `:py:func:~prov.serializers.Registry.load_serializers()`.
+        The available serialization formats are ``"json"``, ``"rdf"``, ``"xml"``
+        and ``"provn"`` (see :func:`prov.serializers.get`).
 
-        :param destination: Stream object to serialize the output to. Default is
-            `None`, which serializes as a string.
-        :param format: Serialization format (default: 'json'), defaulting to
-            PROV-JSON.
-        :return: Serialization in a string if no destination was given,
-            None otherwise.
+        Args:
+            destination: A writable stream or a local file path to write to. If
+                ``None``, the serialization is returned as a string
+                (default: ``None``). A non-local (network) location is not
+                written and yields ``None``.
+            format: The serialization format (default: ``"json"``, i.e.
+                PROV-JSON).
+            **args: Extra keyword arguments passed to the underlying serializer.
+
+        Returns:
+            The serialization as a string if no ``destination`` was given,
+            otherwise ``None``.
         """
         serializer = serializers.get(format)(self)
         if destination is None:
@@ -2764,23 +3012,27 @@ class ProvDocument(ProvBundle):
         format: str = "json",
         **args: Any,
     ) -> ProvDocument:
-        """
-        Deserialize the :py:class:`ProvDocument` from source (a stream or a
-        file path) or directly from a string content.
+        """Deserialize a document from a source stream/file or a string.
 
-        Available serializers can be queried by the value of
-        `:py:attr:~prov.serializers.Registry.serializers` after loading them via
-        `:py:func:~prov.serializers.Registry.load_serializers()`.
+        Exactly one of ``source`` or ``content`` should be given; ``content``
+        takes precedence if both are. Note that not all formats support
+        deserialization (PROV-N is write-only).
 
-        Note: Not all serializers support deserialization.
+        Args:
+            source: A readable stream or a file path to read from
+                (default: ``None``).
+            content: The document as a ``str`` or ``bytes`` to read from
+                (default: ``None``).
+            format: The serialization format (default: ``"json"``, i.e.
+                PROV-JSON).
+            **args: Extra keyword arguments passed to the underlying
+                deserializer.
 
-        :param source: Stream object to deserialize the PROV document from
-            (default: None).
-        :param content: String to deserialize the PROV document from
-            (default: None).
-        :param format: Serialization format (default: 'json'), defaulting to
-            PROV-JSON.
-        :return: :py:class:`ProvDocument`
+        Returns:
+            The deserialized :class:`ProvDocument`.
+
+        Raises:
+            TypeError: If neither ``source`` nor ``content`` is provided.
         """
         serializer = serializers.get(format)()
 
@@ -2804,12 +3056,16 @@ class ProvDocument(ProvBundle):
 def sorted_attributes(
     element: QualifiedName, attributes: Iterable[NameValuePair]
 ) -> list[NameValuePair]:
-    """
-    Helper function sorting attributes into the order required by PROV-XML.
+    """Sort attributes into the order required by PROV-XML.
 
-    :param element: The prov element used to derive the type and the
-        attribute order for the type.
-    :param attributes: The attributes to sort.
+    Args:
+        element: The PROV record type used to derive the formal-attribute order.
+        attributes: The ``(name, value)`` attribute pairs to sort.
+
+    Returns:
+        The attributes ordered by formal-attribute position, then the universal
+        label/location/role/type/value attributes, then any remaining
+        attributes alphabetically.
     """
     attributes = list(attributes)
     order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
