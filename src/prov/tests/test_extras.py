@@ -1,3 +1,4 @@
+import io
 import unittest
 
 from prov.dot import prov_to_dot
@@ -323,6 +324,19 @@ class TestExtras(unittest.TestCase):
             self.assertIn("prov[plot]", str(ctx.exception))
         finally:
             builtins.__import__ = real_import
+
+
+class TestProvNSerializer(unittest.TestCase):
+    """Covers ProvNSerializer.serialize()'s "no document" guard
+    (docs/test-gap-checklist.md, T13 item under serializers/provn.py)."""
+
+    def test_serialize_without_a_document_raises(self):
+        from prov.serializers.provn import ProvNSerializer
+
+        serializer = ProvNSerializer(document=None)
+        with self.assertRaises(Exception) as ctx:
+            serializer.serialize(io.StringIO())
+        self.assertIn("No document to serialize", str(ctx.exception))
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ class Serializer(ABC):
 
         :param stream: Stream object to serialize the document into.
         """
-        pass
+        pass  # pragma: no cover -- abstract body, never executed directly
 
     @abstractmethod
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
@@ -45,7 +45,7 @@ class Serializer(ABC):
 
         :param stream: Stream object to deserialize the document from.
         """
-        pass
+        pass  # pragma: no cover -- abstract body, never executed directly
 
 
 class DoNotExist(Error):

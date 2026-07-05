@@ -155,7 +155,7 @@ python_classes = []
 [tool.coverage.run]
 branch = true
 source = ["prov"]
-omit = ["*/tests*"]
+omit = ["*/prov/tests/*"]
 
 [tool.coverage.paths]
 source = [
@@ -165,15 +165,23 @@ source = [
 ]
 
 [tool.coverage.report]
-# Coverage ratchet (docs/test-gap-checklist.md): measured 91.218% at the Phase 2
-# audit. Raise as T11-T13 close gaps; never lower without a documented reason.
-fail_under = 91
+# Coverage ratchet (docs/test-gap-checklist.md). T13 fixed the `omit` glob
+# above (it previously did not exclude src/prov/tests/, inflating TOTAL by
+# ~3.8pt with near-fully-covered test code) and closed the remaining
+# checklist gaps; the honest package-only TOTAL measured after that work is
+# 97.42%, rounded down to this floor. Never lower without a documented
+# reason. Remaining misses are individually annotated as "defer" in the
+# checklist (dead/defensive branches unreachable via the public API, plus
+# the matplotlib-requiring interactive plot() path not installed in the
+# test env).
+fail_under = 97
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
 ]
 
 [tool.mypy]

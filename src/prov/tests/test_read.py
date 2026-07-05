@@ -127,6 +127,24 @@ class TestRead(unittest.TestCase):
             prov.read(io.StringIO("garbage"))
         self.assertIn("specify the format", str(ctx.exception))
 
+    def test_read_auto_detect_only_swallows_the_documented_exception_types(self):
+        """
+        Pins the intended behaviour of the auto-detection loop (checklist
+        item under prov/__init__.py, T13): only (TypeError, ValueError,
+        AttributeError, KeyError) from a candidate deserializer are caught
+        and treated as "try the next format"; anything else must propagate
+        immediately rather than being swallowed.
+        """
+
+        def boom(self, stream, **kwargs):
+            raise RuntimeError("not one of the caught types")
+
+        with (
+            mock.patch.object(ProvJSONSerializer, "deserialize", boom),
+            self.assertRaises(RuntimeError),
+        ):
+            prov.read(io.StringIO("garbage"))
+
 
 if __name__ == "__main__":
     unittest.main()
