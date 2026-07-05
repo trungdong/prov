@@ -1,8 +1,10 @@
 # Dependency audit
 
+Audit date: 2026-07-05, against `master` @ `185c062` (Phase 2 dependency audit, T14).
+
 Why every runtime dependency, extra, and dev/docs-group entry exists, and why it's pinned
-the way it is. Written as part of the Phase 2 dependency audit (T14); re-check pins against
-`pyproject.toml` before trusting the version numbers below — they drift.
+the way it is. Re-check pins against `pyproject.toml` before trusting the version numbers
+below — they drift after the audit date above.
 
 ## Runtime dependencies (`[project.dependencies]`)
 
