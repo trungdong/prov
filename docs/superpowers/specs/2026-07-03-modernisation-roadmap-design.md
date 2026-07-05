@@ -160,7 +160,14 @@ stability is paramount. Current state at the time of writing:
       module (replaces `modules.rst` dump); plus the conformance matrix (Phase 3.5).
     - **Explanation:** PROV-DM primer mapping W3C concepts to the class model;
       unification/flattening semantics.
-23. Docstring pass over the public API (napoleon style, consistent with type hints).
+23. Docstring pass over the public API — accuracy first, then style. For every public
+    name: verify the docstring says what the code actually does (parameter meanings,
+    return values, raised exceptions, side effects) against the now-strict type hints —
+    the Phase 2 typing work is exactly the kind of change that leaves prose stale (e.g.
+    text still describing dateutil-lenient string parsing, or "returns X or None" where
+    the annotation now disagrees). Fix lies before formatting. Then normalise to
+    napoleon style, consistent with the type hints. (Accuracy scope added 2026-07-05 at
+    maintainer request.)
 24. Test methodology review & redesign — a short design doc first, deliberately
     NOT constrained by the legacy structure. Assess every inherited pattern on its
     merits: mixin-based sharing (`RoundTripTestCase`, `attributes.py`,

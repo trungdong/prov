@@ -102,21 +102,51 @@ the public entry point instead of deep inside `add_attributes`; equality/`__hash
 never have to worry about un-normalised values; most of the alias zoo becomes
 implementation detail of one module-level `_coerce_qname` helper.
 
-### B2. Drop string datetimes from the core; drop `dateutil` with them **[2.4.0-deprecate]**
+### B2. Restrict time strings to xsd:dateTime at the edge; drop `dateutil` **[2.4.0-deprecate]**
+
+*(Revised 2026-07-05 after researching PROV-N's treatment of time values —
+https://www.w3.org/TR/prov-n/#expression-Time. The original item dropped string
+datetimes entirely; that conflicted with the design principle that a Python statement
+should read like its PROV-N counterpart.)*
 
 **Evidence:** `DatetimeOrStr` on every `time=`/`startTime=`/`endTime=` parameter,
 funnelled through `_ensure_datetime`/`parse_xsd_datetime` → `dateutil.parser.parse`,
-whose leniency accepts strings like `"5"` and whose failure mode inside
-`add_attributes` is a `None` that turns into a generic `ProvException`.
+whose leniency accepts strings like `"5"` (as today's date) and whose failure mode
+inside `add_attributes` is a `None` that turns into a generic `ProvException`.
+However, PROV-N writes times as bare literals — `used(ex:act2, ar3:0111,
+2011-11-16T16:00:00)`, grammar terminal `<DATETIME>` (`YYYY-MM-DDThh:mm:ss`, optional
+1–3-digit fraction, optional `Z`/`±hh:mm`, a strict subset of xsd:dateTime) — so
+string times at the statement-writing surface are a feature, not an accident.
 
-**Change (3.0):** parameters become `datetime.datetime | None`. If string input stays
-supported at the factory edge, restrict it to ISO-8601 via
-`datetime.fromisoformat` (3.11+ parses the full format; our floor will allow it by
-3.0). This is the same move `ROADMAP.md` already promises ("`python-dateutil`
-replaced by the standard library") — this item adds the *typing contract* side of it.
+**Change (3.0):** apply the B1 pattern to time. The PROV-N-positional keywords
+`time=`/`startTime=`/`endTime=` on the factory and fluent layers stay
+`datetime.datetime | str | None`; strings are parsed at that edge by
+`parse_xsd_datetime`, re-specified as `(str) -> datetime` raising `ValueError`,
+implemented on `datetime.fromisoformat` (the 3.0 floor ≥3.11 parses the full
+xsd:dateTime-in-practice space, including `Z` and any fraction length; it covers
+every form the PROV-N `<DATETIME>` terminal generates except `24:00:00`, which
+`dateutil` already rejects today — no regression). Below the edge —
+`add_attributes`, `new_record` formal attributes, `Literal` — time values are
+`datetime` only; the string branch in `add_attributes` is removed. `dateutil` is
+dropped entirely (`provrdf`'s gYear/gYearMonth decoding moves to trivial string/int
+handling), fulfilling the ROADMAP promise.
 
-**Rationale:** smaller dependency footprint (roadmapped), deterministic parsing, and
-`time: datetime | None` is self-documenting where `DatetimeOrStr` is not.
+**Deprecation (2.4.0):** `_ensure_datetime` tries `fromisoformat` first (with a
+`Z`-suffix shim while the floor is 3.10, whose `fromisoformat` rejects `Z`);
+dateutil-only strings still parse but emit a `DeprecationWarning` naming the
+offending value; string times inside generic `other_attributes` dicts warn likewise,
+steering users to the factory keywords. Docstrings change from "parsed by
+`dateutil.parser`" to "an ISO-8601 / xsd:dateTime string".
+
+**Rationale:** keeps the PROV-N transcription ergonomics
+(`doc.used(act, e1, "2011-11-16T16:00:00")` stays a near-verbatim transcription of
+the PROV-N statement), while achieving everything the original item wanted:
+deterministic parsing (`fromisoformat` rejects `"5"`, prose dates, and time-only
+strings that dateutil mis-parses non-deterministically; it accepts both time-string
+shapes found in this repo's own test fixtures), no `dateutil`, honest one-type core
+signatures, and failures that surface as a clear `ValueError` at the public entry
+point instead of deep inside `add_attributes`. Note `ProvActivity.set_time` is
+already strict `datetime | None` today, so precedent exists in the API.
 
 ### B3. Rename the misspelled `GenrationRef` alias
 
