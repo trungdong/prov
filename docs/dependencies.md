@@ -94,25 +94,41 @@ automation is scripted later), `setuptools`/`wheel` (build-backend concerns decl
 interpreter matrix; CI already covers the matrix independently — see "Local multi-version
 testing" in `CLAUDE.md`), and `sphinx`/`sphinx-rtd-theme` (moved to the new `docs` group
 below, since building the documentation is a separate concern from running/lint/typecheck
-tests and the RTD build installs `docs/requirements.txt` directly, not the dev group).
+tests; at that point the RTD build still installed `docs/requirements.txt` directly, not
+the dev group — since T21/docs-tooling (2026-07-05) RTD installs the `docs` group directly
+via `uv sync`, see below).
 
 ## Docs dependency group (`[dependency-groups] docs`)
 
-Mirrors `docs/requirements.txt` (the file ReadTheDocs actually installs from — kept in
-sync manually since RTD does not support `uv`/dependency-groups natively). Use
-`uv sync --group docs` for a local Sphinx build.
+The single source of truth for docs build dependencies — both local builds
+(`uv sync --group docs --extra rdf --extra xml`) and ReadTheDocs (`.readthedocs.yml` runs
+`uv sync --frozen --no-dev --group docs --extra rdf --extra xml` directly) install from
+this group. `docs/requirements.txt` — a hand-maintained mirror of this list that RTD used
+before it could run `uv` in its build image — was deleted 2026-07-05 (T21) once RTD's
+`build.jobs.create_environment` could install `uv` itself via `asdf`; keeping two
+manually-synced dependency lists was a standing liability.
 
 - **`sphinx>=8.1.3,<9`** — the documentation generator. The `<9` ceiling fixes a
-  ReadTheDocs build break (introduced 2026-07-04, see `docs/requirements.txt` history):
+  ReadTheDocs build break (introduced 2026-07-04, see git history on this file):
   Sphinx 9's autodoc calls `repr()` on class bases while documenting
   `prov.serializers.provrdf`; rdflib's `DefinedNamespaceMeta.__repr__` raises
   `AttributeError` on its abstract base class, crashing the build. Verified: 8.1.3 and
-  8.2.3 build fine; 9.0.4 and 9.1.0 crash. Revisit once rdflib fixes `__repr__` on its
-  namespace metaclass, or once this project drops the RDF serializer's exposure to
-  autodoc.
-- **`sphinx_rtd_theme`** — the Sphinx theme used for the published docs (matches
-  ReadTheDocs' historic default theme, kept explicit rather than relying on RTD's
-  built-in fallback).
+  8.2.3 build fine; 9.0.4 and 9.1.0 crash. Re-verified 2026-07-05 (T21) with the furo
+  theme swap — the same crash reproduces on 9.1.0, so the cap stays. Revisit once rdflib
+  fixes `__repr__` on its namespace metaclass, or once this project drops the RDF
+  serializer's exposure to autodoc.
+- **`furo`** — the HTML theme for the published docs, replacing `sphinx_rtd_theme`
+  2026-07-05 (T21): actively maintained, accessible defaults, and native light/dark mode
+  without extra configuration. No known version constraints yet.
+- **`myst-parser`** — lets `.md` sources (in addition to `.rst`) build as Sphinx pages,
+  via `source_suffix` in `conf.py`. Added T21 so future docs content (Diátaxis
+  restructure, tasks 3–6 of the modernisation roadmap) isn't forced into reStructuredText.
+  Enables the `colon_fence`/`deflist` MyST extensions only; no other extensions are
+  needed by the current page set.
+- **`sphinx-copybutton`** — adds a "copy" button to code blocks in the rendered HTML;
+  purely a UX nicety for the many shell/PROV-N/JSON snippets across the docs. Added T21.
+
+Removed T21: `sphinx_rtd_theme` (superseded by `furo`, above).
 
 ## `[tool.uv] constraint-dependencies`
 

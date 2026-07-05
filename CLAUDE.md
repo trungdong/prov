@@ -39,9 +39,16 @@ uv sync --extra rdf --extra xml
 ```
 
 Dev tools (ruff, mypy, pytest, ...) live in the `dev` dependency group; building the Sphinx
-docs needs the separate `docs` group (`uv sync --group docs`). See `docs/dependencies.md`
-for why each runtime dependency, extra, and dev/docs-group entry exists and why it's pinned
-the way it is.
+docs needs the separate `docs` group plus the `rdf`/`xml` extras (autodoc imports the
+serializer modules):
+
+```bash
+uv sync --group docs --extra rdf --extra xml
+uv run --group docs --extra rdf --extra xml sphinx-build -b html docs docs/_build/html
+```
+
+See `docs/dependencies.md` for why each runtime dependency, extra, and dev/docs-group
+entry exists and why it's pinned the way it is (including why Sphinx is capped `<9`).
 
 ## Common commands
 
