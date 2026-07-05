@@ -18,9 +18,12 @@ CI-visible TOTAL is inflated by ~3.8 points of near-fully-covered test code. Fix
 omit pattern is a T13 item and requires re-basing the ratchet at the same time.
 
 Owner tags: **T11** = in-process CLI tests for `prov-convert`/`prov-compare` exercising
-`main()`; **T12** = `prov.read()` auto-detection, `graph.py` branches, serializer
-registry; **T13** = remaining gaps + ratchet toward ~95; **defer** = documented
-won't-test (reason given inline).
+`main()` (completed 2026-07-05, PR #202); **T12** = `prov.read()` auto-detection,
+`graph.py` branches, serializer registry (completed 2026-07-05, PR #203); **T13** =
+remaining gaps + ratchet toward ~95 (completed 2026-07-05, see closing note); **defer**
+= documented won't-test (reason given inline). Dates matter here: every "line N" /
+"module X%" reference is against the code as of the run recorded next to it, and will
+drift in later versions — re-measure rather than trusting old numbers.
 
 Per-module numbers below are from the audit run; re-measure before starting each task —
 they will drift.
@@ -95,7 +98,7 @@ Large module; misses were scattered single lines, clustering into these behaviou
 in `test_model.py` unless noted):
 
 - [x] Literal handling: `parse_xsd_datetime` returning `None` on unparseable input; `parse_boolean` on `"true"/"1"/"false"/"0"/other`; `Literal.__eq__`/`__ne__`/`__hash__`; langtag forcing datatype to `prov:InternationalizedString` with a warning (lines 74–85, 167–194, 248–258) — **T13** (`TestLiteralHandling`)
-- [x] Attribute validation errors: `ProvException` on a `None`-identifier record used as an attribute value, on unparseable datetime formal attributes, and on conflicting duplicate values for a single-valued PROV attribute (lines 480–537) — **T13** (`TestAttributeValidationErrors`). Two sub-branches deferred: line 503 (`_auto_literal_conversion`'s "value is None" guard) and 521-523 (`except TypeError` on the duplicate-value comparison) are dead for any value this library can construct — `_auto_literal_conversion` never returns `None` for a non-`None` input (traced all branches), and no `PROV_ATTRIBUTES` value type (`QualifiedName`/`Identifier`, `datetime.datetime`) raises `TypeError` on `!=` (confirmed empirically, including naive-vs-aware datetimes, which return `True` rather than raising).
+- [x] Attribute validation errors: `ProvException` on a `None`-identifier record used as an attribute value, on unparseable datetime formal attributes, and on conflicting duplicate values for a single-valued PROV attribute (lines 480–537) — **T13** (`TestAttributeValidationErrors`). Line 503 (the "value is None" guard after `_auto_literal_conversion`) is reachable through the generic-attribute path — an anonymous (identifier-less) record used as a plain attribute value converts to `None` — and is covered by `test_identifierless_record_as_generic_attribute_value_raises`. One sub-branch deferred: 521-523 (`except TypeError` on the duplicate-value comparison) is dead for any value this library can construct — no `PROV_ATTRIBUTES` value type (`QualifiedName`/`Identifier`, `datetime.datetime`) raises `TypeError` on `!=` (confirmed empirically, including naive-vs-aware datetimes, which return `True` rather than raising).
 - [x] `ProvElement` creation without an identifier raises `ProvElementIdentifierRequired` (line 634) — **T13** (`TestElementIdentifierRequired`, plus both exceptions' `__str__`)
 - [x] Element convenience methods not exercised by `examples.py`: `ProvEntity.wasInvalidatedBy`/`hadMember`, `ProvActivity.wasStartedBy`/`wasEndedBy`/`wasInformedBy`, `set_time()` — **T13** (`TestElementConvenienceMethods`)
 - [x] `NamespaceManager`: default-namespace-less/with-default construction, `get_namespace()` miss/hit, rename-map reuse of already-renamed namespaces, blank-node (`_:`) and non-str/Identifier inputs to `valid_qualified_name` returning `None`, `get_anonymous_identifier()`, `_get_unused_prefix` counting and its "prefix free" branch, empty `add_namespaces()` — **T13** (`TestNamespaceManagerEdges`)
@@ -199,7 +202,7 @@ Survivor analysis — every survivor was informative:
 
 ---
 
-## T13 closing note
+## T13 closing note (2026-07-05)
 
 Every checklist item above is now either ticked or explicitly marked **defer** with a
 one-line (or longer, where the reasoning wasn't obvious) rationale; none are left
@@ -226,6 +229,6 @@ package code only, matching what `[tool.coverage.run] source = ["prov"]` +
 `coverage report`) should land within a few hundredths of the same number; the ~0.4
 point margin above the 97 floor absorbs the cross-interpreter drift noted in T10.
 
-Test suite: 1083 passed, 17 xfailed (up from the 992 passed / 17 xfailed baseline
-recorded before this task — all 91 new tests pass, none of the pre-existing ones were
+Test suite: 1084 passed, 17 xfailed (up from the 992 passed / 17 xfailed baseline
+recorded before this task — all 92 new tests pass, none of the pre-existing ones were
 modified in behaviour). `ruff check`, `ruff format --check`, and `mypy src` all clean.

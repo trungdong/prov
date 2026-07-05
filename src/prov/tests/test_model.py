@@ -366,6 +366,19 @@ class TestAttributeValidationErrors(unittest.TestCase):
 
         self.assertRaises(ProvException, self.doc.attribution, e1, anonymous_usage)
 
+    def test_identifierless_record_as_generic_attribute_value_raises(self):
+        # Same anonymous-relation value, but through the generic (non-formal)
+        # attribute path: _auto_literal_conversion() reduces a ProvRecord to
+        # its identifier, which is None here, tripping the "value is None"
+        # guard rather than a formal-attribute check.
+        e1 = self.doc.entity("ex:e1b")
+        a1 = self.doc.activity("ex:a1b")
+        anonymous_usage = self.doc.usage(a1, e1)
+        self.assertIsNone(anonymous_usage.identifier)
+
+        e2 = self.doc.entity("ex:e2b")
+        self.assertRaises(ProvException, e2.add_attributes, {"ex:ref": anonymous_usage})
+
     def test_unparseable_datetime_formal_attribute_raises(self):
         activity = self.doc.activity("ex:a2")
         self.assertRaises(
