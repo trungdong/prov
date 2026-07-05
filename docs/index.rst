@@ -23,7 +23,7 @@ Prov Python package's documentation
    :maxdepth: 1
    :caption: Reference
 
-   modules
+   reference/index
 
 .. toctree::
    :maxdepth: 1
