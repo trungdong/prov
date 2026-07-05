@@ -1,15 +1,15 @@
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: help clean clean-build clean-pyc lint format test test-all coverage docs dist
 
 help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
 	@echo "lint - check style with ruff"
+	@echo "format - format code with ruff"
 	@echo "test - run tests quickly with the default Python"
 	@echo "test-all - run tests on every supported Python version via uv"
 	@echo "coverage - check code coverage quickly with the default Python"
-	@echo "docs - generate Sphinx HTML documentation, including API docs"
-	@echo "release - package and upload a release"
-	@echo "dist - package"
+	@echo "docs - generate Sphinx HTML documentation"
+	@echo "dist - build sdist and wheel"
 
 clean: clean-build clean-pyc
 	rm -fr htmlcov/ .coverage coverage.xml
@@ -25,10 +25,13 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	ruff check src/
+	uv run ruff check src/
+
+format:
+	uv run ruff format src/
 
 test:
-	python setup.py test
+	uv run pytest
 
 test-all:
 	for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do \
@@ -36,24 +39,15 @@ test-all:
 	done
 
 coverage:
-	coverage run --source prov setup.py test
-	coverage report -m
-	coverage html
+	uv run coverage run -m pytest
+	uv run coverage report -m
+	uv run coverage html
 	open htmlcov/index.html
 
 docs:
-	rm -f docs/prov.rst
-	rm -f docs/modules.rst
-	sphinx-apidoc -o docs/ src/prov
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	uv run --group docs --extra rdf --extra xml sphinx-build -b html docs docs/_build/html
 	open docs/_build/html/index.html
 
-release: clean
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
-
 dist: clean
-	python setup.py sdist
-	python setup.py bdist_wheel
+	uv build
 	ls -l dist
