@@ -55,15 +55,32 @@ __email__ = "satra@mit.edu"
 
 
 class ProvRDFException(Error):
+    """Raised when a PROV-RDF/PROV-O graph cannot be decoded by this package."""
+
     pass
 
 
 class AnonymousIDGenerator:
+    """Assigns and caches stable blank-node identifier strings for unidentified records."""
+
     def __init__(self) -> None:
         self._cache = {}  # type: dict[Any, str]
         self._count = 0  # type: int
 
     def get_anon_id(self, obj: pm.ProvRecord, local_prefix: str = "id") -> str:
+        """Return a blank-node identifier string (``"_:<local_prefix><n>"``) for a record.
+
+        The same object always gets the same identifier string back; a new
+        one is minted and cached the first time a given record is seen.
+
+        Args:
+            obj: Record needing an anonymous identifier.
+            local_prefix: Prefix used when minting a new identifier.
+
+        Returns:
+            The cached or newly minted blank-node identifier string for
+            ``obj``.
+        """
         if obj not in self._cache:
             self._count += 1
             self._cache[obj] = f"_:{local_prefix}{self._count}"
@@ -78,6 +95,8 @@ LITERAL_XSDTYPE_MAP = {
     # boolean, string values are supported natively by PROV-RDF
     # datetime values are converted separately
 }
+"""Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
+types not natively/simply representable in PROV-RDF."""
 
 RELATION_MAP = {
     URIRef(PROV["alternateOf"].uri): "alternate",
@@ -96,6 +115,10 @@ RELATION_MAP = {
     URIRef(PROV["hadMember"].uri): "membership",
     URIRef(PROV["used"].uri): "usage",
 }
+"""Default ``relation_mapper`` for :meth:`ProvRDFSerializer.deserialize`/
+:meth:`~ProvRDFSerializer.decode_container`: maps each PROV-O relation
+predicate URIRef to the name of the :class:`~prov.model.ProvBundle` factory
+method used to recreate it (e.g. ``bundle.derivation(...)``)."""
 PREDICATE_MAP = {
     RDFS.label: pm.PROV["label"],
     URIRef(PROV["atLocation"].uri): PROV_LOCATION,
@@ -108,16 +131,28 @@ PREDICATE_MAP = {
     URIRef(PROV["hadGeneration"].uri): pm.PROV_ATTR_GENERATION,
     URIRef(PROV["hadActivity"].uri): pm.PROV_ATTR_ACTIVITY,
 }
+"""Default ``predicate_mapper`` for :meth:`ProvRDFSerializer.deserialize`/
+:meth:`~ProvRDFSerializer.decode_container`: maps PROV-O predicate URIRefs
+that don't already match a PROV formal-attribute QualifiedName to the
+QualifiedName of the formal attribute they represent."""
 
 
 def attr2rdf(attr: QualifiedName) -> URIRef:
+    """Return the PROV-O predicate URIRef for a PROV formal attribute.
+
+    Args:
+        attr: A formal attribute QualifiedName, e.g. ``PROV_ATTR_ENTITY``.
+
+    Returns:
+        The corresponding ``prov:*`` predicate URIRef (e.g.
+        ``prov:entity``), derived from
+        :data:`~prov.constants.PROV_ID_ATTRIBUTES_MAP`.
+    """
     return URIRef(PROV[PROV_ID_ATTRIBUTES_MAP[attr].split("prov:")[1]].uri)
 
 
 class ProvRDFSerializer(Serializer):
-    """
-    PROV-O serializer for :class:`~prov.model.ProvDocument`
-    """
+    """PROV-O serializer for :class:`~prov.model.ProvDocument`."""
 
     def serialize(
         self,
@@ -126,12 +161,22 @@ class ProvRDFSerializer(Serializer):
         PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
         **kwargs: Any,
     ) -> None:
-        """
-        Serializes a :class:`~prov.model.ProvDocument` instance to
-        `PROV-O <https://www.w3.org/TR/prov-o/>`_.
+        """Serialize ``self.document`` to `PROV-O <https://www.w3.org/TR/prov-o/>`_.
 
-        :param stream: Where to save the output.
-        :param rdf_format: The RDF format of the output, default to TRiG.
+        Args:
+            stream: Stream to write the output to. Text streams receive the
+                serialized text directly; other (binary) streams receive it
+                UTF-8-encoded.
+            rdf_format: The rdflib RDF format name for the output (e.g.
+                ``"trig"``, ``"xml"``, ``"turtle"``, ``"nquads"``).
+            PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword,
+                used when building the relation predicates; defaults to
+                :data:`~prov.constants.PROV_N_MAP`.
+            **kwargs: Extra keyword arguments passed through to rdflib's
+                ``Graph.serialize()``.
+
+        Raises:
+            ProvRDFException: If ``self.document`` is ``None``.
         """
         if self.document is None:
             raise ProvRDFException("No document to serialize.")
@@ -162,12 +207,27 @@ class ProvRDFSerializer(Serializer):
         predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
         **kwargs: Any,
     ) -> pm.ProvDocument:
-        """
-        Deserialize from the `PROV-O <https://www.w3.org/TR/prov-o/>`_
-        representation to a :class:`~prov.model.ProvDocument` instance.
+        """Deserialize a `PROV-O <https://www.w3.org/TR/prov-o/>`_ graph
+        into a :class:`~prov.model.ProvDocument`.
 
-        :param stream: Input data.
-        :param rdf_format: The RDF format of the input data, default: TRiG.
+        Also sets ``self.document`` to the returned document as a side
+        effect.
+
+        Args:
+            stream: Input data, parsed by rdflib.
+            rdf_format: The rdflib RDF format name of the input data (e.g.
+                ``"trig"``, ``"xml"``, ``"turtle"``, ``"nquads"``).
+            relation_mapper: Maps PROV-O relation predicate URIRefs to
+                :class:`~prov.model.ProvBundle` factory method names;
+                defaults to :data:`RELATION_MAP`.
+            predicate_mapper: Maps PROV-O predicate URIRefs to formal
+                attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
+            **kwargs: Extra keyword arguments passed through to rdflib's
+                ``Graph.parse()``.
+
+        Returns:
+            The deserialized :class:`~prov.model.ProvDocument` (also stored
+            in ``self.document``).
         """
         newargs = kwargs.copy()
         newargs["format"] = rdf_format
@@ -187,11 +247,34 @@ class ProvRDFSerializer(Serializer):
     def valid_identifier(
         self, value: pm.QualifiedNameCandidate | None
     ) -> pm.QualifiedName | None:
+        """Resolve a candidate value to a :class:`~prov.identifier.QualifiedName`.
+
+        Args:
+            value: Candidate qualified name, or ``None``.
+
+        Returns:
+            The resolved :class:`~prov.identifier.QualifiedName`, or ``None``
+            if ``value`` is ``None``/falsy or cannot be resolved against
+            ``self.document``'s namespaces.
+        """
         # valid_qualified_name returns None for falsy inputs, so passing None
         # through is safe despite its declared parameter type.
         return self.document.valid_qualified_name(value)  # type: ignore[union-attr, arg-type]
 
     def encode_rdf_representation(self, value: Any) -> RDFLiteral | URIRef:
+        """Encode a single attribute value to its RDF term representation.
+
+        Args:
+            value: Attribute value to encode: a ``URIRef`` (returned as-is),
+                a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
+                a :class:`~prov.identifier.QualifiedName`, another
+                :class:`~prov.identifier.Identifier`, a type listed in
+                :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
+                to ``rdflib.Literal``.
+
+        Returns:
+            The RDF term (``URIRef`` or ``rdflib.Literal``) for ``value``.
+        """
         if isinstance(value, URIRef):
             return value
         elif isinstance(value, pm.Literal):
@@ -208,6 +291,25 @@ class ProvRDFSerializer(Serializer):
             return RDFLiteral(value)
 
     def decode_rdf_representation(self, literal: Any, graph: Graph) -> Any:
+        """Decode a single RDF term back to its PROV attribute value representation.
+
+        If ``literal`` is a ``URIRef`` that cannot be resolved to a
+        QualifiedName in ``self.document``'s existing namespaces, a new
+        namespace is minted (via ``graph``'s namespace manager) and
+        registered on ``self.document`` as a side effect.
+
+        Args:
+            literal: RDF term to decode: an ``rdflib.Literal`` or a
+                ``URIRef``, or already a plain value to return unchanged.
+            graph: Graph ``literal`` came from, used to compute a QName/mint
+                a namespace for unresolved ``URIRef`` values.
+
+        Returns:
+            A :class:`datetime.datetime` for ``xsd:dateTime`` literals, a
+            :class:`~prov.model.Literal` for other typed/tagged literals, a
+            resolved (or newly minted) :class:`~prov.identifier.QualifiedName`
+            for ``URIRef`` values, or ``literal`` unchanged otherwise.
+        """
         if isinstance(literal, RDFLiteral):
             value = literal.value if literal.value is not None else literal
             datatype = literal.datatype
@@ -253,6 +355,17 @@ class ProvRDFSerializer(Serializer):
         document: pm.ProvDocument,
         PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
     ) -> ConjunctiveGraph:
+        """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
+
+        Args:
+            document: Document to encode.
+            PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword;
+                defaults to :data:`~prov.constants.PROV_N_MAP`.
+
+        Returns:
+            A ``ConjunctiveGraph`` containing the document's own triples plus
+            one named subgraph per bundle in ``document.bundles``.
+        """
         container = self.encode_container(document)
         for item in document.bundles:
             #  encoding the sub-bundle
@@ -275,6 +388,32 @@ class ProvRDFSerializer(Serializer):
         container: ConjunctiveGraph | None = None,
         identifier: str | None = None,
     ) -> ConjunctiveGraph:
+        """Encode a single bundle's namespaces and records into an RDF graph.
+
+        Does not recurse into named bundles; see :meth:`encode_document` for
+        a whole document. Elements are encoded directly as PROV-O triples;
+        relations are encoded per the PROV-O qualification pattern (a
+        subject-predicate-object triple for the two main formal attributes,
+        plus a ``prov:qualified*`` blank/identified node carrying any
+        remaining formal and extra attributes), following the mappings from
+        PROV-N attribute names to PROV-O predicates defined by the PROV-O
+        specification.
+
+        Args:
+            bundle: Bundle (or document, treated as its top-level bundle) to
+                encode.
+            PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword;
+                defaults to :data:`~prov.constants.PROV_N_MAP`.
+            container: Graph to add triples to. If ``None``, a new
+                ``ConjunctiveGraph`` is created (with ``identifier``, and
+                with the ``prov`` namespace pre-bound).
+            identifier: Identifier for the new graph, used only when
+                ``container`` is ``None``.
+
+        Returns:
+            The graph that was passed in as ``container``, or the newly
+            created one.
+        """
         if container is None:
             container = ConjunctiveGraph(identifier=identifier)
             nm = container.namespace_manager
@@ -525,6 +664,26 @@ class ProvRDFSerializer(Serializer):
         relation_mapper: dict[URIRef, str] = RELATION_MAP,
         predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
     ) -> None:
+        """Decode a whole RDF graph, including named subgraphs, into a document.
+
+        Mutates ``document`` in place: registers ``content``'s namespaces on
+        it, then decodes each subgraph (bnode-identified subgraphs as the
+        document's own records; IRI-identified subgraphs as named bundles
+        added via :meth:`~prov.model.ProvBundle.bundle`) via
+        :meth:`decode_container`. If ``content`` has no ``contexts()`` (i.e.
+        it is a plain ``Graph``, not conjunctive), it is decoded directly as
+        the document's own records.
+
+        Args:
+            content: RDF graph (typically a ``ConjunctiveGraph``, as produced
+                by :meth:`encode_document`) to decode.
+            document: Document to populate.
+            relation_mapper: Maps PROV-O relation predicate URIRefs to
+                :class:`~prov.model.ProvBundle` factory method names;
+                defaults to :data:`RELATION_MAP`.
+            predicate_mapper: Maps PROV-O predicate URIRefs to formal
+                attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
+        """
         for prefix, url in content.namespaces():
             document.add_namespace(prefix, str(url))
         if hasattr(content, "contexts"):
@@ -566,6 +725,37 @@ class ProvRDFSerializer(Serializer):
         relation_mapper: dict[URIRef, str] = RELATION_MAP,
         predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
     ) -> None:
+        """Decode a single RDF (sub)graph's triples into records added to a bundle.
+
+        Reconstructs each subject's record type from its ``rdf:type``
+        triple(s), then walks every triple in the graph to fill in that
+        record's formal and non-formal attributes (mapping PROV-O relation
+        predicates back to :class:`~prov.model.ProvBundle` factory calls via
+        ``relation_mapper``, and other predicates back to formal attributes
+        via ``predicate_mapper`` and PROV-O's qualification pattern), adding
+        each reconstructed record to ``bundle`` via
+        :meth:`~prov.model.ProvBundle.new_record`. Mutates ``bundle`` (and,
+        for unresolvable subject IRIs, ``self.document``'s namespaces) in
+        place.
+
+        Args:
+            graph: The RDF (sub)graph to decode, e.g. one context of a
+                ``ConjunctiveGraph``.
+            bundle: Bundle (or document) to add the decoded records to.
+            relation_mapper: Maps PROV-O relation predicate URIRefs to
+                :class:`~prov.model.ProvBundle` factory method names;
+                defaults to :data:`RELATION_MAP`.
+            predicate_mapper: Maps PROV-O predicate URIRefs to formal
+                attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
+
+        Raises:
+            ValueError: If a relation's object term cannot be decoded to a
+                usable attribute value.
+
+        Warns:
+            UserWarning: If, after decoding, some attributes could not be
+                matched to any formal attribute or converted.
+        """
         record_types = {}  # type: dict[str, pm.QualifiedName]
         PROV_CLS_MAP = {}  # type: dict[str, pm.QualifiedName]
         formal_attributes = {}  # type: dict[str, dict[pm.QualifiedName, pm.QualifiedNameCandidate | datetime.datetime | None]]
@@ -747,14 +937,28 @@ def walk(
 ) -> Generator[dict[Any, Any]]:
     """Generate all the full paths in a tree, as a dict.
 
-    :Example:
+    Args:
+        children: ``(name, iterable)`` pairs; each is one level of the tree,
+            enumerated in order. Each ``iterable`` must be an iterable of
+            values (not a callable) -- it is iterated directly.
+        level: Current recursion depth; only used as the dict key when
+            ``usename`` is ``False``.
+        path: Path accumulated so far; ``None`` (the default) starts a fresh
+            path at the top-level call.
+        usename: If ``True``, key each path dict by the level's ``name``;
+            if ``False``, key it by the level's integer depth instead.
 
-    >>> from prov.serializers.provrdf import walk
-    >>> iterables = [('a', lambda: [1, 2]), ('b', lambda: [3, 4])]
-    >>> [val['a'] for val in walk(iterables)]
-    [1, 1, 2, 2]
-    >>> [val['b'] for val in walk(iterables)]
-    [3, 4, 3, 4]
+    Yields:
+        One dict per full path through ``children``, mapping each level's
+        key to the value chosen at that level.
+
+    Example:
+        >>> from prov.serializers.provrdf import walk
+        >>> iterables = [('a', [1, 2]), ('b', [3, 4])]
+        >>> [val['a'] for val in walk(iterables)]
+        [1, 1, 2, 2]
+        >>> [val['b'] for val in walk(iterables)]
+        [3, 4, 3, 4]
     """
     # Entry point
     if path is None:
@@ -778,6 +982,20 @@ def walk(
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:
+    """Encode a :class:`~prov.model.Literal` to an ``rdflib.Literal``.
+
+    Args:
+        literal: Literal to encode.
+
+    Returns:
+        A language-tagged ``rdflib.Literal`` if ``literal`` has a language
+        tag, otherwise a datatype-tagged one (base64-encoding the value
+        first for ``xsd:base64Binary``).
+
+    Raises:
+        ValueError: If ``literal`` has neither a language tag nor a
+            datatype.
+    """
     if literal.langtag:
         #  a language tag can only go with prov:InternationalizedString
         return RDFLiteral(literal.value, lang=literal.langtag)

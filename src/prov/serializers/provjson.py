@@ -1,3 +1,5 @@
+"""PROV-JSON serializer for ProvDocument."""
+
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
 import datetime
@@ -31,15 +33,32 @@ ProvJSONDict = dict[str, dict[str, Any]]
 
 
 class ProvJSONException(Error):
+    """Raised when a PROV-JSON document contains a construct this package cannot decode."""
+
     pass
 
 
 class AnonymousIDGenerator:
+    """Assigns and caches stable blank-node identifiers for unidentified records."""
+
     def __init__(self) -> None:
         self._cache = {}  # type: dict[ProvRecord, Identifier]
         self._count = 0  # type: int
 
     def get_anon_id(self, obj: ProvRecord, local_prefix: str = "id") -> Identifier:
+        """Return a blank-node :class:`~prov.identifier.Identifier` for a record.
+
+        The same object always gets the same identifier back; a new one
+        (``_:<local_prefix><n>``) is minted and cached the first time a given
+        record is seen.
+
+        Args:
+            obj: Record needing an anonymous identifier.
+            local_prefix: Prefix used when minting a new identifier.
+
+        Returns:
+            The cached or newly minted blank-node identifier for ``obj``.
+        """
         if obj not in self._cache:
             self._count += 1
             self._cache[obj] = Identifier(f"_:{local_prefix}{self._count}")
@@ -53,19 +72,22 @@ LITERAL_XSDTYPE_MAP = {
     # boolean, string values are supported natively by PROV-JSON
     # datetime values are converted separately
 }
+"""Maps Python literal types to their PROV-JSON ``xsd:*`` type name, for
+types not natively supported by PROV-JSON."""
 
 
 class ProvJSONSerializer(Serializer):
-    """
-    PROV-JSON serializer for :class:`~prov.model.ProvDocument`
-    """
+    """PROV-JSON serializer for :class:`~prov.model.ProvDocument`."""
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
-        """
-        Serializes a :class:`~prov.model.ProvDocument` instance to
-        `PROV-JSON <https://openprovenance.org/prov-json/>`_.
+        """Serialize ``self.document`` to `PROV-JSON <https://openprovenance.org/prov-json/>`_.
 
-        :param stream: Where to save the output.
+        Args:
+            stream: Stream to write the output to. Text streams receive the
+                JSON text directly; other (binary) streams receive it
+                UTF-8-encoded.
+            **args: Extra keyword arguments passed through to
+                :func:`json.dump`.
         """
         buf = io.StringIO()
         try:
@@ -82,12 +104,16 @@ class ProvJSONSerializer(Serializer):
             buf.close()
 
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
-        """
-        Deserialize from the `PROV JSON
-        <https://openprovenance.org/prov-json/>`_ representation to a
-        :class:`~prov.model.ProvDocument` instance.
+        """Deserialize a `PROV-JSON <https://openprovenance.org/prov-json/>`_
+        stream into a :class:`~prov.model.ProvDocument`.
 
-        :param stream: Input data.
+        Args:
+            stream: Input data; binary streams are decoded as UTF-8 first.
+            **args: Extra keyword arguments passed through to
+                :func:`json.load`.
+
+        Returns:
+            The deserialized :class:`~prov.model.ProvDocument`.
         """
         if not isinstance(stream, io.TextIOBase):
             buf = io.StringIO(stream.read().decode("utf-8"))
@@ -96,7 +122,19 @@ class ProvJSONSerializer(Serializer):
 
 
 class ProvJSONEncoder(json.JSONEncoder):
+    """``json.JSONEncoder`` that knows how to encode a :class:`~prov.model.ProvDocument`."""
+
     def default(self, o: Any) -> Any:
+        """Return the PROV-JSON container dict for a :class:`~prov.model.ProvDocument`.
+
+        Args:
+            o: Object being encoded.
+
+        Returns:
+            The result of :func:`encode_json_document` if ``o`` is a
+            :class:`~prov.model.ProvDocument`, otherwise the superclass's
+            default handling.
+        """
         if isinstance(o, ProvDocument):
             return encode_json_document(o)
         else:
@@ -104,7 +142,22 @@ class ProvJSONEncoder(json.JSONEncoder):
 
 
 class ProvJSONDecoder(json.JSONDecoder):
+    """``json.JSONDecoder`` that decodes PROV-JSON into a :class:`~prov.model.ProvDocument`."""
+
     def decode(self, s: str, *args: Any, **kwargs: Any) -> Any:
+        """Parse a PROV-JSON string into a new :class:`~prov.model.ProvDocument`.
+
+        Args:
+            s: PROV-JSON text to parse.
+            *args: Extra positional arguments passed to the superclass's
+                ``decode()``.
+            **kwargs: Extra keyword arguments passed to the superclass's
+                ``decode()``.
+
+        Returns:
+            A new :class:`~prov.model.ProvDocument` populated via
+            :func:`decode_json_document`.
+        """
         container = super().decode(s, *args, **kwargs)
         document = ProvDocument()
         decode_json_document(container, document)
@@ -115,6 +168,17 @@ class ProvJSONDecoder(json.JSONDecoder):
 def valid_qualified_name(
     bundle: ProvBundle, value: QualifiedNameCandidate | None
 ) -> QualifiedName | None:
+    """Resolve a candidate value to a :class:`~prov.identifier.QualifiedName` in a bundle.
+
+    Args:
+        bundle: Bundle whose namespaces are used to resolve ``value``.
+        value: Candidate qualified name (string, :class:`QualifiedName`, or
+            other supported representation), or ``None``.
+
+    Returns:
+        The resolved :class:`~prov.identifier.QualifiedName`, or ``None`` if
+        ``value`` is ``None`` or cannot be resolved.
+    """
     if value is None:
         return None
     qualified_name = bundle.valid_qualified_name(value)
@@ -122,6 +186,16 @@ def valid_qualified_name(
 
 
 def encode_json_document(document: ProvDocument) -> ProvJSONDict:
+    """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
+
+    Args:
+        document: Document to encode.
+
+    Returns:
+        The PROV-JSON container dict for ``document``, with each named
+        bundle's own encoded container nested under ``container["bundle"]``
+        keyed by the bundle's identifier string.
+    """
     container = encode_json_container(document)
     for bundle in document.bundles:
         #  encoding the sub-bundle
@@ -131,6 +205,20 @@ def encode_json_document(document: ProvDocument) -> ProvJSONDict:
 
 
 def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
+    """Encode a single bundle's namespaces and records to a PROV-JSON container dict.
+
+    Does not recurse into ``bundle``'s own named bundles; see
+    :func:`encode_json_document` for encoding a whole document.
+
+    Args:
+        bundle: Bundle (or document, treated as its top-level bundle) to
+            encode.
+
+    Returns:
+        A dict with an optional ``"prefix"`` entry for registered namespaces
+        and one entry per PROV-N record-type keyword, each mapping record
+        identifiers (real or anonymous) to their encoded attributes.
+    """
     container = defaultdict(dict)  # type: dict[str, dict[str, Any]]
     prefixes = {}  # type: dict[str, str]
     for namespace in bundle._namespaces.get_registered_namespaces():
@@ -190,6 +278,18 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
 
 
 def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
+    """Decode a whole PROV-JSON container, including named bundles, into a document.
+
+    Mutates ``content`` in place, removing the top-level ``"bundle"`` key (if
+    present) before decoding the rest as the document's own records; mutates
+    ``document`` in place by adding the decoded records and named bundles to
+    it.
+
+    Args:
+        content: PROV-JSON container dict, as produced by
+            :func:`encode_json_document` (or parsed JSON in that shape).
+        document: Document to populate.
+    """
     bundles = {}
     if "bundle" in content:
         bundles = content["bundle"]
@@ -204,6 +304,23 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
 
 
 def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
+    """Decode one PROV-JSON container's namespaces and records into a bundle.
+
+    Mutates ``jc`` in place, removing the ``"prefix"`` key (if present) once
+    its namespaces have been registered on ``bundle``; mutates ``bundle`` in
+    place by adding the decoded records to it. Does not handle a nested
+    ``"bundle"`` key; see :func:`decode_json_document` for a whole document.
+
+    Args:
+        jc: PROV-JSON container dict for a single bundle (no ``"bundle"``
+            key), as produced by :func:`encode_json_container`.
+        bundle: Bundle to populate.
+
+    Raises:
+        ProvJSONException: If a formal (QualifiedName- or literal-valued)
+            attribute has more than one value, other than the documented
+            multi-entity ``hadMember`` (membership) hack.
+    """
     if "prefix" in jc:
         prefixes = jc["prefix"]
         for prefix, uri in prefixes.items():
@@ -289,6 +406,20 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
 
 
 def encode_json_representation(value: Any) -> Any:
+    """Encode a single non-formal attribute value to its PROV-JSON representation.
+
+    Args:
+        value: Attribute value to encode: a :class:`~prov.model.Literal`,
+            a :class:`datetime.datetime`, a
+            :class:`~prov.identifier.QualifiedName`, another
+            :class:`~prov.identifier.Identifier`, a type listed in
+            :data:`LITERAL_XSDTYPE_MAP`, or a plain JSON-native value.
+
+    Returns:
+        A ``{"$": ..., "type": ...}`` (optionally ``"lang"``) dict for typed
+        values, or ``value`` unchanged if it is already natively
+        JSON-representable (e.g. plain ``str``/``bool``).
+    """
     if isinstance(value, Literal):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
@@ -306,6 +437,22 @@ def encode_json_representation(value: Any) -> Any:
 
 
 def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
+    """Decode a single non-formal attribute value from its PROV-JSON representation.
+
+    Args:
+        literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
+            complex/typed representation) or a plain JSON-native value.
+        bundle: Bundle used to resolve any ``"type"``/value that is a
+            qualified name.
+
+    Returns:
+        An :class:`~prov.identifier.Identifier` for ``xsd:anyURI`` values, a
+        resolved :class:`~prov.identifier.QualifiedName` for
+        ``prov:QUALIFIED_NAME`` values, a :class:`~prov.model.Literal` for
+        other typed values, or ``literal`` unchanged if it was not a dict
+        (conversion of plain Python types happens later, when the value is
+        added to a record).
+    """
     if isinstance(literal, dict):
         # complex type
         value = literal["$"]
@@ -327,6 +474,15 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
 
 
 def literal_json_representation(literal: Literal) -> dict[str, str]:
+    """Encode a :class:`~prov.model.Literal` to its PROV-JSON dict representation.
+
+    Args:
+        literal: Literal to encode.
+
+    Returns:
+        ``{"$": value, "lang": langtag}`` if the literal has a language tag,
+        otherwise ``{"$": value, "type": str(datatype)}``.
+    """
     # TODO: QName export
     value, datatype, langtag = literal.value, literal.datatype, literal.langtag
     if langtag:

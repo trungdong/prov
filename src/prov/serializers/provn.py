@@ -9,14 +9,24 @@ from prov.serializers import Serializer
 
 
 class ProvNSerializer(Serializer):
-    """PROV-N serializer for ProvDocument"""
+    """PROV-N serializer for ProvDocument.
+
+    Write-only: PROV-N has no deserializer in this package (see
+    :meth:`deserialize`).
+    """
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
-        """
-        Serializes a :class:`prov.model.ProvDocument` instance to a
-        `PROV-N <http://www.w3.org/TR/prov-n/>`_.
+        """Serialize ``self.document`` to `PROV-N <http://www.w3.org/TR/prov-n/>`_.
 
-        :param stream: Where to save the output.
+        Args:
+            stream: Stream to write the output to. Text streams receive the
+                PROV-N text directly; other (binary) streams receive it
+                UTF-8-encoded.
+            **args: Unused; accepted for interface compatibility with
+                :meth:`Serializer.serialize`.
+
+        Raises:
+            Exception: If ``self.document`` is ``None``.
         """
         if self.document is None:
             raise Exception("No document to serialize")
@@ -29,4 +39,9 @@ class ProvNSerializer(Serializer):
         )
 
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
+        """Not implemented: PROV-N has no parser in this package.
+
+        Raises:
+            NotImplementedError: Always.
+        """
         raise NotImplementedError
