@@ -8,9 +8,9 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
-import unittest
 
+from prov.scripts.compare import main as compare_main
+from prov.scripts.convert import main as convert_main
 from prov.tests.examples import primer_example
 
 
@@ -23,56 +23,49 @@ def _console_script(name):
     return candidate if os.path.exists(candidate) else shutil.which(name)
 
 
-class TestCLISmoke(unittest.TestCase):
-    def test_entry_point_functions_exist(self):
-        from prov.scripts.compare import main as compare_main
-        from prov.scripts.convert import main as convert_main
-
-        self.assertTrue(callable(convert_main))
-        self.assertTrue(callable(compare_main))
-
-    def test_console_scripts_installed(self):
-        for script in ("prov-convert", "prov-compare"):
-            self.assertIsNotNone(_console_script(script), f"{script} not installed")
-
-    def test_prov_convert_and_compare_end_to_end(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            infile = os.path.join(tmp, "doc.json")
-            outfile = os.path.join(tmp, "doc.xml")
-            primer_example().serialize(infile, format="json")
-
-            # prov-convert positional args are: infile outfile; -f/--format
-            # selects the *output* format (default json).
-            result = subprocess.run(
-                [_console_script("prov-convert"), "-f", "xml", infile, outfile],
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertTrue(os.path.getsize(outfile) > 0)
-
-            # prov-compare positional args are: file1 file2; -f/--format1 and
-            # -F/--format2 select each file's format independently (both
-            # default to json). main() returns `doc1 != doc2` as an int
-            # (False/0 == equivalent, True/1 == different), which becomes
-            # the process exit code via sys.exit(). The JSON document and
-            # its XML round trip are semantically equivalent, so we expect
-            # exit code 0 here.
-            result = subprocess.run(
-                [
-                    _console_script("prov-compare"),
-                    "-f",
-                    "json",
-                    "-F",
-                    "xml",
-                    infile,
-                    outfile,
-                ],
-                capture_output=True,
-                text=True,
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
+def test_entry_point_functions_exist():
+    assert callable(convert_main)
+    assert callable(compare_main)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_console_scripts_installed():
+    for script in ("prov-convert", "prov-compare"):
+        assert _console_script(script) is not None, f"{script} not installed"
+
+
+def test_prov_convert_and_compare_end_to_end(tmp_path):
+    infile = tmp_path / "doc.json"
+    outfile = tmp_path / "doc.xml"
+    primer_example().serialize(str(infile), format="json")
+
+    # prov-convert positional args are: infile outfile; -f/--format
+    # selects the *output* format (default json).
+    result = subprocess.run(
+        [_console_script("prov-convert"), "-f", "xml", str(infile), str(outfile)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert outfile.stat().st_size > 0
+
+    # prov-compare positional args are: file1 file2; -f/--format1 and
+    # -F/--format2 select each file's format independently (both
+    # default to json). main() returns `doc1 != doc2` as an int
+    # (False/0 == equivalent, True/1 == different), which becomes
+    # the process exit code via sys.exit(). The JSON document and
+    # its XML round trip are semantically equivalent, so we expect
+    # exit code 0 here.
+    result = subprocess.run(
+        [
+            _console_script("prov-compare"),
+            "-f",
+            "json",
+            "-F",
+            "xml",
+            str(infile),
+            str(outfile),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr

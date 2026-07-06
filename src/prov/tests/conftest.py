@@ -1,15 +1,11 @@
 """Pytest-native shared scaffolding for the round-trip test matrix.
 
-This replaces the ``RoundTripTestCase``/``do_tests`` inheritance machinery for
-the migrated shared modules (``test_statements.py``, ``test_attributes.py``,
-``test_qnames.py``, ``test_examples.py``). Each shared test builds a document
-and hands it to the ``roundtrip`` fixture, which is parametrized over
-``SHARED_TARGETS`` so every case runs once per serialization format AND once
-under the non-serializing ``model`` target.
-
-The legacy ``utility.py``/``statements.py``/``attributes.py``/``qnames.py``
-mixins remain in place for the not-yet-migrated ``test_dot.py``; they are
-retired in a later migration step.
+This replaces the old ``RoundTripTestCase``/``do_tests`` inheritance
+machinery. Each shared test (in ``test_statements.py``, ``test_attributes.py``,
+``test_qnames.py``, ``test_examples.py``) builds a document and hands it to
+the ``roundtrip`` fixture, which is parametrized over ``SHARED_TARGETS`` so
+every case runs once per serialization format AND once under the
+non-serializing ``model`` target.
 """
 
 import io

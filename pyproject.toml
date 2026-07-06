@@ -137,21 +137,10 @@ combine-as-imports = true  # keep multi-name `X as X` re-export blocks compact
 "src/prov/model.py" = ["F403", "F405"]
 "src/prov/serializers/provjson.py" = ["F403", "F405"]
 "src/prov/serializers/provxml.py" = ["F403", "F405"]
-"src/prov/tests/attributes.py" = ["F403", "F405"]
-"src/prov/tests/statements.py" = ["F403", "F405"]
 "src/prov/tests/test_statements.py" = ["F403", "F405"]
-"src/prov/tests/test_extras.py" = ["F403", "F405"]
 
 [tool.pytest.ini_options]
 testpaths = ["src/prov/tests"]
-# Rely solely on pytest's unittest.TestCase collection; disabling the
-# plain-class "Test*" heuristic avoids also collecting the shared mixin
-# base classes (TestAttributesBase, TestStatementsBase,
-# TestQualifiedNamesBase in prov/tests/{attributes,statements,qnames}.py),
-# which are imported by name into test_model.py/test_rdf.py but are not
-# meant to run standalone (unittest discover never picked them up either,
-# since they aren't TestCase subclasses).
-python_classes = []
 
 [tool.coverage.run]
 branch = true
