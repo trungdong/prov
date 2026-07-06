@@ -69,14 +69,32 @@ def roundtrip(fmt):
     return _check
 
 
+def _document_record_strings(doc: ProvDocument) -> set[str]:
+    """All record strings in ``doc``, including those inside named sub-bundles.
+
+    ``ProvBundle.get_records()`` returns only the bundle's own records, but
+    ``ProvDocument.__eq__`` also compares nested bundles, so a diff built from
+    the top-level records alone is blind to bundle contents (it would render an
+    empty diff for a document whose only records live in a sub-bundle). Fold
+    each sub-bundle's records in, prefixed with the bundle identifier so records
+    from different bundles cannot collide as equal strings. Documents nest
+    bundles only one level, so no recursion is needed.
+    """
+    records = {str(r) for r in doc.get_records()}
+    if doc.has_bundles():
+        for bundle in doc.bundles:
+            records.update(f"{bundle.identifier} | {r}" for r in bundle.get_records())
+    return records
+
+
 def pytest_assertrepr_compare(config, op, left, right):
     """Readable diff for ``assert doc == reloaded`` on two ProvDocuments."""
     if op != "==" or not (
         isinstance(left, ProvDocument) and isinstance(right, ProvDocument)
     ):
         return None
-    left_recs = {str(r) for r in left.get_records()}
-    right_recs = {str(r) for r in right.get_records()}
+    left_recs = _document_record_strings(left)
+    right_recs = _document_record_strings(right)
     only_left = sorted(left_recs - right_recs)
     only_right = sorted(right_recs - left_recs)
     return [
