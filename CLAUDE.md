@@ -192,6 +192,15 @@ once and parametrized over a format matrix rather than copy-pasted per serialize
   This replaced a pre-redesign scaffold that re-rendered all 185 shared statement/attribute
   documents through dot on every run — a real but disproportionate rendering cost for coverage
   duplicated by the `model`/`json`/`xml`/`rdf` targets above.
+- `strategies.py` / `test_property_roundtrip.py` — Hypothesis property-based round-trip tests.
+  `strategies.prov_documents` generates valid PROV documents (multiple namespaces, mixed-type
+  attributes, the full relation set, optionally a sub-bundle) and the property asserts
+  `deserialize(serialize(doc)) == doc` for each `ROUNDTRIP_FORMATS` target (json/xml/rdf; PROV-N
+  is write-only). Known-lossy constructs are excluded at generation time, each commented with its
+  issue (#77/#217/#218 plus the empty-string-through-XML and xsd:float RDF-precision losses this
+  work surfaced), keeping the property honest under the 2.x output freeze. Hypothesis profiles are
+  registered in `conftest.py` and selected via `HYPOTHESIS_PROFILE`; CI sets `HYPOTHESIS_PROFILE=ci`
+  (bounded `max_examples`, deterministic) while the local `default` profile is exploratory.
 
 When adding a new shared record type, attribute, or serializer behavior, add it to the
 pytest-native shared modules above so every target is exercised, rather than writing per-format

@@ -16,6 +16,7 @@ from prov.serializers.provxml import (
     ProvXMLSerializer,
     xml_qname_to_QualifiedName,
 )
+from prov.tests.conftest import roundtrip_document
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")
@@ -465,6 +466,21 @@ def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises():
     with pytest.raises(ProvXMLException) as ctx:
         xml_qname_to_QualifiedName(child, "noColonNoDefaultNs")
     assert "Could not create a valid QualifiedName" in str(ctx.value)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="#224: the XML serializer drops an attribute whose value is the "
+    "empty string; it vanishes on the round trip (JSON and RDF preserve it). "
+    "Regression guard from the Hypothesis property tests; remove when #224 is "
+    "fixed in 3.0.",
+)
+def test_empty_string_attribute_survives_xml_roundtrip():
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.agent("ex:g0", {"ex:k0": ""})
+    assert roundtrip_document(document, "xml") == document
 
 
 # Scaffolding for a per-file XML round-trip glob, left disabled.

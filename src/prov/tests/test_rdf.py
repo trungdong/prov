@@ -8,6 +8,7 @@ only the genuinely RDF-specific cases.
 
 import logging
 import os
+import struct
 from glob import glob
 from io import BytesIO, StringIO
 
@@ -24,6 +25,7 @@ from prov.serializers.provrdf import (
     ProvRDFSerializer,
     literal_rdf_representation,
 )
+from prov.tests.conftest import roundtrip_document
 
 logger = logging.getLogger(__name__)
 
@@ -314,3 +316,41 @@ def test_json_to_ttl_match():
             raise e
             # errors.append((e, idx, fname, in_first, in_second))
     assert not errors
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="#225: PROV types a Python float as xsd:float (single precision) and "
+    "RDF canonicalises it to a short decimal, so a precision-carrying float32 "
+    "value comes back changed (JSON/XML keep the full repr). Regression guard "
+    "from the Hypothesis property tests; remove when #225 is fixed in 3.0.",
+)
+def test_float_precision_survives_rdf_roundtrip():
+    # 0.1 narrowed to float32 -> 0.10000000149011612; RDF writes "1e-01",
+    # which reloads as 0.1, so the value is lost.
+    value = struct.unpack("f", struct.pack("f", 0.1))[0]
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e0", {"ex:k0": value})
+    assert roundtrip_document(document, "rdf") == document
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="#226: two qualified delegations sharing the same delegate and "
+    "qualifying activity but differing in responsible collapse through RDF -- "
+    "one loses its responsible (the qualifiedDelegation blank nodes are keyed "
+    "on delegate+activity). Regression guard from the Hypothesis property "
+    "tests; remove when #226 is fixed in 3.0.",
+)
+def test_qualified_delegation_pair_survives_rdf_roundtrip():
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.agent("ex:g0")
+    document.agent("ex:g1")
+    document.activity("ex:a")
+    document.delegation("ex:g0", "ex:g1", "ex:a")
+    document.delegation("ex:g0", "ex:g0", "ex:a")
+    assert roundtrip_document(document, "rdf") == document

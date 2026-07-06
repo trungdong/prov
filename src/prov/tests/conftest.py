@@ -9,10 +9,22 @@ non-serializing ``model`` target.
 """
 
 import io
+import os
 
 import pytest
+from hypothesis import settings
 
 from prov.model import ProvDocument
+
+# Hypothesis profiles for the property-based round-trip tests
+# (``test_property_roundtrip.py``). The local ``default`` profile is
+# exploratory; the ``ci`` profile is bounded and deterministic so the property
+# tests add a predictable, small amount of wall-clock time to the CI matrix.
+# The active profile is chosen from the ``HYPOTHESIS_PROFILE`` env var (CI sets
+# it to ``ci``); it defaults to ``default`` when unset.
+settings.register_profile("default", max_examples=200, deadline=None)
+settings.register_profile("ci", max_examples=50, deadline=None, derandomize=True)
+settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 # Formats that support a full serialize -> deserialize -> compare round trip.
 ROUNDTRIP_FORMATS = ("json", "xml", "rdf")
