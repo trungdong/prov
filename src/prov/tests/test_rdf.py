@@ -1,3 +1,11 @@
+"""RDF serializer-specific tests.
+
+The shared statement/attribute/qname/example round-trips run through the
+pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
+``test_attributes``/``test_qnames``/``test_examples`` modules); this file keeps
+only the genuinely RDF-specific cases.
+"""
+
 import logging
 import os
 import unittest
@@ -5,17 +13,17 @@ from glob import glob
 from io import BytesIO, StringIO
 
 import rdflib as rl
+from rdflib import RDF, URIRef
 from rdflib.compare import graph_diff
+from rdflib.graph import ConjunctiveGraph, Graph
 
 import prov.model as pm
 from prov.model import ProvDocument
-from prov.tests import examples
-from prov.tests.test_model import (
-    TestAttributesBase,
-    TestQualifiedNamesBase,
-    TestStatementsBase,
+from prov.serializers.provrdf import (
+    ProvRDFException,
+    ProvRDFSerializer,
+    literal_rdf_representation,
 )
-from prov.tests.utility import RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -62,124 +70,6 @@ def find_diff(g_rdf, g0_rdf):
     return graphs_equal, in_both, in_first2, in_second2
 
 
-class TestExamplesBase:
-    """This is the base class for testing support for all the examples provided
-    in prov.tests.examples.
-    It is not runnable and needs to be included in a subclass of
-    RoundTripTestCase.
-    """
-
-    def test_all_examples(self):
-        counter = 0
-        for name, graph in examples.tests:
-            if name in ["datatypes"]:
-                logger.info("%d. Skipping the %s example", counter, name)
-                continue
-            counter += 1
-            logger.info("%d. Testing the %s example", counter, name)
-            g = graph()
-            self.do_tests(g)
-
-
-class TestJSONExamplesBase:
-    """This is the base class for testing support for all the examples provided
-    in prov.tests.examples.
-    It is not runnable and needs to be included in a subclass of
-    RoundTripTestCase.
-    """
-
-    def test_all_examples(self):
-        counter = 0
-        for name, graph in examples.tests:
-            if name in ["datatypes"]:
-                logger.info("%d. Skipping the %s example", counter, name)
-                continue
-            counter += 1
-            logger.info("%d. Testing the %s example", counter, name)
-            g = graph()
-            self.do_tests(g)
-
-
-class TestStatementsBase2(TestStatementsBase):
-    @unittest.expectedFailure
-    def test_scruffy_end_1(self):
-        TestStatementsBase.test_scruffy_end_1(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_end_2(self):
-        TestStatementsBase.test_scruffy_end_2(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_end_3(self):
-        TestStatementsBase.test_scruffy_end_3(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_end_4(self):
-        TestStatementsBase.test_scruffy_end_4(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_generation_1(self):
-        TestStatementsBase.test_scruffy_generation_1(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_generation_2(self):
-        TestStatementsBase.test_scruffy_generation_2(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_invalidation_1(self):
-        TestStatementsBase.test_scruffy_invalidation_1(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_invalidation_2(self):
-        TestStatementsBase.test_scruffy_invalidation_2(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_start_1(self):
-        TestStatementsBase.test_scruffy_start_1(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_start_2(self):
-        TestStatementsBase.test_scruffy_start_2(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_start_3(self):
-        TestStatementsBase.test_scruffy_start_3(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_start_4(self):
-        TestStatementsBase.test_scruffy_start_4(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_usage_1(self):
-        TestStatementsBase.test_scruffy_usage_1(self)
-
-    @unittest.expectedFailure
-    def test_scruffy_usage_2(self):
-        TestStatementsBase.test_scruffy_usage_2(self)
-
-
-class TestAttributesBase2(TestAttributesBase):
-    @unittest.expectedFailure
-    def test_entity_with_multiple_attribute(self):
-        TestAttributesBase.test_entity_with_multiple_attribute(self)
-
-    @unittest.expectedFailure
-    def test_entity_with_multiple_value_attribute(self):
-        TestAttributesBase.test_entity_with_multiple_value_attribute(self)
-
-    @unittest.expectedFailure
-    def test_entity_with_one_type_attribute_8(self):
-        TestAttributesBase.test_entity_with_one_type_attribute_8(self)
-
-
-class AllTestsBase(
-    TestExamplesBase, TestStatementsBase2, TestQualifiedNamesBase, TestAttributesBase2
-):
-    """This is a test to include all available tests."""
-
-    pass
-
-
 class TestRDFSerializer(unittest.TestCase):
     def test_decoding_unicode_value(self):
         unicode_char = "\u2019"
@@ -201,31 +91,23 @@ class TestRDFSerializer(unittest.TestCase):
         self.assertIn(unicode_char, e1.get_attribute("prov:label"))
 
     def test_serialize_without_a_document_raises(self):
-        from prov.serializers.provrdf import ProvRDFException, ProvRDFSerializer
-
         serializer = ProvRDFSerializer(document=None)
         with self.assertRaises(ProvRDFException) as ctx:
             serializer.serialize(BytesIO())
         self.assertIn("No document to serialize", str(ctx.exception))
 
     def test_literal_rdf_representation_langtag(self):
-        from prov.serializers.provrdf import literal_rdf_representation
-
         literal = pm.Literal("bonjour", langtag="fr")
         rdf_literal = literal_rdf_representation(literal)
         self.assertEqual(str(rdf_literal), "bonjour")
         self.assertEqual(rdf_literal.language, "fr")
 
     def test_literal_rdf_representation_base64binary(self):
-        from prov.serializers.provrdf import literal_rdf_representation
-
         literal = pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
         rdf_literal = literal_rdf_representation(literal)
         self.assertEqual(str(rdf_literal), "aGVsbG8=")
 
     def test_literal_rdf_representation_without_datatype_raises(self):
-        from prov.serializers.provrdf import literal_rdf_representation
-
         with self.assertRaises(ValueError):
             literal_rdf_representation(pm.Literal("no datatype, no langtag"))
 
@@ -258,10 +140,6 @@ class TestRDFSerializer(unittest.TestCase):
         # everywhere it is called internally; passing one explicitly (as an
         # external caller might) must reuse it rather than creating a new
         # ConjunctiveGraph.
-        from rdflib.graph import ConjunctiveGraph
-
-        from prov.serializers.provrdf import ProvRDFSerializer
-
         doc = ProvDocument()
         doc.add_namespace("ex", "http://example.org/")
         doc.entity("ex:e1")
@@ -277,11 +155,6 @@ class TestRDFSerializer(unittest.TestCase):
         # decode_document()'s `hasattr(content, "contexts")` branch is False
         # for a plain rdflib Graph (as opposed to a ConjunctiveGraph), which
         # every other test in this module parses into.
-        from rdflib import RDF, URIRef
-        from rdflib.graph import Graph
-
-        from prov.serializers.provrdf import ProvRDFSerializer
-
         graph = Graph()
         graph.add(
             (
@@ -303,11 +176,6 @@ class TestRDFSerializer(unittest.TestCase):
         # TriG output, so a re-parsed document may name a bundle context by
         # an IRI matching no registered namespace; decode_document() must
         # fall back to compute_qname instead of raising ProvException.
-        from rdflib import RDF, URIRef
-        from rdflib.graph import ConjunctiveGraph
-
-        from prov.serializers.provrdf import ProvRDFSerializer
-
         content = ConjunctiveGraph()
         bundle_graph = content.get_context(URIRef("http://example.org/bundle1"))
         bundle_graph.add(
@@ -445,10 +313,6 @@ class TestRDFSerializer(unittest.TestCase):
                 raise e
                 # errors.append((e, idx, fname, in_first, in_second))
         self.assertFalse(errors)
-
-
-class RoundTripRDFTests(RoundTripTestCase, AllTestsBase):
-    FORMAT = "rdf"
 
 
 if __name__ == "__main__":

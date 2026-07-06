@@ -1,6 +1,5 @@
 import contextlib
 import difflib
-import glob
 import inspect
 import io
 import os
@@ -12,8 +11,11 @@ from lxml import etree
 import prov.model as prov
 from prov.constants import PROV
 from prov.identifier import Namespace, QualifiedName
-from prov.tests.test_model import AllTestsBase
-from prov.tests.utility import RoundTripTestCase
+from prov.serializers.provxml import (
+    ProvXMLException,
+    ProvXMLSerializer,
+    xml_qname_to_QualifiedName,
+)
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")
@@ -397,16 +399,12 @@ class ProvXMLSerializerErrorsTestCase(unittest.TestCase):
     serializers/provxml.py)."""
 
     def test_serialize_without_a_document_raises(self):
-        from prov.serializers.provxml import ProvXMLException, ProvXMLSerializer
-
         serializer = ProvXMLSerializer(document=None)
         with self.assertRaises(ProvXMLException) as ctx:
             serializer.serialize(io.BytesIO())
         self.assertIn("No document to serialize", str(ctx.exception))
 
     def test_non_prov_top_level_element_raises(self):
-        from prov.serializers.provxml import ProvXMLException
-
         xml_string = """<?xml version="1.0" encoding="UTF-8"?>
         <prov:document
             xmlns:prov="http://www.w3.org/ns/prov#"
@@ -452,11 +450,6 @@ class ProvXMLSerializerErrorsTestCase(unittest.TestCase):
         self.assertEqual(list(e1.get_attribute("ex:version")), ["2"])
 
     def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises(self):
-        from prov.serializers.provxml import (
-            ProvXMLException,
-            xml_qname_to_QualifiedName,
-        )
-
         element = etree.fromstring(
             '<root xmlns:ex="http://example.com/ns/ex#"><child/></root>'
         )
@@ -467,6 +460,17 @@ class ProvXMLSerializerErrorsTestCase(unittest.TestCase):
 
 
 class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
+    """Scaffolding for a per-file XML round-trip glob, left disabled.
+
+    Deserializing then re-serializing PROV-XML does not maintain XML
+    equivalence (e.g. prov:entity elements with type prov:Plan become
+    prov:plan elements), so no test methods are attached to this class.
+    Re-enabling it is a possible future coverage chore (2.4.0 window /
+    conformance phase), explicitly out of scope for the pytest-matrix
+    migration -- see design doc §4 Decision 3
+    (docs/superpowers/specs/2026-07-06-test-suite-redesign.md).
+    """
+
     def _perform_round_trip(self, filename, force_types=False):
         document = prov.ProvDocument.deserialize(source=filename, format="xml")
 
@@ -475,52 +479,6 @@ class ProvXMLRoundTripFromFileTestCase(unittest.TestCase):
                 format="xml", destination=new_xml, force_types=force_types
             )
             compare_xml(filename, new_xml)
-
-
-# Add one test for each found file. Lazy way to do metaprogramming...
-# I think parametrized tests are justified in this case as the test
-# function names make it clear what is going on.
-for filename in glob.iglob(os.path.join(DATA_PATH, "*" + os.path.extsep + "xml")):
-    name = os.path.splitext(os.path.basename(filename))[0]
-    test_name = f"test_roundtrip_from_xml_{name}"
-
-    # Cannot round trip this one as the namespace in the PROV data model are
-    # always defined per bundle and not per element.
-    if name in (
-        "nested_default_namespace",
-        "nested_changing_default_namespace",
-        "namespace_redefined_but_does_not_change",
-        "namespace_redefined",
-    ):
-        continue
-
-    # Python creates closures on function calls...
-    def get_fct(f):
-        # `name` is the outer loop variable, but it is only read here,
-        # synchronously, on the same iteration it was set -- not from the
-        # returned `fct` closure below, so late-binding is not an issue.
-        force_types = name in ["pc1"]  # noqa: B023
-
-        def fct(self):
-            self._perform_round_trip(f, force_types=force_types)
-
-        # `fct` here is this function's own name (defined two lines above),
-        # not the outer loop's `fct` variable assigned below.
-        return fct  # noqa: B023
-
-    fct = get_fct(filename)
-    fct.__name__ = str(test_name)
-
-    # Disabled round-trip XML comparisons since deserializing then serializing
-    # PROV-XML does not maintain XML equivalence. (For example, prov:entity
-    # elements with type prov:Plan become prov:plan elements)
-    # TODO: Revisit these tests
-
-    # setattr(ProvXMLRoundTripFromFileTestCase, test_name, fct)
-
-
-class RoundTripXMLTests(RoundTripTestCase, AllTestsBase):
-    FORMAT = "xml"
 
 
 if __name__ == "__main__":

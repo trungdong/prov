@@ -145,43 +145,58 @@ extras in `pyproject.toml`); JSON and PROV-N have no extra dependencies.
 The suite is **mid-migration** from a plain-`unittest` multiple-inheritance design to a
 pytest-native shared matrix (Phase 3 test-suite redesign — authority:
 `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`). The runner is `pytest`, which
-collects both styles natively (`expectedFailure` surfaces as `xfailed`). **JSON and the `model`
-target have been migrated; XML, RDF, and dot still ride the legacy scaffolding.** Expect the two
-styles to coexist until that migration completes.
+collects both styles natively (`expectedFailure` surfaces as `xfailed`). **JSON, XML, RDF, and
+the `model` target have been migrated; only `test_dot.py` still rides the legacy scaffolding.**
+Expect the two styles to coexist until that last migration completes.
 
 **Pytest-native shared matrix (current target):**
 
-- `conftest.py` — the shared scaffolding. Defines `ROUNDTRIP_FORMATS` (currently `("json",)`;
-  xml/rdf join later) and `SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)`. The `fmt` fixture is
-  parametrized over `SHARED_TARGETS`, so every shared test runs once per serialization format
-  **and** once under a non-serializing `model` target (which forces `get_provn()` + a
-  self-equality check instead of a round trip). The `roundtrip` fixture returns a `_check(doc)`
-  callable that tests call as `roundtrip(doc)`. A `pytest_assertrepr_compare` hook renders the
-  record-level symmetric difference when two `ProvDocument`s compare unequal under `assert`, so
-  round-trip failures show *which record* differs.
+- `conftest.py` — the shared scaffolding. Defines `ROUNDTRIP_FORMATS = ("json", "xml", "rdf")`
+  and `SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)`. The `fmt` fixture is parametrized over
+  `SHARED_TARGETS`, so every shared test runs once per serialization format **and** once under a
+  non-serializing `model` target (which forces `get_provn()` + a self-equality check instead of a
+  round trip). The `roundtrip` fixture returns a `_check(doc)` callable that tests call as
+  `roundtrip(doc)`. A `pytest_assertrepr_compare` hook renders the record-level symmetric
+  difference when two `ProvDocument`s compare unequal under `assert`, so round-trip failures show
+  *which record* differs.
 - `test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py` — the shared
   body as plain module-level functions taking the `roundtrip` fixture (one node per case × per
   target in `SHARED_TARGETS`). `test_attributes.py` parametrizes the single-type-attribute case
   over `ATTRIBUTE_VALUES`.
+- **Per-param skip/xfail marks on the `rdf` target** (design doc §2/§3): 14 "scruffy" cases in
+  `test_statements.py` (two same-identifier relations differing by `prov:time`, which PROV-O
+  cannot represent) are `pytest.mark.skip`-ped referencing issue #217; 3 datatype-fidelity cases —
+  `test_entity_with_one_type_attribute_decimal` (#77) and
+  `test_entity_with_multiple_attribute`/`test_entity_with_multiple_value_attribute` (#218) in
+  `test_attributes.py` — are strict `xfail`s. Each affected function opts out of the module-wide
+  `fmt` fixture with its own explicit `@pytest.mark.parametrize("fmt", [...])` so the mark attaches
+  only to the `rdf` param; `model`/`json`/`xml` still run normally. `test_examples.py` skips the
+  `datatypes` example under `fmt == "rdf"` only (same #218 root cause), matching the pre-migration
+  behavior.
 - `attribute_values.py` — the importable `ATTRIBUTE_VALUES` datatype corpus (order is
-  significant: later RDF datatype-fidelity xfails key off individual indices), shared by the new
-  `test_attributes.py` and the legacy `attributes.py` mixin.
+  significant: the RDF datatype-fidelity xfails key off individual indices, e.g. index 8 is the
+  `xsd:decimal` case), shared by the new `test_attributes.py` and the legacy `attributes.py` mixin.
 - `examples.py` — canonical example PROV documents (built programmatically), consumed by both the
   new `test_examples.py` and the legacy mixins.
 - `json/`, `xml/`, `rdf/`, `unification/` — fixture data directories consumed by the
   corresponding test modules (e.g. `TestLoadingProvToolboxJSON` in `test_model.py` round-trips
   every file under `tests/json/`).
+- `test_xml.py`, `test_rdf.py` — keep only the genuinely format-specific tests (c14n comparison,
+  example serialization/deserialization edge cases, serializer error paths, `find_diff`,
+  `test_json_to_ttl_match`, etc.); the shared round-trip coverage now lives in the pytest-native
+  modules above. `test_xml.py`'s `ProvXMLRoundTripFromFileTestCase` file-glob scaffold is
+  intentionally disabled (no test methods attached) per design doc §4 Decision 3.
 
 **Legacy-during-migration scaffolding (still live, retired in a later step):**
 
 - `utility.py` — `RoundTripTestCase` base (serialize → deserialize → `assertEqual`, keyed off a
-  `FORMAT` class attribute). Still subclassed by `test_xml.py`/`test_rdf.py`/`test_dot.py`.
+  `FORMAT` class attribute). Still subclassed by `test_dot.py`.
 - `attributes.py`, `statements.py`, `qnames.py` — the `TestAttributesBase` / `TestStatementsBase`
   / `TestQualifiedNamesBase` mixins, and `AllTestsBase`/`TestExamplesBase` in `test_model.py`,
-  composed into the xml/rdf/dot round-trip suites. These duplicate the coverage now also provided
-  by the new pytest-native modules for the model/json targets; the duplication is expected and
-  intentional until xml/rdf/dot migrate.
+  composed into the dot round-trip suite. These duplicate the coverage now also provided by the
+  new pytest-native modules for the model/json/xml/rdf targets; the duplication is expected and
+  intentional until dot migrates.
 
 When adding a new shared record type, attribute, or serializer behavior, add it to the
-pytest-native shared modules (and, while xml/rdf/dot remain on the mixins, to the corresponding
-mixin) so every target is exercised, rather than writing per-format tests from scratch.
+pytest-native shared modules (and, while dot remains on the mixins, to the corresponding mixin) so
+every target is exercised, rather than writing per-format tests from scratch.
