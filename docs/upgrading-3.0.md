@@ -1,0 +1,100 @@
+# Upgrading to 3.0
+
+3.0 is the one release in the `prov` roadmap allowed to break compatibility. Every
+change below is signposted in 2.4.0 (with a runtime warning where that is feasible), so
+most code that only sees a `DeprecationWarning`/`FutureWarning` today needs no change to
+keep working right up until 3.0 ships; this page lists what to do for each planned
+change. See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for
+the release-by-release plan and the
+[modernisation roadmap design](https://github.com/trungdong/prov/blob/master/docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md)
+for the full rationale.
+
+## Smaller install footprint
+
+| Change | Signposted in 2.4.0 by | What to do |
+|---|---|---|
+| `pydot`/Graphviz support (`prov.dot`, `prov_to_dot()`) moves behind the `dot` extra | Importing `prov.dot` emits a `DeprecationWarning` | Depend on `prov[dot]` instead of (or in addition to) `prov` if your code imports `prov.dot` or calls `prov_to_dot()`. |
+| `networkx` graph interop (`prov.graph`, `prov_to_graph()`/`graph_to_prov()`) moves behind the `graph` extra | Importing `prov.graph` emits a `DeprecationWarning` | Depend on `prov[graph]` instead of (or in addition to) `prov` if your code imports `prov.graph` or calls `prov_to_graph()`/`graph_to_prov()`. Note `prov.dot` itself uses `prov.graph`, so `prov[dot]` will pull in `prov[graph]` too. |
+| `python-dateutil` dropped in favour of the standard library's `datetime.fromisoformat()` | Not separately warned (internal dependency swap) | No action for typical ISO-8601 timestamps. If you rely on `dateutil.parser.parse()`'s more permissive parsing of non-ISO date/time strings inside PROV-JSON/XML/RDF documents, verify those strings still parse under 3.0 — `fromisoformat()` accepts a narrower grammar. |
+
+A plain `pip install prov` will keep working for the core data model and the JSON/PROV-N
+serializers; add the relevant extra(s) if you use graphics export or graph interop.
+
+## Behaviour-changing bug fixes
+
+These fix real bugs, but each one changes output or equality semantics for inputs that
+work (without error) today, so none of them can land in the 2.x series under the
+API-stability promise. No 2.4.0 runtime warning is feasible for these — the affected
+code paths are ordinary attribute/literal handling with no single import or call site to
+hook a warning onto — so this table is their only 2.4.0 signpost.
+
+| Issue | Problem today | What changes in 3.0 | What to do |
+|---|---|---|---|
+| [#89](https://github.com/trungdong/prov/issues/89) | A literal parsed with an explicit `^^xsd:string` datatype and a plain (datatype-less) literal are both stored as a bare `str`, so the original form isn't recoverable on re-serialization, and the RDF/PROV-JSON serializers disagree on which form to emit. | Serializers emit one consistent canonical form for string literals (likely the plain, undecorated form, per RDF 1.1, where the two forms are the same literal). | If you compare serialized output byte-for-byte, re-check it against 3.0 output. Document-level (semantic) equality is unaffected. |
+| [#34](https://github.com/trungdong/prov/issues/34) | Extra attribute values are stored in a plain Python `set`, so Python-equal-but-differently-typed values (e.g. `2` and `2.0`, or `1` and `True`) silently collapse to whichever was inserted first — both at record construction and inside `unified()`. | Attribute values gain type-aware (value-space) handling as part of the PROV-CONSTRAINTS unification rework (see below), so distinct PROV values are retained instead of colliding. | If your code depends on same-value-different-type attributes collapsing (or on which of the colliding values survives), re-check it against 3.0; most callers will simply see more attributes preserved. |
+| [#77](https://github.com/trungdong/prov/issues/77) | `Literal` stores its value as a string and compares/hashes lexically, so `Literal(10, XSD_DECIMAL)` and `Literal(10.0, XSD_DECIMAL)` compare unequal despite denoting the same `xsd:decimal` value. | Decimal literals compare and hash in value space; `record.attributes` may expose native `Decimal` values instead of `Literal` objects, and attribute sets deduplicate value-equal decimals. | If you rely on lexical (string) inequality between differently-formatted decimal literals, or on receiving a `Literal` instance rather than a `Decimal`, re-check that code against 3.0. |
+| [#168](https://github.com/trungdong/prov/issues/168) | `xsd:QName`-typed attribute values are not handled correctly in PROV-JSON output, an interop-affecting bug. | PROV-JSON emits `xsd:QName` values per the PROV-JSON specification. | If you consume PROV-JSON produced by `prov` and parse `xsd:QName` attributes yourself, re-check that parsing against 3.0 output. |
+
+## Unification rework (PROV-CONSTRAINTS)
+
+`ProvBundle.unified()` and `ProvDocument.unified()` currently perform a simple,
+identifier-keyed attribute union: for each identifier shared by more than one record,
+the attributes of all such records are merged onto a copy of the first, with no
+conflict detection. See the
+[unification and flattening explanation](explanation/unification-flattening.md) for the
+full write-up of today's behaviour and how it diverges from the specification.
+
+In 3.0, `unified()` is reimplemented to follow the merging rules of
+[W3C PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) (key constraints and
+term unification). Concretely:
+
+- Calling `unified()` today already emits a `FutureWarning` naming this page and
+  ROADMAP.md.
+- Records sharing an identifier that also have **conflicting formal attributes** will
+  **raise a documented exception** in 3.0 instead of having their attributes silently
+  unioned.
+- The `#34` attribute-merging fix above lands as part of this same rework.
+
+**What to do:** if your code calls `unified()` on documents where records sharing an
+identifier can disagree on a formal attribute (for example, two `wasGeneratedBy`
+statements for the same identifier asserting different `prov:time` values — the
+"scruffy" pattern used in this repo's own test suite), expect that call to raise in 3.0
+where it previously merged silently. Catch the new exception (or restructure the
+document to avoid conflicting formal attributes) before upgrading. Documents without
+this pattern are unaffected.
+
+Note that `prov_to_dot()` (`prov.dot`) and `prov_to_graph()` (`prov.graph`, not
+`graph_to_prov()`, which does not unify) call `unified()` internally, so the
+`FutureWarning` above also fires on every call to those functions today — regardless of
+whether the document actually has conflicting attributes — so graphics/graph-export
+users will see it even without calling `unified()` themselves.
+
+## Removal of names deprecated in 2.4.0
+
+3.0 removes everything 2.4.0 marked deprecated:
+
+- The unconditional `pydot`/`networkx` dependencies (superseded by the `dot`/`graph`
+  extras above) — `import prov.dot` / `import prov.graph` will raise
+  `ModuleNotFoundError` if the corresponding extra isn't installed, rather than working
+  out of the box.
+- `python-dateutil` as a runtime dependency (superseded by the stdlib swap above).
+
+There are no other 2.4.0-introduced deprecations beyond these two extras moves; nothing
+else is scheduled for removal.
+
+## Summary: is my code affected?
+
+If your code:
+
+- Doesn't import `prov.dot`/`prov.graph` (or their `prov_to_dot`/`prov_to_graph`/
+  `graph_to_prov` re-exports elsewhere) — unaffected by the extras moves.
+- Doesn't compare `xsd:decimal` literals across differing lexical forms, doesn't rely on
+  same-value-different-type attribute collapsing, doesn't byte-compare serialized string
+  literals or `xsd:QName` PROV-JSON output — unaffected by the bug fixes.
+- Doesn't call `unified()` on documents with conflicting formal attributes sharing an
+  identifier — unaffected by the unification rework.
+
+then upgrading to 3.0 should require no code changes at all. Where a runtime warning is
+feasible (the two extras moves and `unified()`), 2.4.0 already emits it under
+`-W error::DeprecationWarning` / `-W error::FutureWarning`, so you can audit your own
+call sites for these changes ahead of time.

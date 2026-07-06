@@ -14,15 +14,24 @@ References:
 
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
+import warnings
 from datetime import datetime
 from html import escape
 from typing import Any
 
 import pydot
 
-from prov.graph import INFERRED_ELEMENT_CLASS
-from prov.identifier import QualifiedName
-from prov.model import (
+warnings.warn(
+    "In prov 3.0, graphical export (prov.dot) will require the optional "
+    '"dot" extra; install "prov[dot]" to keep using it after upgrading. '
+    "See https://github.com/trungdong/prov/blob/master/ROADMAP.md",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from prov.graph import INFERRED_ELEMENT_CLASS  # noqa: E402
+from prov.identifier import QualifiedName  # noqa: E402
+from prov.model import (  # noqa: E402
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,

@@ -10,6 +10,15 @@ History
   and the JSON/PROV-N serializers work in a minimal install, and requesting
   the ``rdf``/``xml`` format raises an informative ``DoNotExist`` naming the
   missing extra instead of a bare ``ModuleNotFoundError``. (#230)
+* Deprecation warnings signposting planned 3.0 changes: importing
+  ``prov.dot``/``prov.graph`` now emits a ``DeprecationWarning`` naming the
+  future ``prov[dot]``/``prov[graph]`` extras those modules will require, and
+  ``ProvBundle.unified()``/``ProvDocument.unified()`` emit a ``FutureWarning``
+  about the upcoming PROV-CONSTRAINTS unification rework. Both warnings are
+  hidden by default (standard ``DeprecationWarning``/``FutureWarning``
+  semantics) and link to the new `Upgrading to 3.0
+  <https://github.com/trungdong/prov/blob/master/docs/upgrading-3.0.md>`_
+  guide, which tables every planned 3.0 change and what to do about it.
 
 2.3.0 (2026-07-05)
 ^^^^^^^^^^^^^^^^^^
