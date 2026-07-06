@@ -2,14 +2,38 @@
 
 Migrated from the ``TestStatementsBase`` mixin (``statements.py``): each test
 method becomes a module-level function taking the ``roundtrip`` fixture, which
-runs it once per target in ``SHARED_TARGETS`` (model + json this step). The
-legacy mixin remains for the not-yet-migrated xml/rdf/dot modules.
+runs it once per target in ``SHARED_TARGETS`` (model/json/xml/rdf). The 14
+"scruffy" cases opt out of the shared ``fmt`` fixture with their own explicit
+parametrization so the rdf param can be skipped (issue #217; see the
+``scruffy_fmt`` decorator below). The legacy mixin remains for the
+not-yet-migrated ``test_dot.py``.
 """
+
+import pytest
 
 from prov.model import *
 
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
+
+# The 14 "scruffy" documents below add two relations sharing one identifier
+# but differing prov:time; PROV-O cannot represent this (both times serialize
+# onto the one qualified IRI, and deserialization then raises ProvException:
+# "Cannot have more than one value for attribute prov:time"). This is an
+# accepted PROV-O representational limitation, not a bug on a fix path, so the
+# rdf param is skipped rather than xfailed (design doc §2/§3, issue #217).
+RDF_SCRUFFY_SKIP = pytest.mark.skip(
+    reason="PROV-O cannot represent same-identifier relations differing by "
+    "prov:time — accepted limitation, issue #217",
+)
+
+# These functions opt out of the module-wide `fmt` fixture (see conftest.py)
+# with their own explicit parametrization so the skip mark attaches only to
+# the rdf param; model/json/xml still run normally.
+scruffy_fmt = pytest.mark.parametrize(
+    "fmt",
+    ["model", "json", "xml", pytest.param("rdf", marks=RDF_SCRUFFY_SKIP)],
+)
 
 
 def new_document():
@@ -1316,6 +1340,7 @@ def test_membership_3(roundtrip):
 
 
 # SCRUFFY
+@scruffy_fmt
 def test_scruffy_generation_1(roundtrip):
     document = new_document()
     document.generation(
@@ -1335,6 +1360,7 @@ def test_scruffy_generation_1(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_generation_2(roundtrip):
     document = new_document()
     gen1 = document.generation(
@@ -1356,6 +1382,7 @@ def test_scruffy_generation_2(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_invalidation_1(roundtrip):
     document = new_document()
     document.invalidation(
@@ -1375,6 +1402,7 @@ def test_scruffy_invalidation_1(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_invalidation_2(roundtrip):
     document = new_document()
     inv1 = document.invalidation(
@@ -1396,6 +1424,7 @@ def test_scruffy_invalidation_2(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_usage_1(roundtrip):
     document = new_document()
     document.usage(
@@ -1415,6 +1444,7 @@ def test_scruffy_usage_1(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_usage_2(roundtrip):
     document = new_document()
     use1 = document.usage(
@@ -1436,6 +1466,7 @@ def test_scruffy_usage_2(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_start_1(roundtrip):
     document = new_document()
     document.start(
@@ -1455,6 +1486,7 @@ def test_scruffy_start_1(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_start_2(roundtrip):
     document = new_document()
     start1 = document.start(
@@ -1476,6 +1508,7 @@ def test_scruffy_start_2(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_start_3(roundtrip):
     document = new_document()
     start1 = document.start(
@@ -1501,6 +1534,7 @@ def test_scruffy_start_3(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_start_4(roundtrip):
     document = new_document()
     start1 = document.start(
@@ -1527,6 +1561,7 @@ def test_scruffy_start_4(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_end_1(roundtrip):
     document = new_document()
     document.end(
@@ -1546,6 +1581,7 @@ def test_scruffy_end_1(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_end_2(roundtrip):
     document = new_document()
     end1 = document.end(
@@ -1567,6 +1603,7 @@ def test_scruffy_end_2(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_end_3(roundtrip):
     document = new_document()
     end1 = document.end(
@@ -1592,6 +1629,7 @@ def test_scruffy_end_3(roundtrip):
     roundtrip(document)
 
 
+@scruffy_fmt
 def test_scruffy_end_4(roundtrip):
     document = new_document()
     end1 = document.end(

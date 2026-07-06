@@ -8,7 +8,7 @@ and hands it to the ``roundtrip`` fixture, which is parametrized over
 under the non-serializing ``model`` target.
 
 The legacy ``utility.py``/``statements.py``/``attributes.py``/``qnames.py``
-mixins remain in place for the not-yet-migrated xml/rdf/dot modules; they are
+mixins remain in place for the not-yet-migrated ``test_dot.py``; they are
 retired in a later migration step.
 """
 
@@ -19,8 +19,7 @@ import pytest
 from prov.model import ProvDocument
 
 # Formats that support a full serialize -> deserialize -> compare round trip.
-# xml and rdf join in the next migration step.
-ROUNDTRIP_FORMATS = ("json",)
+ROUNDTRIP_FORMATS = ("json", "xml", "rdf")
 # The full target axis: the round-trip formats PLUS a "model" target that
 # constructs the document, exercises PROV-N generation, and checks the
 # self-equality invariant WITHOUT serialization. The model axis preserves the
