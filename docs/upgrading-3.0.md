@@ -63,6 +63,12 @@ where it previously merged silently. Catch the new exception (or restructure the
 document to avoid conflicting formal attributes) before upgrading. Documents without
 this pattern are unaffected.
 
+Note that `prov_to_dot()` (`prov.dot`) and `prov_to_graph()` (`prov.graph`, not
+`graph_to_prov()`, which does not unify) call `unified()` internally, so the
+`FutureWarning` above also fires on every call to those functions today — regardless of
+whether the document actually has conflicting attributes — so graphics/graph-export
+users will see it even without calling `unified()` themselves.
+
 ## Removal of names deprecated in 2.4.0
 
 3.0 removes everything 2.4.0 marked deprecated:
