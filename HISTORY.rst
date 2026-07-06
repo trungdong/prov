@@ -3,8 +3,24 @@
 History
 -------
 
-2.4.0 (unreleased)
+2.4.0 (2026-07-06)
 ^^^^^^^^^^^^^^^^^^
+* **Documentation overhaul**: the documentation has been reorganised along the
+  Diátaxis framework (tutorials, how-to guides, reference, explanations), with
+  new furo/MyST/napoleon/intersphinx tooling behind the Sphinx build. Closes
+  #141 (graphics export how-to) and #83 (``prov-convert``/``prov-compare`` CLI
+  tools how-to). (#210, #211, #212, #213, #214, #215, #216)
+* **Test suite redesigned as pytest-native**: shared statement/attribute/qname
+  coverage is now expressed once and parametrized across a document x format
+  matrix (json/xml/rdf/model) instead of being copy-pasted per serializer;
+  Hypothesis property-based round-trip tests generate documents across the
+  full feature set; a malformed-input corpus exercises each deserializer's
+  error handling. (#219, #220, #221, #222, #227, #229)
+* **``prov.model`` split into a package** (``prov.model.records``,
+  ``prov.model.namespaces``, ``prov.model.bundle``) for maintainability, with
+  no import-path changes: every historic ``from prov.model import X`` still
+  works identically. (#231)
+* Minor Makefile/CLAUDE.md cleanup for contributors. (#209)
 * The serializer registry now degrades gracefully when the optional ``rdf``
   (``rdflib``) or ``xml`` (``lxml``) extra is not installed: ``import prov``
   and the JSON/PROV-N serializers work in a minimal install, and requesting
