@@ -3,6 +3,14 @@
 History
 -------
 
+2.4.0 (unreleased)
+^^^^^^^^^^^^^^^^^^
+* The serializer registry now degrades gracefully when the optional ``rdf``
+  (``rdflib``) or ``xml`` (``lxml``) extra is not installed: ``import prov``
+  and the JSON/PROV-N serializers work in a minimal install, and requesting
+  the ``rdf``/``xml`` format raises an informative ``DoNotExist`` naming the
+  missing extra instead of a bare ``ModuleNotFoundError``. (#230)
+
 2.3.0 (2026-07-05)
 ^^^^^^^^^^^^^^^^^^
 * **Dropped Python 3.9 support; minimum is now Python 3.10** (security fixes

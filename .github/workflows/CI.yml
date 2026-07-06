@@ -83,6 +83,21 @@ jobs:
           uv run ruff check src/
           uv run ruff format --check src/
 
+  minimal-install:
+    # Proves the registry degrades cleanly without the optional rdf/xml
+    # extras: `uv sync --group dev` (no --extra rdf/xml) leaves rdflib and
+    # lxml absent, so this exercises the same environment shape a user gets
+    # from a plain `pip install prov`.
+    name: minimal install (no extras)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v8.2.0
+      - name: Sync without extras
+        run: uv sync --locked --group dev
+      - name: Degradation tests
+        run: uv run --no-sync pytest src/prov/tests/test_minimal_install.py -v
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
