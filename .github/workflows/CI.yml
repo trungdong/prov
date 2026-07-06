@@ -23,6 +23,11 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Run tests
+        env:
+          # Use the bounded, deterministic Hypothesis profile for the
+          # property-based round-trip tests (registered in conftest.py) so they
+          # add a small, predictable amount of time to the CI matrix.
+          HYPOTHESIS_PROFILE: ci
         run: |
           uv sync --locked --extra rdf --extra xml --group dev
           uv run coverage run -m pytest
