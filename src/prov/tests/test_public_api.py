@@ -6,7 +6,6 @@ Additions are fine; removals or moves are a breaking change (3.0 only).
 
 import importlib
 import io
-import unittest
 
 import prov.serializers
 from prov.model import ProvDocument
@@ -94,36 +93,29 @@ PUBLIC_API = {
 }
 
 
-class TestPublicAPI(unittest.TestCase):
-    def test_names_importable(self):
-        missing = []
-        for module_name, names in PUBLIC_API.items():
-            module = importlib.import_module(module_name)
-            for name in names:
-                if not hasattr(module, name):
-                    missing.append(f"{module_name}.{name}")
-        self.assertEqual(missing, [], f"Public API names missing: {missing}")
-
-    def test_serializer_registry_formats(self):
-        for fmt in ("json", "xml", "rdf", "provn"):
-            with self.subTest(format=fmt):
-                # get() raises DoNotExist for unknown formats
-                self.assertTrue(
-                    issubclass(prov.serializers.get(fmt), prov.serializers.Serializer)
-                )
-
-    def test_round_trip_each_format(self):
-        document = primer_example()
-        for fmt in ("json", "xml", "rdf"):
-            with self.subTest(format=fmt):
-                stream = io.StringIO()
-                document.serialize(destination=stream, format=fmt)
-                stream.seek(0)
-                round_tripped = ProvDocument.deserialize(source=stream, format=fmt)
-                self.assertEqual(document, round_tripped, fmt)
-        # PROV-N is write-only: serialize must succeed
-        self.assertTrue(document.serialize(format="provn"))
+def test_names_importable():
+    missing = []
+    for module_name, names in PUBLIC_API.items():
+        module = importlib.import_module(module_name)
+        for name in names:
+            if not hasattr(module, name):
+                missing.append(f"{module_name}.{name}")
+    assert missing == [], f"Public API names missing: {missing}"
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_serializer_registry_formats():
+    for fmt in ("json", "xml", "rdf", "provn"):
+        # get() raises DoNotExist for unknown formats
+        assert issubclass(prov.serializers.get(fmt), prov.serializers.Serializer)
+
+
+def test_round_trip_each_format():
+    document = primer_example()
+    for fmt in ("json", "xml", "rdf"):
+        stream = io.StringIO()
+        document.serialize(destination=stream, format=fmt)
+        stream.seek(0)
+        round_tripped = ProvDocument.deserialize(source=stream, format=fmt)
+        assert document == round_tripped, fmt
+    # PROV-N is write-only: serialize must succeed
+    assert document.serialize(format="provn")
