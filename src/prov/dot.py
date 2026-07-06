@@ -14,6 +14,7 @@ References:
 
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
+import warnings
 from datetime import datetime
 from html import escape
 from typing import Any
@@ -56,6 +57,14 @@ from prov.model import (
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
+
+warnings.warn(
+    "In prov 3.0, graphical export (prov.dot) will require the optional "
+    '"dot" extra; install "prov[dot]" to keep using it after upgrading. '
+    "See https://github.com/trungdong/prov/blob/master/ROADMAP.md",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 # Visual styles for various elements (nodes) and relations (edges)

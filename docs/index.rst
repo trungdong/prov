@@ -38,6 +38,7 @@ Prov Python package's documentation
 
    readme
    installation
+   upgrading-3.0
    contributing
    authors
    history

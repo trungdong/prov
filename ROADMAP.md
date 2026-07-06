@@ -31,7 +31,7 @@ code changes.
 |---|---|---|
 | **2.2.0** *(released 2026-07-03)* | Tooling & bug fixes | Modernised linting/formatting and test tooling; CI refresh; release automation. Bug fixes: graphics output regression ([#164](https://github.com/trungdong/prov/issues/164)), matplotlib as an optional extra ([#166](https://github.com/trungdong/prov/issues/166)), PROV-XML default-namespace parsing ([#155](https://github.com/trungdong/prov/issues/155)). |
 | **2.3.0** *(released 2026-07-05)* | Typing & test coverage | Complete type annotations across the codebase and ship `py.typed` (PEP 561), so downstream projects get real type checking against `prov`'s API. Coverage gaps closed, including the CLI scripts and format auto-detection. Progressively stricter lint and type-check rules enforced in CI as modules are annotated. A dependency audit documents why each runtime dependency exists, aiming for the smallest possible footprint. **Python 3.9 support dropped** (originally planned for 3.0, pulled forward because security fixes in transitive dependencies are only released for Python 3.10+). One sanctioned diagnostic tweak: serializer-lookup and CLI errors now chain the original exception (`__cause__`); exception types and messages are unchanged, so this stays within the 2.x stability promise. |
-| **2.4.0** | Documentation & internals | Refreshed, reorganised documentation (tutorials, how-to guides, API reference, explanations), including guides for graphics export ([#141](https://github.com/trungdong/prov/issues/141)) and for the `prov-convert`/`prov-compare` CLI tools ([#83](https://github.com/trungdong/prov/issues/83)). Internal restructuring behind the stable public API, plus deprecation warnings signposting the 3.0 changes. |
+| **2.4.0** | Documentation & internals | Refreshed, reorganised documentation (tutorials, how-to guides, API reference, explanations), including guides for graphics export ([#141](https://github.com/trungdong/prov/issues/141)) and for the `prov-convert`/`prov-compare` CLI tools ([#83](https://github.com/trungdong/prov/issues/83)). Internal restructuring behind the stable public API, plus deprecation warnings signposting the 3.0 changes. **This is the deprecation-signposting release**: importing `prov.dot`/`prov.graph` now emits a `DeprecationWarning` naming the future `prov[dot]`/`prov[graph]` extras, and `unified()` emits a `FutureWarning` about the PROV-CONSTRAINTS rework below; see the new [Upgrading to 3.0](docs/upgrading-3.0.md) guide for the full list and what to do. |
 | **3.0.0** | Compatibility release | The one release allowed to break compatibility (see the explicit list below). |
 | **3.1.0** | PROV-JSONLD support | A new serializer and deserializer for [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), the W3C member submission for representing PROV-DM natively in JSON-LD. Purely additive. |
 | **3.2.0** | Two-way PROV-N | A parser for [PROV-N](https://www.w3.org/TR/prov-n/), built from the specification's grammar, making the notation readable as well as writable (today `prov` can only write PROV-N). Purely additive. |
@@ -69,8 +69,9 @@ companion specifications, whose findings feed into this list. The planned change
     PROV-JSON output (an interop-affecting change).
   - Plus any further fixes surfaced by the conformance audit.
 
-An "Upgrading to 3.0" migration guide will accompany the release. The intent is that
-most users need no code changes; the guide demonstrates the exceptions.
+The [Upgrading to 3.0](docs/upgrading-3.0.md) guide, published starting in 2.4.0, tracks
+this list in detail alongside what to do for each change. The intent is that most users
+need no code changes; the guide demonstrates the exceptions.
 
 ## Feedback
 
