@@ -1,47 +1,24 @@
 from typing import Any, ClassVar
 
 from prov.model import *
-
-EX_NS = Namespace("ex", "http://example.org/")
-EX_OTHER_NS = Namespace("other", "http://example.org/")
+from prov.tests.attribute_values import (  # noqa: F401
+    ATTRIBUTE_VALUES,
+    EX_NS,
+    EX_OTHER_NS,
+)
 
 
 class TestAttributesBase:
     """This is the base class for testing support for various datatypes.
     It is not runnable and needs to be included in a subclass of
     RoundTripTestCase.
+
+    Legacy-during-migration: this mixin is still consumed by the not-yet-migrated
+    xml/rdf/dot round-trip modules. The pytest-native replacement lives in
+    ``test_attributes.py``; both share ``ATTRIBUTE_VALUES``.
     """
 
-    attribute_values: ClassVar[list[Any]] = [
-        "un lieu",
-        Literal("un lieu", langtag="fr"),
-        Literal("a place", langtag="en"),
-        Literal(1, XSD_INT),
-        Literal(1, XSD_LONG),
-        Literal(1, XSD_SHORT),
-        Literal(2.0, XSD_DOUBLE),
-        Literal(1.0, XSD_FLOAT),
-        Literal(10, XSD_DECIMAL),
-        True,
-        False,
-        Literal(10, XSD_BYTE),
-        Literal(10, XSD_UNSIGNEDINT),
-        Literal(10, XSD_UNSIGNEDLONG),
-        Literal(10, XSD_INTEGER),
-        Literal(10, XSD_UNSIGNEDSHORT),
-        Literal(10, XSD_NONNEGATIVEINTEGER),
-        Literal(-10, XSD_NONPOSITIVEINTEGER),
-        Literal(10, XSD_POSITIVEINTEGER),
-        Literal(10, XSD_UNSIGNEDBYTE),
-        Identifier("http://example.org"),
-        Literal("http://example.org", XSD_ANYURI),
-        EX_NS["abc"],
-        EX_OTHER_NS["abcd"],
-        Namespace("ex", "http://example4.org/")["zabc"],
-        Namespace("other", "http://example4.org/")["zabcd"],
-        datetime.datetime.now(),
-        Literal(datetime.datetime.now().isoformat(), XSD_DATETIME),
-    ]
+    attribute_values: ClassVar[list[Any]] = ATTRIBUTE_VALUES
 
     def new_document(self):
         return ProvDocument()

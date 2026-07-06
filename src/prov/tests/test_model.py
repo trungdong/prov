@@ -29,7 +29,6 @@ from prov.tests import examples
 from prov.tests.attributes import TestAttributesBase
 from prov.tests.qnames import TestQualifiedNamesBase
 from prov.tests.statements import TestStatementsBase
-from prov.tests.utility import RoundTripTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -753,21 +752,16 @@ class TestPlot(unittest.TestCase):
 class AllTestsBase(
     TestExamplesBase, TestStatementsBase, TestAttributesBase, TestQualifiedNamesBase
 ):
-    """This is a test to include all available tests."""
+    """This is a test to include all available tests.
+
+    Legacy-during-migration: still composed into the xml/rdf/dot round-trip
+    suites via ``RoundTripTestCase``. The "model" target's coverage (formerly
+    ``RoundTripModelTest``) now runs through the pytest-native ``fmt`` matrix in
+    the ``test_statements``/``test_attributes``/``test_qnames``/``test_examples``
+    modules. Retired once xml/rdf/dot migrate.
+    """
 
     pass
-
-
-class RoundTripModelTest(RoundTripTestCase, AllTestsBase):
-    def assertRoundTripEquivalence(self, prov_doc, msg=None):
-        """Exercises prov.model without the actual serialization and PROV-N
-        generation.
-        """
-        provn_content = prov_doc.get_provn()
-        # Checking for self-equality
-        self.assertEqual(
-            prov_doc, prov_doc, "The document is not self-equal:\n" + provn_content
-        )
 
 
 if __name__ == "__main__":
