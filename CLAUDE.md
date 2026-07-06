@@ -88,7 +88,23 @@ There are `prov-convert` and `prov-compare` console scripts (`src/prov/scripts/c
 
 ## Architecture
 
-### Core object model (`src/prov/model.py`, ~2800 lines)
+### Core object model (`src/prov/model/` package)
+
+`prov.model` is a package of three implementation modules plus a re-exporting
+`__init__.py`:
+
+- `records.py` — datatype helpers (`parse_xsd_types`, `Literal`, ...), the exception
+  classes, `ProvRecord` and every concrete element/relation class, and the
+  `PROV_REC_CLS` record-type registry. References `ProvBundle` in annotations only,
+  imported under `TYPE_CHECKING` (no runtime dependency on `bundle.py`).
+- `namespaces.py` — `NamespaceManager` and `DEFAULT_NAMESPACES`; imports from `records.py`.
+- `bundle.py` — `ProvBundle`, `ProvDocument`, and `sorted_attributes`; imports from both
+  modules above.
+- `__init__.py` — re-exports every public name at its historic `prov.model` location
+  (plus `from prov.constants import *`, as the old single-module `model.py` did). The
+  public namespace is frozen: `dir(prov.model)` is identical to the pre-split module —
+  the submodule attributes are deliberately removed from the package namespace at the
+  end of `__init__.py`. Always import from `prov.model`, not from the submodules.
 
 Everything revolves around a `ProvBundle`/`ProvDocument` containment hierarchy:
 
@@ -111,7 +127,7 @@ Everything revolves around a `ProvBundle`/`ProvDocument` containment hierarchy:
   to the serializer registry by `format`.
 
 `QualifiedName`/`Namespace`/`Identifier` (`src/prov/identifier.py`) implement PROV's namespaced
-identifiers; `NamespaceManager` (in `model.py`) tracks registered namespaces per bundle and
+identifiers; `NamespaceManager` (in `model/namespaces.py`) tracks registered namespaces per bundle and
 resolves prefixes during parsing/serialization.
 
 `src/prov/constants.py` defines the PROV-DM/PROV-O vocabulary: record type URIs (`PROV_ENTITY`,
