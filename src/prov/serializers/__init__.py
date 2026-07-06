@@ -77,24 +77,49 @@ class Registry:
 
     @staticmethod
     def load_serializers() -> None:
-        """Populate :attr:`serializers` with the four built-in serializer classes.
+        """Load all serializers whose optional dependencies are installed.
 
-        Imports the ``json``, ``rdf``, ``provn``, and ``xml`` serializer
-        modules lazily (to avoid import cycles) and (re-)registers them in
-        :attr:`serializers`, unconditionally overwriting any previous
-        contents.
+        ``json`` and ``provn`` have no optional dependencies and are always
+        registered. ``rdf`` (needs ``rdflib``) and ``xml`` (needs ``lxml``)
+        are registered only if their extra is installed, so that ``import
+        prov`` and JSON/PROV-N work in a minimal install; requesting an
+        unavailable format then raises an informative :class:`DoNotExist`
+        (see :func:`get`) rather than a bare ``ModuleNotFoundError``.
+
+        The insertion order is kept as ``json, rdf, provn, xml`` (the
+        historic order when all extras are present) because
+        :func:`prov.read`'s format auto-detection iterates
+        ``Registry.serializers`` in order and several tests
+        (``test_read_auto_detects_rdf``,
+        ``test_read_auto_detect_of_xml_hits_uncaught_rdf_syntax_error``,
+        ``test_read_on_unparseable_content_raises_bad_syntax``) pin the
+        exact candidate tried second.
         """
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
-        from prov.serializers.provrdf import ProvRDFSerializer
-        from prov.serializers.provxml import ProvXMLSerializer
 
-        Registry.serializers = {
+        serializers: dict[str, type[Serializer]] = {
             "json": ProvJSONSerializer,
-            "rdf": ProvRDFSerializer,
-            "provn": ProvNSerializer,
-            "xml": ProvXMLSerializer,
         }
+        try:
+            from prov.serializers.provrdf import ProvRDFSerializer
+        except ImportError:  # pragma: no cover -- rdflib (rdf extra) absent; covered by the minimal-install CI job
+            pass
+        else:
+            serializers["rdf"] = ProvRDFSerializer
+        serializers["provn"] = ProvNSerializer
+        try:
+            from prov.serializers.provxml import ProvXMLSerializer
+        except ImportError:  # pragma: no cover -- lxml (xml extra) absent; covered by the minimal-install CI job
+            pass
+        else:
+            serializers["xml"] = ProvXMLSerializer
+        Registry.serializers = serializers
+
+
+#: Formats provided by optional extras, used to build the DoNotExist message
+#: in :func:`get` when the corresponding dependency is not installed.
+_OPTIONAL_FORMAT_EXTRAS = {"rdf": "rdf", "xml": "xml"}
 
 
 def get(format_name: str) -> type[Serializer]:
@@ -118,6 +143,14 @@ def get(format_name: str) -> type[Serializer]:
     try:
         return serializers[format_name]
     except KeyError as e:
+        extra = _OPTIONAL_FORMAT_EXTRAS.get(format_name)
+        # The informative-message branch is reachable only when the optional
+        # extra is absent; the minimal-install CI job exercises it.
+        if extra is not None:  # pragma: no cover
+            raise DoNotExist(
+                f'Serializer for the "{format_name}" format requires the '
+                f'"{extra}" extra; install it with: pip install "prov[{extra}]"'
+            ) from e
         raise DoNotExist(
             f'No serializer available for the format "{format_name}"'
         ) from e
