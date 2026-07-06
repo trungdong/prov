@@ -142,23 +142,46 @@ extras in `pyproject.toml`); JSON and PROV-N have no extra dependencies.
 
 ### Tests (`src/prov/tests/`)
 
-Test code is plain `unittest` (`TestCase` classes/`assert*` methods, `expectedFailure`, etc.),
-not pytest-specific; the runner is `pytest`, which collects and runs unittest-style classes
-natively (`expectedFailure` surfaces as `xfailed`). Shared test scaffolding lives in a few
-base-class modules rather than being duplicated per format:
+The suite is **mid-migration** from a plain-`unittest` multiple-inheritance design to a
+pytest-native shared matrix (Phase 3 test-suite redesign — authority:
+`docs/superpowers/specs/2026-07-06-test-suite-redesign.md`). The runner is `pytest`, which
+collects both styles natively (`expectedFailure` surfaces as `xfailed`). **JSON and the `model`
+target have been migrated; XML, RDF, and dot still ride the legacy scaffolding.** Expect the two
+styles to coexist until that migration completes.
 
-- `examples.py` — canonical example PROV documents (built programmatically) reused across
-  serializer/model tests.
-- `utility.py` — `RoundTripTestCase` base: serializes a document in a format and deserializes
-  it back, asserting equivalence. Format-specific test files (`test_json.py`, `test_xml.py`,
-  `test_rdf.py`) subclass this together with the shared mixins below.
-- `attributes.py`, `statements.py`, `qnames.py` — shared `TestAttributesBase` /
-  `TestStatementsBase` / `TestQualifiedNamesBase` mixins exercising attribute/statement/qname
-  behavior identically across formats.
+**Pytest-native shared matrix (current target):**
+
+- `conftest.py` — the shared scaffolding. Defines `ROUNDTRIP_FORMATS` (currently `("json",)`;
+  xml/rdf join later) and `SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)`. The `fmt` fixture is
+  parametrized over `SHARED_TARGETS`, so every shared test runs once per serialization format
+  **and** once under a non-serializing `model` target (which forces `get_provn()` + a
+  self-equality check instead of a round trip). The `roundtrip` fixture returns a `_check(doc)`
+  callable that tests call as `roundtrip(doc)`. A `pytest_assertrepr_compare` hook renders the
+  record-level symmetric difference when two `ProvDocument`s compare unequal under `assert`, so
+  round-trip failures show *which record* differs.
+- `test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py` — the shared
+  body as plain module-level functions taking the `roundtrip` fixture (one node per case × per
+  target in `SHARED_TARGETS`). `test_attributes.py` parametrizes the single-type-attribute case
+  over `ATTRIBUTE_VALUES`.
+- `attribute_values.py` — the importable `ATTRIBUTE_VALUES` datatype corpus (order is
+  significant: later RDF datatype-fidelity xfails key off individual indices), shared by the new
+  `test_attributes.py` and the legacy `attributes.py` mixin.
+- `examples.py` — canonical example PROV documents (built programmatically), consumed by both the
+  new `test_examples.py` and the legacy mixins.
 - `json/`, `xml/`, `rdf/`, `unification/` — fixture data directories consumed by the
   corresponding test modules (e.g. `TestLoadingProvToolboxJSON` in `test_model.py` round-trips
   every file under `tests/json/`).
 
-When adding a new record type, attribute, or serializer behavior, the common pattern is to add
-it once to `examples.py`/the shared mixins so all format serializers are exercised against it,
-rather than writing per-format tests from scratch.
+**Legacy-during-migration scaffolding (still live, retired in a later step):**
+
+- `utility.py` — `RoundTripTestCase` base (serialize → deserialize → `assertEqual`, keyed off a
+  `FORMAT` class attribute). Still subclassed by `test_xml.py`/`test_rdf.py`/`test_dot.py`.
+- `attributes.py`, `statements.py`, `qnames.py` — the `TestAttributesBase` / `TestStatementsBase`
+  / `TestQualifiedNamesBase` mixins, and `AllTestsBase`/`TestExamplesBase` in `test_model.py`,
+  composed into the xml/rdf/dot round-trip suites. These duplicate the coverage now also provided
+  by the new pytest-native modules for the model/json targets; the duplication is expected and
+  intentional until xml/rdf/dot migrate.
+
+When adding a new shared record type, attribute, or serializer behavior, add it to the
+pytest-native shared modules (and, while xml/rdf/dot remain on the mixins, to the corresponding
+mixin) so every target is exercised, rather than writing per-format tests from scratch.
