@@ -74,6 +74,7 @@ prov = ["py.typed"]
     "rdf/*.trig",
     "unification/*.json",
     "malformed/*",
+    "schemas/*",
 ]
 
 [dependency-groups]

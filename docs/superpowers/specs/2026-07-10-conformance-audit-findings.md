@@ -450,6 +450,74 @@ all remain clean.
 
 ## 3. Serializer mappings (step 30)
 ### 3.1 PROV-XML vs XSD
+
+**Method:** vendored the W3C PROV-XML schema closure offline
+(`src/prov/tests/schemas/prov.xsd` + `prov-core.xsd` + `prov-dictionary.xsd` +
+`prov-links.xsd` + `xml.xsd`; provenance and licence note in
+`src/prov/tests/schemas/README.md`) and added
+`src/prov/tests/test_xml_schema.py`, which compiles the schema with
+`lxml.etree.XMLSchema` and validates the serialized XML of all 8
+`examples.tests` documents plus one document per entry of the
+`ATTRIBUTE_VALUES` corpus (28 entries, each asserted as a `prov:type` value —
+mirroring `test_attributes.py`'s convention) — 36 validation params total.
+
+**Result:** 32 pass; 4 do not. All 4 were triaged individually; none share a
+root cause:
+
+1. **`W3C Publication 1` — schema/spec limitation, skipped, not filed.** The
+   example (ported from the ProvToolbox test corpus) asserts the identifier
+   `chairs:2011OctDec/0004`. PROV-XML types `prov:id`/`prov:ref` as
+   `xsd:QName`, whose local part must be a valid NCName (no `/`), which is
+   stricter than PROV-N's QualifiedName (arbitrary local-name characters).
+   The PROV-XML spec itself documents this gap ("valid identifier values in
+   PROV-N serializations have [the] potential to not be valid identifier
+   values in PROV-XML", <https://www.w3.org/TR/prov-xml/>) and recommends —
+   but does not require — identifier schemes that avoid it. No PROV-XML
+   implementation could serialize this identifier validly; not a defect in
+   this library. Documented skip in `test_xml_schema.py`
+   (`QNAME_LOCAL_PART_SKIP`).
+2. **`datatypes` — bug, filed #244, strict xfail.** The example asserts the
+   plain Python int `123456789000` (`ex:long`). `provxml.py`'s xsd-type
+   inference (`serializers/provxml.py:221-226`) maps every plain `int` to
+   `XSD_INT` unconditionally, with no magnitude check, so a value outside the
+   `xsd:int` range (±2^31-1) serializes as `<ex:long
+   xsi:type="xsd:int">123456789000</ex:long>` — schema-invalid on its own,
+   no round trip needed to observe it. Root-cause sibling of #235 (`xsd:long`
+   Literals silently re-typed `xsd:int` on ingestion) but a distinct
+   manifestation: this needs no explicit `XSD_LONG` annotation at all, and
+   the result is invalid XML rather than merely lossy. Any fix changes
+   serialized output, so it's 3.0 material under the 2.x output freeze.
+   Strict xfail in `test_xml_schema.py` (`INT_MAGNITUDE_XFAIL`,
+   `raises=AssertionError`).
+3. **`ATTRIBUTE_VALUES[1]`/`[2]` (`Literal("un lieu", langtag="fr")` /
+   `Literal("a place", langtag="en")` on `prov:type`) — schema/spec
+   limitation, skipped, not filed.** `prov-core.xsd` gives only `prov:label`
+   the `prov:InternationalizedString` complex type (string + optional
+   `xml:lang`); `prov:type`/`prov:role`/`prov:location`/`prov:value` are all
+   plain `xs:anySimpleType`, which does not permit an `xml:lang` attribute at
+   all. PROV-DM permits language-tagged values on any attribute, but
+   PROV-XML — by schema design — can only represent a language tag on
+   `prov:label`. Not something this library's serializer could fix by
+   changing how it writes `prov:type`; a genuine expressiveness gap in the
+   PROV-XML format itself. Documented skip in `test_xml_schema.py`
+   (`LANG_TAG_ON_NON_LABEL_SKIP`), one instance per affected index.
+
+Not already covered by #224 (empty-string attributes dropped by PROV-XML) or
+any other previously-filed issue — checked before filing #244.
+
+Package data (`pyproject.toml` `[tool.setuptools.package-data]`,
+`"prov.tests"` list) gained `"schemas/*"` so the vendored schema closure
+ships in the sdist.
+
+**Verdict:** PROV-XML output is schema-valid except: (a) identifiers whose
+local part is not a valid XML NCName, which is an inherent PROV-XML format
+limitation (not fixable, not filed); (b) language-tagged values on
+attributes other than `prov:label`, also an inherent PROV-XML format
+limitation (not fixable, not filed); and (c) plain Python integers outside
+the 32-bit `xsd:int` range, which is a genuine defect in this library's XML
+type-inference heuristic (filed #244, deferred to 3.0 under the output
+freeze).
+
 ### 3.2 PROV-JSON vs member submission
 ### 3.3 PROV-N vs grammar
 ### 3.4 PROV-O vs mapping tables
@@ -464,11 +532,15 @@ See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for
 | [#238](https://github.com/trungdong/prov/issues/238) | `PROV-DM conformance:` `prov:QUALIFIED_NAME`-typed Literals are not resolved to QualifiedNames, breaking round-trip equality (§5.7.3) | §2.7.3 |
 | [#239](https://github.com/trungdong/prov/issues/239) | `Bug:` `prov.read()` cannot auto-detect valid PROV-XML — RDF deserializer's `BadSyntax` propagates before the XML deserializer is tried (Phase-3 loose end, confirmed) | §2.9 |
 | [#240](https://github.com/trungdong/prov/issues/240) | `Bug:` `ProvDocument.serialize()` silently writes to a repr-named CWD file when given a non-`io.IOBase` file object (e.g. `NamedTemporaryFile`) | §2.9 |
+| [#244](https://github.com/trungdong/prov/issues/244) | `PROV-XML conformance:` plain Python ints are always typed `xsd:int`, producing schema-invalid output outside the int32 range | §3.1 |
 
 Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
 confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
 case-sensitivity nit (§2.7.3, needs maintainer confirmation), the Mention/PROV-Links
-labelling nit (§2.5), and the feature gaps already recorded in section 1.
+labelling nit (§2.5), the feature gaps already recorded in section 1, and the two §3.1
+PROV-XML format limitations (QName-incompatible local names; language tags on
+non-`prov:label` attributes) — both are inherent to the PROV-XML schema, not
+implementation defects.
 ## 6. Triage (step 31) — proposed → approved
 | Issue | Bucket (2.x / 3.0 / backlog) | Rationale |
 |---|---|---|
