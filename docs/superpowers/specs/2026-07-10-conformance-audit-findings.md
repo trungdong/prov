@@ -101,6 +101,353 @@ Findings surfaced while building `docs/reference/conformance.md`, verified again
   output rather than citing a keyword lookup.
 
 ## 2. Formal attributes & PROV-DM §5 semantics (step 29)
+
+Audited 2026-07-10 on branch `audit/prov-dm-section5` against
+[PROV-DM (W3C REC 2013-04-30)](https://www.w3.org/TR/prov-dm/) §5. Method: the spec's
+per-concept attribute lists were extracted verbatim as the baseline (condensed in §2.0
+below), then compared against `FORMAL_ATTRIBUTES` in `src/prov/model/records.py`, the
+`ProvBundle` factory signatures in `src/prov/model/bundle.py`, and the datatype machinery
+(`parse_xsd_types` / `Literal` / `_auto_literal_conversion` in `records.py`). Every
+non-conformance claim below was confirmed by an executed reproduction (snippets inline).
+Known issues #34/#77/#89/#96/#154/#168/#217/#218/#223–#228 are used as anchors and not
+re-reported.
+
+### 2.0 Baseline: `FORMAL_ATTRIBUTES` vs the spec's attribute lists
+
+Spec signature (id omitted; `*` = spec-optional) vs the class tuple:
+
+| Record type | PROV-DM signature | `FORMAL_ATTRIBUTES` (`records.py`) | Order/content match |
+|---|---|---|---|
+| Entity §5.1.1 | id only | `()` | yes |
+| Activity §5.1.2 | st\*, et\* | `(startTime, endTime)` | yes |
+| Generation §5.1.3 | e, a\*, t\* | `(entity, activity, time)` | yes |
+| Usage §5.1.4 | a, e\*, t\* | `(activity, entity, time)` | yes |
+| Communication §5.1.5 | informed, informant | `(informed, informant)` | yes |
+| Start §5.1.6 | a, trigger\*, starter\*, t\* | `(activity, trigger, starter, time)` | yes |
+| End §5.1.7 | a, trigger\*, ender\*, t\* | `(activity, trigger, ender, time)` | yes |
+| Invalidation §5.1.8 | e, a\*, t\* | `(entity, activity, time)` | yes |
+| Derivation §5.2.1 | e2, e1, a\*, g2\*, u1\* | `(generatedEntity, usedEntity, activity, generation, usage)` | yes |
+| Agent §5.3.1 | id only | `()` | yes |
+| Attribution §5.3.2 | e, ag | `(entity, agent)` | yes |
+| Association §5.3.3 | a, ag\*, pl\* | `(activity, agent, plan)` | yes |
+| Delegation §5.3.4 | ag2, ag1, a\* | `(delegate, responsible, activity)` | yes |
+| Influence §5.3.5 | o2, o1 | `(influencee, influencer)` | yes |
+| Specialization §5.5.1 | infra, supra (no id/attrs) | `(specificEntity, generalEntity)` | yes |
+| Alternate §5.5.2 | e1, e2 (no id/attrs) | `(alternate1, alternate2)` | yes |
+| Membership §5.6.2 | c, e (no id/attrs) | `(collection, entity)` | yes |
+| Mention (PROV-Links) | infra, supra, b | `(specificEntity, generalEntity, bundle)` | yes (see §2.5) |
+
+All 18 tuples match the spec's attribute list and order exactly. The
+QName-vs-literal partition is also correct: `PROV_ATTRIBUTE_LITERALS`
+(`constants.py:182`) contains exactly the three `xsd:dateTime`-typed formals
+(`time`, `startTime`, `endTime`); every other formal is in `PROV_ATTRIBUTE_QNAMES`,
+matching the spec (all non-time formals are identifiers).
+
+### 2.1 §5.1 Entities and Activities
+
+- **Entity**: mandatory id enforced (`ProvElementIdentifierRequired`, `records.py:735-737`);
+  attributes optional. Conformant.
+- **Activity**: `activity(identifier, startTime=None, endTime=None, ...)` — both times
+  optional, order (st, et) matches. Times are validated as `datetime` (strings parsed);
+  a non-datetime raises `ProvException` on the `add_attributes` path. Two time-handling
+  findings, both in the shared `_ensure_datetime` helper (`records.py:103-112`) used by
+  *every* factory `time=`/`startTime=`/`endTime=` parameter — see §2.7.3 (filed as #237).
+- **Generation / Usage / Invalidation**: formal attributes, order, and optionality of the
+  factory signatures (`generation(entity, activity=None, time=None, ...)` etc.,
+  `bundle.py:588,625,744`) all match. The spec's "at least one of id, activity, time,
+  attributes MUST be present" rule is not enforced — `d.generation("ex:e1")` produces
+  `wasGeneratedBy(ex:e1, -, -)` silently (executed; see §2.8 validation-gap family).
+- **Communication**: both formals required by the factory, matching the spec. Conformant.
+- **Start / End**: 4-tuple incl. starter/ender matches; factory optionality
+  (`start(activity, trigger=None, starter=None, time=None, ...)`) matches the spec's
+  markers (only `activity` mandatory). "At least one MUST be present" unenforced (§2.8).
+
+**Verdict:** Entity, Activity, Generation, Usage, Communication, Start, End,
+Invalidation — **conformant** on attributes/order/optionality; findings limited to the
+cross-cutting items in §2.7.3 (time datatype handling, #237) and §2.8 (unenforced
+"at-least-one" rules, needs maintainer confirmation).
+
+### 2.2 §5.2 Derivations
+
+- **Derivation**: 5-tuple and factory optionality match (`derivation(generatedEntity,
+  usedEntity, activity=None, generation=None, usage=None, ...)`, `bundle.py:968`). The
+  library permits `generation`/`usage` without `activity`
+  (`d.derivation("ex:e2", "ex:e1", None, "ex:g2", "ex:u1")` →
+  `wasDerivedFrom(ex:e2, ex:e1, -, ex:g2, ex:u1)`, executed) — PROV-DM §5.2.1 marks each
+  individually optional (the grammar allows `-` per slot), so this is grammatically fine;
+  the combination rule ("for a generation/usage to be given, the activity must be") lives
+  in PROV-CONSTRAINTS 51, which is out of scope (#62 backlog). Recorded in §2.8, no issue.
+- **Revision / Quotation / PrimarySource** (§5.2.2–5.2.4): defined by the spec as
+  `prov:type`-subtyped derivations with no extra attributes; implemented exactly that way
+  (`revision()`/`quotation()`/`primary_source()` add `PROV["Revision"]` etc. via
+  `add_asserted_type`, `bundle.py:1044-1146`). The typed-`wasDerivedFrom` PROV-N rendering
+  is already recorded in section 1; not repeated.
+
+**Verdict:** Derivation (incl. Revision/Quotation/PrimarySource) — **conformant**;
+PROV-CONSTRAINTS-level combination rule intentionally unenforced (§2.8 note).
+
+### 2.3 §5.3 Agents, Responsibility, and Influence
+
+- **Agent**: mandatory id enforced; attributes accepted. Conformant. (Missing
+  Person/Organization/SoftwareAgent factories already recorded in section 1.)
+- **Attribution**: `(entity, agent)` both mandatory in factory — matches spec. Conformant.
+- **Association**: `association(activity, agent=None, plan=None, ...)` — spec marks agent
+  and plan optional; matches. Conformant.
+- **Delegation**: `delegation(delegate, responsible, activity=None, ...)` — matches spec
+  (ag2, ag1, a\*). Conformant.
+- **Influence**: `(influencee, influencer)` both mandatory; matches. The spec's
+  influencee/influencer correspondence table (§5.3.5) is informational for queries and
+  needs no model support.
+- **NEW finding (filed #236)** — §5.3.1 says the agent subtype "is expressed using the
+  prov:type attribute" whose pre-defined values (§5.7.2.4 table) are *qualified names*
+  (`prov:Person` etc.). The library's documented idiom — `agent("ag", {prov.PROV_TYPE:
+  "prov:Person"})` in `docs/explanation/prov-dm.md:114`, `docs/tutorial/getting-started.md:52`,
+  `docs/reference/conformance.md:97` — passes a plain *string*, which the model stores
+  unchanged (strings are never coerced to QualifiedNames, correctly so). The resulting
+  record asserts the string `"prov:Person"`, not the type `prov:Person`. Executed:
+  ```
+  d.agent("ex:derek", {"prov:type": "prov:Person"})   # documented idiom
+  # PROV-N: agent(ex:derek, [prov:type="prov:Person"])   <- string, not 'prov:Person'
+  # RDF:    ex:derek a prov:Agent, "prov:Person"^^xsd:string .   <- literal as a class!
+  d.agent("ex:derek", {"prov:type": PROV["Person"]})  # correct form
+  # PROV-N: agent(ex:derek, [prov:type='prov:Person'])
+  # RDF:    ex:derek a prov:Agent, prov:Person .
+  # the two documents compare UNEQUAL
+  ```
+  The same string idiom appears in the library's own canonical examples
+  (`src/prov/tests/examples.py:266`, `{"prov:type": "prov:Plan"}`). The model behaviour is
+  conformant (a string is a legal `prov:type` value per §5.7.2.4); the defect is that the
+  documentation and examples teach the string form as *the* way to denote the pre-defined
+  subtypes, silently producing records that do not carry the subtype. Docs/examples fix,
+  2.x-safe.
+
+**Verdict:** Agent, Attribution, Association, Delegation, Influence — **conformant** at the
+model level; **finding listed** (documentation idiom, #236).
+
+### 2.4 §5.4 Bundles
+
+Bundle containment (§5.4.1) is implemented structurally (`ProvDocument.bundle()` /
+`add_bundle()`; named bundles only at document level, nesting refused at runtime), matching
+the constructor definition. The §5.4.2 `prov:Bundle` entity-type gap (no supported path from
+a bundle identifier to a `prov:Bundle`-typed entity for provenance-of-provenance) is already
+recorded in full in section 1 and is not repeated here.
+
+**Verdict:** Bundle constructor — **conformant**; Bundle type (§5.4.2) — **finding already
+recorded in section 1** (feature gap, 3.0 triage).
+
+### 2.5 §5.5 Alternate Entities
+
+- **Specialization / Alternate**: 2-tuples match; the public factories
+  (`specialization()`, `alternate()`, `bundle.py:1148,1172`) correctly accept *neither an
+  identifier nor attributes*, matching the spec's explicit "is not ... an influence, and
+  therefore does not have an id and attributes". The low-level escape hatch does not
+  enforce this: `d.new_record(PROV_SPECIALIZATION, "ex:spec1", {...}, {"ex:note": "extra"})`
+  produces `specializationOf(ex:spec1; ex:e2, ex:e1, [ex:note="extra"])` (executed) — text
+  that is not derivable from the PROV-N grammar. Requires deliberate misuse of the
+  low-level API (or non-conformant serialized input); recorded in §2.8, no issue.
+- **Mention**: `ProvMention` (`mentionOf(infra, supra, b)`, 3-tuple, no id/attrs) is **not
+  part of PROV-DM §5** — it was dropped from the REC (marked at-risk) and lives in the
+  W3C PROV-Links Note. Implementing it is a conformant *extension*; the tuple matches
+  PROV-Links' definition (specific, general, bundle, all mandatory in the factory).
+  Documentation could label it as PROV-Links rather than PROV-DM; cosmetic, no issue.
+
+**Verdict:** Specialization, Alternate — **conformant** (public API); Mention —
+**conformant extension** (PROV-Links, not §5). Low-level `new_record` permissiveness noted
+in §2.8.
+
+### 2.6 §5.6 Collections
+
+- **Collection**: `collection()` creates an entity typed `prov:Collection` — matches
+  §5.6.1's type-based definition. (`EmptyCollection` factory gap already in section 1.)
+- **Membership**: `hadMember(c, e)` — both formals mandatory in `membership()`, no
+  id/attrs on the public factory; matches §5.6.2 including its "not an influence" clause
+  (same `new_record` caveat as §2.5, see §2.8).
+
+**Verdict:** Collection, Membership — **conformant**.
+
+### 2.7 §5.7 Further elements (values, qualified names, namespace declarations)
+
+#### 2.7.1 Identifier (§5.7.1)
+
+Elements: mandatory id, enforced. Relations: optional id, supported. The spec's equality
+rule ("two generations are equal if they have the same identifier") is *stricter* in the
+library: `ProvRecord.__eq__` (`records.py:650-658`) also requires equal attribute sets, so
+two same-id records with different extra attributes compare unequal (executed). This is the
+unification/merging domain — deferred to step 30b (`2026-07-10-unification-gap-analysis.md`),
+not re-audited here.
+
+#### 2.7.2 Reserved attributes (§5.7.2)
+
+- `prov:label` "MUST be a string" (§5.7.2.1): not validated — `{PROV_LABEL: 42}` is
+  accepted and rendered `prov:label=42` (executed). §2.8 family.
+- Multiple `prov:label`s incl. language-tagged (spec example 47): supported;
+  `[prov:label="Voiture 01"@fr, prov:label="Car 01"@en]` round-trips through JSON
+  (executed). Conformant.
+- `prov:location`/`prov:role` "allowed in" lists: the model deliberately does not restrict
+  which record types carry which reserved attributes (permissive; consistent with not
+  validating). No finding beyond the §2.8 family note.
+- `prov:type` (§5.7.2.4): multiple values supported (set-valued); pre-defined type
+  constants all exist. String-vs-QualifiedName value distinction is honoured (a string
+  stays a string) — the *documentation* defect around this is #236 (§2.3).
+- `prov:value` "MAY occur at most once" (§5.7.2.5): not enforced —
+  `e = d.entity("ex:e1", {PROV_VALUE: 1}); e.add_attributes({PROV_VALUE: 2})` yields
+  `entity(ex:e1, [prov:value=1, prov:value=2])` (executed). The cardinality guard in
+  `add_attributes` (`records.py:622-626`) covers only formal attributes
+  (`PROV_ATTRIBUTES`), which `prov:value` is not. §2.8 family.
+
+#### 2.7.3 Value / datatypes (§5.7.3)
+
+Anchors: #89 (typed vs untyped literal indistinguishable), #77 (`xsd:decimal` Literal
+comparison), #218/#225 (RDF fidelity), #168 (QName typing in PROV-JSON). New siblings found:
+
+- **`xsd:long` literals silently re-typed as `xsd:int` (filed #235).**
+  `XSD_DATATYPE_PARSERS` (`records.py:160-168`) maps both `XSD_LONG` and `XSD_INT` to
+  Python `int`, so `_auto_literal_conversion` collapses an asserted `xsd:long` literal to a
+  bare `int` at `add_attributes` time; every serializer then emits its reverse-map default
+  `xsd:int` (`provjson.py:69-74`, `provrdf.py:90ff`). Executed:
+  ```
+  e = d.entity("ex:e1", {"ex:attr": Literal("42", XSD_LONG)})
+  e.extra_attributes  ->  ((ex:attr, 42),)          # datatype gone at assertion time
+  JSON: {"ex:attr": {"$": 42, "type": "xsd:int"}}
+  RDF:  ex:attr "42"^^xsd:int .    XML: <ex:attr xsi:type="xsd:int">42</ex:attr>
+  ```
+  The asserted datatype is mutated in all serializations. Note the inconsistency inside
+  the XSD integer family: `xsd:integer`, `xsd:short`, `xsd:byte`, `xsd:decimal`,
+  unsigned/negative variants have *no* parser, remain opaque `Literal`s, and therefore
+  round-trip faithfully (executed for `xsd:integer`/`xsd:decimal`) — only the two parsed
+  types (`xsd:long`, `xsd:int`) lose their identity. Root-cause sibling of #89.
+- **`prov:QUALIFIED_NAME`-typed literals are not resolved to QualifiedNames, breaking
+  round-trip equality (filed #238).** §5.7.3 defines `"ex:value" %% prov:QUALIFIED_NAME`
+  and `'ex:value'` as the *same* value. The model stores
+  `Literal("ex:v", PROV_QUALIFIEDNAME)` opaquely (no parser), so it compares unequal to
+  `QualifiedName(ex, "v")`; the PROV-JSON *decoder* however resolves the type on input, so
+  the value mutates across a round trip and `deserialize(serialize(d)) != d`. Executed:
+  ```
+  d:  entity(ex:e1, [ex:a="ex:v" %% prov:QUALIFIED_NAME])
+  JSON: {"ex:a": {"$": "ex:v", "type": "prov:QUALIFIED_NAME"}}
+  back: entity(ex:e1, [ex:a='ex:v'])     # now a QualifiedName; back != d
+  ```
+  Sibling of #89 (same abstract value, two unequal representations); intersects #168.
+  By contrast `xsd:QName`-typed literals stay opaque in both directions and round-trip
+  stably (executed) — the #168 debate about which type PROV-JSON *should* emit is
+  unchanged.
+- **`xsd:anyURI`**: parsed to `Identifier` and round-trips through JSON intact (executed).
+  Conformant.
+- **`xsd:boolean`**: `parse_boolean` accepts exactly the XSD lexical space
+  (`true/false/1/0`) and rejects others (stays a `Literal`). Conformant.
+- **Time instants (`xsd:dateTime`) — filed #237.** Two defects in the factory time path
+  (`_ensure_datetime`, `records.py:103-112`, used by every `time=`/`startTime=`/`endTime=`
+  parameter):
+  1. Unparseable strings leak a raw `dateutil.parser.ParserError` instead of the
+     `ProvException` the equivalent `add_attributes` path raises (executed:
+     `d.activity("ex:a1", startTime="not a date")` → `ParserError`; setting
+     `PROV_ATTR_STARTTIME` via `add_attributes` → `ProvException`). Same shape as #228's
+     raw-exception leak, in the model API.
+  2. The valid xsd:dateTime hour-24 lexical form is rejected via that same raw error:
+     `startTime="2011-11-16T24:00:00"` → `ParserError: hour must be in 0..23` (executed),
+     though XSD Datatypes permits `24:00:00` (midnight end-of-day).
+  Timezone handling is otherwise sound: offsets and `Z` parse to aware datetimes, an
+  aware `prov:time` round-trips through JSON preserving the offset (executed), and naive
+  vs aware values are simply distinct values (matching XSD's partial ordering).
+  dateutil's *leniency* (accepting non-XSD forms like `"Nov 7, 2011"`) is documented API
+  behaviour ("a string parseable by dateutil.parser.parse") — noted, not a defect.
+- **Language-tagged strings**: `Literal(v, langtag=...)` forces
+  `prov:InternationalizedString` (matching the PROV-JSON/XML rules), JSON round-trip
+  preserves tag and value; RDF round-trip preserves the tag verbatim (`"hello"@EN` stays
+  `@EN`, executed). One value-space nit: RDF 1.1 defines language tags as
+  case-insensitive (lowercase-normalised in the value space), while `Literal.__eq__`
+  compares tags case-sensitively — `Literal("hello", langtag="EN") !=
+  Literal("hello", langtag="en")` (executed). Distinct-representation sibling of the #89
+  family; cosmetic in practice because the library never normalises tags anywhere, so
+  values survive round trips unchanged. Recorded here; **needs maintainer confirmation**
+  whether 3.0 should normalise (no issue filed).
+
+#### 2.7.4 Namespace declarations (§5.7.4)
+
+Prefixed declarations, the default namespace (`set_default_namespace`; unprefixed name
+resolved against it and round-trips through JSON, executed), and the PROV namespace IRI
+(`http://www.w3.org/ns/prov#`, `constants.py:19`) are all conformant.
+
+#### 2.7.5 Qualified names (§5.7.5)
+
+IRI mapping is the required concatenation (`Namespace("ex", "http://example.org/")["foo"]
+.uri == "http://example.org/foo"`, executed). Prefix optionality is handled via the default
+namespace. Output-side escaping of metacharacters in local parts is #223 (already filed,
+applies generically — see section 1); input-side the library accepts arbitrary local parts,
+which is the permissive half of the same coin and needs no separate issue.
+
+**Verdict §5.7:** Identifier, namespace declarations, qualified names — **conformant**
+(modulo #223, already filed). Attributes — **findings listed** (#236 docs idiom; §2.8
+validation family for label/value cardinality). Values/datatypes — **findings listed**
+(#235 xsd:long mutation, #237 dateTime handling, #238 prov:QUALIFIED_NAME resolution;
+langtag case-sensitivity needs maintainer confirmation).
+
+### 2.8 Cross-cutting: unenforced PROV-DM structural constraints (needs maintainer confirmation)
+
+The model is deliberately permissive — it asserts what it is given and defers validity to
+PROV-CONSTRAINTS tooling (#62, backlog). The §5 audit collected every point where that
+permissiveness lets *normative PROV-DM (not PROV-CONSTRAINTS)* rules be violated silently,
+so the 3.0 triage can decide once, coherently, whether any should warn/raise:
+
+1. Mandatory formal attributes can be omitted: `None` values are skipped by
+   `add_attributes` (`records.py:574-576`), so `d.generation(None)` →
+   `wasGeneratedBy(-, -, -)` and `d.communication(None, None)` → `wasInformedBy(-, -)`
+   (executed) — output not derivable from the PROV-N grammar (which requires the entity /
+   both activity identifiers). Reachable only by violating the factory type hints or from
+   non-conformant serialized input.
+2. "At least one of id/…/attributes MUST be present" (Generation §5.1.3, Usage §5.1.4,
+   Start §5.1.6, End §5.1.7, Invalidation §5.1.8, Association §5.3.3): unenforced
+   (`d.generation("ex:e1")` → `wasGeneratedBy(ex:e1, -, -)`, executed — grammatically
+   valid, normatively incomplete).
+3. `prov:value` cardinality (§5.7.2.5) and `prov:label` string-ness (§5.7.2.1): unenforced
+   (§2.7.2, executed).
+4. Id/attributes accepted on Specialization/Alternate/Membership via low-level
+   `new_record` (§2.5, executed) — the public factories are correct.
+5. Derivation generation/usage without activity: allowed (PROV-CONSTRAINTS 51 territory,
+   §2.2).
+
+Items 1–4 are normative-DM deviations; item 5 is CONSTRAINTS-only. **No issues filed** —
+enforcement anywhere here is a behaviour change (2.x-frozen) and whether 3.0 wants
+validation, warnings, or the status quo is an API-philosophy decision for the maintainer
+(step 31 triage). Characterization tests pinning the current behaviour of items 1–3 are in
+`src/prov/tests/test_conformance_dm.py`; items 4–5 are documented here only (they require
+deliberate misuse of the low-level `new_record` API or CONSTRAINTS-level analysis, so
+issue-body repros and scope notes suffice).
+
+**Triage pointer:** Additional "needs maintainer confirmation" items appear in §2.7.3
+(language-tag case-sensitivity for RDF round-trips).
+
+### 2.9 Bugs found en route (not §5 conformance, filed separately)
+
+- **`prov.read()` cannot auto-detect valid PROV-XML (filed #239)** — the Phase-3 loose
+  end, confirmed: format detection tries `json → rdf → provn → xml`
+  (`src/prov/__init__.py:62-68` catches only
+  `TypeError/ValueError/AttributeError/KeyError`), and the RDF deserializer raises
+  `rdflib...BadSyntax` — a `SyntaxError` subclass — on PROV-XML input, which propagates
+  before the XML deserializer is ever tried (executed: `prov.read(path_to_valid_xml)` →
+  `BadSyntax`). Two adjacent modes recorded in the issue: an *empty* source yields a
+  silent empty document (rdflib parses empty trig successfully), and a raw content
+  *string* — which `read()`'s docstring advertises — raises `FileNotFoundError` because a
+  `str` source is always treated as a path (`bundle.py:1686-1691`).
+- **`ProvDocument.serialize()` writes to a repr-named junk file (filed #240)** — the
+  stream test is `isinstance(destination, IOBase)` (`bundle.py:1626`), which is false for
+  common file-likes such as `tempfile.NamedTemporaryFile` (a `_TemporaryFileWrapper`
+  proxy); such destinations fall into the file-path branch and the serialization lands in
+  a file literally named e.g. `<tempfile._TemporaryFileWrapper object at 0x1052cc170>` in
+  the CWD, while the intended file stays empty (executed and observed). On Python 3.14+
+  the manifestation changes: `NamedTemporaryFile.__repr__` now embeds the full file path
+  (including `/` characters), so the repr-derived `open()` raises `FileNotFoundError`
+  instead of silently writing the junk file — same defect, different symptom.
+
+### 2.10 Verification (step 29)
+
+`src/prov/tests/test_conformance_dm.py` adds 6 strict xfails (one per filed defect that is
+reproducible in a few lines: #235, #237 ×2, #238, #239, #240) and 4 characterization tests
+pinning the §2.8 permissive behaviour. Tally moves from the section-0 baseline
+`932 passed, 16 skipped, 6 xfailed` to `936 passed, 16 skipped, 12 xfailed`
+(`uv run pytest`, 2026-07-10); ruff check/format, mypy (strict), and the Sphinx docs build
+all remain clean.
+
 ## 3. Serializer mappings (step 30)
 ### 3.1 PROV-XML vs XSD
 ### 3.2 PROV-JSON vs member submission
@@ -111,6 +458,17 @@ See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for
 ## 5. Issues filed by this audit
 | Issue | Finding | Section |
 |---|---|---|
+| [#235](https://github.com/trungdong/prov/issues/235) | `PROV-DM conformance:` Literal values typed `xsd:long` are silently re-typed as `xsd:int` in every serialization (§5.7.3) | §2.7.3 |
+| [#236](https://github.com/trungdong/prov/issues/236) | `PROV-DM conformance:` documented `prov:type` idiom for agent subtypes asserts a plain string, not the `prov:Person` type (§5.7.2.4) | §2.3 |
+| [#237](https://github.com/trungdong/prov/issues/237) | `PROV-DM conformance:` factory time parameters leak raw dateutil `ParserError` and reject the valid xsd:dateTime hour-24 form (§5.7.3) | §2.7.3 |
+| [#238](https://github.com/trungdong/prov/issues/238) | `PROV-DM conformance:` `prov:QUALIFIED_NAME`-typed Literals are not resolved to QualifiedNames, breaking round-trip equality (§5.7.3) | §2.7.3 |
+| [#239](https://github.com/trungdong/prov/issues/239) | `Bug:` `prov.read()` cannot auto-detect valid PROV-XML — RDF deserializer's `BadSyntax` propagates before the XML deserializer is tried (Phase-3 loose end, confirmed) | §2.9 |
+| [#240](https://github.com/trungdong/prov/issues/240) | `Bug:` `ProvDocument.serialize()` silently writes to a repr-named CWD file when given a non-`io.IOBase` file object (e.g. `NamedTemporaryFile`) | §2.9 |
+
+Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
+confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
+case-sensitivity nit (§2.7.3, needs maintainer confirmation), the Mention/PROV-Links
+labelling nit (§2.5), and the feature gaps already recorded in section 1.
 ## 6. Triage (step 31) — proposed → approved
 | Issue | Bucket (2.x / 3.0 / backlog) | Rationale |
 |---|---|---|
