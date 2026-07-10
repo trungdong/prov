@@ -81,6 +81,7 @@ prov = ["py.typed"]
 dev = [
     "coverage>=7.6.10",
     "hypothesis>=6.156.1",
+    "jsonschema>=4",
     "lxml-stubs>=0.5.1",
     "mypy>=1.19.1",
     "pre-commit>=4.0.1",

@@ -519,6 +519,175 @@ type-inference heuristic (filed #244, deferred to 3.0 under the output
 freeze).
 
 ### 3.2 PROV-JSON vs member submission
+
+**Method:** fetched *A JSON Representation for the PROV Data Model*
+(<https://www.w3.org/submissions/prov-json/>, the 2013 W3C Member
+Submission), vendored the JSON schema linked from its §2.3 ("Validating
+PROV-JSON Documents", <https://www.w3.org/submissions/prov-json/schema>) as
+`src/prov/tests/schemas/prov-json.schema.json` (provenance/quirks noted in
+that directory's README.md), and audited `src/prov/serializers/provjson.py`
+against the submission's §2 (overview: container shape, JSON data typing,
+identifiers) and §3 (per-construct mappings: elements §3.1, relations §3.2,
+bundles §3.3) sections in turn.
+
+**Schema-draft path taken: the test-module path (not the manual-audit
+fallback).** The schema declares `"$schema":
+"http://json-schema.org/draft-04/schema#"`; `jsonschema` 4.x still ships
+`Draft4Validator`, and `jsonschema.validators.validator_for(schema)` picks it
+correctly, so `src/prov/tests/test_json_schema.py` validates all 8
+`examples.tests` documents' `format="json"` output against the schema
+directly (no upgrade/rewrite of the schema needed).
+
+**Result:** 5 of 8 pass; 3 do not, all one root cause (filed #246, below).
+
+#### 3.2.1 Structural encoding (§2 overview, §3.1–§3.2 one-section-per-record-type)
+
+Compared the container shape built by `encode_json_container`
+(`provjson.py:207-277`) against §2's worked skeleton (one top-level property
+per PROV-N keyword, indexed by record identifier, plus `prefix`) and against
+every one of §3.1's three element mappings (Entity, Agent, Activity) and
+§3.2's fourteen relation mappings (Generation through Membership): the
+mapping from `PROV_N_MAP` record-type keyword to top-level JSON property
+matches every one of the submission's worked examples exactly, and every
+formal-attribute name inside a record object (`prov:entity`, `prov:agent`,
+`prov:generatedEntity`, etc.) matches `PROV_ATTRIBUTES`/§3.2's per-relation
+attribute lists one-for-one, executed against each §3.2.*n* example
+individually. Blank-node identifiers (§2.1) are minted via
+`AnonymousIDGenerator` (`provjson.py:41-65`) for any record without an
+explicit identifier; the submission requires the Turtle `nodeID` production
+(`_:name`) — `AnonymousIDGenerator` emits `_:id<n>`, which matches. Multiple
+relation instances sharing an identifier are collated into a JSON array
+(`provjson.py:263-275`) — a documented `prov` extension beyond what the
+submission itself specifies for that case, but consistent with §2.2's
+"properties with multiple values" collation rule for attribute values, and
+harmless (the schema's `additionalProperties` for each relation type has no
+`type` constraint requiring a single object).
+
+**Verdict:** structural encoding — **conformant**.
+
+#### 3.2.2 `$`/`type` value-encoding rules (§2.2 "JSON Data Typing")
+
+Anchors: **#89** (internal representation cannot distinguish a literal with
+an explicit datatype from one without — same root cause surfaces here as
+`encode_json_representation`/`decode_json_representation`'s asymmetry) and
+**#168** (`prov:type='prov:Person'`, a `QualifiedName` value, is encoded as
+`{"$": "prov:Person", "type": "prov:QUALIFIED_NAME"}` —
+`encode_json_representation`, `provjson.py:427-430` — where every one of the
+submission's own worked examples, e.g. §3.1.2, §3.2.7–3.2.9, §3.3, encodes
+the identical construct as `{"$": ..., "type": "xsd:QName"}`). Both remain
+open, unchanged by this audit; not re-reported.
+
+Executed against the vendored schema's `definitions.typedLiteral` (`$`
+required, `string`-typed; `type` optional, `string`-typed; `lang` optional,
+`string`-typed; no other properties):
+
+- **`prov:label`/plain strings/booleans**: emitted as native JSON
+  string/boolean per §2.2's "MAY be represented using the JSON native data
+  types" allowance — conformant, matches every worked example.
+- **Language-tagged strings**: `literal_json_representation`
+  (`provjson.py:476-491`) omits `type` and sets `lang` when a `Literal` has a
+  language tag — matches §2.2's rule ("the `type` property omitted") and its
+  worked example (`{"$": "Londres", "lang": "fr"}`) exactly.
+- **`xsd:anyURI`/`xsd:dateTime`/other typed `Literal`s**: `$` is always
+  `str`-typed (`.isoformat()` for datetime, `value.uri`/`literal.value`
+  otherwise) — conformant.
+- **NEW finding (filed #246) — plain Python `int`/`float` attribute values
+  encode a non-string `$`.** `encode_json_representation`'s
+  `LITERAL_XSDTYPE_MAP` branch (`provjson.py:433-434`) is the *only* branch
+  of that function that does not stringify its value: `return {"$": value,
+  "type": LITERAL_XSDTYPE_MAP[type(value)]}` passes the raw Python
+  `int`/`float` straight through. Executed:
+  ```
+  d.entity("ex:e1", {"ex:count": 100})
+  # JSON: {"ex:count": {"$": 100, "type": "xsd:int"}}   <- $ is a JSON number
+  ```
+  This violates both the submission's prose (§2.2: "The value of a literal is
+  stored in the object's special property `$`, represented as a string") and
+  its schema's `typedLiteral.$: {"type": "string"}`. Reproduced by 3 of the 8
+  `examples.tests` documents — `Bundle1`/`Bundle2` (`ex:version=<int>` inside
+  a nested bundle's entity) and `datatypes` (`ex:int`, `ex:float`, `ex:long`)
+  — each a schema-validation failure in `test_json_schema.py`, strict-xfailed
+  there. Note the submission's own worked examples (e.g. §3.3 Bundles) encode
+  the *identical* construct — a bare untyped `ex:version=1`
+  — as a bare JSON number (`"ex:version": 1`, no `$`/`type` wrapper at all),
+  which is itself in tension with the schema's requirement once a wrapper
+  *is* used; see the fix-direction note left on the issue. Sibling of #235
+  (`xsd:long`→`xsd:int` mutation) for the `ex:long` case specifically, but
+  independent — #235 does not touch `ex:int`/`ex:float`, which this defect
+  does. Any fix changes serialized output, so it's 3.0 material under the
+  2.x output freeze.
+- **Properties with multiple values (§2.2 "Properties with multiple values")**:
+  `encode_json_container` emits a JSON array of per-value encodings when an
+  attribute has more than one value (`provjson.py:258-262`) — matches the
+  submission's worked example (mixed native/typed values in one array)
+  exactly, executed against a multi-valued `ex:values` attribute mixing a
+  plain string, an `xsd:positiveInteger` `Literal`, and a QualifiedName.
+
+**Verdict:** value encoding — **conformant** for native types, language-tagged
+strings, and `Literal`/`Identifier`/`datetime` values; **finding listed**
+(new #246, non-string `$` for plain `int`/`float`); pre-existing #89/#168
+unchanged.
+
+#### 3.2.3 Bundle encoding (§3.3)
+
+`encode_json_document` (`provjson.py:188-204`) puts each named bundle's own
+`encode_json_container` output under `container["bundle"][str(identifier)]`,
+alongside the top-level container's own records — matching §3.3's worked
+example structure exactly (top-level `entity`/`wasGeneratedBy`/etc. for the
+document's own assertions, plus a top-level `bundle` map keyed by bundle
+identifier, each value itself a full PROV-JSON container). The "a bundle's
+content MUST NOT contain another bundle" constraint (§3.3) is enforced at the
+model level (`ProvDocument.bundle()` only permits document-level nesting,
+already audited in §2.4) rather than re-checked by the JSON encoder;
+consistent with that section's conclusion. Executed round-trip of the
+`Bundle1`/`Bundle2` examples (both of which exercise this path) confirms the
+shape matches the submission's worked example field-for-field.
+
+One schema-authoring quirk noted while validating (not a `prov` defect, see
+`schemas/README.md` for the full note): the vendored schema's top-level
+object sets `"additionalProperties": false` but `definitions.bundle` does
+not, so a `mentionOf` relation (PROV-Links, postdates this submission and is
+absent from the schema's `properties` entirely) only validates when it
+appears inside a named bundle — `Bundle2` places its `mentionOf` inside
+`alice:bundle5` and validates cleanly; the identical relation at the document
+root would be schema-rejected as an unrecognised property. Not reachable by
+any of the 8 examples' current shape, so not a test failure; recorded here in
+case a future example adds a top-level `mentionOf`.
+
+**Verdict:** bundle encoding — **conformant**.
+
+#### 3.2.4 Namespace/prefix handling (§2, "prefix"/"default")
+
+`encode_json_container` (`provjson.py:224-229`) emits a `prefix` map from
+every registered namespace plus, if set, a `default` key for the bundle's
+default namespace — matching §2's worked example and its "special prefix
+called `default`" rule exactly. `decode_json_container` (`provjson.py:324-331`)
+mirrors this on input, routing the `default` key to
+`set_default_namespace` and every other key to `add_namespace`. The
+submission's implicit `prov`/`xsd` default-prefix bindings (§2, "Default
+prefixes") are handled identically on both sides: `prov`/`xsd`-prefixed terms
+resolve without an explicit `prefix` entry (`DEFAULT_NAMESPACES`,
+`model/namespaces.py`, executed: a document using bare `prov:type`/`xsd:int`
+values with no `prefix` block round-trips through JSON unchanged). Per-bundle
+`prefix` maps (a named bundle may declare its own namespaces, §3.3's example
+shows only document-level prefixes but doesn't prohibit per-bundle ones) are
+supported identically to the top-level case, since `encode_json_container`/
+`decode_json_container` are the same functions for both.
+
+**Verdict:** namespace/prefix handling — **conformant**.
+
+**Overall §3.2 verdict:** PROV-JSON output is schema-valid except for the
+non-string `$` defect on plain `int`/`float` attribute values (filed #246,
+deferred to 3.0 under the output freeze); structural encoding, bundle
+encoding, and namespace/prefix handling are all conformant; the `$`/`type`
+value-encoding rules are conformant apart from the new #246 finding and the
+pre-existing #89/#168 anchors (unchanged by this audit). Two schema-authoring
+quirks in the *submission's own schema* (not `prov` defects) were noted:
+the `wasEndedby`/`wasEndedBy` casing mismatch and the top-level-only
+`additionalProperties: false` gap for PROV-Links relations like `mentionOf`
+— both documented in `schemas/README.md` and neither reachable by the
+current 8-example corpus.
+
 ### 3.3 PROV-N vs grammar
 ### 3.4 PROV-O vs mapping tables
 ## 4. Unification vs PROV-CONSTRAINTS (step 30b) — summary
@@ -533,14 +702,17 @@ See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for
 | [#239](https://github.com/trungdong/prov/issues/239) | `Bug:` `prov.read()` cannot auto-detect valid PROV-XML — RDF deserializer's `BadSyntax` propagates before the XML deserializer is tried (Phase-3 loose end, confirmed) | §2.9 |
 | [#240](https://github.com/trungdong/prov/issues/240) | `Bug:` `ProvDocument.serialize()` silently writes to a repr-named CWD file when given a non-`io.IOBase` file object (e.g. `NamedTemporaryFile`) | §2.9 |
 | [#244](https://github.com/trungdong/prov/issues/244) | `PROV-XML conformance:` plain Python ints are always typed `xsd:int`, producing schema-invalid output outside the int32 range | §3.1 |
+| [#246](https://github.com/trungdong/prov/issues/246) | `PROV-JSON conformance:` numeric attribute values are encoded with a non-string `$`, violating the submission's typed-literal schema | §3.2 |
 
 Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
 confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
 case-sensitivity nit (§2.7.3, needs maintainer confirmation), the Mention/PROV-Links
-labelling nit (§2.5), the feature gaps already recorded in section 1, and the two §3.1
+labelling nit (§2.5), the feature gaps already recorded in section 1, the two §3.1
 PROV-XML format limitations (QName-incompatible local names; language tags on
 non-`prov:label` attributes) — both are inherent to the PROV-XML schema, not
-implementation defects.
+implementation defects — and the two §3.2 PROV-JSON schema-authoring quirks
+(`wasEndedby` casing typo; top-level-only `additionalProperties: false` gap for
+`mentionOf`) — both are bugs in the submission's own vendored schema, not `prov`.
 ## 6. Triage (step 31) — proposed → approved
 | Issue | Bucket (2.x / 3.0 / backlog) | Rationale |
 |---|---|---|
