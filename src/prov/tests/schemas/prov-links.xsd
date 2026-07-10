@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.w3.org/ns/prov#" xmlns:prov="http://www.w3.org/ns/prov#"
+	elementFormDefault="qualified">
+	
+	<xs:include schemaLocation="prov-core.xsd" />
+	
+	<xs:complexType name="Mention">
+		<xs:sequence>
+			<xs:element name="specificEntity" type="prov:IDRef" />
+			<xs:element name="generalEntity" type="prov:IDRef" />
+			<xs:element name="bundle" type="prov:IDRef" />
+		</xs:sequence>
+	</xs:complexType>
+	
+	<xs:element name="mentionOf" type="prov:Mention" substitutionGroup="prov:internalElement" />
+	
+</xs:schema>

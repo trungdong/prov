@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	targetNamespace="http://www.w3.org/ns/prov#" xmlns:prov="http://www.w3.org/ns/prov#"
+	elementFormDefault="qualified">
+	
+	<xs:include schemaLocation="prov-core.xsd" />	
+		
+	<!-- Dictionary -->
+	<xs:complexType name="Dictionary">
+		<xs:complexContent>
+			<xs:extension base="prov:Collection">
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:element name="dictionary" type="prov:Dictionary" substitutionGroup="prov:internalElement" />
+	
+	<!-- Empty Dictionary -->
+	<xs:complexType name="EmptyDictionary">
+		<xs:complexContent>
+			<xs:extension base="prov:Dictionary">
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
+	
+	<xs:element name="emptyDictionary" type="prov:EmptyDictionary" substitutionGroup="prov:internalElement" />
+		
+	<!-- Key-Entity Pair -->
+	<xs:complexType name="KeyEntityPair">
+        <xs:sequence>
+    	  <xs:element name="key" type="xs:anySimpleType" />
+    	  <xs:element name="entity" type="prov:IDRef" />
+        </xs:sequence>
+	</xs:complexType>
+	
+	<!-- do we need to have this use the substitutionGroup? -->
+	<xs:element name="keyEntityPair" type="prov:KeyEntityPair" substitutionGroup="prov:internalElement"/>
+
+	<!-- Dictionary Membership -->
+	<xs:complexType name="DictionaryMembership">
+	  <xs:sequence>
+		<xs:element name="dictionary" type="prov:IDRef"/>
+		<xs:element name="keyEntityPair" type="prov:KeyEntityPair" minOccurs="1" maxOccurs="unbounded"/>
+	  </xs:sequence>
+	</xs:complexType>
+	
+	<xs:element name="hadDictionaryMember" type="prov:DictionaryMembership" substitutionGroup="prov:internalElement"/>
+
+	<!-- Insertion -->
+	<xs:complexType name="Insertion">
+	  <xs:sequence>
+      <xs:element name="newDictionary" type="prov:IDRef"/>
+      <xs:element name="oldDictionary" type="prov:IDRef"/>
+      <xs:element name="keyEntityPair" type="prov:KeyEntityPair" minOccurs="1" maxOccurs="unbounded"/>
+      <!-- prov attributes -->
+      <xs:element ref="prov:label" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="prov:type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    <xs:attribute ref="prov:id"/>
+    <xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+	
+	<xs:element name="derivedByInsertionFrom" type="prov:Insertion" substitutionGroup="prov:internalElement"/>
+
+	<!-- Removal -->
+	<xs:complexType name="Removal">
+	  <xs:sequence>
+      <xs:element name="newDictionary" type="prov:IDRef"/>
+      <xs:element name="oldDictionary" type="prov:IDRef"/>
+      <xs:element name="key" type="xs:anySimpleType" minOccurs="1" maxOccurs="unbounded" />
+      <!-- prov attributes -->
+      <xs:element ref="prov:label" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="prov:type" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+	  </xs:sequence>
+    <xs:attribute ref="prov:id"/>
+    <xs:anyAttribute namespace="##other" processContents="lax"/>
+	</xs:complexType>
+	
+	<xs:element name="derivedByRemovalFrom" type="prov:Removal" substitutionGroup="prov:internalElement"/>
+
+</xs:schema>
