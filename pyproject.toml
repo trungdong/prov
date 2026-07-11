@@ -73,6 +73,7 @@ prov = ["py.typed"]
     "rdf/*.ttl",
     "rdf/*.trig",
     "unification/*.json",
+    "unification/constraints/*",
     "malformed/*",
     "schemas/*",
 ]

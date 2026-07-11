@@ -1,0 +1,19 @@
+<?org.openprovenance.prov.xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+        <prov:activity prov:id="ex:e1">
+        </prov:activity>
+        <prov:entity prov:id="ex:a1">
+        </prov:entity>
+
+            <prov:used>
+                <prov:time>2012-11-16T16:05:00</prov:time>
+                <prov:activity prov:ref="ex:e1"/>
+                <prov:entity prov:ref="ex:a1"/>
+            </prov:used>
+            <prov:used prov:id="ex:use1">
+                <prov:time>2011-11-16T16:05:00</prov:time>
+                <prov:activity prov:ref="ex:e1"/>
+                <prov:entity prov:ref="ex:a1"/>
+            </prov:used>
+</prov:document>

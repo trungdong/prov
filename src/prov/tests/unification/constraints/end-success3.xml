@@ -1,0 +1,23 @@
+<?org.openprovenance.prov.xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <prov:entity prov:id="ex:e1">
+        </prov:entity>
+        <prov:activity prov:id="ex:a1">
+        </prov:activity>
+        <prov:activity prov:id="ex:a2">
+        </prov:activity>
+
+        <prov:wasEndedBy prov:id="ex:end1">
+          <!-- able to unify time -->
+          <prov:activity prov:ref="ex:a1"/>
+          <prov:trigger prov:ref="ex:e1"/>
+          <prov:ender prov:ref="ex:a2"/>
+        </prov:wasEndedBy>
+        <prov:wasEndedBy>
+	  <prov:time>2011-11-16T16:05:00</prov:time>
+	  <!-- able to unify the end id -->
+          <prov:activity prov:ref="ex:a1"/>
+	  <!-- able to unify the trigger id -->
+          <prov:ender prov:ref="ex:a2"/>
+        </prov:wasEndedBy>
+</prov:document>
