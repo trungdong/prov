@@ -1,0 +1,22 @@
+<?org.openprovenance.prov.xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <prov:entity prov:id="ex:e1">
+	  <prov:type xsi:type="xsd:QName">prov:Plan</prov:type>
+        </prov:entity>
+        <prov:activity prov:id="ex:a1">
+        </prov:activity>
+        <prov:agent prov:id="ex:ag1">
+        </prov:agent>
+
+            <prov:wasAssociatedWith prov:id="ex:assoc1">
+                <prov:activity prov:ref="ex:a1"/>
+                <prov:agent prov:ref="ex:ag1"/>
+                <prov:plan prov:ref="ex:e1"/>
+            </prov:wasAssociatedWith>
+            <prov:wasAssociatedWith prov:id="ex:assoc1">
+                <prov:activity prov:ref="ex:a1"/>
+                <prov:agent prov:ref="ex:ag1"/>
+                <prov:plan prov:ref="ex:e1-other"/>
+            </prov:wasAssociatedWith>
+
+</prov:document>

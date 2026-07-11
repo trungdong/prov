@@ -1,0 +1,11 @@
+<?org.openprovenance.prov.xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <prov:entity prov:id="ex:e1">
+        </prov:entity>
+
+            <prov:specializationOf>
+                <prov:specificEntity prov:ref="ex:e1"/>  <!-- reflexive -->
+                <prov:generalEntity prov:ref="ex:e1"/>
+            </prov:specializationOf>
+
+</prov:document>

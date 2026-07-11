@@ -951,7 +951,48 @@ items. Emitting qualified-form-only (identified/qualified cases) is conformant u
 PROV-O §3.1's explicit either-or-both allowance, though the spec encourages also including
 the binary triple — a 3.0 consideration.
 ## 4. Unification vs PROV-CONSTRAINTS (step 30b) — summary
-See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for step 36b).
+
+Full rule-by-rule analysis (the authority for the step 36b reimplementation):
+`docs/superpowers/specs/2026-07-10-unification-gap-analysis.md`. Audited 2026-07-11 on
+branch `audit/unification-constraints` against
+[PROV-CONSTRAINTS (W3C REC 2013-04-30)](https://www.w3.org/TR/prov-constraints/) §4
+(term unification), §6.1 (uniqueness/key Constraints 22–29), and §7.2 (bundle
+scoping), using the 153-case ProvToolbox/W3C unification corpus vendored under
+`src/prov/tests/unification/constraints/` (origin/licence in its README) and locked
+by `src/prov/tests/test_unification_constraints.py`. Headlines:
+
+- **`_unified_records()` (`src/prov/model/bundle.py:384-414`) is an identifier-keyed
+  attribute union, not PROV-CONSTRAINTS merging** — umbrella **filed #253** (fix
+  vehicle: step 36b, 3.0). Gap classes, each with an executed example and a
+  characterization test: no pairwise term unification of formal attributes
+  (Constraints 22/23); concrete-vs-concrete conflicts rejected only *accidentally*
+  by `add_attributes`'s cardinality guard (`records.py:622-643` — right outcome
+  class, undocumented generic `ProvException`, 25 corpus fail-cases); placeholder
+  (`-`) vs concrete merges silently (the model cannot represent `-`; 12 corpus
+  fail-cases); incompatible types merge silently (entity + activity sharing an id
+  become an *entity* carrying `prov:startTime` as a literal extra attribute — the
+  result depends on record order; Constraints 50/55); uniqueness Constraints 24–29
+  (keys other than the identifier) are not applied in either direction — invalid
+  duplicates pass through *and* valid instances never reach the spec's normal form
+  (anonymous records that unique-generation would fold in stay separate).
+- **Bundle scoping is the conformant part:** `ProvDocument.unified()`
+  (`bundle.py:1455-1480`) unifies the toplevel and each sub-bundle independently of
+  each other (§7.2), confirmed by test. The `flattened().unified()` idiom (as
+  `test_unifying` uses) merges across bundle boundaries — spec-invalid usage,
+  characterized and recorded for 36b to document as outside PROV-CONSTRAINTS.
+- **Corpus tally:** 85 success / 68 fail files; 83 parseable success cases all unify
+  without complaint; 25 fail-cases hit the accidental guard; 42 fail-cases merge or
+  pass silently; 3 files cannot be parsed at all.
+- **En-route PROV-XML bug (filed #254):** the 3 unparseable `bundle-*` files crash
+  the XML deserializer with a raw `UnboundLocalError`
+  (`provxml._extract_attributes`, `provxml.py:456`) — a child element whose only XML
+  attributes are unrecognised (here ProvToolbox's `<prov:bundle>` dialect, not the
+  XSD's `<prov:bundleContent>`) assigns no value, and a second, worse mode silently
+  reuses the *previous sibling's* value (executed: after `<ex:first>hello</ex:first>`,
+  `<ex:second ex:junk="x">world</ex:second>` deserializes as `ex:second="hello"`).
+  Sibling of
+  #228 (JSON leg); the inputs are schema-invalid, but malformed input must raise
+  `ProvXMLException`, not corrupt data.
 ## 5. Issues filed by this audit
 | Issue | Finding | Section |
 |---|---|---|
@@ -967,6 +1008,8 @@ See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for
 | [#249](https://github.com/trungdong/prov/issues/249) | `PROV-N/PROV-O conformance:` plain Python ints outside the 32-bit range are asserted as `xsd:int` in PROV-N and PROV-O output | §3.3/§3.4 |
 | [#250](https://github.com/trungdong/prov/issues/250) | `PROV-O conformance:` anonymous qualified Communication/Attribution/Delegation/Influence nodes omit their influencer property, producing ambiguous PROV-O (root cause of #226) | §3.4 |
 | [#251](https://github.com/trungdong/prov/issues/251) | `PROV-N conformance:` plain Python floats serialize as `%g`-formatted `xsd:float`, diverging from the `xsd:double` all other serializers assert and truncating precision | §3.3 |
+| [#253](https://github.com/trungdong/prov/issues/253) | `PROV-CONSTRAINTS conformance:` `unified()` does not implement PROV-CONSTRAINTS merging (umbrella; authority: the step-30b gap-analysis doc; fix vehicle: step 36b) | §4 |
+| [#254](https://github.com/trungdong/prov/issues/254) | `Bug:` PROV-XML deserializer leaks raw `UnboundLocalError` or silently reuses the previous attribute's value on unrecognised XML attributes (sibling of #228) | §4 |
 
 Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
 confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
