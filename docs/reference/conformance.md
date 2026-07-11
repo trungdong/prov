@@ -28,7 +28,7 @@ Every cell below was checked directly against the current source: model classes 
   `,`, `(`, `:`, `;`, `[`, `]`, `=` — in an identifier's local part), which is a property of
   *identifiers*, not of any one record type; it is noted once here rather than on every row.
 
-Two more caveats apply across many rows rather than to one:
+More caveats apply across many rows rather than to one:
 
 - **[#217](https://github.com/trungdong/prov/issues/217)** (RDF): 14 statement-level test cases
   assert two relations that share one identifier but differ only in `prov:time`; PROV-O has no
@@ -42,6 +42,32 @@ Two more caveats apply across many rows rather than to one:
 - **[#225](https://github.com/trungdong/prov/issues/225)** (RDF): a Python `float` attribute
   (typed `xsd:float`) can lose precision through RDF, regardless of record type, because the
   RDF serializer canonicalises `xsd:float` to a short decimal form.
+- **[#235](https://github.com/trungdong/prov/issues/235)** (all formats): a `Literal`
+  explicitly typed `xsd:long` is silently collapsed to a plain `int` at assertion time, so
+  every serializer emits it as `xsd:int` — the asserted datatype is lost before serialization.
+- **[#244](https://github.com/trungdong/prov/issues/244)** (XML) /
+  **[#249](https://github.com/trungdong/prov/issues/249)** (PROV-N) /
+  **[#256](https://github.com/trungdong/prov/issues/256)** (RDF): plain Python `int` values
+  are always typed `xsd:int` with no magnitude check, so a value outside the 32-bit range
+  produces schema-invalid XML, a value-invalid PROV-N integer literal, and an ill-typed RDF
+  literal, respectively.
+- **[#246](https://github.com/trungdong/prov/issues/246)** (JSON): plain `int`/`float`
+  attribute values are encoded with a non-string `$` property, violating the PROV-JSON
+  submission's typed-literal schema (the output still round-trips through `prov` itself).
+- **[#251](https://github.com/trungdong/prov/issues/251)** (PROV-N): plain Python `float`
+  values are emitted as `%g`-formatted `xsd:float` — a different datatype (and, beyond 6
+  significant digits, a different value) than the `xsd:double` the JSON/XML/RDF serializers
+  assert for the same document.
+- **[#238](https://github.com/trungdong/prov/issues/238)** (JSON): `prov:QUALIFIED_NAME`-typed
+  `Literal`s are stored opaquely by the model but resolved to `QualifiedName`s by the JSON
+  decoder, so such a value mutates across a JSON round trip and breaks document equality.
+- **[#237](https://github.com/trungdong/prov/issues/237)** (model): every factory
+  `time=`/`startTime=`/`endTime=` parameter leaks a raw `dateutil` `ParserError` on
+  unparseable strings (instead of `ProvException`) and rejects the valid `xsd:dateTime`
+  hour-24 lexical form.
+- **[#259](https://github.com/trungdong/prov/issues/259)** (model): `Literal` language tags
+  compare case-sensitively, diverging from RDF 1.1's case-insensitive language-tag value
+  space (tags are never normalised, so values do survive round trips unchanged).
 
 ## Component 1 — Entities and Activities
 
@@ -51,7 +77,7 @@ Two more caveats apply across many rows rather than to one:
 | Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ |
 | Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
 | Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
-| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ |
+| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ (anonymous *qualified* communications omit `prov:activity`: [#250](https://github.com/trungdong/prov/issues/250)) |
 | Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
 | End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
 | Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
@@ -86,11 +112,11 @@ output from this library always uses the base `wasDerivedFrom` form.
 | --- | --- | --- | --- | --- | --- | --- |
 | Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ |
 | Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | none — see finding below | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ |
-| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ |
+| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ (anonymous *qualified* attributions omit `prov:agent`: [#250](https://github.com/trungdong/prov/issues/250)) |
 | Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ |
 | Plan §5.3.3 | via `association(plan=...)` | — | — (plan is an ordinary entity referenced by the association's `plan` formal attribute) | ✓ | ✓ | ✓ |
-| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ (anonymous qualified delegations sharing (delegate, activity): [#226](https://github.com/trungdong/prov/issues/226)) |
-| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ |
+| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ (anonymous qualified delegations sharing (delegate, activity): [#226](https://github.com/trungdong/prov/issues/226); the encode-side root cause — the qualified node omits `prov:agent` — is [#250](https://github.com/trungdong/prov/issues/250)) |
+| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ (anonymous *qualified* influences omit `prov:influencer`: [#250](https://github.com/trungdong/prov/issues/250)) |
 
 **Finding:** PROV-DM defines Person, Organization, and SoftwareAgent as agent subtypes, and Plan
 as an entity subtype used with associations. `prov` has no dedicated classes or factories for the
@@ -98,6 +124,9 @@ agent subtypes — you express them with `agent("ag", {PROV_TYPE: "prov:Person"}
 needs no special handling at all, since it is just an entity passed as the `plan=` argument to
 `association()`. This is a documented, intentional design choice
 (`docs/explanation/prov-dm.md:111-114`), not a defect; see finding log for the audit note.
+Convenience factories for the three agent subtypes (together with `EmptyCollection`, see
+Component 6) are now tracked as
+[#260](https://github.com/trungdong/prov/issues/260).
 
 ## Component 4 — Bundles
 
@@ -117,15 +146,16 @@ are consumed only by `dot.py` (for node styling) — no serializer or
 {py:class}`~prov.model.ProvBundle` method ever produces a `prov:Bundle`-typed entity, and
 `get_provn()`'s `bundle <id> ... endBundle` output is generated structurally (branching on
 `is_document()`), not through that keyword lookup. There is currently no supported way to
-attribute a bundle to an agent as a first-class PROV statement.
+attribute a bundle to an agent as a first-class PROV statement. Tracked as
+[#261](https://github.com/trungdong/prov/issues/261).
 
 ## Component 5 — Alternate Entities
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
 | --- | --- | --- | --- | --- | --- | --- |
 | Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ |
-| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ |
-| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` | ✓ | ✓ | ✓ |
+| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple is emitted with subject/object transposed relative to the PROV-DM argument order — symmetric-relation-safe, but third-party consumers see the arguments swapped: [#258](https://github.com/trungdong/prov/issues/258)) |
+| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted *without* the `prov:` prefix the PROV-Links grammar requires: [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ |
 
 ## Component 6 — Collections
 
@@ -139,7 +169,8 @@ attribute a bundle to an agent as a first-class PROV statement.
 `ADDITIONAL_N_MAP`/`PROV_BASE_CLS` entry in `constants.py`, so the round-trip machinery
 understands it — but there is no `empty_collection()` factory or `empty=` flag on `collection()`
 to set the type for you; you would add `prov:type: "prov:EmptyCollection"` by hand via
-`other_attributes`.
+`other_attributes`. Tracked (together with the agent-subtype factories, see Component 3) as
+[#260](https://github.com/trungdong/prov/issues/260).
 
 ## Additional attributes
 
@@ -159,12 +190,24 @@ shared attribute test matrix (`test_attributes.py`, `ATTRIBUTE_VALUES` in
 Any attribute value (regardless of which of the five above it is) is additionally subject to
 **[#224](https://github.com/trungdong/prov/issues/224)** (XML drops the empty string `""`) and
 **[#225](https://github.com/trungdong/prov/issues/225)** (RDF can lose `xsd:float` precision) —
-both are properties of the value's type, not of the attribute name.
+both are properties of the value's type, not of the attribute name — as are the other
+value-level caveats listed under the round-trip column key above
+([#235](https://github.com/trungdong/prov/issues/235),
+[#238](https://github.com/trungdong/prov/issues/238),
+[#244](https://github.com/trungdong/prov/issues/244)/[#249](https://github.com/trungdong/prov/issues/249)/[#256](https://github.com/trungdong/prov/issues/256),
+[#246](https://github.com/trungdong/prov/issues/246),
+[#251](https://github.com/trungdong/prov/issues/251),
+[#259](https://github.com/trungdong/prov/issues/259)).
 
 ## Maintenance
 
-This matrix reflects the codebase as of the Phase 3.5 conformance audit (roadmap step 28) and
-should be revisited at each release as serializers change or issues close. Release 3.1.0 adds a
+This matrix reflects the codebase as of the Phase 3.5 conformance audit (roadmap steps 28–32,
+completed 2026-07-11) and should be revisited at each release as serializers change or issues
+close. Beyond the per-format round trips above, the audit also confirmed that
+`ProvBundle.unified()` performs an identifier-keyed attribute union rather than
+[PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) merging — tracked as the umbrella
+issue [#253](https://github.com/trungdong/prov/issues/253), with the full gap analysis in the
+audit findings; the rework is scheduled for 3.0. Release 3.1.0 adds a
 PROV-JSONLD serializer; when that lands, this page gains a JSON-LD column
 alongside JSON/XML/RDF. See {doc}`../explanation/prov-dm` for the conceptual background behind
 each component, and {doc}`model` for the full class/method API reference.
