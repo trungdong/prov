@@ -689,7 +689,267 @@ the `wasEndedby`/`wasEndedBy` casing mismatch and the top-level-only
 current 8-example corpus.
 
 ### 3.3 PROV-N vs grammar
+
+**Method:** audit-only, no shipped test code (PROV-N has no parser in `prov` — #122 — so
+there is nothing to round-trip; `provconvert` must not become a test dependency). Every
+`examples.tests` document's `get_provn()` output, plus a 39-case grammar stress corpus, was
+fed to ProvToolbox 2.0.4's `provconvert` (`/usr/local/bin/provconvert`, Java ANTLR-based
+PROV-N parser) as an external grammar oracle, checked against the
+[PROV-N REC grammar](https://www.w3.org/TR/prov-n/) (production numbers below are the REC's).
+All scripts and captured outputs live in the session scratchpad (not committed); the
+generator was:
+
+```bash
+OUT=<scratchpad>/provn-audit && mkdir -p "$OUT"
+uv run python - "$OUT" <<'EOF'
+import sys
+from pathlib import Path
+from prov.tests import examples
+
+out = Path(sys.argv[1])
+for name, factory in examples.tests:
+    (out / (name.replace(" ", "_") + ".provn")).write_text(factory().get_provn())
+EOF
+for f in "$OUT"/*.provn; do
+    provconvert -infile "$f" -outfile "${f%.provn}.xml" \
+        && echo "OK   $(basename "$f")" || echo "FAIL $(basename "$f")"
+done
+```
+
+**Oracle caveat (matters for reading every transcript below):** `provconvert` exits 0 even
+when its ANTLR parser hits syntax errors — it error-recovers, prints
+`Parsing not processed for 0` to stderr, and writes whatever survived recovery (possibly an
+empty document) to the output file. A meaningful "parses cleanly" verdict therefore required
+exit 0 **and** clean stderr **and** the expected records present in the converted output;
+every OK below was checked that way (stderr logs swept for `Parsing not processed`; outputs
+grepped for the expected identifiers/values).
+
+#### 3.3.1 Examples corpus (8 documents)
+
+```
+OK   Bundle1.provn
+FAIL Bundle2.provn
+OK   collections.provn
+FAIL datatypes.provn
+OK   Long_literals.provn
+OK   Primer.provn
+OK   W3C_Publication_1.provn
+OK   W3C_Publication_2.provn
+```
+
+The six OKs are genuine (clean stderr, records present) — including `W3C_Publication_1`,
+whose `chairs:2011OctDec/0004` identifier is invalid in PROV-XML (§3.1) but fine in PROV-N
+(`/` is in `PN_CHARS_OTHERS`, production [54]). Both FAILs were triaged individually with
+control experiments; they have different causes and neither is a whole-document problem:
+
+1. **`Bundle2` — `mentionOf` line; two distinct facts, one filed (#248).**
+   `provconvert` dies post-parse with `UnsupportedOperationException: newMentionOf not
+   supported` at `vanilla.ProvFactory.newMentionOf` — the parse itself succeeded (the stack
+   is in `TreeTraversal.convert`, i.e. tree-to-bean conversion), so this exit is an **oracle
+   limitation** of ProvToolbox 2.0.4's "vanilla" model, not a grammar verdict. Control:
+   stripping the single `mentionOf(...)` line makes the rest of `Bundle2` parse cleanly (OK).
+   However, checking the construct against the specs directly surfaced a real defect:
+   Mention is not in the PROV-N REC grammar at all (dropped to the PROV-Links Note; REC
+   change log "Moved feature at Risk mention into a separate note"), the REC's fallback
+   `extensibilityExpression` (production [49], §5) requires the predicate to be "a
+   qualifiedName with a non-empty prefix", and PROV-Links' own production is
+   `mentionExpression ::= "prov:mentionOf" "(" ... ")"` — prefix explicit (its change log:
+   "Updated grammar to make prov prefix explicit"). `prov` emits bare `mentionOf(...)`
+   (`PROV_N_MAP[PROV_MENTION]`), derivable from neither grammar — **filed #248**. Triage
+   nuance recorded on the issue: ProvToolbox's own PROV-N writer
+   (`NotationConstructor.newMentionOf`, `modules-core/prov-n/.../NotationConstructor.java:282`)
+   and ANTLR grammar (`PROV_N.g:338`) use the same bare keyword, so the deviation is a
+   de-facto interop convention with the Java reference implementation, and a spec-exact fix
+   would break `provconvert` parsing as currently generated.
+2. **`datatypes` — bare out-of-range `INT_LITERAL`; filed #249.** `provconvert` fails with
+   `NumberFormatException: For input string: "123456789000"` while converting
+   `ex:long=123456789000`. Per §3.7.3 (production [43] `convenienceNotation`, terminal [60]
+   `INT_LITERAL`), a bare integer is "syntactic sugar for quoted strings with datatype ...
+   xsd:int" — so the text is *grammatical* but asserts a value outside `xsd:int`'s 32-bit
+   value space, which the oracle correctly rejects at `Integer.parseInt`. Control: replacing
+   the value with a small integer parses the rest of the document cleanly (OK — including
+   the `"""..."""` multiline string, the `@en` language tag and the `%% xsd:float`/
+   `xsd:boolean`/`xsd:dateTime` typed literals). Root cause is `encoding_provn_value`'s
+   final `else: return str(value)` branch (`src/prov/model/records.py:223-225`) — no
+   magnitude check on plain `int`s. Same defect family as #244 (XML leg) / #246 (JSON leg) /
+   #235 (`xsd:long` collapse feeding all legs); **filed #249** deliberately covering the
+   PROV-N leg and the PROV-O leg together (see §3.4) — the two code sites (`records.py`,
+   `provrdf.py`) are independently fixable, so step 31 triage may split it into separate
+   fix PRs (scope note also left on the issue).
+
+#### 3.3.2 Grammar stress corpus (39 cases)
+
+Generated per category and run through the same oracle-plus-verification procedure:
+
+- **#223 metacharacter local parts (6 cases: `ex:n'ame`, and locals containing `(`, `)`,
+  `,`, `=`, `;`) — all 6 mis-parse; all are #223, no new issue.** The violated productions
+  are [52] `QUALIFIED_NAME` / [53] `PN_LOCAL` / [55] `PN_CHARS_ESC` (§3.7.1): the spec is
+  explicit that these delimiter characters "are not allowed in local parts" unescaped and
+  must appear `\`-escaped per `PN_CHARS_ESC`; `QualifiedName.provn_representation()` emits
+  them raw. Three distinct oracle failure modes, two of them silent (worth quoting because
+  they show the corruption a downstream PROV-N consumer would experience):
+  - `,` (`ex:na,me`): hard crash, exit 1 (`NullPointerException` building the mangled
+    attribute list) — the only case a naive exit-code check catches.
+  - `)` (`ex:na)me`): **exit 0, silent truncation** — the oracle's output contains
+    `entity(ex:na)`; the identifier was cut at the unescaped delimiter and the remainder
+    discarded by error recovery.
+  - `'`, `(`, `=`, `;`: **exit 0, record silently dropped** — parse errors on stderr and an
+    empty document out.
+- **Non-ASCII identifiers and values (3 cases) — all OK.** `ex:実験データ` (CJK) and
+  `ex:ניסוי` (RTL Hebrew) parse and survive into the output verbatim ([53] `PN_LOCAL` builds
+  on SPARQL `PN_CHARS`, which spans these ranges); a string attribute value mixing CJK,
+  accented Latin, Hebrew and Arabic also round-trips through the oracle intact.
+- **Language-tagged literals (1 additional case beyond the `ATTRIBUTE_VALUES[1..2]`
+  entries already counted in the 28-entry bullet below) — OK.** `@fr` on
+  `prov:label` and `@ja` on an extra attribute both parse ([43]'s `STRING_LITERAL
+  (LANGTAG)?`) and come back as `xml:lang`-tagged values in the oracle's XML.
+- **`ATTRIBUTE_VALUES` corpus (28 cases, one document per entry asserted on an extra
+  attribute) — all 28 OK**, covering every XSD numeric type in the corpus, booleans,
+  `xsd:anyURI`, `Identifier`, QualifiedNames across several namespaces, and both `datetime`
+  entries. (Index 4, `Literal(1, XSD_LONG)`, is only "OK" because #235 has already collapsed
+  it to `xsd:int` before serialization — the value 1 is in range, so the oracle cannot see
+  the mutation; the datatype defect is #235's, not a new grammar finding.)
+- **Time-zoned datetimes (1 case: `startTime`/`endTime`/`prov:time` carrying +05:30 and
+  -07:00 offsets, with microseconds) — OK.** All three render as ISO-8601 with offset inside
+  a `time`/`"..." %% xsd:dateTime` slot and parse; offsets survive into the oracle's output.
+
+**En-route finding (filed #251):** while auditing `encoding_provn_value`
+(`src/prov/model/records.py:205-225`) against the literal productions, its `float` branch
+was found to emit `f'"{value:g}" %% xsd:float'` — the same plain Python float that
+JSON/XML/RDF all serialize as `xsd:double` (`provjson.py:69-74`, `provxml.py:221-226`,
+`provrdf.py:91-97`) is asserted as `xsd:float` in PROV-N **and** `%g`-truncated to 6
+significant digits (executed: `0.123456789` → `"0.123457" %% xsd:float` in PROV-N vs
+`{"$": 0.123456789, "type": "xsd:double"}` in PROV-JSON). Grammatical, but the same
+document asserts different typed values per format. Sibling of #225/#89; invisible to
+round-trip tests because PROV-N is write-only.
+
+**Verdict:** PROV-N output is grammar-valid for the whole examples corpus and the
+whole stress corpus **except**: (a) metacharacter local parts — #223, confirmed against
+productions [52]/[53]/[55] with three concrete downstream failure modes; (b) bare
+`mentionOf` — not derivable from the REC or PROV-Links grammars, **new #248** (with the
+ProvToolbox-parity triage note); (c) out-of-int32-range plain ints — grammatical but
+value-invalid `INT_LITERAL`s, **new #249**; plus (d) the `%g`/`xsd:float` plain-float
+divergence, **new #251**. Non-ASCII/CJK/RTL names, language tags, the full
+`ATTRIBUTE_VALUES` datatype corpus and non-UTC-offset datetimes are all conformant.
+
 ### 3.4 PROV-O vs mapping tables
+
+**Method:** audited `src/prov/serializers/provrdf.py` (encode side) against
+[PROV-O (W3C REC 2013-04-30)](https://www.w3.org/TR/prov-o/) — the two normative
+Qualification Pattern tables in §3.1 "Qualified Terms" (7 Starting-Point + 7 Expanded
+qualifiable relations, each with its qualification property, qualified class and influencer
+property) and the per-term cross reference. Verification was empirical, not code-reading
+alone: a scratch script serialized every record type to N-Triples in three variants —
+minimal anonymous (binary form), anonymous with all formals + extra attributes (forces the
+qualified pattern on a blank node), and identified (forces the qualified pattern on an IRI)
+— and the emitted triples were compared against the spec tables per type. Decode-side
+round-trip fidelity is anchored by the existing #217/#218/#225/#226 issues and was not
+re-audited; #96 (turtle prefix propagation) is the standing anchor for
+namespace-into-rdflib quirks.
+
+**A key spec allowance frames the whole table:** PROV-O §3.1 states "It is correct and
+acceptable for an implementer to use either qualified or unqualified forms as they choose
+(or both) ... When the qualified form is expressed, including the equivalent unqualified
+form can facilitate PROV-O consumption, and is thus encouraged." `prov` emits the binary
+triple *only* when no qualification is needed for 7 relation types
+(the `rec_type not in {...}` set at `provrdf.py:476-491`: Generation, Usage, Start, End,
+Invalidation, Derivation, Association) but *always* for the other qualifiable 4
+(Communication, Attribution, Delegation, Influence) — inconsistent style, but both patterns
+are conformant under that allowance, **except** for the influencer-property omission filed
+as #250 (below). Identified relations of every type emit only the qualified form (no binary
+triple) — also covered by the allowance.
+
+Per-type verdicts (empirical; "binary" = unqualified property triple, "qualified" =
+qualification property + class + node contents):
+
+| Record type | Binary form emitted | Qualified form emitted | Verdict |
+|---|---|---|---|
+| Entity | `?e a prov:Entity` | n/a | **conformant** (`prov:label`→`rdfs:label`, `prov:type`→`rdf:type`, `prov:location`→`prov:atLocation`, `prov:value` passthrough all verified) |
+| Activity | `?a a prov:Activity` + `prov:startedAtTime`/`prov:endedAtTime` (xsd:dateTime) | n/a | **conformant** |
+| Agent | `?ag a prov:Agent` | n/a | **conformant** |
+| Generation | `e prov:wasGeneratedBy a` (minimal only) | `prov:qualifiedGeneration` → `prov:Generation` [`prov:activity`, `prov:atTime`, `prov:hadRole`] | **conformant** (qualified-only when qualified; spec-allowed) |
+| Usage | `a prov:used e` (minimal only) | `prov:qualifiedUsage` → `prov:Usage` [`prov:entity`, `prov:atTime`, `prov:hadRole`] | **conformant** (ditto) |
+| Communication | `a2 prov:wasInformedBy a1` (always) | `prov:qualifiedCommunication` → `prov:Communication` [**no `prov:activity` when anonymous** — #250; present when identified] | **finding (#250)** |
+| Start | `a prov:wasStartedBy trigger` (minimal only) | `prov:qualifiedStart` → `prov:Start` [`prov:entity`, `prov:hadActivity` (starter), `prov:atTime`] | **conformant** |
+| End | `a prov:wasEndedBy trigger` (minimal only) | `prov:qualifiedEnd` → `prov:End` [`prov:entity`, `prov:hadActivity` (ender), `prov:atTime`] | **conformant** |
+| Invalidation | `e prov:wasInvalidatedBy a` (minimal only) | `prov:qualifiedInvalidation` → `prov:Invalidation` [`prov:activity`, `prov:atTime`] | **conformant** |
+| Derivation | `e2 prov:wasDerivedFrom e1` (minimal only) | `prov:qualifiedDerivation` → `prov:Derivation` [`prov:entity`, `prov:hadActivity`, `prov:hadGeneration`, `prov:hadUsage`]; Revision/Quotation/PrimarySource subtypes re-map to `prov:qualifiedRevision`/`Quotation`/`PrimarySource` + `prov:Revision`/etc. per the Expanded table | **conformant** |
+| Attribution | `e prov:wasAttributedTo ag` (always) | `prov:qualifiedAttribution` → `prov:Attribution` [**no `prov:agent` when anonymous** — #250; present when identified] | **finding (#250)** |
+| Association | `a prov:wasAssociatedWith ag` (minimal only) | `prov:qualifiedAssociation` → `prov:Association` [`prov:agent`, `prov:hadPlan`, `prov:hadRole`]; agent-less plan-only association emits a valid agent-less qualified node | **conformant** |
+| Delegation | `ag2 prov:actedOnBehalfOf ag1` (always) | `prov:qualifiedDelegation` → `prov:Delegation` [`prov:hadActivity` but **no `prov:agent` when anonymous** — #250; present when identified] | **finding (#250)** |
+| Influence | `o2 prov:wasInfluencedBy o1` (always) | `prov:qualifiedInfluence` → `prov:Influence` [**no `prov:influencer` when anonymous** — #250; present when identified] | **finding (#250)** |
+| Specialization | `sub prov:specializationOf super` | none in PROV-O (not qualifiable) — but see low-level note below | **conformant** (public API) |
+| Alternate | `alt2 prov:alternateOf alt1` — **argument order reversed** vs the DM mapping | none in PROV-O | **conformant with note** (see below) |
+| Mention | `infra prov:mentionOf supra` + `infra prov:asInBundle b` | none defined | **conformant extension** (PROV-Links; terms removed from the PROV-O REC itself — its change log: "Removed prov:mentionOf and prov:asInBundle, which have been relocated to its own Note") |
+| Membership | `c prov:hadMember e` | none in PROV-O (not qualifiable) — but see low-level note below | **conformant** (public API) |
+
+Findings in detail:
+
+- **Filed #250 — anonymous qualified Communication/Attribution/Delegation/Influence nodes
+  omit their influencer property.** For these four types the influencer endpoint is consumed
+  by the always-emitted binary triple (`used_objects.append(...)`, `provrdf.py:492`) and
+  never re-emitted on the qualified node, so the node violates the normative tables' shape
+  (`prov:activity`/`prov:agent`/`prov:influencer` respectively) and is uninterpretable in
+  isolation. Executed ambiguity proof: two attributed attributions of `ex:e1` to different
+  agents emit two `prov:Attribution` bnodes carrying only their extra attributes — no
+  consumer can tell which attribution involved which agent. This is the encode-side root
+  cause of #226's decode-side collapse (delegations keyed on `(delegate, activity)` because
+  `prov:agent` is absent); #250 records the full four-type scope. The identified variants of
+  all four types were verified to carry the influencer property correctly, as do the other
+  seven qualifiable types in every variant.
+- **Filed #249 (shared with §3.3) — plain `int` → `xsd:int` with no magnitude check**
+  (`LITERAL_XSDTYPE_MAP`, `provrdf.py:91-97`): `ex:long=123456789000` emits
+  `"123456789000"^^xsd:int`, an ill-typed literal (lexical form outside the datatype's value
+  space, RDF 1.1 §5.4). Executed. XML leg is #244; JSON leg is #246.
+- **Alternate: direction reversed (doc note, needs maintainer confirmation — no issue).**
+  `d.alternate(alt1, alt2)` (PROV-N `alternateOf(alt1, alt2)`) emits
+  `alt2 prov:alternateOf alt1` — the serializer swaps subject/object for `PROV_ALTERNATE`
+  (`provrdf.py:494-495`) and the deserializer swaps back (`provrdf.py:832-833`), so `prov`
+  round-trips itself, and PROV-CONSTRAINTS defines `alternateOf` as symmetric, so no false
+  statement is produced. But a third-party tool reading `prov`'s RDF reconstructs the
+  arguments transposed relative to the PROV-N/PROV-DM statement, which only constraint-aware
+  consumers should treat as equivalent. 3.0 triage should decide whether to align with the
+  DM argument order.
+- **Low-level `new_record` paths emit vocabulary that does not exist in PROV-O (doc-only,
+  §2.8-item-4 family — no issue).** PROV-O's normative tables make exactly 14 relations
+  qualifiable; Specialization/Alternate/Membership are not, and Mention is not in PROV-O at
+  all. The qualifier construction (`PROV["qualified" + rec_type._localpart]`,
+  `provrdf.py:534`) is generic, so records reachable only by deliberate low-level misuse
+  (id/attributes on the no-id-no-attrs relations, cf. §2.5/§2.8) mint non-existent terms —
+  executed: specialization-with-attrs emits `prov:qualifiedSpecialization` +
+  `prov:Specialization`; membership-with-attrs emits `prov:qualifiedMembership` +
+  `prov:Membership`; an identified mention emits `prov:qualifiedMention` + `prov:Mention` +
+  raw formal-attribute predicates `prov:generalEntity`/`prov:bundle` (also non-terms).
+  Conversely an alternate given extra attributes **silently drops them** (the
+  `PROV_ALTERNATE` `continue` at `provrdf.py:513-514` precedes the qualifier block). None of
+  this is reachable through the public factories, which correctly refuse id/attributes on
+  these types; recorded for the step 31 triage alongside the §2.8 permissiveness family.
+- **Bundles → TriG named graphs (conformant convention).** PROV-O deliberately does not
+  specify an RDF encoding for bundles ("this document does not specify how to encode
+  Bundles in RDF"; its own examples use TriG named graphs illustratively), so
+  `encode_document`'s one-named-graph-per-bundle TriG layout is a legitimate choice —
+  consistent with both the spec's illustrations and ProvToolbox. One cosmetic quirk observed
+  (adjacent to #96, no new issue): the bundle's graph re-binds an already-bound namespace
+  IRI under a fresh `ns1:` prefix in TriG output, so the same IRI carries two prefixes in
+  one file.
+- **Value encoding on the RDF leg:** plain strings/`bool`s map to native RDF literals,
+  `datetime` → `xsd:dateTime` (offsets preserved), `QualifiedName` → IRI, `Identifier` →
+  `xsd:anyURI` literal, language-tagged `Literal`s → language-tagged RDF literals, and
+  `prov:role`/`prov:plan` extra attributes map to `prov:hadRole`/`prov:hadPlan` (verified
+  with QualifiedName values → IRIs). All conformant; the datatype-fidelity losses through
+  the *round trip* remain #218/#225 (unchanged), and the string-vs-QualifiedName
+  `prov:type` idiom trap remains #236.
+
+**Verdict:** all 3 element types and 11 of the 15 relation types map to PROV-O exactly
+as the normative qualification tables require (including the Revision/Quotation/
+PrimarySource re-mapping and Mention as a conformant PROV-Links extension);
+Communication/Attribution/Delegation/Influence carry a genuine defect in their anonymous
+qualified form (**new #250**, root cause of existing #226); plain-int typing is ill-typed
+outside int32 (**new #249**, RDF leg); Alternate's reversed argument order and the
+low-level-only invented-vocabulary/dropped-attribute paths are recorded as doc-only triage
+items. Emitting qualified-form-only (identified/qualified cases) is conformant under
+PROV-O §3.1's explicit either-or-both allowance, though the spec encourages also including
+the binary triple — a 3.0 consideration.
 ## 4. Unification vs PROV-CONSTRAINTS (step 30b) — summary
 See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for step 36b).
 ## 5. Issues filed by this audit
@@ -703,6 +963,10 @@ See docs/superpowers/specs/2026-07-10-unification-gap-analysis.md (authority for
 | [#240](https://github.com/trungdong/prov/issues/240) | `Bug:` `ProvDocument.serialize()` silently writes to a repr-named CWD file when given a non-`io.IOBase` file object (e.g. `NamedTemporaryFile`) | §2.9 |
 | [#244](https://github.com/trungdong/prov/issues/244) | `PROV-XML conformance:` plain Python ints are always typed `xsd:int`, producing schema-invalid output outside the int32 range | §3.1 |
 | [#246](https://github.com/trungdong/prov/issues/246) | `PROV-JSON conformance:` numeric attribute values are encoded with a non-string `$`, violating the submission's typed-literal schema | §3.2 |
+| [#248](https://github.com/trungdong/prov/issues/248) | `PROV-N conformance:` `mentionOf` is emitted without the `prov:` prefix required by the PROV-Links `mentionExpression` production | §3.3 |
+| [#249](https://github.com/trungdong/prov/issues/249) | `PROV-N/PROV-O conformance:` plain Python ints outside the 32-bit range are asserted as `xsd:int` in PROV-N and PROV-O output | §3.3/§3.4 |
+| [#250](https://github.com/trungdong/prov/issues/250) | `PROV-O conformance:` anonymous qualified Communication/Attribution/Delegation/Influence nodes omit their influencer property, producing ambiguous PROV-O (root cause of #226) | §3.4 |
+| [#251](https://github.com/trungdong/prov/issues/251) | `PROV-N conformance:` plain Python floats serialize as `%g`-formatted `xsd:float`, diverging from the `xsd:double` all other serializers assert and truncating precision | §3.3 |
 
 Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
 confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
@@ -710,9 +974,14 @@ case-sensitivity nit (§2.7.3, needs maintainer confirmation), the Mention/PROV-
 labelling nit (§2.5), the feature gaps already recorded in section 1, the two §3.1
 PROV-XML format limitations (QName-incompatible local names; language tags on
 non-`prov:label` attributes) — both are inherent to the PROV-XML schema, not
-implementation defects — and the two §3.2 PROV-JSON schema-authoring quirks
+implementation defects — the two §3.2 PROV-JSON schema-authoring quirks
 (`wasEndedby` casing typo; top-level-only `additionalProperties: false` gap for
-`mentionOf`) — both are bugs in the submission's own vendored schema, not `prov`.
+`mentionOf`) — both are bugs in the submission's own vendored schema, not `prov` — the
+§3.3 metacharacter local-part failures (all instances of the already-filed #223), the
+§3.4 Alternate argument-order reversal (symmetric-relation-safe, needs maintainer
+confirmation), the §3.4 low-level `new_record`-only invented-vocabulary/dropped-attribute
+paths (§2.8-item-4 family, not reachable via the public API), and the §3.4 TriG
+duplicate-prefix cosmetic quirk (#96-adjacent).
 ## 6. Triage (step 31) — proposed → approved
 | Issue | Bucket (2.x / 3.0 / backlog) | Rationale |
 |---|---|---|
