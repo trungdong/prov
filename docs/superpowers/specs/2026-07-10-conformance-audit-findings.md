@@ -1,7 +1,10 @@
 # Conformance audit findings — Phase 3.5 (roadmap steps 28–32)
 
-**Status:** In progress. Working document; each audit task appends its section.
-**Triage:** Section 6 is filled by the triage task (step 31) after maintainer sign-off.
+**Status:** Complete. Phase 3.5 closed 2026-07-11: the triage in section 6 was approved at
+the maintainer checkpoint on 2026-07-11 and applied on GitHub the same day (milestones and
+labels set, follow-up issues #256–#261 filed, phase summary posted on
+[#181](https://github.com/trungdong/prov/issues/181)).
+**Triage:** Section 6 records the approved classification (step 31).
 
 ## 0. Baseline (recorded before any audit work)
 
@@ -1005,31 +1008,96 @@ by `src/prov/tests/test_unification_constraints.py`. Headlines:
 | [#244](https://github.com/trungdong/prov/issues/244) | `PROV-XML conformance:` plain Python ints are always typed `xsd:int`, producing schema-invalid output outside the int32 range | §3.1 |
 | [#246](https://github.com/trungdong/prov/issues/246) | `PROV-JSON conformance:` numeric attribute values are encoded with a non-string `$`, violating the submission's typed-literal schema | §3.2 |
 | [#248](https://github.com/trungdong/prov/issues/248) | `PROV-N conformance:` `mentionOf` is emitted without the `prov:` prefix required by the PROV-Links `mentionExpression` production | §3.3 |
-| [#249](https://github.com/trungdong/prov/issues/249) | `PROV-N/PROV-O conformance:` plain Python ints outside the 32-bit range are asserted as `xsd:int` in PROV-N and PROV-O output | §3.3/§3.4 |
+| [#249](https://github.com/trungdong/prov/issues/249) | `PROV-N conformance:` plain Python ints outside the 32-bit range are asserted as `xsd:int` in PROV-N output (originally filed covering the PROV-O leg too; split at the §6 triage checkpoint — the PROV-O leg is now #256) | §3.3 |
 | [#250](https://github.com/trungdong/prov/issues/250) | `PROV-O conformance:` anonymous qualified Communication/Attribution/Delegation/Influence nodes omit their influencer property, producing ambiguous PROV-O (root cause of #226) | §3.4 |
 | [#251](https://github.com/trungdong/prov/issues/251) | `PROV-N conformance:` plain Python floats serialize as `%g`-formatted `xsd:float`, diverging from the `xsd:double` all other serializers assert and truncating precision | §3.3 |
 | [#253](https://github.com/trungdong/prov/issues/253) | `PROV-CONSTRAINTS conformance:` `unified()` does not implement PROV-CONSTRAINTS merging (umbrella; authority: the step-30b gap-analysis doc; fix vehicle: step 36b) | §4 |
 | [#254](https://github.com/trungdong/prov/issues/254) | `Bug:` PROV-XML deserializer leaks raw `UnboundLocalError` or silently reuses the previous attribute's value on unrecognised XML attributes (sibling of #228) | §4 |
+| [#256](https://github.com/trungdong/prov/issues/256) | `PROV-O conformance:` plain Python ints outside the 32-bit range are asserted as `xsd:int` in RDF output (the PROV-O leg split out of #249) | §3.4 (filed at the §6 triage checkpoint) |
+| [#257](https://github.com/trungdong/prov/issues/257) | `PROV-DM conformance:` unenforced normative structural constraints allow silently invalid statements (the §2.8 family — 3.0 API-philosophy umbrella, also covering the §3.4 low-level `new_record` invented-vocabulary/dropped-attribute paths) | §2.8 (filed at the §6 triage checkpoint) |
+| [#258](https://github.com/trungdong/prov/issues/258) | `PROV-O conformance:` the `alternateOf` triple is emitted with subject/object transposed relative to the PROV-DM argument order | §3.4 (filed at the §6 triage checkpoint) |
+| [#259](https://github.com/trungdong/prov/issues/259) | `PROV-DM conformance:` `Literal` language tags compare case-sensitively, diverging from RDF 1.1's case-insensitive value space (§5.7.3) | §2.7.3 (filed at the §6 triage checkpoint) |
+| [#260](https://github.com/trungdong/prov/issues/260) | `Feature:` add convenience factories for the PROV-DM agent subtypes (Person/Organization/SoftwareAgent) and `EmptyCollection` | §1 (filed at the §6 triage checkpoint) |
+| [#261](https://github.com/trungdong/prov/issues/261) | `Feature:` support `prov:Bundle` as a first-class entity type for provenance-of-provenance (PROV-DM §5.4.2) | §1 (filed at the §6 triage checkpoint) |
 
-Not filed (findings-doc only): the §2.8 validation-gap family (needs maintainer
-confirmation — enforcement is a 3.0 API-philosophy decision), the `Literal` language-tag
-case-sensitivity nit (§2.7.3, needs maintainer confirmation), the Mention/PROV-Links
-labelling nit (§2.5), the feature gaps already recorded in section 1, the two §3.1
-PROV-XML format limitations (QName-incompatible local names; language tags on
-non-`prov:label` attributes) — both are inherent to the PROV-XML schema, not
-implementation defects — the two §3.2 PROV-JSON schema-authoring quirks
-(`wasEndedby` casing typo; top-level-only `additionalProperties: false` gap for
-`mentionOf`) — both are bugs in the submission's own vendored schema, not `prov` — the
-§3.3 metacharacter local-part failures (all instances of the already-filed #223), the
-§3.4 Alternate argument-order reversal (symmetric-relation-safe, needs maintainer
-confirmation), the §3.4 low-level `new_record`-only invented-vocabulary/dropped-attribute
-paths (§2.8-item-4 family, not reachable via the public API), and the §3.4 TriG
-duplicate-prefix cosmetic quirk (#96-adjacent).
+Not filed (findings-doc only): the Mention/PROV-Links labelling nit (§2.5, cosmetic), the
+two §3.1 PROV-XML format limitations (QName-incompatible local names; language tags on
+non-`prov:label` attributes) — both inherent to the PROV-XML schema itself, not
+implementation defects — the two §3.2 PROV-JSON schema-authoring quirks (`wasEndedby`
+casing typo; top-level-only `additionalProperties: false` gap for `mentionOf`) — both bugs
+in the submission's own vendored schema, not `prov` — the §3.3 metacharacter local-part
+failures (all instances of the already-filed #223), and the §3.4 TriG duplicate-prefix
+cosmetic quirk (#96-adjacent). Every other item originally held back as findings-doc-only
+was promoted to a real issue at the triage checkpoint (2026-07-11): the §2.8 validation-gap
+family — including the §3.4 low-level `new_record` invented-vocabulary/dropped-attribute
+paths — is now covered by umbrella #257, the `Literal` language-tag case-sensitivity nit is
+#259, the §3.4 Alternate argument-order reversal is #258, and the section-1 feature gaps
+are #260 (agent-subtype/`EmptyCollection` factories) and #261 (`prov:Bundle` entity type).
 ## 6. Triage (step 31) — proposed → approved
-| Issue | Bucket (2.x / 3.0 / backlog) | Rationale |
+
+The classification below was presented at the maintainer checkpoint on 2026-07-11 and
+**approved**, with the following checkpoint outcomes (all applied on GitHub the same day):
+
+- **#249 split**: #249 was retitled to cover the PROV-N leg only ("PROV-N conformance:
+  plain Python ints outside the 32-bit range are asserted as xsd:int in PROV-N output");
+  the PROV-O leg was split out as new issue #256.
+- **All five proposed 2.x items confirmed**, and a new **`2.5.0` milestone** was created
+  on GitHub to hold them.
+- **The backlog bucket is represented as a new `backlog` label** (post-3.0 features carry
+  the label rather than a milestone).
+- **All four deliberately-unfiled borderline finding groups were promoted to issues,
+  yielding five** (the section-1 feature-gap finding split into two): #257
+  (§2.8 validation-gap family umbrella), #258 (alternateOf transposition), and #259
+  (language-tag case-sensitivity) went to the 3.0.0 milestone; #260
+  (agent-subtype/`EmptyCollection` factories) and #261 (`prov:Bundle` entity type) went
+  to the `backlog` label.
+
+| Issue | Bucket | Rationale |
 |---|---|---|
+| [#34](https://github.com/trungdong/prov/issues/34) | 3.0.0 | Pre-existing milestone confirmed — merging attributes across types is behaviour-changing; folds into the `unified()` rework (#253, step 36b). |
+| [#77](https://github.com/trungdong/prov/issues/77) | 3.0.0 | Pre-existing milestone confirmed — fixing `Decimal` Literal comparison changes equality semantics. |
+| [#89](https://github.com/trungdong/prov/issues/89) | 3.0.0 | Pre-existing milestone confirmed — distinguishing typed from untyped literals changes representation and output. |
+| [#168](https://github.com/trungdong/prov/issues/168) | 3.0.0 | Pre-existing milestone confirmed — changing QName typing alters PROV-JSON output. |
+| [#217](https://github.com/trungdong/prov/issues/217) | 3.0.0 | Pre-existing milestone confirmed — representing scruffy same-id/differing-time relations in RDF requires output changes. |
+| [#218](https://github.com/trungdong/prov/issues/218) | 3.0.0 | Pre-existing milestone confirmed — restoring RDF multi-datatype fidelity changes round-trip output. |
+| [#223](https://github.com/trungdong/prov/issues/223) | 3.0.0 | Pre-existing milestone confirmed — escaping metacharacter local parts changes PROV-N output. |
+| [#224](https://github.com/trungdong/prov/issues/224) | 3.0.0 | Pre-existing milestone confirmed — preserving empty-string attributes changes PROV-XML output. |
+| [#225](https://github.com/trungdong/prov/issues/225) | 3.0.0 | Pre-existing milestone confirmed — preserving `xsd:float` precision changes RDF output. |
+| [#226](https://github.com/trungdong/prov/issues/226) | 3.0.0 | Pre-existing milestone confirmed — fixing anonymous qualified delegations changes RDF output (encode-side root cause now #250). |
+| [#228](https://github.com/trungdong/prov/issues/228) | 3.0.0 | Pre-existing milestone confirmed — tightening the JSON deserializer's exception contract is a behaviour change. |
+| [#96](https://github.com/trungdong/prov/issues/96) | 3.0.0 | Newly milestoned — turtle prefix propagation is an output-changing serializer fix. |
+| [#235](https://github.com/trungdong/prov/issues/235) | 3.0.0 | Newly milestoned — undoing the `xsd:long`→`xsd:int` mutation changes output in every serialization (#89 sibling). |
+| [#237](https://github.com/trungdong/prov/issues/237) | 3.0.0 | Newly milestoned — raising `ProvException` (and accepting hour-24) in the factory time params is an exception-contract change. |
+| [#238](https://github.com/trungdong/prov/issues/238) | 3.0.0 | Newly milestoned — resolving `prov:QUALIFIED_NAME` literals to QualifiedNames changes equality (#89 sibling). |
+| [#244](https://github.com/trungdong/prov/issues/244) | 3.0.0 | Newly milestoned — magnitude-aware integer typing changes PROV-XML output (`xsd:int` outside int32). |
+| [#246](https://github.com/trungdong/prov/issues/246) | 3.0.0 | Newly milestoned — stringifying the `$` property changes PROV-JSON output. |
+| [#248](https://github.com/trungdong/prov/issues/248) | 3.0.0 | Newly milestoned — emitting `prov:mentionOf` changes PROV-N output (ProvToolbox-parity nuance recorded on the issue). |
+| [#249](https://github.com/trungdong/prov/issues/249) | 3.0.0 | Newly milestoned — magnitude-aware integer typing changes PROV-N output (split at the checkpoint to the PROV-N leg only; PROV-O leg is #256). |
+| [#250](https://github.com/trungdong/prov/issues/250) | 3.0.0 | Newly milestoned — emitting the missing influencer property changes RDF output (root cause of #226). |
+| [#251](https://github.com/trungdong/prov/issues/251) | 3.0.0 | Newly milestoned — asserting plain floats as full-precision `xsd:double` changes PROV-N output. |
+| [#253](https://github.com/trungdong/prov/issues/253) | 3.0.0 | Newly milestoned — PROV-CONSTRAINTS merging is the behaviour-changing `unified()` rework umbrella (fix vehicle: 3.0 step 36b). |
+| [#256](https://github.com/trungdong/prov/issues/256) | 3.0.0 | Filed at the checkpoint (PROV-O leg of #249) — magnitude-aware integer typing changes RDF output. |
+| [#257](https://github.com/trungdong/prov/issues/257) | 3.0.0 | Filed at the checkpoint (§2.8 family umbrella) — any enforcement of the unchecked normative constraints is a 3.0 API-philosophy decision. |
+| [#258](https://github.com/trungdong/prov/issues/258) | 3.0.0 | Filed at the checkpoint (§3.4) — aligning `alternateOf` with the PROV-DM argument order changes RDF output. |
+| [#259](https://github.com/trungdong/prov/issues/259) | 3.0.0 | Filed at the checkpoint (§2.7.3) — normalising language-tag comparison changes equality semantics. |
+| [#154](https://github.com/trungdong/prov/issues/154) | 2.5.0 | Purely additive record-level chaining methods — no existing behaviour or output changes. |
+| [#236](https://github.com/trungdong/prov/issues/236) | 2.5.0 | Docs-only fix (teach the QualifiedName `prov:type` idiom); any model-side string coercion stays 3.0. |
+| [#239](https://github.com/trungdong/prov/issues/239) | 2.5.0 | Fix only touches an already-failing path (`read()` on PROV-XML currently raises), so no working behaviour changes. |
+| [#240](https://github.com/trungdong/prov/issues/240) | 2.5.0 | Fix only touches an already-broken path (repr-named junk file), so no working behaviour changes. |
+| [#254](https://github.com/trungdong/prov/issues/254) | 2.5.0 | Parse-side only — raising `ProvXMLException` on malformed input changes no serialized output. |
+| [#62](https://github.com/trungdong/prov/issues/62) | backlog | PROV-CONSTRAINTS validation engine — the step-32 out-of-scope item; post-3.0 feature. |
+| [#122](https://github.com/trungdong/prov/issues/122) | backlog | PROV-N parser — planned as its own post-3.0 release (Phase 5b, release 3.2.0). |
+| [#124](https://github.com/trungdong/prov/issues/124) | backlog | Relations-as-set API design question — needs its own post-3.0 design work. |
+| [#129](https://github.com/trungdong/prov/issues/129) | backlog | PROV-Dictionary support — post-3.0 feature. |
+| [#130](https://github.com/trungdong/prov/issues/130) | backlog | Deterministic PROV-N output — post-3.0 feature. |
+| [#131](https://github.com/trungdong/prov/issues/131) | backlog | Pretty PROV-N output — post-3.0 feature. |
+| [#260](https://github.com/trungdong/prov/issues/260) | backlog | Filed at the checkpoint (§1 feature gaps) — additive agent-subtype/`EmptyCollection` convenience factories, post-3.0 feature. |
+| [#261](https://github.com/trungdong/prov/issues/261) | backlog | Filed at the checkpoint (§1) — first-class `prov:Bundle` entity support for provenance-of-provenance, post-3.0 feature. |
 
 ## Out of scope (step 32)
 The PROV-CONSTRAINTS validation engine (#62 — inferences, event ordering,
 typing and impossibility checks) stays on the post-3.0 features backlog.
 Only the unification/merging rules that back `unified()` are in scope.
+This scope decision was restated in the Phase 3.5 summary comment posted on
+the roadmap tracking issue
+[#181](https://github.com/trungdong/prov/issues/181) (2026-07-11).
