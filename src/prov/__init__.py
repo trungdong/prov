@@ -1,7 +1,8 @@
 from __future__ import annotations  # needed for | type annotations in Python < 3.10
 
+import io
 import os
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from prov.model import ProvDocument
@@ -20,23 +21,27 @@ class Error(Exception):
 
 
 def read(
-    source: str | bytes | os.PathLike[str], format: str | None = None
+    source: io.IOBase | IO[Any] | str | bytes | os.PathLike[str],
+    format: str | None = None,
 ) -> ProvDocument | None:
     """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.
 
-    If ``format`` is not given, the format is detected lazily by trying each
-    registered serializer's ``deserialize()`` in turn and returning the first
-    one that succeeds. The deserializers should fail fairly early when data of
-    the wrong type is passed to them thus the try/except is likely cheap. One
-    could of course also do some more advanced format auto-detection but I am
-    not sure that is necessary.
+    A ``str``/``bytes`` source naming an existing file is read from that
+    file; any other ``str``/``bytes`` is parsed as raw document content.
 
-    The downside of auto-detection is that no proper error messages will be
-    produced; pass the ``format`` parameter explicitly to get the actual
-    traceback from the matching deserializer.
+    If ``format`` is not given, the format is detected by trying each
+    registered deserializer in turn and returning the first that both
+    succeeds and produces a non-empty document (a parse yielding no records
+    or bundles -- e.g. rdflib parsing empty/foreign input to an empty graph
+    -- is treated as "not this format"; registered namespaces are not used
+    as a signal here since the rdf deserializer always registers rdflib's
+    own default-bound namespace prefixes on every successful parse, empty
+    or not). Auto-detection swallows all deserializer errors; pass
+    ``format`` explicitly to get the actual traceback from the matching
+    deserializer.
 
     Args:
-        source: File-like stream, path, or raw content to deserialize.
+        source: File-like stream, path to an existing file, or raw content.
         format: Serialization format to use (e.g. ``"json"``, ``"xml"``,
             ``"rdf"``, ``"provn"``). If ``None``, every registered format is
             tried in turn.
@@ -45,8 +50,8 @@ def read(
         The deserialized :class:`~prov.model.ProvDocument`.
 
     Raises:
-        TypeError: If ``format`` is ``None`` and none of the registered
-            serializers could deserialize ``source``.
+        TypeError: If ``format`` is ``None`` and no registered serializer
+            produced a non-empty document from ``source``.
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument
@@ -56,19 +61,38 @@ def read(
     assert Registry.serializers is not None  # populated by load_serializers()
     serializers = Registry.serializers.keys()
 
+    src: io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None = source
+    content: str | bytes | None = None
+    if isinstance(src, (str, bytes)) and not os.path.isfile(src):
+        # Not a path to an existing file: treat the string itself as raw
+        # document content.
+        content, src = src, None
+
     if format:
-        return ProvDocument.deserialize(source=source, format=format.lower())
+        return ProvDocument.deserialize(
+            source=src, content=content, format=format.lower()
+        )
 
     for format in serializers:
         try:
-            return ProvDocument.deserialize(source=source, format=format)
-        except (TypeError, ValueError, AttributeError, KeyError):
-            # Catch specific exceptions that can occur during deserialization
-            # This allows for better debugging information
+            document = ProvDocument.deserialize(
+                source=src, content=content, format=format
+            )
+        except Exception:
+            # Any failure from a candidate deserializer means "not this
+            # format" -- move on to the next candidate.
             continue
-    else:
-        raise TypeError(
-            "Could not read from the source. To get a proper "
-            "error message, specify the format with the 'format' "
-            "parameter."
-        )
+        if document.get_records() or document.has_bundles():
+            return document
+        # A parse producing a completely empty document (e.g. rdflib
+        # accepts empty input, or the xml deserializer walking a
+        # childless foreign root) is treated as not detected. Registered
+        # namespaces are deliberately not consulted: the rdf deserializer
+        # always copies rdflib's own default-bound namespace prefixes onto
+        # the document on every successful parse, so that signal is always
+        # truthy and would defeat this check for the rdf format.
+    raise TypeError(
+        "Could not read from the source. To get a proper "
+        "error message, specify the format with the 'format' "
+        "parameter."
+    )

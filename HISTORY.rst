@@ -15,6 +15,12 @@ History
   treated as file paths, writing to a repr-named file in the working
   directory. The serializers' text/binary stream detection now also
   recognises such wrapper objects as text streams (#240)
+* ``prov.read()`` fixes (#239): valid PROV-XML is now auto-detected (the RDF
+  parser's ``BadSyntax`` no longer aborts detection); a ``str``/``bytes``
+  source that is not an existing file path is parsed as raw content, as the
+  documentation always advertised; and input that no deserializer can
+  meaningfully parse (e.g. an empty file) now raises ``TypeError`` instead of
+  silently returning an empty document
 
 2.4.0 (2026-07-06)
 ^^^^^^^^^^^^^^^^^^

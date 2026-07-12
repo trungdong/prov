@@ -124,23 +124,22 @@ def test_xml_childless_foreign_root_parses_to_empty_document():
     assert list(doc.get_records()) == []
 
 
-def test_read_on_unparseable_content_raises_bad_syntax(tmp_path):
+def test_read_on_unparseable_content_raises_type_error(tmp_path):
     """``prov.read()`` on content none of the auto-detected deserializers accept.
 
     With ``format=None``, ``read()`` tries each registered format in turn
-    (json, rdf, provn, xml -- see ``Registry.load_serializers()``). For a
-    real file with genuinely unparseable content, the json attempt fails
-    with a caught ``JSONDecodeError``, but the next attempt, rdf (default
-    ``rdf_format="trig"``), raises rdflib's ``BadSyntax`` -- a
-    ``SyntaxError``, which is *not* one of the ``(TypeError, ValueError,
-    AttributeError, KeyError)`` types ``read()`` catches -- so it propagates
-    immediately and auto-detection never reaches provn/xml. This mirrors
-    ``test_read_auto_detect_of_xml_hits_uncaught_rdf_syntax_error`` in
-    test_read.py (a known limitation, not fixed here).
+    (json, rdf, provn, xml -- see ``Registry.load_serializers()``). Since
+    #239, ANY exception from a candidate deserializer -- including rdflib's
+    ``BadSyntax`` on the rdf attempt -- means "not this format" and
+    auto-detection moves on to the next candidate. For a real file with
+    genuinely unparseable content, every candidate fails and ``read()``
+    raises its own ``TypeError`` rather than leaking the last candidate's
+    exception. This mirrors ``test_read_auto_detect_swallows_any_deserializer_error``
+    in test_read.py.
     """
     path = tmp_path / "garbage.txt"
     path.write_text("this is not any known prov serialization at all, just prose.")
-    with pytest.raises(BadSyntax):
+    with pytest.raises(TypeError):
         prov.read(str(path))
 
 

@@ -88,23 +88,13 @@ def test_read_auto_detects_rdf(document, tmp_path):
     assert result == document
 
 
-def test_read_auto_detect_of_xml_hits_uncaught_rdf_syntax_error(document, tmp_path):
-    """
-    Documents actual current behaviour rather than the aspirational
-    "xml auto-detects too": Registry order is json, rdf, provn, xml
-    (see prov.serializers.Registry.load_serializers). For an XML
-    document, the json attempt fails cleanly (caught ValueError), but
-    the *rdf* candidate -- deserialized with its default "trig" format
-    -- raises rdflib's BadSyntax, a SyntaxError. read() only catches
-    (TypeError, ValueError, AttributeError, KeyError), so this
-    propagates and auto-detection never reaches the real xml
-    serializer. This is a known limitation (see
-    docs/test-gap-checklist.md, T13 item on the auto-detection
-    exception whitelist), not something fixed by this test-only change.
-    """
+def test_read_auto_detects_xml(document, tmp_path):
+    # #239: the rdf candidate raises rdflib's BadSyntax (a SyntaxError) on
+    # XML input; read() must treat any candidate failure as "try the next
+    # format" so the xml deserializer is reached.
     path = _write(document, tmp_path, "xml", "auto.xml")
-    with pytest.raises(SyntaxError):
-        prov.read(str(path))
+    result = prov.read(str(path))
+    assert result == document
 
 
 def test_read_unknown_format_propagates_do_not_exist(document, tmp_path):
@@ -113,21 +103,12 @@ def test_read_unknown_format_propagates_do_not_exist(document, tmp_path):
         prov.read(str(path), format="nonexistent")
 
 
-def test_read_raises_type_error_when_all_serializers_fail_to_parse():
-    """
-    The final "exhausted all serializers" branch of read() can only be
-    reached if every registered deserializer raises one of the caught
-    exception types. In practice ProvNSerializer.deserialize() always
-    raises NotImplementedError (uncaught by read()) regardless of
-    content, and the rdf/xml parsers raise SyntaxError subclasses on
-    garbage, so that branch is unreachable via any real file. (The real
-    json deserializer already fails with a caught JSONDecodeError; it
-    is mocked here too only for uniformity.) Mock the deserializers to
-    make the branch reachable and pin the resulting error message.
-    """
-
+def test_read_auto_detect_swallows_any_deserializer_error():
+    # Since #239, ANY exception from a candidate deserializer means "not
+    # this format"; when every candidate fails, read() raises its own
+    # TypeError rather than leaking the last candidate's error.
     def boom(self, stream, **kwargs):
-        raise ValueError("simulated parse failure")
+        raise RuntimeError("arbitrary deserializer failure")
 
     with (
         mock.patch.object(ProvJSONSerializer, "deserialize", boom),
@@ -140,20 +121,37 @@ def test_read_raises_type_error_when_all_serializers_fail_to_parse():
     assert "specify the format" in str(ctx.value)
 
 
-def test_read_auto_detect_only_swallows_the_documented_exception_types():
-    """
-    Pins the intended behaviour of the auto-detection loop (checklist
-    item under prov/__init__.py, T13): only (TypeError, ValueError,
-    AttributeError, KeyError) from a candidate deserializer are caught
-    and treated as "try the next format"; anything else must propagate
-    immediately rather than being swallowed.
-    """
+# -- raw-content strings (not a file path) ---------------------------------
 
-    def boom(self, stream, **kwargs):
-        raise RuntimeError("not one of the caught types")
 
-    with (
-        mock.patch.object(ProvJSONSerializer, "deserialize", boom),
-        pytest.raises(RuntimeError),
-    ):
-        prov.read(io.StringIO("garbage"))
+def test_read_accepts_raw_content_string_with_explicit_format(document):
+    content = document.serialize(format="json")
+    assert prov.read(content, format="json") == document
+
+
+def test_read_auto_detects_raw_content_string(document):
+    content = document.serialize(format="json")
+    assert prov.read(content) == document
+
+
+# -- empty / unparseable input raises TypeError -----------------------------
+
+
+def test_read_empty_file_raises_type_error(tmp_path):
+    # #239: rdflib parses empty (trig) input successfully, which used to
+    # yield a silent empty document; an empty parse is not a detection.
+    path = tmp_path / "empty.json"
+    path.touch()
+    with pytest.raises(TypeError):
+        prov.read(str(path))
+
+
+def test_read_empty_string_raises_type_error():
+    with pytest.raises(TypeError):
+        prov.read("")
+
+
+def test_read_garbage_content_raises_type_error():
+    # A str that is not an existing file path is treated as raw content.
+    with pytest.raises(TypeError):
+        prov.read("no/such/file.json")
