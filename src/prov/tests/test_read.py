@@ -121,7 +121,7 @@ def test_read_auto_detect_swallows_any_deserializer_error():
     assert "specify the format" in str(ctx.value)
 
 
-# -- raw-content strings (not a file path) ---------------------------------
+# -- raw-content strings/bytes (not a file path) ----------------------------
 
 
 def test_read_accepts_raw_content_string_with_explicit_format(document):
@@ -132,6 +132,22 @@ def test_read_accepts_raw_content_string_with_explicit_format(document):
 def test_read_auto_detects_raw_content_string(document):
     content = document.serialize(format="json")
     assert prov.read(content) == document
+
+
+def test_read_accepts_raw_content_bytes_with_explicit_format(document):
+    content = document.serialize(format="json").encode()
+    assert prov.read(content, format="json") == document
+
+
+def test_read_auto_detects_raw_content_bytes(document):
+    content = document.serialize(format="json").encode()
+    assert prov.read(content) == document
+
+
+def test_read_accepts_bytes_file_path(document, tmp_path):
+    # A bytes source naming an existing file is a path, not raw content.
+    path = _write(document, tmp_path, "json", "doc-bytes-path.json")
+    assert prov.read(str(path).encode(), format="json") == document
 
 
 # -- empty / unparseable input raises TypeError -----------------------------
