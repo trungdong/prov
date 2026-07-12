@@ -49,7 +49,7 @@ a1 = document.activity("a1", "2024-07-09T16:39:38", None, {prov.PROV_TYPE: "edit
 # Pass extra attributes with the ``other_attributes`` keyword.
 document.wasGeneratedBy(e2, a1, other_attributes={"ex:fct": "save"})
 document.wasAssociatedWith("a1", "ag2", None, None, {prov.PROV_ROLE: "author"})
-document.agent("ag2", {prov.PROV_TYPE: "prov:Person", "ex:name": "Bob"})
+document.agent("ag2", {prov.PROV_TYPE: prov.PROV["Person"], "ex:name": "Bob"})
 ```
 
 That is a complete provenance document. Print it in PROV-N, the human-readable notation
@@ -68,7 +68,7 @@ document
   activity(a1, 2024-07-09T16:39:38, -, [prov:type="edit"])
   wasGeneratedBy(e2, a1, -, [ex:fct="save"])
   wasAssociatedWith(a1, ag2, -, [prov:role="author"])
-  agent(ag2, [prov:type="prov:Person", ex:name="Bob"])
+  agent(ag2, [prov:type='prov:Person', ex:name="Bob"])
 endDocument
 ```
 

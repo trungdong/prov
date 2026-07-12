@@ -263,7 +263,7 @@ def w3c_publication_1():
 
     g.entity("tr:WD-prov-dm-20111018", {"prov:type": "rec54:WD"})
     g.entity("tr:WD-prov-dm-20111215", {"prov:type": "rec54:WD"})
-    g.entity("process:rec-advance", {"prov:type": "prov:Plan"})
+    g.entity("process:rec-advance", {"prov:type": PROV["Plan"]})
 
     g.entity("chairs:2011OctDec/0004", {"prov:type": "trans:transreq"})
     g.entity("email:2011Oct/0141", {"prov:type": "trans:pubreq"})

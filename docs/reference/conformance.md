@@ -120,10 +120,10 @@ output from this library always uses the base `wasDerivedFrom` form.
 
 **Finding:** PROV-DM defines Person, Organization, and SoftwareAgent as agent subtypes, and Plan
 as an entity subtype used with associations. `prov` has no dedicated classes or factories for the
-agent subtypes — you express them with `agent("ag", {PROV_TYPE: "prov:Person"})` — while Plan
+agent subtypes — you express them with `agent("ag", {PROV_TYPE: PROV["Person"]})` — while Plan
 needs no special handling at all, since it is just an entity passed as the `plan=` argument to
 `association()`. This is a documented, intentional design choice
-(`docs/explanation/prov-dm.md:111-114`), not a defect; see finding log for the audit note.
+(`docs/explanation/prov-dm.md:111-117`), not a defect; see finding log for the audit note.
 Convenience factories for the three agent subtypes (together with `EmptyCollection`, see
 Component 6) are now tracked as
 [#260](https://github.com/trungdong/prov/issues/260).
@@ -168,7 +168,7 @@ attribute a bundle to an agent as a first-class PROV statement. Tracked as
 **Finding:** like collections, `EmptyCollection` is a real PROV-DM type with a real
 `ADDITIONAL_N_MAP`/`PROV_BASE_CLS` entry in `constants.py`, so the round-trip machinery
 understands it — but there is no `empty_collection()` factory or `empty=` flag on `collection()`
-to set the type for you; you would add `prov:type: "prov:EmptyCollection"` by hand via
+to set the type for you; you would add `prov:type: PROV["EmptyCollection"]` by hand via
 `other_attributes`. Tracked (together with the agent-subtype factories, see Component 3) as
 [#260](https://github.com/trungdong/prov/issues/260).
 
