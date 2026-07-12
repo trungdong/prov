@@ -458,6 +458,51 @@ def test_unrepresentable_sub_element_attribute_warns_and_is_ignored():
     assert list(e1.get_attribute("ex:version")) == ["2"]
 
 
+def test_unrecognised_only_attribute_on_first_sub_element_raises():
+    # #254 mode 1: a child whose only XML attribute is unrecognised used to
+    # leak a raw UnboundLocalError when it was the record's first child.
+    xml_string = """<?xml version="1.0" encoding="UTF-8"?>
+    <prov:document
+        xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.com/ns/ex#">
+      <prov:entity prov:id="ex:e1">
+        <ex:only ex:junk="x">value</ex:only>
+      </prov:entity>
+    </prov:document>
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        with (
+            pytest.raises(ProvXMLException) as ctx,
+            io.StringIO(xml_string) as xml,
+        ):
+            prov.ProvDocument.deserialize(source=xml, format="xml")
+    assert "no representable value" in str(ctx.value)
+
+
+def test_unrecognised_only_attribute_after_sibling_raises_not_reuses_value():
+    # #254 mode 2: with a previous sibling, the stale value used to be
+    # silently reused ("world" lost, "hello" duplicated).
+    xml_string = """<?xml version="1.0" encoding="UTF-8"?>
+    <prov:document
+        xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.com/ns/ex#">
+      <prov:entity prov:id="ex:e1">
+        <ex:first>hello</ex:first>
+        <ex:second ex:junk="x">world</ex:second>
+      </prov:entity>
+    </prov:document>
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        with (
+            pytest.raises(ProvXMLException) as ctx,
+            io.StringIO(xml_string) as xml,
+        ):
+            prov.ProvDocument.deserialize(source=xml, format="xml")
+    assert "no representable value" in str(ctx.value)
+
+
 def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises():
     element = etree.fromstring(
         '<root xmlns:ex="http://example.com/ns/ex#"><child/></root>'

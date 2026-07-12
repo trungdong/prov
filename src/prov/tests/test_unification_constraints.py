@@ -13,7 +13,8 @@ vendored ProvToolbox/W3C corpus (``unification/constraints/``):
   which the model cannot represent) or passes through untouched (uniqueness
   Constraints 24-29, mandatory-placeholder and impossibility cases, all keyed
   on something other than the record identifier);
-- three ``bundle-*`` files cannot be parsed at all (issue #254) and are
+- three ``bundle-*`` files cannot be parsed at all — prov's PROV-XML
+  deserializer rejects them with ``ProvXMLException`` (issue #254) — and are
   skipped as parse failures.
 
 In 3.0 (roadmap step 36b, umbrella issue #253) ``unified()`` will implement
@@ -39,8 +40,8 @@ pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
 
 CORPUS = Path(__file__).parent / "unification" / "constraints"
 
-# prov's PROV-XML deserializer crashes on these (raw UnboundLocalError in
-# _extract_attributes, provxml.py:456) because they wrap bundle contents in
+# prov's PROV-XML deserializer rejects these with ProvXMLException
+# (_extract_attributes, provxml.py) because they wrap bundle contents in
 # ProvToolbox's <prov:bundle> container instead of the XSD's
 # <prov:bundleContent> — issue #254, recorded in the gap analysis.
 PARSE_FAILURES = {
@@ -111,9 +112,9 @@ def _cases():
         if xml_path.name in PARSE_FAILURES:
             marks.append(
                 pytest.mark.skip(
-                    reason="prov cannot parse: UnboundLocalError in provxml "
-                    "_extract_attributes on the <prov:bundle> container "
-                    "(#254) — recorded in the gap analysis"
+                    reason="prov cannot parse: ProvToolbox's <prov:bundle> "
+                    "dialect is rejected with ProvXMLException (crash fixed "
+                    "under #254) — recorded in the gap analysis"
                 )
             )
         yield pytest.param(xml_path, expected, id=xml_path.stem, marks=marks)
