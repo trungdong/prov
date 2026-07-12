@@ -89,13 +89,6 @@ def test_factory_time_accepts_hour24_datetime():
     assert activity.get_startTime() is not None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "#239: prov.read() cannot auto-detect valid PROV-XML (RDF deserializer's "
-        "BadSyntax propagates before the XML deserializer is tried)"
-    ),
-)
 def test_read_autodetects_prov_xml(tmp_path):
     document = _doc()
     document.entity("ex:e1")
