@@ -896,6 +896,127 @@ class ProvEntity(ProvElement):
         self._bundle.membership(self, entity)
         return self
 
+    def wasRevisionOf(
+        self,
+        usedEntity: EntityRef,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvEntity:
+        """Create a new revision record for this entity from a used entity.
+
+        Args:
+            usedEntity: The original entity (or its string identifier).
+            activity: The activity (or its string identifier) involved in the
+                revision (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
+        """
+        self._bundle.revision(
+            self, usedEntity, activity, generation, usage, other_attributes=attributes
+        )
+        return self
+
+    def wasQuotedFrom(
+        self,
+        usedEntity: EntityRef,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvEntity:
+        """Create a new quotation record for this entity from a quoted entity.
+
+        Args:
+            usedEntity: The quoted entity (or its string identifier).
+            activity: The activity (or its string identifier) involved in the
+                quotation (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
+        """
+        self._bundle.quotation(
+            self, usedEntity, activity, generation, usage, other_attributes=attributes
+        )
+        return self
+
+    def hadPrimarySource(
+        self,
+        usedEntity: EntityRef,
+        activity: ActivityRef | None = None,
+        generation: GenrationRef | None = None,
+        usage: UsageRef | None = None,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvEntity:
+        """Create a new primary-source record for this entity.
+
+        Args:
+            usedEntity: The primary-source entity (or its string identifier).
+            activity: The activity (or its string identifier) involved
+                (default: ``None``).
+            generation: Optional generation record qualifying the derivation
+                (default: ``None``).
+            usage: Optional usage record qualifying the derivation
+                (default: ``None``).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
+        """
+        self._bundle.primary_source(
+            self, usedEntity, activity, generation, usage, other_attributes=attributes
+        )
+        return self
+
+    def mentionOf(self, generalEntity: EntityRef, bundle: EntityRef) -> ProvEntity:
+        """Create a new mention record of this entity from a general entity.
+
+        Args:
+            generalEntity: The general entity (or its string identifier), the
+                relationship destination.
+            bundle: The bundle (or its string identifier) that the general
+                entity is described in.
+
+        Returns:
+            This entity (to allow chaining).
+        """
+        self._bundle.mention(self, generalEntity, bundle)
+        return self
+
+    def wasInfluencedBy(
+        self,
+        influencer: EntityRef | ActivityRef | AgentRef,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvEntity:
+        """Create a new influence record on this entity by an influencer.
+
+        Args:
+            influencer: The influencing entity, activity or agent (or its
+                string identifier).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This entity (to allow chaining).
+        """
+        self._bundle.influence(self, influencer, other_attributes=attributes)
+        return self
+
 
 class ProvActivity(ProvElement):
     """Provenance Activity element."""
@@ -1053,6 +1174,25 @@ class ProvActivity(ProvElement):
         self._bundle.association(self, agent, plan, other_attributes=attributes)
         return self
 
+    def wasInfluencedBy(
+        self,
+        influencer: EntityRef | ActivityRef | AgentRef,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvActivity:
+        """Create a new influence record on this activity by an influencer.
+
+        Args:
+            influencer: The influencing entity, activity or agent (or its
+                string identifier).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This activity (to allow chaining).
+        """
+        self._bundle.influence(self, influencer, other_attributes=attributes)
+        return self
+
 
 class ProvGeneration(ProvRelation):
     """Provenance Generation relationship."""
@@ -1157,6 +1297,25 @@ class ProvAgent(ProvElement):
         self._bundle.delegation(
             self, responsible, activity, other_attributes=attributes
         )
+        return self
+
+    def wasInfluencedBy(
+        self,
+        influencer: EntityRef | ActivityRef | AgentRef,
+        attributes: RecordAttributesArg | None = None,
+    ) -> ProvAgent:
+        """Create a new influence record on this agent by an influencer.
+
+        Args:
+            influencer: The influencing entity, activity or agent (or its
+                string identifier).
+            attributes: Optional extra attributes for the record, as a dict or
+                an iterable of ``(name, value)`` pairs (default: ``None``).
+
+        Returns:
+            This agent (to allow chaining).
+        """
+        self._bundle.influence(self, influencer, other_attributes=attributes)
         return self
 
 

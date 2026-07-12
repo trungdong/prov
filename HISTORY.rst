@@ -5,6 +5,11 @@ History
 
 2.5.0 (unreleased)
 ^^^^^^^^^^^^^^^^^^
+* New record-level chaining convenience methods (#154):
+  ``ProvEntity.wasRevisionOf()``, ``.wasQuotedFrom()``, ``.hadPrimarySource()``,
+  ``.mentionOf()``, and ``.wasInfluencedBy()`` on ``ProvEntity``,
+  ``ProvActivity`` and ``ProvAgent`` — mirroring the existing
+  ``e1.wasDerivedFrom(e2)`` style for the remaining relation types
 * The PROV-XML deserializer now raises ``ProvXMLException`` when a record's
   child element carries only unrecognised XML attributes, instead of leaking a
   raw ``UnboundLocalError`` or silently reusing the previous attribute's value
