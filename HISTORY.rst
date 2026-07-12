@@ -21,6 +21,10 @@ History
   documentation always advertised; and input that no deserializer can
   meaningfully parse (e.g. an empty file) now raises ``TypeError`` instead of
   silently returning an empty document
+* Documentation: the agent-subtype idiom now correctly uses qualified names
+  (``PROV["Person"]``) for ``prov:type`` values; the previously documented
+  string form asserted a plain string, which does not denote the pre-defined
+  PROV type (#236)
 
 2.4.0 (2026-07-06)
 ^^^^^^^^^^^^^^^^^^

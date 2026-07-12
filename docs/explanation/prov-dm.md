@@ -110,8 +110,11 @@ Who is responsible for what, and the most general relation of all — influence.
 
 PROV-DM also defines agent *subtypes* — Person, Organization, and SoftwareAgent — and the
 Plan entity subtype used with associations. These are not separate classes or factories in
-`prov`; you express them by adding a `prov:type` attribute (for example,
-`agent("ag", {prov.PROV_TYPE: "prov:Person"})`).
+`prov`; you express them by adding a `prov:type` attribute whose value is the pre-defined
+*qualified name* (for example, `agent("ag", {prov.PROV_TYPE: prov.PROV["Person"]})`).
+Note that the value must be a qualified name: a plain string such as `"prov:Person"` is
+stored (and serialized) as just that string, which per PROV-DM §5.7.2.4 does not denote
+the pre-defined type at all.
 
 ### Component 4 — Bundles
 
