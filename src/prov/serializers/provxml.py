@@ -420,8 +420,14 @@ def _extract_attributes(
     Warns:
         UserWarning: For any child attribute that is none of ``prov:ref``,
             ``xsi:type``, or ``xml:lang``; such attributes are ignored.
+
+    Raises:
+        ProvXMLException: If a child element carries XML attributes but
+            none of them is ``prov:ref``, ``xsi:type``, or ``xml:lang``, so
+            no attribute value can be determined.
     """
     attributes = []  # type: list[tuple[prov.identifier.QualifiedName, Any]]
+    _unassigned = object()
     for subel in element:
         sqname = etree.QName(subel)
         qname_str = (
@@ -429,10 +435,11 @@ def _extract_attributes(
         )
         _t = xml_qname_to_QualifiedName(subel, qname_str)
 
+        _v: Any = _unassigned
         for key, value in subel.attrib.items():
             value_str = value.decode("utf-8") if isinstance(value, bytes) else value
             if key == _ns_prov("ref"):
-                _v = xml_qname_to_QualifiedName(subel, value_str)  # type: Any
+                _v = xml_qname_to_QualifiedName(subel, value_str)
             elif key == _ns_xsi("type"):
                 datatype = xml_qname_to_QualifiedName(subel, value_str)
                 if datatype == XSD_QNAME:
@@ -453,6 +460,12 @@ def _extract_attributes(
         if not subel.attrib:
             _v = subel.text
 
+        if _v is _unassigned:
+            raise ProvXMLException(
+                f"The element '{_t}' has no representable value: it carries "
+                "XML attributes, but none of them is prov:ref, xsi:type, or "
+                "xml:lang."
+            )
         attributes.append((_t, _v))
 
     return attributes

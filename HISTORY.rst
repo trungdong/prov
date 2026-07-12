@@ -3,6 +3,13 @@
 History
 -------
 
+2.5.0 (unreleased)
+^^^^^^^^^^^^^^^^^^
+* The PROV-XML deserializer now raises ``ProvXMLException`` when a record's
+  child element carries only unrecognised XML attributes, instead of leaking a
+  raw ``UnboundLocalError`` or silently reusing the previous attribute's value
+  (#254)
+
 2.4.0 (2026-07-06)
 ^^^^^^^^^^^^^^^^^^
 * **Documentation overhaul**: the documentation has been reorganised along the
