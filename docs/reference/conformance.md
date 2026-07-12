@@ -123,7 +123,7 @@ as an entity subtype used with associations. `prov` has no dedicated classes or 
 agent subtypes — you express them with `agent("ag", {PROV_TYPE: PROV["Person"]})` — while Plan
 needs no special handling at all, since it is just an entity passed as the `plan=` argument to
 `association()`. This is a documented, intentional design choice
-(`docs/explanation/prov-dm.md:111-116`), not a defect; see finding log for the audit note.
+(`docs/explanation/prov-dm.md:111-117`), not a defect; see finding log for the audit note.
 Convenience factories for the three agent subtypes (together with `EmptyCollection`, see
 Component 6) are now tracked as
 [#260](https://github.com/trungdong/prov/issues/260).
