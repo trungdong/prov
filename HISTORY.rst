@@ -3,7 +3,7 @@
 History
 -------
 
-2.5.0 (unreleased)
+2.5.0 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
 * New record-level chaining convenience methods (#154):
   ``ProvEntity.wasRevisionOf()``, ``.wasQuotedFrom()``, ``.hadPrimarySource()``,
