@@ -5,7 +5,7 @@ import io
 from typing import Any
 
 from prov.model import ProvDocument
-from prov.serializers import Serializer
+from prov.serializers import Serializer, _is_text_stream
 
 
 class ProvNSerializer(Serializer):
@@ -33,9 +33,7 @@ class ProvNSerializer(Serializer):
 
         provn_content = self.document.get_provn()
         stream.write(
-            provn_content
-            if isinstance(stream, io.TextIOBase)
-            else provn_content.encode("utf-8")
+            provn_content if _is_text_stream(stream) else provn_content.encode("utf-8")
         )
 
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:

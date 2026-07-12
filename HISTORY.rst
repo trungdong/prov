@@ -9,6 +9,12 @@ History
   child element carries only unrecognised XML attributes, instead of leaking a
   raw ``UnboundLocalError`` or silently reusing the previous attribute's value
   (#254)
+* ``ProvDocument.serialize()`` and ``deserialize()`` now accept any writable/
+  readable file-like object (e.g. ``tempfile.NamedTemporaryFile``), instead of
+  only ``io.IOBase`` instances; previously such destinations were silently
+  treated as file paths, writing to a repr-named file in the working
+  directory. The serializers' text/binary stream detection now also
+  recognises such wrapper objects as text streams (#240)
 
 2.4.0 (2026-07-06)
 ^^^^^^^^^^^^^^^^^^

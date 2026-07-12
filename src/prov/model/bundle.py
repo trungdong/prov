@@ -11,8 +11,7 @@ import tempfile
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
-from io import IOBase
-from typing import Any
+from typing import IO, Any, cast
 from urllib.parse import urlparse
 
 from prov import serializers
@@ -1595,7 +1594,7 @@ class ProvDocument(ProvBundle):
     # Serializing and deserializing
     def serialize(
         self,
-        destination: io.IOBase | PathLike | None = None,
+        destination: io.IOBase | IO[Any] | PathLike | None = None,
         format: str = "json",
         **args: Any,
     ) -> str | None:
@@ -1605,10 +1604,11 @@ class ProvDocument(ProvBundle):
         and ``"provn"`` (see :func:`prov.serializers.get`).
 
         Args:
-            destination: A writable stream or a local file path to write to. If
-                ``None``, the serialization is returned as a string
-                (default: ``None``). A non-local (network) location is not
-                written and yields ``None``.
+            destination: A writable stream (any object with a ``write``
+                method) or a local file path to write to. If ``None``, the
+                serialization is returned as a string (default: ``None``). A
+                non-local (network) location is not written and yields
+                ``None``.
             format: The serialization format (default: ``"json"``, i.e.
                 PROV-JSON).
             **args: Extra keyword arguments passed to the underlying serializer.
@@ -1623,8 +1623,12 @@ class ProvDocument(ProvBundle):
             serializer.serialize(buffer, **args)
             return buffer.getvalue()
 
-        if isinstance(destination, IOBase):
-            stream = destination
+        # Duck-type on write() rather than isinstance(..., io.IOBase): common
+        # file-like wrappers such as tempfile.NamedTemporaryFile's
+        # _TemporaryFileWrapper proxy a stream's write() but are not
+        # themselves io.IOBase instances (#240).
+        if hasattr(destination, "write"):
+            stream = cast(io.IOBase, destination)
             serializer.serialize(stream, **args)
         else:
             location = str(destination)
@@ -1647,7 +1651,7 @@ class ProvDocument(ProvBundle):
 
     @staticmethod
     def deserialize(
-        source: io.IOBase | PathLike | None = None,
+        source: io.IOBase | IO[Any] | PathLike | None = None,
         content: str | bytes | None = None,
         format: str = "json",
         **args: Any,
@@ -1659,8 +1663,8 @@ class ProvDocument(ProvBundle):
         deserialization (PROV-N is write-only).
 
         Args:
-            source: A readable stream or a file path to read from
-                (default: ``None``).
+            source: A readable stream (any object with a ``read`` method) or
+                a file path to read from (default: ``None``).
             content: The document as a ``str`` or ``bytes`` to read from
                 (default: ``None``).
             format: The serialization format (default: ``"json"``, i.e.
@@ -1684,8 +1688,10 @@ class ProvDocument(ProvBundle):
             return serializer.deserialize(stream, **args)
 
         if source is not None:
-            if isinstance(source, io.IOBase):
-                return serializer.deserialize(source, **args)
+            # Duck-type on read() rather than isinstance(..., io.IOBase): see
+            # the matching comment in serialize() (#240).
+            if hasattr(source, "read"):
+                return serializer.deserialize(cast(io.IOBase, source), **args)
             else:
                 with open(source) as f:
                     return serializer.deserialize(f, **args)

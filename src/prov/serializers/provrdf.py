@@ -48,7 +48,7 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.serializers import Serializer
+from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
 __email__ = "satra@mit.edu"
@@ -192,7 +192,7 @@ class ProvRDFSerializer(Serializer):
             # Right now this is a bytestream. If the object to stream to is
             # a text object is must be decoded. We assume utf-8 here which
             # should be fine for almost every case.
-            if isinstance(stream, io.TextIOBase):
+            if _is_text_stream(stream):
                 stream.write(buf.read().decode("utf-8"))
             else:
                 stream.write(buf.read())
