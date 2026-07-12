@@ -104,20 +104,10 @@ def test_read_autodetects_prov_xml(tmp_path):
     assert prov.read(str(path)) == document
 
 
-# On Python 3.14+ NamedTemporaryFile's repr embeds the file path (slashes), so
-# serialize()'s repr-derived filename raises FileNotFoundError instead of
-# writing a junk file (the AssertionError path on <=3.13).
-@pytest.mark.xfail(
-    strict=True,
-    raises=(AssertionError, FileNotFoundError),
-    reason=(
-        "#240: ProvDocument.serialize() writes to a repr-named CWD file when "
-        "given a non-io.IOBase file object (e.g. NamedTemporaryFile)"
-    ),
-)
 def test_serialize_writes_to_named_temporary_file(tmp_path, monkeypatch):
-    # chdir into tmp_path so the bug's junk repr-named file cannot litter the repo
-    monkeypatch.chdir(tmp_path)
+    # #240 regression: non-io.IOBase writables (e.g. NamedTemporaryFile's
+    # _TemporaryFileWrapper proxy) must be treated as streams, not paths.
+    monkeypatch.chdir(tmp_path)  # any junk repr-named file would land here
     document = _doc()
     document.entity("ex:e1")
     with tempfile.NamedTemporaryFile(
@@ -125,7 +115,35 @@ def test_serialize_writes_to_named_temporary_file(tmp_path, monkeypatch):
     ) as stream:
         document.serialize(stream, format="json")
         name = stream.name
-    assert os.path.getsize(name) > 0
+    assert ProvDocument.deserialize(name, format="json") == document
+    junk = [p for p in os.listdir(tmp_path) if p.startswith("<")]
+    assert junk == []
+
+
+def test_deserialize_reads_from_named_temporary_file(tmp_path):
+    # #240 (read side): deserialize() had the same isinstance(…, IOBase)
+    # test; any object with read() must be accepted as a stream.
+    document = _doc()
+    document.entity("ex:e1")
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", dir=tmp_path) as stream:
+        stream.write(document.serialize(format="json"))
+        stream.flush()
+        stream.seek(0)
+        assert ProvDocument.deserialize(stream, format="json") == document
+
+
+def test_serialize_xml_to_text_mode_named_temporary_file(tmp_path):
+    # #240 as originally filed: text-mode NamedTemporaryFile + format="xml".
+    # Beyond the stream-vs-path routing in serialize(), the serializers'
+    # text/binary detection (isinstance(stream, io.TextIOBase)) also had to
+    # recognise such wrapper objects as text streams.
+    pytest.importorskip("lxml")
+    document = _doc()
+    document.entity("ex:e1")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", dir=tmp_path) as stream:
+        document.serialize(stream, format="xml")
+        stream.flush()
+        assert ProvDocument.deserialize(stream.name, format="xml") == document
 
 
 # --- Characterization of permissive behaviour (findings doc section 2.8) -----

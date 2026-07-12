@@ -14,7 +14,7 @@ import prov
 import prov.identifier
 from prov.constants import *
 from prov.model import DEFAULT_NAMESPACES, sorted_attributes
-from prov.serializers import Serializer
+from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
 __email__ = "krischer@geophysik.uni-muenchen.de"
@@ -82,7 +82,7 @@ class ProvXMLSerializer(Serializer):
         # does not have the concept of an encoding as it should already
         # represent unicode code points.
         et = etree.ElementTree(xml_root)
-        if isinstance(stream, io.TextIOBase):
+        if _is_text_stream(stream):
             stream.write(
                 etree.tostring(et, xml_declaration=True, pretty_print=True).decode(
                     "utf-8"
@@ -262,7 +262,7 @@ class ProvXMLSerializer(Serializer):
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
         """
-        if isinstance(stream, io.TextIOBase):
+        if _is_text_stream(stream):
             with io.BytesIO() as buf:
                 buf.write(stream.read().encode("utf-8"))
                 buf.seek(0, 0)

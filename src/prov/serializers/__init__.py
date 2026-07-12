@@ -15,6 +15,20 @@ __email__ = "trungdong@donggiang.com"
 __all__ = ["Registry", "Serializer", "get"]
 
 
+def _is_text_stream(stream: io.IOBase) -> bool:
+    """Return whether ``stream`` accepts/produces ``str`` rather than bytes.
+
+    ``isinstance(stream, io.TextIOBase)`` alone misses file-like wrappers
+    such as ``tempfile.NamedTemporaryFile``'s ``_TemporaryFileWrapper``,
+    which proxy a text stream without subclassing ``io.TextIOBase``. Such
+    wrappers expose the underlying text stream's ``encoding`` attribute,
+    while binary streams (``io.BytesIO``, buffered readers/writers) have no
+    ``encoding``, so the extra check only ever reclassifies text-stream
+    proxies that would otherwise crash on bytes (#240).
+    """
+    return isinstance(stream, io.TextIOBase) or hasattr(stream, "encoding")
+
+
 class Serializer(ABC):
     """Serializer for PROV documents."""
 

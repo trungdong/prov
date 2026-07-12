@@ -21,7 +21,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.serializers import Serializer
+from prov.serializers import Serializer, _is_text_stream
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ class ProvJSONSerializer(Serializer):
             # Right now this is a bytestream. If the object to stream to is
             # a text object, it must be decoded. We assume utf-8 here, which
             # should be fine for almost every case.
-            if isinstance(stream, io.TextIOBase):
+            if _is_text_stream(stream):
                 stream.write(buf.read())
             else:
                 stream.write(buf.read().encode("utf-8"))
@@ -115,7 +115,7 @@ class ProvJSONSerializer(Serializer):
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
         """
-        if not isinstance(stream, io.TextIOBase):
+        if not _is_text_stream(stream):
             buf = io.StringIO(stream.read().decode("utf-8"))
             stream = buf
         return cast(ProvDocument, json.load(stream, cls=ProvJSONDecoder, **args))
