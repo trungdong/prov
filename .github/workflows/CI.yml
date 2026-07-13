@@ -8,6 +8,11 @@ on:
     branches: [main, master, dev]
   workflow_dispatch:
 
+# Least privilege: every job only checks out code and reads/uploads coverage
+# to the external Coveralls service, so none needs more than read access.
+permissions:
+  contents: read
+
 jobs:
   tests:
     name: pytest on ${{ matrix.python-version }}
@@ -18,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Setup Graphviz
-        uses: ts-graphviz/setup-graphviz@v2
-      - uses: astral-sh/setup-uv@v8.2.0
+        uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           python-version: ${{ matrix.python-version }}
       - name: Run tests
@@ -40,7 +45,7 @@ jobs:
         if: matrix.python-version == '3.12'
         run: uv run coverage report
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2
         # Advisory upload: a Coveralls outage must not fail the build (rule added
         # after the 2026-07-03 outage blocked PR #174; hotfixed on master in PR #176 —
         # keep continue-on-error on all coverage-upload steps in the rewrite)
@@ -64,7 +69,7 @@ jobs:
             label: "latest 7.x"
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
         with:
           python-version: "3.12"
       - run: |
@@ -77,7 +82,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - run: |
           uv sync --locked --group dev
           uv run ruff check src/
@@ -92,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - name: Sync without extras
         run: uv sync --locked --group dev
       - name: Degradation tests
@@ -102,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - run: |
           uv sync --locked --extra rdf --extra xml --group dev
           uv run mypy src
@@ -111,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v8.2.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39  # v8.2.0
       - run: |
           uv build
           uvx twine check dist/*
@@ -122,7 +127,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@v2
+        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2
         continue-on-error: true
         with:
           parallel-finished: true
