@@ -4,7 +4,7 @@ Audit date: 2026-07-04, measured on `master` @ `10b24db` with
 `uv run coverage run -m pytest && uv run coverage report -m` (branch coverage on,
 954 passed / 17 xfailed).
 
-**Measured totals**
+## Measured totals
 
 | Scope | Coverage |
 |---|---|
@@ -58,7 +58,7 @@ Same subprocess-only situation as `convert.py`.
 - [x] `--version` prints the version message and exits — **T11**
 - [ ] `__main__`/`TESTRUN`/`PROFILE` scaffolding — **defer** (same reason as convert.py)
 
-## src/prov/__init__.py — 39% (missed: 38–56, i.e. the whole body of `read()`)
+## `src/prov/__init__.py` — 39% (missed: 38–56, i.e. the whole body of `read()`)
 
 `prov.read()` is a documented public entry point with zero coverage.
 
@@ -80,7 +80,7 @@ gaps: 8 of the 9 non-equivalent surviving mutants live here.
 - [x] `graph_to_prov()` ignores graph nodes that are not `ProvRecord`s or whose `bundle` is `None` (mutmut: `and` → `or` survived) — **T12**
 - [x] `graph_to_prov()` ignores edges without a `"relation"` key in their edge data — **T12**
 
-## src/prov/serializers/__init__.py — 91% (missed: 10, 39, 48)
+## `src/prov/serializers/__init__.py` — 91% (missed: 10, 39, 48)
 
 - [x] `serializers.get()` on an unknown format raises `DoNotExist` with the format name in the message, chained from `KeyError` — **T12** (the chaining itself is already tested by `test_extras.py::test_get_serializer_for_unknown_format_chains_key_error` from T9 — extended in place with the format-name-in-message assertion, one module owns it)
 - [x] `serializers.get()` lazily populates `Registry.serializers` on first call (registry starts as `None`, holds exactly the four formats json/rdf/provn/xml) — **T12**
