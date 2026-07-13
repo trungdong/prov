@@ -1,0 +1,10 @@
+---
+exclude_paths:
+  - "src/prov/tests/malformed/**"
+engines:
+  bandit:
+    exclude_paths:
+      - "src/prov/tests/**"
+  markdownlint:
+    exclude_paths:
+      - "docs/superpowers/**"

@@ -3,7 +3,7 @@
 History
 -------
 
-2.5.1 (unreleased)
+2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
 * ``prov.read()`` polish following 2.5.0's #239: seekable streams are now
   rewound between auto-detection attempts (so e.g. a PROV-XML stream
