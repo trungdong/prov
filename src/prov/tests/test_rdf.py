@@ -60,11 +60,11 @@ def find_diff(g_rdf, g0_rdf):
         if not match_found:
             graphs_equal = False
     in_first2 = rl.ConjunctiveGraph()
-    for idx in range(len(g1)):
+    for idx, g1_line in enumerate(g1):
         if idx in matching_indices[0]:
-            in_both.parse(BytesIO(g1[idx]), format="nt")
+            in_both.parse(BytesIO(g1_line), format="nt")
         else:
-            in_first2.parse(BytesIO(g1[idx]), format="nt")
+            in_first2.parse(BytesIO(g1_line), format="nt")
     in_second2 = rl.ConjunctiveGraph()
     for idx, g2_line in enumerate(g2):
         if idx not in matching_indices[1]:
