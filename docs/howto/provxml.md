@@ -50,27 +50,30 @@ loaded = pm.ProvDocument.deserialize(content=xml_str, format="xml")
 
 ## Auto-detect the format with `prov.read()`
 
-`prov.read()` tries PROV-JSON, then PROV-O/RDF, then PROV-N, then PROV-XML, stopping at the
-first deserializer that succeeds. In practice this means **plain PROV-XML content almost
-never auto-detects**: the RDF (TriG) parser is tried before the XML one, and on real
-PROV-XML input it fails with an `rdflib` syntax error rather than one of the exception
-types `read()` catches (`TypeError`, `ValueError`, `AttributeError`, `KeyError`) — so that
-error propagates before PROV-XML ever gets a turn:
+`prov.read()` tries each registered deserializer in turn — PROV-JSON, then PROV-O/RDF, then
+PROV-N, then PROV-XML — treating any failure from a candidate as "not this format" and
+moving on to the next one, stopping at the first deserializer that both succeeds and
+produces a non-empty document. Valid PROV-XML therefore auto-detects, whether the source is
+a file path or raw content:
 
 ```python
 import prov
 
-try:
-    prov.read("document.xml")  # no format given
-except Exception as e:
-    print(f"{type(e).__name__}: autodetect did not reach the XML deserializer")
-
-loaded = prov.read("document.xml", format="xml")  # works
+loaded = prov.read("document.xml")  # no format given
 assert loaded == document
 ```
 
-Always pass `format="xml"` explicitly when reading PROV-XML; do not rely on autodetection
-for this format.
+A seekable stream source (an open file object, `io.StringIO`, `io.BytesIO`, ...) is rewound
+between auto-detection attempts, so it also auto-detects; a non-seekable stream is consumed
+by the first candidate, so pass `format="xml"` explicitly for those.
+
+Passing `format="xml"` explicitly skips the trial-and-error and gives the real traceback if
+the content is not valid PROV-XML:
+
+```python
+loaded = prov.read("document.xml", format="xml")
+assert loaded == document
+```
 
 ## Common errors
 
