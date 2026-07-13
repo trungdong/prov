@@ -50,9 +50,9 @@ loaded = pm.ProvDocument.deserialize(content=json_str, format="json")
 ## Auto-detect the format with `prov.read()`
 
 {py:func}`prov.read` tries every registered deserializer in turn — PROV-JSON, then
-PROV-O/RDF, then PROV-N, then PROV-XML — until one succeeds, so it works without knowing
-the format up front. PROV-JSON is tried first, so valid PROV-JSON content always
-auto-detects correctly:
+PROV-O/RDF, then PROV-N, then PROV-XML — until one both succeeds and produces a non-empty
+document, so it works without knowing the format up front. PROV-JSON is tried first, so
+valid PROV-JSON content always auto-detects correctly:
 
 ```python
 import prov
@@ -80,11 +80,9 @@ except Exception as e:
 JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 ```
 
-Calling `prov.read()` without `format` on content that matches none of the registered
-formats only raises the documented fallback `TypeError` ("Could not read from the
-source...") if every deserializer it tries fails with one of `TypeError`, `ValueError`,
-`AttributeError`, or `KeyError` — those are the only exceptions `read()` catches while it
-tries formats in turn. In practice the RDF deserializer (tried before PROV-XML) usually
-raises an `rdflib` parser error first, which is *not* in that list, so it propagates
-immediately instead. Either way: pass `format=` explicitly if you want a predictable,
-format-specific error.
+Since 2.5.0, `prov.read()` swallows *every* candidate deserializer's failure during
+auto-detection — including a candidate that raises, and a candidate that parses
+successfully but yields an empty document (e.g. an empty file) — and always raises the
+fallback `TypeError` ("Could not read from the source...") once every registered format has
+been tried without success. Pass `format=` explicitly if you want a predictable,
+format-specific error instead of that generic `TypeError`.

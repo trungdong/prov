@@ -3,6 +3,19 @@
 History
 -------
 
+2.5.1 (unreleased)
+^^^^^^^^^^^^^^^^^^
+* ``prov.read()`` polish following 2.5.0's #239: seekable streams are now
+  rewound between auto-detection attempts (so e.g. a PROV-XML stream
+  auto-detects instead of being consumed by the first candidate); rdflib's
+  "does not look like a valid URI" logger noise from swallowed candidate
+  attempts is suppressed during auto-detection; and when a ``str``/``bytes``
+  source that is not an existing file path fails to parse, the error now
+  carries a hint that it was treated as raw content
+* Documentation: the PROV-XML and PROV-JSON how-to pages no longer describe
+  the pre-2.5.0 ``read()`` auto-detection behaviour (exception whitelist,
+  "XML never auto-detects")
+
 2.5.0 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
 * New record-level chaining convenience methods (#154):

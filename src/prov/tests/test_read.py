@@ -2,7 +2,10 @@
 ProvDocument.deserialize() with lazy format auto-detection."""
 
 import io
+import json
+import logging
 import pathlib
+import warnings
 from unittest import mock
 
 import pytest
@@ -171,3 +174,93 @@ def test_read_garbage_content_raises_type_error():
     # A str that is not an existing file path is treated as raw content.
     with pytest.raises(TypeError):
         prov.read("no/such/file.json")
+
+
+# -- Fix A: seekable streams are rewound between auto-detect attempts ------
+
+
+def test_read_auto_detects_xml_from_seekable_stringio(document):
+    xml_str = document.serialize(format="xml")
+    stream = io.StringIO(xml_str)
+    result = prov.read(stream)
+    assert result == document
+
+
+def test_read_auto_detects_xml_from_seekable_bytesio(document):
+    xml_bytes = document.serialize(format="xml").encode()
+    stream = io.BytesIO(xml_bytes)
+    result = prov.read(stream)
+    assert result == document
+
+
+def test_read_auto_detects_json_from_seekable_stream_still_works(document):
+    # Regression guard: json is the first candidate tried, so the rewind
+    # added for other formats must not break the already-working case.
+    json_str = document.serialize(format="json")
+    stream = io.StringIO(json_str)
+    result = prov.read(stream)
+    assert result == document
+
+
+def test_read_explicit_format_with_broken_seekable_reaches_deserializer(document):
+    # A stream whose seekable() raises must not crash read() before the
+    # deserializer runs -- especially on the explicit-format path, which
+    # never needs to rewind at all.
+    class BrokenSeekable(io.StringIO):
+        def seekable(self):
+            raise OSError("seekable() not supported here")
+
+    stream = BrokenSeekable(document.serialize(format="json"))
+    assert prov.read(stream, format="json") == document
+
+
+def test_read_auto_detect_with_broken_tell_degrades_to_no_rewind(document):
+    # seekable() -> True but tell() raising must degrade to the
+    # non-seekable (first-candidate-only) behaviour, not crash; JSON is
+    # the first candidate, so JSON content still auto-detects.
+    class BrokenTell(io.StringIO):
+        def tell(self):
+            raise OSError("tell() not supported here")
+
+    stream = BrokenTell(document.serialize(format="json"))
+    assert prov.read(stream) == document
+
+
+# -- Fix B: rdflib logger noise is suppressed during auto-detect only ------
+
+
+def test_read_auto_detect_xml_produces_no_rdflib_term_warnings(
+    document, tmp_path, caplog
+):
+    path = _write(document, tmp_path, "xml", "auto-quiet.xml")
+    with caplog.at_level(logging.WARNING, logger="rdflib.term"):
+        result = prov.read(str(path))
+    assert result == document
+    assert [r for r in caplog.records if r.name == "rdflib.term"] == []
+
+
+# -- Fix C: diagnostic hint when a nonexistent-path string is parsed as ----
+# -- raw content -------------------------------------------------------------
+
+
+def test_read_explicit_format_nonexistent_path_warns_raw_content_hint():
+    with (
+        pytest.raises(json.JSONDecodeError),
+        pytest.warns(UserWarning, match="raw content"),
+    ):
+        prov.read("no/such/file.json", format="json")
+
+
+def test_read_explicit_format_valid_raw_content_emits_no_warning(document):
+    content = document.serialize(format="json")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        assert prov.read(content, format="json") == document
+
+
+def test_read_auto_detect_nonexistent_path_type_error_has_both_hints():
+    with pytest.raises(TypeError) as ctx:
+        prov.read("no/such/file.json")
+    message = str(ctx.value)
+    assert "specify the format" in message
+    assert "raw content" in message
