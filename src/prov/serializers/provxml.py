@@ -25,23 +25,21 @@ logger = logging.getLogger(__name__)
 # mapping.
 FULL_NAMES_MAP = dict(PROV_N_MAP)
 FULL_NAMES_MAP.update(ADDITIONAL_N_MAP)
-"""Maps every PROV record/subtype QualifiedName (including PROV-XML's
-top-level subtypes from :data:`~prov.constants.ADDITIONAL_N_MAP`) to its
-PROV-XML element name."""
+# Maps every PROV record/subtype QualifiedName (including PROV-XML's
+# top-level subtypes from ADDITIONAL_N_MAP in prov.constants) to its
+# PROV-XML element name.
 # Inverse mapping.
 FULL_PROV_RECORD_IDS_MAP = {
     FULL_NAMES_MAP[rec_type_id]: rec_type_id for rec_type_id in FULL_NAMES_MAP
 }
-"""Inverse of :data:`FULL_NAMES_MAP`: maps each PROV-XML element name back to
-its record/subtype QualifiedName."""
+# Inverse of FULL_NAMES_MAP: maps each PROV-XML element name back to its
+# record/subtype QualifiedName.
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
 
 class ProvXMLException(prov.Error):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
-
-    pass
 
 
 class ProvXMLSerializer(Serializer):
@@ -335,8 +333,12 @@ class ProvXMLSerializer(Serializer):
 
             # Recursively read bundles.
             if qname.localname == "bundleContent":
-                assert isinstance(bundle, prov.model.ProvDocument)
-                assert prov_rec_id is not None
+                if not isinstance(bundle, prov.model.ProvDocument):
+                    # Only a document may directly contain named bundles;
+                    # nested bundleContent would mean a bundle-within-a-bundle.
+                    raise AssertionError("bundleContent found outside a ProvDocument")
+                if prov_rec_id is None:
+                    raise AssertionError("bundleContent element has no id")
                 b = bundle.bundle(identifier=prov_rec_id)
                 self.deserialize_subtree(element, b)
                 continue

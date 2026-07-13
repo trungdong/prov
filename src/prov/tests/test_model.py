@@ -47,7 +47,7 @@ def test_loading_all_json():
                     assert g1 == g2, (
                         f"Round-trip JSON encoding/decoding failed:  {filename}."
                     )
-                except:  # noqa: E722 -- intentionally broad to catch any failure
+                except Exception:  # intentionally broad to catch any failure
                     fails.append(filename)
 
     # Code for debugging the failed tests: reload the failed files so a real

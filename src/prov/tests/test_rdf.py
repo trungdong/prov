@@ -39,14 +39,14 @@ def find_diff(g_rdf, g0_rdf):
     if len(g1) != len(g2):
         graphs_equal = False
     matching_indices = [[], []]
-    for idx in range(len(g1)):
-        g1_stmt = next(iter(rl.ConjunctiveGraph().parse(BytesIO(g1[idx]), format="nt")))
+    for idx, g1_line in enumerate(g1):
+        g1_stmt = next(iter(rl.ConjunctiveGraph().parse(BytesIO(g1_line), format="nt")))
         match_found = False
-        for idx2 in range(len(g2)):
+        for idx2, g2_line in enumerate(g2):
             if idx2 in matching_indices[1]:
                 continue
             g2_stmt = next(
-                iter(rl.ConjunctiveGraph().parse(BytesIO(g2[idx2]), format="nt"))
+                iter(rl.ConjunctiveGraph().parse(BytesIO(g2_line), format="nt"))
             )
             try:
                 all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
@@ -66,9 +66,9 @@ def find_diff(g_rdf, g0_rdf):
         else:
             in_first2.parse(BytesIO(g1[idx]), format="nt")
     in_second2 = rl.ConjunctiveGraph()
-    for idx in range(len(g2)):
+    for idx, g2_line in enumerate(g2):
         if idx not in matching_indices[1]:
-            in_second2.parse(BytesIO(g2[idx]), format="nt")
+            in_second2.parse(BytesIO(g2_line), format="nt")
     return graphs_equal, in_both, in_first2, in_second2
 
 

@@ -57,7 +57,6 @@ class Serializer(ABC):
             **args: Format-specific serialization options, passed through by
                 subclasses.
         """
-        pass  # pragma: no cover -- abstract body, never executed directly
 
     @abstractmethod
     def deserialize(self, stream: io.IOBase, **args: Any) -> ProvDocument:
@@ -74,13 +73,10 @@ class Serializer(ABC):
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
         """
-        pass  # pragma: no cover -- abstract body, never executed directly
 
 
 class DoNotExist(Error):
     """Exception for the case a serializer is not available."""
-
-    pass
 
 
 class Registry:
@@ -153,7 +149,9 @@ def get(format_name: str) -> type[Serializer]:
     if Registry.serializers is None:
         Registry.load_serializers()
     serializers = Registry.serializers
-    assert serializers is not None  # load_serializers() always populates it
+    # load_serializers() (just above) always populates Registry.serializers.
+    if serializers is None:  # pragma: no cover
+        raise AssertionError("Registry.serializers is not populated")
     try:
         return serializers[format_name]
     except KeyError as e:

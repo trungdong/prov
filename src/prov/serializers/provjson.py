@@ -35,8 +35,6 @@ ProvJSONDict = dict[str, dict[str, Any]]
 class ProvJSONException(Error):
     """Raised when a PROV-JSON document contains a construct this package cannot decode."""
 
-    pass
-
 
 class AnonymousIDGenerator:
     """Assigns and caches stable blank-node identifiers for unidentified records."""
