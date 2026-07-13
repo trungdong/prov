@@ -57,8 +57,6 @@ __email__ = "satra@mit.edu"
 class ProvRDFException(Error):
     """Raised when a PROV-RDF/PROV-O graph cannot be decoded by this package."""
 
-    pass
-
 
 class AnonymousIDGenerator:
     """Assigns and caches stable blank-node identifier strings for unidentified records."""

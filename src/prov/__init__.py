@@ -19,8 +19,6 @@ __all__ = ["Error", "model", "read"]
 class Error(Exception):
     """Base class for all errors in this package."""
 
-    pass
-
 
 def read(
     source: io.IOBase | IO[Any] | str | bytes | os.PathLike[str],
@@ -66,7 +64,8 @@ def read(
     from prov.serializers import Registry
 
     Registry.load_serializers()
-    assert Registry.serializers is not None  # populated by load_serializers()
+    if Registry.serializers is None:  # pragma: no cover -- populated above
+        raise AssertionError("Registry.serializers is not populated")
     serializers = Registry.serializers.keys()
 
     src: io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None = source
@@ -125,7 +124,9 @@ def read(
     try:
         for format in serializers:
             if start_pos is not None:
-                assert stream is not None
+                # start_pos is only ever set (above) when stream is not None.
+                if stream is None:  # pragma: no cover
+                    raise AssertionError("stream is None but start_pos is set")
                 try:
                     stream.seek(start_pos)
                 except Exception:

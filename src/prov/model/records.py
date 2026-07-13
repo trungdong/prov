@@ -327,13 +327,9 @@ class Literal:
 class ProvException(Error):
     """Base class for PROV model exceptions."""
 
-    pass
-
 
 class ProvWarning(Warning):
     """Base class for PROV model warnings."""
-
-    pass
 
 
 class ProvExceptionInvalidQualifiedName(ProvException):

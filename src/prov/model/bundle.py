@@ -1293,10 +1293,12 @@ class ProvBundle:
         from prov import dot
 
         if filename:
-            format = str(os.path.splitext(filename)[-1]).lower().strip(os.path.extsep)
+            img_format = (
+                str(os.path.splitext(filename)[-1]).lower().strip(os.path.extsep)
+            )
         else:
-            format = "png"
-        format = format.lower()
+            img_format = "png"
+        img_format = img_format.lower()
         d = dot.prov_to_dot(
             self,
             show_nary=show_nary,
@@ -1304,9 +1306,9 @@ class ProvBundle:
             show_element_attributes=show_element_attributes,
             show_relation_attributes=show_relation_attributes,
         )
-        method = f"create_{format}"
+        method = f"create_{img_format}"
         if not hasattr(d, method):
-            raise ValueError(f"Format '{format}' cannot be saved.")
+            raise ValueError(f"Format '{img_format}' cannot be saved.")
         with io.BytesIO() as buf:
             buf.write(getattr(d, method)())
 
@@ -1499,7 +1501,10 @@ class ProvDocument(ProvBundle):
             if other.has_bundles():
                 for bundle in other.bundles:
                     bundle_id = bundle.identifier
-                    assert bundle_id is not None
+                    if (
+                        bundle_id is None
+                    ):  # pragma: no cover -- bundles are always named
+                        raise AssertionError("bundle has no identifier")
                     if bundle.identifier in self._bundles:
                         self._bundles[bundle.identifier].update(bundle)
                     else:
