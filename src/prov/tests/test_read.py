@@ -202,6 +202,30 @@ def test_read_auto_detects_json_from_seekable_stream_still_works(document):
     assert result == document
 
 
+def test_read_explicit_format_with_broken_seekable_reaches_deserializer(document):
+    # A stream whose seekable() raises must not crash read() before the
+    # deserializer runs -- especially on the explicit-format path, which
+    # never needs to rewind at all.
+    class BrokenSeekable(io.StringIO):
+        def seekable(self):
+            raise OSError("seekable() not supported here")
+
+    stream = BrokenSeekable(document.serialize(format="json"))
+    assert prov.read(stream, format="json") == document
+
+
+def test_read_auto_detect_with_broken_tell_degrades_to_no_rewind(document):
+    # seekable() -> True but tell() raising must degrade to the
+    # non-seekable (first-candidate-only) behaviour, not crash; JSON is
+    # the first candidate, so JSON content still auto-detects.
+    class BrokenTell(io.StringIO):
+        def tell(self):
+            raise OSError("tell() not supported here")
+
+    stream = BrokenTell(document.serialize(format="json"))
+    assert prov.read(stream) == document
+
+
 # -- Fix B: rdflib logger noise is suppressed during auto-detect only ------
 
 

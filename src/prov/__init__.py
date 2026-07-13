@@ -76,16 +76,6 @@ def read(
         # document content.
         content, src = src, None
 
-    # A stream source (as opposed to a path) is duck-typed on read(),
-    # matching ProvBundle.deserialize()'s own convention (#240). Only a
-    # seekable stream can be rewound between auto-detect attempts below.
-    stream: IO[Any] | None = (
-        cast(IO[Any], src) if src is not None and hasattr(src, "read") else None
-    )
-    start_pos: int | None = None
-    if stream is not None and hasattr(stream, "seekable") and stream.seekable():
-        start_pos = stream.tell()
-
     if format:
         try:
             return ProvDocument.deserialize(
@@ -102,12 +92,33 @@ def read(
                 )
             raise
 
+    # A stream source (as opposed to a path) is duck-typed on read(),
+    # matching ProvBundle.deserialize()'s own convention (#240). Only a
+    # seekable stream can be rewound between auto-detect attempts below;
+    # if the stream's own seekable()/tell() misbehave, degrade gracefully
+    # to the non-seekable behaviour (first candidate consumes the stream)
+    # rather than failing before any deserializer gets a chance.
+    stream: IO[Any] | None = (
+        cast(IO[Any], src) if src is not None and hasattr(src, "read") else None
+    )
+    start_pos: int | None = None
+    if stream is not None and hasattr(stream, "seekable"):
+        try:
+            if stream.seekable():
+                start_pos = stream.tell()
+        except Exception:
+            start_pos = None
+
     # Failed-candidate diagnostics (e.g. rdflib's "does not look like a
     # valid URI" logger warnings) are noise by definition here: every
     # candidate's exception is swallowed below, so nothing about a failed
     # attempt is ever surfaced to the caller anyway. Raise rdflib's logger
     # level for the duration of auto-detection only -- the explicit-format
-    # path above is unaffected and still shows real diagnostics.
+    # path above is unaffected and still shows real diagnostics. Note this
+    # mutation is process-global and not thread-safe: two concurrent
+    # auto-detecting read() calls can race on the level, but the impact is
+    # bounded to transient log noise, so a Filter/thread-local would be
+    # more machinery than warranted.
     rdflib_term_logger = logging.getLogger("rdflib.term")
     previous_level = rdflib_term_logger.level
     rdflib_term_logger.setLevel(logging.ERROR)
@@ -115,7 +126,12 @@ def read(
         for format in serializers:
             if start_pos is not None:
                 assert stream is not None
-                stream.seek(start_pos)
+                try:
+                    stream.seek(start_pos)
+                except Exception:
+                    # A seek that fails mid-loop degrades to no-rewind for
+                    # the remaining attempts rather than aborting detection.
+                    start_pos = None
             try:
                 document = ProvDocument.deserialize(
                     source=src, content=content, format=format
