@@ -16,7 +16,7 @@ import pytest
 import rdflib as rl
 from rdflib import RDF, URIRef
 from rdflib.compare import graph_diff
-from rdflib.graph import ConjunctiveGraph, Graph
+from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
 from prov.model import ProvDocument
@@ -30,9 +30,22 @@ from prov.tests.conftest import roundtrip_document
 logger = logging.getLogger(__name__)
 
 
+def _as_triple_graph(g):
+    # rdflib.compare.graph_diff() (via _TripleCanonicalizer) iterates its
+    # inputs expecting triples; Dataset.__iter__ always yields quads (its
+    # predecessor's __iter__ yielded the default_union's triples instead),
+    # so flatten to a plain Graph holding the union of all of g's triples
+    # across every graph/context first.
+    flat = Graph()
+    flat += g.triples((None, None, None))
+    return flat
+
+
 def find_diff(g_rdf, g0_rdf):
     graphs_equal = True
-    in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
+    in_both, in_first, in_second = graph_diff(
+        _as_triple_graph(g_rdf), _as_triple_graph(g0_rdf)
+    )
     g1 = sorted(in_first.serialize(format="nt", encoding="utf-8").splitlines())[1:]
     g2 = sorted(in_second.serialize(format="nt", encoding="utf-8").splitlines())[1:]
     # Compare literals
@@ -40,13 +53,17 @@ def find_diff(g_rdf, g0_rdf):
         graphs_equal = False
     matching_indices = [[], []]
     for idx, g1_line in enumerate(g1):
-        g1_stmt = next(iter(rl.ConjunctiveGraph().parse(BytesIO(g1_line), format="nt")))
+        g1_stmt = next(
+            iter(rl.Dataset(default_union=True).parse(BytesIO(g1_line), format="nt"))
+        )
         match_found = False
         for idx2, g2_line in enumerate(g2):
             if idx2 in matching_indices[1]:
                 continue
             g2_stmt = next(
-                iter(rl.ConjunctiveGraph().parse(BytesIO(g2_line), format="nt"))
+                iter(
+                    rl.Dataset(default_union=True).parse(BytesIO(g2_line), format="nt")
+                )
             )
             try:
                 all_match = all(g1_stmt[i].eq(g2_stmt[i]) for i in range(3))
@@ -59,13 +76,13 @@ def find_diff(g_rdf, g0_rdf):
                 break
         if not match_found:
             graphs_equal = False
-    in_first2 = rl.ConjunctiveGraph()
+    in_first2 = rl.Dataset(default_union=True)
     for idx, g1_line in enumerate(g1):
         if idx in matching_indices[0]:
             in_both.parse(BytesIO(g1_line), format="nt")
         else:
             in_first2.parse(BytesIO(g1_line), format="nt")
-    in_second2 = rl.ConjunctiveGraph()
+    in_second2 = rl.Dataset(default_union=True)
     for idx, g2_line in enumerate(g2):
         if idx not in matching_indices[1]:
             in_second2.parse(BytesIO(g2_line), format="nt")
@@ -142,13 +159,13 @@ def test_encode_container_reuses_a_provided_container():
     # encode_container()'s `container` parameter defaults to None
     # everywhere it is called internally; passing one explicitly (as an
     # external caller might) must reuse it rather than creating a new
-    # ConjunctiveGraph.
+    # Dataset.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
 
     serializer = ProvRDFSerializer(document=doc)
-    container = ConjunctiveGraph()
+    container = Dataset(default_union=True)
     result = serializer.encode_container(doc, container=container)
 
     assert result is container
@@ -156,8 +173,8 @@ def test_encode_container_reuses_a_provided_container():
 
 
 def test_decode_document_without_contexts_uses_plain_graph_path():
-    # decode_document()'s `hasattr(content, "contexts")` branch is False
-    # for a plain rdflib Graph (as opposed to a ConjunctiveGraph), which
+    # decode_document()'s `hasattr(content, "graphs")` branch is False
+    # for a plain rdflib Graph (as opposed to a Dataset), which
     # every other test in this module parses into.
     graph = Graph()
     graph.add(
@@ -181,7 +198,7 @@ def test_decode_document_bundle_iri_without_registered_namespace():
     # TriG output, so a re-parsed document may name a bundle context by
     # an IRI matching no registered namespace; decode_document() must
     # fall back to compute_qname instead of raising ProvException.
-    content = ConjunctiveGraph()
+    content = Dataset(default_union=True)
     bundle_graph = content.get_context(URIRef("http://example.org/bundle1"))
     bundle_graph.add(
         (
@@ -294,8 +311,8 @@ def test_json_to_ttl_match():
                 ttl_file = ttl_file.replace("ttl", "trig")
 
             with open(ttl_file, "rb") as fp:
-                g_rdf = rl.ConjunctiveGraph().parse(fp, format=format)
-            g0_rdf = rl.ConjunctiveGraph().parse(
+                g_rdf = rl.Dataset(default_union=True).parse(fp, format=format)
+            g0_rdf = rl.Dataset(default_union=True).parse(
                 StringIO(g.serialize(format="rdf", rdf_format=format)),
                 format=format,
             )

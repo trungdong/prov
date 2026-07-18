@@ -7,12 +7,12 @@ import datetime
 import io
 import warnings
 from collections import OrderedDict
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 from typing import Any, cast
 
 import dateutil.parser
 from rdflib import RDF, RDFS, XSD
-from rdflib.graph import ConjunctiveGraph, Graph
+from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
@@ -229,7 +229,7 @@ class ProvRDFSerializer(Serializer):
         """
         newargs = kwargs.copy()
         newargs["format"] = rdf_format
-        container = ConjunctiveGraph()
+        container = Dataset(default_union=True)
         # rdflib accepts any readable stream at runtime (via create_input_source)
         # but its declared parameter type does not include io.IOBase.
         container.parse(stream, **newargs)  # type: ignore[arg-type]
@@ -352,7 +352,7 @@ class ProvRDFSerializer(Serializer):
         self,
         document: pm.ProvDocument,
         PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
-    ) -> ConjunctiveGraph:
+    ) -> Dataset:
         """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
 
         Args:
@@ -361,31 +361,42 @@ class ProvRDFSerializer(Serializer):
                 defaults to :data:`~prov.constants.PROV_N_MAP`.
 
         Returns:
-            A ``ConjunctiveGraph`` containing the document's own triples plus
-            one named subgraph per bundle in ``document.bundles``.
+            A ``Dataset`` (union view) containing the document's own triples
+            plus one named graph per bundle in ``document.bundles``.
         """
-        container = self.encode_container(document)
+        container = Dataset(default_union=True)
+        container.namespace_manager.bind("prov", PROV.uri)
+        # Encode the document's own records into a plain Graph first, then
+        # merge it into the Dataset's default graph via addN(), rather than
+        # passing the Dataset itself as encode_container()'s `container`:
+        # as of rdflib 7.3, Dataset.add() internally touches the deprecated
+        # Dataset.default_context property (its default_context/contexts()
+        # -> default_graph/graphs() migration is incomplete -- add() itself
+        # wasn't updated), which trips DeprecationWarning even though we
+        # never reference that property ourselves. addN() with an explicit
+        # graph avoids it.
+        doc_graph = self.encode_container(document, PROV_N_MAP=PROV_N_MAP)
+        for prefix, uri in doc_graph.namespaces():
+            container.bind(prefix, uri)
+        default_graph = container.graph(DATASET_DEFAULT_GRAPH_ID)
+        container.addN((s, p, o, default_graph) for s, p, o in doc_graph)
         for item in document.bundles:
-            #  encoding the sub-bundle
+            #  encoding the sub-bundle into a named graph carrying its IRI
             bundle = self.encode_container(
                 item,
                 identifier=item.identifier.uri,  # type: ignore[union-attr]
                 PROV_N_MAP=PROV_N_MAP,
             )
-            # every quad of a ConjunctiveGraph carries its context graph, but
-            # rdflib types quads() with an optional context
-            container.addN(
-                cast("Iterable[tuple[Node, Node, Node, Graph]]", bundle.quads())
-            )
+            container.addN((s, p, o, bundle) for s, p, o in bundle)
         return container
 
     def encode_container(
         self,
         bundle: pm.ProvBundle,
         PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
-        container: ConjunctiveGraph | None = None,
+        container: Graph | None = None,
         identifier: str | None = None,
-    ) -> ConjunctiveGraph:
+    ) -> Graph:
         """Encode a single bundle's namespaces and records into an RDF graph.
 
         Does not recurse into named bundles; see :meth:`encode_document` for
@@ -403,8 +414,10 @@ class ProvRDFSerializer(Serializer):
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword;
                 defaults to :data:`~prov.constants.PROV_N_MAP`.
             container: Graph to add triples to. If ``None``, a new
-                ``ConjunctiveGraph`` is created (with ``identifier``, and
-                with the ``prov`` namespace pre-bound).
+                ``Graph`` is created (with ``identifier``, and with the
+                ``prov`` namespace pre-bound). :meth:`encode_document` passes
+                a ``Dataset`` here for the document's own triples and a plain
+                named ``Graph`` per bundle.
             identifier: Identifier for the new graph, used only when
                 ``container`` is ``None``.
 
@@ -413,7 +426,7 @@ class ProvRDFSerializer(Serializer):
             created one.
         """
         if container is None:
-            container = ConjunctiveGraph(identifier=identifier)
+            container = Graph(identifier=identifier)
             nm = container.namespace_manager
             nm.bind("prov", PROV.uri)
 
@@ -657,7 +670,7 @@ class ProvRDFSerializer(Serializer):
 
     def decode_document(
         self,
-        content: ConjunctiveGraph,
+        content: Dataset,
         document: pm.ProvDocument,
         relation_mapper: dict[URIRef, str] = RELATION_MAP,
         predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
@@ -665,16 +678,16 @@ class ProvRDFSerializer(Serializer):
         """Decode a whole RDF graph, including named subgraphs, into a document.
 
         Mutates ``document`` in place: registers ``content``'s namespaces on
-        it, then decodes each subgraph (bnode-identified subgraphs as the
-        document's own records; IRI-identified subgraphs as named bundles
-        added via :meth:`~prov.model.ProvBundle.bundle`) via
-        :meth:`decode_container`. If ``content`` has no ``contexts()`` (i.e.
-        it is a plain ``Graph``, not conjunctive), it is decoded directly as
+        it, then decodes each subgraph (the default/bnode-identified
+        subgraph as the document's own records; IRI-identified subgraphs as
+        named bundles added via :meth:`~prov.model.ProvBundle.bundle`) via
+        :meth:`decode_container`. If ``content`` has no ``graphs()`` (i.e. it
+        is a plain ``Graph``, not a ``Dataset``), it is decoded directly as
         the document's own records.
 
         Args:
-            content: RDF graph (typically a ``ConjunctiveGraph``, as produced
-                by :meth:`encode_document`) to decode.
+            content: RDF graph (typically a ``Dataset``, as produced by
+                :meth:`encode_document`) to decode.
             document: Document to populate.
             relation_mapper: Maps PROV-O relation predicate URIRefs to
                 :class:`~prov.model.ProvBundle` factory method names;
@@ -684,9 +697,12 @@ class ProvRDFSerializer(Serializer):
         """
         for prefix, url in content.namespaces():
             document.add_namespace(prefix, str(url))
-        if hasattr(content, "contexts"):
-            for graph in content.contexts():
-                if isinstance(graph.identifier, BNode):
+        if hasattr(content, "graphs"):
+            for graph in content.graphs():
+                if (
+                    isinstance(graph.identifier, BNode)
+                    or graph.identifier == DATASET_DEFAULT_GRAPH_ID
+                ):
                     self.decode_container(
                         graph,
                         document,
@@ -738,7 +754,7 @@ class ProvRDFSerializer(Serializer):
 
         Args:
             graph: The RDF (sub)graph to decode, e.g. one context of a
-                ``ConjunctiveGraph``.
+                ``Dataset``.
             bundle: Bundle (or document) to add the decoded records to.
             relation_mapper: Maps PROV-O relation predicate URIRefs to
                 :class:`~prov.model.ProvBundle` factory method names;
