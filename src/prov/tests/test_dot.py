@@ -10,9 +10,9 @@ import pytest
 
 pydot = pytest.importorskip("pydot")
 
-from prov.dot import htlm_link_if_uri, prov_to_dot  # noqa: E402
-from prov.model import ProvDocument  # noqa: E402
-from prov.tests import examples  # noqa: E402
+from prov.dot import htlm_link_if_uri, prov_to_dot
+from prov.model import ProvDocument
+from prov.tests import examples
 
 MIN_SVG_SIZE = 850
 

@@ -3,6 +3,16 @@
 History
 -------
 
+3.0.0 (unreleased)
+^^^^^^^^^^^^^^^^^^
+* BREAKING: ``pydot`` and ``networkx`` are no longer unconditional runtime
+  dependencies. ``import prov.dot`` now requires the ``dot`` extra
+  (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``
+  extra; without them the import raises ``ModuleNotFoundError`` naming the
+  extra to install. The ``plot`` extra now pulls in ``pydot``/``networkx``
+  as well, since ``plot()`` renders through ``prov.dot``. Signposted by the
+  2.4.0 ``DeprecationWarning`` (now removed); see ``docs/upgrading-3.0.md``.
+
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
 * ``prov.read()`` polish following 2.5.0's #239: seekable streams are now

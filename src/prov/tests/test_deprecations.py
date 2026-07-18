@@ -1,34 +1,19 @@
-"""Covers the 2.4.0 deprecation signposts for 3.0 (roadmap step 26).
+"""Covers the 2.4.0 deprecation signpost for 3.0 (roadmap step 26) that is
+still pending.
 
-``prov.dot`` and ``prov.graph`` emit a module-level ``DeprecationWarning``
-pointing at the future ``prov[dot]``/``prov[graph]`` extras, and
 ``ProvBundle.unified()``/``ProvDocument.unified()`` emit a ``FutureWarning``
-about the PROV-CONSTRAINTS unification rework. The full narrative for both
-lives in docs/upgrading-3.0.md.
+about the PROV-CONSTRAINTS unification rework; the full narrative lives in
+docs/upgrading-3.0.md.
 
-Module-level warnings only fire once, at import time, so a test that isn't
-the first to import ``prov.dot``/``prov.graph`` (both are imported by other
-test modules in this suite) must ``importlib.reload()`` the module to
-observe the warning again.
+The matching ``prov.dot``/``prov.graph`` ``DeprecationWarning`` signposts
+(also covered here previously) came true in 3.0.0.dev0: those modules now
+require the ``dot``/``graph`` extras and raise ``ModuleNotFoundError``
+instead of warning -- see test_minimal_install.py.
 """
-
-import importlib
 
 import pytest
 
-import prov.dot
-import prov.graph
 from prov.model import ProvDocument
-
-
-def test_import_dot_warns_deprecation():
-    with pytest.warns(DeprecationWarning, match=r"prov\[dot\]"):
-        importlib.reload(prov.dot)
-
-
-def test_import_graph_warns_deprecation():
-    with pytest.warns(DeprecationWarning, match=r"prov\[graph\]"):
-        importlib.reload(prov.graph)
 
 
 def test_bundle_unified_warns_future():
