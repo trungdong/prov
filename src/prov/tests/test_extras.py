@@ -3,8 +3,6 @@ import io
 
 import pytest
 
-pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
-
 from prov.constants import (
     PROV_ROLE,
     XSD,
@@ -12,7 +10,6 @@ from prov.constants import (
     XSD_DOUBLE,
     XSD_SHORT,
 )
-from prov.dot import prov_to_dot
 from prov.identifier import Namespace
 from prov.model import (
     Literal,
@@ -125,6 +122,9 @@ def add_further_attributes_with_qnames(record):
 def test_dot():
     # This is naive, since we can't programatically check the output is
     # correct
+    pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
+    from prov.dot import prov_to_dot
+
     document = ProvDocument()
 
     bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -326,6 +326,12 @@ def test_get_serializer_lazily_populates_registry():
 
 
 def test_plot_without_matplotlib_raises_helpful_error():
+    # plot()'s interactive path renders through prov.dot before it ever gets
+    # to the matplotlib check, so this test's premise (pydot present,
+    # matplotlib absent) needs pydot importable -- without it, prov.dot's own
+    # guard raises first with a "prov[dot]" message instead.
+    pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
+
     # Deliberately exercises matplotlib's *absence*: builtins.__import__ is
     # patched to fail for matplotlib imports, so this import must stay local
     # to the test rather than move to module scope.
