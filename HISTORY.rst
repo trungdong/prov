@@ -15,6 +15,13 @@ History
 * BREAKING: the ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously
   ``>=6.0.0``); internally the RDF serializer migrated from the deprecated
   ``ConjunctiveGraph`` to ``Dataset``, with unchanged round-trip behaviour
+* BREAKING: ``python-dateutil`` dropped — ``prov`` now has no unconditional
+  runtime dependencies. Datetime strings are parsed as ``xsd:dateTime``
+  (ISO 8601 plus the hour-24 end-of-day form) via the standard library;
+  factory ``time=``/``startTime=``/``endTime=`` parameters raise
+  ``ProvException`` on invalid input instead of leaking a raw dateutil
+  error, and non-ISO forms previously tolerated by dateutil (e.g.
+  ``"Nov 7, 2011"``) are no longer accepted (#237)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

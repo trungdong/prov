@@ -5,12 +5,11 @@ from __future__ import annotations  # needed for | type annotations in Python < 
 import datetime
 import logging
 import os
+import re
 import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any, Union
-
-import dateutil.parser
 
 from prov import Error
 from prov.constants import (
@@ -100,33 +99,66 @@ PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
 
 
 # Data Types
+_XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Zz+-])")
+_XSD_ZULU_RE = re.compile(r"[Zz]$")
+_XSD_FRACTION_RE = re.compile(r"\.(\d+)")
+
+
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
     """Coerce a value to a :class:`datetime.datetime`.
 
-    A string is parsed with :func:`dateutil.parser.parse`; a
+    A string is parsed with :func:`parse_xsd_datetime`; a
     :class:`~datetime.datetime` or ``None`` is returned unchanged.
+
+    Raises:
+        ProvException: If a string value is not a valid ``xsd:dateTime``.
     """
     if isinstance(value, str):
-        return dateutil.parser.parse(value)
-    else:
-        return value
+        parsed = parse_xsd_datetime(value)
+        if parsed is None:
+            raise ProvException(f"Invalid xsd:dateTime value: {value!r}")
+        return parsed
+    return value
 
 
 def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
+    Accepts the ``xsd:dateTime`` lexical space: ISO 8601 date-time with
+    optional fractional seconds and timezone, ``Z`` for UTC, and the
+    hour-24 end-of-day form (which maps to 00:00:00 of the following day,
+    per the XSD value space).
+
     Args:
         value: The date/time string to parse.
 
     Returns:
-        The parsed :class:`~datetime.datetime`, or ``None`` if ``value`` could
-        not be parsed.
+        The parsed :class:`~datetime.datetime`, or ``None`` if ``value``
+        could not be parsed.
     """
+    text = value.strip()
+    if "T" not in text:
+        # xsd:dateTime requires a literal "T" date/time separator; bare
+        # xsd:date strings (e.g. "2011-11-16") are a distinct, narrower
+        # datatype and are intentionally not accepted here (3.0 narrowing).
+        return None
+    end_of_day = _XSD_HOUR24_RE.search(text) is not None
+    if end_of_day:
+        text = _XSD_HOUR24_RE.sub("T00:00:00", text)
+    # datetime.fromisoformat on Python 3.10 accepts neither the "Z" suffix
+    # nor fractional seconds that are not exactly 3 or 6 digits long;
+    # normalize both before parsing.
+    text = _XSD_ZULU_RE.sub("+00:00", text)
+    text = _XSD_FRACTION_RE.sub(
+        lambda m: "." + m.group(1)[:6].ljust(6, "0"), text, count=1
+    )
     try:
-        return dateutil.parser.parse(value)
+        parsed = datetime.datetime.fromisoformat(text)
     except ValueError:
-        pass
-    return None
+        return None
+    if end_of_day:
+        parsed += datetime.timedelta(days=1)
+    return parsed
 
 
 def parse_boolean(value: str) -> bool | None:
@@ -775,8 +807,8 @@ class ProvEntity(ProvElement):
             activity: The activity (or its string identifier) involved in the
                 generation (default: ``None``).
             time: Optional time of the generation, as a
-                :class:`datetime.datetime` or a string parseable by
-                :func:`dateutil.parser.parse` (default: ``None``).
+                :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
                 an iterable of ``(name, value)`` pairs (default: ``None``).
 
@@ -798,8 +830,8 @@ class ProvEntity(ProvElement):
             activity: The activity (or its string identifier) involved in the
                 invalidation; may be ``None``.
             time: Optional time of the invalidation, as a
-                :class:`datetime.datetime` or a string parseable by
-                :func:`dateutil.parser.parse` (default: ``None``).
+                :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
                 an iterable of ``(name, value)`` pairs (default: ``None``).
 
@@ -1067,7 +1099,8 @@ class ProvActivity(ProvElement):
             entity: The entity (or its string identifier) involved in the
                 usage relationship.
             time: Optional time of the usage, as a :class:`datetime.datetime`
-                or a string parseable by :func:`dateutil.parser.parse`
+                or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
                 an iterable of ``(name, value)`` pairs (default: ``None``).
@@ -1111,7 +1144,8 @@ class ProvActivity(ProvElement):
             starter: Optional activity qualifying the start, through which the
                 trigger entity is generated (default: ``None``).
             time: Optional time of the start, as a :class:`datetime.datetime`
-                or a string parseable by :func:`dateutil.parser.parse`
+                or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
                 an iterable of ``(name, value)`` pairs (default: ``None``).
@@ -1137,7 +1171,8 @@ class ProvActivity(ProvElement):
             ender: Optional activity qualifying the end, through which the
                 trigger entity is generated (default: ``None``).
             time: Optional time of the end, as a :class:`datetime.datetime` or
-                a string parseable by :func:`dateutil.parser.parse`
+                an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
                 an iterable of ``(name, value)`` pairs (default: ``None``).
