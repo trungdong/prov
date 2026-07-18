@@ -1,6 +1,6 @@
 """Namespace management for PROV documents and bundles."""
 
-from __future__ import annotations  # defer eval: refs itself before class is defined
+from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
 from collections.abc import Iterable
 
