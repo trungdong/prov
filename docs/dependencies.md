@@ -9,11 +9,10 @@ below — they drift after the audit date above.
 ## Runtime dependencies (`[project.dependencies]`)
 
 `prov` has **no unconditional runtime dependencies** as of 3.0.0.dev0. `pydot` and
-`networkx` moved behind the `dot`/`graph` extras (Task 1 of the 3.0 batch-1 plan);
-Task 3 dropped the last one, `python-dateutil` — datetime strings are now parsed by
-`prov.model.parse_xsd_datetime()`, a stdlib `datetime.fromisoformat()`-based `xsd:dateTime`
-parser, resolving the long-standing `# TODO: is this really needed?` that used to sit next
-to the `python-dateutil` entry here.
+`networkx` moved behind the `dot`/`graph` extras, and `python-dateutil` was dropped in
+3.0 — datetime strings are now parsed by `prov.model.parse_xsd_datetime()`, a stdlib
+`datetime.fromisoformat()`-based `xsd:dateTime` parser, resolving the long-standing
+`# TODO: is this really needed?` that used to sit next to the `python-dateutil` entry here.
 
 ## Optional extras (`[project.optional-dependencies]`)
 
