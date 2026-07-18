@@ -365,7 +365,6 @@ class ProvRDFSerializer(Serializer):
             plus one named graph per bundle in ``document.bundles``.
         """
         container = Dataset(default_union=True)
-        container.namespace_manager.bind("prov", PROV.uri)
         # Encode the document's own records into a plain Graph first, then
         # merge it into the Dataset's default graph via addN(), rather than
         # passing the Dataset itself as encode_container()'s `container`:
@@ -415,9 +414,17 @@ class ProvRDFSerializer(Serializer):
                 defaults to :data:`~prov.constants.PROV_N_MAP`.
             container: Graph to add triples to. If ``None``, a new
                 ``Graph`` is created (with ``identifier``, and with the
-                ``prov`` namespace pre-bound). :meth:`encode_document` passes
-                a ``Dataset`` here for the document's own triples and a plain
-                named ``Graph`` per bundle.
+                ``prov`` namespace pre-bound). When called from
+                :meth:`encode_document`, ``container`` is always ``None``,
+                so this method builds a fresh plain ``Graph``;
+                :meth:`encode_document` then merges the returned triples
+                into its ``Dataset`` via ``addN()``. This method expects a
+                plain ``Graph`` here: passing a ``Dataset`` works, but its
+                ``.add()`` calls will surface rdflib's own internal
+                ``DeprecationWarning`` on ``Dataset.default_context`` (rdflib
+                >=7.3), which is exactly why :meth:`encode_document` uses a
+                plain ``Graph`` plus ``addN()`` instead of passing its
+                ``Dataset`` in here.
             identifier: Identifier for the new graph, used only when
                 ``container`` is ``None``.
 

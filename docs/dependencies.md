@@ -53,9 +53,13 @@ Install with `prov[extra]`; omitting them makes the corresponding serializer/mod
   rdflib 7.3.0 onward rdflib's own internals (`ConjunctiveGraph.add()`/`.parse()`, and
   the TriG parser/serializer plugins) call their own now-deprecated `Dataset.contexts()`/
   `Dataset.default_context` under the hood, so a `-W error::DeprecationWarning` run
-  against `test_rdf.py` fails on rdflib >=7.3 even though `provrdf.py` itself no longer
-  references any deprecated rdflib name (confirmed clean against the `7.0.0` floor);
-  this is rdflib's own migration debt, slated for cleanup by their 8.0.
+  against `test_rdf.py` fails on rdflib >=7.3 even though `provrdf.py` no longer
+  directly calls a deprecated rdflib name in the document-encoding path (confirmed
+  clean against the `7.0.0` floor); this is rdflib's own migration debt, slated for
+  cleanup by their 8.0. (`encode_container()` still accepts a caller-supplied `Dataset`
+  as its `container` argument for API-compatibility reasons; that path's own `.add()`
+  calls do re-trip rdflib's internal warning, since `Dataset` inherits `.add()` from the
+  deprecated `ConjunctiveGraph` unchanged — see the method's docstring.)
 - **`xml` → `lxml>=3.3.5`** — backs `prov.serializers.provxml` (PROV-XML). Floor predates
   this project's adoption; no known upper-bound issue.
 - **`plot` → `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0`** — backs the

@@ -159,12 +159,17 @@ def test_encode_container_reuses_a_provided_container():
     # encode_container()'s `container` parameter defaults to None
     # everywhere it is called internally; passing one explicitly (as an
     # external caller might) must reuse it rather than creating a new
-    # Dataset.
+    # Graph.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
 
     serializer = ProvRDFSerializer(document=doc)
+    # A Dataset works here (it's a Graph subclass), but this exercises the
+    # accepted-tradeoff path, not the recommended one: its .add() calls
+    # surface rdflib's own internal deprecation noise (Dataset.default_context,
+    # rdflib >=7.3) -- see encode_container()'s docstring. encode_document()
+    # avoids this by always passing a plain Graph.
     container = Dataset(default_union=True)
     result = serializer.encode_container(doc, container=container)
 
