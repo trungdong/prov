@@ -99,8 +99,8 @@ PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
 
 
 # Data Types
-_XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Zz+-])")
-_XSD_ZULU_RE = re.compile(r"[Zz]$")
+_XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
+_XSD_ZULU_RE = re.compile(r"Z$")
 _XSD_FRACTION_RE = re.compile(r"\.(\d+)")
 
 
@@ -154,10 +154,10 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     )
     try:
         parsed = datetime.datetime.fromisoformat(text)
-    except ValueError:
+        if end_of_day:
+            parsed += datetime.timedelta(days=1)
+    except (ValueError, OverflowError):
         return None
-    if end_of_day:
-        parsed += datetime.timedelta(days=1)
     return parsed
 
 

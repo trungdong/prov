@@ -42,6 +42,19 @@ UTC = datetime.timezone.utc
         ("2011-11-16T24:00:00", datetime.datetime(2011, 11, 17, 0, 0)),
         ("2011-11-16T24:00:00.000Z", datetime.datetime(2011, 11, 17, 0, 0, tzinfo=UTC)),
         ("2011-12-31T24:00:00", datetime.datetime(2012, 1, 1, 0, 0)),
+        # hour-24 combined with a non-Zulu numeric offset: the offset is
+        # attached to the rolled-over (next-day) datetime, not the original.
+        (
+            "2011-11-16T24:00:00+05:30",
+            datetime.datetime(
+                2011,
+                11,
+                17,
+                0,
+                0,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=5, minutes=30)),
+            ),
+        ),
     ],
 )
 def test_parse_xsd_datetime_accepts(text, expected):
@@ -56,6 +69,8 @@ def test_parse_xsd_datetime_accepts(text, expected):
         "2011-11-16",  # xsd:date, not xsd:dateTime (no time part) — pre-3.0 dateutil accepted it; now rejected
         "2011-11-16T24:30:00",  # hour 24 is only valid with 00:00 minutes/seconds
         "Nov 7, 2011",  # dateutil-style leniency is gone in 3.0
+        "9999-12-31T24:00:00",  # legal hour-24 form, but rollover overflows datetime.MAXYEAR
+        "2011-11-16T21:08:16z",  # lowercase "z" is not a valid xsd:dateTime UTC designator
     ],
 )
 def test_parse_xsd_datetime_rejects(text):
