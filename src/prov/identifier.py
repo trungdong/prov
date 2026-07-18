@@ -1,4 +1,4 @@
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
+from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 from typing import Any
 

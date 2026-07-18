@@ -12,8 +12,6 @@ prov-compare -- Compare two PROV-JSON, PROV-XML, or RDF (PROV-O) files for equiv
 @deffield    updated: 2025-06-07
 """
 
-from __future__ import annotations
-
 import logging
 import os
 import sys

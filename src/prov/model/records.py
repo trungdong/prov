@@ -1,6 +1,6 @@
 """PROV-DM records: elements, relations, literals, and datatype helpers."""
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
+from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatures
 
 import datetime
 import logging

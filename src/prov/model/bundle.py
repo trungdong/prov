@@ -1,6 +1,6 @@
 """PROV bundles and documents: containers of PROV records."""
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
+from __future__ import annotations  # defer eval: ProvDocument used before it's defined
 
 import io
 import itertools

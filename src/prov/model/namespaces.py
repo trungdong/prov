@@ -1,6 +1,6 @@
 """Namespace management for PROV documents and bundles."""
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
+from __future__ import annotations  # defer eval: refs itself before class is defined
 
 from collections.abc import Iterable
 

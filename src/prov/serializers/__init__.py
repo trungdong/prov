@@ -1,4 +1,4 @@
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
+from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatures
 
 import io
 from abc import ABC, abstractmethod
