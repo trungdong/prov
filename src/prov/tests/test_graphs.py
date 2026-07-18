@@ -1,5 +1,6 @@
-import networkx as nx
 import pytest
+
+nx = pytest.importorskip("networkx", reason="prov.graph requires the graph extra")
 
 from prov.graph import graph_to_prov, prov_to_graph
 from prov.model import ProvActivity, ProvDocument, ProvEntity

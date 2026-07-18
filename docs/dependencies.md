@@ -8,35 +8,34 @@ below — they drift after the audit date above.
 
 ## Runtime dependencies (`[project.dependencies]`)
 
-These install unconditionally with `pip install prov`.
+These install unconditionally with `pip install prov`. Since 3.0.0.dev0 this is just
+`python-dateutil` — `pydot` and `networkx` moved behind the `dot`/`graph` extras below.
 
-- **`networkx>=2.0`** — backs `prov.graph` (`prov_to_graph()`/`graph_to_prov()`), the
-  NetworkX `MultiDiGraph` interop. Floor is `2.0`, the first release with the API this
-  module relies on; no upper bound because the module only uses stable, long-standing
-  NetworkX APIs.
-- **`pydot>=1.2.0`** — backs `prov.dot` (`prov_to_dot()`), rendering a document to a
-  `pydot.Graph` for export via Graphviz (PDF/PNG/SVG). Requires a *local* `graphviz`
-  binary install separately; `pydot` alone only builds the DOT representation. Floor
-  `1.2.0` predates this project's use of it; no known upper-bound issue.
 - **`python-dateutil>=2.2`** — `dateutil.parser.parse()` in `src/prov/model.py` parses
   ISO-8601-ish datetime strings from PROV-JSON/XML/RDF into `datetime` objects. There is a
   long-standing `# TODO: is this really needed?` next to this entry — the stdlib
   `datetime.fromisoformat()` couldn't handle the full range of formats PROV documents use
   when this was added, but nobody has re-verified that against the current stdlib.
   Left as-is; not in scope for this audit (would be a behaviour-risk change deferred to
-  3.0 if pursued).
-
-`pydot` and `networkx` are unconditional runtime deps today even though only `dot.py`/
-`graph.py` use them; moving them behind optional extras (e.g. `prov[dot]`, `prov[graph]`)
-is a tracked 3.0 idea (see the modernisation roadmap design doc), not done here since it
-would be a public-API/behaviour change for 2.x users who `import prov.dot`/`prov.graph`
-without an extra installed.
+  3.0 if pursued) — Task 3 of the 3.0 batch-1 plan drops this dependency entirely in
+  favour of the stdlib parser, which will empty this section out.
 
 ## Optional extras (`[project.optional-dependencies]`)
 
 Install with `prov[extra]`; omitting them makes the corresponding serializer/module raise
 `ModuleNotFoundError` when used, not at `import prov` time.
 
+- **`dot` → `pydot>=1.2.0`, `networkx>=2.0`** — backs `prov.dot` (`prov_to_dot()`),
+  rendering a document to a `pydot.Graph` for export via Graphviz (PDF/PNG/SVG). Requires
+  a *local* `graphviz` binary installed separately; `pydot` alone only builds the DOT
+  representation. `prov.dot` renders through `prov.graph` internally, so this extra
+  carries `networkx` too, not just `pydot`. `pydot` floor `1.2.0` predates this project's
+  use of it; `networkx` floor `2.0` is the first release with the API `prov.graph` relies
+  on. Both were unconditional runtime dependencies before 3.0.0.dev0 (see
+  `docs/upgrading-3.0.md`).
+- **`graph` → `networkx>=2.0`** — backs `prov.graph` (`prov_to_graph()`/
+  `graph_to_prov()`), the NetworkX `MultiDiGraph` interop. Same floor/rationale as the
+  `networkx` pin under `dot` above.
 - **`rdf` → `rdflib>=6.0.0,<8`** — backs `prov.serializers.provrdf` (PROV-O/RDF
   serialization). Both bounds revised 2026-07-05 (T15). Floor: the historic `4.2.1` no
   longer builds on the Pythons this project supports and 5.x fails xsd:base64Binary
@@ -53,9 +52,11 @@ Install with `prov[extra]`; omitting them makes the corresponding serializer/mod
   to 3.0 (its defaults, e.g. `default_union`, are not behaviour-neutral for 2.x).
 - **`xml` → `lxml>=3.3.5`** — backs `prov.serializers.provxml` (PROV-XML). Floor predates
   this project's adoption; no known upper-bound issue.
-- **`plot` → `matplotlib>=3.6`** — backs the interactive-display path of
-  `ProvBundle.plot()`/`ProvDocument.plot()` in `src/prov/model.py` (lazily imported
-  alongside `pydot` so the base install stays light). Floor `3.6` is a defensive modern
+- **`plot` → `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0`** — backs the
+  interactive-display path of `ProvBundle.plot()`/`ProvDocument.plot()` in
+  `src/prov/model/bundle.py`; `plot()` renders through `prov.dot` (lazily imported), so
+  this extra pulls in `pydot`/`networkx` alongside `matplotlib` rather than requiring
+  `prov[dot]` to be depended on separately. `matplotlib` floor `3.6` is a defensive modern
   baseline rather than a verified minimum; not exercised in CI (no display backend in the
   test environment), so this path is coverage-`defer`red (see
   `docs/test-gap-checklist.md`).

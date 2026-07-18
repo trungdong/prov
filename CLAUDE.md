@@ -23,18 +23,19 @@ Plan: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`; publi
 
 ## Setup
 
-Uses `uv`. RDF/XML support are optional extras — without them many tests fail with
-`ModuleNotFoundError`:
+Uses `uv`. RDF/XML support and graphical/graph interop (`dot`, `graph`) are optional
+extras — without them many tests fail with `ModuleNotFoundError`:
 
 ```bash
-uv sync --extra rdf --extra xml
+uv sync --extra rdf --extra xml --extra dot --extra graph
 ```
 
-Sphinx docs need the `docs` group plus both extras (autodoc imports the serializers):
+Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers
+and `prov.dot`/`prov.graph`):
 
 ```bash
-uv sync --group docs --extra rdf --extra xml
-uv run --group docs --extra rdf --extra xml sphinx-build -b html docs docs/_build/html
+uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
+uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -b html docs docs/_build/html
 ```
 
 `docs/dependencies.md` explains every dependency pin (including why Sphinx is capped `<9`).
@@ -51,7 +52,7 @@ uv run coverage run -m pytest && uv run coverage report -m
 
 # All supported interpreters (matches CI matrix)
 for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
-    uv run --python $py --extra rdf --extra xml pytest || break
+    uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
 done
 ```
 
@@ -94,6 +95,8 @@ RDF/XML serializers need the `rdflib`/`lxml` extras.
 
 `src/prov/graph.py`: `prov_to_graph()`/`graph_to_prov()` ↔ NetworkX `MultiDiGraph`.
 `src/prov/dot.py`: `prov_to_dot()` → pydot for PDF/PNG/SVG (needs a local `graphviz` binary).
+Since 3.0.0.dev0 both modules sit behind extras (`graph`, `dot`) — importing either
+without its extra raises `ModuleNotFoundError` naming the extra to install.
 
 ### Tests (`src/prov/tests/`)
 

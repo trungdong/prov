@@ -5,6 +5,7 @@ Additions are fine; removals or moves are a breaking change (3.0 only).
 """
 
 import importlib
+import importlib.util
 import io
 
 import prov.serializers
@@ -92,10 +93,20 @@ PUBLIC_API = {
     "prov.graph": ["prov_to_graph", "graph_to_prov"],
 }
 
+# Modules importable only when their optional extra is installed (3.0);
+# the informative failure without the extra is covered by test_minimal_install.
+OPTIONAL_MODULE_REQUIREMENTS = {
+    "prov.dot": "pydot",
+    "prov.graph": "networkx",
+}
+
 
 def test_names_importable():
     missing = []
     for module_name, names in PUBLIC_API.items():
+        requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
+        if requirement and importlib.util.find_spec(requirement) is None:
+            continue
         module = importlib.import_module(module_name)
         for name in names:
             if not hasattr(module, name):

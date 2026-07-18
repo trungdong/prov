@@ -3,10 +3,24 @@ import io
 
 import pytest
 
-from prov.constants import PROV_ROLE, XSD, XSD_ANYURI, XSD_DOUBLE, XSD_SHORT
+pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
+
+from prov.constants import (
+    PROV_ROLE,
+    XSD,
+    XSD_ANYURI,
+    XSD_DOUBLE,
+    XSD_SHORT,
+)
 from prov.dot import prov_to_dot
 from prov.identifier import Namespace
-from prov.model import Literal, ProvAgent, ProvBundle, ProvDocument, ProvException
+from prov.model import (
+    Literal,
+    ProvAgent,
+    ProvBundle,
+    ProvDocument,
+    ProvException,
+)
 from prov.serializers import DoNotExist, Registry, get as get_serializer
 from prov.serializers.provjson import ProvJSONSerializer
 from prov.serializers.provn import ProvNSerializer

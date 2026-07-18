@@ -35,7 +35,7 @@ test:
 
 test-all:
 	for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do \
-		uv run --python $$py --extra rdf --extra xml pytest || exit 1; \
+		uv run --python $$py --extra rdf --extra xml --extra dot --extra graph pytest || exit 1; \
 	done
 
 coverage:
@@ -45,7 +45,7 @@ coverage:
 	open htmlcov/index.html
 
 docs:
-	uv run --group docs --extra rdf --extra xml sphinx-build -b html docs docs/_build/html
+	uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -b html docs docs/_build/html
 	open docs/_build/html/index.html
 
 dist: clean

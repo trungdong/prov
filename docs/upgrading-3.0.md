@@ -13,12 +13,14 @@ for the full rationale.
 
 | Change | Signposted in 2.4.0 by | What to do |
 |---|---|---|
-| `pydot`/Graphviz support (`prov.dot`, `prov_to_dot()`) moves behind the `dot` extra | Importing `prov.dot` emits a `DeprecationWarning` | Depend on `prov[dot]` instead of (or in addition to) `prov` if your code imports `prov.dot` or calls `prov_to_dot()`. |
-| `networkx` graph interop (`prov.graph`, `prov_to_graph()`/`graph_to_prov()`) moves behind the `graph` extra | Importing `prov.graph` emits a `DeprecationWarning` | Depend on `prov[graph]` instead of (or in addition to) `prov` if your code imports `prov.graph` or calls `prov_to_graph()`/`graph_to_prov()`. Note `prov.dot` itself uses `prov.graph`, so `prov[dot]` will pull in `prov[graph]` too. |
+| **Done in 3.0.0.dev0:** `pydot`/Graphviz support (`prov.dot`, `prov_to_dot()`) moves behind the `dot` extra | Importing `prov.dot` emitted a `DeprecationWarning` (now removed) | Depend on `prov[dot]` instead of (or in addition to) `prov` if your code imports `prov.dot` or calls `prov_to_dot()`. |
+| **Done in 3.0.0.dev0:** `networkx` graph interop (`prov.graph`, `prov_to_graph()`/`graph_to_prov()`) moves behind the `graph` extra | Importing `prov.graph` emitted a `DeprecationWarning` (now removed) | Depend on `prov[graph]` instead of (or in addition to) `prov` if your code imports `prov.graph` or calls `prov_to_graph()`/`graph_to_prov()`. Note `prov.dot` itself uses `prov.graph`, so `prov[dot]` pulls in `prov[graph]`'s dependency (`networkx`) too. |
 | `python-dateutil` dropped in favour of the standard library's `datetime.fromisoformat()` | Not separately warned (internal dependency swap) | No action for typical ISO-8601 timestamps. If you rely on `dateutil.parser.parse()`'s more permissive parsing of non-ISO date/time strings inside PROV-JSON/XML/RDF documents, verify those strings still parse under 3.0 — `fromisoformat()` accepts a narrower grammar. |
 
-A plain `pip install prov` will keep working for the core data model and the JSON/PROV-N
-serializers; add the relevant extra(s) if you use graphics export or graph interop.
+A plain `pip install prov` keeps working for the core data model and the JSON/PROV-N
+serializers; add the relevant extra(s) if you use graphics export or graph interop. The
+`plot` extra (`ProvBundle.plot()`/`ProvDocument.plot()`) also now carries `pydot` and
+`networkx`, since its interactive-display path renders through `prov.dot`.
 
 ## Behaviour-changing bug fixes
 

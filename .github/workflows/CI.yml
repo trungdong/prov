@@ -34,7 +34,7 @@ jobs:
           # add a small, predictable amount of time to the CI matrix.
           HYPOTHESIS_PROFILE: ci
         run: |
-          uv sync --locked --extra rdf --extra xml --group dev
+          uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
           uv run coverage run -m pytest
           uv run coverage xml
       - name: Enforce coverage ratchet
@@ -73,7 +73,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: |
-          uv sync --locked --extra rdf --extra xml --group dev
+          uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
           uv pip install "rdflib${{ matrix.rdflib-version }}"
           uv run --no-sync python -c "import rdflib; print('rdflib', rdflib.__version__)"
           uv run --no-sync pytest src/prov/tests/test_rdf.py
@@ -89,10 +89,12 @@ jobs:
           uv run ruff format --check src/
 
   minimal-install:
-    # Proves the registry degrades cleanly without the optional rdf/xml
-    # extras: `uv sync --group dev` (no --extra rdf/xml) leaves rdflib and
-    # lxml absent, so this exercises the same environment shape a user gets
-    # from a plain `pip install prov`.
+    # Proves the registry degrades cleanly without the optional rdf/xml/dot/
+    # graph extras: `uv sync --group dev` (no --extra flags) leaves rdflib,
+    # lxml, pydot, and networkx all absent, so this exercises the same
+    # environment shape a user gets from a plain `pip install prov`. Since
+    # 3.0.0.dev0 this also proves `import prov.dot`/`import prov.graph` fail
+    # informatively without their extras (test_minimal_install.py).
     name: minimal install (no extras)
     runs-on: ubuntu-latest
     steps:
@@ -109,7 +111,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990  # v8.3.2
       - run: |
-          uv sync --locked --extra rdf --extra xml --group dev
+          uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
           uv run mypy src
 
   package:

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
-import networkx as nx
+try:
+    import networkx as nx
+except ImportError as e:
+    raise ModuleNotFoundError(
+        'prov.graph requires the optional "graph" extra; '
+        'install "prov[graph]" to use NetworkX graph interop'
+    ) from e
 
 from prov.identifier import QualifiedName
 from prov.model import (
@@ -38,14 +43,6 @@ from prov.model import (
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
-
-warnings.warn(
-    "In prov 3.0, graph export (prov.graph) will require the optional "
-    '"graph" extra; install "prov[graph]" to keep using it after upgrading. '
-    "See https://github.com/trungdong/prov/blob/master/ROADMAP.md",
-    DeprecationWarning,
-    stacklevel=2,
-)
 
 
 INFERRED_ELEMENT_CLASS = {

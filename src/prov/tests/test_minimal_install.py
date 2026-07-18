@@ -1,10 +1,12 @@
 """Degradation behaviour when optional extras are missing.
 
-Run by the ``minimal-install`` CI job (which syncs without the rdf/xml
-extras). Under the normal matrix (extras installed) the skipif-guarded tests
-are skipped and the availability test asserts all four formats register.
+Run by the ``minimal-install`` CI job (which syncs without the rdf/xml/dot/
+graph extras). Under the normal matrix (extras installed) the skipif-guarded
+tests are skipped and the availability test asserts all four formats
+register.
 """
 
+import importlib
 import importlib.util
 
 import pytest
@@ -14,6 +16,8 @@ from prov.model import ProvDocument
 
 HAS_RDFLIB = importlib.util.find_spec("rdflib") is not None
 HAS_LXML = importlib.util.find_spec("lxml") is not None
+HAS_PYDOT = importlib.util.find_spec("pydot") is not None
+HAS_NETWORKX = importlib.util.find_spec("networkx") is not None
 
 
 def test_core_import_and_json_roundtrip() -> None:
@@ -42,3 +46,15 @@ def test_xml_unavailable_raises_informative_error() -> None:
 def test_all_formats_available_with_extras() -> None:
     for fmt in ("json", "provn", "rdf", "xml"):
         assert prov.serializers.get(fmt) is not None
+
+
+@pytest.mark.skipif(HAS_PYDOT, reason="only meaningful without pydot")
+def test_dot_unavailable_raises_informative_error() -> None:
+    with pytest.raises(ModuleNotFoundError, match=r"prov\[dot\]"):
+        importlib.import_module("prov.dot")
+
+
+@pytest.mark.skipif(HAS_NETWORKX, reason="only meaningful without networkx")
+def test_graph_unavailable_raises_informative_error() -> None:
+    with pytest.raises(ModuleNotFoundError, match=r"prov\[graph\]"):
+        importlib.import_module("prov.graph")
