@@ -281,7 +281,7 @@ def w3c_publication_1():
     g.used("ex:act1", "email:2011Oct/0141")
     g.used("ex:act2", "email:2011Dec/0111")
 
-    g.agent("w3:Consortium", other_attributes={"prov:type": "Organization"})
+    g.agent("w3:Consortium", other_attributes={"prov:type": PROV["Organization"]})
 
     g.wasAssociatedWith("ex:act1", "w3:Consortium", "process:rec-advance")
     g.wasAssociatedWith("ex:act2", "w3:Consortium", "process:rec-advance")
@@ -357,7 +357,7 @@ def w3c_publication_2():
         "w3:WD-prov-dm-20111215", "hg:Overview.html", "ex:rcp", "rec:g", "rec:u"
     )
 
-    g.agent("ex:webmaster", {"prov:type": "Person"})
+    g.agent("ex:webmaster", {"prov:type": PROV["Person"]})
 
     g.wasAssociatedWith("ex:rcp", "ex:webmaster")
 
