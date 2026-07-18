@@ -20,7 +20,7 @@ from typing import Any
 
 try:
     import pydot
-except ImportError as e:
+except ImportError as e:  # pragma: no cover -- pydot (dot extra) absent; covered by the minimal-install CI job
     raise ModuleNotFoundError(
         'prov.dot requires the optional "dot" extra; '
         'install "prov[dot]" to use graphical export'

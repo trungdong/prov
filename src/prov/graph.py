@@ -4,7 +4,7 @@ from typing import Any
 
 try:
     import networkx as nx
-except ImportError as e:
+except ImportError as e:  # pragma: no cover -- networkx (graph extra) absent; covered by the minimal-install CI job
     raise ModuleNotFoundError(
         'prov.graph requires the optional "graph" extra; '
         'install "prov[graph]" to use NetworkX graph interop'
