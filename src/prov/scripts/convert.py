@@ -12,8 +12,6 @@ convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG
 @deffield    updated: 2025-06-07
 """
 
-from __future__ import annotations
-
 import io
 import logging
 import os

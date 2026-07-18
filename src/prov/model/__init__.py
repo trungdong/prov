@@ -7,8 +7,6 @@ PROV-DM: http://www.w3.org/TR/prov-dm/
 PROV-JSON: https://openprovenance.org/prov-json/
 """
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
-
 import datetime as datetime
 import io as io
 import itertools as itertools

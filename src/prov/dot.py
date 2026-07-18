@@ -12,8 +12,6 @@ References:
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
-
 from datetime import datetime
 from html import escape
 from typing import Any

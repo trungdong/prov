@@ -1,7 +1,5 @@
 """PROV-RDF serializers for ProvDocument"""
 
-from __future__ import annotations  # needed for | type annotations in Python < 3.10
-
 import base64
 import datetime
 import io
