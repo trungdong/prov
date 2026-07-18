@@ -5,12 +5,12 @@ from __future__ import annotations  # needed for | type annotations in Python < 
 import base64
 import datetime
 import io
+import re
 import warnings
 from collections import OrderedDict
 from collections.abc import Generator
 from typing import Any, cast
 
-import dateutil.parser
 from rdflib import RDF, RDFS, XSD
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
@@ -84,6 +84,9 @@ class AnonymousIDGenerator:
             self._cache[obj] = f"_:{local_prefix}{self._count}"
         return self._cache[obj]
 
+
+_XSD_GYEAR_RE = re.compile(r"^(-?\d{4,})(?:Z|[+-]\d{2}:\d{2})?$")
+_XSD_GYEARMONTH_RE = re.compile(r"^(-?\d{4,})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$")
 
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
@@ -320,16 +323,24 @@ class ProvRDFSerializer(Serializer):
             if datatype == XSD["QName"]:
                 return pm.Literal(literal, datatype=XSD_QNAME)
             if datatype == XSD["dateTime"]:
-                return dateutil.parser.parse(literal)
+                parsed = pm.parse_xsd_datetime(str(literal))
+                if parsed is None:
+                    raise ValueError(f"Invalid xsd:dateTime literal: {literal}")
+                return parsed
             if datatype == XSD["gYear"]:
+                year_match = _XSD_GYEAR_RE.match(str(literal))
+                if year_match is None:
+                    raise ValueError(f"Invalid xsd:gYear literal: {literal}")
                 return pm.Literal(
-                    dateutil.parser.parse(literal).year,
+                    int(year_match.group(1)),
                     datatype=self.valid_identifier(datatype),
                 )
             if datatype == XSD["gYearMonth"]:
-                parsed_info = dateutil.parser.parse(literal)
+                ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
+                if ym_match is None:
+                    raise ValueError(f"Invalid xsd:gYearMonth literal: {literal}")
                 return pm.Literal(
-                    f"{parsed_info.year}-{parsed_info.month:02d}",
+                    f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
                     datatype=self.valid_identifier(datatype),
                 )
             else:

@@ -8,17 +8,11 @@ below — they drift after the audit date above.
 
 ## Runtime dependencies (`[project.dependencies]`)
 
-These install unconditionally with `pip install prov`. Since 3.0.0.dev0 this is just
-`python-dateutil` — `pydot` and `networkx` moved behind the `dot`/`graph` extras below.
-
-- **`python-dateutil>=2.2`** — `dateutil.parser.parse()` in `src/prov/model.py` parses
-  ISO-8601-ish datetime strings from PROV-JSON/XML/RDF into `datetime` objects. There is a
-  long-standing `# TODO: is this really needed?` next to this entry — the stdlib
-  `datetime.fromisoformat()` couldn't handle the full range of formats PROV documents use
-  when this was added, but nobody has re-verified that against the current stdlib.
-  Left as-is; not in scope for this audit (would be a behaviour-risk change deferred to
-  3.0 if pursued) — Task 3 of the 3.0 batch-1 plan drops this dependency entirely in
-  favour of the stdlib parser, which will empty this section out.
+`prov` has **no unconditional runtime dependencies** as of 3.0.0.dev0. `pydot` and
+`networkx` moved behind the `dot`/`graph` extras, and `python-dateutil` was dropped in
+3.0 — datetime strings are now parsed by `prov.model.parse_xsd_datetime()`, a stdlib
+`datetime.fromisoformat()`-based `xsd:dateTime` parser, resolving the long-standing
+`# TODO: is this really needed?` that used to sit next to the `python-dateutil` entry here.
 
 ## Optional extras (`[project.optional-dependencies]`)
 
@@ -94,8 +88,6 @@ for end users.
 - **`types-networkx>=3.4.2.20250509`** — type stubs for `networkx`, needed for
   `mypy --strict` on `graph.py`. Pulls in `numpy` transitively (see the `numpy<2.5`
   constraint below).
-- **`types-python-dateutil>=2.9.0.20260124`** — type stubs for `python-dateutil`, needed
-  for `mypy --strict` on `model.py`'s datetime parsing.
 
 Previously in this group and removed by this audit: `bumpversion` (a release-time-only
 tool with no place in the routine dev loop — reintroduce as a dedicated group if release

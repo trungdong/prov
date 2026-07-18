@@ -563,8 +563,8 @@ class ProvBundle:
 
         Args:
             identifier: The identifier for the new activity.
-            startTime: Optional start time, as a :class:`datetime.datetime` or a
-                string parseable by :func:`dateutil.parser.parse`
+            startTime: Optional start time, as a :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             endTime: Optional end time, in the same forms (default: ``None``).
             other_attributes: Optional attributes for the activity, as a dict or
@@ -599,8 +599,8 @@ class ProvBundle:
             activity: The activity (or its string identifier) involved in the
                 generation (default: ``None``).
             time: Optional time of the generation, as a
-                :class:`datetime.datetime` or a string parseable by
-                :func:`dateutil.parser.parse` (default: ``None``).
+                :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             identifier: Optional identifier for the generation record
                 (default: ``None``).
             other_attributes: Optional extra attributes, as a dict or an
@@ -636,7 +636,8 @@ class ProvBundle:
             entity: The entity (or its string identifier) involved in the usage
                 relationship (default: ``None``).
             time: Optional time of the usage, as a :class:`datetime.datetime` or
-                a string parseable by :func:`dateutil.parser.parse`
+                an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             identifier: Optional identifier for the usage record
                 (default: ``None``).
@@ -676,7 +677,8 @@ class ProvBundle:
             starter: Optional activity qualifying the start, through which the
                 trigger entity is generated (default: ``None``).
             time: Optional time of the start, as a :class:`datetime.datetime` or
-                a string parseable by :func:`dateutil.parser.parse`
+                an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             identifier: Optional identifier for the start record
                 (default: ``None``).
@@ -716,8 +718,8 @@ class ProvBundle:
                 (default: ``None``).
             ender: Optional activity qualifying the end, through which the
                 trigger entity is generated (default: ``None``).
-            time: Optional time of the end, as a :class:`datetime.datetime` or a
-                string parseable by :func:`dateutil.parser.parse`
+            time: Optional time of the end, as a :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             identifier: Optional identifier for the end record
                 (default: ``None``).
@@ -755,8 +757,8 @@ class ProvBundle:
             activity: The activity (or its string identifier) involved in the
                 invalidation (default: ``None``).
             time: Optional time of the invalidation, as a
-                :class:`datetime.datetime` or a string parseable by
-                :func:`dateutil.parser.parse` (default: ``None``).
+                :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
+                :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             identifier: Optional identifier for the invalidation record
                 (default: ``None``).
             other_attributes: Optional extra attributes, as a dict or an

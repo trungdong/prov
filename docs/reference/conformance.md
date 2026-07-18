@@ -61,10 +61,6 @@ More caveats apply across many rows rather than to one:
 - **[#238](https://github.com/trungdong/prov/issues/238)** (JSON): `prov:QUALIFIED_NAME`-typed
   `Literal`s are stored opaquely by the model but resolved to `QualifiedName`s by the JSON
   decoder, so such a value mutates across a JSON round trip and breaks document equality.
-- **[#237](https://github.com/trungdong/prov/issues/237)** (model): every factory
-  `time=`/`startTime=`/`endTime=` parameter leaks a raw `dateutil` `ParserError` on
-  unparseable strings (instead of `ProvException`) and rejects the valid `xsd:dateTime`
-  hour-24 lexical form.
 - **[#259](https://github.com/trungdong/prov/issues/259)** (model): `Literal` language tags
   compare case-sensitively, diverging from RDF 1.1's case-insensitive language-tag value
   space (tags are never normalised, so values do survive round trips unchanged).

@@ -23,8 +23,6 @@ from io import IOBase as IOBase
 from typing import Any as Any, Union as Union
 from urllib.parse import urlparse as urlparse
 
-import dateutil as dateutil
-
 from prov import Error as Error, serializers as serializers
 from prov.constants import *
 from prov.identifier import (

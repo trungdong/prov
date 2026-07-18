@@ -8,11 +8,11 @@ Audit authority: docs/superpowers/specs/2026-07-10-conformance-audit-findings.md
 section 2.
 """
 
+import datetime
 import os
 import tempfile
 
 import pytest
-from dateutil.parser import ParserError
 
 import prov
 from prov.model import (
@@ -61,32 +61,18 @@ def test_qualified_name_literal_roundtrip_equality():
     assert ProvDocument.deserialize(content=content, format="json") == document
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=ParserError,
-    reason=(
-        "#237: PROV-DM §5.7.3 — factory time parameters leak raw dateutil "
-        "ParserError instead of ProvException"
-    ),
-)
 def test_factory_time_parse_error_raises_prov_exception():
+    # #237 (fixed in 3.0): raw dateutil ParserError no longer leaks
     document = _doc()
     with pytest.raises(ProvException):
         document.activity("ex:a1", startTime="not a date")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=ParserError,
-    reason=(
-        "#237: PROV-DM §5.7.3 — the valid xsd:dateTime hour-24 lexical form is "
-        "rejected (dateutil ParserError)"
-    ),
-)
 def test_factory_time_accepts_hour24_datetime():
+    # #237 (fixed in 3.0): xsd:dateTime end-of-day form is valid
     document = _doc()
     activity = document.activity("ex:a1", startTime="2011-11-16T24:00:00")
-    assert activity.get_startTime() is not None
+    assert activity.get_startTime() == datetime.datetime(2011, 11, 17, 0, 0)
 
 
 def test_read_autodetects_prov_xml(tmp_path):

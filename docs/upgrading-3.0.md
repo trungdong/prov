@@ -15,7 +15,7 @@ for the full rationale.
 |---|---|---|
 | **Done in 3.0.0.dev0:** `pydot`/Graphviz support (`prov.dot`, `prov_to_dot()`) moves behind the `dot` extra | Importing `prov.dot` emitted a `DeprecationWarning` (now removed) | Depend on `prov[dot]` instead of (or in addition to) `prov` if your code imports `prov.dot` or calls `prov_to_dot()`. |
 | **Done in 3.0.0.dev0:** `networkx` graph interop (`prov.graph`, `prov_to_graph()`/`graph_to_prov()`) moves behind the `graph` extra | Importing `prov.graph` emitted a `DeprecationWarning` (now removed) | Depend on `prov[graph]` instead of (or in addition to) `prov` if your code imports `prov.graph` or calls `prov_to_graph()`/`graph_to_prov()`. Note `prov.dot` itself uses `prov.graph`, so `prov[dot]` pulls in `prov[graph]`'s dependency (`networkx`) too. |
-| `python-dateutil` dropped in favour of the standard library's `datetime.fromisoformat()` | Not separately warned (internal dependency swap) | No action for typical ISO-8601 timestamps. If you rely on `dateutil.parser.parse()`'s more permissive parsing of non-ISO date/time strings inside PROV-JSON/XML/RDF documents, verify those strings still parse under 3.0 — `fromisoformat()` accepts a narrower grammar. |
+| `python-dateutil` dropped in favour of the standard library's `datetime.fromisoformat()` ([#237](https://github.com/trungdong/prov/issues/237)) | Not separately warned (internal dependency swap) | No action for typical ISO-8601 timestamps. If you rely on `dateutil.parser.parse()`'s more permissive parsing of non-ISO date/time strings inside PROV-JSON/XML/RDF documents, verify those strings still parse under 3.0 — `fromisoformat()` accepts a narrower grammar; bare `xsd:date` strings (e.g. `"2011-11-16"`) and free-form strings like `"Nov 7, 2011"` are no longer accepted. Two behaviour fixes ride along with the swap: factory `time=`/`startTime=`/`endTime=` parameters now raise `prov.model.ProvException` for unparseable strings (previously a raw `dateutil.parser.ParserError` leaked out), and the valid `xsd:dateTime` hour-24 end-of-day lexical form (e.g. `"2011-11-16T24:00:00"`) is now accepted instead of rejected. |
 | `rdf` extra floor raised to `rdflib>=7.0.0` | Not separately warned (dependency floor) | If you pin rdflib 6.x alongside `prov[rdf]`, upgrade to rdflib 7. Serialization differences are limited to those already present under rdflib 7 in 2.x (bundle-local namespaces appear as full IRIs in TriG; round-trip equality is unaffected). |
 
 A plain `pip install prov` keeps working for the core data model and the JSON/PROV-N
@@ -80,7 +80,9 @@ users will see it even without calling `unified()` themselves.
   extras above) — `import prov.dot` / `import prov.graph` will raise
   `ModuleNotFoundError` if the corresponding extra isn't installed, rather than working
   out of the box.
-- `python-dateutil` as a runtime dependency (superseded by the stdlib swap above).
+- `python-dateutil` as a runtime dependency (superseded by the stdlib swap above), along
+  with the incidental `prov.model.dateutil` module re-export that came from importing it
+  there.
 
 There are no other 2.4.0-introduced deprecations beyond these two extras moves; nothing
 else is scheduled for removal.
