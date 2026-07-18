@@ -1,223 +1,127 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
 ## Project overview
 
-`prov` is a Python implementation of the W3C PROV Data Model (PROV-DM). It provides
-in-memory classes for building provenance graphs and serializing/deserializing them as
-PROV-JSON, PROV-XML, PROV-O (RDF), and PROV-N, plus export to graphical formats (PDF/PNG/SVG
-via Graphviz) and conversion to/from a NetworkX `MultiDiGraph`. Source lives under `src/prov`
-(src-layout package), Python 3.10+ only.
-
-This library is used by ProvStore, an external online repository for provenance documents, so
-public API changes should be made carefully.
+`prov` is a Python implementation of the W3C PROV Data Model: in-memory classes for building
+provenance graphs, serialization to/from PROV-JSON, PROV-XML, PROV-O (RDF), and PROV-N
+(write-only), graphical export via Graphviz, and NetworkX conversion. Src-layout package under
+`src/prov`, Python 3.10+. Used by ProvStore, so treat the public API with care.
 
 ## Modernisation roadmap (in progress)
 
-A staged modernisation/hardening effort is underway; the approved plan lives in
-`docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md` and the public summary in
-`ROADMAP.md`. Rules while it is in flight:
+Plan: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`; public summary:
+`ROADMAP.md`. Rules:
 
-- **No public API changes in 2.x.** Every documented name must stay importable from its
-  historic location; behaviour-changing fixes are deferred to 3.0. The public-API smoke test
-  (`src/prov/tests/test_public_api.py`) guards this.
-- Work in atomic steps: one focused PR per roadmap step, green CI before merge.
-- When a step changes tooling (e.g. flake8/black → ruff, unittest → pytest), update the
-  affected sections of this file in the same PR — the commands below describe the current
-  state, not the roadmap's target state.
-- Never add AI attribution to commit messages or PR descriptions (no "Co-Authored-By:
-  Claude", no "Generated with Claude Code").
+- **No public API changes in 2.x.** Every documented name stays importable from its historic
+  location; behaviour-changing fixes wait for 3.0. Guarded by `src/prov/tests/test_public_api.py`.
+- One focused PR per roadmap step, green CI before merge.
+- If a step changes tooling, update the affected sections of this file in the same PR.
+- Never add AI attribution to commits or PRs (no "Co-Authored-By: Claude", no "Generated with
+  Claude Code").
 
 ## Setup
 
-The project uses `uv`. RDF and XML support are optional extras (`rdflib`, `lxml`) — install
-them or many tests will fail with `ModuleNotFoundError`:
+Uses `uv`. RDF/XML support are optional extras — without them many tests fail with
+`ModuleNotFoundError`:
 
 ```bash
 uv sync --extra rdf --extra xml
 ```
 
-Dev tools (ruff, mypy, pytest, ...) live in the `dev` dependency group; building the Sphinx
-docs needs the separate `docs` group plus the `rdf`/`xml` extras (autodoc imports the
-serializer modules):
+Sphinx docs need the `docs` group plus both extras (autodoc imports the serializers):
 
 ```bash
 uv sync --group docs --extra rdf --extra xml
 uv run --group docs --extra rdf --extra xml sphinx-build -b html docs docs/_build/html
 ```
 
-See `docs/dependencies.md` for why each runtime dependency, extra, and dev/docs-group
-entry exists and why it's pinned the way it is (including why Sphinx is capped `<9`).
+`docs/dependencies.md` explains every dependency pin (including why Sphinx is capped `<9`).
 
 ## Common commands
 
-Run from the repo root; `uv run` picks up the project's managed venv.
-
 ```bash
-# Full test suite (as CI runs it) — needs the rdf/xml extras installed
-uv run pytest
+uv run pytest                                     # full suite, as CI runs it
+uv run pytest src/prov/tests/test_model.py::test_flattening -v
+uv run ruff check src/                            # lint
+uv run ruff format src/                           # format
+uv run mypy src                                   # strict; tests/ excluded; ships py.typed
+uv run coverage run -m pytest && uv run coverage report -m
 
-# Single test module / class / method
-uv run pytest src/prov/tests/test_model.py::TestFlattening
-uv run pytest src/prov/tests/test_model.py::TestFlattening::test_flattening -v
-
-# Lint
-uv run ruff check src/
-
-# Format
-uv run ruff format src/
-
-# Type check (mirrors the `typecheck` job in CI.yml; `[tool.mypy] strict = true`,
-# codebase is strict-clean apart from src/prov/tests/ which is excluded from mypy,
-# and the package ships inline types via `py.typed` — PEP 561)
-uv run mypy src
-
-# Coverage
-uv run coverage run -m pytest
-uv run coverage report -m
-
-# Local multi-version testing (all supported interpreters, matches CI.yml's matrix)
+# All supported interpreters (matches CI matrix)
 for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
     uv run --python $py --extra rdf --extra xml pytest || break
 done
 ```
 
-There are `prov-convert` and `prov-compare` console scripts (`src/prov/scripts/convert.py`,
-`compare.py`) installed with the package, useful for manually exercising serializers end-to-end.
+`prov-convert` / `prov-compare` console scripts (`src/prov/scripts/`) exercise serializers
+end-to-end.
 
 ## Architecture
 
 ### Core object model (`src/prov/model/` package)
 
-`prov.model` is a package of three implementation modules plus a re-exporting
-`__init__.py`:
+Three implementation modules re-exported by `__init__.py`:
 
-- `records.py` — datatype helpers (`parse_xsd_types`, `Literal`, ...), the exception
-  classes, `ProvRecord` and every concrete element/relation class, and the
-  `PROV_REC_CLS` record-type registry. References `ProvBundle` in annotations only,
-  imported under `TYPE_CHECKING` (no runtime dependency on `bundle.py`).
-- `namespaces.py` — `NamespaceManager` and `DEFAULT_NAMESPACES`; imports from `records.py`.
-- `bundle.py` — `ProvBundle`, `ProvDocument`, and `sorted_attributes`; imports from both
-  modules above.
-- `__init__.py` — re-exports every public name at its historic `prov.model` location
-  (plus `from prov.constants import *`, as the old single-module `model.py` did). The
-  public namespace is frozen: `dir(prov.model)` is identical to the pre-split module —
-  the submodule attributes are deliberately removed from the package namespace at the
-  end of `__init__.py`. Always import from `prov.model`, not from the submodules.
+- `records.py` — datatype helpers, exceptions, `ProvRecord` and all element/relation classes,
+  `PROV_REC_CLS` registry. No runtime dependency on `bundle.py` (TYPE_CHECKING only).
+- `namespaces.py` — `NamespaceManager`, `DEFAULT_NAMESPACES`.
+- `bundle.py` — `ProvBundle`, `ProvDocument`, `sorted_attributes`.
+- `__init__.py` — re-exports every public name at its historic `prov.model` location and then
+  deletes the submodule attributes, freezing `dir(prov.model)` to the pre-split namespace.
+  **Always import from `prov.model`, never from the submodules.**
 
-Everything revolves around a `ProvBundle`/`ProvDocument` containment hierarchy:
+Class hierarchy: `ProvRecord` (attribute pairs + per-type `FORMAL_ATTRIBUTES`) →
+`ProvElement` (`ProvEntity`, `ProvActivity`, `ProvAgent`) and `ProvRelation` (`ProvGeneration`,
+`ProvUsage`, `ProvDerivation`, `ProvAssociation`, ... 15 edge types). `ProvBundle` holds records
+with its own `NamespaceManager` and has per-type factory methods (`.entity()`,
+`.wasGeneratedBy()`, ...) plus `.flattened()`/`.unified()`. `ProvDocument` is the top-level
+bundle — the only kind that may contain named sub-bundles — and owns `serialize()`/`deserialize()`.
 
-- `ProvRecord` — base class for every PROV statement (element or relation). Holds a set of
-  `(QualifiedName, value)` attribute pairs plus formal attributes (defined per record type in
-  `FORMAL_ATTRIBUTES`).
-  - `ProvElement` — nodes: `ProvEntity`, `ProvActivity`, `ProvAgent`.
-  - `ProvRelation` — edges: `ProvGeneration`, `ProvUsage`, `ProvCommunication`, `ProvStart`,
-    `ProvEnd`, `ProvInvalidation`, `ProvDerivation`, `ProvAttribution`, `ProvAssociation`,
-    `ProvDelegation`, `ProvInfluence`, `ProvSpecialization`, `ProvAlternate`, `ProvMention`,
-    `ProvMembership`.
-- `ProvBundle` — a named collection of records with its own `NamespaceManager`. Has
-  `.get_records()`, `.add_bundle()`, factory methods per record type (`.entity()`,
-  `.activity()`, `.wasGeneratedBy()`, etc.), and `.flattened()` / `.unified()` for graph
-  simplification (merging records referring to the same real-world thing).
-- `ProvDocument` — a `ProvBundle` subclass that is the top-level container; it is the only
-  kind of bundle allowed to itself contain other (named) bundles. `is_document()` /
-  `is_bundle()` distinguish the two at runtime since they share almost all behavior.
-  `ProvDocument.serialize()` / `.deserialize()` are the main entry points for I/O and dispatch
-  to the serializer registry by `format`.
-
-`QualifiedName`/`Namespace`/`Identifier` (`src/prov/identifier.py`) implement PROV's namespaced
-identifiers; `NamespaceManager` (in `model/namespaces.py`) tracks registered namespaces per bundle and
-resolves prefixes during parsing/serialization.
-
-`src/prov/constants.py` defines the PROV-DM/PROV-O vocabulary: record type URIs (`PROV_ENTITY`,
-`PROV_ACTIVITY`, ...), the mapping from record type to PROV-N keyword (`PROV_N_MAP`), the base
-class for each record type (`PROV_BASE_CLS`), and formal-attribute QName mappings. Anything that
-needs to translate between PROV-N/PROV-O identifiers and the Python classes goes through this
-module.
+`src/prov/identifier.py` — `QualifiedName`/`Namespace`/`Identifier`. `src/prov/constants.py` —
+the PROV vocabulary: record-type URIs, `PROV_N_MAP`, `PROV_BASE_CLS`, formal-attribute QNames;
+all identifier↔class translation goes through it.
 
 ### Serializers (`src/prov/serializers/`)
 
-`Serializer` is an ABC with `serialize()`/`deserialize()`. `Registry` (in
-`serializers/__init__.py`) lazily imports and registers the four built-in serializers by format
-string: `"json"` → `provjson.py`, `"xml"` → `provxml.py`, `"rdf"` → `provrdf.py`, `"provn"` →
-`provn.py` (PROV-N is write-only — there is no PROV-N parser). `prov.serializers.get(format)`
-looks a serializer class up by name; `ProvDocument.deserialize`/`serialize` use this registry
-based on the `format=` argument (or file extension). `prov.read()` (in `src/prov/__init__.py`)
-auto-detects format by trying each registered deserializer in turn.
+`Serializer` ABC; `Registry` lazily maps `"json"`/`"xml"`/`"rdf"`/`"provn"` to the four modules
+(PROV-N has no parser). `ProvDocument.serialize`/`deserialize` dispatch via
+`prov.serializers.get(format)`; `prov.read()` auto-detects by trying each deserializer.
+RDF/XML serializers need the `rdflib`/`lxml` extras.
 
-RDF and XML serializers require the optional `rdflib`/`lxml` dependencies (see the `rdf`/`xml`
-extras in `pyproject.toml`); JSON and PROV-N have no extra dependencies.
+### Graph interop
 
-### Graph interop (`src/prov/graph.py`, `src/prov/dot.py`)
-
-- `graph.py`: `prov_to_graph()` / `graph_to_prov()` convert a `ProvDocument` to/from a NetworkX
-  `MultiDiGraph`, one node per element, one edge per relation.
-- `dot.py`: `prov_to_dot()` renders a document to a `pydot` Graph for export to PDF/PNG/SVG via
-  Graphviz (needs a local `graphviz` install, not just the `pydot` Python package).
+`src/prov/graph.py`: `prov_to_graph()`/`graph_to_prov()` ↔ NetworkX `MultiDiGraph`.
+`src/prov/dot.py`: `prov_to_dot()` → pydot for PDF/PNG/SVG (needs a local `graphviz` binary).
 
 ### Tests (`src/prov/tests/`)
 
-The suite is pytest-native throughout (Phase 3 test-suite redesign — authority:
-`docs/superpowers/specs/2026-07-06-test-suite-redesign.md`): plain `assert`/`pytest.raises`
-module-level `test_*` functions, no `unittest.TestCase` anywhere. Shared coverage is expressed
-once and parametrized over a format matrix rather than copy-pasted per serializer.
+Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
+`unittest.TestCase`. Design authority: `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`.
 
-- `conftest.py` — the shared scaffolding. Defines `ROUNDTRIP_FORMATS = ("json", "xml", "rdf")`
-  and `SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)`. The `fmt` fixture is parametrized over
-  `SHARED_TARGETS`, so every shared test runs once per serialization format **and** once under a
-  non-serializing `model` target (which forces `get_provn()` + a self-equality check instead of a
-  round trip). The `roundtrip` fixture returns a `_check(doc)` callable that tests call as
-  `roundtrip(doc)`. A `pytest_assertrepr_compare` hook renders the record-level symmetric
-  difference when two `ProvDocument`s compare unequal under `assert`, so round-trip failures show
-  *which record* differs.
-- `test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py` — the shared
-  body (statement/attribute/qname/example coverage) as plain module-level functions taking the
-  `roundtrip` fixture (one node per case × per target in `SHARED_TARGETS`). `test_attributes.py`
-  parametrizes the single-type-attribute case over `ATTRIBUTE_VALUES`.
-- **Per-param skip/xfail marks on the `rdf` target** (design doc §2/§3): 14 "scruffy" cases in
-  `test_statements.py` (two same-identifier relations differing by `prov:time`, which PROV-O
-  cannot represent) are `pytest.mark.skip`-ped referencing issue #217; 3 datatype-fidelity cases —
-  `test_entity_with_one_type_attribute_decimal` (#77) and
-  `test_entity_with_multiple_attribute`/`test_entity_with_multiple_value_attribute` (#218) in
-  `test_attributes.py` — are strict `xfail`s. Each affected function opts out of the module-wide
-  `fmt` fixture with its own explicit `@pytest.mark.parametrize("fmt", [...])` so the mark attaches
-  only to the `rdf` param; `model`/`json`/`xml` still run normally. `test_examples.py` skips the
-  `datatypes` example under `fmt == "rdf"` only (same #218 root cause).
-- `attribute_values.py` — the importable `ATTRIBUTE_VALUES` datatype corpus consumed by
-  `test_attributes.py` (order is significant: the RDF datatype-fidelity xfails key off individual
-  indices, e.g. index 8 is the `xsd:decimal` case).
-- `examples.py` — canonical example PROV documents (built programmatically), consumed by
-  `test_examples.py`, the `test_dot.py` render-smoke, and other tests that need a realistic
-  document (`test_extras.py`, `test_graphs.py`, `test_scripts.py`, `test_cli_smoke.py`,
-  `test_public_api.py`).
-- `json/`, `xml/`, `rdf/`, `unification/` — fixture data directories consumed by the
-  corresponding test modules (e.g. `test_loading_all_json` in `test_model.py` round-trips every
-  file under `tests/json/`; `test_json_to_ttl_match` in `test_rdf.py` cross-checks `tests/json/`
-  against `tests/rdf/`).
-- `test_json.py`, `test_xml.py`, `test_rdf.py` — keep only the genuinely format-specific tests
-  (encoder internals, c14n comparison, example serialization/deserialization edge cases,
-  serializer error paths, `find_diff`, `test_json_to_ttl_match`, etc.); the shared round-trip
-  coverage lives in the pytest-native modules above. `test_xml.py`'s per-file XML round-trip glob
-  scaffold (`_perform_round_trip`) is intentionally left disabled (no test calls it) per design
-  doc §4 Decision 3.
-- `test_dot.py` — a `pytest.importorskip("pydot")`-guarded render-smoke: `test_svg_render`
-  renders each of the 8 `examples.tests` documents to SVG via `prov_to_dot()` and checks a minimum
-  size, plus a handful of dot-specific behavior tests (direction fallback, `use_labels`,
-  `show_element_attributes`, `htlm_link_if_uri()`, and the `bundle.unified()`-fails fallback path).
-  This replaced a pre-redesign scaffold that re-rendered all 185 shared statement/attribute
-  documents through dot on every run — a real but disproportionate rendering cost for coverage
-  duplicated by the `model`/`json`/`xml`/`rdf` targets above.
-- `strategies.py` / `test_property_roundtrip.py` — Hypothesis property-based round-trip tests.
-  `strategies.prov_documents` generates valid PROV documents (multiple namespaces, mixed-type
-  attributes, the full relation set, optionally a sub-bundle) and the property asserts
-  `deserialize(serialize(doc)) == doc` for each `ROUNDTRIP_FORMATS` target (json/xml/rdf; PROV-N
-  is write-only). Known-lossy constructs are excluded at generation time, each commented with its
-  issue (#77/#217/#218 plus the empty-string-through-XML and xsd:float RDF-precision losses this
-  work surfaced), keeping the property honest under the 2.x output freeze. Hypothesis profiles are
-  registered in `conftest.py` and selected via `HYPOTHESIS_PROFILE`; CI sets `HYPOTHESIS_PROFILE=ci`
-  (bounded `max_examples`, deterministic) while the local `default` profile is exploratory.
+- `conftest.py` — `ROUNDTRIP_FORMATS = ("json", "xml", "rdf")`, `SHARED_TARGETS = ("model",
+  *ROUNDTRIP_FORMATS)`. The `fmt` fixture parametrizes over `SHARED_TARGETS`; `roundtrip`
+  returns a `_check(doc)` callable (the `model` target does `get_provn()` + self-equality
+  instead of serializing). A `pytest_assertrepr_compare` hook shows which record differs when
+  two documents compare unequal. Hypothesis profiles registered here; CI sets
+  `HYPOTHESIS_PROFILE=ci`.
+- Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
+  `test_examples.py`) runs once per target via the `roundtrip` fixture. **Known-lossy RDF cases
+  are intentional**: 14 skips in `test_statements.py` (#217) and 3 strict xfails in
+  `test_attributes.py` (#77, #218), attached via per-function `@pytest.mark.parametrize("fmt",
+  [...])` so only the `rdf` param is marked. Don't "fix" these.
+- `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
+  order significant — RDF xfails key off indices) feed the shared modules and several others.
+- `test_json.py`/`test_xml.py`/`test_rdf.py` keep only format-specific tests (encoder
+  internals, error paths, `find_diff`, fixture-dir round-trips over `json/`, `xml/`, `rdf/`).
+  `test_xml.py`'s disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
+- `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
+  `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
+- Other modules are self-describing by name (e.g. `test_conformance_dm.py`,
+  `test_unification_constraints.py`, `test_malformed.py`, `test_public_api.py`,
+  `test_minimal_install.py`); fixture data lives in `json/`, `xml/`, `rdf/`, `malformed/`,
+  `schemas/`, `unification/`.
 
-When adding a new shared record type, attribute, or serializer behavior, add it to the
-pytest-native shared modules above so every target is exercised, rather than writing per-format
-tests from scratch.
+New shared record types, attributes, or serializer behaviors go into the shared parametrized
+modules so every target is exercised — not into per-format tests.
