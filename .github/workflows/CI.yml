@@ -56,15 +56,15 @@ jobs:
 
   rdflib-compat:
     # The main matrix tests the locked rdflib; this job proves the declared
-    # bounds of the `rdf` extra (rdflib>=6.0.0,<8) by running the RDF tests
+    # bounds of the `rdf` extra (rdflib>=7.0.0,<8) by running the RDF tests
     # against the floor and the newest allowed 7.x (see docs/dependencies.md).
     name: rdf tests on rdflib ${{ matrix.label }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
-          - rdflib-version: "==6.0.0"
-            label: "6.0.0 (floor)"
+          - rdflib-version: "==7.0.0"
+            label: "7.0.0 (floor)"
           - rdflib-version: ">=7,<8"
             label: "latest 7.x"
     steps:

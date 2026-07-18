@@ -36,20 +36,30 @@ Install with `prov[extra]`; omitting them makes the corresponding serializer/mod
 - **`graph` → `networkx>=2.0`** — backs `prov.graph` (`prov_to_graph()`/
   `graph_to_prov()`), the NetworkX `MultiDiGraph` interop. Same floor/rationale as the
   `networkx` pin under `dot` above.
-- **`rdf` → `rdflib>=6.0.0,<8`** — backs `prov.serializers.provrdf` (PROV-O/RDF
-  serialization). Both bounds revised 2026-07-05 (T15). Floor: the historic `4.2.1` no
-  longer builds on the Pythons this project supports and 5.x fails xsd:base64Binary
-  literal round-trips, so `6.0.0` is the oldest version that passes the suite. Ceiling:
-  rdflib 7's `Memory` store stopped retaining foreign context `Graph`s passed through
-  `addN()` (rdflib 6 accidentally carried bundle prefix bindings into TriG output that
-  way), which broke re-parsing of serialized bundles; fixed deserialize-side only
-  (`decode_document` falls back to `compute_qname` for bundle IRIs), leaving rdflib-6
-  serialization output unchanged. The `rdflib-compat` CI job proves both bounds (floor
-  and newest 7.x); the main matrix uses the locked version. Under rdflib 7,
+- **`rdf` → `rdflib>=7.0.0,<8`** — backs `prov.serializers.provrdf` (PROV-O/RDF
+  serialization). Floor raised to `7.0.0` 2026-07-18 (roadmap step 35, 3.0.0.dev0): the
+  rdflib-6 accidental prefix-carrying behaviour described below is no longer supported,
+  and the serializer now depends on `rdflib.graph.Dataset`/`DATASET_DEFAULT_GRAPH_ID`,
+  which don't exist before rdflib 7. Internally, `provrdf.py` migrated off the deprecated
+  `ConjunctiveGraph` to `Dataset(default_union=True)` plus named `Graph`s — deferred from
+  2.x precisely because `Dataset`'s defaults (e.g. `default_union`) are not
+  behaviour-neutral, so the switch waited for a 3.0 breaking-change window.
+  `default_union=True` reproduces `ConjunctiveGraph`'s union-query semantics, and
+  round-trip behaviour (including the bundle-local-namespaces-as-full-IRIs point below)
+  is unchanged by the migration. The `rdflib-compat` CI job proves both bounds (`7.0.0`
+  floor and newest 7.x); the main matrix uses the locked version. Under rdflib 7,
   bundle-local namespaces serialize as full IRIs instead of their original prefixes
-  (round-trips stay equivalent — `QualifiedName` equality is by IRI) and
-  `ConjunctiveGraph` deprecation warnings appear; the `Dataset` migration is deferred
-  to 3.0 (its defaults, e.g. `default_union`, are not behaviour-neutral for 2.x).
+  (round-trips stay equivalent — `QualifiedName` equality is by IRI). Separately, from
+  rdflib 7.3.0 onward rdflib's own internals (`ConjunctiveGraph.add()`/`.parse()`, and
+  the TriG parser/serializer plugins) call their own now-deprecated `Dataset.contexts()`/
+  `Dataset.default_context` under the hood, so a `-W error::DeprecationWarning` run
+  against `test_rdf.py` fails on rdflib >=7.3 even though `provrdf.py` no longer
+  directly calls a deprecated rdflib name in the document-encoding path (confirmed
+  clean against the `7.0.0` floor); this is rdflib's own migration debt, slated for
+  cleanup by their 8.0. (`encode_container()` still accepts a caller-supplied `Dataset`
+  as its `container` argument for API-compatibility reasons; that path's own `.add()`
+  calls do re-trip rdflib's internal warning, since `Dataset` inherits `.add()` from the
+  deprecated `ConjunctiveGraph` unchanged — see the method's docstring.)
 - **`xml` → `lxml>=3.3.5`** — backs `prov.serializers.provxml` (PROV-XML). Floor predates
   this project's adoption; no known upper-bound issue.
 - **`plot` → `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0`** — backs the

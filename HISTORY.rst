@@ -12,6 +12,9 @@ History
   extra to install. The ``plot`` extra now pulls in ``pydot``/``networkx``
   as well, since ``plot()`` renders through ``prov.dot``. Signposted by the
   2.4.0 ``DeprecationWarning`` (now removed); see ``docs/upgrading-3.0.md``.
+* BREAKING: the ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously
+  ``>=6.0.0``); internally the RDF serializer migrated from the deprecated
+  ``ConjunctiveGraph`` to ``Dataset``, with unchanged round-trip behaviour
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
