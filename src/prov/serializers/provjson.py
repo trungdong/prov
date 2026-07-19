@@ -16,6 +16,7 @@ from prov.model import (
     ProvDocument,
     ProvRecord,
     QualifiedNameCandidate,
+    canonical_xsd_datatype,
     first,
     parse_xsd_datetime,
 )
@@ -59,17 +60,6 @@ class AnonymousIDGenerator:
             self._count += 1
             self._cache[obj] = Identifier(f"_:{local_prefix}{self._count}")
         return self._cache[obj]
-
-
-# Reverse map for prov.model.XSD_DATATYPE_PARSERS
-LITERAL_XSDTYPE_MAP = {
-    float: "xsd:double",
-    int: "xsd:int",
-    # boolean, string values are supported natively by PROV-JSON
-    # datetime values are converted separately
-}
-"""Maps Python literal types to their PROV-JSON ``xsd:*`` type name, for
-types not natively supported by PROV-JSON."""
 
 
 class ProvJSONSerializer(Serializer):
@@ -408,8 +398,9 @@ def encode_json_representation(value: Any) -> Any:
         value: Attribute value to encode: a :class:`~prov.model.Literal`,
             a :class:`datetime.datetime`, a
             :class:`~prov.identifier.QualifiedName`, another
-            :class:`~prov.identifier.Identifier`, a type listed in
-            :data:`LITERAL_XSDTYPE_MAP`, or a plain JSON-native value.
+            :class:`~prov.identifier.Identifier`, a plain ``int``/``float``
+            (typed by :func:`~prov.model.canonical_xsd_datatype`), or a
+            plain JSON-native value.
 
     Returns:
         A ``{"$": ..., "type": ...}`` (optionally ``"lang"``) dict for typed
@@ -426,8 +417,13 @@ def encode_json_representation(value: Any) -> Any:
         return {"$": str(value), "type": PROV_QUALIFIEDNAME._str}
     elif isinstance(value, Identifier):
         return {"$": value.uri, "type": "xsd:anyURI"}
-    elif type(value) in LITERAL_XSDTYPE_MAP:
-        return {"$": value, "type": LITERAL_XSDTYPE_MAP[type(value)]}
+    elif (datatype := canonical_xsd_datatype(value)) is not None:
+        # int/float: the submission's typedLiteral schema requires a string
+        # "$" (#246); the datatype is magnitude-aware for ints (#244/#256).
+        return {
+            "$": repr(value) if isinstance(value, float) else str(value),
+            "type": str(datatype),
+        }
     else:
         return value
 

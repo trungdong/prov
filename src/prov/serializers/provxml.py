@@ -11,7 +11,7 @@ from lxml import etree
 import prov
 import prov.identifier
 from prov.constants import *
-from prov.model import DEFAULT_NAMESPACES, sorted_attributes
+from prov.model import DEFAULT_NAMESPACES, canonical_xsd_datatype, sorted_attributes
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -219,7 +219,9 @@ class ProvXMLSerializer(Serializer):
                     elif isinstance(value, float):
                         xsd_type = XSD_DOUBLE
                     elif isinstance(value, int):
-                        xsd_type = XSD_INT
+                        # bool is handled above (isinstance(value, bool));
+                        # ints are typed by magnitude (#244).
+                        xsd_type = canonical_xsd_datatype(value)
                     elif isinstance(value, datetime.datetime):
                         # Exception of the exception, while technically
                         # still correct, do not write XSD dateTime type for
