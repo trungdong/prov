@@ -41,19 +41,12 @@ def test_xsd_long_literal_datatype_preserved():
     assert value == Literal("42", XSD_LONG)  # #235 (fixed in 3.0)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "#238: PROV-DM §5.7.3 — prov:QUALIFIED_NAME literals are not resolved to "
-        "QualifiedNames, so the JSON round trip mutates the value"
-    ),
-)
 def test_qualified_name_literal_roundtrip_equality():
     document = _doc()
     document.entity("ex:e1", {"ex:a": Literal("ex:v", PROV_QUALIFIEDNAME)})
     content = document.serialize(format="json")
-    assert ProvDocument.deserialize(content=content, format="json") == document
+    reloaded = ProvDocument.deserialize(content=content, format="json")
+    assert reloaded == document  # #238 (fixed in 3.0)
 
 
 def test_factory_time_parse_error_raises_prov_exception():

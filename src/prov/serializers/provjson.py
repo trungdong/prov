@@ -413,8 +413,10 @@ def encode_json_representation(value: Any) -> Any:
         return {"$": value.isoformat(), "type": "xsd:dateTime"}
     elif isinstance(value, QualifiedName):
         # TODO Manage prefix in the whole structure consistently
-        # TODO QName export
-        return {"$": str(value), "type": PROV_QUALIFIEDNAME._str}
+        # #168: the PROV-JSON submission (§3.1.2) types QualifiedName values
+        # as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0 choice)
+        # remains accepted on input for backward compatibility.
+        return {"$": str(value), "type": str(XSD_QNAME)}
     elif isinstance(value, Identifier):
         return {"$": value.uri, "type": "xsd:anyURI"}
     elif (datatype := canonical_xsd_datatype(value)) is not None:
@@ -439,11 +441,12 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
 
     Returns:
         An :class:`~prov.identifier.Identifier` for ``xsd:anyURI`` values, a
-        resolved :class:`~prov.identifier.QualifiedName` for
-        ``prov:QUALIFIED_NAME`` values, a :class:`~prov.model.Literal` for
-        other typed values, or ``literal`` unchanged if it was not a dict
-        (conversion of plain Python types happens later, when the value is
-        added to a record).
+        resolved :class:`~prov.identifier.QualifiedName` for ``xsd:QName`` or
+        (legacy) ``prov:QUALIFIED_NAME`` values whose prefix is in scope, an
+        opaque :class:`~prov.model.Literal` if it is not, a
+        :class:`~prov.model.Literal` for other typed values, or ``literal``
+        unchanged if it was not a dict (conversion of plain Python types
+        happens later, when the value is added to a record).
     """
     if isinstance(literal, dict):
         # complex type
@@ -453,8 +456,15 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
         langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:
             return Identifier(value)
-        elif datatype == PROV_QUALIFIEDNAME:
-            return valid_qualified_name(bundle, value)
+        elif datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+            # #168: xsd:QName is the submission's type for QualifiedName
+            # values; prov:QUALIFIED_NAME is accepted for documents produced
+            # by 2.x. If the value's prefix has no in-scope namespace, keep
+            # it as an opaque Literal rather than dropping it (#238).
+            resolved = valid_qualified_name(bundle, value)
+            return (
+                resolved if resolved is not None else Literal(value, datatype, langtag)
+            )
         else:
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by

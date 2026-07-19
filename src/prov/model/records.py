@@ -60,6 +60,7 @@ from prov.constants import (
     PROV_MEMBERSHIP,
     PROV_MENTION,
     PROV_N_MAP,
+    PROV_QUALIFIEDNAME,
     PROV_SPECIALIZATION,
     PROV_START,
     PROV_TYPE,
@@ -592,6 +593,18 @@ class ProvRecord:
         elif isinstance(literal, QualifiedName):
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
+            if literal.datatype == PROV_QUALIFIEDNAME:
+                # #238: a prov:QUALIFIED_NAME-typed Literal (e.g. decoded from
+                # a legacy PROV-JSON document, or asserted directly) denotes a
+                # QualifiedName; resolve it against this record's bundle
+                # namespaces. If the prefix has no in-scope namespace, keep
+                # the opaque Literal rather than reject it (#257 lock). Only
+                # PROV_QUALIFIEDNAME is handled here: an XSD_QNAME literal
+                # keeps today's opaque model-side behaviour -- the PROV-JSON
+                # codec is the only place that treats xsd:QName as a
+                # QualifiedName value, per the submission (#168).
+                resolved = self._bundle.valid_qualified_name(literal.value)
+                return resolved if resolved is not None else literal
             if literal.datatype:
                 # try to convert a generic Literal object to Python standard type
                 # to match the JSON decoding's literal conversion

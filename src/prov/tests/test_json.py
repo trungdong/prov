@@ -6,9 +6,11 @@ pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
 only the genuinely JSON-specific cases.
 """
 
+import json
+
 import pytest
 
-from prov.model import ProvDocument
+from prov.model import PROV_QUALIFIEDNAME, Literal, ProvDocument
 from prov.serializers.provjson import ProvJSONEncoder, ProvJSONException
 
 
@@ -86,3 +88,37 @@ def test_third_record_with_same_identifier_appends_to_existing_list():
     reloaded = ProvDocument.deserialize(content=json_str, format="json")
 
     assert len(reloaded.get_record("ex:a1")) == 3
+
+
+def test_qualified_name_encodes_as_xsd_qname():
+    # #168: the submission's examples type QualifiedName values as xsd:QName.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {"ex:a": document.valid_qualified_name("ex:v")})
+    container = json.loads(document.serialize(format="json"))
+    assert container["entity"]["ex:e1"]["ex:a"] == {"$": "ex:v", "type": "xsd:QName"}
+
+
+def test_legacy_prov_qualified_name_type_still_decodes():
+    # 2.x emitted prov:QUALIFIED_NAME; documents in the wild must keep parsing.
+    content = (
+        '{"prefix": {"ex": "http://example.org/"},'
+        ' "entity": {"ex:e1": {"ex:a": {"$": "ex:v", "type": "prov:QUALIFIED_NAME"}}}}'
+    )
+    document = ProvDocument.deserialize(content=content, format="json")
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    expected.entity("ex:e1", {"ex:a": expected.valid_qualified_name("ex:v")})
+    assert document == expected
+
+
+def test_unresolvable_qualified_name_literal_stays_opaque():
+    # A prov:QUALIFIED_NAME literal whose prefix has no in-scope namespace
+    # cannot be resolved to a QualifiedName; it must stay an opaque Literal
+    # rather than crash or silently guess a namespace (#238, #257 lock).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {"ex:a": Literal("unknown:v", PROV_QUALIFIEDNAME)})
+    content = document.serialize(format="json")
+    reloaded = ProvDocument.deserialize(content=content, format="json")
+    assert reloaded == document
