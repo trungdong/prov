@@ -2,7 +2,7 @@
 
 import io
 
-from prov.constants import XSD_DECIMAL
+from prov.constants import XSD_DECIMAL, XSD_INT
 from prov.model import Literal, ProvDocument
 
 
@@ -18,6 +18,11 @@ def test_decimal_literals_compare_in_value_space():
     assert Literal(10, XSD_DECIMAL) == Literal("10.00", XSD_DECIMAL)
     assert hash(Literal(10, XSD_DECIMAL)) == hash(Literal("10.00", XSD_DECIMAL))
     assert Literal(10, XSD_DECIMAL) != Literal("10.01", XSD_DECIMAL)
+
+
+def test_non_decimal_literals_compare_lexically():
+    # value-space comparison is decimal-only; other datatypes stay lexical.
+    assert Literal("1", XSD_INT) != Literal("01", XSD_INT)
 
 
 def test_langtag_comparison_is_case_insensitive():

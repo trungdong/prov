@@ -111,9 +111,8 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   `HYPOTHESIS_PROFILE=ci`.
 - Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
   `test_examples.py`) runs once per target via the `roundtrip` fixture. **Known-lossy RDF cases
-  are intentional**: 14 skips in `test_statements.py` (#217) and 3 strict xfails in
-  `test_attributes.py` (#77, #218), attached via per-function `@pytest.mark.parametrize("fmt",
-  [...])` so only the `rdf` param is marked. Don't "fix" these.
+  are intentional**: 14 skips in `test_statements.py` (#217), attached via per-function
+  `@pytest.mark.parametrize("fmt", [...])` so only the `rdf` param is marked. Don't "fix" these.
 - `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
   order significant — RDF xfails key off indices) feed the shared modules and several others.
 - `test_json.py`/`test_xml.py`/`test_rdf.py` keep only format-specific tests (encoder

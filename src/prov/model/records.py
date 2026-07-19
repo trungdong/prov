@@ -376,6 +376,12 @@ class Literal:
         ``xsd:decimal`` denotes an arbitrary-precision decimal number, so
         ``10``, ``10.0`` and ``"10.00"`` are the same value; falls back to
         the stored lexical string (unaffected) if it is not a valid decimal.
+
+        Safe even though this only checks ``self``: ``__eq__``/``__hash__``
+        separately require ``self._datatype == other.datatype``, so a
+        ``Decimal`` from here is only ever compared against another
+        ``Decimal`` from an ``XSD_DECIMAL`` literal, never against a
+        lexical-string value from a different datatype.
         """
         if self._datatype == XSD_DECIMAL:
             try:
