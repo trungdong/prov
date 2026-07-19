@@ -32,13 +32,26 @@ NAMESPACES = {
 # to the "ex" namespace registered on each document, so it resolves cleanly.
 EX_NS = Namespace("ex", NAMESPACES["ex"])
 
-# Local parts used for identifiers and prefixes are kept to a simple ascii
-# alphabet. #223: PROV-N does not escape qname metacharacters (' ) , ( : ; [ ] =)
-# in local parts. PROV-N is write-only and therefore out of the round-trip
-# property, but keeping identifier local parts simple avoids depending on that
-# behaviour at all. Non-ASCII deliberately lives in the string attribute
-# *values* below (criterion 1), never in identifiers.
+# Local parts used for identifiers and prefixes. #223: PROV-N now escapes
+# qname metacharacters (' ) , ( : ; [ ] =) in local parts, so they are
+# included in the alphabet here -- get_provn() (exercised by the "model"
+# roundtrip target) renders them escaped instead of emitting invalid PROV-N.
+# Non-ASCII deliberately lives in the string attribute *values* below
+# (criterion 1), never in identifiers.
 local_part = st.text(
+    alphabet=string.ascii_lowercase + string.digits + "='(),:;[]",
+    min_size=1,
+    max_size=8,
+)
+
+# Attribute *names* additionally become XML child-element tag local-names
+# (``provxml.py``'s ``_ns(attr.namespace.uri, attr.localpart)``), which must
+# be valid XML NCNames; the serializer neither validates nor escapes them.
+# That is a distinct, pre-existing XML defect from #223's PROV-N scope (it
+# reproduces even for identifiers that never touch PROV-N), so attribute keys
+# keep the original restricted alphabet here rather than being fixed as a
+# side effect of this property.
+attr_key_part = st.text(
     alphabet=string.ascii_lowercase + string.digits, min_size=1, max_size=8
 )
 
@@ -90,7 +103,7 @@ def _attribute_dict(draw) -> list[tuple[str, object]]:
     drawn (possibly differently-typed) value: mixed-datatype attribute sets
     now round-trip through RDF with their asserted datatypes intact (#218).
     """
-    keys = draw(st.lists(local_part, min_size=0, max_size=4, unique=True))
+    keys = draw(st.lists(attr_key_part, min_size=0, max_size=4, unique=True))
     pairs: list[tuple[str, object]] = []
     for key in keys:
         name = f"ex:k{key}"

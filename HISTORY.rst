@@ -47,6 +47,9 @@ History
   survive deserialization with their asserted datatypes intact (#218), and
   ``xsd:double`` values are emitted at full precision instead of rdflib's
   6-significant-digit canonical form (#225)
+* PROV-N output escapes qualified-name local parts per the grammar's
+  ``PN_CHARS_ESC`` production, so identifiers containing ``' ( ) , : ; [ ]
+  =`` no longer produce invalid PROV-N (#223)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

@@ -259,6 +259,9 @@ def first(a_set: set[Any]) -> Any | None:
 def _ensure_multiline_string_triple_quoted(value: str) -> str:
     # converting the value to a string
     s = str(value)
+    # Escape backslashes first, so quote-escaping below doesn't re-escape
+    # the backslashes it just introduced.
+    s = s.replace("\\", "\\\\")
     # Escaping any double quote
     s = s.replace('"', '\\"')
     if "\n" in s:
@@ -790,7 +793,8 @@ class ProvRecord:
         # Generating identifier
         relation_id = ""  # default blank
         if self._identifier:
-            identifier = str(self._identifier)  # TODO: QName export
+            # #223: escape PN_CHARS_ESC metacharacters in the local part
+            identifier = self._identifier.provn_bare_representation()
             if self.is_element():
                 items.append(identifier)
             else:
@@ -803,12 +807,13 @@ class ProvRecord:
             if values:
                 # Formal attributes always have single values
                 value = first(values)
-                # TODO: QName export
-                items.append(
-                    value.isoformat()
-                    if isinstance(value, datetime.datetime)
-                    else str(value)
-                )
+                if isinstance(value, datetime.datetime):
+                    items.append(value.isoformat())
+                elif isinstance(value, QualifiedName):
+                    # #223: escape PN_CHARS_ESC metacharacters in the local part
+                    items.append(value.provn_bare_representation())
+                else:
+                    items.append(str(value))
             else:
                 items.append("-")
 
