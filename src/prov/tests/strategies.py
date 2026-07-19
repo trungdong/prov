@@ -32,12 +32,14 @@ NAMESPACES = {
 # to the "ex" namespace registered on each document, so it resolves cleanly.
 EX_NS = Namespace("ex", NAMESPACES["ex"])
 
-# Local parts used for identifiers and prefixes. #223: PROV-N now escapes
-# qname metacharacters (' ) , ( : ; [ ] =) in local parts, so they are
-# included in the alphabet here -- get_provn() (exercised by the "model"
-# roundtrip target) renders them escaped instead of emitting invalid PROV-N.
-# Non-ASCII deliberately lives in the string attribute *values* below
-# (criterion 1), never in identifiers.
+# Local parts used for identifiers and prefixes. #223's PROV-N metacharacters
+# (' ) , ( : ; [ ] =) are included in the alphabet here so that QualifiedName
+# *values* (see attr_values below) containing them keep round-tripping
+# cleanly through the json/xml/rdf serializers this property exercises;
+# PROV-N escaping itself (get_provn(), not covered by this property -- see
+# module docstring) is exercised separately by the hand-written cases in
+# test_provn_escaping.py. Non-ASCII deliberately lives in the string
+# attribute *values* below (criterion 1), never in identifiers.
 local_part = st.text(
     alphabet=string.ascii_lowercase + string.digits + "='(),:;[]",
     min_size=1,

@@ -827,8 +827,9 @@ class ProvRecord:
                         provn_represenation = value.provn_representation()
                     except AttributeError:
                         provn_represenation = encoding_provn_value(value)
-                    # TODO: QName export
-                    extra.append(f"{attr!s}={provn_represenation}")
+                    # #223: escape PN_CHARS_ESC metacharacters in the local part
+                    attr_name = attr.provn_bare_representation()
+                    extra.append(f"{attr_name}={provn_represenation}")
 
         if extra:
             # .format(), not an f-string: the nested string literals reuse the

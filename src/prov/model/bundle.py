@@ -318,7 +318,11 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        lines = ["document"] if self.is_document() else [f"bundle {self._identifier}"]
+        # #223: escape PN_CHARS_ESC metacharacters in the local part
+        bundle_id = (
+            self._identifier.provn_bare_representation() if self._identifier else ""
+        )
+        lines = ["document"] if self.is_document() else [f"bundle {bundle_id}"]
 
         default_namespace = self._namespaces.get_default_namespace()
         if default_namespace:

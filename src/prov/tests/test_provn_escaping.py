@@ -39,3 +39,29 @@ def test_string_literal_backslash_escaped_before_quotes():
     provn = document.get_provn()
     # backslash must be escaped first, giving an unambiguous \\ followed by \"
     assert '\\\\slash and \\"quote\\"' in provn
+
+
+def test_bundle_identifier_metachar_is_escaped():
+    document = _doc()
+    bundle = document.bundle("ex:weird'bundle")
+    bundle.entity("ex:e1")
+    assert "bundle ex:weird\\'bundle" in document.get_provn()
+
+
+def test_bundle_identifier_plain_unchanged():
+    document = _doc()
+    bundle = document.bundle("ex:plain-bundle")
+    bundle.entity("ex:e1")
+    assert "bundle ex:plain-bundle" in document.get_provn()
+
+
+def test_attribute_name_metachar_is_escaped():
+    document = _doc()
+    document.entity("ex:e1", {"ex:weird'key": "value"})
+    assert '[ex:weird\\\'key="value"]' in document.get_provn()
+
+
+def test_attribute_name_plain_unchanged():
+    document = _doc()
+    document.entity("ex:e1", {"ex:plain_key": "value"})
+    assert '[ex:plain_key="value"]' in document.get_provn()
