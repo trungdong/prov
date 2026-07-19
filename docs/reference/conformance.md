@@ -22,11 +22,7 @@ Every cell below was checked directly against the current source: model classes 
   the tracking issue and says what still fails.
 - **PROV-N** — PROV-N is **output-only**: `prov` has no PROV-N parser (issue
   [#122](https://github.com/trungdong/prov/issues/122), planned for 3.2.0), so there is no
-  PROV-N round trip to test, only the keyword `get_provn()` emits. Every PROV-N cell below is
-  additionally subject to **issue [#223](https://github.com/trungdong/prov/issues/223)**
-  (`QualifiedName.provn_representation()` does not escape PROV-N metacharacters — `'`, `)`,
-  `,`, `(`, `:`, `;`, `[`, `]`, `=` — in an identifier's local part), which is a property of
-  *identifiers*, not of any one record type; it is noted once here rather than on every row.
+  PROV-N round trip to test, only the keyword `get_provn()` emits.
 
 More caveats apply across many rows rather than to one:
 
@@ -39,31 +35,10 @@ More caveats apply across many rows rather than to one:
 - **[#224](https://github.com/trungdong/prov/issues/224)** (XML): the PROV-XML serializer
   silently drops any `other_attributes` entry whose value is the empty string `""`, regardless
   of record type.
-- **[#225](https://github.com/trungdong/prov/issues/225)** (RDF): a Python `float` attribute
-  (typed `xsd:float`) can lose precision through RDF, regardless of record type, because the
-  RDF serializer canonicalises `xsd:float` to a short decimal form.
-- **[#235](https://github.com/trungdong/prov/issues/235)** (all formats): a `Literal`
-  explicitly typed `xsd:long` is silently collapsed to a plain `int` at assertion time, so
-  every serializer emits it as `xsd:int` — the asserted datatype is lost before serialization.
-- **[#244](https://github.com/trungdong/prov/issues/244)** (XML) /
-  **[#249](https://github.com/trungdong/prov/issues/249)** (PROV-N) /
-  **[#256](https://github.com/trungdong/prov/issues/256)** (RDF): plain Python `int` values
-  are always typed `xsd:int` with no magnitude check, so a value outside the 32-bit range
-  produces schema-invalid XML, a value-invalid PROV-N integer literal, and an ill-typed RDF
-  literal, respectively.
-- **[#246](https://github.com/trungdong/prov/issues/246)** (JSON): plain `int`/`float`
-  attribute values are encoded with a non-string `$` property, violating the PROV-JSON
-  submission's typed-literal schema (the output still round-trips through `prov` itself).
-- **[#251](https://github.com/trungdong/prov/issues/251)** (PROV-N): plain Python `float`
-  values are emitted as `%g`-formatted `xsd:float` — a different datatype (and, beyond 6
-  significant digits, a different value) than the `xsd:double` the JSON/XML/RDF serializers
-  assert for the same document.
-- **[#238](https://github.com/trungdong/prov/issues/238)** (JSON): `prov:QUALIFIED_NAME`-typed
-  `Literal`s are stored opaquely by the model but resolved to `QualifiedName`s by the JSON
-  decoder, so such a value mutates across a JSON round trip and breaks document equality.
-- **[#259](https://github.com/trungdong/prov/issues/259)** (model): `Literal` language tags
-  compare case-sensitively, diverging from RDF 1.1's case-insensitive language-tag value
-  space (tags are never normalised, so values do survive round trips unchanged).
+
+The value-typing and literal-semantics gaps the audit recorded here — #77, #89, #168, #218,
+#223, #225, #235, #238, #244, #246, #249, #251, #256, #259 — were fixed in 3.0; see
+{doc}`../upgrading-3.0` and `HISTORY.rst` for the details.
 
 ## Component 1 — Entities and Activities
 
@@ -180,26 +155,18 @@ shared attribute test matrix (`test_attributes.py`, `ATTRIBUTE_VALUES` in
 | `prov:label` | `PROV_LABEL` | ✓ JSON/XML/RDF, including language-tagged literals and multiple values on one record. |
 | `prov:location` | `PROV_LOCATION` | ✓ JSON/XML/RDF across the full `ATTRIBUTE_VALUES` datatype corpus. |
 | `prov:role` | `PROV_ROLE` | ✓ JSON/XML/RDF; used throughout the qualified-relation tests (association, usage, generation, ...). |
-| `prov:type` | `PROV_TYPE` | ✓ JSON/XML; RDF is clean for a single value but see [#77](https://github.com/trungdong/prov/issues/77) (`xsd:decimal` becomes `10.0`) and [#218](https://github.com/trungdong/prov/issues/218) (mixed multi-datatype attribute sets on one record lose fidelity) — both are strict `xfail`s in `test_attributes.py`, not silent failures. |
+| `prov:type` | `PROV_TYPE` | ✓ JSON/XML/RDF, including mixed multi-datatype attribute sets on one record (`xsd:decimal` value-space equality and multi-datatype RDF fidelity fixed in 3.0: [#77](https://github.com/trungdong/prov/issues/77), [#218](https://github.com/trungdong/prov/issues/218)). |
 | `prov:value` | `PROV_VALUE` | ✓ JSON/XML/RDF. |
 
 Any attribute value (regardless of which of the five above it is) is additionally subject to
-**[#224](https://github.com/trungdong/prov/issues/224)** (XML drops the empty string `""`) and
-**[#225](https://github.com/trungdong/prov/issues/225)** (RDF can lose `xsd:float` precision) —
-both are properties of the value's type, not of the attribute name — as are the other
-value-level caveats listed under the round-trip column key above
-([#235](https://github.com/trungdong/prov/issues/235),
-[#238](https://github.com/trungdong/prov/issues/238),
-[#244](https://github.com/trungdong/prov/issues/244)/[#249](https://github.com/trungdong/prov/issues/249)/[#256](https://github.com/trungdong/prov/issues/256),
-[#246](https://github.com/trungdong/prov/issues/246),
-[#251](https://github.com/trungdong/prov/issues/251),
-[#259](https://github.com/trungdong/prov/issues/259)).
+**[#224](https://github.com/trungdong/prov/issues/224)** (XML drops the empty string `""`) —
+a property of the value's type, not of the attribute name.
 
 ## Maintenance
 
 This matrix reflects the codebase as of the Phase 3.5 conformance audit (roadmap steps 28–32,
-completed 2026-07-11) and should be revisited at each release as serializers change or issues
-close. Beyond the per-format round trips above, the audit also confirmed that
+completed 2026-07-11), refreshed for the 3.0 value-typing and literal-semantics conformance
+fixes, and should be revisited at each release as serializers change or issues close. Beyond the per-format round trips above, the audit also confirmed that
 `ProvBundle.unified()` performs an identifier-keyed attribute union rather than
 [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) merging — tracked as the umbrella
 issue [#253](https://github.com/trungdong/prov/issues/253), with the full gap analysis in the
