@@ -13,8 +13,9 @@ decimal comparison, and #89, typed/untyped string): with both fixed, the
 ``xsd:decimal`` value was the only one in ``ATTRIBUTE_VALUES`` that did not
 survive an RDF round trip, so these two reproductions now pass and run
 under the plain module-wide ``fmt`` fixture like everything else here. #218
-itself stays open: ``test_examples.py``'s ``datatypes`` example still hits a
-distinct RDF multi-datatype fidelity loss (``xsd:double`` precision).
+is now fixed in full: ``test_examples.py``'s ``datatypes`` example, which
+hit a distinct RDF multi-datatype fidelity loss (``xsd:double`` precision),
+now round-trips through RDF too.
 """
 
 import pytest

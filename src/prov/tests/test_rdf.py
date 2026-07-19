@@ -351,8 +351,8 @@ def test_json_to_ttl_match():
 
 
 def test_float_precision_survives_rdf_roundtrip():
-    # 0.1 narrowed to float32 -> 0.10000000149011612; RDF writes "1e-01",
-    # which reloads as 0.1, so the value is lost.
+    # 0.1 narrowed to float32 -> 0.10000000149011612; RDF now emits this at
+    # full repr() precision, so it reloads as the exact same value (#225).
     value = struct.unpack("f", struct.pack("f", 0.1))[0]
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
