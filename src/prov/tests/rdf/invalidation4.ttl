@@ -11,4 +11,4 @@ ex:inv4 a prov:Invalidation ;
 ex:e1 prov:qualifiedInvalidation ex:inv4 .
 
 ex:inv4 prov:atTime "2014-06-23T12:28:54.231+01:00"^^xsd:dateTime ;
-	prov:hadRole "someRole"^^xsd:string .
+	prov:hadRole "someRole" .

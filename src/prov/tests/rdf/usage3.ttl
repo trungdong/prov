@@ -10,4 +10,4 @@ ex:use3 a prov:Usage ;
 
 ex:a1 prov:qualifiedUsage ex:use3 .
 
-ex:use3 prov:hadRole "somerole"^^xsd:string , "otherRole"^^xsd:string .
+ex:use3 prov:hadRole "somerole" , "otherRole" .

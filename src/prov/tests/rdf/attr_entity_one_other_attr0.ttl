@@ -6,4 +6,4 @@
 
 
 ex:en_o0 a prov:Entity ;
-	ex:tag2 "un lieu"^^xsd:string .
+	ex:tag2 "un lieu" .

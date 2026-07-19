@@ -11,11 +11,11 @@ ex:der8 a prov:Derivation ;
 
 ex:e2 prov:qualifiedDerivation ex:der8 .
 
-ex:der8 a "a"^^xsd:string , "1"^^xsd:int , "1.0"^^xsd:float , "true"^^xsd:string , ex:abc , "2014-06-23T12:28:53.729+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
+ex:der8 a "a" , "1"^^xsd:int , "1.0"^^xsd:float , "true" , ex:abc , "2014-06-23T12:28:53.729+01:00"^^xsd:dateTime , "http://example.org/hello"^^xsd:anyURI ;
 	rdfs:label "hello" ;
-	ex2:tag3 "hi"^^xsd:string ;
-	ex:tag1 "hello"^^xsd:string , """hello
+	ex2:tag3 "hi" ;
+	ex:tag1 "hello" , """hello
 over
 more
-lines"""^^xsd:string ;
-	ex:tag2 "bye"^^xsd:string .
+lines""" ;
+	ex:tag2 "bye" .

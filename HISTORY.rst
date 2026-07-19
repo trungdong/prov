@@ -38,6 +38,11 @@ History
   ``prov:QUALIFIED_NAME``, which remains accepted on input) (#168), and
   ``prov:QUALIFIED_NAME``-typed ``Literal`` values are resolved to
   QualifiedNames at assertion time, restoring round-trip equality (#238)
+* Literal semantics: string literals have one canonical serialized form (RDF
+  output no longer decorates plain strings with ``^^xsd:string``) (#89);
+  ``xsd:decimal`` literals compare and hash in value space (#77); language
+  tags compare case-insensitively per RDF 1.1 while preserving their
+  original case in output (#259)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

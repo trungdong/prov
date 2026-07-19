@@ -11,6 +11,6 @@ ex:gen1 a prov:Generation ;
 ex:e1 prov:qualifiedGeneration ex:gen1 .
 
 ex:gen1 prov:atTime "2014-06-23T12:28:53.268+01:00"^^xsd:dateTime ;
-	ex:tag2 "hello-scruff-gen2"^^xsd:string ;
+	ex:tag2 "hello-scruff-gen2" ;
 	prov:atTime "2012-12-03T21:08:16.686Z"^^xsd:dateTime ;
-	ex:tag2 "hi-scruff-gen2"^^xsd:string .
+	ex:tag2 "hi-scruff-gen2" .

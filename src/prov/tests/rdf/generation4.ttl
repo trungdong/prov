@@ -11,4 +11,4 @@ ex:gen4 a prov:Generation ;
 ex:e1 prov:qualifiedGeneration ex:gen4 .
 
 ex:gen4 prov:atTime "2014-06-23T12:28:53.586+01:00"^^xsd:dateTime ;
-	prov:hadRole "somerole"^^xsd:string .
+	prov:hadRole "somerole" .

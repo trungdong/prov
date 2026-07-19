@@ -3,6 +3,7 @@
 from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatures
 
 import datetime
+import decimal
 import logging
 import os
 import re
@@ -69,6 +70,7 @@ from prov.constants import (
     XSD_ANYURI,
     XSD_BOOLEAN,
     XSD_DATETIME,
+    XSD_DECIMAL,
     XSD_DOUBLE,
     XSD_INT,
     XSD_INTEGER,
@@ -352,9 +354,9 @@ class Literal:
     def __eq__(self, other: Any) -> bool:
         return (
             (
-                self._value == other.value
+                self._comparison_value() == other._comparison_value()
                 and self._datatype == other.datatype
-                and self._langtag == other.langtag
+                and self._comparison_langtag() == other._comparison_langtag()
             )
             if isinstance(other, Literal)
             else False
@@ -364,7 +366,31 @@ class Literal:
         return not (self == other)
 
     def __hash__(self) -> int:
-        return hash((self._value, self._datatype, self._langtag))
+        return hash(
+            (self._comparison_value(), self._datatype, self._comparison_langtag())
+        )
+
+    def _comparison_value(self) -> str | decimal.Decimal:
+        """The value to use for equality/hash: value-space for xsd:decimal (#77).
+
+        ``xsd:decimal`` denotes an arbitrary-precision decimal number, so
+        ``10``, ``10.0`` and ``"10.00"`` are the same value; falls back to
+        the stored lexical string (unaffected) if it is not a valid decimal.
+        """
+        if self._datatype == XSD_DECIMAL:
+            try:
+                return decimal.Decimal(self._value)
+            except decimal.InvalidOperation:
+                pass
+        return self._value
+
+    def _comparison_langtag(self) -> str | None:
+        """The language tag to use for equality/hash: case-folded (#259).
+
+        RDF 1.1 language tags are case-insensitive; the stored tag itself is
+        left untouched so serialized output preserves its original case.
+        """
+        return self._langtag.casefold() if self._langtag is not None else None
 
     @property
     def value(self) -> str:

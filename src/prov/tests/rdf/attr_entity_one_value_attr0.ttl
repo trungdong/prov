@@ -6,4 +6,4 @@
 
 
 ex:en_v0 a prov:Entity ;
-	prov:value "un lieu"^^xsd:string .
+	prov:value "un lieu" .
