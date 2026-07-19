@@ -70,6 +70,7 @@ from prov.constants import (
     XSD_DATETIME,
     XSD_DOUBLE,
     XSD_INT,
+    XSD_INTEGER,
     XSD_LONG,
     XSD_STRING,
 )
@@ -194,10 +195,39 @@ XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedType
     XSD_DOUBLE: float,
     XSD_LONG: int,
     XSD_INT: int,
+    XSD_INTEGER: int,
     XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
     XSD_ANYURI: Identifier,
 }
+
+
+_INT32_MAX = 2**31 - 1
+_INT64_MAX = 2**63 - 1
+
+
+def canonical_xsd_datatype(value: object) -> QualifiedName | None:
+    """Return the XSD datatype `prov` asserts for a plain Python value.
+
+    This is the single source of truth for the serializers' reverse maps:
+    a typed ``Literal`` may be collapsed to a plain Python value only when
+    the value's canonical datatype equals the asserted one (a lossless
+    collapse), and serializers emit exactly this datatype for plain values.
+
+    Returns ``None`` for values that serialize natively (str, bool,
+    datetime — each format handles those itself).
+    """
+    if isinstance(value, bool):  # before int: bool is an int subtype
+        return None
+    if isinstance(value, int):
+        if -_INT32_MAX - 1 <= value <= _INT32_MAX:
+            return XSD_INT
+        if -_INT64_MAX - 1 <= value <= _INT64_MAX:
+            return XSD_LONG
+        return XSD_INTEGER
+    if isinstance(value, float):
+        return XSD_DOUBLE
+    return None
 
 
 def parse_xsd_types(value: str, datatype: QualifiedName) -> SupportedXSDParsedTypes:
@@ -235,23 +265,32 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
 
 
 def encoding_provn_value(
-    value: str | datetime.datetime | float | bool | QualifiedName,
+    value: str | datetime.datetime | float | bool | int | QualifiedName,
 ) -> str:
     """Return the PROV-N literal representation of a Python value.
 
-    Strings are quoted (triple-quoted when they span multiple lines); dates,
-    floats and booleans are rendered with their XSD datatype suffix. Any other
-    value is rendered via :func:`str`.
+    Strings are quoted (triple-quoted when they span multiple lines); dates
+    and booleans are rendered with their XSD datatype suffix. Floats are
+    rendered as full-precision ``xsd:double`` (#251). Plain ints are typed by
+    magnitude: within +/-(2**31-1) they render as a bare ``INT_LITERAL`` (PROV-N
+    [60] sugar for ``xsd:int``); beyond that they carry an explicit
+    ``xsd:long``/``xsd:integer`` suffix (#249). Any other value is rendered
+    via :func:`str`.
     """
     if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
         return f'"{value.isoformat()}" %% xsd:dateTime'
     elif isinstance(value, float):
-        return f'"{value:g}" %% xsd:float'
+        return f'"{value!r}" %% xsd:double'
     elif isinstance(value, bool):
         # bool is an int subtype, so :d renders "1"/"0" (not "True"/"False")
         return f'"{value:d}" %% xsd:boolean'
+    elif isinstance(value, int):
+        datatype = canonical_xsd_datatype(value)
+        if datatype == XSD_INT:
+            return str(value)  # bare INT_LITERAL is xsd:int sugar (PROV-N [60])
+        return f'"{value}" %% {datatype}'
     else:
         # TODO: QName export
         return str(value)
@@ -557,6 +596,17 @@ class ProvRecord:
                 # try to convert a generic Literal object to Python standard type
                 # to match the JSON decoding's literal conversion
                 value = parse_xsd_types(literal.value, literal.datatype)
+                # #235: only collapse the integer family when it is lossless,
+                # i.e. the asserted datatype is the one `prov` would itself
+                # infer for the parsed value. Otherwise, keep the Literal so
+                # its asserted datatype survives serialization (e.g.
+                # Literal("42", XSD_LONG)).
+                if (
+                    value is not None
+                    and literal.datatype in (XSD_LONG, XSD_INT, XSD_INTEGER)
+                    and canonical_xsd_datatype(value) != literal.datatype
+                ):
+                    return literal
             else:
                 # A literal with no datatype nor langtag defined
                 # try auto-converting the value

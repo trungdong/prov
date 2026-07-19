@@ -34,16 +34,11 @@ def _doc():
 # --- Filed defects (strict xfails) -------------------------------------------
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#235: PROV-DM §5.7.3 — xsd:long literals are silently re-typed as xsd:int",
-)
 def test_xsd_long_literal_datatype_preserved():
     document = _doc()
     entity = document.entity("ex:e1", {"ex:attr": Literal("42", XSD_LONG)})
     ((_, value),) = entity.extra_attributes
-    assert value == Literal("42", XSD_LONG)
+    assert value == Literal("42", XSD_LONG)  # #235 (fixed in 3.0)
 
 
 @pytest.mark.xfail(

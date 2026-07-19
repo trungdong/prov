@@ -60,7 +60,13 @@ text_values = st.text(
 
 attr_values = st.one_of(
     text_values,  # str, including non-ASCII
-    st.integers(min_value=-(2**31), max_value=2**31),
+    # xsd:int range (PROV-DM's canonical datatype for a plain Python int,
+    # #249): magnitudes beyond it are excluded because the serializers still
+    # tag every plain int xsd:int regardless of magnitude until their
+    # magnitude-aware reverse maps land (roadmap step 37), so a generated
+    # int outside int32 would round-trip back as a kept xsd:int Literal
+    # instead of the original bare int (#235's lossless-collapse rule).
+    st.integers(min_value=-(2**31), max_value=2**31 - 1),
     st.booleans(),
     # Floats. PROV types a Python ``float`` as xsd:float (single precision), and
     # RDF canonicalises xsd:float to a short decimal, so an arbitrary float does

@@ -22,6 +22,13 @@ History
   ``ProvException`` on invalid input instead of leaking a raw dateutil
   error, and non-ISO forms previously tolerated by dateutil (e.g.
   ``"Nov 7, 2011"``) are no longer accepted (#237)
+* Numeric datatype fidelity: ``Literal`` values typed ``xsd:long`` (and the
+  rest of the XSD integer family) keep their asserted datatype instead of
+  being silently re-typed ``xsd:int`` (#235); PROV-N output types plain
+  integers by magnitude (``xsd:int``/``xsd:long``/``xsd:integer``) so
+  out-of-int32 values are no longer emitted as invalid bare int literals
+  (#249), and plain floats as full-precision ``xsd:double`` instead of
+  ``%g``-truncated ``xsd:float`` (#251)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
