@@ -19,6 +19,7 @@ from prov.model import (
     PROV_QUALIFIEDNAME,
     PROV_VALUE,
     XSD_LONG,
+    XSD_QNAME,
     Literal,
     ProvDocument,
     ProvException,
@@ -41,19 +42,32 @@ def test_xsd_long_literal_datatype_preserved():
     assert value == Literal("42", XSD_LONG)  # #235 (fixed in 3.0)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "#238: PROV-DM §5.7.3 — prov:QUALIFIED_NAME literals are not resolved to "
-        "QualifiedNames, so the JSON round trip mutates the value"
-    ),
-)
 def test_qualified_name_literal_roundtrip_equality():
     document = _doc()
     document.entity("ex:e1", {"ex:a": Literal("ex:v", PROV_QUALIFIEDNAME)})
     content = document.serialize(format="json")
-    assert ProvDocument.deserialize(content=content, format="json") == document
+    reloaded = ProvDocument.deserialize(content=content, format="json")
+    assert reloaded == document  # #238 (fixed in 3.0)
+
+
+def test_qualified_name_literal_resolves_at_assertion():
+    # #238: a prov:QUALIFIED_NAME-typed Literal is resolved to a real
+    # QualifiedName at assertion time, using the record's bundle namespaces.
+    document = _doc()
+    entity = document.entity("ex:e1", {"ex:attr": Literal("ex:v", PROV_QUALIFIEDNAME)})
+    ((_, value),) = entity.extra_attributes
+    assert value == document.valid_qualified_name("ex:v")
+
+
+def test_xsd_qname_literal_stays_opaque_at_assertion():
+    # By contrast, an xsd:QName-typed Literal is left opaque on the model
+    # side: only the PROV-JSON codec treats xsd:QName as a QualifiedName
+    # value (#168); resolving it here too would be a needless widening of
+    # the #238 fix's scope.
+    document = _doc()
+    entity = document.entity("ex:e1", {"ex:attr": Literal("ex:v", XSD_QNAME)})
+    ((_, value),) = entity.extra_attributes
+    assert value == Literal("ex:v", XSD_QNAME)
 
 
 def test_factory_time_parse_error_raises_prov_exception():

@@ -33,6 +33,11 @@ History
   integers are typed by magnitude across PROV-JSON/PROV-XML/PROV-O output
   (``xsd:int``/``xsd:long``/``xsd:integer``), fixing schema-invalid output
   for out-of-int32 values (#244, #246, #256)
+* PROV-JSON encodes QualifiedName attribute values as ``xsd:QName`` typed
+  literals per the PROV-JSON submission (previously the non-standard
+  ``prov:QUALIFIED_NAME``, which remains accepted on input) (#168), and
+  ``prov:QUALIFIED_NAME``-typed ``Literal`` values are resolved to
+  QualifiedNames at assertion time, restoring round-trip equality (#238)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
