@@ -29,6 +29,10 @@ History
   out-of-int32 values are no longer emitted as invalid bare int literals
   (#249), and plain floats as full-precision ``xsd:double`` instead of
   ``%g``-truncated ``xsd:float`` (#251)
+* PROV-JSON typed literals always encode ``$`` as a string, and plain
+  integers are typed by magnitude across PROV-JSON/PROV-XML/PROV-O output
+  (``xsd:int``/``xsd:long``/``xsd:integer``), fixing schema-invalid output
+  for out-of-int32 values (#244, #246, #256)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

@@ -134,6 +134,16 @@ def test_literal_rdf_representation_without_datatype_raises():
         literal_rdf_representation(pm.Literal("no datatype, no langtag"))
 
 
+def test_out_of_int32_plain_int_emits_xsd_long_ntriples():
+    # #256: a plain out-of-int32 int must not be ill-typed as xsd:int.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1", {"ex:big": 123456789000})
+    nt = doc.serialize(format="rdf", rdf_format="nt")
+    assert '"123456789000"^^<http://www.w3.org/2001/XMLSchema#long>' in nt
+    assert "http://www.w3.org/2001/XMLSchema#int>" not in nt
+
+
 def test_decode_xsd_qname_gyear_gyearmonth_round_trip():
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")

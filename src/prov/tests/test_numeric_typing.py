@@ -5,6 +5,10 @@ assertion time and re-emitted as xsd:int everywhere; PROV-N rendered
 out-of-int32 ints as bare INT_LITERALs and floats as %g xsd:float.
 """
 
+import json
+
+import pytest
+
 from prov.constants import XSD_INT, XSD_LONG
 from prov.model import Literal, ProvDocument
 
@@ -76,3 +80,31 @@ def test_literal_built_with_int_value_equals_json_roundtrip():
         content=document.serialize(format="json"), format="json"
     )
     assert document == roundtripped
+
+
+BOUNDARY_INTS = [
+    INT32_MAX,
+    INT32_MAX + 1,
+    -(2**31),
+    -(2**31) - 1,
+    INT64_MAX,
+    INT64_MAX + 1,
+]
+
+
+@pytest.mark.parametrize("value", BOUNDARY_INTS)
+def test_int_boundaries_roundtrip(value, roundtrip):
+    document = _doc()
+    document.entity("ex:e1", {"ex:v": value})
+    roundtrip(document)
+
+
+def test_json_dollar_is_always_a_string():
+    # #246: the submission's typedLiteral schema requires a string "$".
+    document = _doc()
+    document.entity("ex:e1", {"ex:i": 100, "ex:f": 0.5, "ex:big": INT32_MAX + 1})
+    container = json.loads(document.serialize(format="json"))
+    attrs = container["entity"]["ex:e1"]
+    assert attrs["ex:i"] == {"$": "100", "type": "xsd:int"}
+    assert attrs["ex:f"] == {"$": "0.5", "type": "xsd:double"}
+    assert attrs["ex:big"] == {"$": str(INT32_MAX + 1), "type": "xsd:long"}

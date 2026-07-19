@@ -89,9 +89,9 @@ _XSD_GYEARMONTH_RE = re.compile(r"^(-?\d{4,})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$")
 # Reverse map for prov.model.XSD_DATATYPE_PARSERS
 LITERAL_XSDTYPE_MAP = {
     float: XSD["double"],
-    int: XSD["int"],
     str: XSD["string"],
     # boolean, string values are supported natively by PROV-RDF
+    # int values are typed by magnitude, via canonical_xsd_datatype() (#256)
     # datetime values are converted separately
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
@@ -267,7 +267,9 @@ class ProvRDFSerializer(Serializer):
             value: Attribute value to encode: a ``URIRef`` (returned as-is),
                 a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
                 a :class:`~prov.identifier.QualifiedName`, another
-                :class:`~prov.identifier.Identifier`, a type listed in
+                :class:`~prov.identifier.Identifier`, a plain ``int``
+                (typed by magnitude via
+                :func:`~prov.model.canonical_xsd_datatype`), a type listed in
                 :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
                 to ``rdflib.Literal``.
 
@@ -284,6 +286,13 @@ class ProvRDFSerializer(Serializer):
             return URIRef(value.uri)
         elif isinstance(value, pm.Identifier):
             return RDFLiteral(value.uri, datatype=XSD["anyURI"])
+        elif (
+            isinstance(value, int)
+            and (xsd_datatype := pm.canonical_xsd_datatype(value)) is not None
+        ):
+            # bool is an int subtype but canonical_xsd_datatype(bool) is
+            # None, so bools fall through unaffected (#256).
+            return RDFLiteral(str(value), datatype=XSD[xsd_datatype.localpart])
         elif type(value) in LITERAL_XSDTYPE_MAP:
             return RDFLiteral(value, datatype=LITERAL_XSDTYPE_MAP[type(value)])
         else:

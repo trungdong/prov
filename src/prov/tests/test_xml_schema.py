@@ -55,19 +55,8 @@ LANG_TAG_ON_NON_LABEL_SKIP = pytest.mark.skip(
     "are xs:anySimpleType, which disallows xml:lang"
 )
 
-# --- Triage: filed defects (strict xfails) -----------------------------------
-
-INT_MAGNITUDE_XFAIL = pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#244: PROV-XML conformance -- plain Python ints are always typed "
-    "xsd:int regardless of magnitude, so values outside the int32 range "
-    "serialize as schema-invalid PROV-XML",
-)
-
 _EXAMPLE_MARKS = {
     "W3C Publication 1": QNAME_LOCAL_PART_SKIP,
-    "datatypes": INT_MAGNITUDE_XFAIL,
 }
 
 _ATTRIBUTE_VALUE_MARKS = {
