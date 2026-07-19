@@ -129,6 +129,23 @@ def test_literal_rdf_representation_base64binary():
     assert str(rdf_literal) == "aGVsbG8="
 
 
+def test_literal_rdf_representation_double_full_precision():
+    # #225: an explicitly xsd:double-typed Literal is always collapsed to a
+    # plain float before it reaches a record's stored attributes (see
+    # _auto_literal_conversion), so encode_rdf_representation's plain-float
+    # path (exercised by test_float_precision_survives_rdf_roundtrip) is the
+    # only route a document attribute takes. literal_rdf_representation's own
+    # xsd:double branch is reachable only via a direct call -- e.g. a
+    # Literal built by hand rather than assigned to a record -- so it is
+    # exercised directly here.
+    value = struct.unpack("f", struct.pack("f", 0.1))[0]
+    literal = pm.Literal(repr(value), datatype=pm.XSD_DOUBLE)
+    rdf_literal = literal_rdf_representation(literal)
+    assert str(rdf_literal) == repr(value)
+    assert rdf_literal.datatype == URIRef(pm.XSD_DOUBLE.uri)
+    assert float(str(rdf_literal)) == value
+
+
 def test_literal_rdf_representation_without_datatype_raises():
     with pytest.raises(ValueError):
         literal_rdf_representation(pm.Literal("no datatype, no langtag"))
@@ -350,17 +367,9 @@ def test_json_to_ttl_match():
     assert not errors
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#225: PROV types a Python float as xsd:float (single precision) and "
-    "RDF canonicalises it to a short decimal, so a precision-carrying float32 "
-    "value comes back changed (JSON/XML keep the full repr). Regression guard "
-    "from the Hypothesis property tests; remove when #225 is fixed in 3.0.",
-)
 def test_float_precision_survives_rdf_roundtrip():
-    # 0.1 narrowed to float32 -> 0.10000000149011612; RDF writes "1e-01",
-    # which reloads as 0.1, so the value is lost.
+    # 0.1 narrowed to float32 -> 0.10000000149011612; RDF now emits this at
+    # full repr() precision, so it reloads as the exact same value (#225).
     value = struct.unpack("f", struct.pack("f", 0.1))[0]
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")

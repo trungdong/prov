@@ -43,6 +43,10 @@ History
   ``xsd:decimal`` literals compare and hash in value space (#77); language
   tags compare case-insensitively per RDF 1.1 while preserving their
   original case in output (#259)
+* PROV-O (RDF) round-trip fidelity: mixed XSD-datatype attribute sets
+  survive deserialization with their asserted datatypes intact (#218), and
+  ``xsd:double`` values are emitted at full precision instead of rdflib's
+  6-significant-digit canonical form (#225)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

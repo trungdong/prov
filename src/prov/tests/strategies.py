@@ -68,18 +68,12 @@ attr_values = st.one_of(
     # instead of the original bare int (#235's lossless-collapse rule).
     st.integers(min_value=-(2**31), max_value=2**31 - 1),
     st.booleans(),
-    # Floats. PROV types a Python ``float`` as xsd:float (single precision), and
-    # RDF canonicalises xsd:float to a short decimal, so an arbitrary float does
-    # NOT survive the RDF round trip (e.g. 0.1 and large-magnitude values come
-    # back changed) even with width=32 — #225, a genuine RDF float-precision loss
-    # deferred to 3.0. JSON/XML keep the full repr and are unaffected. We
-    # therefore restrict generation to eighth-step dyadic rationals of modest
-    # magnitude (|v| <= 8192): exactly representable in float32 with a short
-    # exact decimal, empirically round-tripping cleanly through all three
-    # formats while still exercising the xsd:float datatype with fractional
-    # values. #77 (no Decimal values are generated) is covered for the same
-    # reason: xsd:decimal fidelity is lost through RDF.
-    st.integers(min_value=-(8192 * 8), max_value=8192 * 8).map(lambda n: n / 8.0),
+    # Floats. RDF now emits xsd:double values at full repr() precision (#225),
+    # matching JSON/XML, so any finite float round-trips cleanly. NaN and
+    # infinity are excluded deliberately: they are not equal to themselves
+    # (NaN) or require format-specific INF/NaN lexical handling we don't
+    # exercise here, not because of a round-trip bug.
+    st.floats(allow_nan=False, allow_infinity=False),
     # Timezone-aware UTC datetimes; PROV serialises these as xsd:dateTime.
     st.datetimes(min_value=datetime(1900, 1, 1), max_value=datetime(2100, 1, 1)).map(
         lambda dt: dt.replace(tzinfo=timezone.utc)
@@ -89,15 +83,20 @@ attr_values = st.one_of(
 )
 
 
-def _attribute_dict(draw) -> dict:
-    """Draw a dict of ``ex:<key> -> value`` other-attributes.
+def _attribute_dict(draw) -> list[tuple[str, object]]:
+    """Draw a list of ``(ex:<key>, value)`` other-attribute pairs.
 
-    #218: multiple values / mixed datatypes on a *single* attribute key lose
-    datatype fidelity through RDF. Using a dict guarantees unique keys, so no
-    key is ever emitted twice with differing datatypes.
+    A key may be drawn more than once, each occurrence with an independently
+    drawn (possibly differently-typed) value: mixed-datatype attribute sets
+    now round-trip through RDF with their asserted datatypes intact (#218).
     """
     keys = draw(st.lists(local_part, min_size=0, max_size=4, unique=True))
-    return {f"ex:k{key}": draw(attr_values) for key in keys}
+    pairs: list[tuple[str, object]] = []
+    for key in keys:
+        name = f"ex:k{key}"
+        for value in draw(st.lists(attr_values, min_size=1, max_size=2)):
+            pairs.append((name, value))
+    return pairs
 
 
 def _draw_ids(draw, tag: str) -> list[str]:
