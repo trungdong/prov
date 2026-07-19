@@ -10,4 +10,4 @@ ex:inv3 a prov:Invalidation ;
 
 ex:e1 prov:qualifiedInvalidation ex:inv3 .
 
-ex:inv3 prov:hadRole "someRole"^^xsd:string , "otherRole"^^xsd:string .
+ex:inv3 prov:hadRole "someRole" , "otherRole" .

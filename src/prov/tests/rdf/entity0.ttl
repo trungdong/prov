@@ -6,5 +6,5 @@
 
 
 ex:e0 a prov:Entity ;
-	prov:atLocation "un llieu"^^xsd:string , "1"^^xsd:int , "2.0"^^xsd:double , "http://example.org/london"^^xsd:anyURI , "2"^^xsd:long ;
+	prov:atLocation "un llieu" , "1"^^xsd:int , "2.0"^^xsd:double , "http://example.org/london"^^xsd:anyURI , "2"^^xsd:long ;
 	ex:tag2 "bonjour"@fr .

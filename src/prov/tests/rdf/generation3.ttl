@@ -10,4 +10,4 @@ ex:gen3 a prov:Generation ;
 
 ex:e1 prov:qualifiedGeneration ex:gen3 .
 
-ex:gen3 prov:hadRole "somerole"^^xsd:string , "otherRole"^^xsd:string .
+ex:gen3 prov:hadRole "somerole" , "otherRole" .

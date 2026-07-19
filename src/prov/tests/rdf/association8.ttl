@@ -11,4 +11,4 @@ ex:assoc8 a prov:Association ;
 ex:a1 prov:qualifiedAssociation ex:assoc8 .
 
 ex:assoc8 prov:hadPlan ex:plan1 ;
-	prov:hadRole "someRole"^^xsd:string , "someOtherRole"^^xsd:string .
+	prov:hadRole "someRole" , "someOtherRole" .
