@@ -330,12 +330,13 @@ class ProvRDFSerializer(Serializer):
             # None, so bools fall through unaffected (#256).
             return RDFLiteral(str(value), datatype=XSD[xsd_datatype.localpart])
         elif type(value) in LITERAL_XSDTYPE_MAP:
-            datatype = LITERAL_XSDTYPE_MAP[type(value)]
-            if datatype == XSD["double"]:
-                # Full-precision lexical form, and a datatype that skips
-                # rdflib's precision-losing bare-double abbreviation (#225).
-                return _FullPrecisionDoubleLiteral(repr(value), datatype=datatype)
-            return RDFLiteral(value, datatype=datatype)
+            # LITERAL_XSDTYPE_MAP maps only `float -> XSD["double"]` today, so
+            # the full-precision lexical form always applies here: a datatype
+            # that skips rdflib's precision-losing bare-double abbreviation
+            # (#225) on output.
+            return _FullPrecisionDoubleLiteral(
+                repr(value), datatype=LITERAL_XSDTYPE_MAP[type(value)]
+            )
         else:
             return RDFLiteral(value)
 
