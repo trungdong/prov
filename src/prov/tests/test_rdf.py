@@ -350,14 +350,6 @@ def test_json_to_ttl_match():
     assert not errors
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#225: PROV types a Python float as xsd:float (single precision) and "
-    "RDF canonicalises it to a short decimal, so a precision-carrying float32 "
-    "value comes back changed (JSON/XML keep the full repr). Regression guard "
-    "from the Hypothesis property tests; remove when #225 is fixed in 3.0.",
-)
 def test_float_precision_survives_rdf_roundtrip():
     # 0.1 narrowed to float32 -> 0.10000000149011612; RDF writes "1e-01",
     # which reloads as 0.1, so the value is lost.

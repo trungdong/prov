@@ -43,6 +43,7 @@ from prov.constants import (
     PROV_ROLE,
     PROV_START,
     PROV_USAGE,
+    XSD_DOUBLE,
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
@@ -98,6 +99,39 @@ LITERAL_XSDTYPE_MAP = {
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
 types not natively/simply representable in PROV-RDF."""
+
+
+class _FullPrecisionDoubleLiteral(RDFLiteral):
+    """An ``xsd:double`` ``rdflib.Literal`` that keeps its exact lexical form on output.
+
+    rdflib's Turtle/TriG writer abbreviates ``xsd:double`` literals to a bare
+    (undecorated) numeric token via ``f"{float(self):e}"``, which is capped at
+    Python's default ``%e`` precision (~7 significant digits) -- discarding
+    precision regardless of the literal's actual stored lexical form (#225).
+    Forcing the non-abbreviated ``_literal_n3`` path keeps our full-precision
+    lexical (``repr(value)``) intact in every RDF output format.
+    """
+
+    def _literal_n3(self, use_plain: bool = False, qname_callback: Any = None) -> str:
+        return super()._literal_n3(False, qname_callback)
+
+
+# Datatypes whose rdflib-coerced ``.value`` losslessly round-trips back to the
+# original lexical form via `str()`, so `decode_rdf_representation` may use it
+# directly. Every other datatype (`xsd:decimal`, `xsd:unsignedInt`,
+# `xsd:positiveInteger`, other XSD numeric subtypes, custom datatypes, ...)
+# is reconstructed from the RDF term's own lexical form instead (#218).
+_LOSSLESS_COLLAPSE_DATATYPES = frozenset(
+    {
+        XSD["double"],
+        XSD["boolean"],
+        XSD["int"],
+        XSD["long"],
+        XSD["integer"],
+        XSD["anyURI"],
+        XSD["string"],
+    }
+)
 
 RELATION_MAP = {
     URIRef(PROV["alternateOf"].uri): "alternate",
@@ -296,7 +330,12 @@ class ProvRDFSerializer(Serializer):
             # None, so bools fall through unaffected (#256).
             return RDFLiteral(str(value), datatype=XSD[xsd_datatype.localpart])
         elif type(value) in LITERAL_XSDTYPE_MAP:
-            return RDFLiteral(value, datatype=LITERAL_XSDTYPE_MAP[type(value)])
+            datatype = LITERAL_XSDTYPE_MAP[type(value)]
+            if datatype == XSD["double"]:
+                # Full-precision lexical form, and a datatype that skips
+                # rdflib's precision-losing bare-double abbreviation (#225).
+                return _FullPrecisionDoubleLiteral(repr(value), datatype=datatype)
+            return RDFLiteral(value, datatype=datatype)
         else:
             return RDFLiteral(value)
 
@@ -324,11 +363,14 @@ class ProvRDFSerializer(Serializer):
             value = literal.value if literal.value is not None else literal
             datatype = literal.datatype
             langtag = literal.language
+            value_overridden = False
             if datatype and "XMLLiteral" in datatype:
                 value = literal
+                value_overridden = True
             if datatype and "base64Binary" in datatype:
                 # rdflib decodes xsd:base64Binary literals to bytes
                 value = base64.standard_b64encode(cast(bytes, value))
+                value_overridden = True
             if datatype == XSD["QName"]:
                 return pm.Literal(literal, datatype=XSD_QNAME)
             if datatype == XSD["dateTime"]:
@@ -353,6 +395,20 @@ class ProvRDFSerializer(Serializer):
                     datatype=self.valid_identifier(datatype),
                 )
             else:
+                if (
+                    not value_overridden
+                    and datatype is not None
+                    and datatype not in _LOSSLESS_COLLAPSE_DATATYPES
+                ):
+                    # #218: datatypes without a lossless Python-value collapse
+                    # (e.g. xsd:decimal, xsd:unsignedInt, xsd:positiveInteger,
+                    # other XSD numeric subtypes, or custom datatypes) --
+                    # rdflib's coerced `.value` (a Decimal/int/etc.)
+                    # re-canonicalises the lexical form when stringified,
+                    # silently mutating the asserted literal on decode. Use
+                    # the RDF term's own lexical form instead, so what was
+                    # asserted on encode is exactly what comes back.
+                    value = str(literal)
                 # The literal of standard Python types is not converted here
                 # It will be automatically converted when added to a record by
                 # _auto_literal_conversion()
@@ -1045,6 +1101,12 @@ def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:
         if datatype is not None:
             if "base64Binary" in datatype.uri:
                 return RDFLiteral(literal.value.encode(), datatype=datatype.uri)
+            elif datatype == XSD_DOUBLE:
+                # Same precision-preserving datatype as the plain-float path
+                # in encode_rdf_representation (#225): the literal's own
+                # lexical form is already the asserted value's string, so
+                # just skip rdflib's bare-double abbreviation on output.
+                return _FullPrecisionDoubleLiteral(literal.value, datatype=datatype.uri)
             else:
                 return RDFLiteral(literal.value, datatype=datatype.uri)
         else:

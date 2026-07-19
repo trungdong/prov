@@ -114,7 +114,8 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   are intentional**: 14 skips in `test_statements.py` (#217), attached via per-function
   `@pytest.mark.parametrize("fmt", [...])` so only the `rdf` param is marked. Don't "fix" these.
 - `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
-  order significant — RDF xfails key off indices) feed the shared modules and several others.
+  order significant — some tests reference individual values by index) feed the shared modules
+  and several others.
 - `test_json.py`/`test_xml.py`/`test_rdf.py` keep only format-specific tests (encoder
   internals, error paths, `find_diff`, fixture-dir round-trips over `json/`, `xml/`, `rdf/`).
   `test_xml.py`'s disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
