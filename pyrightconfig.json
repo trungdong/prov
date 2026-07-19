@@ -1,0 +1,10 @@
+{
+  "include": ["src"],
+  "exclude": ["src/prov/tests", "build"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "standard",
+  "reportOptionalMemberAccess": "none",
+  "reportAttributeAccessIssue": "warning"
+}
