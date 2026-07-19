@@ -80,6 +80,7 @@ from prov.model.records import (
     RecordAttributesArg as RecordAttributesArg,
     SupportedXSDParsedTypes as SupportedXSDParsedTypes,
     UsageRef as UsageRef,
+    canonical_xsd_datatype as canonical_xsd_datatype,
     encoding_provn_value as encoding_provn_value,
     first as first,
     parse_boolean as parse_boolean,
