@@ -48,7 +48,7 @@ The value-typing and literal-semantics gaps the audit recorded here — #77, #89
 | Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ |
 | Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
 | Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
-| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ (anonymous *qualified* communications omit `prov:activity`: [#250](https://github.com/trungdong/prov/issues/250)) |
+| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ |
 | Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
 | End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
 | Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
@@ -83,11 +83,11 @@ output from this library always uses the base `wasDerivedFrom` form.
 | --- | --- | --- | --- | --- | --- | --- |
 | Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ |
 | Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | none — see finding below | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ |
-| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ (anonymous *qualified* attributions omit `prov:agent`: [#250](https://github.com/trungdong/prov/issues/250)) |
+| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ |
 | Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ |
 | Plan §5.3.3 | via `association(plan=...)` | — | — (plan is an ordinary entity referenced by the association's `plan` formal attribute) | ✓ | ✓ | ✓ |
-| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ (anonymous qualified delegations sharing (delegate, activity): [#226](https://github.com/trungdong/prov/issues/226); the encode-side root cause — the qualified node omits `prov:agent` — is [#250](https://github.com/trungdong/prov/issues/250)) |
-| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ (anonymous *qualified* influences omit `prov:influencer`: [#250](https://github.com/trungdong/prov/issues/250)) |
+| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ |
+| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ |
 
 **Finding:** PROV-DM defines Person, Organization, and SoftwareAgent as agent subtypes, and Plan
 as an entity subtype used with associations. `prov` has no dedicated classes or factories for the

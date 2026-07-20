@@ -377,16 +377,14 @@ def test_float_precision_survives_rdf_roundtrip():
     assert roundtrip_document(document, "rdf") == document
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#226: two qualified delegations sharing the same delegate and "
-    "qualifying activity but differing in responsible collapse through RDF -- "
-    "one loses its responsible (the qualifiedDelegation blank nodes are keyed "
-    "on delegate+activity). Regression guard from the Hypothesis property "
-    "tests; remove when #226 is fixed in 3.0.",
-)
 def test_qualified_delegation_pair_survives_rdf_roundtrip():
+    # #226: two qualified delegations sharing the same delegate and
+    # qualifying activity but differing in responsible used to collapse
+    # through RDF -- one lost its responsible, because the qualifiedDelegation
+    # blank nodes were keyed on (delegate, activity) alone. Fixed by #250:
+    # each qualifiedDelegation node now carries its own prov:agent triple, so
+    # decoding can match the correct node by its actual influencer instead of
+    # an ambiguous "last node seen" guess.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.agent("ex:g0")
@@ -395,3 +393,110 @@ def test_qualified_delegation_pair_survives_rdf_roundtrip():
     document.delegation("ex:g0", "ex:g1", "ex:a")
     document.delegation("ex:g0", "ex:g0", "ex:a")
     assert roundtrip_document(document, "rdf") == document
+
+
+@pytest.mark.parametrize(
+    ("build", "influencer_uri"),
+    [
+        (
+            lambda d: d.communication("ex:a2", "ex:a1", other_attributes={"ex:k": "v"}),
+            "http://www.w3.org/ns/prov#activity",
+        ),
+        (
+            lambda d: d.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v"}),
+            "http://www.w3.org/ns/prov#agent",
+        ),
+        (
+            lambda d: d.delegation(
+                "ex:ag2", "ex:ag1", "ex:a", other_attributes={"ex:k": "v"}
+            ),
+            "http://www.w3.org/ns/prov#agent",
+        ),
+        (
+            lambda d: d.influence("ex:e2", "ex:e1", other_attributes={"ex:k": "v"}),
+            "http://www.w3.org/ns/prov#influencer",
+        ),
+    ],
+    ids=["communication", "attribution", "delegation", "influence"],
+)
+def test_anonymous_qualified_node_carries_influencer(build, influencer_uri):
+    # #250: an anonymous qualified Communication/Attribution/Delegation/
+    # Influence node must carry its influencer property directly (PROV-O
+    # section 3.1's qualification tables), not just imply it via the
+    # shorthand binary triple, so the node is interpretable in isolation.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    build(document)
+    buf = BytesIO()
+    document.serialize(destination=buf, format="rdf", rdf_format="nt11")
+    output = buf.getvalue()
+    assert influencer_uri.encode() in output
+
+
+def test_anonymous_attributions_to_different_agents_each_carry_their_own_agent():
+    # #250's ambiguity repro: two anonymous, qualified (extra-attributed)
+    # attributions of the same entity to *different* agents must yield two
+    # distinct prov:Attribution blank nodes, each carrying its own
+    # prov:agent -- not a single node whose agent is ambiguous or lost.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v1"})
+    document.attribution("ex:e1", "ex:ag2", other_attributes={"ex:k": "v2"})
+    buf = BytesIO()
+    document.serialize(destination=buf, format="rdf", rdf_format="trig")
+    buf.seek(0)
+    graph = Dataset(default_union=True)
+    graph.parse(buf, format="trig")
+
+    agent_pred = URIRef("http://www.w3.org/ns/prov#agent")
+    ag1 = URIRef("http://example.org/ag1")
+    ag2 = URIRef("http://example.org/ag2")
+    attribution_nodes = {
+        stmt[0]
+        for stmt in graph.triples(
+            (None, RDF.type, URIRef("http://www.w3.org/ns/prov#Attribution"))
+        )
+    }
+    assert len(attribution_nodes) == 2
+    nodes_with_ag1 = {
+        node for node in attribution_nodes if (node, agent_pred, ag1) in graph
+    }
+    nodes_with_ag2 = {
+        node for node in attribution_nodes if (node, agent_pred, ag2) in graph
+    }
+    assert len(nodes_with_ag1) == 1
+    assert len(nodes_with_ag2) == 1
+    assert nodes_with_ag1 != nodes_with_ag2
+
+
+def test_legacy_qualified_delegation_without_influencer_still_parses():
+    # Documents produced by prov <=2.x (pre-#250) never asserted an
+    # influencer property directly on an anonymous qualification node --
+    # only the binary triple and (for delegation) prov:hadActivity. Such
+    # legacy input must still deserialize without error. Where two legacy
+    # nodes are genuinely ambiguous (same subject, no distinguishing
+    # prov:agent on either), decoding falls back to the old "last node seen"
+    # behaviour and -- as before #250 -- may collapse the pair; that is the
+    # documented pre-existing #226 limitation for legacy input, not a crash.
+    legacy_trig = """
+    @prefix ex: <http://example.org/> .
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    {
+        ex:ag2 prov:actedOnBehalfOf ex:ag1 ;
+               prov:actedOnBehalfOf ex:ag2 ;
+               prov:qualifiedDelegation _:b1 , _:b2 .
+        _:b1 a prov:Delegation ;
+             prov:hadActivity ex:a .
+        _:b2 a prov:Delegation ;
+             prov:hadActivity ex:a .
+    }
+    """
+    document = ProvDocument.deserialize(
+        content=legacy_trig, format="rdf", rdf_format="trig"
+    )
+    delegations = [
+        record
+        for record in document.get_records()
+        if record.get_type().localpart == "Delegation"
+    ]
+    assert len(delegations) == 2

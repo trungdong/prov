@@ -29,6 +29,7 @@ from prov.constants import (
     PROV_ATTR_TIME,
     PROV_ATTR_TRIGGER,
     PROV_ATTR_USED_ENTITY,
+    PROV_ATTRIBUTION,
     PROV_BASE_CLS,
     PROV_COMMUNICATION,
     PROV_DELEGATION,
@@ -36,6 +37,7 @@ from prov.constants import (
     PROV_END,
     PROV_GENERATION,
     PROV_ID_ATTRIBUTES_MAP,
+    PROV_INFLUENCE,
     PROV_INVALIDATION,
     PROV_LOCATION,
     PROV_MENTION,
@@ -193,6 +195,21 @@ _QUALIFIED_ONLY_RELATIONS = frozenset(
 #: and typed ``prov:Revision`` rather than ``prov:Derivation``.
 _DERIVATION_SUBTYPES = frozenset(
     {PROV["Revision"], PROV["Quotation"], PROV["PrimarySource"]}
+)
+
+#: Relation types whose plain binary triple is always emitted (they are not
+#: gated by :data:`_QUALIFIED_ONLY_RELATIONS`) *and* whose second formal
+#: attribute is the relation's influencer per the PROV-O section 3.1
+#: qualification tables (``prov:activity``/``prov:agent``/``prov:agent``/
+#: ``prov:influencer``). Whenever one of these relations gets a
+#: ``prov:qualified*`` node -- identified, or anonymous with extra
+#: qualifiers -- that influencer must also be asserted directly on the node,
+#: not only implied by the binary triple, so the node is interpretable in
+#: isolation (#250). ``prov:mentionOf`` and ``prov:alternateOf`` are
+#: deliberately excluded: they are already special-cased elsewhere in the
+#: binary-triple/qualification-node machinery.
+_BINARY_TRIPLE_INFLUENCER_RELATIONS = frozenset(
+    {PROV_COMMUNICATION, PROV_ATTRIBUTION, PROV_DELEGATION, PROV_INFLUENCE}
 )
 
 
@@ -700,7 +717,7 @@ class ProvRDFSerializer(Serializer):
         container: Graph,
         record: pm.ProvRecord,
         identifier: URIRef | None,
-        real_or_anon_id: "Callable[[pm.ProvRecord], str]",
+        real_or_anon_id: Callable[[pm.ProvRecord], str],
     ) -> None:
         """Encode an element's (entity/activity/agent) attributes as direct triples.
 
@@ -934,6 +951,15 @@ class ProvRDFSerializer(Serializer):
                     )
                 )
             has_qualifiers = False
+        elif rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS and has_qualifiers:
+            # #250: a qualification node is about to be minted for this
+            # relation (has_qualifiers is true), so un-consume the
+            # influencer attribute here: the main loop in
+            # _encode_relation() will then also assert it directly on that
+            # node -- via the same predicate/rewrite machinery used for
+            # every other attribute -- instead of leaving the node
+            # interpretable only via the shorthand triple just added above.
+            used_objects.remove(record.formal_attributes[1][0])
         return has_qualifiers
 
     def _encode_qualification_node(
@@ -974,8 +1000,12 @@ class ProvRDFSerializer(Serializer):
         if identifier is not None:
             container.add((subj, QRole, identifier))
             return identifier, None
-        # #250: the anonymous qualification node is deliberately left without
-        # its influencer property here. Preserved verbatim; fixed separately.
+        # #250: the anonymous qualification node's influencer property (e.g.
+        # `prov:agent` on an attribution/delegation node) is *not* added
+        # here -- for _BINARY_TRIPLE_INFLUENCER_RELATIONS it is asserted by
+        # the main _encode_relation() loop once this node exists (see the
+        # `used_objects.remove(...)` in _encode_relation_binary_triple),
+        # exactly like every other attribute hanging off the node.
         bnode = BNode()
         container.add((subj, QRole, bnode))
         container.add((bnode, RDF.type, URIRef(rec_uri)))
@@ -1198,8 +1228,7 @@ class ProvRDFSerializer(Serializer):
         # objects of rdf:type triples are URIRefs (str subclass);
         # rdflib types them only as Node
         isderivation = any(
-            pm.PROV[subtype].uri in cast(str, stmt[2])
-            for subtype in ("Revision", "Quotation", "PrimarySource")
+            subtype.uri in cast(str, stmt[2]) for subtype in _DERIVATION_SUBTYPES
         )
         if subj in state.record_types or not (
             prov_obj.uri == obj or isderivation or isinstance(stmt[0], BNode)
@@ -1296,10 +1325,25 @@ class ProvRDFSerializer(Serializer):
             name = relation_mapper[pred]
             qualifier = "qualified" + name.upper()[0] + name[1:]
             qualifier_bnode = None
+            agent_pred = URIRef(pm.PROV["agent"].uri)
             for stmt in graph.triples(
                 (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
             ):
-                qualifier_bnode = stmt[2]
+                candidate = stmt[2]
+                # #226/#250: a subject may point at more than one
+                # qualification node of the same kind -- e.g. two
+                # delegations from the same delegate to the same activity,
+                # differing only in `responsible` -- which "last node seen"
+                # cannot tell apart. Since #250, a freshly-encoded node
+                # also carries its own `prov:agent` triple, so prefer
+                # whichever candidate's `prov:agent` matches this binary
+                # triple's object; only fall back to "last node seen" (the
+                # pre-#250 behaviour, which cannot do better) when no
+                # candidate carries that triple at all, i.e. legacy
+                # (pre-3.0) input.
+                qualifier_bnode = candidate
+                if (candidate, agent_pred, obj) in graph:
+                    break
             if qualifier_bnode is not None:
                 fakeys = list(state.formal_attributes[str(qualifier_bnode)].keys())
                 state.formal_attributes[str(qualifier_bnode)][fakeys[0]] = subj

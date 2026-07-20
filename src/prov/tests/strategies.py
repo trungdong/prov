@@ -228,17 +228,13 @@ def _populate(draw, container: ProvBundle) -> list[str]:
     for _ in range(times()):
         g1, g2 = pick(agents), pick(agents)
         if fresh("deleg", g1, g2):
-            # No qualifying activity: #226. Qualified delegation is lost through
-            # RDF when two anonymous delegations share the same delegate AND
-            # qualifying activity but differ in responsible — the
-            # qualifiedDelegation blank nodes are keyed on (delegate, activity),
-            # which the endpoint-pair `fresh` guard cannot prevent (distinct from
-            # #217, which is about relations sharing an explicit identifier).
-            # Every other relation qualifier (relation prov:time,
-            # association plan, start/end starter/ender) round-trips fine and is
-            # kept. Omitting only delegation's activity keeps the relation type
-            # in the corpus without depending on that RDF-lossy construct.
-            container.delegation(g1, g2)
+            # Qualifying activity restored (#250 fix): each qualifiedDelegation
+            # blank node now carries its own prov:agent triple, so two anonymous
+            # delegations sharing the same delegate AND qualifying activity but
+            # differing in responsible no longer collapse on the RDF round trip
+            # (#226) — decoding matches the node by its own influencer instead
+            # of an ambiguous "last node seen" guess.
+            container.delegation(g1, g2, pick(activities))
     for _ in range(times()):
         x1, x2 = pick(all_ids), pick(all_ids)
         if fresh("infl", x1, x2):
