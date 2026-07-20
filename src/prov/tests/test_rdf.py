@@ -6,6 +6,7 @@ pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
 only the genuinely RDF-specific cases.
 """
 
+import datetime
 import logging
 import os
 import struct
@@ -408,6 +409,45 @@ def test_decode_scruffy_qualified_generation_raises_documented_limitation():
     """
     with pytest.raises(ProvException) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" in message
+    assert "conformance.md" in message
+    # The chained original ProvException is preserved, not swallowed.
+    assert isinstance(ctx.value.__cause__, ProvException)
+
+
+@pytest.mark.parametrize(
+    "factory_name, args",
+    [
+        ("generation", ("ex:e1", "ex:a1")),
+        ("usage", ("ex:a1", "ex:e1")),
+        ("start", ("ex:a1", "ex:e1")),
+        ("end", ("ex:a1", "ex:e1")),
+        ("invalidation", ("ex:e1", "ex:a1")),
+    ],
+)
+def test_decode_scruffy_relations_raise_documented_limitation(factory_name, args):
+    # #217: all five relation families with a qualified PROV-O form --
+    # generation/usage/start/end/invalidation -- share the same permanent
+    # representational limitation (docs/reference/conformance.md), and the
+    # 14 skipped round-trip cases in test_statements.py cover exactly this
+    # shape for each of them. Build the scruffy construct with prov's own
+    # model and serializer (rather than hand-authoring PROV-O, as the
+    # single-family test above does) so this test tracks what prov itself
+    # actually emits for each family, not a guess at it.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    factory = getattr(document, factory_name)
+    factory(*args, identifier="ex:rel1", time=datetime.datetime(2012, 1, 1))
+    factory(*args, identifier="ex:rel1", time=datetime.datetime(2013, 1, 1))
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
 
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message

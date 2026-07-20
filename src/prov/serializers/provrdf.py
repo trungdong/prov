@@ -1544,6 +1544,14 @@ def _repeated_formal_attribute(
     every other ``ProvException`` (e.g. an unresolvable qualified name)
     untouched.
 
+    Note: on a qualified node, ``Start``/``End`` carry their time as
+    ``prov:atTime`` too, matching every other timed relation's generic
+    ``prov:time`` formal attribute -- *not* the binary-triple predicates
+    ``prov:startedAtTime``/``prov:endedAtTime``, which apply to the
+    Activity rather than the qualified Start/End node. Decoding those
+    binary-predicate spellings on a qualified node is a separate,
+    currently-mishandled path tracked as #299, out of scope here.
+
     Args:
         record_type: The record type being constructed.
         attrs: The subject's non-formal attributes, as passed to
