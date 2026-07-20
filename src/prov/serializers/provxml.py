@@ -3,6 +3,7 @@
 import datetime
 import io
 import logging
+import re
 import warnings
 from typing import Any
 
@@ -157,7 +158,11 @@ class ProvXMLSerializer(Serializer):
 
             for attr, value in sorted_attributes(rec_type, attributes):
                 subelem = etree.SubElement(
-                    elem, _ns(attr.namespace.uri, attr.localpart)
+                    elem,
+                    _ns(
+                        attr.namespace.uri,
+                        _escape_ncname_localpart(attr.localpart),
+                    ),
                 )
                 if isinstance(value, prov.model.Literal):
                     if (
@@ -432,9 +437,8 @@ def _extract_attributes(
     _unassigned = object()
     for subel in element:
         sqname = etree.QName(subel)
-        qname_str = (
-            f"{subel.prefix}:{sqname.localname}" if subel.prefix else sqname.localname
-        )
+        localname = _unescape_ncname_localpart(sqname.localname)
+        qname_str = f"{subel.prefix}:{localname}" if subel.prefix else localname
         _t = xml_qname_to_QualifiedName(subel, qname_str)
 
         _v: Any = _unassigned
@@ -447,9 +451,18 @@ def _extract_attributes(
                 if datatype == XSD_QNAME:
                     _v = xml_qname_to_QualifiedName(subel, subel.text)  # type: ignore[arg-type]
                 else:
-                    _v = prov.model.Literal(subel.text, datatype)
+                    # An empty XSD-typed text value (e.g. prov:value="")
+                    # round-trips through lxml as .text is None rather than
+                    # "" (#224); coalesce back to the empty string.
+                    _v = prov.model.Literal(
+                        subel.text if subel.text is not None else "", datatype
+                    )
             elif key == _ns_xml("lang"):
-                _v = prov.model.Literal(subel.text, langtag=value_str)
+                # Same None/"" coalescing as above, for language-tagged
+                # literals (#224).
+                _v = prov.model.Literal(
+                    subel.text if subel.text is not None else "", langtag=value_str
+                )
             else:
                 warnings.warn(
                     f"The element '{_t}' contains an attribute {key!s}='{value!s}' "
@@ -460,7 +473,14 @@ def _extract_attributes(
                 )
 
         if not subel.attrib:
-            _v = subel.text
+            # A plain-text attribute value (no xsi:type/xml:lang/prov:ref):
+            # lxml reports an empty element's .text as None rather than ""
+            # (e.g. <ex:k0></ex:k0>), which would otherwise make the
+            # attribute vanish entirely once None reaches record
+            # construction. Coalesce back to the empty string (#224). This
+            # does not affect optional formal attributes that are absent
+            # from the XML altogether: those never enter this loop.
+            _v = subel.text if subel.text is not None else ""
 
         if _v is _unassigned:
             raise ProvXMLException(
@@ -541,3 +561,89 @@ def _ns_xsi(tag: str) -> str:
 def _ns_xml(tag: str) -> str:
     NS_XML = "http://www.w3.org/XML/1998/namespace"
     return _ns(NS_XML, tag)
+
+
+# Character classes for the XML 1.0 5th-edition Name productions, minus ':'
+# (NCName), used to detect/escape attribute-name local parts that are not
+# legal NCNames when used as PROV-XML element tags (#289).
+#
+# Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
+# a literal glyph) and annotated with the spec clause it implements, so a
+# mangled/look-alike codepoint (as happened once with the CJK-compatibility
+# range below, which briefly read U+8C48 instead of U+F900) is visible on
+# inspection rather than hiding in the source as an indistinguishable glyph.
+_NCNAME_START_CHARS = (
+    "\x41-\x5a"  # NameStartChar: [A-Z]
+    "\x5f"  # NameStartChar: "_"
+    "\x61-\x7a"  # NameStartChar: [a-z]
+    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
+    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
+    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
+    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
+    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
+    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
+    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
+    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
+    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
+    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
+    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
+    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
+)
+_NCNAME_CHARS = _NCNAME_START_CHARS + (
+    "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
+    "\x2e"  # NameChar: "."
+    "\x30-\x39"  # NameChar: [0-9]
+    "\xb7"  # NameChar: #xB7
+    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
+    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
+)
+_NCNAME_START_RE = re.compile(f"[{_NCNAME_START_CHARS}]")
+_NCNAME_CHAR_RE = re.compile(f"[{_NCNAME_CHARS}]")
+_NCNAME_RE = re.compile(f"[{_NCNAME_START_CHARS}][{_NCNAME_CHARS}]*")
+# One escaped char: _x + 4 (BMP) or 8 (astral) uppercase hex digits + _
+_XML_NAME_ESCAPE_RE = re.compile(r"_x[0-9A-F]{4}(?:[0-9A-F]{4})?_")
+
+
+def _escape_ncname_localpart(local: str) -> str:
+    """Escape NCName-illegal characters in an attribute-name local part.
+
+    PROV attribute names are written as PROV-XML element tags, but an
+    attribute's local part is not guaranteed to be a legal XML NCName (it
+    may start with a digit, contain ``'``, ``(``, ``,`` etc. — none of
+    which prov itself restricts, per #257's no-assertion-time-enforcement
+    stance). Rather than raising, illegal characters are escaped using the
+    ``_xHHHH_`` convention (as used by the OpenXML/SQL Server ecosystems
+    for the same problem), so the name round-trips losslessly instead of
+    being rejected or silently corrupted.
+
+    A literal run that itself looks like an escape sequence gets its
+    introducing underscore self-escaped as ``_x005F_`` so decoding via
+    :func:`_unescape_ncname_localpart` is always the exact inverse of this
+    function, including for names produced by this package itself (#289):
+    ``"_x0041_"`` (a literal name that happens to look like an escaped
+    ``"A"``) becomes ``"_x005F_x0041_"``, not ``"_x0041_"`` unchanged
+    (which would decode back to ``"A"``) or ``"A"`` (which would lose the
+    original name). The same applies when the look-alike run is embedded
+    inside an otherwise-legal name, e.g. ``"prefix_x0041_suffix"``.
+
+    Names that are already legal NCNames and contain no ``_xHHHH_``-shaped
+    run are returned unchanged, so existing output is byte-identical.
+    """
+    if not _XML_NAME_ESCAPE_RE.search(local) and _NCNAME_RE.fullmatch(local):
+        return local
+    out = []
+    for i, char in enumerate(local):
+        char_re = _NCNAME_START_RE if i == 0 else _NCNAME_CHAR_RE
+        if char == "_" and _XML_NAME_ESCAPE_RE.match(local, i):
+            out.append("_x005F_")
+        elif char_re.fullmatch(char):
+            out.append(char)
+        else:
+            code = ord(char)
+            out.append(f"_x{code:04X}_" if code <= 0xFFFF else f"_x{code:08X}_")
+    return "".join(out)
+
+
+def _unescape_ncname_localpart(local: str) -> str:
+    """Invert :func:`_escape_ncname_localpart`."""
+    return _XML_NAME_ESCAPE_RE.sub(lambda m: chr(int(m.group(0)[2:-1], 16)), local)

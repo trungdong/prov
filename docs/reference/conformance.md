@@ -52,9 +52,22 @@ More caveats apply across many rows rather than to one:
   assertion time, [#257](https://github.com/trungdong/prov/issues/257)) — only `unified()`
   gains conflict detection for records sharing an identifier with conflicting formal attributes,
   as part of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
-- **[#224](https://github.com/trungdong/prov/issues/224)** (XML): the PROV-XML serializer
-  silently drops any `other_attributes` entry whose value is the empty string `""`, regardless
-  of record type.
+- **XML attribute-name escaping** (XML, permanent convention — closed as
+  [#289](https://github.com/trungdong/prov/issues/289)): an attribute name is written as a
+  PROV-XML child element tag, but its local part is not guaranteed to be a legal XML NCName
+  (prov never enforces structural constraints at assertion time, #257) — it may start with a
+  digit or contain characters such as `' ( ) , : ; [ ] =`. Rather than raising, the serializer
+  escapes each NCName-illegal character using the `_xHHHH_` convention (the same one used by
+  the OpenXML/SQL Server ecosystems for this exact problem: `_x` followed by 4 uppercase hex
+  digits — 8 for codepoints beyond the Basic Multilingual Plane — then `_`), and the
+  deserializer applies the inverse, so such names round-trip losslessly. A literal run that
+  already looks like an escape sequence has its introducing `_` self-escaped as `_x005F_`, so
+  the transform is always exactly invertible, including for prov's own output. Names that are
+  already legal NCNames (including non-ASCII letters, which are legal NCName characters) are
+  emitted unchanged — this is not a behaviour change for existing users. The one caveat: a
+  third-party XML document containing a literal `_xHHHH_`-shaped attribute name will be
+  unescaped on read, since the convention cannot distinguish an intentional escape sequence
+  from one that merely looks like one.
 
 The value-typing and literal-semantics gaps the audit recorded here — #77, #89, #168, #218,
 #223, #225, #235, #238, #244, #246, #249, #251, #256, #259 — were fixed in 3.0; see
@@ -177,10 +190,6 @@ shared attribute test matrix (`test_attributes.py`, `ATTRIBUTE_VALUES` in
 | `prov:role` | `PROV_ROLE` | ✓ JSON/XML/RDF; used throughout the qualified-relation tests (association, usage, generation, ...). |
 | `prov:type` | `PROV_TYPE` | ✓ JSON/XML/RDF, including mixed multi-datatype attribute sets on one record (`xsd:decimal` value-space equality and multi-datatype RDF fidelity fixed in 3.0: [#77](https://github.com/trungdong/prov/issues/77), [#218](https://github.com/trungdong/prov/issues/218)). |
 | `prov:value` | `PROV_VALUE` | ✓ JSON/XML/RDF. |
-
-Any attribute value (regardless of which of the five above it is) is additionally subject to
-**[#224](https://github.com/trungdong/prov/issues/224)** (XML drops the empty string `""`) —
-a property of the value's type, not of the attribute name.
 
 ## Maintenance
 

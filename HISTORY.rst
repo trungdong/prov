@@ -5,6 +5,12 @@ History
 
 3.0.0 (unreleased)
 ^^^^^^^^^^^^^^^^^^
+* PROV-XML round trip preserves attributes whose value is the empty string;
+  previously they were silently dropped on deserialization (#224)
+* PROV-XML serializes attribute names containing characters illegal in an
+  XML NCName using the reversible ``_xHHHH_`` escaping convention instead
+  of raising ``ValueError``; the deserializer applies the inverse, so such
+  names round-trip (#289)
 * PROV-O: documents containing multiple same-identifier relations with
   differing formal attributes ("scruffy" statements) are documented as a
   PROV-O representational limitation — they serialize but do not round-trip
