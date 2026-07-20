@@ -615,20 +615,46 @@ def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml():
     assert roundtrip_document(document, "xml") == document
 
 
-def test_escape_unescape_ncname_localpart_is_inverse():
-    for local in [
-        "plainKey0",
-        "weird'key",
-        "0leadingdigit",
-        "a(b)c,d;e:f[g]h=i",
-        "_x0041_",
-        "_",
-        "café",
-        "a_x005F_x0041_b",
-        "",
-    ]:
-        escaped = _escape_ncname_localpart(local)
-        assert _unescape_ncname_localpart(escaped) == local
+@pytest.mark.parametrize(
+    "local",
+    [
+        pytest.param("plainKey0", id="plain"),
+        pytest.param("weird'key", id="apostrophe"),
+        pytest.param("0leadingdigit", id="leading-digit"),
+        pytest.param("a(b)c,d;e:f[g]h=i", id="metacharacters"),
+        pytest.param("_x0041_", id="escape-lookalike"),
+        pytest.param("_", id="bare-underscore"),
+        pytest.param("café", id="legal-non-ascii-letter"),
+        pytest.param("a_x005F_x0041_b", id="embedded-escape-lookalike"),
+        pytest.param("", id="empty"),
+        # Boundary cases from the XML 1.0 5th-edition NameStartChar
+        # productions (#289's PUA-vs-CJK-compatibility bug: the range
+        # meant to be #xF900-#xFDCF briefly started at U+8C48 instead,
+        # which wrongly treated U+D800-U+F8FF -- including the whole
+        # Private Use Area -- as legal).
+        pytest.param("attr\ue000", id="pua-start-illegal"),
+        pytest.param("attr\uf8ff", id="pua-end-illegal"),
+        pytest.param("attr\uf900", id="cjk-compat-start-legal"),
+        pytest.param("attr\U0001f600", id="astral-legal"),
+        pytest.param("attr\U0010ffff", id="astral-above-legal-range"),
+    ],
+)
+def test_escape_unescape_ncname_localpart_is_inverse(local):
+    escaped = _escape_ncname_localpart(local)
+    # The pair must be an exact inverse ...
+    assert _unescape_ncname_localpart(escaped) == local
+    # ... AND, for any non-empty input, the escaped form must actually be an
+    # XML name lxml accepts as an element tag. This second assertion is what
+    # would have caught the PUA bug above: the escape function trusted a
+    # wrong "legal" verdict from _NCNAME_START_RE/_NCNAME_CHAR_RE and left
+    # the PUA character unescaped, which the first assertion alone can't
+    # detect (unescaping unescaped text is a no-op, so it still looks like a
+    # valid inverse). An empty local part has nothing to escape and stays
+    # empty either way -- that it cannot form a tag name is a separate,
+    # pre-existing "no name at all" limitation, not an NCName-legality bug,
+    # so it is exempted from this assertion.
+    if local:
+        etree.Element(escaped)
 
 
 # Scaffolding for a per-file XML round-trip glob, left disabled.

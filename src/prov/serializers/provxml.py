@@ -566,10 +566,37 @@ def _ns_xml(tag: str) -> str:
 # Character classes for the XML 1.0 5th-edition Name productions, minus ':'
 # (NCName), used to detect/escape attribute-name local parts that are not
 # legal NCNames when used as PROV-XML element tags (#289).
+#
+# Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
+# a literal glyph) and annotated with the spec clause it implements, so a
+# mangled/look-alike codepoint (as happened once with the CJK-compatibility
+# range below, which briefly read U+8C48 instead of U+F900) is visible on
+# inspection rather than hiding in the source as an indistinguishable glyph.
 _NCNAME_START_CHARS = (
-    "A-Za-z_\xc0-\xd6\xd8-\xf6\xf8-˿Ͱ-ͽͿ-῿‌-‍⁰-↏Ⰰ-⿯、-퟿豈-﷏ﷰ-�\U00010000-\U000effff"
+    "\x41-\x5a"  # NameStartChar: [A-Z]
+    "\x5f"  # NameStartChar: "_"
+    "\x61-\x7a"  # NameStartChar: [a-z]
+    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
+    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
+    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
+    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
+    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
+    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
+    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
+    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
+    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
+    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
+    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
+    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
 )
-_NCNAME_CHARS = _NCNAME_START_CHARS + "\\-.0-9\xb7̀-ͯ‿-⁀"
+_NCNAME_CHARS = _NCNAME_START_CHARS + (
+    "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
+    "\x2e"  # NameChar: "."
+    "\x30-\x39"  # NameChar: [0-9]
+    "\xb7"  # NameChar: #xB7
+    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
+    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
+)
 _NCNAME_START_RE = re.compile(f"[{_NCNAME_START_CHARS}]")
 _NCNAME_CHAR_RE = re.compile(f"[{_NCNAME_CHARS}]")
 _NCNAME_RE = re.compile(f"[{_NCNAME_START_CHARS}][{_NCNAME_CHARS}]*")
@@ -592,7 +619,12 @@ def _escape_ncname_localpart(local: str) -> str:
     A literal run that itself looks like an escape sequence gets its
     introducing underscore self-escaped as ``_x005F_`` so decoding via
     :func:`_unescape_ncname_localpart` is always the exact inverse of this
-    function, including for names produced by this package itself (#289).
+    function, including for names produced by this package itself (#289):
+    ``"_x0041_"`` (a literal name that happens to look like an escaped
+    ``"A"``) becomes ``"_x005F_x0041_"``, not ``"_x0041_"`` unchanged
+    (which would decode back to ``"A"``) or ``"A"`` (which would lose the
+    original name). The same applies when the look-alike run is embedded
+    inside an otherwise-legal name, e.g. ``"prefix_x0041_suffix"``.
 
     Names that are already legal NCNames and contain no ``_xHHHH_``-shaped
     run are returned unchanged, so existing output is byte-identical.
