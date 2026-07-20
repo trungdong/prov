@@ -65,6 +65,10 @@ History
 * PROV-O (RDF) deserialization returns ``xsd:base64Binary`` literals as
   their base64 text; previously the value was wrapped in a Python bytes
   repr (``b'…'``), corrupting the round trip (#288)
+* Bundle-local and default namespace prefixes are now bound into RDF
+  serialization alongside document-level ones, so turtle/TriG output uses
+  the declared prefixes instead of auto-minted ``ns1:``-style fallbacks
+  (#96)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

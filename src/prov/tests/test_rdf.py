@@ -145,13 +145,15 @@ def test_base64binary_decodes_to_lexical_text():
     # #288 repro: third-party-authored RDF, decode only. rdflib coerces
     # xsd:base64Binary literals to bytes in .value, and decode_rdf_representation
     # must return the base64 text, not a bytes repr.
-    ttl = (
-        "@prefix ex: <http://example.org/> .\n"
-        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
-        "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
-        'ex:e1 a prov:Entity ; ex:blob "aGVsbG8="^^xsd:base64Binary .\n'
+    turtle = """
+@prefix ex: <http://example.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+ex:e1 a prov:Entity ; ex:blob "aGVsbG8="^^xsd:base64Binary .
+"""
+    document = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
     )
-    document = ProvDocument.deserialize(content=ttl, format="rdf")
     record = next(iter(document.get_records()))
     (value,) = [v for a, v in record.attributes if a.localpart == "blob"]
     assert value == pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
@@ -208,6 +210,74 @@ def test_decode_xsd_qname_gyear_gyearmonth_round_trip():
     assert {lit.value for lit in e1.get_attribute("ex:year")} == {"2020"}
     assert {lit.value for lit in e1.get_attribute("ex:yearmonth")} == {"2020-05"}
     assert {lit.value for lit in e1.get_attribute("ex:qname")} == {"ex:e1"}
+
+
+def test_long_prefix_survives_turtle_serialization():
+    # #96 repro (distilled): a namespace prefix with a long, unusual local
+    # name must keep its own `@prefix` declaration in turtle output rather
+    # than falling back to an rdflib-minted `ns1:` -- this already works as
+    # of rdflib 7 plus the pre-existing bind loop in encode_container(); kept
+    # here as a regression guard.
+    doc = ProvDocument()
+    doc.add_namespace("nidm_groupName", "http://purl.org/nidash/nidm#NIDM_0000170")
+    doc.entity("nidm_groupName:group1")
+
+    turtle = doc.serialize(format="rdf", rdf_format="turtle")
+
+    assert "@prefix nidm_groupName:" in turtle
+    assert "ns1:" not in turtle
+
+
+def test_bundle_local_namespace_prefix_survives_trig_serialization():
+    # #96: a namespace registered only on a bundle (not the document) must
+    # still be bound into the Dataset's namespace manager, so TriG output
+    # uses its declared prefix instead of an rdflib-minted `ns1:`.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle("ex:bundle1")
+    bundle.add_namespace("bl", "http://bundlelocal.example/")
+    bundle.entity("bl:e1")
+
+    trig = doc.serialize(format="rdf", rdf_format="trig")
+
+    assert "@prefix bl:" in trig
+    assert "ns1:" not in trig
+
+
+def test_bundle_local_prefix_collision_keeps_document_level_binding():
+    # #96: when a bundle-local prefix collides with a document-level one
+    # (same prefix string, different namespace URI), the document-level
+    # binding must keep the prefix -- copying bundle namespaces into the
+    # Dataset uses `override=False` and relies on rdflib's own collision
+    # handling (which renames the *incoming* namespace, e.g. to `coll1:`,
+    # regardless of `override`) to avoid clobbering it.
+    doc = ProvDocument()
+    doc.add_namespace("coll", "http://document.example/")
+    bundle = doc.bundle("coll:bundle1")
+    bundle.add_namespace("coll", "http://bundlelocal.example/")
+    bundle.entity("coll:e1")
+
+    trig = doc.serialize(format="rdf", rdf_format="trig")
+
+    assert "@prefix coll: <http://document.example/> ." in trig
+    assert "@prefix coll: <http://bundlelocal.example/> ." not in trig
+    # rdflib's own collision handling renames the incoming (bundle-local)
+    # namespace to an alternate prefix rather than dropping its binding.
+    assert "@prefix coll1: <http://bundlelocal.example/> ." in trig
+
+
+def test_default_namespace_survives_turtle_serialization():
+    # #96: a document's default namespace (set via set_default_namespace())
+    # must be bound as the empty prefix, so its terms render as `:local`
+    # rather than a full IRI in turtle output.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://default.example/")
+    doc.entity("e1")
+
+    turtle = doc.serialize(format="rdf", rdf_format="turtle")
+
+    assert "@prefix : <http://default.example/> ." in turtle
+    assert ":e1" in turtle
 
 
 def test_encode_container_reuses_a_provided_container():

@@ -635,6 +635,22 @@ class ProvRDFSerializer(Serializer):
                 PROV_N_MAP=PROV_N_MAP,
             )
             container.addN((s, p, o, bundle) for s, p, o in bundle)
+            # #96: bundle-local namespace bindings (and the bundle's own
+            # default namespace, bound by encode_container() below) are
+            # otherwise never copied into the Dataset, so TriG output falls
+            # back to an rdflib-minted `ns1:`-style prefix for them.
+            # override=False: rdflib's own collision handling already renames
+            # the *incoming* namespace (e.g. to `prefix1:`) whenever the
+            # prefix string is already bound to a different URI, regardless
+            # of `override` -- that flag only controls whether a namespace
+            # already bound under a different prefix gets *rebound* to this
+            # new preferred prefix. Passing False keeps every earlier
+            # binding (the document-level ones bound just above, and the
+            # core prov/xsd/rdf/rdfs ones bound in encode_container()) as
+            # the preferred spelling, so document-level prefixes always win
+            # on collision.
+            for prefix, uri in bundle.namespaces():
+                container.bind(prefix, uri, override=False)
         return container
 
     def encode_container(
@@ -687,6 +703,13 @@ class ProvRDFSerializer(Serializer):
 
         for namespace in bundle.namespaces:
             container.bind(namespace.prefix, namespace.uri)
+        # #96: `bundle.namespaces` deliberately excludes the default
+        # namespace (see its docstring), so it needs its own bind() call
+        # here, under the empty prefix, for its terms to render as `:local`
+        # rather than a full IRI.
+        default_namespace = bundle.get_default_namespace()
+        if default_namespace is not None:
+            container.bind("", default_namespace.uri)
 
         id_generator = AnonymousIDGenerator()
 
