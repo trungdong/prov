@@ -84,6 +84,9 @@ MALFORMED = Path(__file__).parent / "malformed"
         pytest.param(
             # #228 sweep: a non-formal attribute's typed-literal
             # representation is missing its required "$" (value) key.
+            # The fixture's "prefix" block is load-bearing: without it the
+            # attribute name fails qname resolution and raises
+            # ProvExceptionInvalidQualifiedName before the "$" check runs.
             "bad_typed_literal.json",
             "json",
             ProvJSONException,
