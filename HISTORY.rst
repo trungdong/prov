@@ -62,6 +62,9 @@ History
 * PROV-O output emits ``alternateOf`` with the PROV-DM argument order
   (``alt1 prov:alternateOf alt2``); previously subject and object were
   transposed on both write and read (#258)
+* PROV-O (RDF) deserialization returns ``xsd:base64Binary`` literals as
+  their base64 text; previously the value was wrapped in a Python bytes
+  repr (``b'…'``), corrupting the round trip (#288)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

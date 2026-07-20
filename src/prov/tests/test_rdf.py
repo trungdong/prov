@@ -129,6 +129,34 @@ def test_literal_rdf_representation_base64binary():
     assert str(rdf_literal) == "aGVsbG8="
 
 
+def test_base64binary_survives_rdf_roundtrip():
+    # #288: a document with a base64Binary-typed attribute round-trips through
+    # RDF equal.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity(
+        "ex:e1",
+        {"ex:blob": pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])},
+    )
+    assert roundtrip_document(document, "rdf") == document
+
+
+def test_base64binary_decodes_to_lexical_text():
+    # #288 repro: third-party-authored RDF, decode only. rdflib coerces
+    # xsd:base64Binary literals to bytes in .value, and decode_rdf_representation
+    # must return the base64 text, not a bytes repr.
+    ttl = (
+        "@prefix ex: <http://example.org/> .\n"
+        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+        'ex:e1 a prov:Entity ; ex:blob "aGVsbG8="^^xsd:base64Binary .\n'
+    )
+    document = ProvDocument.deserialize(content=ttl, format="rdf")
+    record = next(iter(document.get_records()))
+    (value,) = [v for a, v in record.attributes if a.localpart == "blob"]
+    assert value == pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
+
+
 def test_literal_rdf_representation_double_full_precision():
     # #225: an explicitly xsd:double-typed Literal is always collapsed to a
     # plain float before it reaches a record's stored attributes (see
@@ -301,7 +329,8 @@ def test_alternate_triple_follows_dm_argument_order():
 
 def test_alternate_triple_round_trips():
     # #258: encode and decode must agree, so a document with alternate()
-    # survives an RDF round trip.
+    # survives an RDF round trip. (This test is symmetric, so it cannot
+    # detect a transposition that affects both encode and decode equally.)
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.alternate("ex:alt1", "ex:alt2")
