@@ -36,6 +36,33 @@ FULL_PROV_RECORD_IDS_MAP = {
 
 XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 
+# Hardened against XXE / entity expansion (#273): PROV-XML documents have no
+# legitimate use for DTD entity resolution or network access, so both are
+# switched off explicitly rather than left to whatever lxml's own default
+# parser happens to do. This matters for three distinct reasons, not just
+# one: lxml's own default for `resolve_entities` only became safe ('internal')
+# in lxml 5.0 -- this package's floor (`lxml>=3.3.5`) still admits older
+# releases that default to `True` (full external entity resolution); even on
+# a safe lxml release, any other library sharing the process can repoint the
+# *global* default parser via `etree.set_default_parser(...)`, which is what
+# a bare `etree.parse(...)` call (no `parser=`) silently inherits; and prov
+# is consumed by other applications (e.g. ProvStore) that may load such
+# libraries. Passing this parser explicitly at both parse sites closes all
+# three regardless of the installed lxml version or what else is loaded in
+# the process. `huge_tree` is left at its lxml default of `False`: raising it
+# disables libxml2's own hard limits on tree depth/text length/entity
+# amplification, which is the opposite of what a hardened parser wants here.
+#
+# Shared module-level instance, not one constructed per parse: lxml's own
+# documentation for `XMLParser` states that sharing a parser across threads
+# "is not harmful", only less efficient than per-thread instances under
+# heavy concurrent load (access is internally serialized). PROV-XML
+# deserialization is not expected to be a high-frequency, highly concurrent
+# hot path even in a web service such as ProvStore, so the simplicity of a
+# single shared parser wins over per-parse allocation; if profiling ever
+# shows lock contention here, switch to constructing a parser per call.
+_XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
+
 
 class ProvXMLException(prov.Error):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
@@ -269,9 +296,9 @@ class ProvXMLSerializer(Serializer):
             with io.BytesIO() as buf:
                 buf.write(stream.read().encode("utf-8"))
                 buf.seek(0, 0)
-                xml_doc = etree.parse(buf).getroot()  # type: etree._Element
+                xml_doc = etree.parse(buf, parser=_XML_PARSER).getroot()  # type: etree._Element
         else:
-            xml_doc = etree.parse(stream).getroot()  # type: ignore[arg-type]
+            xml_doc = etree.parse(stream, parser=_XML_PARSER).getroot()  # type: ignore[arg-type]
 
         # Remove all comments.
         for c in xml_doc.xpath("//comment()"):  # type: ignore[union-attr]

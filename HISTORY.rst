@@ -83,6 +83,9 @@ History
   serialization alongside document-level ones, so turtle/TriG output uses
   the declared prefixes instead of auto-minted ``ns1:``-style fallbacks
   (#96)
+* Security: PROV-XML parsing no longer resolves DTD entities and never
+  touches the network (``resolve_entities=False``, ``no_network=True``),
+  closing an XXE surface on untrusted input (#273)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
