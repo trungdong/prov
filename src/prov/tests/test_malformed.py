@@ -82,6 +82,14 @@ MALFORMED = Path(__file__).parent / "malformed"
             id="json-bad-record-content",
         ),
         pytest.param(
+            # #228 sweep: a non-formal attribute's typed-literal
+            # representation is missing its required "$" (value) key.
+            "bad_typed_literal.json",
+            "json",
+            ProvJSONException,
+            id="json-bad-typed-literal",
+        ),
+        pytest.param(
             # #228 sweep: a top-level key that isn't a recognised PROV-N
             # record-type keyword.
             "unknown_record_type.json",

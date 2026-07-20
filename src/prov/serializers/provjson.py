@@ -368,10 +368,12 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             other than ``"prefix"`` is not a recognised PROV-N record-type
             keyword; if a record-type's value is not a JSON object mapping
             record identifiers to content; if a record's content is not a
-            JSON object or a list of JSON objects; or if a formal
-            (QualifiedName- or literal-valued) attribute has more than one
-            value, other than the documented multi-entity ``hadMember``
-            (membership) hack.
+            JSON object or a list of JSON objects; if a non-formal
+            attribute's typed-literal representation is missing its required
+            ``"$"`` key (see :func:`decode_json_representation`); or if a
+            formal (QualifiedName- or literal-valued) attribute has more
+            than one value, other than the documented multi-entity
+            ``hadMember`` (membership) hack.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -447,13 +449,23 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
                     else:
                         if isinstance(values, list):
                             other_attributes.extend(
-                                (attr, decode_json_representation(value, bundle))
+                                (
+                                    attr,
+                                    decode_json_representation(
+                                        value, bundle, attr_name
+                                    ),
+                                )
                                 for value in values
                             )
                         else:
                             # single value
                             other_attributes.append(
-                                (attr, decode_json_representation(values, bundle))
+                                (
+                                    attr,
+                                    decode_json_representation(
+                                        values, bundle, attr_name
+                                    ),
+                                )
                             )
                 bundle.new_record(rec_type, rec_id, attributes, other_attributes)
                 # HACK: creating extra (unidentified) membership relations
@@ -504,7 +516,9 @@ def encode_json_representation(value: Any) -> Any:
         return value
 
 
-def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
+def decode_json_representation(
+    literal: Any, bundle: ProvBundle, attr_name: str | None = None
+) -> Any:
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
     Args:
@@ -512,6 +526,9 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
             complex/typed representation) or a plain JSON-native value.
         bundle: Bundle used to resolve any ``"type"``/value that is a
             qualified name.
+        attr_name: The PROV-JSON attribute key ``literal`` was read from, if
+            known. Used only to name the attribute in the exception message
+            below; omit for a generic message.
 
     Returns:
         An :class:`~prov.identifier.Identifier` for ``xsd:anyURI`` values, a
@@ -521,10 +538,21 @@ def decode_json_representation(literal: Any, bundle: ProvBundle) -> Any:
         :class:`~prov.model.Literal` for other typed values, or ``literal``
         unchanged if it was not a dict (conversion of plain Python types
         happens later, when the value is added to a record).
+
+    Raises:
+        ProvJSONException: If ``literal`` is a dict (the complex/typed
+            representation) missing its required ``"$"`` (value) key.
     """
     if isinstance(literal, dict):
         # complex type
-        value = literal["$"]
+        try:
+            value = literal["$"]
+        except KeyError as exc:
+            where = f"attribute {attr_name!r}" if attr_name is not None else "a value"
+            raise ProvJSONException(
+                f"The typed-literal representation for {where} is missing "
+                f'its required "$" (value) key; found {literal!r}'
+            ) from exc
         datatype_str = literal.get("type", None)  # type: str | None
         datatype = valid_qualified_name(bundle, datatype_str)
         langtag = literal.get("lang", None)
