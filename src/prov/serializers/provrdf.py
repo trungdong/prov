@@ -634,7 +634,19 @@ class ProvRDFSerializer(Serializer):
                 identifier=item.identifier.uri,  # type: ignore[union-attr]
                 PROV_N_MAP=PROV_N_MAP,
             )
-            container.addN((s, p, o, bundle) for s, p, o in bundle)
+            # #96: the context passed here must be a Dataset-owned graph
+            # (via container.graph(), mirroring `default_graph` above), not
+            # the standalone `bundle` Graph object itself -- passing that
+            # object directly makes rdflib 7.0.0's Dataset keep it as a
+            # distinct context with its own private NamespaceManager
+            # (unlike a container.graph()-obtained one, which shares the
+            # Dataset's own), so the `override=False` bind loop below would
+            # silently have no effect on how this bundle's triples get
+            # abbreviated on output. rdflib >=7.1 normalizes either form to
+            # the same context internally, but container.graph() works
+            # uniformly across the whole supported range.
+            named_graph = container.graph(bundle.identifier)
+            container.addN((s, p, o, named_graph) for s, p, o in bundle)
             # #96: bundle-local namespace bindings (and the bundle's own
             # default namespace, bound by encode_container() below) are
             # otherwise never copied into the Dataset, so TriG output falls
