@@ -6,12 +6,9 @@ various forms of malformed input. This is a characterization suite -- it
 documents today's behaviour, it does not specify what the "right" behaviour
 should be.
 
-A few of the JSON cases surface a raw ``KeyError``/``AttributeError`` --
-leaking an implementation detail -- instead of the package's own
-``ProvJSONException``. Those are marked ``# 3.0 triage: (#228)`` below; per the
-2.x output/behaviour freeze (see
-docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md) they are
-asserted as-is here rather than "fixed", pending the 3.0 fix tracked in #228.
+Structurally malformed (but syntactically valid) PROV-JSON raises
+``ProvJSONException`` -- the deserializer's own exception type -- rather than
+leaking a raw ``KeyError``/``AttributeError`` (#228).
 """
 
 from json import JSONDecodeError
@@ -24,6 +21,7 @@ from rdflib.plugins.parsers.notation3 import BadSyntax
 import prov
 from prov.model import ProvDocument
 from prov.serializers import DoNotExist
+from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provxml import ProvXMLException
 
 MALFORMED = Path(__file__).parent / "malformed"
@@ -34,31 +32,73 @@ MALFORMED = Path(__file__).parent / "malformed"
     [
         pytest.param("not_json.json", "json", JSONDecodeError, id="json-syntax"),
         pytest.param(
-            # 3.0 triage (#228): decode_json_container() does `PROV_RECORD_IDS_MAP[rec_type_str]`
-            # where rec_type_str is a bare list item (int, here); raises a raw
-            # KeyError instead of a ProvJSONException.
+            # #228: a bare top-level JSON array, rather than an object; the
+            # decoder rejects the container shape before it ever gets to
+            # looking up record types.
             "top_level_list.json",
             "json",
-            KeyError,
+            ProvJSONException,
             id="json-top-level-list",
         ),
         pytest.param(
-            # 3.0 triage (#228): decode_json_container() does `jc[rec_type_str].items()`
-            # assuming a dict-of-records; a string value raises a raw
-            # AttributeError instead of a ProvJSONException.
+            # #228: "entity" maps to a string instead of a dict-of-records.
             "bad_record_shape.json",
             "json",
-            AttributeError,
+            ProvJSONException,
             id="json-bad-record-shape",
         ),
         pytest.param(
-            # 3.0 triage (#228): decode_json_container() does `prefixes.items()`
-            # assuming the "prefix" value is itself a dict; a string value
-            # raises a raw AttributeError instead of a ProvJSONException.
+            # #228: the "prefix" value is a string instead of a dict.
             "bad_prefix_map.json",
             "json",
-            AttributeError,
+            ProvJSONException,
             id="json-bad-prefix-map",
+        ),
+        pytest.param(
+            # #228 sweep: a bare top-level JSON scalar (int/float/bool/null
+            # all take the same path); the pre-fix code raised TypeError
+            # from `"bundle" in content` before ever reaching the container
+            # decoder.
+            "top_level_scalar.json",
+            "json",
+            ProvJSONException,
+            id="json-top-level-scalar",
+        ),
+        pytest.param(
+            # #228 sweep: the "bundle" value is a string instead of a dict
+            # mapping bundle identifiers to their containers.
+            "bad_bundle_shape.json",
+            "json",
+            ProvJSONException,
+            id="json-bad-bundle-shape",
+        ),
+        pytest.param(
+            # #228 sweep: an "entity" record's content is `null` -- neither
+            # a JSON object (single instance) nor a list of JSON objects
+            # (multiple instances).
+            "bad_record_content.json",
+            "json",
+            ProvJSONException,
+            id="json-bad-record-content",
+        ),
+        pytest.param(
+            # #228 sweep: a non-formal attribute's typed-literal
+            # representation is missing its required "$" (value) key.
+            # The fixture's "prefix" block is load-bearing: without it the
+            # attribute name fails qname resolution and raises
+            # ProvExceptionInvalidQualifiedName before the "$" check runs.
+            "bad_typed_literal.json",
+            "json",
+            ProvJSONException,
+            id="json-bad-typed-literal",
+        ),
+        pytest.param(
+            # #228 sweep: a top-level key that isn't a recognised PROV-N
+            # record-type keyword.
+            "unknown_record_type.json",
+            "json",
+            ProvJSONException,
+            id="json-unknown-record-type",
         ),
         pytest.param("empty.json", "json", JSONDecodeError, id="json-empty"),
         pytest.param(
