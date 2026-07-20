@@ -6,6 +6,7 @@ pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
 only the genuinely RDF-specific cases.
 """
 
+import datetime
 import logging
 import os
 import struct
@@ -19,7 +20,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
@@ -382,6 +383,107 @@ def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
         if name.localpart == "entity"
     }
     assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
+
+
+def test_decode_scruffy_qualified_generation_raises_documented_limitation():
+    # #217, closed as a permanent PROV-O representational limitation (see
+    # docs/reference/conformance.md): PROV-O reifies a relation as a single
+    # qualified node named by its own identifier, so two prov:atTime values
+    # on the *same* identified prov:qualifiedGeneration node cannot be told
+    # apart on decode. Unlike the anonymous-bnode cartesian-product case
+    # above, this identified-node shape must raise rather than silently
+    # fabricate two same-identifier records.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:e1 a prov:Entity ;
+        prov:qualifiedGeneration ex:gen1 .
+    ex:a1 a prov:Activity .
+
+    ex:gen1 a prov:Generation ;
+        prov:activity ex:a1 ;
+        prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
+            "2013-01-01T00:00:00"^^xsd:dateTime .
+    """
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" in message
+    assert "conformance.md" in message
+    # The chained original ProvException is preserved, not swallowed.
+    assert isinstance(ctx.value.__cause__, ProvException)
+
+
+@pytest.mark.parametrize(
+    "factory_name, args",
+    [
+        ("generation", ("ex:e1", "ex:a1")),
+        ("usage", ("ex:a1", "ex:e1")),
+        ("start", ("ex:a1", "ex:e1")),
+        ("end", ("ex:a1", "ex:e1")),
+        ("invalidation", ("ex:e1", "ex:a1")),
+    ],
+)
+def test_decode_scruffy_relations_raise_documented_limitation(factory_name, args):
+    # #217: all five relation families with a qualified PROV-O form --
+    # generation/usage/start/end/invalidation -- share the same permanent
+    # representational limitation (docs/reference/conformance.md), and the
+    # 14 skipped round-trip cases in test_statements.py cover exactly this
+    # shape for each of them. Build the scruffy construct with prov's own
+    # model and serializer (rather than hand-authoring PROV-O, as the
+    # single-family test above does) so this test tracks what prov itself
+    # actually emits for each family, not a guess at it.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    factory = getattr(document, factory_name)
+    factory(*args, identifier="ex:rel1", time=datetime.datetime(2012, 1, 1))
+    factory(*args, identifier="ex:rel1", time=datetime.datetime(2013, 1, 1))
+
+    rdf = document.serialize(format="rdf")
+
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=rdf, format="rdf")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" in message
+    assert "conformance.md" in message
+    # The chained original ProvException is preserved, not swallowed.
+    assert isinstance(ctx.value.__cause__, ProvException)
+
+
+def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy():
+    # Regression: the #217 catch in _emit_decoded_records() must only
+    # relabel the specific duplicate-formal-attribute failure above, not
+    # every ProvException raised while building a record. This document has
+    # no duplication at all -- a single prov:activity triple pointing at a
+    # blank node (which cannot resolve to a valid QualifiedName) and a
+    # single prov:atTime triple -- so it must fail exactly as it does on
+    # master: a plain ProvExceptionInvalidQualifiedName, not the #217
+    # message.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:e1 a prov:Entity ;
+        prov:qualifiedGeneration ex:gen1 .
+
+    ex:gen1 a prov:Generation ;
+        prov:activity _:b1 ;
+        prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime .
+    """
+    with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" not in message
+    assert "conformance.md" not in message
+    assert message.startswith("Invalid Qualified Name:")
 
 
 def test_alternate_triple_follows_dm_argument_order():

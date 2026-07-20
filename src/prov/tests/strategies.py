@@ -176,19 +176,22 @@ def _populate(draw, container: ProvBundle) -> list[str]:
     # another bundle's identifier), so `prov_documents` emits it separately once
     # a sub-bundle has been drawn.
     #
-    # #217: PROV-O cannot represent two relations of the same kind between the
+    # PROV-O cannot represent two relations of the same kind between the
     # same primary endpoints that differ only in a *qualifying* formal attribute
     # (e.g. prov:time) — one collapses or loses an attribute on the RDF round
-    # trip. Anonymity alone does NOT avoid this. We therefore keep at most one
-    # relation of each kind per (endpoint1, endpoint2) pair (the `fresh` guard
-    # below), which is exactly the construct #217 tracks; excluding it is a
-    # generation-validity narrowing, not a serializer change. The guard is
-    # deliberately conservative — broader than #217's exact same-identifier
-    # shape — because it also forecloses #226-style collapse: it suppresses e.g.
-    # two `association`s sharing (activity, agent) but differing by `plan`.
-    # Those non-delegation qualified variants (association `plan`, start/end
-    # `starter`/`ender`) were verified to round-trip cleanly, so the guard
-    # forecloses #217/#226-style loss without masking any other known bug.
+    # trip. Anonymity alone does NOT avoid this. This is the permanent,
+    # documented PROV-O representational limitation explained in
+    # docs/reference/conformance.md (no conformant encoding exists for it).
+    # We therefore keep at most one relation of each kind per (endpoint1,
+    # endpoint2) pair (the `fresh` guard below), which is exactly that
+    # construct; excluding it is a generation-validity narrowing, not a
+    # serializer change. The guard is deliberately conservative — broader than
+    # the exact same-identifier shape — because it also forecloses #226-style
+    # collapse: it suppresses e.g. two `association`s sharing (activity, agent)
+    # but differing by `plan`. Those non-delegation qualified variants
+    # (association `plan`, start/end `starter`/`ender`) were verified to
+    # round-trip cleanly, so the guard forecloses this loss without masking
+    # any other known bug.
     seen: set[tuple[str, str, str]] = set()
 
     def fresh(kind: str, e1: str, e2: str) -> bool:
