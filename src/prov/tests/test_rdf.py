@@ -19,7 +19,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.model import ProvDocument, ProvException
+from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
@@ -414,6 +414,36 @@ def test_decode_scruffy_qualified_generation_raises_documented_limitation():
     assert "conformance.md" in message
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
+
+
+def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy():
+    # Regression: the #217 catch in _emit_decoded_records() must only
+    # relabel the specific duplicate-formal-attribute failure above, not
+    # every ProvException raised while building a record. This document has
+    # no duplication at all -- a single prov:activity triple pointing at a
+    # blank node (which cannot resolve to a valid QualifiedName) and a
+    # single prov:atTime triple -- so it must fail exactly as it does on
+    # master: a plain ProvExceptionInvalidQualifiedName, not the #217
+    # message.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:e1 a prov:Entity ;
+        prov:qualifiedGeneration ex:gen1 .
+
+    ex:gen1 a prov:Generation ;
+        prov:activity _:b1 ;
+        prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime .
+    """
+    with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" not in message
+    assert "conformance.md" not in message
+    assert message.startswith("Invalid Qualified Name:")
 
 
 def test_alternate_triple_follows_dm_argument_order():

@@ -1418,6 +1418,20 @@ class ProvRDFSerializer(Serializer):
         ):
             if needle in str(pred_new):
                 pred_new = replacement
+        # NOTE: `str(pred_new)` is the short prefixed form (e.g. "prov:time")
+        # when `pred_new` came from `predicate_mapper` (a QualifiedName), but
+        # `val.uri` below is always the full URI -- so a PREDICATE_MAP-routed
+        # predicate (atTime/startedAtTime/endedAtTime/atLocation/hadRole/...)
+        # never matches here and falls through to `other_attributes` instead
+        # (a single occurrence is still recovered downstream, since
+        # ProvRecord.add_attributes() matches extras against formal
+        # attributes by qname on its own). This is deliberate, not an
+        # oversight: matching it here would route repeated instances of such
+        # a predicate into `unique_sets`, and `walk()` in
+        # `_emit_decoded_records` would then emit more than one record for
+        # the *same* identifier -- i.e. resurrect the rejected
+        # permutation-decode option (see docs/reference/conformance.md) for
+        # an identified qualified node. Do not "fix" this format mismatch.
         if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
             qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
             state.formal_attributes[subj][qname_key] = obj1
@@ -1448,7 +1462,9 @@ class ProvRDFSerializer(Serializer):
                 doesn't track separately (e.g. two ``prov:atTime`` triples
                 on one identified qualified node) -- the documented,
                 permanent PROV-O representational limitation described in
-                ``docs/reference/conformance.md``.
+                ``docs/reference/conformance.md``. Any other ``ProvException``
+                raised while constructing a record (e.g. an unresolvable
+                qualified name) propagates unchanged.
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)
@@ -1476,30 +1492,78 @@ class ProvRDFSerializer(Serializer):
                         attrs,
                     )
             except pm.ProvException as exc:
-                # A repeated formal-attribute predicate that isn't tracked
-                # through `unique_sets` (e.g. two prov:atTime triples on one
-                # qualified node) reaches ProvRecord.add_attributes() as
-                # duplicate plain attributes and raises there. PROV-O
-                # represents a same-identifier relation as a single
-                # qualified node, so it has no way to hold two values for
-                # one formal attribute of that relation -- this is a
-                # documented, permanent PROV-O representational limitation
-                # (not a bug on a fix path); see
-                # https://github.com/trungdong/prov/blob/master/docs/reference/conformance.md
+                # Only relabel the specific #217 shape: a formal-attribute
+                # predicate repeated in `attrs` (see the duplicate-detection
+                # docstring below for why such repeats land there instead of
+                # being walked). Anything else -- e.g. an unresolvable
+                # qualified name -- is a genuinely different failure and
+                # must propagate with its original message, not this one.
+                duplicate_attr = _repeated_formal_attribute(
+                    state.record_types[subj], attrs
+                )
+                if duplicate_attr is None:
+                    raise
                 raise pm.ProvException(
                     f"Cannot decode {subj!r} as a single "
-                    f"{state.record_types[subj]} record: {exc}. This is a "
-                    "documented PROV-O representational limitation -- "
-                    "PROV-O reifies a relation as one qualified node named "
-                    "by its identifier, so two same-identifier relations "
-                    "that disagree on a formal attribute (e.g. two "
-                    "prov:atTime values) cannot both be represented. See "
+                    f"{state.record_types[subj]} record: more than one "
+                    f"value for formal attribute {duplicate_attr!r} ({exc}). "
+                    "This is a documented PROV-O representational "
+                    "limitation -- PROV-O reifies a relation as one "
+                    "qualified node named by its identifier, so two "
+                    "same-identifier relations that disagree on a formal "
+                    "attribute (e.g. two prov:atTime values) cannot both be "
+                    "represented. See "
                     "https://github.com/trungdong/prov/blob/master/docs/reference/conformance.md "
                     "for details."
                 ) from exc
 
             if attrs is not None:
                 del state.other_attributes[subj]
+
+
+def _repeated_formal_attribute(
+    record_type: pm.QualifiedName,
+    attrs: list[tuple[pm.QualifiedNameCandidate, Any]] | None,
+) -> str | None:
+    """Return the formal-attribute name repeated in ``attrs``, if any.
+
+    A predicate that :data:`PREDICATE_MAP` maps to a formal-attribute
+    ``QualifiedName`` (e.g. ``prov:atTime``) never matches the URI-keyed
+    lookup in :meth:`ProvRDFSerializer._decode_attribute_triple`
+    (``str(pred_new)`` is the short prefixed form, e.g. ``"prov:time"``,
+    compared against the full-URI ``val.uri`` of each formal-attribute
+    ``QualifiedName`` -- deliberately left as-is, since "fixing" it would
+    route such predicates into ``unique_sets`` and make ``walk()`` emit
+    more than one record for the *same* identifier, i.e. the rejected
+    permutation-decode option). A second instance of such a predicate on
+    the same identified qualified node therefore lands in ``attrs`` as two
+    same-key entries instead of being tracked there, and reaches
+    :meth:`~prov.model.records.ProvRecord.add_attributes` as a duplicate
+    plain attribute, which raises ``ProvException``. This function
+    recognizes that specific shape so callers can relabel only it, leaving
+    every other ``ProvException`` (e.g. an unresolvable qualified name)
+    untouched.
+
+    Args:
+        record_type: The record type being constructed.
+        attrs: The subject's non-formal attributes, as passed to
+            :meth:`~prov.model.ProvBundle.new_record`.
+
+    Returns:
+        The (string) formal-attribute name that appears more than once in
+        ``attrs``, or ``None`` if ``attrs`` has no such repeat.
+    """
+    if not attrs:
+        return None
+    formal_names = {str(q) for q in pm.PROV_REC_CLS[record_type].FORMAL_ATTRIBUTES}
+    seen: set[str] = set()
+    for key, _value in attrs:
+        key_str = str(key)
+        if key_str in formal_names:
+            if key_str in seen:
+                return key_str
+            seen.add(key_str)
+    return None
 
 
 def walk(
