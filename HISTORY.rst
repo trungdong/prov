@@ -53,6 +53,11 @@ History
 * Internal: the PROV-O (RDF) serializer's encode/decode container functions
   were decomposed into per-record-type dispatch (cyclomatic complexity 81/66
   → under 15 per function), with byte-identical output (#274)
+* PROV-O output: anonymous qualified Communication/Attribution/Delegation/
+  Influence nodes now carry their influencer property (``prov:activity``/
+  ``prov:agent``/``prov:influencer``) as the PROV-O qualification tables
+  require, and the RDF round trip no longer collapses distinct anonymous
+  delegations sharing a (delegate, activity) pair (#250, #226)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
