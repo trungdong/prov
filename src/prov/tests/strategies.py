@@ -55,30 +55,15 @@ local_part = st.text(
     max_size=8,
 ).filter(lambda part: part[-1] not in _RDF_UNSPLITTABLE_TRAILING)
 
-# Attribute *names* additionally become XML child-element tag local-names
-# (``provxml.py``'s ``_ns(attr.namespace.uri, attr.localpart)``), which must
-# be valid XML NCNames; the serializer neither validates nor escapes them.
-# That is a distinct, pre-existing XML defect from #223's PROV-N scope (it
-# reproduces even for identifiers that never touch PROV-N), so attribute keys
-# keep the original restricted alphabet here rather than being fixed as a
-# side effect of this property.
-attr_key_part = st.text(
-    alphabet=string.ascii_lowercase + string.digits, min_size=1, max_size=8
-)
-
 # Text attribute values may contain non-ASCII. Surrogates (Cs) cannot be encoded
 # to UTF-8, and control characters (Cc) make the XML writer raise
 # ``ValueError: All strings must be XML compatible...`` (an uncaught exception,
 # not a serializer behaviour we could round-trip; RDF handles every Cc codepoint
 # unchanged). Excluding both is a generation-validity narrowing (not a serializer
 # behaviour change) — the values that remain still cover the full non-ASCII range.
-# min_size=1: an *empty*-string attribute value is dropped entirely by the XML
-# serializer (the attribute vanishes on round trip), while JSON and RDF preserve
-# it — #224, a genuine XML round-trip bug deferred to 3.0, excluded here rather
-# than fixed under the 2.x output freeze.
 text_values = st.text(
     alphabet=st.characters(exclude_categories=("Cs", "Cc")),
-    min_size=1,
+    min_size=0,
     max_size=30,
 )
 
@@ -114,7 +99,7 @@ def _attribute_dict(draw) -> list[tuple[str, object]]:
     drawn (possibly differently-typed) value: mixed-datatype attribute sets
     now round-trip through RDF with their asserted datatypes intact (#218).
     """
-    keys = draw(st.lists(attr_key_part, min_size=0, max_size=4, unique=True))
+    keys = draw(st.lists(local_part, min_size=0, max_size=4, unique=True))
     pairs: list[tuple[str, object]] = []
     for key in keys:
         name = f"ex:k{key}"

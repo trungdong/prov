@@ -14,6 +14,8 @@ from prov.identifier import Namespace, QualifiedName
 from prov.serializers.provxml import (
     ProvXMLException,
     ProvXMLSerializer,
+    _escape_ncname_localpart,
+    _unescape_ncname_localpart,
     xml_qname_to_QualifiedName,
 )
 from prov.tests.conftest import roundtrip_document
@@ -513,19 +515,120 @@ def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises():
     assert "Could not create a valid QualifiedName" in str(ctx.value)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason="#224: the XML serializer drops an attribute whose value is the "
-    "empty string; it vanishes on the round trip (JSON and RDF preserve it). "
-    "Regression guard from the Hypothesis property tests; remove when #224 is "
-    "fixed in 3.0.",
-)
 def test_empty_string_attribute_survives_xml_roundtrip():
     document = prov.ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.agent("ex:g0", {"ex:k0": ""})
     assert roundtrip_document(document, "xml") == document
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        pytest.param({"ex:k0": ""}, id="plain-attribute"),
+        pytest.param({"prov:label": ""}, id="prov-label"),
+        pytest.param({"prov:value": ""}, id="prov-value"),
+        pytest.param({"ex:lit": prov.Literal("", langtag="en")}, id="literal-langtag"),
+    ],
+)
+def test_empty_string_value_shapes_survive_xml_roundtrip(attributes):
+    # #224: an empty-string value must not vanish on the round trip,
+    # regardless of which XML shape it takes (plain text, prov:label,
+    # prov:value with an inferred xsd:string type, or a language-tagged
+    # Literal). The fix must not special-case just one of these paths.
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.agent("ex:g0", attributes)
+    assert roundtrip_document(document, "xml") == document
+
+
+def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip():
+    # Regression guard for #224: a genuinely *absent* optional formal
+    # attribute (no XML element for it at all) must still deserialize as
+    # None, not be coalesced into the empty string.
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    document.wasGeneratedBy("ex:e1", "ex:a1")
+    roundtripped = roundtrip_document(document, "xml")
+    assert roundtripped == document
+    (generation,) = [
+        rec
+        for rec in roundtripped.get_records()
+        if rec.get_type() == PROV["Generation"]
+    ]
+    formal = dict(generation.formal_attributes)
+    assert formal[PROV["time"]] is None
+
+
+def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip():
+    # #289 repro: an attribute name containing characters illegal in an XML
+    # NCName must not raise, and must round-trip losslessly.
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {"ex:weird'key": "value"})
+    assert roundtrip_document(document, "xml") == document
+
+
+@pytest.mark.parametrize(
+    "local_part",
+    [
+        pytest.param("weird'key", id="apostrophe"),
+        pytest.param("has(parens)", id="parens"),
+        pytest.param("has,comma", id="comma"),
+        pytest.param("has:colon", id="colon"),
+        pytest.param("has;semi", id="semicolon"),
+        pytest.param("has[bracket]", id="brackets"),
+        pytest.param("has=equals", id="equals"),
+        pytest.param("0leadingdigit", id="leading-digit"),
+    ],
+)
+def test_ncname_illegal_attribute_names_roundtrip_xml(local_part):
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {f"ex:{local_part}": "value"})
+    assert roundtrip_document(document, "xml") == document
+
+
+def test_valid_ncname_attribute_name_serializes_byte_identically():
+    # Names that are already legal NCNames must not gain any _xHHHH_
+    # escaping -- existing output stays byte-identical (#289).
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {"ex:plainKey0": "value"})
+    with io.BytesIO() as stream:
+        document.serialize(destination=stream, format="xml")
+        xml_text = stream.getvalue().decode("utf-8")
+    assert "_x" not in xml_text
+    assert "<ex:plainKey0>" in xml_text
+
+
+def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml():
+    # A literal attribute name that itself already looks like an _xHHHH_
+    # escape sequence must still round-trip: the write side self-escapes
+    # its introducing underscore (as _x005F_) so the read side's inverse
+    # transform recovers the original name exactly (#289).
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1", {"ex:_x0041_": "value"})
+    assert roundtrip_document(document, "xml") == document
+
+
+def test_escape_unescape_ncname_localpart_is_inverse():
+    for local in [
+        "plainKey0",
+        "weird'key",
+        "0leadingdigit",
+        "a(b)c,d;e:f[g]h=i",
+        "_x0041_",
+        "_",
+        "café",
+        "a_x005F_x0041_b",
+        "",
+    ]:
+        escaped = _escape_ncname_localpart(local)
+        assert _unescape_ncname_localpart(escaped) == local
 
 
 # Scaffolding for a per-file XML round-trip glob, left disabled.
