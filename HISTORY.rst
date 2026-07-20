@@ -16,6 +16,9 @@ History
   PROV-O representational limitation — they serialize but do not round-trip
   through RDF, and deserializing such RDF now raises an error naming the
   limitation; all other formats are unaffected (#217)
+* The PROV-JSON deserializer raises ``ProvJSONException`` on structurally
+  malformed input instead of leaking raw ``KeyError``/``AttributeError``
+  (#228)
 * BREAKING: ``pydot`` and ``networkx`` are no longer unconditional runtime
   dependencies. ``import prov.dot`` now requires the ``dot`` extra
   (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``
