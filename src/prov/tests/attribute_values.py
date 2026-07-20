@@ -12,6 +12,7 @@ import datetime
 
 from prov.identifier import Identifier, Namespace
 from prov.model import (
+    XSD,
     XSD_ANYURI,
     XSD_BYTE,
     XSD_DATETIME,
@@ -64,4 +65,5 @@ ATTRIBUTE_VALUES = [
     Namespace("other", "http://example4.org/")["zabcd"],
     datetime.datetime.now(),
     Literal(datetime.datetime.now().isoformat(), XSD_DATETIME),
+    Literal("aGVsbG8=", XSD["base64Binary"]),
 ]

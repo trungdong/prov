@@ -539,8 +539,9 @@ class ProvRDFSerializer(Serializer):
                 value = literal
                 value_overridden = True
             if datatype and "base64Binary" in datatype:
-                # rdflib decodes xsd:base64Binary literals to bytes
-                value = base64.standard_b64encode(cast(bytes, value))
+                # rdflib decodes xsd:base64Binary literals to bytes; re-encode and
+                # take the ASCII text, not the bytes repr (#288)
+                value = base64.standard_b64encode(cast(bytes, value)).decode("ascii")
                 value_overridden = True
             if datatype == XSD["QName"]:
                 return pm.Literal(literal, datatype=XSD_QNAME)
@@ -933,15 +934,10 @@ class ProvRDFSerializer(Serializer):
             valid_formal_indices == {0, 1} and len(record.extra_attributes) == 0
         ):
             return has_qualifiers
+        # #250: skip the object append when a qualification node will be
+        # minted for this influencer relation and will assert the influencer
+        # attribute directly (as a rewrite of the formal attribute).
         if not (rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS and has_qualifiers):
-            # #250: when a qualification node is about to be minted for this
-            # relation (has_qualifiers is true) for one of the influencer
-            # relations, the object attribute is left un-consumed here: the
-            # main loop in _encode_relation() will then also assert it
-            # directly on that node -- via the same predicate/rewrite
-            # machinery used for every other attribute -- instead of leaving
-            # the node interpretable only via the shorthand triple just
-            # added below.
             used_objects.append(record.formal_attributes[1][0])
         obj_term: URIRef | RDFLiteral = self.encode_rdf_representation(obj_val)
         container.add((subj, pred, obj_term))
