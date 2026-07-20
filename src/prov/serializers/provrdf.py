@@ -933,12 +933,17 @@ class ProvRDFSerializer(Serializer):
             valid_formal_indices == {0, 1} and len(record.extra_attributes) == 0
         ):
             return has_qualifiers
-        used_objects.append(record.formal_attributes[1][0])
+        if not (rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS and has_qualifiers):
+            # #250: when a qualification node is about to be minted for this
+            # relation (has_qualifiers is true) for one of the influencer
+            # relations, the object attribute is left un-consumed here: the
+            # main loop in _encode_relation() will then also assert it
+            # directly on that node -- via the same predicate/rewrite
+            # machinery used for every other attribute -- instead of leaving
+            # the node interpretable only via the shorthand triple just
+            # added below.
+            used_objects.append(record.formal_attributes[1][0])
         obj_term: URIRef | RDFLiteral = self.encode_rdf_representation(obj_val)
-        if rec_type == PROV_ALTERNATE:
-            # #258: subject and object are swapped here relative to PROV-O.
-            # Preserved verbatim; fixed separately.
-            subj, obj_term = obj_term, subj
         container.add((subj, pred, obj_term))
         if rec_type == PROV_MENTION:
             if record.formal_attributes[2][1]:
@@ -951,15 +956,6 @@ class ProvRDFSerializer(Serializer):
                     )
                 )
             has_qualifiers = False
-        elif rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS and has_qualifiers:
-            # #250: a qualification node is about to be minted for this
-            # relation (has_qualifiers is true), so un-consume the
-            # influencer attribute here: the main loop in
-            # _encode_relation() will then also assert it directly on that
-            # node -- via the same predicate/rewrite machinery used for
-            # every other attribute -- instead of leaving the node
-            # interpretable only via the shorthand triple just added above.
-            used_objects.remove(record.formal_attributes[1][0])
         return has_qualifiers
 
     def _encode_qualification_node(
@@ -1292,11 +1288,10 @@ class ProvRDFSerializer(Serializer):
         """Recreate one relation from its PROV-O binary triple.
 
         Most relations map straight onto a :class:`~prov.model.ProvBundle`
-        factory call. ``prov:alternateOf`` passes its terms in reverse;
-        ``prov:mentionOf`` picks up its bundle from the subject's
-        ``prov:asInBundle`` triple; and delegation/association defer to their
-        qualification node when they have one, filling its first two formal
-        attributes instead of creating a record here.
+        factory call. ``prov:mentionOf`` picks up its bundle from the
+        subject's ``prov:asInBundle`` triple; and delegation/association
+        defer to their qualification node when they have one, filling its
+        first two formal attributes instead of creating a record here.
 
         Args:
             graph: The RDF (sub)graph being decoded.
@@ -1310,8 +1305,7 @@ class ProvRDFSerializer(Serializer):
         """
         factory = getattr(bundle, relation_mapper[pred])
         if "alternateOf" in pred:
-            # #258: the terms are passed in reverse here. Preserved verbatim.
-            factory(obj, subj)
+            factory(subj, str(obj))
             return
         if "mentionOf" in pred:
             mention_bundle = None

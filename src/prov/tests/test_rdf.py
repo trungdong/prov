@@ -286,6 +286,49 @@ def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
     assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
 
 
+def test_alternate_triple_follows_dm_argument_order():
+    # #258: PROV-O maps alternateOf(alt1, alt2) to alt1 prov:alternateOf
+    # alt2 (subject = first argument), matching the PROV-DM argument order.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.alternate("ex:alt1", "ex:alt2")
+    buf = BytesIO()
+    document.serialize(buf, format="rdf", rdf_format="nt11")
+    triples = buf.getvalue().decode()
+    assert "alt1> <http://www.w3.org/ns/prov#alternateOf> <" in triples
+    assert triples.index("alt1>") < triples.index("alt2>")
+
+
+def test_alternate_triple_round_trips():
+    # #258: encode and decode must agree, so a document with alternate()
+    # survives an RDF round trip.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.alternate("ex:alt1", "ex:alt2")
+    assert roundtrip_document(document, "rdf") == document
+
+
+def test_decode_alternate_triple_follows_dm_argument_order():
+    # #258: RDF authored by other tools with `a1 prov:alternateOf a2` must
+    # decode as alternate(a1, a2), not alternate(a2, a1).
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:e1 a prov:Entity .
+    ex:e2 a prov:Entity .
+    ex:e1 prov:alternateOf ex:e2 .
+    """
+    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    alternates = [r for r in doc.get_records() if r.get_type().localpart == "Alternate"]
+    assert len(alternates) == 1
+    assert [str(value) for _, value in alternates[0].formal_attributes] == [
+        "ex:e1",
+        "ex:e2",
+    ]
+
+
 def test_json_to_ttl_match():
     json_files = sorted(glob(os.path.join(os.path.dirname(__file__), "json", "*.json")))
 
@@ -500,3 +543,21 @@ def test_legacy_qualified_delegation_without_influencer_still_parses():
         if record.get_type().localpart == "Delegation"
     ]
     assert len(delegations) == 2
+    # Neither bnode carries a distinguishing prov:agent, so the two
+    # prov:actedOnBehalfOf triples both land on whichever qualification node
+    # was last seen (the pre-#250 "last node seen" collapse): one delegation
+    # ends up with a real `responsible`, the other with None. Which agent
+    # (ex:ag1 or ex:ag2) survives depends on rdflib's triple iteration order
+    # (hash-seed dependent), so only the shape of the collapse is asserted.
+    responsible_values = [
+        value for _, value in (d.formal_attributes[1] for d in delegations)
+    ]
+    assert responsible_values.count(None) == 1
+    (survivor,) = [value for value in responsible_values if value is not None]
+    assert str(survivor) in {"ex:ag1", "ex:ag2"}
+    assert {
+        str(value) for _, value in (d.formal_attributes[0] for d in delegations)
+    } == {"ex:ag2"}
+    assert {
+        str(value) for _, value in (d.formal_attributes[2] for d in delegations)
+    } == {"ex:a"}

@@ -5,4 +5,4 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
 
-ex:e2 prov:alternateOf ex:e1 .
+ex:e1 prov:alternateOf ex:e2 .

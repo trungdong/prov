@@ -125,7 +125,7 @@ attribute a bundle to an agent as a first-class PROV statement. Tracked as
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
 | --- | --- | --- | --- | --- | --- | --- |
 | Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ |
-| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple is emitted with subject/object transposed relative to the PROV-DM argument order — symmetric-relation-safe, but third-party consumers see the arguments swapped: [#258](https://github.com/trungdong/prov/issues/258)) |
+| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple follows the PROV-DM argument order — `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` — since 3.0: [#258](https://github.com/trungdong/prov/issues/258)) |
 | Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted *without* the `prov:` prefix the PROV-Links grammar requires: [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ |
 
 ## Component 6 — Collections

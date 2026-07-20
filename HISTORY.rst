@@ -55,9 +55,13 @@ History
   → under 15 per function), with byte-identical output (#274)
 * PROV-O output: anonymous qualified Communication/Attribution/Delegation/
   Influence nodes now carry their influencer property (``prov:activity``/
-  ``prov:agent``/``prov:influencer``) as the PROV-O qualification tables
-  require, and the RDF round trip no longer collapses distinct anonymous
-  delegations sharing a (delegate, activity) pair (#250, #226)
+  ``prov:agent``/``prov:agent``/``prov:influencer``) as the PROV-O
+  qualification tables require, and the RDF round trip no longer collapses
+  distinct anonymous delegations sharing a (delegate, activity) pair
+  (#250, #226)
+* PROV-O output emits ``alternateOf`` with the PROV-DM argument order
+  (``alt1 prov:alternateOf alt2``); previously subject and object were
+  transposed on both write and read (#258)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
