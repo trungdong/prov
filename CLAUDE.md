@@ -111,8 +111,10 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   `HYPOTHESIS_PROFILE=ci`.
 - Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
   `test_examples.py`) runs once per target via the `roundtrip` fixture. **Known-lossy RDF cases
-  are intentional**: 14 skips in `test_statements.py` (#217), attached via per-function
-  `@pytest.mark.parametrize("fmt", [...])` so only the `rdf` param is marked. Don't "fix" these.
+  are intentional**: 14 skips in `test_statements.py`, documented as a permanent PROV-O
+  representational limitation in `docs/reference/conformance.md` (closed as #217), attached via
+  per-function `@pytest.mark.parametrize("fmt", [...])` so only the `rdf` param is marked. Don't
+  "fix" these.
 - `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
   order significant — some tests reference individual values by index) feed the shared modules
   and several others.

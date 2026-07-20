@@ -4,7 +4,8 @@ Migrated from the ``TestStatementsBase`` mixin (``statements.py``): each test
 method becomes a module-level function taking the ``roundtrip`` fixture, which
 runs it once per target in ``SHARED_TARGETS`` (model/json/xml/rdf). The 14
 "scruffy" cases opt out of the shared ``fmt`` fixture with their own explicit
-parametrization so the rdf param can be skipped (issue #217; see the
+parametrization so the rdf param can be skipped (permanent PROV-O
+representational limitation, see ``docs/reference/conformance.md``; the
 ``scruffy_fmt`` decorator below). The legacy mixin remains for the
 not-yet-migrated ``test_dot.py``.
 """
@@ -25,12 +26,15 @@ _TIME_2012 = datetime.datetime(
 # The 14 "scruffy" documents below add two relations sharing one identifier
 # but differing prov:time; PROV-O cannot represent this (both times serialize
 # onto the one qualified IRI, and deserialization then raises ProvException:
-# "Cannot have more than one value for attribute prov:time"). This is an
-# accepted PROV-O representational limitation, not a bug on a fix path, so the
-# rdf param is skipped rather than xfailed (design doc §2/§3, issue #217).
+# "Cannot have more than one value for attribute prov:time"). This is a
+# permanent, documented PROV-O representational limitation, not a bug on a
+# fix path, so the rdf param is skipped rather than xfailed — see
+# docs/reference/conformance.md for the full explanation of why no
+# conformant RDF encoding exists.
 RDF_SCRUFFY_SKIP = pytest.mark.skip(
     reason="PROV-O cannot represent same-identifier relations differing by "
-    "prov:time — accepted limitation, issue #217",
+    "prov:time — permanent, documented limitation, see "
+    "docs/reference/conformance.md",
 )
 
 # These functions opt out of the module-wide `fmt` fixture (see conftest.py)

@@ -19,7 +19,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvException
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
@@ -382,6 +382,38 @@ def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
         if name.localpart == "entity"
     }
     assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
+
+
+def test_decode_scruffy_qualified_generation_raises_documented_limitation():
+    # #217, closed as a permanent PROV-O representational limitation (see
+    # docs/reference/conformance.md): PROV-O reifies a relation as a single
+    # qualified node named by its own identifier, so two prov:atTime values
+    # on the *same* identified prov:qualifiedGeneration node cannot be told
+    # apart on decode. Unlike the anonymous-bnode cartesian-product case
+    # above, this identified-node shape must raise rather than silently
+    # fabricate two same-identifier records.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+    @prefix ex: <http://example.org/> .
+
+    ex:e1 a prov:Entity ;
+        prov:qualifiedGeneration ex:gen1 .
+    ex:a1 a prov:Activity .
+
+    ex:gen1 a prov:Generation ;
+        prov:activity ex:a1 ;
+        prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
+            "2013-01-01T00:00:00"^^xsd:dateTime .
+    """
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "documented PROV-O representational limitation" in message
+    assert "conformance.md" in message
+    # The chained original ProvException is preserved, not swallowed.
+    assert isinstance(ctx.value.__cause__, ProvException)
 
 
 def test_alternate_triple_follows_dm_argument_order():

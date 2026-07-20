@@ -5,6 +5,11 @@ History
 
 3.0.0 (unreleased)
 ^^^^^^^^^^^^^^^^^^
+* PROV-O: documents containing multiple same-identifier relations with
+  differing formal attributes ("scruffy" statements) are documented as a
+  PROV-O representational limitation — they serialize but do not round-trip
+  through RDF, and deserializing such RDF now raises an error naming the
+  limitation; all other formats are unaffected (#217)
 * BREAKING: ``pydot`` and ``networkx`` are no longer unconditional runtime
   dependencies. ``import prov.dot`` now requires the ``dot`` extra
   (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``

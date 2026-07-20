@@ -1441,6 +1441,14 @@ class ProvRDFSerializer(Serializer):
             bundle: Bundle to add the records to.
             state: Decode state; consumed attributes are removed from it, so
                 what remains afterwards is what could not be converted.
+
+        Raises:
+            ProvException: If a subject carries more than one value for a
+                formal attribute that :attr:`_DecodeState.unique_sets`
+                doesn't track separately (e.g. two ``prov:atTime`` triples
+                on one identified qualified node) -- the documented,
+                permanent PROV-O representational limitation described in
+                ``docs/reference/conformance.md``.
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)
@@ -1449,23 +1457,46 @@ class ProvRDFSerializer(Serializer):
                 for qname, values in state.unique_sets[subj].items()
                 if values and len(values) > 1
             ]
-            if items_to_walk:
-                for subset in list(walk(items_to_walk)):
-                    for prov_type, value in subset.items():
-                        state.formal_attributes[subj][prov_type] = value
+            try:
+                if items_to_walk:
+                    for subset in list(walk(items_to_walk)):
+                        for prov_type, value in subset.items():
+                            state.formal_attributes[subj][prov_type] = value
+                        bundle.new_record(
+                            state.record_types[subj],
+                            subj,
+                            state.formal_attributes[subj].items(),
+                            attrs,
+                        )
+                else:
                     bundle.new_record(
                         state.record_types[subj],
                         subj,
                         state.formal_attributes[subj].items(),
                         attrs,
                     )
-            else:
-                bundle.new_record(
-                    state.record_types[subj],
-                    subj,
-                    state.formal_attributes[subj].items(),
-                    attrs,
-                )
+            except pm.ProvException as exc:
+                # A repeated formal-attribute predicate that isn't tracked
+                # through `unique_sets` (e.g. two prov:atTime triples on one
+                # qualified node) reaches ProvRecord.add_attributes() as
+                # duplicate plain attributes and raises there. PROV-O
+                # represents a same-identifier relation as a single
+                # qualified node, so it has no way to hold two values for
+                # one formal attribute of that relation -- this is a
+                # documented, permanent PROV-O representational limitation
+                # (not a bug on a fix path); see
+                # https://github.com/trungdong/prov/blob/master/docs/reference/conformance.md
+                raise pm.ProvException(
+                    f"Cannot decode {subj!r} as a single "
+                    f"{state.record_types[subj]} record: {exc}. This is a "
+                    "documented PROV-O representational limitation -- "
+                    "PROV-O reifies a relation as one qualified node named "
+                    "by its identifier, so two same-identifier relations "
+                    "that disagree on a formal attribute (e.g. two "
+                    "prov:atTime values) cannot both be represented. See "
+                    "https://github.com/trungdong/prov/blob/master/docs/reference/conformance.md "
+                    "for details."
+                ) from exc
 
             if attrs is not None:
                 del state.other_attributes[subj]

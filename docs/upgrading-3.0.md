@@ -47,6 +47,7 @@ hook a warning onto — so this table is their only 2.4.0 signpost.
 | [#258](https://github.com/trungdong/prov/issues/258) | PROV-O output for `alternate()`/`alternateOf` transposes subject and object relative to the PROV-O cross reference: `alternate(alt1, alt2)` emits `alt2 prov:alternateOf alt1`, and decoding applies the same swap in reverse. | `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` (subject = first argument), and decoding maps the triple's subject straight onto the relation's first argument. `prov:alternateOf` is symmetric per PROV-CONSTRAINTS, so document-level (semantic) equality of `alternate()` statements is unaffected either way. | If you byte-compare PROV-O output for `alternateOf`, or hand-parse `alternateOf` triples and assume the pre-3.0 (transposed) argument order, re-check that code against 3.0. |
 | [#288](https://github.com/trungdong/prov/issues/288) | PROV-O (RDF) decoding of an `xsd:base64Binary` literal wraps the value in a Python bytes repr (e.g. `"b'aGVsbG8='"`) instead of returning the base64 text itself, corrupting the RDF round trip. | `xsd:base64Binary` literals are decoded to their base64 lexical text; a document with a base64Binary-typed attribute round-trips through RDF equal. | If you consume PROV-O produced by `prov` and process `xsd:base64Binary` attribute values, expect the base64 text (e.g. `"aGVsbG8="`) rather than a bytes repr. |
 | [#96](https://github.com/trungdong/prov/issues/96) | A namespace registered only on a bundle (not the document), or a document/bundle default namespace (`set_default_namespace()`), is never bound into the RDF serializer's namespace manager, so turtle/TriG output falls back to an rdflib-minted `ns1:`-style prefix, or a full IRI, instead of the declared prefix. | Bundle-local and default namespace prefixes are bound into the output alongside document-level ones; a bundle-local prefix colliding with a document-level one is renamed by rdflib rather than clobbering the document-level binding. | If you byte-compare turtle/TriG output, expect different (and now-declared) prefix labels; document-level (semantic) equality is unaffected. |
+| [#217](https://github.com/trungdong/prov/issues/217) | A document containing two relations that share one identifier but disagree on a formal attribute (e.g. two `wasGeneratedBy` statements for the same identifier asserting different `prov:time` — the "scruffy" pattern referenced below) serializes to RDF without error, but PROV-O has no way to represent the construct: both values land on the same qualified node, so decoding that RDF back raised a raw, unhelpful `ProvException`. | Not a fix — **documented as a permanent PROV-O representational limitation** (see {doc}`reference/conformance`): the RDF serializer's decoder now raises a chained `prov.model.ProvException` that names the limitation and points at that page instead of the raw underlying error. Serialization itself, and every other format (JSON, XML, PROV-N) plus the in-memory model, are unaffected — the construct round-trips cleanly through all of them; only decoding RDF containing this shape is affected. | If you decode third-party RDF and hit this error, the source document encodes a construct PROV-O cannot represent; there is no `prov`-side fix to apply — give the differing relations distinct identifiers (or omit the identifier) instead of reusing one. |
 
 ## Unification rework (PROV-CONSTRAINTS)
 
@@ -71,10 +72,14 @@ term unification). Concretely:
 **What to do:** if your code calls `unified()` on documents where records sharing an
 identifier can disagree on a formal attribute (for example, two `wasGeneratedBy`
 statements for the same identifier asserting different `prov:time` values — the
-"scruffy" pattern used in this repo's own test suite), expect that call to raise in 3.0
-where it previously merged silently. Catch the new exception (or restructure the
-document to avoid conflicting formal attributes) before upgrading. Documents without
-this pattern are unaffected.
+"scruffy" pattern used in this repo's own test suite, and the RDF representational
+limitation tracked as #217 above), expect that call to raise in 3.0 where it previously
+merged silently. Catch the new exception (or restructure the document to avoid
+conflicting formal attributes) before upgrading. Documents without this pattern are
+unaffected. Note that this is strictly an opt-in `unified()` behaviour: `prov` performs
+no structural validation at assertion/serialization time (see #257), so building and
+serializing a "scruffy" document remains legal in 3.0 — only calling `unified()` on one,
+or decoding its RDF form, raises.
 
 Note that `prov_to_dot()` (`prov.dot`) and `prov_to_graph()` (`prov.graph`, not
 `graph_to_prov()`, which does not unify) call `unified()` internally, so the

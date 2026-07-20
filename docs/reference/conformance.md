@@ -26,12 +26,32 @@ Every cell below was checked directly against the current source: model classes 
 
 More caveats apply across many rows rather than to one:
 
-- **[#217](https://github.com/trungdong/prov/issues/217)** (RDF): 14 statement-level test cases
-  assert two relations that share one identifier but differ only in `prov:time`; PROV-O has no
-  way to represent that (both times serialize onto the same qualified IRI), so those specific
-  *test cases* are skipped for the `rdf` target. This is a limitation of
-  same-identifier/differing-time relations, not of the relation types themselves —
-  `generation`/`usage`/`start`/`end`/`invalidation` round-trip cleanly in the general case.
+- **PROV-O representational limitation** (RDF, permanent — closed as
+  [#217](https://github.com/trungdong/prov/issues/217)): 14 statement-level test cases assert
+  two relations that share one identifier but differ only in `prov:time`; PROV-O has no
+  conformant way to encode that. PROV-O reifies a relation as a single qualified node (e.g.
+  `prov:qualifiedGeneration`) named directly by the relation's own identifier — one identifier
+  is one RDF node — so a second relation asserting the same identifier can only add more
+  triples to that one node, not create a second, distinguishable node; both `prov:atTime`
+  values end up on the same `prov:qualifiedGeneration` node with no way to tell which value
+  belongs to which asserted relation. There is no encoding that avoids this without either
+  minting a synthetic per-statement IRI (losing the asserted identifier ↔ node correspondence)
+  or fabricating unasserted statements by permuting attribute values on decode — both rejected
+  as options during the 3.0 audit. Accordingly this is documented as a **permanent** limitation
+  of the `rdf` target, not an open bug: the 14 test cases stay skipped for `rdf`
+  (`RDF_SCRUFFY_SKIP` in `test_statements.py`), and decoding third-party RDF with this shape
+  raises `prov.model.ProvException` naming the limitation and pointing back at this page. The
+  historical Java reference implementation (ProvToolbox) collapses identically on encode — its
+  own "scruffy" test fixtures produce one qualified node carrying both values as repeated
+  triples, with no IRI minting — and dropped RDF support entirely in its 2.x line rather than
+  keep the permutation-based decoder it once had. Only this same-identifier/differing-attribute
+  construct is affected: `generation`/`usage`/`start`/`end`/`invalidation` round-trip cleanly in
+  the general case, JSON/XML/PROV-N and the in-memory model are unaffected (the limitation is
+  specific to the PROV-O encoding, not to `prov`'s object model), and plain serialization of
+  such documents remains legal in 3.0 (`prov` never enforces structural constraints at
+  assertion time, [#257](https://github.com/trungdong/prov/issues/257)) — only `unified()`
+  gains conflict detection for records sharing an identifier with conflicting formal attributes,
+  as part of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
 - **[#224](https://github.com/trungdong/prov/issues/224)** (XML): the PROV-XML serializer
   silently drops any `other_attributes` entry whose value is the empty string `""`, regardless
   of record type.
@@ -46,12 +66,12 @@ The value-typing and literal-semantics gaps the audit recorded here — #77, #89
 | --- | --- | --- | --- | --- | --- | --- |
 | Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ |
 | Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ |
-| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
-| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
+| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
+| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
 | Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ |
-| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
-| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 4 same-id/differing-time cases) |
-| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ ([#217](https://github.com/trungdong/prov/issues/217) for the 2 same-id/differing-time cases) |
+| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) |
+| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) |
+| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
 
 {py:class}`~prov.model.ProvEntity` additionally exposes `wasGeneratedBy()`/`wasInvalidatedBy()`
 and {py:class}`~prov.model.ProvActivity` exposes
