@@ -50,6 +50,9 @@ History
 * PROV-N output escapes qualified-name local parts per the grammar's
   ``PN_CHARS_ESC`` production, so identifiers containing ``' ( ) , : ; [ ]
   =`` no longer produce invalid PROV-N (#223)
+* Internal: the PROV-O (RDF) serializer's encode/decode container functions
+  were decomposed into per-record-type dispatch (cyclomatic complexity 81/66
+  → under 15 per function), with byte-identical output (#274)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
