@@ -65,3 +65,24 @@ def test_attribute_name_plain_unchanged():
     document = _doc()
     document.entity("ex:e1", {"ex:plain_key": "value"})
     assert '[ex:plain_key="value"]' in document.get_provn()
+
+
+def test_mention_bare_keyword_no_prefix():
+    """PROV-N Mention emits bare mentionOf(...) without prov: prefix (decision 2026-07-20).
+
+    The PROV-Links specification grammar requires prov:mentionOf, but the bare keyword has
+    been the de-facto output of reference implementations for the last decade and matches
+    ProvToolbox's ANTLR grammar (PROV_N.g:338), so provconvert keeps parsing prov's output.
+    This test locks in the current syntax to prevent silent regressions.
+    """
+    document = _doc()
+    bundle = document.bundle("ex:bundle1")
+    bundle.entity("ex:report1bis")
+    bundle.mentionOf("ex:report1bis", "ex:report1", "ex:bundle2")
+    provn = document.get_provn()
+
+    # Assert bare mentionOf keyword is present
+    assert "mentionOf(ex:report1bis, ex:report1, ex:bundle2)" in provn
+
+    # Assert prov:mentionOf is NOT present (spec-exact form not used)
+    assert "prov:mentionOf" not in provn

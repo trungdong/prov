@@ -159,7 +159,7 @@ attribute a bundle to an agent as a first-class PROV statement. Tracked as
 | --- | --- | --- | --- | --- | --- | --- |
 | Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ |
 | Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple follows the PROV-DM argument order — `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` — since 3.0: [#258](https://github.com/trungdong/prov/issues/258)) |
-| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted *without* the `prov:` prefix the PROV-Links grammar requires: [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ |
+| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted as a bare keyword, not the `prov:` prefix the PROV-Links grammar requires — this is a deliberate documented deviation: the bare form has been the de-facto output of reference implementations for the last decade and matches ProvToolbox's ANTLR grammar, so `provconvert` keeps parsing prov's output; closed as design decision 2026-07-20, [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ |
 
 ## Component 6 — Collections
 

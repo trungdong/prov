@@ -86,6 +86,10 @@ History
 * Security: PROV-XML parsing no longer resolves DTD entities and never
   touches the network (``resolve_entities=False``, ``no_network=True``),
   closing an XXE surface on untrusted input (#273)
+* PROV-N continues to emit Mention as bare ``mentionOf(...)`` — the
+  de-facto syntax of the reference implementations for the last decade —
+  rather than the ``prov:mentionOf`` form derivable from the PROV-Links
+  note; now documented as a deliberate deviation (#248)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
