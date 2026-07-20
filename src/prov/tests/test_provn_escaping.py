@@ -1,4 +1,5 @@
-"""PROV-N local-part metacharacter escaping (#223, PROV-N [53]/[55])."""
+"""PROV-N output correctness: local-part metacharacter escaping (#223, PROV-N
+[53]/[55]) and Mention keyword rendering (#248)."""
 
 import pytest
 
@@ -81,8 +82,11 @@ def test_mention_bare_keyword_no_prefix():
     bundle.mentionOf("ex:report1bis", "ex:report1", "ex:bundle2")
     provn = document.get_provn()
 
-    # Assert bare mentionOf keyword is present
     assert "mentionOf(ex:report1bis, ex:report1, ex:bundle2)" in provn
 
-    # Assert prov:mentionOf is NOT present (spec-exact form not used)
+    # This negative assertion is the one that actually guards the decision, and
+    # it is not the redundant twin of the line above: ``mentionOf(`` is a
+    # substring of ``prov:mentionOf(``, so a regression to the spec-exact form
+    # would still satisfy the positive assertion. Do not remove this as dead
+    # weight.
     assert "prov:mentionOf" not in provn
