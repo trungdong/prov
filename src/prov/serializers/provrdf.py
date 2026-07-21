@@ -533,6 +533,74 @@ class ProvRDFSerializer(Serializer):
         else:
             return RDFLiteral(value)
 
+    def _resolve_iri(self, iri: str, graph: Graph) -> pm.QualifiedName:
+        """Resolve an IRI to a QualifiedName, registering its namespace.
+
+        prov's own IRI -> QualifiedName resolution, used on decode instead of
+        rdflib's raw ``compute_qname`` split (#294). rdflib refuses to split
+        an IRI whose local part ends in a PROV-N metacharacter (``= ' , : ;
+        [ ]``), raising ``ValueError: Can't split ...`` even when the IRI is a
+        perfectly valid qualified name; this method tolerates those instead.
+
+        Resolution, in order:
+
+        1. The longest namespace URI known to ``self.document`` or ``graph``
+           that prefixes ``iri`` -- split there, reusing that prefix. This
+           handles metacharacter local parts under a *registered* namespace,
+           which ``compute_qname`` refuses to split.
+        2. Otherwise ``compute_qname``, preserving prefix-minting for ordinary
+           IRIs under no registered namespace.
+        3. If ``compute_qname`` itself raises (a trailing metacharacter under
+           no known namespace -- the single-record case), split at the last
+           ``#`` or ``/`` and mint a namespace (the generated prefix is
+           irrelevant: :class:`~prov.identifier.QualifiedName` equality is
+           URI-based). An IRI with no ``#`` or ``/`` is genuinely unsplittable
+           and raises a clear error naming it.
+
+        Args:
+            iri: The IRI to resolve.
+            graph: Graph the IRI came from, for its namespace bindings.
+
+        Returns:
+            The resolved :class:`~prov.identifier.QualifiedName`, whose
+            namespace is now registered on ``self.document``.
+
+        Raises:
+            ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
+        """
+        assert self.document is not None
+        # 1. Longest known namespace URI (document- or graph-registered) that
+        # is a proper prefix of the IRI.
+        candidates: list[tuple[str, str]] = [
+            (ns.prefix, ns.uri) for ns in self.document.get_registered_namespaces()
+        ]
+        candidates += [
+            (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
+        ]
+        best_prefix, best_uri = None, ""
+        for prefix, uri in candidates:
+            if uri and len(uri) > len(best_uri) and iri.startswith(uri) and iri != uri:
+                best_prefix, best_uri = prefix, uri
+        if best_prefix is not None:
+            ns = self.document.add_namespace(best_prefix, best_uri)
+            return pm.QualifiedName(ns, iri[len(ns.uri) :])
+        # 2. compute_qname for ordinary IRIs (mints a fresh prefix).
+        try:
+            prefix, uri_ref, _local = graph.namespace_manager.compute_qname(iri)
+            uri = str(uri_ref)
+        except ValueError:
+            # 3. Trailing metacharacter under no known namespace (#294): split
+            # at the last '#' or '/' ourselves. Any minted prefix works.
+            sep = max(iri.rfind("#"), iri.rfind("/"))
+            if sep < 0:
+                raise ValueError(
+                    f"Cannot split IRI {iri!r} into a namespace and a local "
+                    "part: it contains no '#' or '/' separator."
+                ) from None
+            prefix, uri = "ns", iri[: sep + 1]
+        ns = self.document.add_namespace(prefix, uri)
+        return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
     def decode_rdf_representation(self, literal: Any, graph: Graph) -> Any:
         """Decode a single RDF term back to its PROV attribute value representation.
 
@@ -611,9 +679,7 @@ class ProvRDFSerializer(Serializer):
         elif isinstance(literal, URIRef):
             rval = self.valid_identifier(literal)
             if rval is None:
-                prefix, iri, _ = graph.namespace_manager.compute_qname(literal)
-                ns = self.document.add_namespace(prefix, iri)  # type: ignore[union-attr]
-                rval = pm.QualifiedName(ns, literal.replace(ns.uri, ""))
+                rval = self._resolve_iri(str(literal), graph)
             return rval
         else:
             # simple type, just return it
@@ -1282,8 +1348,10 @@ class ProvRDFSerializer(Serializer):
             extra type on a blank node, and for any subject already typed).
         """
         if not isinstance(stmt[0], BNode) and self.valid_identifier(subj) is None:
-            prefix, iri, _ = graph.namespace_manager.compute_qname(subj)
-            self.document.add_namespace(prefix, iri)  # type: ignore[union-attr]
+            # Register the subject's namespace (side effect) so a later
+            # valid_identifier(subj) resolves; tolerates trailing PROV-N
+            # metacharacters that compute_qname would refuse to split (#294).
+            self._resolve_iri(subj, graph)
         prov_obj = prov_cls_map[obj]
         # objects of rdf:type triples are URIRefs (str subclass);
         # rdflib types them only as Node

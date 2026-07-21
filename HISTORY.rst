@@ -105,6 +105,12 @@ History
   record instead of two; the binary triple is reconciled onto the same
   ``prov:qualified*`` node used for the extra attributes, generalising the
   mechanism Delegation/Association already used (#303)
+* PROV-O (RDF) round trip: a qualified name whose local part ends in a PROV-N
+  metacharacter (``= ' , : ; [ ]``) now deserializes instead of raising
+  ``ValueError: Can't split ...``; the decoder resolves the IRI against the
+  document's registered namespaces (or splits at the last ``#``/``/`` when the
+  namespace is unknown) rather than relying on rdflib's ``compute_qname``,
+  which refuses such splits. Encode output is unchanged (#294)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
