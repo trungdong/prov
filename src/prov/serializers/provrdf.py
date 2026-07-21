@@ -1353,9 +1353,11 @@ class ProvRDFSerializer(Serializer):
 
         Most relations map straight onto a :class:`~prov.model.ProvBundle`
         factory call. ``prov:mentionOf`` picks up its bundle from the
-        subject's ``prov:asInBundle`` triple; and delegation/association
-        defer to their qualification node when they have one, filling its
-        first two formal attributes instead of creating a record here.
+        subject's ``prov:asInBundle`` triple; and the relation families
+        listed in :data:`_QUALIFIED_RELATION_INFLUENCER` (delegation,
+        association, attribution, communication, influence) defer to their
+        ``prov:qualified*`` node when they have one, filling its first two
+        formal attributes instead of creating a record here.
 
         Args:
             graph: The RDF (sub)graph being decoded.
