@@ -100,6 +100,11 @@ History
   ``prov:time`` attribute; previously it was misfiled as an extra attribute
   named ``prov:startTime``/``prov:endTime`` and the formal attribute was
   left ``None`` (#299)
+* PROV-O (RDF) round trip: an anonymous Communication/Attribution/Influence
+  relation carrying extra attributes now deserializes back into a single
+  record instead of two; the binary triple is reconciled onto the same
+  ``prov:qualified*`` node used for the extra attributes, generalising the
+  mechanism Delegation/Association already used (#303)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
