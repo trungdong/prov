@@ -1013,3 +1013,97 @@ def test_find_diff_detects_single_triple_difference():
     )
     match, _, _, _ = find_diff(e, f)
     assert match, "Identical graphs should match"
+
+
+def _rdf_roundtrip(doc: ProvDocument) -> ProvDocument:
+    """Serialize ``doc`` to PROV-O and deserialize it back."""
+    with BytesIO() as stream:
+        doc.serialize(destination=stream, format="rdf", indent=4)
+        stream.seek(0)
+        return ProvDocument.deserialize(source=stream, format="rdf")
+
+
+# The PROV-N metacharacters (#223); a local part ending in any of these left
+# rdflib's compute_qname unable to split the full IRI on decode, raising
+# ``ValueError: Can't split ...`` (#294). All must now survive the round trip.
+_TRAILING_METACHARS = ["=", "'", ",", ":", ";", "[", "]"]
+
+
+@pytest.mark.parametrize("ch", _TRAILING_METACHARS)
+def test_trailing_metacharacter_qname_round_trips(ch):
+    # #294: a qualified name whose local part ends in a PROV-N metacharacter
+    # serializes fine but used to raise on decode. It must round-trip, even as
+    # a single record whose namespace rdflib omits from the output prefixes.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    original = doc.entity(f"ex:a{ch}").identifier
+
+    reloaded = _rdf_roundtrip(doc)
+
+    ids = {r.identifier for r in reloaded.get_records()}
+    assert original in ids
+    # Equality is URI-based: the decoded identifier carries the exact full IRI.
+    decoded = next(r.identifier for r in reloaded.get_records())
+    assert decoded.uri == "http://example.org/a" + ch
+
+
+@pytest.mark.parametrize("ch", _TRAILING_METACHARS)
+def test_inner_and_leading_metacharacter_qname_round_trips(ch):
+    # Regression guard: metacharacters in inner and leading positions already
+    # round-tripped and must keep doing so once trailing is fixed.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    inner = doc.entity(f"ex:a{ch}b").identifier
+    leading = doc.entity(f"ex:{ch}ab").identifier
+
+    reloaded = _rdf_roundtrip(doc)
+
+    uris = {r.identifier.uri for r in reloaded.get_records()}
+    assert inner.uri in uris
+    assert leading.uri in uris
+
+
+def test_unregistered_namespace_iri_decodes_via_compute_qname():
+    # An ordinary IRI under no registered namespace must still decode via the
+    # compute_qname minting fallback (reading RDF authored by other tools).
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    <http://other.example/thing> a prov:Entity .
+    """
+    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    ids = {r.identifier.uri for r in doc.get_records()}
+    assert "http://other.example/thing" in ids
+
+
+def test_unsplittable_iri_raises_clear_error():
+    # An IRI with no '#' or '/' separator genuinely cannot be split into a
+    # namespace and local part; the decoder must raise a clear error naming
+    # the IRI rather than letting an obscure rdflib error escape.
+    serializer = ProvRDFSerializer(document=ProvDocument())
+    graph = Graph()
+    with pytest.raises(ValueError) as ctx:
+        serializer.decode_rdf_representation(URIRef("urn:no-separator;"), graph)
+    assert "urn:no-separator;" in str(ctx.value)
+
+
+def test_trailing_metacharacter_encode_output_unchanged():
+    # #294 is a decode-side-only fix: the encoded graph must be byte-identical
+    # in content to what master produced. Compare by graph isomorphism (rdflib
+    # mints random bnodes, so raw-text diff is meaningless).
+    from rdflib.compare import isomorphic
+
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    for ch in _TRAILING_METACHARS:
+        doc.entity(f"ex:a{ch}")
+
+    turtle = doc.serialize(format="rdf", rdf_format="turtle")
+    reparsed = Graph().parse(data=turtle, format="turtle")
+
+    expected = Graph()
+    ns = "http://example.org/"
+    prov = "http://www.w3.org/ns/prov#"
+    for ch in _TRAILING_METACHARS:
+        expected.add((URIRef(ns + "a" + ch), RDF.type, URIRef(prov + "Entity")))
+    assert isomorphic(reparsed, expected)

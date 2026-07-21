@@ -35,31 +35,17 @@ EX_NS = Namespace("ex", NAMESPACES["ex"])
 # Local parts used for identifiers and prefixes. #223's PROV-N metacharacters
 # (' ) , ( : ; [ ] =) are included in the alphabet here so that QualifiedName
 # *values* (see attr_values below) containing them keep round-tripping
-# cleanly through the json/xml/rdf serializers this property exercises;
-# PROV-N escaping itself (get_provn(), not covered by this property -- see
-# module docstring) is exercised separately by the hand-written cases in
-# test_provn_escaping.py. Non-ASCII deliberately lives in the string
-# attribute *values* below (criterion 1), never in identifiers.
-# A local part ending in one of these can leave rdflib unable to write the
-# term as an abbreviated turtle/TriG name, so it emits a full IRI and drops
-# the prefix declaration; reading it back then fails in ``compute_qname``
-# with ``ValueError: Can't split ...`` — #294, a PROV-O decode defect.
-#
-# Whether a given name actually breaks depends on more than its last
-# character — ``a(`` round-trips while ``g:)`` does not — because rdflib
-# scans backwards for a legal split point and what it finds depends on the
-# whole local part. What holds across the failures is the converse: a local
-# part ending in an alphanumeric never fails. Excluding every metacharacter
-# in trailing position is therefore a conservative rule that covers all of
-# them (it also excludes some names that would have worked, which costs a
-# little generation diversity and nothing else). Remove when #294 is fixed.
-_RDF_UNSPLITTABLE_TRAILING = "='(),:;[]"
-
+# cleanly through the json/xml/rdf serializers this property exercises,
+# including in trailing position (#294). PROV-N escaping itself (get_provn(),
+# not covered by this property -- see module docstring) is exercised
+# separately by the hand-written cases in test_provn_escaping.py. Non-ASCII
+# deliberately lives in the string attribute *values* below (criterion 1),
+# never in identifiers.
 local_part = st.text(
     alphabet=string.ascii_lowercase + string.digits + "='(),:;[]",
     min_size=1,
     max_size=8,
-).filter(lambda part: part[-1] not in _RDF_UNSPLITTABLE_TRAILING)
+)
 
 # Text attribute values may contain non-ASCII. Surrogates (Cs) cannot be encoded
 # to UTF-8, and control characters (Cc) make the XML writer raise
