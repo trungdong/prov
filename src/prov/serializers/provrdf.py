@@ -292,8 +292,8 @@ _DECODE_PREDICATE_REWRITES: dict[
 ] = {
     PROV_COMMUNICATION: (("activity", PROV_ATTR_INFORMANT),),
     PROV_DELEGATION: (("agent", PROV_ATTR_RESPONSIBLE),),
-    PROV_END: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_ENDER)),
-    PROV_START: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_STARTER)),
+    PROV_END: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_ENDER), ("endTime", PROV_ATTR_TIME)),
+    PROV_START: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_STARTER), ("startTime", PROV_ATTR_TIME)),
     PROV_DERIVATION: (("entity", PROV_ATTR_USED_ENTITY),),
 }
 
