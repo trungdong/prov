@@ -544,10 +544,14 @@ class ProvRDFSerializer(Serializer):
 
         Resolution, in order:
 
-        1. The longest namespace URI known to ``self.document`` or ``graph``
-           that prefixes ``iri`` -- split there, reusing that prefix. This
-           handles metacharacter local parts under a *registered* namespace,
-           which ``compute_qname`` refuses to split.
+        1. The longest namespace URI bound in ``graph`` that prefixes ``iri``
+           -- split there, reusing that prefix. This handles metacharacter
+           local parts under a namespace the source declared, which
+           ``compute_qname`` refuses to split. (Document namespaces are not
+           consulted here: both callers only reach this method after
+           ``valid_identifier`` returned ``None``, which already scanned every
+           document namespace for a URI-prefix match, so any that applied would
+           have resolved there.)
         2. Otherwise ``compute_qname``, preserving prefix-minting for ordinary
            IRIs under no registered namespace.
         3. If ``compute_qname`` itself raises (a trailing metacharacter under
@@ -569,16 +573,11 @@ class ProvRDFSerializer(Serializer):
             ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
         """
         assert self.document is not None
-        # 1. Longest known namespace URI (document- or graph-registered) that
-        # is a proper prefix of the IRI.
-        candidates: list[tuple[str, str]] = [
-            (ns.prefix, ns.uri) for ns in self.document.get_registered_namespaces()
-        ]
-        candidates += [
-            (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
-        ]
+        # 1. Longest namespace URI bound in the graph that is a proper prefix
+        # of the IRI (see the docstring on why document namespaces are skipped).
         best_prefix, best_uri = None, ""
-        for prefix, uri in candidates:
+        for prefix, uri_ref in graph.namespace_manager.namespaces():
+            uri = str(uri_ref)
             if uri and len(uri) > len(best_uri) and iri.startswith(uri) and iri != uri:
                 best_prefix, best_uri = prefix, uri
         if best_prefix is not None:
