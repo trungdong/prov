@@ -881,6 +881,95 @@ def test_legacy_qualified_delegation_without_influencer_still_parses():
     } == {"ex:a"}
 
 
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda d: d.communication("ex:a2", "ex:a1", other_attributes={"ex:k": "v"}),
+        lambda d: d.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v"}),
+        lambda d: d.influence("ex:e2", "ex:e1", other_attributes={"ex:k": "v"}),
+        lambda d: d.delegation(
+            "ex:ag2", "ex:ag1", "ex:a", other_attributes={"ex:k": "v"}
+        ),
+    ],
+    ids=["communication", "attribution", "influence", "delegation"],
+)
+def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build):
+    # #303: an anonymous (unidentified) Communication/Attribution/Influence
+    # relation carrying extra attributes used to decode into TWO records --
+    # one from the shorthand binary triple, one reconstructed from the
+    # prov:qualified* node -- because only Delegation/Association reconciled
+    # the two back into a single record. Generalised via
+    # _QUALIFIED_RELATION_INFLUENCER (provrdf.py) so all four qualifiable
+    # families collapse back to one record, matching what was actually
+    # asserted.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    build(document)
+    assert len(list(document.get_records())) == 1
+    roundtripped = roundtrip_document(document, "rdf")
+    assert len(list(roundtripped.get_records())) == 1
+    assert roundtripped == document
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda d: d.communication(
+            "ex:a2", "ex:a1", identifier="ex:c1", other_attributes={"ex:k": "v"}
+        ),
+        lambda d: d.attribution(
+            "ex:e1", "ex:ag1", identifier="ex:att1", other_attributes={"ex:k": "v"}
+        ),
+        lambda d: d.influence(
+            "ex:e2", "ex:e1", identifier="ex:inf1", other_attributes={"ex:k": "v"}
+        ),
+        lambda d: d.delegation(
+            "ex:ag2",
+            "ex:ag1",
+            "ex:a",
+            identifier="ex:del1",
+            other_attributes={"ex:k": "v"},
+        ),
+    ],
+    ids=["communication", "attribution", "influence", "delegation"],
+)
+def test_identified_qualified_relation_with_extra_attributes_round_trips(build):
+    # Regression guard: identified relations were never affected by #303 --
+    # the identifier alone is enough to reconcile the binary triple and the
+    # qualified node onto one record -- and must keep round-tripping cleanly.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    build(document)
+    assert len(list(document.get_records())) == 1
+    roundtripped = roundtrip_document(document, "rdf")
+    assert len(list(roundtripped.get_records())) == 1
+    assert roundtripped == document
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda d: d.communication("ex:a2", "ex:a1"),
+        lambda d: d.attribution("ex:e1", "ex:ag1"),
+        lambda d: d.influence("ex:e2", "ex:e1"),
+        lambda d: d.delegation("ex:ag2", "ex:ag1", "ex:a"),
+    ],
+    ids=["communication", "attribution", "influence", "delegation"],
+)
+def test_anonymous_qualified_relation_without_extra_attributes_round_trips(build):
+    # Regression guard: without extra attributes, an anonymous relation of
+    # these families is only ever emitted as the plain binary triple (no
+    # prov:qualified* node at all), so #303 never applied to this shape --
+    # confirm it still round-trips to exactly one record.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    build(document)
+    assert len(list(document.get_records())) == 1
+    roundtripped = roundtrip_document(document, "rdf")
+    assert len(list(roundtripped.get_records())) == 1
+    assert roundtripped == document
+
+
 def test_find_diff_detects_single_triple_difference():
     # #304: find_diff must report a mismatch for graphs differing by a single
     # triple. The [1:] slices that removed a leading blank line from nt

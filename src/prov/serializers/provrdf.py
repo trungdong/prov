@@ -282,6 +282,21 @@ _ELEMENT_ATTR_PREDICATES = {
     PROV_ATTR_ENDTIME: _prov_uri("endedAtTime"),
 }
 
+#: Relation families that emit both a binary triple and a prov:qualified*
+#: node for an anonymous relation with extra attributes; on decode the binary
+#: triple is reconciled onto that qualified node (its first two formal
+#: attributes) rather than creating a second record. Maps each family's
+#: factory name to the PROV-O predicate that carries its influencer on the
+#: qualified node (used to disambiguate when a subject points at several
+#: nodes of the same kind, #226/#250).
+_QUALIFIED_RELATION_INFLUENCER: dict[str, URIRef] = {
+    "delegation": _prov_uri("agent"),
+    "association": _prov_uri("agent"),
+    "attribution": _prov_uri("agent"),
+    "communication": _prov_uri("activity"),
+    "influence": _prov_uri("influencer"),
+}
+
 #: Per-record-type formal-attribute rewrites applied, in order, when decoding.
 #: Each ``(needle, replacement)`` pair replaces the predicate resolved so far
 #: with ``replacement`` when ``needle`` occurs in its string form -- the decode
@@ -1338,9 +1353,11 @@ class ProvRDFSerializer(Serializer):
 
         Most relations map straight onto a :class:`~prov.model.ProvBundle`
         factory call. ``prov:mentionOf`` picks up its bundle from the
-        subject's ``prov:asInBundle`` triple; and delegation/association
-        defer to their qualification node when they have one, filling its
-        first two formal attributes instead of creating a record here.
+        subject's ``prov:asInBundle`` triple; and the relation families
+        listed in :data:`_QUALIFIED_RELATION_INFLUENCER` (delegation,
+        association, attribution, communication, influence) defer to their
+        ``prov:qualified*`` node when they have one, filling its first two
+        formal attributes instead of creating a record here.
 
         Args:
             graph: The RDF (sub)graph being decoded.
@@ -1364,11 +1381,11 @@ class ProvRDFSerializer(Serializer):
                 mention_bundle = stmt[2]
             factory(subj, str(obj), mention_bundle)
             return
-        if "actedOnBehalfOf" in pred or "wasAssociatedWith" in pred:
-            name = relation_mapper[pred]
+        name = relation_mapper[pred]
+        if name in _QUALIFIED_RELATION_INFLUENCER:
             qualifier = "qualified" + name.upper()[0] + name[1:]
             qualifier_bnode = None
-            agent_pred = URIRef(pm.PROV["agent"].uri)
+            influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
             for stmt in graph.triples(
                 (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
             ):
@@ -1378,14 +1395,14 @@ class ProvRDFSerializer(Serializer):
                 # delegations from the same delegate to the same activity,
                 # differing only in `responsible` -- which "last node seen"
                 # cannot tell apart. Since #250, a freshly-encoded node
-                # also carries its own `prov:agent` triple, so prefer
-                # whichever candidate's `prov:agent` matches this binary
+                # also carries its own influencer triple, so prefer
+                # whichever candidate's influencer matches this binary
                 # triple's object; only fall back to "last node seen" (the
                 # pre-#250 behaviour, which cannot do better) when no
                 # candidate carries that triple at all, i.e. legacy
                 # (pre-3.0) input.
                 qualifier_bnode = candidate
-                if (candidate, agent_pred, obj) in graph:
+                if (candidate, influencer_pred, obj) in graph:
                     break
             if qualifier_bnode is not None:
                 fakeys = list(state.formal_attributes[str(qualifier_bnode)].keys())
