@@ -90,6 +90,10 @@ History
   de-facto syntax of the reference implementations for the last decade —
   rather than the ``prov:mentionOf`` form derivable from the PROV-Links
   note; now documented as a deliberate deviation (#248)
+* Test infrastructure: the RDF fixture-comparison helper ``find_diff()`` now
+  correctly detects single-triple differences in test assertions (previously
+  a one-triple difference was invisible, masking potential regressions in
+  fixture expectations) (#304)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
