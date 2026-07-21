@@ -94,6 +94,12 @@ History
   correctly detects single-triple differences in test assertions (previously
   a one-triple difference was invisible, masking potential regressions in
   fixture expectations) (#304)
+* PROV-O (RDF) deserialization now recognizes ``prov:startedAtTime``/
+  ``prov:endedAtTime`` asserted directly on a qualified ``prov:Start``/
+  ``prov:End`` node and reconciles the value into the relation's formal
+  ``prov:time`` attribute; previously it was misfiled as an extra attribute
+  named ``prov:startTime``/``prov:endTime`` and the formal attribute was
+  left ``None`` (#299)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
