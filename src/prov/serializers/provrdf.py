@@ -292,8 +292,16 @@ _DECODE_PREDICATE_REWRITES: dict[
 ] = {
     PROV_COMMUNICATION: (("activity", PROV_ATTR_INFORMANT),),
     PROV_DELEGATION: (("agent", PROV_ATTR_RESPONSIBLE),),
-    PROV_END: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_ENDER)),
-    PROV_START: (("entity", PROV_ATTR_TRIGGER), ("activity", PROV_ATTR_STARTER)),
+    PROV_END: (
+        ("entity", PROV_ATTR_TRIGGER),
+        ("activity", PROV_ATTR_ENDER),
+        ("endTime", PROV_ATTR_TIME),
+    ),
+    PROV_START: (
+        ("entity", PROV_ATTR_TRIGGER),
+        ("activity", PROV_ATTR_STARTER),
+        ("startTime", PROV_ATTR_TIME),
+    ),
     PROV_DERIVATION: (("entity", PROV_ATTR_USED_ENTITY),),
 }
 
@@ -1432,6 +1440,12 @@ class ProvRDFSerializer(Serializer):
         # the *same* identifier -- i.e. resurrect the rejected
         # permutation-decode option (see docs/reference/conformance.md) for
         # an identified qualified node. Do not "fix" this format mismatch.
+        # On a qualified Start/End node specifically, `startedAtTime`/
+        # `endedAtTime` have already been rewritten to `prov:time` by the
+        # `_DECODE_PREDICATE_REWRITES` loop just above, so the name carried
+        # into `other_attributes` for those two predicates is "prov:time",
+        # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
+        # reconcile mechanism described here is otherwise unchanged.
         if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
             qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
             state.formal_attributes[subj][qname_key] = obj1
@@ -1546,11 +1560,12 @@ def _repeated_formal_attribute(
 
     Note: on a qualified node, ``Start``/``End`` carry their time as
     ``prov:atTime`` too, matching every other timed relation's generic
-    ``prov:time`` formal attribute -- *not* the binary-triple predicates
-    ``prov:startedAtTime``/``prov:endedAtTime``, which apply to the
-    Activity rather than the qualified Start/End node. Decoding those
-    binary-predicate spellings on a qualified node is a separate,
-    currently-mishandled path tracked as #299, out of scope here.
+    ``prov:time`` formal attribute. Some producers instead put the binary-
+    triple predicates ``prov:startedAtTime``/``prov:endedAtTime`` directly
+    on the qualified Start/End node; :data:`_DECODE_PREDICATE_REWRITES`
+    rewrites those onto ``prov:time`` too (issue #299), so a duplicate of
+    either one lands here as a repeated ``prov:time`` entry, exactly like a
+    duplicated ``prov:atTime``, and is relabelled the same way.
 
     Args:
         record_type: The record type being constructed.
