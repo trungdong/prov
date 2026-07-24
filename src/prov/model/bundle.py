@@ -157,13 +157,10 @@ def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
             if unified_value is None:
                 unified_value = value
                 continue
-            try:
-                differ = unified_value != value
-            except TypeError:
-                # Cannot compare them; consider them different values, as
-                # ProvRecord.add_attributes does.
-                differ = True
-            if differ:
+            # Every formal attribute is in PROV_ATTRIBUTES, so add_attributes
+            # has already normalised its value to a QualifiedName or a
+            # datetime: != is always well defined here.
+            if unified_value != value:
                 raise ProvUnificationError(
                     f"cannot unify {identifier}: {attr_name} has conflicting "
                     f"values {unified_value!r} and {value!r}"
