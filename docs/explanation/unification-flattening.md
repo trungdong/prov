@@ -101,11 +101,19 @@ document's top-level records and, independently, to each contained bundle, **pre
 bundle structure (unlike `flattened()`) — nothing is merged across a bundle boundary.
 {py:meth}`ProvBundle.unified() <prov.model.ProvBundle.unified>` does it for a single bundle.
 
-Three limits are worth knowing:
+Four limits are worth knowing:
 
 - **Only identifiers drive merging.** Two records merge if and only if they carry the same
   qualified-name identifier. Most PROV relations are asserted without an identifier, so
   relations are almost never unified.
+- **Records of different types are merged rather than rejected.** Term unification as described
+  above applies to a group of records that share both an identifier *and* a record type.
+  Asserting `entity(x)` and `activity(x)` with the same identifier still produces a single
+  merged record of the first record's type — here an entity, carrying the activity's
+  `prov:startTime` as an ordinary attribute — even though PROV-CONSTRAINTS makes such a
+  document invalid (Constraints 50 and 55, type disjointness). This is a **known limitation**:
+  detecting it belongs to the same unification rework, and until it lands `unified()` will not
+  tell you that two records of incompatible types have collided.
 - **The placeholder `-` is not represented.** PROV-N distinguishes an omitted term from an
   explicit `-`, which is a constant and unifies only with itself; `prov`'s model has no way to
   express the latter (every deserializer drops the distinction), so an absent formal attribute
@@ -165,14 +173,18 @@ type disjointness or event ordering. A conforming normalization can conclude tha
 differently written records denote the same thing, and can declare a document *invalid*.
 
 `prov`'s `unified()` implements the term-unification half of that picture, keyed on the record
-identifier, and rejects documents whose same-identifier records cannot be unified. It does not
-perform the *inference* half: the uniqueness constraints that key on something other than the
-record identifier (Constraints 24–29 — for example, that two generations of the same entity by
-the same activity must be the same generation) are not applied, so `unified()` never concludes
-that two differently identified records denote the same thing. Nor does it check the
-constraints that make a document invalid for reasons unrelated to merging, such as type
-disjointness or event ordering. Those belong to an opt-in validation engine, tracked as
-[issue #62](https://github.com/trungdong/prov/issues/62).
+identifier, and rejects documents whose same-identifier, same-type records hold irreconcilable
+attribute values. Three things it does *not* do:
+
+- It does not perform the *inference* half. The uniqueness constraints that key on something
+  other than the record identifier (Constraints 24–29 — for example, that two generations of
+  the same entity by the same activity must be the same generation) are not applied, so
+  `unified()` never concludes that two differently identified records denote the same thing.
+  Those belong to an opt-in validation engine, tracked as
+  [issue #62](https://github.com/trungdong/prov/issues/62).
+- It does not yet reject same-identifier records of incompatible *types* — the type-disjointness
+  limitation described above.
+- It does not check constraints that have nothing to do with merging, such as event ordering.
 
 So `unified()` is a normalization step, not a validator: do not rely on it to certify that a
 document is valid PROV, nor to reconcile records that do not already share an identifier. See
