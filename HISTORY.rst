@@ -5,6 +5,13 @@ History
 
 3.0.0 (unreleased)
 ^^^^^^^^^^^^^^^^^^
+* BREAKING: ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
+  PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
+  formal attributes: records sharing an identifier whose formal attributes
+  hold different concrete values now raise the new documented
+  ``prov.model.ProvUnificationError`` instead of silently unioning; absent
+  formal attributes unify with concrete values; extra attributes keep
+  set-union semantics; bundles unify independently (#253)
 * PROV-XML round trip preserves attributes whose value is the empty string;
   previously they were silently dropped on deserialization (#224)
 * PROV-XML serializes attribute names containing characters illegal in an

@@ -457,6 +457,14 @@ class ProvExceptionInvalidQualifiedName(ProvException):
         return f"Invalid Qualified Name: {self.qname}"
 
 
+class ProvUnificationError(ProvException):
+    """Raised by :meth:`ProvBundle.unified` when records sharing an
+    identifier cannot be merged under PROV-CONSTRAINTS term unification
+    (two different concrete values for the same formal attribute, or
+    records of incompatible types).
+    """
+
+
 class ProvElementIdentifierRequired(ProvException):
     """Exception for a missing element identifier."""
 

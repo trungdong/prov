@@ -105,8 +105,9 @@ def test_show_element_attributes_false_skips_annotation():
 
 def test_unresolvable_unification_falls_back_to_original_bundle():
     """Covers prov_to_dot()'s ``except ProvException`` fallback when
-    ``bundle.unified()`` cannot merge two relations that share an identifier
-    but disagree on a formal attribute (the "scruffy" pattern -- see
+    ``bundle.unified()`` raises ``ProvUnificationError`` because two relations
+    share an identifier but disagree on a formal attribute (the "scruffy"
+    pattern -- see
     test_statements.py's RDF_SCRUFFY_SKIP cases for the same shape).
 
     Previously exercised incidentally by the pre-migration dot suite
@@ -126,9 +127,10 @@ def test_unresolvable_unification_falls_back_to_original_bundle():
         "ex:e1", "ex:a1", identifier="ex:gen1", time=datetime.datetime(2020, 1, 2)
     )
 
-    # bundle.unified() raises ProvException here (conflicting prov:time
-    # values for the same identifier); prov_to_dot() must catch it and fall
-    # back to rendering the original, non-unified bundle rather than raising.
+    # bundle.unified() raises ProvUnificationError here (conflicting prov:time
+    # values for the same identifier); prov_to_dot() must catch it — the
+    # exception is a ProvException — and fall back to rendering the original,
+    # non-unified bundle rather than raising.
     dot = prov_to_dot(doc)
     svg_content = dot.create(format="svg", encoding="utf-8")
     assert len(svg_content) > MIN_SVG_SIZE

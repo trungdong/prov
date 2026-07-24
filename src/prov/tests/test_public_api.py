@@ -47,6 +47,7 @@ PUBLIC_API = {
         "ProvWarning",
         "ProvExceptionInvalidQualifiedName",
         "ProvElementIdentifierRequired",
+        "ProvUnificationError",
         # identifiers & literals (historically importable from prov.model too)
         "Namespace",
         "QualifiedName",

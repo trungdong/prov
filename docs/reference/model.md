@@ -153,4 +153,8 @@ below.
 .. autoclass:: prov.model.ProvElementIdentifierRequired
    :members:
    :show-inheritance:
+
+.. autoclass:: prov.model.ProvUnificationError
+   :members:
+   :show-inheritance:
 ```

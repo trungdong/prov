@@ -99,6 +99,7 @@ from prov.model.records import (
     ProvRecord,
     ProvSpecialization,
     ProvStart,
+    ProvUnificationError,
     ProvUsage,
     QualifiedNameCandidate,
     RecordAttributesArg,
@@ -107,6 +108,71 @@ from prov.model.records import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
+    """Merge records sharing an identifier by PROV-CONSTRAINTS term unification.
+
+    Formal attributes are unified positionally: an absent value is an
+    existential ("unknown") that unifies with anything, equal concrete values
+    unify, and two different concrete values do not unify. Non-formal ("extra")
+    attributes are unioned. The merged record is newly constructed from the
+    unified formal attributes, so no conflict is ever routed through
+    :meth:`ProvRecord.add_attributes`' single-value guard.
+
+    Args:
+        records: Two or more records carrying the same identifier, in
+            assertion order.
+
+    Returns:
+        A single, newly created record standing for the whole group.
+
+    Raises:
+        ProvUnificationError: If two of the records hold different concrete
+            values for the same formal attribute.
+    """
+    first_record = records[0]
+    record_type = first_record.get_type()
+    if any(record.get_type() != record_type for record in records[1:]):
+        # Task 2 (#253): type compatibility. Until then, a group mixing record
+        # types keeps the historic first-record-wins attribute union.
+        merged = first_record.copy()
+        for record in records[1:]:
+            merged.add_attributes(record.attributes)
+        return merged
+
+    identifier = first_record.identifier
+    attributes: list[NameValuePair] = []
+    # Same record type, hence the same FORMAL_ATTRIBUTES: zip() lines the
+    # records' formal attributes up position by position.
+    for pairs in zip(*(record.formal_attributes for record in records), strict=True):
+        attr_name = pairs[0][0]
+        unified_value = None
+        for _, value in pairs:
+            if value is None:
+                # An absent formal attribute is an existential variable: the
+                # model cannot express PROV-N's placeholder `-`, so absent
+                # unifies with any concrete value.
+                continue
+            if unified_value is None:
+                unified_value = value
+                continue
+            # Every formal attribute is in PROV_ATTRIBUTES, so add_attributes
+            # has already normalised its value to a QualifiedName or a
+            # datetime: != is always well defined here.
+            if unified_value != value:
+                raise ProvUnificationError(
+                    f"cannot unify {identifier}: {attr_name} has conflicting "
+                    f"values {unified_value!r} and {value!r}"
+                )
+        if unified_value is not None:
+            attributes.append((attr_name, unified_value))
+
+    # Extra attributes keep their set-union semantics.
+    for record in records:
+        attributes.extend(record.extra_attributes)
+
+    return PROV_REC_CLS[record_type](first_record.bundle, identifier, attributes)
 
 
 class ProvBundle:
@@ -386,16 +452,11 @@ class ProvBundle:
     # Transformations
     def _unified_records(self) -> list[ProvRecord]:
         """Returns a list of unified records."""
-        # TODO: Check unification rules in the PROV-CONSTRAINTS document
-        # This method simply merges the records having the same name
         merged_records = {}
         for _identifier, records in self._id_map.items():
             if len(records) > 1:
-                # more than one record having the same identifier
-                # merge the records
-                merged = records[0].copy()
-                for record in records[1:]:
-                    merged.add_attributes(record.attributes)
+                # more than one record having the same identifier: unify them
+                merged = _unify_record_group(records)
                 # map all of them to the merged record
                 for record in records:
                     merged_records[record] = merged
@@ -420,15 +481,25 @@ class ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
 
         For each identifier carried by more than one record, a single merged
-        record is produced by unioning the attributes of all records with that
-        identifier onto a copy of the first. Records with a unique identifier,
-        or no identifier, pass through unchanged. This is a simple
-        identifier-keyed attribute union, not the full PROV-CONSTRAINTS
-        unification: no type/attribute conflicts are detected and no inference
-        is performed. The original bundle is left untouched.
+        record is produced by the term unification of W3C PROV-CONSTRAINTS'
+        key constraints (22 and 23): the records' formal attributes are unified
+        position by position — an absent formal attribute is an existential
+        that unifies with any concrete value, equal concrete values unify, and
+        two different concrete values do not — while their remaining attributes
+        are unioned. Records with a unique identifier, or no identifier, pass
+        through unchanged.
+
+        This is not the specification's full normalization: the uniqueness
+        constraints keyed on something other than the record identifier
+        (Constraints 24-29) are not checked and no inference is performed. The
+        original bundle is left untouched.
 
         Returns:
             The new, unified :class:`ProvBundle`.
+
+        Raises:
+            ProvUnificationError: If two records sharing an identifier hold
+                different concrete values for the same formal attribute.
         """
         warnings.warn(
             "prov 3.0 will change unified() to merge records per the W3C "
@@ -1462,13 +1533,19 @@ class ProvDocument(ProvBundle):
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
 
-        The identifier-keyed attribute union (see :meth:`ProvBundle.unified`) is
-        applied to the document's top-level records and, recursively, to each
-        contained bundle, preserving the bundle structure. The original
+        The term unification of :meth:`ProvBundle.unified` is applied to the
+        document's top-level records and, independently, to each contained
+        bundle, preserving the bundle structure — as PROV-CONSTRAINTS §7.2
+        requires, nothing is merged across a bundle boundary. The original
         document is left untouched.
 
         Returns:
             The new, unified :class:`ProvDocument`.
+
+        Raises:
+            ProvUnificationError: If two records sharing an identifier within
+                the same scope hold different concrete values for the same
+                formal attribute.
         """
         warnings.warn(
             "prov 3.0 will change unified() to merge records per the W3C "

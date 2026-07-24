@@ -74,6 +74,7 @@ from prov.model.records import (
     ProvRelation as ProvRelation,
     ProvSpecialization as ProvSpecialization,
     ProvStart as ProvStart,
+    ProvUnificationError as ProvUnificationError,
     ProvUsage as ProvUsage,
     ProvWarning as ProvWarning,
     QualifiedNameCandidate as QualifiedNameCandidate,
