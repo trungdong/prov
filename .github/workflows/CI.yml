@@ -3,9 +3,9 @@ name: CI
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, 2.x]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main, master, dev, 2.x]
   workflow_dispatch:
 
 # Least privilege: every job only checks out code and reads/uploads coverage
