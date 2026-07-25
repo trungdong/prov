@@ -1,0 +1,11 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "entity": {
+    "ex:thing": {}
+  },
+  "activity": {
+    "ex:thing": {}
+  }
+}

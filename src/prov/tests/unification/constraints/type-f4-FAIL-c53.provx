@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+        <prov:wasGeneratedBy prov:id="ex:gen"> <!-- overlap usage -->
+          <prov:entity prov:ref="ex:e3"/>
+          <prov:activity prov:ref="ex:a4"/>
+        </prov:wasGeneratedBy>
+
+        <prov:used prov:id="ex:gen"> <!-- overlap usage -->
+          <prov:activity prov:ref="ex:a4"/>
+          <prov:entity prov:ref="ex:e5"/>
+        </prov:used>
+
+</prov:document>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:prim="http://openprovenance.org/primitives#" xmlns:ex="http://example.org/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <prov:entity prov:id="ex:e1">
+	  <prov:type xsi:type="xsd:QName">ex:test1</prov:type>
+	  <prov:type xsi:type="xsd:QName">prov:Bundle</prov:type>
+        </prov:entity>
+
+
+        <prov:agent prov:id="ex:e1">
+	  <prov:type xsi:type="xsd:QName">ex:test2</prov:type>
+	  <prov:type xsi:type="xsd:QName">prov:SoftwareAgent</prov:type>
+	  <prov:type xsi:type="xsd:anyURI">http://www.w3.org/ns/prov#Person</prov:type>
+	  <prov:type xsi:type="xsd:anyURI">http://openprovenance.org/validation/type/Organization</prov:type>  <!-- will be renamed and ignored -->
+	  <prov:type xsi:type="xsd:string">prov:Activity</prov:type>  <!-- not a type we consider -->
+        </prov:agent>
+
+</prov:document>
