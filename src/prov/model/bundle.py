@@ -132,28 +132,33 @@ logger = logging.getLogger(__name__)
 # wasInvalidatedBy, wasInfluencedBy, wasStartedBy, wasEndedBy, wasInformedBy,
 # wasDerivedFrom, wasAttributedTo, wasAssociatedWith, actedOnBehalfOf}: IF
 # p(id, a1,...,am) and r(id; b1,...,bn) THEN INVALID -- i.e. every object
-# (element) base type is disjoint from every one of the eleven identified
-# relations (Constraint 23).
+# (element) base type is disjoint from every one of Constraint 23's eleven
+# *identified* relations, enumerated explicitly below as ``_IDENTIFIED_RELATIONS``.
+# Alternate/Specialization/Mention/Membership are NOT in that set -- PROV-DM's
+# abstract syntax gives them no identifier parameter, so the specification has
+# no opinion on an id they happen to share with anything (they normally reach
+# `ProvBundle`'s ``_id_map`` only via `new_record()`/deserialization, since the
+# `.alternate()`/`.specialization()`/`.mention()`/`.membership()` convenience
+# methods always pass ``identifier=None``) -- such a pairing is therefore left
+# out of scope, not rejected.
 #
 # Constraint 53 (impossible-property-overlap): "identifiers of basic
 # relationships are disjoint": for r != s both in {used, wasGeneratedBy,
 # wasInvalidatedBy, wasStartedBy, wasEndedBy, wasInformedBy, wasAttributedTo,
 # wasAssociatedWith, actedOnBehalfOf}: IF r(id; a1,...,am) and s(id;
-# b1,...,bn) THEN INVALID. This pairwise-disjoint set deliberately excludes
-# wasDerivedFrom and wasInfluencedBy: the spec calls out wasInfluencedBy by
+# b1,...,bn) THEN INVALID. This pairwise-disjoint set of NINE relations is a
+# proper subset of Constraint 54's eleven: it deliberately excludes
+# wasDerivedFrom and wasInfluencedBy. The spec calls out wasInfluencedBy by
 # name as exempt because it is a superproperty meant to share an identifier
 # with a more specific relation, giving the worked example "wasInfluencedBy(
 # id;e2,e1)" + "wasDerivedFrom(id;e2,e1)" as valid ("This satisfies the
 # disjointness constraint."); wasDerivedFrom itself is simply absent from the
-# enumerated set.
-#
-# (Alternate/Specialization/Mention/Membership have no identifier -- they are
-# not among Constraint 23's eleven identified relations -- so they never
-# reach this table: :meth:`ProvBundle._add_record` only populates ``_id_map``
-# for records with a non-``None`` identifier.)
+# enumerated set. So a generation and a derivation -- or a derivation and an
+# influence -- sharing an identifier is *not* rejected by Constraint 53.
 _OBJECT_TYPES = frozenset({PROV_ENTITY, PROV_ACTIVITY, PROV_AGENT})
 _ENTITY_ACTIVITY = frozenset({PROV_ENTITY, PROV_ACTIVITY})
-_PAIRWISE_DISJOINT_RELATIONS = frozenset(
+# Constraint 23's eleven identified relations (Constraint 54's r-set).
+_IDENTIFIED_RELATIONS = frozenset(
     {
         PROV_GENERATION,
         PROV_USAGE,
@@ -161,11 +166,15 @@ _PAIRWISE_DISJOINT_RELATIONS = frozenset(
         PROV_START,
         PROV_END,
         PROV_INVALIDATION,
+        PROV_DERIVATION,
         PROV_ATTRIBUTION,
         PROV_ASSOCIATION,
         PROV_DELEGATION,
+        PROV_INFLUENCE,
     }
 )
+# Constraint 53's nine pairwise-disjoint relations -- see the comment above.
+_PAIRWISE_DISJOINT_RELATIONS = _IDENTIFIED_RELATIONS - {PROV_DERIVATION, PROV_INFLUENCE}
 
 
 def _incompatible_types(type_a: QualifiedName, type_b: QualifiedName) -> bool:
@@ -174,13 +183,16 @@ def _incompatible_types(type_a: QualifiedName, type_b: QualifiedName) -> bool:
         return True  # Constraint 55
     is_object_a = type_a in _OBJECT_TYPES
     is_object_b = type_b in _OBJECT_TYPES
-    if is_object_a != is_object_b:
-        return True  # Constraint 54: an object type vs a property type
-    if is_object_a and is_object_b:
-        # The only other object/object pairing is agent+entity or
-        # agent+activity, both spec-permitted overlaps.
-        return False
-    # Both are property (relation) types.
+    is_relation_a = type_a in _IDENTIFIED_RELATIONS
+    is_relation_b = type_b in _IDENTIFIED_RELATIONS
+    if (is_object_a and is_relation_b) or (is_object_b and is_relation_a):
+        return True  # Constraint 54: an object type vs an identified relation
+    # Constraint 53: two distinct pairwise-disjoint relations. Everything else
+    # (this expression's False case) is either a spec-permitted overlap
+    # (agent+entity, agent+activity) or out of the specification's scope (any
+    # pairing involving a keyless relation kind -- Alternate/Specialization/
+    # Mention/Membership -- or a relation pair Constraint 53 does not cover,
+    # such as derivation+generation or derivation+influence).
     return (
         type_a in _PAIRWISE_DISJOINT_RELATIONS
         and type_b in _PAIRWISE_DISJOINT_RELATIONS
@@ -267,9 +279,8 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[QualifiedName, ProvRe
     Raises:
         ProvUnificationError: If two records of the same type hold different
             concrete values for the same formal attribute, or if the group
-            spans two base record types that PROV-CONSTRAINTS' typing and
-            impossibility constraints (54/55) forbid combining under one
-            identifier.
+            spans two base record types that PROV-CONSTRAINTS' impossibility
+            constraints (53/54/55) forbid combining under one identifier.
     """
     identifier = records[0].identifier
     groups: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
@@ -598,8 +609,8 @@ class ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
 
         For each identifier carried by more than one record, the records are
-        first checked for type compatibility (W3C PROV-CONSTRAINTS' typing and
-        impossibility constraints, 54 and 55): an entity and an activity (or
+        first checked for type compatibility (W3C PROV-CONSTRAINTS'
+        impossibility constraints 53, 54 and 55): an entity and an activity (or
         two distinct relation kinds, e.g. a generation and a usage) cannot
         share an identifier and raise; a spec-permitted overlap (an agent that
         is also an entity and/or an activity) is kept as separate records, one

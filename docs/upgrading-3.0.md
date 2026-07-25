@@ -86,7 +86,7 @@ term unification). Concretely:
   activity, or two distinct relation kinds such as a generation and a usage — now
   **raise `ProvUnificationError`** naming both types, in either assertion order,
   instead of merging into a copy of whichever record was asserted first
-  (PROV-CONSTRAINTS Constraints 50/54/55). Overlaps the specification explicitly
+  (PROV-CONSTRAINTS Constraints 53/54/55). Overlaps the specification explicitly
   permits — an agent that is also an entity and/or an activity — are kept as separate,
   per-type-merged records rather than combined into one.
 - Each scope is unified independently: `ProvDocument.unified()` unifies the top-level

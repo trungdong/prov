@@ -13,7 +13,7 @@ History
   formal attributes unify with concrete values; extra attributes keep
   set-union semantics; bundles unify independently (#253)
 * ``unified()`` rejects same-identifier records of incompatible types
-  (entity vs activity, distinct relation kinds — PROV-CONSTRAINTS 50/54/55)
+  (entity vs activity, distinct relation kinds — PROV-CONSTRAINTS 53/54/55)
   with ``ProvUnificationError`` instead of merging them order-dependently
   into the first record's type; spec-permitted overlaps (an agent that is
   also an entity or activity) are kept as separate records (#253)

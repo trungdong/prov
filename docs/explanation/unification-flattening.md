@@ -109,7 +109,7 @@ Four limits are worth knowing:
 - **Records of incompatible types raise; spec-permitted overlaps stay separate.** Term
   unification as described above applies within a group of records that share both an
   identifier *and* a base record type. Across types sharing one identifier, `unified()`
-  consults the PROV-CONSTRAINTS type-compatibility rules (Constraints 50/54/55): an
+  consults the PROV-CONSTRAINTS type-compatibility rules (Constraints 53/54/55): an
   `entity(x)` and an `activity(x)` sharing the identifier `x` raise
   {py:class}`~prov.model.ProvUnificationError` naming both types — the specification makes
   entities and activities disjoint — while an `agent(x)` and an `entity(x)` sharing `x` are
