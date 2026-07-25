@@ -57,13 +57,20 @@ feed into this list. The planned changes are:
   replaced by the standard library. Once that lands, a plain `pip install prov` will
   pull in only what the core data model needs.
 - **Unification reworked to follow [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)**:
-  `unified()` currently just merges the attributes of records that share an
-  identifier; in 3.0 it applies the specification's merging rules (key constraints
-  and term unification), rejecting merges the spec disallows instead of silently
-  combining records. The
-  [gap analysis](docs/superpowers/specs/2026-07-10-unification-gap-analysis.md) was
-  produced by the pre-3.0 conformance audit (completed 2026-07-11) and is the authority
-  for this rework.
+  `unified()` used to just merge the attributes of records that share an identifier,
+  with no conflict detection; it now applies the specification's merging rules (key
+  constraints 22/23 via pairwise term unification of formal attributes) and its
+  type-compatibility rules (Constraints 53/54/55), raising the new
+  `prov.model.ProvUnificationError` where the spec disallows a merge instead of
+  silently combining records — see the
+  [unification and flattening explanation](docs/explanation/unification-flattening.md)
+  for the full write-up. Constraints keyed on something other than the record
+  identifier (24–29) remain out of scope, deferred to the opt-in validation engine,
+  [#62](https://github.com/trungdong/prov/issues/62). The
+  [gap analysis](docs/superpowers/specs/2026-07-10-unification-gap-analysis.md) produced
+  by the pre-3.0 conformance audit (completed 2026-07-11) was the authority for this
+  rework, which closes umbrella issue
+  [#253](https://github.com/trungdong/prov/issues/253).
 - **Behaviour-changing bug fixes**, each individually reviewed with tests showing the
   old and new behaviour:
   - [#34](https://github.com/trungdong/prov/issues/34) — merging attributes with the

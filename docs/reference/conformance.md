@@ -50,7 +50,7 @@ More caveats apply across many rows rather than to one:
   specific to the PROV-O encoding, not to `prov`'s object model), and plain serialization of
   such documents remains legal in 3.0 (`prov` never enforces structural constraints at
   assertion time, [#257](https://github.com/trungdong/prov/issues/257)) — only `unified()`
-  gains conflict detection for records sharing an identifier with conflicting formal attributes,
+  detects the conflict, for records sharing an identifier with conflicting formal attributes,
   as part of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
 - **XML attribute-name escaping** (XML, permanent convention — closed as
   [#289](https://github.com/trungdong/prov/issues/289)): an attribute name is written as a
@@ -195,11 +195,13 @@ shared attribute test matrix (`test_attributes.py`, `ATTRIBUTE_VALUES` in
 
 This matrix reflects the codebase as of the Phase 3.5 conformance audit (roadmap steps 28–32,
 completed 2026-07-11), refreshed for the 3.0 value-typing and literal-semantics conformance
-fixes, and should be revisited at each release as serializers change or issues close. Beyond the per-format round trips above, the audit also confirmed that
-`ProvBundle.unified()` performs an identifier-keyed attribute union rather than
+fixes, and should be revisited at each release as serializers change or issues close. Beyond
+the per-format round trips above, the audit's gap analysis found that `ProvBundle.unified()`
+performed an identifier-keyed attribute union rather than
 [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) merging — tracked as the umbrella
-issue [#253](https://github.com/trungdong/prov/issues/253), with the full gap analysis in the
-audit findings; the rework is scheduled for 3.0. Release 3.1.0 adds a
+issue [#253](https://github.com/trungdong/prov/issues/253); 3.0 lands that rework (see
+{doc}`../explanation/unification-flattening` for the full write-up and
+{doc}`../upgrading-3.0` for what changed). Release 3.1.0 adds a
 PROV-JSONLD serializer; when that lands, this page gains a JSON-LD column
 alongside JSON/XML/RDF. See {doc}`../explanation/prov-dm` for the conceptual background behind
 each component, and {doc}`model` for the full class/method API reference.
