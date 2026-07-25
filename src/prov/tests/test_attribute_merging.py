@@ -192,7 +192,10 @@ def test_mixed_typed_attribute_round_trips(fmt):
 def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc):
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
     values = e.get_attribute("ex:v")
-    assert type(values) is set
+    # isinstance(), not a live-container leak check in disguise: TypedValueSet
+    # is not a set subclass (it's collections.abc.MutableSet, dict-backed),
+    # so this still fails if the internal container were ever returned.
+    assert isinstance(values, set)
     assert values == {2}  # 2.0 collapses in this copy, exactly as in 2.x
 
 
@@ -213,14 +216,14 @@ def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc):
     e.add_asserted_type(foo)
     e.add_asserted_type(bar)
     types = e.get_asserted_types()
-    assert type(types) is set
+    assert isinstance(types, set)  # not a set subclass, see note above
     assert types == {foo, bar}
 
 
 def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc):
     e = doc.entity("ex:e", [("prov:value", 2), ("prov:value", 2.0)])
     values = e.value
-    assert type(values) is set
+    assert isinstance(values, set)  # not a set subclass, see note above
     assert values == {2}
 
 
