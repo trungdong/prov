@@ -73,7 +73,8 @@ Do not edit the `.xml` files; they are a vendored upstream corpus.
 ## W3C type-compatibility corpus (`.provx`)
 
 Seven additional PROV-XML documents (`type-*.provx`), exercising the
-same-identifier type-compatibility rules (Constraints 53–56) that the
+same-identifier type-compatibility rules (Constraints 50, 53–56 — `prov`
+implements 53/54/55 only; see "Naming convention" below) that the
 ProvToolbox corpus above does not cover at all, consumed by
 `test_unification_constraints.py`'s W3C-corpus characterization
 (`test_w3c_type_compatibility_characterization`).
@@ -113,7 +114,7 @@ URL and copyright notice are retained:
 
 > Copyright © [$date-of-document] World Wide Web Consortium, (MIT, ERCIM,
 > Keio, Beihang) and others. All Rights Reserved.
-> https://www.w3.org/copyright/test-suites-licenses/
+> <https://www.w3.org/copyright/test-suites-licenses/>
 
 Both licences permit verbatim vendoring for a non-branded, internal test
 corpus such as this one.

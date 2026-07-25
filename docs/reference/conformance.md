@@ -49,9 +49,9 @@ More caveats apply across many rows rather than to one:
   the general case, JSON/XML/PROV-N and the in-memory model are unaffected (the limitation is
   specific to the PROV-O encoding, not to `prov`'s object model), and plain serialization of
   such documents remains legal in 3.0 (`prov` never enforces structural constraints at
-  assertion time, [#257](https://github.com/trungdong/prov/issues/257)) — only `unified()`
-  detects the conflict, for records sharing an identifier with conflicting formal attributes,
-  as part of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
+  assertion time, [#257](https://github.com/trungdong/prov/issues/257)). Only `unified()`
+  detects records that share an identifier but hold conflicting formal attributes, as part
+  of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
 - **XML attribute-name escaping** (XML, permanent convention — closed as
   [#289](https://github.com/trungdong/prov/issues/289)): an attribute name is written as a
   PROV-XML child element tag, but its local part is not guaranteed to be a legal XML NCName
