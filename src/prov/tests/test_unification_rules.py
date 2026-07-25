@@ -79,3 +79,30 @@ def test_unification_is_scoped_per_bundle():
     bundle.activity("ex:a", startTime=T2)  # would conflict if scopes leaked
     unified = document.unified()  # must NOT raise
     assert unified.has_bundles()
+
+
+def test_entity_activity_same_id_raises_either_order():
+    # Constraints 50/55 (typing / entity-activity-disjoint): typeOf(id) can
+    # never hold both 'entity' and 'activity'.
+    for order in (("entity", "activity"), ("activity", "entity")):
+        document = _doc()
+        for kind in order:
+            getattr(document, kind)("ex:thing")
+        with pytest.raises(ProvUnificationError):
+            document.unified()
+
+
+def test_agent_entity_overlap_is_permitted_and_unmerged():
+    # Constraint 54 does not pair agent with entity: both statements stand.
+    document = _doc()
+    document.agent("ex:x")
+    document.entity("ex:x")
+    assert len(document.unified().get_records()) == 2
+
+
+def test_distinct_relation_kinds_sharing_id_raise():
+    document = _doc()
+    document.generation("ex:e1", "ex:a1", identifier="ex:r1")
+    document.usage("ex:a1", "ex:e1", identifier="ex:r1")
+    with pytest.raises(ProvUnificationError):
+        document.unified()

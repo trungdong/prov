@@ -82,6 +82,13 @@ term unification). Concretely:
   and "explicitly `-`"), so the specification's `-`-versus-concrete merge failure is out
   of scope by representation.
 - Non-formal ("extra") attributes keep their set-union semantics.
+- Records sharing an identifier but holding **incompatible types** — an entity and an
+  activity, or two distinct relation kinds such as a generation and a usage — now
+  **raise `ProvUnificationError`** naming both types, in either assertion order,
+  instead of merging into a copy of whichever record was asserted first
+  (PROV-CONSTRAINTS Constraints 50/54/55). Overlaps the specification explicitly
+  permits — an agent that is also an entity and/or an activity — are kept as separate,
+  per-type-merged records rather than combined into one.
 - Each scope is unified independently: `ProvDocument.unified()` unifies the top-level
   records and each bundle separately, and never merges across a bundle boundary
   (PROV-CONSTRAINTS §7.2).
@@ -95,9 +102,11 @@ term unification). Concretely:
 identifier can disagree on a formal attribute (for example, two `wasGeneratedBy`
 statements for the same identifier asserting different `prov:time` values — the
 "scruffy" pattern used in this repo's own test suite, and the RDF representational
-limitation tracked as #217 above), expect that call to raise in 3.0 where it previously
-merged silently. Catch the new exception (or restructure the document to avoid
-conflicting formal attributes) before upgrading. `ProvUnificationError` is importable
+limitation tracked as #217 above) — or where an identifier is shared by incompatible
+types, such as an `entity` and an `activity` asserted under the same identifier — expect
+that call to raise in 3.0 where it previously merged silently. Catch the new exception
+(or restructure the document to avoid conflicting formal attributes or incompatible
+same-identifier types) before upgrading. `ProvUnificationError` is importable
 from `prov.model`, and subclasses `ProvException`, so code that already catches
 `ProvException` around `unified()` keeps working. Documents without this pattern are
 unaffected. Note that this is strictly an opt-in `unified()` behaviour: `prov` performs
@@ -141,8 +150,8 @@ If your code:
   literals, doesn't parse the `"type"` of PROV-JSON qualified-name attribute values, and
   doesn't inspect the type of an attribute value asserted from a `prov:QUALIFIED_NAME`-typed
   `Literal` — unaffected by the bug fixes.
-- Doesn't call `unified()` on documents with conflicting formal attributes sharing an
-  identifier — unaffected by the unification rework.
+- Doesn't call `unified()` on documents with conflicting formal attributes, or
+  incompatible types, sharing an identifier — unaffected by the unification rework.
 - Doesn't catch `KeyError`/`AttributeError`/`TypeError` around PROV-JSON deserialization
   to handle malformed input — unaffected by the #228 exception-contract change.
 

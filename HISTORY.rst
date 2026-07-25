@@ -12,6 +12,11 @@ History
   ``prov.model.ProvUnificationError`` instead of silently unioning; absent
   formal attributes unify with concrete values; extra attributes keep
   set-union semantics; bundles unify independently (#253)
+* ``unified()`` rejects same-identifier records of incompatible types
+  (entity vs activity, distinct relation kinds — PROV-CONSTRAINTS 50/54/55)
+  with ``ProvUnificationError`` instead of merging them order-dependently
+  into the first record's type; spec-permitted overlaps (an agent that is
+  also an entity or activity) are kept as separate records (#253)
 * PROV-XML round trip preserves attributes whose value is the empty string;
   previously they were silently dropped on deserialization (#224)
 * PROV-XML serializes attribute names containing characters illegal in an

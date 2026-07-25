@@ -48,6 +48,7 @@ from prov.constants import (
     PROV_ATTR_USAGE,
     PROV_ATTR_USED_ENTITY,
     PROV_ATTRIBUTION,
+    PROV_BASE_CLS,
     PROV_COMMUNICATION,
     PROV_DELEGATION,
     PROV_DERIVATION,
@@ -110,8 +111,84 @@ from prov.model.records import (
 logger = logging.getLogger(__name__)
 
 
-def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
-    """Merge records sharing an identifier by PROV-CONSTRAINTS term unification.
+# PROV-CONSTRAINTS (https://www.w3.org/TR/prov-constraints/) type compatibility
+# for same-identifier records of *different* base types. §6.3 makes typeOf(id)
+# a SET: an identifier may legitimately carry more than one type, so mixing
+# types under one id is not automatically an error -- only the specific
+# combinations below are. Text transcribed from §6.4 (Impossibility
+# constraints):
+#
+# Constraint 55 (entity-activity-disjoint): "The set of entities and
+# activities are disjoint": IF 'entity' in typeOf(id) AND 'activity' in
+# typeOf(id) THEN INVALID. The spec explicitly carves out agent from this:
+# "There is no disjointness between entities and agents. ... one can assert
+# both entity(a1) and agent(a1) in a valid PROV instance. Similarly, there is
+# no disjointness between activities and agents, and one can assert both
+# activity(a1) and agent(a1)".
+#
+# Constraint 54 (impossible-object-property-overlap): "Identifiers of
+# entities, agents and activities cannot also be identifiers of properties."
+# For each p in {entity, activity, agent} and each r in {used, wasGeneratedBy,
+# wasInvalidatedBy, wasInfluencedBy, wasStartedBy, wasEndedBy, wasInformedBy,
+# wasDerivedFrom, wasAttributedTo, wasAssociatedWith, actedOnBehalfOf}: IF
+# p(id, a1,...,am) and r(id; b1,...,bn) THEN INVALID -- i.e. every object
+# (element) base type is disjoint from every one of the eleven identified
+# relations (Constraint 23).
+#
+# Constraint 53 (impossible-property-overlap): "identifiers of basic
+# relationships are disjoint": for r != s both in {used, wasGeneratedBy,
+# wasInvalidatedBy, wasStartedBy, wasEndedBy, wasInformedBy, wasAttributedTo,
+# wasAssociatedWith, actedOnBehalfOf}: IF r(id; a1,...,am) and s(id;
+# b1,...,bn) THEN INVALID. This pairwise-disjoint set deliberately excludes
+# wasDerivedFrom and wasInfluencedBy: the spec calls out wasInfluencedBy by
+# name as exempt because it is a superproperty meant to share an identifier
+# with a more specific relation, giving the worked example "wasInfluencedBy(
+# id;e2,e1)" + "wasDerivedFrom(id;e2,e1)" as valid ("This satisfies the
+# disjointness constraint."); wasDerivedFrom itself is simply absent from the
+# enumerated set.
+#
+# (Alternate/Specialization/Mention/Membership have no identifier -- they are
+# not among Constraint 23's eleven identified relations -- so they never
+# reach this table: :meth:`ProvBundle._add_record` only populates ``_id_map``
+# for records with a non-``None`` identifier.)
+_OBJECT_TYPES = frozenset({PROV_ENTITY, PROV_ACTIVITY, PROV_AGENT})
+_ENTITY_ACTIVITY = frozenset({PROV_ENTITY, PROV_ACTIVITY})
+_PAIRWISE_DISJOINT_RELATIONS = frozenset(
+    {
+        PROV_GENERATION,
+        PROV_USAGE,
+        PROV_COMMUNICATION,
+        PROV_START,
+        PROV_END,
+        PROV_INVALIDATION,
+        PROV_ATTRIBUTION,
+        PROV_ASSOCIATION,
+        PROV_DELEGATION,
+    }
+)
+
+
+def _incompatible_types(type_a: QualifiedName, type_b: QualifiedName) -> bool:
+    """True if two distinct base record types cannot share an identifier."""
+    if {type_a, type_b} == _ENTITY_ACTIVITY:
+        return True  # Constraint 55
+    is_object_a = type_a in _OBJECT_TYPES
+    is_object_b = type_b in _OBJECT_TYPES
+    if is_object_a != is_object_b:
+        return True  # Constraint 54: an object type vs a property type
+    if is_object_a and is_object_b:
+        # The only other object/object pairing is agent+entity or
+        # agent+activity, both spec-permitted overlaps.
+        return False
+    # Both are property (relation) types.
+    return (
+        type_a in _PAIRWISE_DISJOINT_RELATIONS
+        and type_b in _PAIRWISE_DISJOINT_RELATIONS
+    )
+
+
+def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
+    """Merge same-type records sharing an identifier by term unification.
 
     Formal attributes are unified positionally: an absent value is an
     existential ("unknown") that unifies with anything, equal concrete values
@@ -121,8 +198,8 @@ def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
     :meth:`ProvRecord.add_attributes`' single-value guard.
 
     Args:
-        records: Two or more records carrying the same identifier, in
-            assertion order.
+        records: Two or more records of the same base record type, carrying
+            the same identifier, in assertion order.
 
     Returns:
         A single, newly created record standing for the whole group.
@@ -133,14 +210,6 @@ def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
     """
     first_record = records[0]
     record_type = first_record.get_type()
-    if any(record.get_type() != record_type for record in records[1:]):
-        # Task 2 (#253): type compatibility. Until then, a group mixing record
-        # types keeps the historic first-record-wins attribute union.
-        merged = first_record.copy()
-        for record in records[1:]:
-            merged.add_attributes(record.attributes)
-        return merged
-
     identifier = first_record.identifier
     attributes: list[NameValuePair] = []
     # Same record type, hence the same FORMAL_ATTRIBUTES: zip() lines the
@@ -173,6 +242,50 @@ def _unify_record_group(records: list[ProvRecord]) -> ProvRecord:
         attributes.extend(record.extra_attributes)
 
     return PROV_REC_CLS[record_type](first_record.bundle, identifier, attributes)
+
+
+def _unify_record_group(records: list[ProvRecord]) -> dict[QualifiedName, ProvRecord]:
+    """Merge records sharing an identifier by PROV-CONSTRAINTS term unification.
+
+    Records are first partitioned by base record type (:data:`PROV_BASE_CLS`,
+    which reduces any subtyped derivation etc. to its base class). Within a
+    type, :func:`_unify_same_type_group` applies. Across types, the identifier
+    is only valid PROV-CONSTRAINTS usage if every pair of types present is one
+    of the spec's permitted overlaps (see the compatibility table above);
+    otherwise the whole group is invalid.
+
+    Args:
+        records: Two or more records carrying the same identifier, in
+            assertion order.
+
+    Returns:
+        A mapping from each base record type present in the group to the
+        single, newly created record that stands for that type's records.
+        Usually one entry; more than one when the identifier legitimately
+        carries more than one type (e.g. an agent that is also an entity).
+
+    Raises:
+        ProvUnificationError: If two records of the same type hold different
+            concrete values for the same formal attribute, or if the group
+            spans two base record types that PROV-CONSTRAINTS' typing and
+            impossibility constraints (54/55) forbid combining under one
+            identifier.
+    """
+    identifier = records[0].identifier
+    groups: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
+    for record in records:
+        groups[PROV_BASE_CLS[record.get_type()]].append(record)
+
+    base_types = list(groups)
+    for type_a, type_b in itertools.combinations(base_types, 2):
+        if _incompatible_types(type_a, type_b):
+            raise ProvUnificationError(
+                f"cannot unify {identifier}: incompatible types {type_a} and {type_b}"
+            )
+
+    return {
+        base_type: _unify_same_type_group(group) for base_type, group in groups.items()
+    }
 
 
 class ProvBundle:
@@ -455,11 +568,15 @@ class ProvBundle:
         merged_records = {}
         for _identifier, records in self._id_map.items():
             if len(records) > 1:
-                # more than one record having the same identifier: unify them
-                merged = _unify_record_group(records)
-                # map all of them to the merged record
+                # more than one record having the same identifier: unify them,
+                # per base record type (usually one type, but PROV-CONSTRAINTS
+                # permits an id to carry more than one, e.g. agent + entity)
+                merged_by_type = _unify_record_group(records)
+                # map each original record to its own type's merged record
                 for record in records:
-                    merged_records[record] = merged
+                    merged_records[record] = merged_by_type[
+                        PROV_BASE_CLS[record.get_type()]
+                    ]
         if not merged_records:
             # No merging done, just return the list of original records
             return list(self._records)
@@ -480,14 +597,19 @@ class ProvBundle:
     def unified(self) -> ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
 
-        For each identifier carried by more than one record, a single merged
-        record is produced by the term unification of W3C PROV-CONSTRAINTS'
-        key constraints (22 and 23): the records' formal attributes are unified
-        position by position — an absent formal attribute is an existential
-        that unifies with any concrete value, equal concrete values unify, and
-        two different concrete values do not — while their remaining attributes
-        are unioned. Records with a unique identifier, or no identifier, pass
-        through unchanged.
+        For each identifier carried by more than one record, the records are
+        first checked for type compatibility (W3C PROV-CONSTRAINTS' typing and
+        impossibility constraints, 54 and 55): an entity and an activity (or
+        two distinct relation kinds, e.g. a generation and a usage) cannot
+        share an identifier and raise; a spec-permitted overlap (an agent that
+        is also an entity and/or an activity) is kept as separate records, one
+        per type. Within each type, a single merged record is produced by the
+        term unification of key constraints 22 and 23: the records' formal
+        attributes are unified position by position — an absent formal
+        attribute is an existential that unifies with any concrete value,
+        equal concrete values unify, and two different concrete values do not
+        — while their remaining attributes are unioned. Records with a unique
+        identifier, or no identifier, pass through unchanged.
 
         This is not the specification's full normalization: the uniqueness
         constraints keyed on something other than the record identifier
@@ -498,8 +620,10 @@ class ProvBundle:
             The new, unified :class:`ProvBundle`.
 
         Raises:
-            ProvUnificationError: If two records sharing an identifier hold
-                different concrete values for the same formal attribute.
+            ProvUnificationError: If two records of the same type sharing an
+                identifier hold different concrete values for the same formal
+                attribute, or if two records sharing an identifier have
+                incompatible types.
         """
         warnings.warn(
             "prov 3.0 will change unified() to merge records per the W3C "
@@ -1545,7 +1669,8 @@ class ProvDocument(ProvBundle):
         Raises:
             ProvUnificationError: If two records sharing an identifier within
                 the same scope hold different concrete values for the same
-                formal attribute.
+                formal attribute, or have incompatible types (see
+                :meth:`ProvBundle.unified`).
         """
         warnings.warn(
             "prov 3.0 will change unified() to merge records per the W3C "

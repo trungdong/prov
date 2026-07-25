@@ -1,8 +1,10 @@
 """Characterize unified() against the PROV-CONSTRAINTS unification corpus.
 
 ``unified()`` implements the specification's key constraints (22 and 23) by
-pairwise term unification of formal attributes. Observed outcomes over the
-vendored ProvToolbox/W3C corpus (``unification/constraints/``):
+pairwise term unification of formal attributes, plus the type compatibility
+checks of Constraints 53-55 for same-identifier records of different base
+types (see the compatibility table in ``prov.model.bundle``). Observed
+outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``):
 
 - fail-cases whose same-identifier records carry *conflicting concrete* formal
   attribute values are rejected with the documented ``ProvUnificationError``
@@ -17,6 +19,18 @@ vendored ProvToolbox/W3C corpus (``unification/constraints/``):
 - three ``bundle-*`` files cannot be parsed at all — prov's PROV-XML
   deserializer rejects them with ``ProvXMLException`` (issue #254) — and are
   skipped as parse failures.
+
+None of the 153 vendored files exercise the type compatibility checks: the
+corpus's fail-cases are all same-type/same-relation conflicts or fall under
+the out-of-scope constraints above (audited case by case for #253's type
+compatibility step; e.g. ``usage-fail1``'s apparently swapped entity/activity
+identifiers are just confusing local names — ``ex:e1`` is declared and used
+consistently as the activity, ``ex:a1`` consistently as the entity — its
+actual invalidity is the out-of-scope uniqueness-by-pair Constraint 24
+analogue). The disjoint-type chimera (Constraint 55) is instead exercised by
+the hand-written ``test_entity_and_activity_sharing_an_id_raises`` below, and
+the permitted-overlap and disjoint-relation-kind cases (Constraints 54/53) by
+``src/prov/tests/test_unification_rules.py``.
 
 Authority: docs/superpowers/specs/2026-07-10-unification-gap-analysis.md and
 umbrella issue #253.
@@ -192,25 +206,19 @@ def test_placeholder_vs_concrete_plan_merges():
     assert records[0].get_provn() == "wasAssociatedWith(assoc1; a1, ag1, pl1)"
 
 
-def test_entity_and_activity_sharing_an_id_currently_merge_into_an_entity():
+def test_entity_and_activity_sharing_an_id_raises():
     # PROV-CONSTRAINTS Constraint 55 (entity-activity-disjoint) makes an
     # entity and an activity with the same identifier INVALID (with
-    # Constraint 50, typing). Term unification applies to same-type groups
-    # only, so for now they still merge into a copy of whichever record came
-    # first — here a ProvEntity — with the activity's formal startTime demoted
-    # to an extra literal attribute.
-    # Task 2 (#253): type compatibility — this must raise.
+    # Constraint 50, typing). unified() now rejects the group instead of
+    # merging into a copy of whichever record came first (the previous,
+    # order-dependent chimera characterized by this test until #253's type
+    # compatibility check landed).
     doc = ProvDocument()
     doc.set_default_namespace("http://example.org/")
     doc.entity("thing")
     doc.activity("thing", startTime="2011-11-16T16:00:00")
-    unified = doc.unified()
-    records = unified.get_records()
-    assert len(records) == 1
-    assert (
-        records[0].get_provn()
-        == 'entity(thing, [prov:startTime="2011-11-16T16:00:00" %% xsd:dateTime])'
-    )
+    with pytest.raises(ProvUnificationError, match="thing"):
+        doc.unified()
 
 
 def test_uniqueness_constraints_on_other_keys_are_out_of_scope():
