@@ -12,6 +12,12 @@ import datetime
 
 import pytest
 
+from prov.constants import (
+    PROV_ATTR_BUNDLE,
+    PROV_ATTR_GENERAL_ENTITY,
+    PROV_ATTR_SPECIFIC_ENTITY,
+    PROV_MENTION,
+)
 from prov.model import ProvDocument, ProvUnificationError
 
 # unified() still emits its 2.4.0 FutureWarning signpost (removed in a later
@@ -79,3 +85,73 @@ def test_unification_is_scoped_per_bundle():
     bundle.activity("ex:a", startTime=T2)  # would conflict if scopes leaked
     unified = document.unified()  # must NOT raise
     assert unified.has_bundles()
+
+
+def test_entity_activity_same_id_raises_either_order():
+    # Constraints 50/55 (typing / entity-activity-disjoint): typeOf(id) can
+    # never hold both 'entity' and 'activity'.
+    for order in (("entity", "activity"), ("activity", "entity")):
+        document = _doc()
+        for kind in order:
+            getattr(document, kind)("ex:thing")
+        with pytest.raises(ProvUnificationError) as ctx:
+            document.unified()
+        message = str(ctx.value)
+        assert "prov:Entity" in message and "prov:Activity" in message
+
+
+def test_agent_entity_overlap_is_permitted_and_unmerged():
+    # Constraint 54 does not pair agent with entity: both statements stand.
+    document = _doc()
+    document.agent("ex:x")
+    document.entity("ex:x")
+    assert len(document.unified().get_records()) == 2
+
+
+def test_distinct_relation_kinds_sharing_id_raise():
+    # Constraint 53: generation and usage are two of the nine pairwise
+    # disjoint relations.
+    document = _doc()
+    document.generation("ex:e1", "ex:a1", identifier="ex:r1")
+    document.usage("ex:a1", "ex:e1", identifier="ex:r1")
+    with pytest.raises(ProvUnificationError) as ctx:
+        document.unified()
+    message = str(ctx.value)
+    assert "prov:Generation" in message and "prov:Usage" in message
+
+
+def test_derivation_and_influence_sharing_id_is_permitted():
+    # PROV-CONSTRAINTS §6.4's own worked example: wasInfluencedBy is exempt
+    # from Constraint 53's pairwise-disjoint set because it is a superproperty
+    # meant to share an identifier with a more specific relation --
+    # "wasInfluencedBy(id;e2,e1)" + "wasDerivedFrom(id;e2,e1)" is explicitly
+    # valid ("This satisfies the disjointness constraint."). This is the crux
+    # of the 53-vs-54 distinction: derivation and influence are both among
+    # Constraint 54's eleven identified relations, but neither is an object
+    # type, so Constraint 54 does not apply either.
+    document = _doc()
+    document.derivation("ex:e2", "ex:e1", identifier="ex:r1")
+    document.influence("ex:e2", "ex:e1", identifier="ex:r1")
+    assert len(document.unified().get_records()) == 2
+
+
+def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope():
+    # Constraint 54's r-set is Constraint 23's eleven *identified* relations;
+    # Mention has no identifier in PROV-DM's abstract syntax and so is not
+    # among them -- the specification has no opinion on an id it happens to
+    # share with an entity. The .mention() convenience method always passes
+    # identifier=None, but new_record() (and the PROV-JSON deserializer) can
+    # still construct a Mention with an explicit, shared identifier.
+    document = _doc()
+    document.entity("ex:thing")
+    document.new_record(
+        PROV_MENTION,
+        "ex:thing",
+        {
+            PROV_ATTR_SPECIFIC_ENTITY: "ex:e1",
+            PROV_ATTR_GENERAL_ENTITY: "ex:e2",
+            PROV_ATTR_BUNDLE: "ex:b1",
+        },
+    )
+    unified = document.unified()  # must NOT raise
+    assert len(unified.get_records()) == 2
