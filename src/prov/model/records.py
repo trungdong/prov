@@ -303,7 +303,16 @@ class TypedValueSet(MutableSet[Any]):
             self.add(value)
 
     def add(self, value: Any) -> None:
-        self._index[(type(value), value)] = value
+        # setdefault, not assignment: matches plain set.add's first-wins
+        # semantics when an equal-typed, equal-valued item is re-added --
+        # the incumbent object is retained, the new one discarded. This
+        # matters for values that are __eq__-equal but not identical, such
+        # as two xsd:decimal Literals with different lexical forms (#77) or
+        # two langtag Literals differing only in tag case (#259); it also
+        # keeps this container's semantics consistent with
+        # ProvRecord.add_attributes()'s own cardinality guard, which keeps
+        # the first value seen and ignores a later "same value" one.
+        self._index.setdefault((type(value), value), value)
 
     def discard(self, value: Any) -> None:
         self._index.pop((type(value), value), None)

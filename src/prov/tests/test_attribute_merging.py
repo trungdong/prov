@@ -116,8 +116,28 @@ def test_literal_decimal_value_space_dedup_unchanged(doc):
         ],
     )
     # Same Python type (Literal) and the same xsd:decimal value-space value
-    # (#77) -- still a single retained value.
-    assert len(e.get_attribute("ex:v")) == 1
+    # (#77) -- still a single retained value, and it is the *first* one
+    # asserted ("10"), matching plain set.add's first-wins semantics and
+    # add_attributes()'s own cardinality guard (which also keeps the first
+    # value and ignores a later "same value" one).
+    (retained,) = e.get_attribute("ex:v")
+    assert retained.value == "10"
+
+
+def test_literal_langtag_case_dedup_keeps_first(doc):
+    e = doc.entity(
+        "ex:e",
+        [
+            ("ex:v", Literal("hi", langtag="en")),
+            ("ex:v", Literal("hi", langtag="EN")),
+        ],
+    )
+    # Same Python type (Literal) and the same value under langtag
+    # case-insensitive equality (#259) -- still a single retained value,
+    # and it is the *first* one asserted ("hi"@en), not the second
+    # ("hi"@EN); same first-wins rationale as the decimal case above.
+    (retained,) = e.get_attribute("ex:v")
+    assert retained.langtag == "en"
 
 
 # --- AC: __eq__/__hash__ distinguish the retained values ---

@@ -12,13 +12,18 @@ History
   ``attributes``/``extra_attributes`` iteration, record equality/hashing, and
   serialization. ``ProvRecord.get_attribute()``, ``get_asserted_types()`` and
   the ``value`` property keep their 2.x return type (a plain ``set``, built
-  fresh from the record's own storage) rather than exposing the new
-  type-aware internal storage directly, so a Python-equal-but-differently-
+  fresh from the record's own storage on every call) rather than exposing the
+  new type-aware internal storage directly, so a Python-equal-but-differently-
   typed pair still collapses in what those three accessors return, exactly
   as in 2.x (``get_asserted_types()`` is unaffected in practice, since
   ``prov:type`` values are always ``QualifiedName``\ s, which never
-  collapse). Internally, iterating a record's attributes now yields values in
-  assertion order rather than an arbitrary hash-bucket order; this also makes
+  collapse). In 2.x these accessors returned the record's own live
+  ``set``, so mutating the returned object (e.g.
+  ``record.get_asserted_types().add(qn)``) mutated the record; that write-
+  through is gone now that a fresh copy is built on every call, so the same
+  mutation silently no-ops. Internally, iterating a record's attributes now
+  yields values in assertion order rather than an arbitrary hash-bucket
+  order; this also makes
   ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
   deterministic where they previously picked an arbitrary value among
   several formally-invalid duplicates (#34)
