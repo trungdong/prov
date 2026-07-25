@@ -94,6 +94,10 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     Returns:
         A NetworkX ``MultiDiGraph`` with PROV elements as nodes and PROV
         relations as edges.
+
+    Raises:
+        ProvUnificationError: Propagated, unhandled, from
+            :meth:`~prov.model.ProvBundle.unified`.
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()

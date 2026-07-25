@@ -12,16 +12,31 @@ History
   ``attributes``/``extra_attributes`` iteration, record equality/hashing, and
   serialization. ``ProvRecord.get_attribute()``, ``get_asserted_types()`` and
   the ``value`` property keep their 2.x return type (a plain ``set``, built
-  fresh from the record's own storage) rather than exposing the new
-  type-aware internal storage directly, so a Python-equal-but-differently-
+  fresh from the record's own storage on every call) rather than exposing the
+  new type-aware internal storage directly, so a Python-equal-but-differently-
   typed pair still collapses in what those three accessors return, exactly
   as in 2.x (``get_asserted_types()`` is unaffected in practice, since
   ``prov:type`` values are always ``QualifiedName``\ s, which never
-  collapse). Internally, iterating a record's attributes now yields values in
-  assertion order rather than an arbitrary hash-bucket order; this also makes
+  collapse). In 2.x these accessors returned the record's own live
+  ``set``, so mutating the returned object (e.g.
+  ``record.get_asserted_types().add(qn)``) mutated the record; that write-
+  through is gone now that a fresh copy is built on every call, so the same
+  mutation silently no-ops. Internally, iterating a record's attributes now
+  yields values in assertion order rather than an arbitrary hash-bucket
+  order; this also makes
   ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
   deterministic where they previously picked an arbitrary value among
   several formally-invalid duplicates (#34)
+* Fixed: the type-aware attribute storage above (#34) kept the *last*
+  value seen when a genuine duplicate (equal type, equal value) was
+  re-added — e.g. asserting both ``Literal("10", XSD_DECIMAL)`` and
+  ``Literal("10.00", XSD_DECIMAL)`` (#77) on the same attribute retained
+  ``"10.00"``, and both ``Literal("hi", langtag="en")`` and
+  ``Literal("hi", langtag="EN")`` (#259) retained ``"hi"@EN`` — the
+  opposite of plain ``set.add()`` and of ``add_attributes()``'s own
+  single-value cardinality guard, which both keep the *first* value seen.
+  The retained value is now the first one asserted, in both cases, matching
+  2.x
 * BREAKING: ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
   PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
   formal attributes: records sharing an identifier whose formal attributes

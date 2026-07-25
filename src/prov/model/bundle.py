@@ -205,8 +205,10 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     existential ("unknown") that unifies with anything, equal concrete values
     unify, and two different concrete values do not unify. Non-formal ("extra")
     attributes are unioned. The merged record is newly constructed from the
-    unified formal attributes, so no conflict is ever routed through
-    :meth:`ProvRecord.add_attributes`' single-value guard.
+    unified formal attributes, so no *formal-attribute* conflict is ever
+    routed through :meth:`ProvRecord.add_attributes`' single-value guard --
+    a conflict between two records' *extra* attributes still is, since those
+    are reasserted through the merged record's constructor unchanged.
 
     Args:
         records: Two or more records of the same base record type, carrying
