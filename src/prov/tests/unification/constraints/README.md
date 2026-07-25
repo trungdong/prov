@@ -1,9 +1,9 @@
 # PROV-CONSTRAINTS unification corpus
 
 153 PROV-XML documents exercising the W3C PROV-CONSTRAINTS unification and
-key-constraint rules, consumed by `src/prov/tests/test_unification_constraints.py`
-(characterization of `unified()`, roadmap step 30b; the 3.0 reimplementation is
-roadmap step 36b — umbrella issue
+key-constraint rules, consumed by
+`src/prov/tests/test_unification_constraints.py`, which characterizes
+`unified()` against the PROV-CONSTRAINTS rework landed in 3.0 (umbrella issue
 [#253](https://github.com/trungdong/prov/issues/253)).
 
 ## Origin
