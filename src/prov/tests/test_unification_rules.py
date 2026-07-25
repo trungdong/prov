@@ -83,8 +83,8 @@ def test_unification_is_scoped_per_bundle():
 
 
 def test_entity_activity_same_id_raises_either_order():
-    # Constraints 50/55 (typing / entity-activity-disjoint): typeOf(id) can
-    # never hold both 'entity' and 'activity'.
+    # Constraint 55 (entity-activity-disjoint): the same identifier can
+    # never be both an entity and an activity.
     for order in (("entity", "activity"), ("activity", "entity")):
         document = _doc()
         for kind in order:
