@@ -172,9 +172,12 @@ def test_unified_corpus_characterization(xml_path, expected):
         # Invalid instance rejected by term unification: two same-identifier
         # records disagree on a formal attribute's concrete value. Every
         # rejection in this group goes through the same code path
-        # (_unify_same_type_group's conflicting-values branch), so they all
-        # share the "cannot unify <id>: ..." message prefix.
-        with pytest.raises(ProvUnificationError, match="cannot unify"):
+        # (_unify_same_type_group's conflicting-values branch), whose message
+        # continues "... has conflicting values ..." -- distinct from the
+        # type-compatibility rejection's "... incompatible types ..." (none
+        # of these 153 ProvToolbox cases exercise that path; see the module
+        # docstring).
+        with pytest.raises(ProvUnificationError, match="has conflicting"):
             document.unified()
     else:
         # Invalid instance ("fail" per the corpus label) that unified()
