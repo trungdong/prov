@@ -1,0 +1,18 @@
+{
+  "prefix": {
+    "ex": "http://example.org/"
+  },
+  "entity": {
+    "ex:x": {},
+    "ex:e1": {}
+  },
+  "activity": {
+    "ex:a1": {}
+  },
+  "wasGeneratedBy": {
+    "ex:x": {
+      "prov:entity": "ex:e1",
+      "prov:activity": "ex:a1"
+    }
+  }
+}

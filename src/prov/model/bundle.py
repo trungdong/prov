@@ -8,7 +8,6 @@ import logging
 import os
 import shutil
 import tempfile
-import warnings
 from collections import defaultdict
 from collections.abc import Iterable
 from typing import IO, Any, cast
@@ -636,15 +635,6 @@ class ProvBundle:
                 attribute, or if two records sharing an identifier have
                 incompatible types.
         """
-        warnings.warn(
-            "prov 3.0 will change unified() to merge records per the W3C "
-            "PROV-CONSTRAINTS rules; records sharing an identifier but having "
-            "conflicting formal attributes will then raise an error instead of "
-            "having their attributes silently unioned. See "
-            "https://github.com/trungdong/prov/blob/master/ROADMAP.md",
-            FutureWarning,
-            stacklevel=2,
-        )
         unified_records = self._unified_records()
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
         return bundle
@@ -1683,15 +1673,6 @@ class ProvDocument(ProvBundle):
                 formal attribute, or have incompatible types (see
                 :meth:`ProvBundle.unified`).
         """
-        warnings.warn(
-            "prov 3.0 will change unified() to merge records per the W3C "
-            "PROV-CONSTRAINTS rules; records sharing an identifier but having "
-            "conflicting formal attributes will then raise an error instead of "
-            "having their attributes silently unioned. See "
-            "https://github.com/trungdong/prov/blob/master/ROADMAP.md",
-            FutureWarning,
-            stacklevel=2,
-        )
         document = ProvDocument(self._unified_records())
         document._namespaces = self._namespaces
         for bundle in self.bundles:

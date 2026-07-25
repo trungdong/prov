@@ -20,11 +20,6 @@ from prov.constants import (
 )
 from prov.model import ProvDocument, ProvUnificationError
 
-# unified() still emits its 2.4.0 FutureWarning signpost (removed in a later
-# step of the rework); pyproject.toml ignores it globally, and the mark keeps
-# this module self-contained should that filter ever change.
-pytestmark = pytest.mark.filterwarnings("ignore::FutureWarning")
-
 T1 = datetime.datetime(2011, 11, 16, 16, 0, 0)
 T2 = datetime.datetime(2011, 11, 16, 18, 0, 0)
 
@@ -98,6 +93,20 @@ def test_entity_activity_same_id_raises_either_order():
             document.unified()
         message = str(ctx.value)
         assert "prov:Entity" in message and "prov:Activity" in message
+
+
+def test_object_type_and_identified_relation_sharing_id_raises():
+    # Constraint 54: an object type (entity/activity/agent) sharing an
+    # identifier with one of the eleven identified relations is impossible --
+    # distinct from Constraint 55 (object-vs-object) and Constraint 53
+    # (relation-vs-relation).
+    document = _doc()
+    document.entity("ex:x")
+    document.generation("ex:e1", "ex:a1", identifier="ex:x")
+    with pytest.raises(ProvUnificationError) as ctx:
+        document.unified()
+    message = str(ctx.value)
+    assert "prov:Entity" in message and "prov:Generation" in message
 
 
 def test_agent_entity_overlap_is_permitted_and_unmerged():

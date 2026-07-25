@@ -96,10 +96,27 @@ are held in a set, identical values are deduplicated while distinct values all a
 Records with a unique identifier, and records with no identifier at all, pass through
 untouched.
 
+`unified()` is the *only* place in `prov` that can raise over a same-identifier conflict.
+Building or asserting records — `bundle.entity(...)`, `bundle.activity(...)`, and friends —
+never checks for one, by design: PROV statements are legitimately asserted incomplete, one
+piece at a time, expecting a later `unified()` call (or none at all) to reconcile them.
+Validating a document *without* merging it is a separate, opt-in concern, tracked as
+[issue #62](https://github.com/trungdong/prov/issues/62).
+
 {py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
 document's top-level records and, independently, to each contained bundle, **preserving** the
-bundle structure (unlike `flattened()`) — nothing is merged across a bundle boundary.
-{py:meth}`ProvBundle.unified() <prov.model.ProvBundle.unified>` does it for a single bundle.
+bundle structure (unlike `flattened()`) — nothing is merged across a bundle boundary, per the
+specification's §7.2. {py:meth}`ProvBundle.unified() <prov.model.ProvBundle.unified>` does it
+for a single bundle.
+
+Calling `flattened().unified()` — flattening a document first, then unifying the result — is a
+different, deliberate tool: because `flattened()` has already discarded the bundle structure,
+the subsequent `unified()` sees one scope and merges same-identifier records **across** what
+used to be bundle boundaries. No PROV-CONSTRAINTS rule licenses that; it is a single-instance
+view for callers who want the broadest possible merge and accept that two bundles asserting the
+same local name might describe different real-world things. `prov` keeps this idiom working
+(it is exercised in the test suite), but it sits outside PROV-CONSTRAINTS semantics — reach for
+plain `document.unified()` when per-bundle scoping matters.
 
 Four limits are worth knowing:
 

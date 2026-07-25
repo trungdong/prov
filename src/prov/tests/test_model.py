@@ -21,6 +21,7 @@ from prov.model import (
     ProvElementIdentifierRequired,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvUnificationError,
     first,
     parse_boolean,
     parse_xsd_datetime,
@@ -81,8 +82,12 @@ def test_flattening():
 
 
 def test_unifying():
-    # This is a very trivial test just to exercise the unified() function
-    # TODO: Create a proper unification test
+    # Exercises unified() over the hand-made fixtures in unification/: files
+    # named "...-PASS-cNN.json" merge (the unified record count shrinks
+    # relative to the flattened one), while "...-FAIL-cNN.json" fixtures
+    # carry a same-identifier conflict for constraint cNN and must raise
+    # ProvUnificationError instead. See test_unification_rules.py for a
+    # fuller, inline-constructed characterization of each constraint.
     json_path = os.path.dirname(os.path.abspath(__file__)) + "/unification/"
     for filename in os.listdir(json_path):
         if not filename.endswith(".json"):
@@ -93,8 +98,12 @@ def test_unifying():
             logger.debug("Loading %s...", filepath)
             document = ProvDocument.deserialize(json_file)
             flattened = document.flattened()
-            unified = flattened.unified()
-            assert len(unified.get_records()) < len(flattened.get_records())
+            if "-FAIL-" in filename:
+                with pytest.raises(ProvUnificationError):
+                    flattened.unified()
+            else:
+                unified = flattened.unified()
+                assert len(unified.get_records()) < len(flattened.get_records())
 
 
 def test_bundle_update_simple():

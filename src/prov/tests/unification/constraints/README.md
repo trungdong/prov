@@ -69,3 +69,76 @@ Files are named `<category>-successN.xml` / `<category>-failN.xml`:
   the test module skips them as parse failures.
 
 Do not edit the `.xml` files; they are a vendored upstream corpus.
+
+## W3C type-compatibility corpus (`.provx`)
+
+Seven additional PROV-XML documents (`type-*.provx`), exercising the
+same-identifier type-compatibility rules (Constraints 50, 53–56 — `prov`
+implements 53/54/55 only; see "Naming convention" below) that the
+ProvToolbox corpus above does not cover at all, consumed by
+`test_unification_constraints.py`'s W3C-corpus characterization
+(`test_w3c_type_compatibility_characterization`).
+
+### Origin
+
+Fetched verbatim (retrieved 2026-07-25) from the W3C Provenance Working
+Group's test case repository, listed in its manifest
+(`https://dvcs.w3.org/hg/prov/raw-file/default/testcases/all-tests.txt`):
+
+```
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-collection-FAIL-c56.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-f1-FAIL-c50-c55.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-f2-FAIL-c50-c55.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-f3-FAIL-c54.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-f4-FAIL-c53.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-s1-PASS-c50-c55.provx
+https://dvcs.w3.org/hg/prov/raw-file/default/testcases/constraints/type-s2-PASS-c50-c55.provx
+```
+
+The directory also carries paired `.ttl` (Turtle/PROV-O) and `.provn`
+siblings for each case; only the `.provx` (PROV-XML) files are vendored
+here, matching the ProvToolbox corpus's XML-only policy above.
+
+### Licence
+
+W3C publishes its test suites under a choice of two licences (see
+<https://www.w3.org/copyright/test-suites-licenses/>): the **W3C test suite
+license** (2008 version,
+<https://www.w3.org/Consortium/Legal/2008/04-testsuite-license.html>) or a
+**3-clause BSD license**, "for software development, bug tracking, and other
+applications that do not require assertions of performance to the public or
+implied claims of conformance to a W3C Specification" — exactly this use.
+The W3C test suite license permits copying and distribution "in any medium
+for any purpose and without fee or royalty" provided the original document's
+URL and copyright notice are retained:
+
+> Copyright © [$date-of-document] World Wide Web Consortium, (MIT, ERCIM,
+> Keio, Beihang) and others. All Rights Reserved.
+> <https://www.w3.org/copyright/test-suites-licenses/>
+
+Both licences permit verbatim vendoring for a non-branded, internal test
+corpus such as this one.
+
+### Naming convention
+
+These files use the W3C corpus's own convention, distinct from ProvToolbox's
+`-successN`/`-failN`: `type-<case>-PASS-c<NN[,-c<MM>...]>.provx` /
+`type-<case>-FAIL-c<NN[,-c<MM>...]>.provx`, where the suffix lists every
+constraint the case was designed to probe. Note that a `FAIL` case is the
+W3C Working Group's own claim about the case's validity against the *full*
+specification (constraint numbering it cites, including 50 and 56, that
+`unified()` does not implement) — it is not a claim that `prov`'s `unified()`
+must raise on it; see the per-case outcome table in
+`test_unification_constraints.py`'s docstring.
+
+### Local quirks
+
+- `type-f2-FAIL-c50-c55.provx` is invalid only via Constraint 50's
+  typing inference (an id used in a `wasGeneratedBy`'s `activity` role is
+  thereby inferred to have type `activity`, clashing with its asserted
+  `entity` type) — `unified()` does not perform that inference (it compares
+  only explicitly-asserted record types), so this case does not raise here.
+- `type-collection-FAIL-c56.provx` tests Constraint 56 (empty-collection
+  membership), which `unified()` does not implement at all.
+
+Do not edit the `.provx` files; they are a vendored upstream corpus.

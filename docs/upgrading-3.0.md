@@ -58,19 +58,18 @@ hook a warning onto — so this table is their only 2.4.0 signpost.
 
 ## Unification rework (PROV-CONSTRAINTS)
 
-`ProvBundle.unified()` and `ProvDocument.unified()` currently perform a simple,
+Before 3.0, `ProvBundle.unified()` and `ProvDocument.unified()` performed a simple,
 identifier-keyed attribute union: for each identifier shared by more than one record,
-the attributes of all such records are merged onto a copy of the first, with no
-conflict detection. See the
-[unification and flattening explanation](explanation/unification-flattening.md) for the
-full write-up of today's behaviour and how it diverges from the specification.
+the attributes of all such records were merged onto a copy of the first, with no
+conflict detection. 2.4.0 signposted the change with a `FutureWarning` on every call.
+See the [unification and flattening explanation](explanation/unification-flattening.md)
+for the full write-up of the 3.0 behaviour.
 
-In 3.0, `unified()` is reimplemented to follow the merging rules of
-[W3C PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) (key constraints and
-term unification). Concretely:
+3.0 lands that reimplementation (closing umbrella issue #253): `unified()` now follows
+the merging rules of [W3C PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)
+(key constraints and term unification), and the 2.4.0 `FutureWarning` is gone —
+`unified()` just does this now, unconditionally. Concretely:
 
-- Calling `unified()` in 2.4.0 and later already emits a `FutureWarning` naming this
-  page and ROADMAP.md.
 - Records sharing an identifier are merged by unifying their formal attributes position
   by position. Two records that hold **different concrete values for the same formal
   attribute** now **raise `prov.model.ProvUnificationError`** (a `ProvException`
@@ -95,8 +94,10 @@ term unification). Concretely:
 - **Out of scope for `unified()`**: the uniqueness constraints keyed on something other
   than the record identifier (Constraints 24–29) are not checked and never raise; they
   belong to the opt-in validation engine tracked as
-  [#62](https://github.com/trungdong/prov/issues/62).
-- The `#34` attribute-merging fix above lands as part of this same rework.
+  [#62](https://github.com/trungdong/prov/issues/62). If that engine ever pulls these
+  constraints in, the natural shape for them is ProvToolbox's — existential expansion
+  plus a substitution fixpoint — not an extension of this simpler per-group merge.
+- The `#34` attribute-merging fix above landed as part of this same rework.
 
 **What to do:** if your code calls `unified()` on documents where records sharing an
 identifier can disagree on a formal attribute (for example, two `wasGeneratedBy`
@@ -104,24 +105,23 @@ statements for the same identifier asserting different `prov:time` values — th
 "scruffy" pattern used in this repo's own test suite, and the RDF representational
 limitation tracked as #217 above) — or where an identifier is shared by incompatible
 types, such as an `entity` and an `activity` asserted under the same identifier — expect
-that call to raise in 3.0 where it previously merged silently. Catch the new exception
+that call to raise where it previously merged silently. Catch the new exception
 (or restructure the document to avoid conflicting formal attributes or incompatible
-same-identifier types) before upgrading. `ProvUnificationError` is importable
-from `prov.model`, and subclasses `ProvException`, so code that already catches
-`ProvException` around `unified()` keeps working. Documents without this pattern are
-unaffected. Note that this is strictly an opt-in `unified()` behaviour: `prov` performs
-no structural validation at assertion/serialization time (see #257), so building and
-serializing a "scruffy" document remains legal in 3.0 — only calling `unified()` on one,
-or decoding its RDF form, raises.
+same-identifier types). `ProvUnificationError` is importable from `prov.model`, and
+subclasses `ProvException`, so code that already catches `ProvException` around
+`unified()` keeps working. Documents without this pattern are unaffected. This is
+strictly an opt-in `unified()` behaviour: `prov` performs no structural validation at
+assertion/serialization time (a deliberate design choice, #257 — validation is separate,
+opt-in territory belonging to #62), so building and serializing a "scruffy" document
+remains legal in 3.0 — only calling `unified()` on one, or decoding its RDF form, raises.
 
 Note that `prov_to_dot()` (`prov.dot`) and `prov_to_graph()` (`prov.graph`, not
-`graph_to_prov()`, which does not unify) call `unified()` internally, so the
-`FutureWarning` above also fires on every call to those functions today — regardless of
-whether the document actually has conflicting attributes — so graphics/graph-export
-users will see it even without calling `unified()` themselves. The two differ in how
-they handle a document that fails to unify: `prov_to_dot()` catches the exception and
-renders the original, non-unified bundle (as it has always done for the generic
-`ProvException` the merge used to raise), whereas `prov_to_graph()` lets
+`graph_to_prov()`, which does not unify) call `unified()` internally, so a document
+whose records disagree on a formal attribute or incompatible type now raises from these
+functions too, regardless of whether the caller ever calls `unified()` directly. The two
+differ in how they handle a document that fails to unify: `prov_to_dot()` catches the
+exception and renders the original, non-unified bundle (as it has always done for the
+generic `ProvException` the merge used to raise), whereas `prov_to_graph()` lets
 `ProvUnificationError` propagate to the caller.
 
 ## Removal of names deprecated in 2.4.0
@@ -158,7 +158,10 @@ If your code:
 - Doesn't catch `KeyError`/`AttributeError`/`TypeError` around PROV-JSON deserialization
   to handle malformed input — unaffected by the #228 exception-contract change.
 
-then upgrading to 3.0 should require no code changes at all. Where a runtime warning is
-feasible (the two extras moves and `unified()`), 2.4.0 already emits it under
-`-W error::DeprecationWarning` / `-W error::FutureWarning`, so you can audit your own
-call sites for these changes ahead of time.
+then upgrading to 3.0 should require no code changes at all. If you are upgrading from
+before 2.4.0, note that 2.4.0 signposted both the extras moves and the `unified()`
+rework with a runtime warning (`DeprecationWarning`/`FutureWarning` respectively) on
+every affected call, so running your test suite under 2.4.0 with
+`-W error::DeprecationWarning -W error::FutureWarning` would have surfaced every call
+site ahead of time; 3.0 itself emits neither warning — by 3.0 these are just how the
+functions behave.
