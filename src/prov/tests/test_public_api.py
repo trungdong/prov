@@ -59,8 +59,6 @@ PUBLIC_API = {
         "XSI",
         "parse_xsd_datetime",
         "sorted_attributes",
-        # attribute value storage (#34)
-        "TypedValueSet",
     ],
     "prov.identifier": ["Identifier", "QualifiedName", "Namespace"],
     "prov.constants": [

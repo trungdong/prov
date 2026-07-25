@@ -8,10 +8,20 @@ History
 * Attribute values that are Python-equal but differently typed (``2`` vs
   ``2.0``, ``1`` vs ``True``) are all retained on a record instead of silently
   collapsing to whichever was asserted first — at construction, in
-  ``add_attributes()``, and through ``unified()``; record equality and hashing
-  distinguish them accordingly. BREAKING: ``ProvRecord.get_attribute()``,
-  ``get_asserted_types()`` and the ``value`` property now return the new
-  ``prov.model.TypedValueSet`` instead of a plain ``set`` (#34)
+  ``add_attributes()``, and through ``unified()``. This is observable via
+  ``attributes``/``extra_attributes`` iteration, record equality/hashing, and
+  serialization. ``ProvRecord.get_attribute()``, ``get_asserted_types()`` and
+  the ``value`` property keep their 2.x return type (a plain ``set``, built
+  fresh from the record's own storage) rather than exposing the new
+  type-aware internal storage directly, so a Python-equal-but-differently-
+  typed pair still collapses in what those three accessors return, exactly
+  as in 2.x (``get_asserted_types()`` is unaffected in practice, since
+  ``prov:type`` values are always ``QualifiedName``\ s, which never
+  collapse). Internally, iterating a record's attributes now yields values in
+  assertion order rather than an arbitrary hash-bucket order; this also makes
+  ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
+  deterministic where they previously picked an arbitrary value among
+  several formally-invalid duplicates (#34)
 * BREAKING: ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
   PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
   formal attributes: records sharing an identifier whose formal attributes

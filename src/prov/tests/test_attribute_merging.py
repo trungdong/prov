@@ -10,9 +10,16 @@ typed value was lost without warning. The same collapsing happened for
 separate ``add_attributes()`` calls, and inside ``unified()``'s extra-
 attribute union.
 
-This module characterizes the fixed behaviour: both values are now retained,
-record equality/hashing can tell the results apart, and the retained values
-survive serialization round trips.
+This module characterizes the fixed behaviour: both values are now retained
+on the record -- observable through ``attributes``/``extra_attributes``
+iteration, record equality/hashing, and serialization -- and the retained
+values survive serialization round trips. By maintainer decision (`prov` is
+a published dependency of ProvStore), the three narrowing accessors
+(``get_attribute()``, ``get_asserted_types()``, ``.value``) deliberately keep
+their 2.x return type: a plain ``set`` built fresh from the record's own
+type-aware storage, which re-collapses a Python-equal-but-differently-typed
+pair exactly as 2.x did. That trade-off, and the accessors' copy semantics,
+are characterized below too.
 """
 
 import datetime
@@ -29,7 +36,6 @@ from prov.model import (
     ProvException,
     ProvMembership,
     ProvUnificationError,
-    TypedValueSet,
 )
 from prov.tests.conftest import roundtrip_document
 
@@ -46,30 +52,42 @@ def _typed(values):
     return {(type(v), v) for v in values}
 
 
+def _typed_values_by_name(record, attr_name):
+    """(type, value) pairs for one attribute name, read via ``attributes``.
+
+    ``attributes`` (unlike ``get_attribute()``) is the property that still
+    exposes every value the record's storage retains (#34).
+    """
+    qn = record.bundle.valid_qualified_name(attr_name)
+    return {(type(v), v) for k, v in record.attributes if k == qn}
+
+
 # --- AC: construction / add_attributes / unified() all retain both values ---
+# (checked via `attributes`, since `get_attribute()` deliberately does not --
+# see the "public accessors" section below)
 
 
 def test_construction_retains_python_equal_differently_typed_values(doc):
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
-    assert _typed(e.get_attribute("ex:v")) == {(int, 2), (float, 2.0)}
+    assert _typed_values_by_name(e, "ex:v") == {(int, 2), (float, 2.0)}
 
 
 def test_construction_retains_bool_vs_int(doc):
     e = doc.entity("ex:e", [("ex:v", 1), ("ex:v", True)])
-    assert _typed(e.get_attribute("ex:v")) == {(int, 1), (bool, True)}
+    assert _typed_values_by_name(e, "ex:v") == {(int, 1), (bool, True)}
 
 
 def test_int_vs_bool_that_are_not_equal_is_not_a_regression_case(doc):
     # 2 != True, so this was never collapsed even in 2.x; both values are
     # simply retained as they always were.
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", True)])
-    assert _typed(e.get_attribute("ex:v")) == {(int, 2), (bool, True)}
+    assert _typed_values_by_name(e, "ex:v") == {(int, 2), (bool, True)}
 
 
 def test_second_add_attributes_call_retains_both_values(doc):
     e = doc.entity("ex:e", [("ex:v", 2)])
     e.add_attributes([("ex:v", 2.0)])
-    assert _typed(e.get_attribute("ex:v")) == {(int, 2), (float, 2.0)}
+    assert _typed_values_by_name(e, "ex:v") == {(int, 2), (float, 2.0)}
 
 
 def test_unified_union_retains_both_values(doc):
@@ -77,10 +95,11 @@ def test_unified_union_retains_both_values(doc):
     doc.entity("ex:e", [("ex:v", 2.0)])
     unified = doc.unified()
     (merged,) = unified.get_records()
-    assert _typed(merged.get_attribute("ex:v")) == {(int, 2), (float, 2.0)}
+    assert _typed_values_by_name(merged, "ex:v") == {(int, 2), (float, 2.0)}
 
 
 # --- AC: genuine duplicates still dedupe ---
+# (single-value cases: get_attribute() and `attributes` agree here)
 
 
 def test_genuine_duplicate_value_still_deduplicates(doc):
@@ -154,66 +173,101 @@ def test_mixed_typed_attribute_round_trips(fmt):
     reloaded = roundtrip_document(document, fmt)
     assert document == reloaded
     (record,) = reloaded.get_records()
-    assert _typed(record.get_attribute("ex:v")) == {(int, 2), (float, 2.0)}
+    assert _typed_values_by_name(record, "ex:v") == {(int, 2), (float, 2.0)}
 
 
-# --- AC: public accessors decided deliberately (TypedValueSet, not a leak) ---
+# --- Maintainer decision: public accessors keep their 2.x return type ---
+#
+# get_attribute()/get_asserted_types()/.value deliberately keep returning a
+# plain `set` built fresh from the record's own type-aware storage, instead
+# of exposing that storage directly: `prov` is a published dependency of
+# ProvStore, so the narrow, 2.x-compatible return type was chosen over a new
+# public container type. The accepted consequence is that a Python-equal-
+# but-differently-typed pair retained on the record re-collapses in what
+# these three accessors return -- exactly the 2.x behaviour -- even though
+# the record's own storage, `attributes`/`extra_attributes`, equality/
+# hashing and serialization all retain every value (characterized above).
 
 
-def test_get_attribute_returns_typed_value_set(doc):
+def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc):
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
     values = e.get_attribute("ex:v")
-    assert isinstance(values, TypedValueSet)
-    assert len(values) == 2
+    assert type(values) is set
+    assert values == {2}  # 2.0 collapses in this copy, exactly as in 2.x
 
 
-def test_get_asserted_types_returns_typed_value_set_and_still_compares_to_plain_set(
-    doc,
-):
+def test_get_attribute_returns_a_copy_not_the_live_container(doc):
+    e = doc.entity("ex:e", [("ex:v", 2)])
+    values = e.get_attribute("ex:v")
+    values.add(999)  # mutating the returned set must not touch storage
+    assert e.get_attribute("ex:v") == {2}
+
+
+def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc):
+    # prov:type values are always QualifiedNames, which never collapse under
+    # Python equality, so unlike get_attribute()/.value this accessor's
+    # plain-set copy never actually loses information in practice.
     e = doc.entity("ex:e")
     foo = doc.valid_qualified_name("ex:Foo")
+    bar = doc.valid_qualified_name("ex:Bar")
     e.add_asserted_type(foo)
+    e.add_asserted_type(bar)
     types = e.get_asserted_types()
-    assert isinstance(types, TypedValueSet)
-    assert types == {foo}
+    assert type(types) is set
+    assert types == {foo, bar}
 
 
-def test_value_property_returns_typed_value_set(doc):
+def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc):
     e = doc.entity("ex:e", [("prov:value", 2), ("prov:value", 2.0)])
-    assert isinstance(e.value, TypedValueSet)
-    assert len(e.value) == 2
+    values = e.value
+    assert type(values) is set
+    assert values == {2}
 
 
-def test_add_asserted_type_mutates_in_place(doc):
+def test_add_asserted_type_mutates_live_storage_not_a_copy(doc):
+    # add_asserted_type() must keep mutating the record's own storage
+    # directly (self._attributes[...].add(...)) rather than a copy, since a
+    # copy would have nowhere to persist the mutation to.
     e = doc.entity("ex:e")
     e.add_asserted_type(doc.valid_qualified_name("ex:Foo"))
     e.add_asserted_type(doc.valid_qualified_name("ex:Bar"))
     assert len(e.get_asserted_types()) == 2
 
 
-def test_typed_value_set_default_empty_still_falsy_and_equal_to_plain_set(doc):
+def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc):
     e = doc.entity("ex:e")
     assert e.get_asserted_types() == set()
     assert not e.get_asserted_types()
     assert e.value == set()
 
 
-def test_typed_value_set_discard_is_type_aware():
-    values = TypedValueSet([2, 2.0])
-    assert len(values) == 2
-    values.discard(2.0)  # discard() is a MutableSet abstract method
-    assert _typed(values) == {(int, 2)}
-    # Discarding a value never inserted is a no-op, like a plain set.
-    values.discard(3)
-    assert _typed(values) == {(int, 2)}
+def test_internal_storage_contains_and_discard_are_type_aware(doc):
+    # __contains__()/discard() are required MutableSet abstract/mixin
+    # methods on the internal per-attribute container; neither is reachable
+    # via any public API today (get_attribute() returns a detached plain-set
+    # copy, so `in`/`.discard()` on *that* never reach this container), so
+    # both are exercised here directly against the record's own storage.
+    e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
+    container = e._attributes[doc.valid_qualified_name("ex:v")]
+    assert len(container) == 2
+    assert 2 in container
+    assert 2.0 in container
+    assert 3 not in container
+    container.discard(2.0)
+    assert _typed(container) == {(int, 2)}
+    container.discard(3)  # no-op, like a plain set
+    assert _typed(container) == {(int, 2)}
 
 
-def test_activity_settime_raw_assignment_stays_consistent(doc):
-    # ProvActivity.set_time() assigns straight into _attributes; confirm the
-    # value is still retrievable through the normal typed accessors.
+def test_activity_settime_raw_assignment_still_produces_typed_storage(doc):
+    # ProvActivity.set_time() assigns straight into _attributes (not through
+    # an accessor); confirm it still produces the internal type-aware
+    # container, not a plain set, so a later add_attributes() call on the
+    # same attribute would still get type-aware treatment.
     a = doc.activity("ex:a")
     a.set_time(startTime=datetime.datetime(2020, 1, 1))
-    assert isinstance(a.get_attribute("prov:startTime"), TypedValueSet)
+    container = a._attributes[doc.valid_qualified_name("prov:startTime")]
+    assert type(container).__name__ == "TypedValueSet"
     assert a.get_startTime() == datetime.datetime(2020, 1, 1)
 
 
@@ -229,7 +283,9 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc):
     # prov:entity values are always QualifiedNames -- the same Python type --
     # so there is nothing for the new per-attribute container to newly
     # distinguish. `args`/`formal_attributes`/`get_provn()` still narrow to a
-    # single (first-inserted) value, exactly as in 2.x. Left alone.
+    # single (first-inserted) value, exactly as in 2.x. Left alone. (Also:
+    # QualifiedNames never collapse, so get_attribute()'s plain-set copy
+    # shows both members, unlike the int/float cases above.)
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")

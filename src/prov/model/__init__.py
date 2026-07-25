@@ -80,7 +80,6 @@ from prov.model.records import (
     QualifiedNameCandidate as QualifiedNameCandidate,
     RecordAttributesArg as RecordAttributesArg,
     SupportedXSDParsedTypes as SupportedXSDParsedTypes,
-    TypedValueSet as TypedValueSet,
     UsageRef as UsageRef,
     canonical_xsd_datatype as canonical_xsd_datatype,
     encoding_provn_value as encoding_provn_value,

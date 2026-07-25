@@ -252,28 +252,45 @@ def parse_xsd_types(value: str, datatype: QualifiedName) -> SupportedXSDParsedTy
 
 
 def first(a_set: Iterable[Any]) -> Any | None:
-    """Return an arbitrary element from a set, or ``None`` if it is empty."""
+    """Return the first element of an iterable, or ``None`` if it is empty.
+
+    Every in-package caller passes a per-attribute :class:`TypedValueSet`
+    (dict-backed, insertion-ordered), so this deterministically returns the
+    first-inserted value -- e.g. for ``args``/``formal_attributes``,
+    :meth:`ProvActivity.get_startTime`/``get_endTime``, the single-value
+    cardinality guard in :meth:`ProvRecord.add_attributes`, and the
+    PROV-JSON encoder's single-value case. This is a change from 2.x, where
+    the equivalent plain-``set`` storage made "first" an arbitrary
+    hash-bucket-order element rather than an insertion-order one (#34).
+    """
     return next(iter(a_set), None)
 
 
 class TypedValueSet(MutableSet[Any]):
     """A set-like container that deduplicates by ``(type(value), value)``.
 
-    Backs each attribute's value collection on :class:`ProvRecord` (#34). A
-    plain :class:`set` cannot retain both ``2`` and ``2.0``, or both ``1``
-    and ``True``, because its membership test is value-based: ``2.0 in {2}``
-    is ``True`` (equal hash, equal value), so ``{2}.add(2.0)`` silently does
-    nothing -- whichever value was inserted first wins and the other is lost.
-    Keying on ``(type(value), value)`` instead keeps values distinct across
-    Python types while leaving same-type dedup semantics (including
+    Backs each attribute's value collection on :class:`ProvRecord` (#34), as
+    an internal storage detail -- it is not part of the public API and is
+    not exported from :mod:`prov.model`. A plain :class:`set` cannot retain
+    both ``2`` and ``2.0``, or both ``1`` and ``True``, because its
+    membership test is value-based: ``2.0 in {2}`` is ``True`` (equal hash,
+    equal value), so ``{2}.add(2.0)`` silently does nothing -- whichever
+    value was inserted first wins and the other is lost. Keying on
+    ``(type(value), value)`` instead keeps values distinct across Python
+    types while leaving same-type dedup semantics (including
     :class:`Literal`'s ``xsd:decimal`` value-space equality, #77) unchanged,
     since two values of the same type still collide on the same key.
 
-    This is a deliberate, documented 3.0 API change: :meth:`ProvRecord.
-    get_attribute`, :meth:`ProvRecord.get_asserted_types` and
-    :attr:`ProvRecord.value` used to return a plain ``set``; they now return
-    this type (see ``docs/upgrading-3.0.md``). It compares equal to a plain
-    ``set``/``frozenset`` holding the same elements (via the
+    The retained values are observable through :attr:`ProvRecord.attributes`
+    / :attr:`ProvRecord.extra_attributes` (plain ``(name, value)`` tuples,
+    one per retained value), record equality/hashing, and serialization.
+    :meth:`ProvRecord.get_attribute`, :meth:`ProvRecord.get_asserted_types`
+    and :attr:`ProvRecord.value` deliberately keep their 2.x return type
+    (a plain ``set``, built fresh from this container) instead of exposing
+    this class, so those three accessors re-collapse a Python-equal-but-
+    differently-typed pair in their *returned copy* even though the record's
+    own storage does not -- see ``docs/upgrading-3.0.md``. Compares equal to
+    a plain ``set``/``frozenset`` holding the same elements (via the
     ``collections.abc.Set`` mixin), remains unhashable like a plain ``set``,
     and iterates in insertion order.
     """
@@ -588,9 +605,16 @@ class ProvRecord:
         else:
             raise NotImplementedError("Type not defined for this record.")
 
-    def get_asserted_types(self) -> TypedValueSet:
-        """Return the set of all asserted PROV types of this record."""
-        return self._attributes[PROV_TYPE]
+    def get_asserted_types(self) -> set[QualifiedName]:
+        """Return the set of all asserted PROV types of this record.
+
+        Returns a fresh, plain ``set`` copy (2.x-compatible: mutating it does
+        not affect the record). Since ``prov:type`` values are always
+        :class:`~prov.identifier.QualifiedName`\\ s -- which never collapse
+        under Python equality -- this copy never loses information: unlike
+        :meth:`get_attribute`/:attr:`value`, there is no lossy case here.
+        """
+        return set(self._attributes[PROV_TYPE])
 
     def add_asserted_type(self, type_identifier: QualifiedName) -> None:
         """Add a PROV type assertion to the record.
@@ -600,21 +624,28 @@ class ProvRecord:
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
-    def get_attribute(self, attr_name: QualifiedNameCandidate) -> TypedValueSet:
+    def get_attribute(self, attr_name: QualifiedNameCandidate) -> set[Any]:
         """Return the values (if any) for the named attribute.
 
         Args:
             attr_name: The name of the attribute.
 
         Returns:
-            The set of values held for the attribute (empty if none).
+            A fresh, plain ``set`` copy of the values held for the attribute
+            (empty if none); mutating it does not affect the record. This
+            keeps the 2.x return type: a Python-equal-but-differently-typed
+            pair retained on the record (e.g. ``2`` and ``2.0``, #34) still
+            collapses to whichever was asserted first in *this copy*, even
+            though the record's own storage, :attr:`attributes`/
+            :attr:`extra_attributes`, equality/hashing and serialization all
+            retain both -- see ``docs/upgrading-3.0.md``.
 
         Raises:
             ProvExceptionInvalidQualifiedName: If ``attr_name`` cannot be
                 resolved to a valid qualified name.
         """
         attr_name_qn = self._bundle.mandatory_valid_qname(attr_name)
-        return self._attributes[attr_name_qn]
+        return set(self._attributes[attr_name_qn])
 
     @property
     def identifier(self) -> QualifiedName | None:
@@ -684,9 +715,14 @@ class ProvRecord:
         )
 
     @property
-    def value(self) -> TypedValueSet:
-        """The set of the record's ``prov:value`` attribute values."""
-        return self._attributes[PROV_VALUE]
+    def value(self) -> set[Any]:
+        """The set of the record's ``prov:value`` attribute values.
+
+        Returns a fresh, plain ``set`` copy (2.x-compatible); see
+        :meth:`get_attribute` for what that means for a Python-equal-but-
+        differently-typed pair of ``prov:value`` values (#34).
+        """
+        return set(self._attributes[PROV_VALUE])
 
     # Handling attributes
     def _auto_literal_conversion(self, literal: Any) -> Any:
