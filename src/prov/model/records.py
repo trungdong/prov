@@ -9,7 +9,7 @@ import os
 import re
 import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator, MutableSet
 from typing import TYPE_CHECKING, Any, Union
 
 from prov import Error
@@ -251,9 +251,57 @@ def parse_xsd_types(value: str, datatype: QualifiedName) -> SupportedXSDParsedTy
     )
 
 
-def first(a_set: set[Any]) -> Any | None:
+def first(a_set: Iterable[Any]) -> Any | None:
     """Return an arbitrary element from a set, or ``None`` if it is empty."""
     return next(iter(a_set), None)
+
+
+class TypedValueSet(MutableSet[Any]):
+    """A set-like container that deduplicates by ``(type(value), value)``.
+
+    Backs each attribute's value collection on :class:`ProvRecord` (#34). A
+    plain :class:`set` cannot retain both ``2`` and ``2.0``, or both ``1``
+    and ``True``, because its membership test is value-based: ``2.0 in {2}``
+    is ``True`` (equal hash, equal value), so ``{2}.add(2.0)`` silently does
+    nothing -- whichever value was inserted first wins and the other is lost.
+    Keying on ``(type(value), value)`` instead keeps values distinct across
+    Python types while leaving same-type dedup semantics (including
+    :class:`Literal`'s ``xsd:decimal`` value-space equality, #77) unchanged,
+    since two values of the same type still collide on the same key.
+
+    This is a deliberate, documented 3.0 API change: :meth:`ProvRecord.
+    get_attribute`, :meth:`ProvRecord.get_asserted_types` and
+    :attr:`ProvRecord.value` used to return a plain ``set``; they now return
+    this type (see ``docs/upgrading-3.0.md``). It compares equal to a plain
+    ``set``/``frozenset`` holding the same elements (via the
+    ``collections.abc.Set`` mixin), remains unhashable like a plain ``set``,
+    and iterates in insertion order.
+    """
+
+    __slots__ = ("_index",)
+
+    def __init__(self, iterable: Iterable[Any] = ()) -> None:
+        self._index: dict[tuple[type, Any], Any] = {}
+        for value in iterable:
+            self.add(value)
+
+    def add(self, value: Any) -> None:
+        self._index[(type(value), value)] = value
+
+    def discard(self, value: Any) -> None:
+        self._index.pop((type(value), value), None)
+
+    def __contains__(self, value: object) -> bool:
+        return (type(value), value) in self._index
+
+    def __iter__(self) -> Iterator[Any]:
+        return iter(self._index.values())
+
+    def __len__(self) -> int:
+        return len(self._index)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({list(self._index.values())!r})"
 
 
 def _ensure_multiline_string_triple_quoted(value: str) -> str:
@@ -498,12 +546,29 @@ class ProvRecord:
         """
         self._bundle = bundle
         self._identifier = identifier
-        self._attributes: dict[QualifiedName, set[Any]] = defaultdict(set)
+        self._attributes: dict[QualifiedName, TypedValueSet] = defaultdict(
+            TypedValueSet
+        )
         if attributes:
             self.add_attributes(attributes)
 
+    def _typed_attributes(self) -> frozenset[tuple[QualifiedName, type, Any]]:
+        """``(name, type(value), value)`` triples, for equality and hashing.
+
+        :attr:`attributes` yields plain ``(name, value)`` tuples, and a
+        ``frozenset``/``set`` of *those* would re-collapse a Python-equal-
+        but-differently-typed pair like ``(attr, 2)`` and ``(attr, 2.0)`` --
+        tuple equality and hashing both fall through to their elements', and
+        ``2 == 2.0`` with equal hashes. Including each value's type in the
+        key keeps the distinction :class:`TypedValueSet` retains in storage
+        (#34) intact through comparison and hashing too.
+        """
+        return frozenset(
+            (attr_name, type(value), value) for attr_name, value in self.attributes
+        )
+
     def __hash__(self) -> int:
-        return hash((self.get_type(), self._identifier, frozenset(self.attributes)))
+        return hash((self.get_type(), self._identifier, self._typed_attributes()))
 
     def copy(self) -> ProvRecord:
         """Return an exact copy of this record."""
@@ -523,7 +588,7 @@ class ProvRecord:
         else:
             raise NotImplementedError("Type not defined for this record.")
 
-    def get_asserted_types(self) -> set[QualifiedName]:
+    def get_asserted_types(self) -> TypedValueSet:
         """Return the set of all asserted PROV types of this record."""
         return self._attributes[PROV_TYPE]
 
@@ -535,7 +600,7 @@ class ProvRecord:
         """
         self._attributes[PROV_TYPE].add(type_identifier)
 
-    def get_attribute(self, attr_name: QualifiedNameCandidate) -> set[Any]:
+    def get_attribute(self, attr_name: QualifiedNameCandidate) -> TypedValueSet:
         """Return the values (if any) for the named attribute.
 
         Args:
@@ -619,7 +684,7 @@ class ProvRecord:
         )
 
     @property
-    def value(self) -> Any:
+    def value(self) -> TypedValueSet:
         """The set of the record's ``prov:value`` attribute values."""
         return self._attributes[PROV_VALUE]
 
@@ -789,7 +854,7 @@ class ProvRecord:
         if self._identifier and not (self._identifier == other._identifier):
             return False
 
-        return set(self.attributes) == set(other.attributes)
+        return self._typed_attributes() == other._typed_attributes()
 
     def __str__(self) -> str:
         return self.get_provn()
@@ -1180,9 +1245,9 @@ class ProvActivity(ProvElement):
                 (default: ``None``).
         """
         if startTime is not None:
-            self._attributes[PROV_ATTR_STARTTIME] = {startTime}
+            self._attributes[PROV_ATTR_STARTTIME] = TypedValueSet([startTime])
         if endTime is not None:
-            self._attributes[PROV_ATTR_ENDTIME] = {endTime}
+            self._attributes[PROV_ATTR_ENDTIME] = TypedValueSet([endTime])
 
     def get_startTime(self) -> datetime.datetime | None:
         """Return the activity's start time, or ``None`` if unset."""
