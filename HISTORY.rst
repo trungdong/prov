@@ -27,6 +27,16 @@ History
   ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
   deterministic where they previously picked an arbitrary value among
   several formally-invalid duplicates (#34)
+* Fixed: the type-aware attribute storage above (#34) kept the *last*
+  value seen when a genuine duplicate (equal type, equal value) was
+  re-added — e.g. asserting both ``Literal("10", XSD_DECIMAL)`` and
+  ``Literal("10.00", XSD_DECIMAL)`` (#77) on the same attribute retained
+  ``"10.00"``, and both ``Literal("hi", langtag="en")`` and
+  ``Literal("hi", langtag="EN")`` (#259) retained ``"hi"@EN`` — the
+  opposite of plain ``set.add()`` and of ``add_attributes()``'s own
+  single-value cardinality guard, which both keep the *first* value seen.
+  The retained value is now the first one asserted, in both cases, matching
+  2.x
 * BREAKING: ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
   PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
   formal attributes: records sharing an identifier whose formal attributes
