@@ -301,8 +301,8 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc):
     # ProvRecord.add_attributes() bypasses its single-value guard for every
     # attribute in a call that also includes prov:collection, so a
     # ProvMembership *can* hold two prov:entity values if constructed
-    # directly (ProvBundle.membership() itself never does this). Ruling
-    # (task-3-report.md): type-aware storage does not change this, because
+    # directly (ProvBundle.membership() itself never does this). Maintainer
+    # ruling: type-aware storage does not change this, because
     # prov:entity values are always QualifiedNames -- the same Python type --
     # so there is nothing for the new per-attribute container to newly
     # distinguish. `args`/`formal_attributes`/`get_provn()` still narrow to a
@@ -338,8 +338,8 @@ def test_unified_merge_conflicting_extra_attribute_raises_plain_provexception(do
     # PROV_ATTRIBUTES set that ProvRecord.add_attributes()'s single-value
     # cardinality guard checks, so unified()'s merge -- which concatenates
     # extra_attributes across the group and re-asserts them through the
-    # merged record's constructor -- still hits that guard. Ruling
-    # (task-3-report.md): the guard predates the #253 ProvUnificationError
+    # merged record's constructor -- still hits that guard. Maintainer
+    # ruling: the guard predates the #253 ProvUnificationError
     # work, is shared by ordinary (non-merge) attribute assertion which has
     # nothing to do with unification, and is deliberately left raising the
     # generic ProvException it always has.
