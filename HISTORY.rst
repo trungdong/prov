@@ -170,6 +170,8 @@ History
 * Internal: refactored the PROV-O (RDF) deserializer's
   ``decode_rdf_representation()`` below the complexity threshold with
   byte-identical behaviour (#275)
+* Internal: refactored the PROV-XML serializer's ``serialize_bundle()`` below
+  the complexity threshold with byte-identical output (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
