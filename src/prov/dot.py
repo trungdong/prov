@@ -361,20 +361,23 @@ def _draw_nary_or_annotated_relation(
     state: _DotRenderState,
     dot: pydot.Dot | pydot.Cluster,
     rec: ProvRecord,
-    nodes: tuple[Any, ...],
-    attr_names: tuple[Any, ...],
-    inferred_types: list[Any],
+    formal: list[tuple[Any, Any, Any]],
     style: dict[str, Any],
     add_nary_elements: bool,
     add_attribute_annotation: bool,
 ) -> None:
+    # `formal` pairs up each formal attribute's name, element node and
+    # inferred type, in the same order as `rec.formal_attributes`.
+    _, node0, inferred_type0 = formal[0]
+    _, node1, inferred_type1 = formal[1]
+
     # a blank node for n-ary relations or the attribute annotation
     bnode = _get_bnode(state, dot)
 
     # the first segment
     dot.add_edge(
         pydot.Edge(
-            _get_node(state, dot, nodes[0], inferred_types[0]),
+            _get_node(state, dot, node0, inferred_type0),
             bnode,
             arrowhead="none",
             **style,
@@ -384,14 +387,12 @@ def _draw_nary_or_annotated_relation(
     del style["label"]  # not showing label in the second segment
     # the second segment
     dot.add_edge(
-        pydot.Edge(bnode, _get_node(state, dot, nodes[1], inferred_types[1]), **style)
+        pydot.Edge(bnode, _get_node(state, dot, node1, inferred_type1), **style)
     )
     if add_nary_elements:
         style["color"] = "gray"  # all remaining segment to be gray
         style["fontcolor"] = "dimgray"  # text in darker gray
-        for attr_name, node, inferred_type in zip(
-            attr_names[2:], nodes[2:], inferred_types[2:], strict=False
-        ):
+        for attr_name, node, inferred_type in formal[2:]:
             if node is not None:
                 style["label"] = attr_name.localpart
                 dot.add_edge(
@@ -432,13 +433,12 @@ def _add_relation(
         return  # cannot draw this
 
     if add_nary_elements or add_attribute_annotation:
+        formal = list(zip(attr_names, nodes, inferred_types, strict=False))
         _draw_nary_or_annotated_relation(
             state,
             dot,
             rec,
-            nodes,
-            attr_names,
-            inferred_types,
+            formal,
             style,
             add_nary_elements,
             bool(add_attribute_annotation),
