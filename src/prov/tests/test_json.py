@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from prov.model import PROV_QUALIFIEDNAME, Literal, ProvDocument
+from prov.model import PROV_QUALIFIEDNAME, Literal, ProvDocument, ProvMembership
 from prov.serializers.provjson import ProvJSONEncoder, ProvJSONException
 
 
@@ -110,6 +110,33 @@ def test_legacy_prov_qualified_name_type_still_decodes():
     expected.add_namespace("ex", "http://example.org/")
     expected.entity("ex:e1", {"ex:a": expected.valid_qualified_name("ex:v")})
     assert document == expected
+
+
+def test_had_member_multi_entity_hack_survives_attribute_order():
+    # #275 regression: the multi-entity `hadMember` hack (a JSON list of
+    # more than one `prov:entity` value on a single membership record)
+    # must produce one membership relation per entity regardless of
+    # whether "prov:entity" or "prov:collection" comes first in the
+    # record's JSON object -- key order carries no semantics in PROV-JSON
+    # and json.load() preserves source order. This library's own encoder
+    # always emits "prov:collection" before "prov:entity" (matching
+    # ProvMembership.FORMAL_ATTRIBUTES), so a corpus built only from
+    # round-tripping this library's own output can never exercise the
+    # reverse order.
+    json_content = """{
+    "prefix": {"ex": "http://example.org/"},
+    "hadMember": {
+        "_:id1": {
+            "prov:entity": ["ex:e1", "ex:e2"],
+            "prov:collection": "ex:coll"
+        }
+    }
+}"""
+    document = ProvDocument.deserialize(content=json_content, format="json")
+    memberships = list(document.get_records(ProvMembership))
+    entities = {rel.get_attribute("prov:entity").pop() for rel in memberships}
+    assert len(memberships) == 2
+    assert {str(e) for e in entities} == {"ex:e1", "ex:e2"}
 
 
 def test_unresolvable_qualified_name_literal_stays_opaque():

@@ -420,8 +420,13 @@ def _decode_record_group(
     Raises:
         ProvJSONException: If ``rec_type_str`` is not a recognised PROV-N
             record-type keyword; if its value is not a JSON object mapping
-            record identifiers to content; or if a record's content is not a
-            JSON object or a list of JSON objects.
+            record identifiers to content; if a record's content is not a
+            JSON object or a list of JSON objects; if a non-formal
+            attribute's typed-literal representation is missing its required
+            ``"$"`` key; or if a formal attribute has more than one value,
+            other than the documented multi-entity ``hadMember``
+            (membership) hack (both raised further down the call chain, by
+            :func:`_decode_record_instance` / :func:`_decode_formal_attribute`).
     """
     try:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
@@ -470,10 +475,12 @@ def _decode_record_instance(
             else bundle.mandatory_valid_qname(attr_name)
         )  # type: QualifiedName
         if attr in PROV_ATTRIBUTES:
-            value, membership_extra_members = _decode_formal_attribute(
+            value, extra_members = _decode_formal_attribute(
                 rec_type, attr, values, bundle
             )
             attributes[attr] = value
+            if extra_members is not None:
+                membership_extra_members = extra_members
         else:
             if isinstance(values, list):
                 other_attributes.extend(
