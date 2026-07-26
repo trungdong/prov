@@ -159,6 +159,8 @@ History
   which refuses such splits. Encode output is unchanged (#294)
 * Internal: refactored ProvRecord.add_attributes below the complexity
   threshold with byte-identical behaviour (#275)
+* Internal: refactored ``prov.read()`` below the complexity threshold with
+  byte-identical behaviour (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
