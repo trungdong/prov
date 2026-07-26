@@ -923,24 +923,14 @@ class ProvRDFSerializer(Serializer):
             pred: URIRef | RDFLiteral
             if attr == PROV["location"]:
                 pred = _prov_uri("atLocation")
-                # `False and ...` deliberately disables this branch (see
-                # git history back to 2014): kept for now because touching
-                # it risks changing frozen 2.x RDF output; scheduled for
-                # deletion in 3.0 (item F2 in
-                # docs/superpowers/specs/2026-07-04-3x-typing-api-improvements.md).
-                if False and isinstance(value, (URIRef, pm.QualifiedName)):  # noqa: SIM223
-                    if isinstance(value, pm.QualifiedName):
-                        value = URIRef(value.uri)
-                    container.add((identifier, pred, value))
-                else:
-                    container.add(
-                        (
-                            # elements always carry an identifier here
-                            cast("URIRef | BNode", identifier),
-                            pred,
-                            self.encode_rdf_representation(obj),
-                        )
+                container.add(
+                    (
+                        # elements always carry an identifier here
+                        cast("URIRef | BNode", identifier),
+                        pred,
+                        self.encode_rdf_representation(obj),
                     )
+                )
                 continue
             if isinstance(attr, pm.QualifiedName) and attr in _ELEMENT_ATTR_PREDICATES:
                 pred = _ELEMENT_ATTR_PREDICATES[attr]
