@@ -157,6 +157,8 @@ History
   document's registered namespaces (or splits at the last ``#``/``/`` when the
   namespace is unknown) rather than relying on rdflib's ``compute_qname``,
   which refuses such splits. Encode output is unchanged (#294)
+* Internal: refactored ProvRecord.add_attributes below the complexity
+  threshold with byte-identical behaviour (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
