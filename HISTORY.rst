@@ -172,6 +172,10 @@ History
   byte-identical behaviour (#275)
 * Internal: refactored the PROV-XML serializer's ``serialize_bundle()`` below
   the complexity threshold with byte-identical output (#275)
+* Internal: removed a permanently-disabled branch (``if False and ...``) from
+  the PROV-O (RDF) encoder's element attribute encoding; the ``prov:location``
+  predicate is now always emitted through the single code path that already
+  ran in practice, with identical output
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
