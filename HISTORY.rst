@@ -62,6 +62,12 @@ History
   PROV-O representational limitation — they serialize but do not round-trip
   through RDF, and deserializing such RDF now raises an error naming the
   limitation; all other formats are unaffected (#217)
+* PROV-O: a related gap is recorded, not fixed — an attribute key whose
+  local part ends in a #223 metacharacter can fail to round-trip through
+  RDF when another qualified name in the same document carries that same
+  character mid-string; the round-trip property test excludes this shape
+  at generation time so it does not mask other findings, and
+  ``docs/reference/conformance.md`` documents it as an open defect (#341)
 * The PROV-JSON deserializer raises ``ProvJSONException`` on structurally
   malformed input instead of leaking raw ``KeyError``/``AttributeError``
   (#228)

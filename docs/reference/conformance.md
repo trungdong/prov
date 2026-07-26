@@ -3,8 +3,9 @@
 This page tracks how each PROV-DM concept maps onto `prov`'s classes and factory methods, and
 how well each serializer round-trips it. It is the audit artefact for Phase 3.5 of the
 [modernisation roadmap](https://github.com/trungdong/prov/blob/master/ROADMAP.md) (roadmap step
-28) and is **revisited at every release** as behaviour changes; a JSON-LD column is planned for
-3.1.0 once the PROV-JSONLD serializer lands. For prose background on PROV-DM's six components and
+28) and is **revisited at every release** as behaviour changes — last revised for the 3.0.0
+release (2026-07-26). A JSON-LD column is planned for 3.1.0 once the PROV-JSONLD serializer
+lands. For prose background on PROV-DM's six components and
 how they group in `prov.model`, see {doc}`../explanation/prov-dm`; this page is the detailed,
 verified-against-source reference underneath that explanation.
 
@@ -68,6 +69,29 @@ More caveats apply across many rows rather than to one:
   third-party XML document containing a literal `_xHHHH_`-shaped attribute name will be
   unescaped on read, since the convention cannot distinguish an intentional escape sequence
   from one that merely looks like one.
+- **PROV-O attribute-key metacharacter/namespace defect** (RDF, open — tracked as
+  [#341](https://github.com/trungdong/prov/issues/341), a sibling of the #217 limitation above
+  but **not** a decided/closed matter — it is a known defect, unfixed in 3.0): a qualified name
+  used as an **attribute key** whose local part *ends* in one of the seven characters `=` `'`
+  `,` `:` `;` `[` `]` does not survive the PROV-O round trip *when* the same document also
+  contains any other qualified name — an identifier, another attribute key, or a QualifiedName
+  attribute *value* — carrying that same character *mid-string*. Of the nine #223 PROV-N
+  metacharacters, only `(` and `)` are unaffected in every position; the other seven all trigger
+  this in the trailing position. Neither half fails alone: the mid-string occurrence makes
+  rdflib's `compute_qname()` silently mis-split, e.g., `http://example.org/e:0` into namespace
+  `http://example.org/e:` plus local part `0` rather than raising, so the true namespace is
+  never registered from that identifier's decoding. Identifier decoding tolerates this via a
+  fallback (`_resolve_iri`, `src/prov/serializers/provrdf.py:536`), but attribute-key decoding
+  does not (`_decode_attribute_triple` → `mandatory_valid_qname`,
+  `src/prov/serializers/provrdf.py:1573`), so a key ending in one of the seven characters is
+  rejected once some other qualified name in the same document has already narrowed the
+  namespace pool. Qualified names used as attribute values are unaffected either way. As with
+  #217, PROV-N escapes these characters and PROV-JSON/PROV-XML both round-trip them — PROV-O is
+  the odd one out. #341's title names only the colon instance; the surface described here is
+  broader. Excluded from the Hypothesis round-trip property test at generation time
+  (`src/prov/tests/strategies.py`) so it does not mask other findings, but — unlike #217 and
+  #248 above — this is not a maintainer decision to leave as a permanent limitation; it remains
+  open for a future fix.
 
 The value-typing and literal-semantics gaps the audit recorded here — #77, #89, #168, #218,
 #223, #225, #235, #238, #244, #246, #249, #251, #256, #259 — were fixed in 3.0; see
