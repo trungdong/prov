@@ -176,40 +176,7 @@ class NamespaceManager(dict[str, Namespace]):
             return None
 
         if isinstance(qname, QualifiedName):
-            #  Register the namespace if it has not been registered before
-            namespace = qname.namespace
-            prefix = namespace.prefix
-            local_part = qname.localpart
-            if not prefix:
-                # the namespace is a default namespace
-                if self._default == namespace:
-                    # the same default namespace is defined
-                    new_qname = self._default[local_part]
-                elif self._default is None:
-                    # no default namespace is defined, reused the one given
-                    self._default = namespace
-                    return qname  # no change, return the original
-                else:
-                    # different default namespace,
-                    # use the 'dn' prefix for the new namespace
-                    dn_namespace = Namespace("dn", namespace.uri)
-                    dn_namespace = self.add_namespace(dn_namespace)
-                    new_qname = dn_namespace[local_part]
-            elif prefix in self and self[prefix] == namespace:
-                # No need to add the namespace
-                existing_ns = self[prefix]
-                if existing_ns is namespace:
-                    return qname
-                else:
-                    # reuse the existing namespace
-                    new_qname = existing_ns[local_part]
-            else:
-                # Do not reuse the namespace object, making an identical copy
-                ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
-                # minting the same Qualified Name from the namespace's copy
-                new_qname = ns[qname.localpart]
-            # returning the new qname
-            return new_qname
+            return self._reconcile_qualified_name(qname)
 
         # Trying to generate a valid qualified name from here
         if not isinstance(qname, (str, Identifier)):
@@ -221,21 +188,9 @@ class NamespaceManager(dict[str, Namespace]):
             # this is a blank node ID
             return None
         elif ":" in str_value:
-            #  check if the identifier contains a registered prefix
-            prefix, local_part = str_value.split(":", 1)
-            if prefix in self:
-                #  return a new QualifiedName
-                return self[prefix][local_part]
-            if prefix in self._prefix_renamed_map:
-                #  return a new QualifiedName
-                return self._prefix_renamed_map[prefix][local_part]
-            else:
-                #  assuming it is a URI (with the first part as its scheme)
-                #  check if the URI can be compacted by any of the registered namespaces
-                for namespace in self.values():
-                    if str_value.startswith(namespace.uri):
-                        #  create a QName with the namespace
-                        return namespace[str_value.replace(namespace.uri, "")]
+            new_qname = self._resolve_prefixed_string(str_value)
+            if new_qname is not None:
+                return new_qname
         elif self._default and isinstance(qname, str):
             # no colon in the identifier and a default namespace is defined,
             # create and return a qualified name in the default namespace
@@ -247,6 +202,60 @@ class NamespaceManager(dict[str, Namespace]):
             return self.parent.valid_qualified_name(qname)
 
         # Default to FAIL
+        return None
+
+    def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
+        #  Register the namespace if it has not been registered before
+        namespace = qname.namespace
+        prefix = namespace.prefix
+        local_part = qname.localpart
+        if not prefix:
+            # the namespace is a default namespace
+            if self._default == namespace:
+                # the same default namespace is defined
+                new_qname = self._default[local_part]
+            elif self._default is None:
+                # no default namespace is defined, reused the one given
+                self._default = namespace
+                return qname  # no change, return the original
+            else:
+                # different default namespace,
+                # use the 'dn' prefix for the new namespace
+                dn_namespace = Namespace("dn", namespace.uri)
+                dn_namespace = self.add_namespace(dn_namespace)
+                new_qname = dn_namespace[local_part]
+        elif prefix in self and self[prefix] == namespace:
+            # No need to add the namespace
+            existing_ns = self[prefix]
+            if existing_ns is namespace:
+                return qname
+            else:
+                # reuse the existing namespace
+                new_qname = existing_ns[local_part]
+        else:
+            # Do not reuse the namespace object, making an identical copy
+            ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
+            # minting the same Qualified Name from the namespace's copy
+            new_qname = ns[qname.localpart]
+        # returning the new qname
+        return new_qname
+
+    def _resolve_prefixed_string(self, str_value: str) -> QualifiedName | None:
+        #  check if the identifier contains a registered prefix
+        prefix, local_part = str_value.split(":", 1)
+        if prefix in self:
+            #  return a new QualifiedName
+            return self[prefix][local_part]
+        if prefix in self._prefix_renamed_map:
+            #  return a new QualifiedName
+            return self._prefix_renamed_map[prefix][local_part]
+        else:
+            #  assuming it is a URI (with the first part as its scheme)
+            #  check if the URI can be compacted by any of the registered namespaces
+            for namespace in self.values():
+                if str_value.startswith(namespace.uri):
+                    #  create a QName with the namespace
+                    return namespace[str_value.replace(namespace.uri, "")]
         return None
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:
