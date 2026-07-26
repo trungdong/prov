@@ -783,6 +783,86 @@ class ProvRecord:
         # No conversion possible, return the original value
         return literal
 
+    def _coerce_attribute_value(
+        self, attr: QualifiedName, original_value: Any
+    ) -> QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes:
+        # Normalise `original_value` to the datatype expected for `attr`.
+        #
+        # Raises:
+        #     ProvException: If the value is invalid for `attr`.
+
+        # the branches below bind `value` to different types
+        value: QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
+
+        if attr in PROV_ATTRIBUTE_QNAMES:
+            # Expecting a qualified name
+            if isinstance(original_value, ProvRecord):
+                # Use the identifier of the record, which must exist, as the value for this attribute
+                qname = original_value.identifier
+                if qname is None:
+                    raise ProvException(
+                        f"Invalid value for attribute {attr}: {original_value}."
+                        f" The record has no identifier."
+                    )
+            else:
+                qname = original_value
+            value = self._bundle.mandatory_valid_qname(qname)
+        elif attr in PROV_ATTRIBUTE_LITERALS:
+            # Expecting a datetime object or a string that can be parsed as a datetime
+            if isinstance(original_value, str):
+                value = parse_xsd_datetime(original_value)
+            else:
+                value = original_value
+            if not isinstance(value, datetime.datetime):
+                raise ProvException(
+                    f"Invalid value for attribute {attr}: {original_value}. "
+                    f"Expected a datetime object or a string that can be parsed"
+                    f" as a datetime."
+                )
+        else:
+            value = self._auto_literal_conversion(original_value)
+
+        if value is None:
+            raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
+
+        return value
+
+    def _store_attribute_value(
+        self,
+        attr: QualifiedName,
+        value: QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes,
+        is_collection: bool,
+    ) -> None:
+        # Add `value` for `attr`, enforcing single-valued (non-collection)
+        # attributes have at most one (distinct) value.
+        #
+        # Raises:
+        #     ProvException: If a second, different value is supplied for a
+        #         single-valued (non-collection) attribute.
+        if not is_collection and attr in PROV_ATTRIBUTES and self._attributes[attr]:
+            existing_value = first(self._attributes[attr])
+            is_not_same_value = True
+            # This duplicate-value branch runs at scale in
+            # _unified_records()'s merge loop (unified()/flattened() on
+            # large documents), where contextlib.suppress()'s per-call
+            # context-manager overhead adds up — the plain try/except
+            # stays here.
+            try:  # noqa: SIM105
+                is_not_same_value = value != existing_value
+            except TypeError:
+                # Cannot compare them
+                pass  # consider them different values
+
+            if is_not_same_value:
+                raise ProvException(
+                    f"Cannot have more than one value for attribute {attr}"
+                )
+            else:
+                # Same value, ignore it
+                return
+
+        self._attributes[attr].add(value)
+
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.
 
@@ -822,74 +902,9 @@ class ProvRecord:
                 # make sure the attribute name is valid
                 attr = self._bundle.mandatory_valid_qname(attr_name)
 
-                # the branches below bind `value` to different types
-                value: (
-                    QualifiedName
-                    | datetime.datetime
-                    | Literal
-                    | SupportedXSDParsedTypes
-                )
+                value = self._coerce_attribute_value(attr, original_value)
 
-                if attr in PROV_ATTRIBUTE_QNAMES:
-                    # Expecting a qualified name
-                    if isinstance(original_value, ProvRecord):
-                        # Use the identifier of the record, which must exist, as the value for this attribute
-                        qname = original_value.identifier
-                        if qname is None:
-                            raise ProvException(
-                                f"Invalid value for attribute {attr}: {original_value}."
-                                f" The record has no identifier."
-                            )
-                    else:
-                        qname = original_value
-                    value = self._bundle.mandatory_valid_qname(qname)
-                elif attr in PROV_ATTRIBUTE_LITERALS:
-                    # Expecting a datetime object or a string that can be parsed as a datetime
-                    if isinstance(original_value, str):
-                        value = parse_xsd_datetime(original_value)
-                    else:
-                        value = original_value
-                    if not isinstance(value, datetime.datetime):
-                        raise ProvException(
-                            f"Invalid value for attribute {attr}: {original_value}. "
-                            f"Expected a datetime object or a string that can be parsed"
-                            f" as a datetime."
-                        )
-                else:
-                    value = self._auto_literal_conversion(original_value)
-
-                if value is None:
-                    raise ProvException(
-                        f"Invalid value for attribute {attr}: {original_value}"
-                    )
-
-                if (
-                    not is_collection
-                    and attr in PROV_ATTRIBUTES
-                    and self._attributes[attr]
-                ):
-                    existing_value = first(self._attributes[attr])
-                    is_not_same_value = True
-                    # This duplicate-value branch runs at scale in
-                    # _unified_records()'s merge loop (unified()/flattened() on
-                    # large documents), where contextlib.suppress()'s per-call
-                    # context-manager overhead adds up — the plain try/except
-                    # stays here.
-                    try:  # noqa: SIM105
-                        is_not_same_value = value != existing_value
-                    except TypeError:
-                        # Cannot compare them
-                        pass  # consider them different values
-
-                    if is_not_same_value:
-                        raise ProvException(
-                            f"Cannot have more than one value for attribute {attr}"
-                        )
-                    else:
-                        # Same value, ignore it
-                        continue
-
-                self._attributes[attr].add(value)
+                self._store_attribute_value(attr, value, is_collection)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, ProvRecord):
