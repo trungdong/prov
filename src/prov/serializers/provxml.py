@@ -141,6 +141,37 @@ class ProvXMLSerializer(Serializer):
         """
         # Build the namespace map for lxml and attach it to the root XML
         # element.
+        nsmap = self._build_nsmap(bundle)
+
+        if element is not None:
+            xml_bundle_root = etree.SubElement(
+                element, _ns_prov("bundleContent"), nsmap=nsmap
+            )
+        else:
+            xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
+
+        if bundle.identifier:
+            xml_bundle_root.attrib[_ns_prov("id")] = str(bundle.identifier)
+
+        for record in bundle._records:
+            self._encode_record(xml_bundle_root, record, force_types)
+        return xml_bundle_root
+
+    def _build_nsmap(self, bundle: prov.model.ProvBundle) -> dict[str, str]:
+        """Build the lxml namespace map for ``bundle``'s root XML element.
+
+        Insertion order is significant: lxml emits namespace declarations in
+        the order of the mapping, so the registered namespaces of
+        ``self.document`` come first, then its default namespace (under the
+        ``None`` key), then ``bundle``'s own namespaces, then
+        :data:`~prov.model.DEFAULT_NAMESPACES`.
+
+        Args:
+            bundle: The bundle or document being serialized.
+
+        Returns:
+            A prefix-to-URI mapping suitable for lxml's ``nsmap`` argument.
+        """
         nsmap = {
             ns.prefix: ns.uri
             for ns in self.document._namespaces.get_registered_namespaces()  # type: ignore[union-attr]
@@ -159,123 +190,37 @@ class ProvXMLSerializer(Serializer):
                 # for PROV XML, but for all other serializations it does.
                 uri = uri.rstrip("#")
             nsmap[value.prefix] = uri
+        return nsmap
 
-        if element is not None:
-            xml_bundle_root = etree.SubElement(
-                element, _ns_prov("bundleContent"), nsmap=nsmap
-            )
-        else:
-            xml_bundle_root = etree.Element(_ns_prov("document"), nsmap=nsmap)
+    def _encode_record(
+        self,
+        xml_bundle_root: etree._Element,
+        record: prov.model.ProvRecord,
+        force_types: bool,
+    ) -> None:
+        """Add one record, with all of its attributes, to a bundle element.
 
-        if bundle.identifier:
-            xml_bundle_root.attrib[_ns_prov("id")] = str(bundle.identifier)
+        Args:
+            xml_bundle_root: The ``<prov:document>`` or
+                ``<prov:bundleContent>`` element to append the record
+                element to.
+            record: The record to encode.
+            force_types: See :meth:`serialize`.
+        """
+        rec_type = record.get_type()
+        identifier = str(record._identifier) if record._identifier else None
 
-        for record in bundle._records:
-            rec_type = record.get_type()
-            identifier = str(record._identifier) if record._identifier else None
+        attrs = {_ns_prov("id"): identifier} if identifier else None
 
-            attrs = {_ns_prov("id"): identifier} if identifier else None
+        # Derive the record label from its attributes which is sometimes
+        # needed.
+        attributes = record.attributes
+        rec_label = self._derive_record_label(rec_type, attributes)
 
-            # Derive the record label from its attributes which is sometimes
-            # needed.
-            attributes = record.attributes
-            rec_label = self._derive_record_label(rec_type, attributes)
+        elem = etree.SubElement(xml_bundle_root, _ns_prov(rec_label), attrs)
 
-            elem = etree.SubElement(xml_bundle_root, _ns_prov(rec_label), attrs)
-
-            for attr, value in sorted_attributes(rec_type, attributes):
-                subelem = etree.SubElement(
-                    elem,
-                    _ns(
-                        attr.namespace.uri,
-                        _escape_ncname_localpart(attr.localpart),
-                    ),
-                )
-                if isinstance(value, prov.model.Literal):
-                    if (
-                        value.datatype is not None
-                        and value.datatype != PROV_INTERNATIONALIZEDSTRING
-                    ):
-                        subelem.attrib[_ns_xsi("type")] = (
-                            f"{value.datatype.namespace.prefix}:{value.datatype.localpart}"
-                        )
-                    if value.langtag is not None:
-                        subelem.attrib[_ns_xml("lang")] = value.langtag
-                    v = value.value
-                elif isinstance(value, prov.identifier.QualifiedName):
-                    if attr not in PROV_ATTRIBUTE_QNAMES:
-                        subelem.attrib[_ns_xsi("type")] = "xsd:QName"
-                    v = str(value)
-                elif isinstance(value, datetime.datetime):
-                    v = value.isoformat()
-                else:
-                    v = str(value)
-
-                # xsd type inference.
-                #
-                # This is a bit messy and there are all kinds of special
-                # rules but it appears to get the job done.
-                #
-                # If it is a type element and does not yet have an
-                # associated xsi type, try to infer it from the value.
-                # The not startswith("prov:") check is a little bit hacky to
-                # avoid type interference when the type is a standard prov
-                # type.
-                #
-                # To enable a mapping of Python types to XML and back,
-                # the XSD type must be written for these types.
-                ALWAYS_CHECK = {
-                    bool,
-                    datetime.datetime,
-                    float,
-                    int,
-                    prov.identifier.Identifier,
-                }
-                if (
-                    (
-                        force_types
-                        or type(value) in ALWAYS_CHECK
-                        or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
-                    )
-                    and _ns_xsi("type") not in subelem.attrib
-                    and not str(value).startswith("prov:")
-                    and not (attr in PROV_ATTRIBUTE_QNAMES and v)
-                    and attr not in [PROV_ATTR_TIME, PROV_LABEL]
-                ):
-                    xsd_type = None
-                    if isinstance(value, bool):
-                        xsd_type = XSD_BOOLEAN
-                        v = v.lower()
-                    elif isinstance(value, str):
-                        xsd_type = XSD_STRING
-                    elif isinstance(value, float):
-                        xsd_type = XSD_DOUBLE
-                    elif isinstance(value, int):
-                        # bool is handled above (isinstance(value, bool));
-                        # ints are typed by magnitude (#244).
-                        xsd_type = canonical_xsd_datatype(value)
-                    elif isinstance(value, datetime.datetime):
-                        # Exception of the exception, while technically
-                        # still correct, do not write XSD dateTime type for
-                        # attributes in the PROV namespaces as the type is
-                        # already declared in the XSD and PROV XML also does
-                        # not specify it in the docs.
-                        if (
-                            attr.namespace.prefix != "prov"
-                            or "time" not in attr.localpart.lower()
-                        ):
-                            xsd_type = XSD_DATETIME
-                    elif isinstance(value, prov.identifier.Identifier):
-                        xsd_type = XSD_ANYURI
-
-                    if xsd_type is not None:
-                        subelem.attrib[_ns_xsi("type")] = str(xsd_type)
-
-                if attr in PROV_ATTRIBUTE_QNAMES and v:
-                    subelem.attrib[_ns_prov("ref")] = v
-                else:
-                    subelem.text = v
-        return xml_bundle_root
+        for attr, value in sorted_attributes(rec_type, attributes):
+            _encode_attribute(elem, attr, value, force_types)
 
     def deserialize(self, stream: io.IOBase, **kwargs: Any) -> prov.model.ProvDocument:
         """Deserialize a `PROV-XML <http://www.w3.org/TR/prov-xml/>`_
@@ -429,6 +374,179 @@ class ProvXMLSerializer(Serializer):
                 rec_label = FULL_NAMES_MAP[value]
                 break
         return rec_label
+
+
+def _encode_attribute(
+    elem: etree._Element,
+    attr: prov.identifier.QualifiedName,
+    value: Any,
+    force_types: bool,
+) -> None:
+    """Add one attribute of a record as a child element of its record element.
+
+    Args:
+        elem: The record element to append the attribute element to.
+        attr: The attribute's name.
+        value: The attribute's value.
+        force_types: See :meth:`ProvXMLSerializer.serialize`.
+    """
+    subelem = etree.SubElement(
+        elem,
+        _ns(
+            attr.namespace.uri,
+            _escape_ncname_localpart(attr.localpart),
+        ),
+    )
+    v = _encode_attribute_value(subelem, attr, value)
+
+    if _needs_xsd_type_inference(subelem, attr, value, v, force_types):
+        xsd_type, v = _infer_xsd_type(attr, value, v)
+        if xsd_type is not None:
+            subelem.attrib[_ns_xsi("type")] = str(xsd_type)
+
+    if attr in PROV_ATTRIBUTE_QNAMES and v:
+        subelem.attrib[_ns_prov("ref")] = v
+    else:
+        subelem.text = v
+
+
+def _encode_attribute_value(
+    subelem: etree._Element,
+    attr: prov.identifier.QualifiedName,
+    value: Any,
+) -> str:
+    """Write an attribute value's explicit type/language hints and render it.
+
+    Sets ``xsi:type`` and ``xml:lang`` on ``subelem`` where the value's own
+    Python type already determines them (a typed or language-tagged
+    :class:`~prov.model.Literal`, or a
+    :class:`~prov.identifier.QualifiedName` outside a PROV formal attribute).
+
+    Args:
+        subelem: The attribute's XML element.
+        attr: The attribute's name.
+        value: The attribute's value.
+
+    Returns:
+        The value's string rendering, for use as element text or as a
+        ``prov:ref`` attribute.
+    """
+    if isinstance(value, prov.model.Literal):
+        if (
+            value.datatype is not None
+            and value.datatype != PROV_INTERNATIONALIZEDSTRING
+        ):
+            subelem.attrib[_ns_xsi("type")] = (
+                f"{value.datatype.namespace.prefix}:{value.datatype.localpart}"
+            )
+        if value.langtag is not None:
+            subelem.attrib[_ns_xml("lang")] = value.langtag
+        return value.value
+    elif isinstance(value, prov.identifier.QualifiedName):
+        if attr not in PROV_ATTRIBUTE_QNAMES:
+            subelem.attrib[_ns_xsi("type")] = "xsd:QName"
+        return str(value)
+    elif isinstance(value, datetime.datetime):
+        return value.isoformat()
+    else:
+        return str(value)
+
+
+# To enable a mapping of Python types to XML and back, the XSD type must be
+# written for values of these types. Membership is tested against the value's
+# exact type, deliberately not with isinstance().
+_ALWAYS_CHECK = {
+    bool,
+    datetime.datetime,
+    float,
+    int,
+    prov.identifier.Identifier,
+}
+
+
+def _needs_xsd_type_inference(
+    subelem: etree._Element,
+    attr: prov.identifier.QualifiedName,
+    value: Any,
+    v: str,
+    force_types: bool,
+) -> bool:
+    """Decide whether an ``xsi:type`` should be inferred for an attribute.
+
+    This is a bit messy and there are all kinds of special rules but it
+    appears to get the job done.
+
+    If it is a type element and does not yet have an associated xsi type, try
+    to infer it from the value. The not startswith("prov:") check is a little
+    bit hacky to avoid type interference when the type is a standard prov
+    type.
+
+    Args:
+        subelem: The attribute's XML element, as written so far.
+        attr: The attribute's name.
+        value: The attribute's value.
+        v: The value's string rendering.
+        force_types: See :meth:`ProvXMLSerializer.serialize`.
+
+    Returns:
+        ``True`` if :func:`_infer_xsd_type` should be consulted for this
+        attribute.
+    """
+    return (
+        (
+            force_types
+            or type(value) in _ALWAYS_CHECK
+            or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
+        )
+        and _ns_xsi("type") not in subelem.attrib
+        and not str(value).startswith("prov:")
+        and not (attr in PROV_ATTRIBUTE_QNAMES and v)
+        and attr not in [PROV_ATTR_TIME, PROV_LABEL]
+    )
+
+
+def _infer_xsd_type(
+    attr: prov.identifier.QualifiedName,
+    value: Any,
+    v: str,
+) -> tuple[prov.identifier.QualifiedName | None, str]:
+    """Infer an attribute's ``xsd`` datatype from its Python value.
+
+    The order of the checks is significant -- ``bool`` is a subclass of
+    ``int`` and must be tested first.
+
+    Args:
+        attr: The attribute's name.
+        value: The attribute's value.
+        v: The value's string rendering.
+
+    Returns:
+        A ``(xsd_type, v)`` pair: the inferred datatype (``None`` if none
+        applies) and the value's string rendering, which the ``bool`` case
+        lower-cases.
+    """
+    xsd_type = None
+    if isinstance(value, bool):
+        xsd_type = XSD_BOOLEAN
+        v = v.lower()
+    elif isinstance(value, str):
+        xsd_type = XSD_STRING
+    elif isinstance(value, float):
+        xsd_type = XSD_DOUBLE
+    elif isinstance(value, int):
+        # bool is handled above (isinstance(value, bool));
+        # ints are typed by magnitude (#244).
+        xsd_type = canonical_xsd_datatype(value)
+    elif isinstance(value, datetime.datetime):
+        # Exception of the exception, while technically still correct, do
+        # not write XSD dateTime type for attributes in the PROV namespaces
+        # as the type is already declared in the XSD and PROV XML also does
+        # not specify it in the docs.
+        if attr.namespace.prefix != "prov" or "time" not in attr.localpart.lower():
+            xsd_type = XSD_DATETIME
+    elif isinstance(value, prov.identifier.Identifier):
+        xsd_type = XSD_ANYURI
+    return xsd_type, v
 
 
 def _extract_attributes(
