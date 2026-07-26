@@ -12,6 +12,7 @@ References:
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape
 from typing import Any
@@ -202,6 +203,279 @@ def htlm_link_if_uri(value: Any) -> str:
         return str(value)
 
 
+@dataclass
+class _DotRenderState:
+    """Mutable state shared by the tree-walk helpers within one `prov_to_dot` call.
+
+    ``node_map`` and ``count`` are written and read across the whole,
+    possibly-nested bundle walk (they must stay shared across sub-bundles);
+    the four ``show_*``/``use_labels``/``show_nary`` flags are the
+    caller-supplied rendering options, constant for the call.
+    """
+
+    use_labels: bool
+    show_element_attributes: bool
+    show_relation_attributes: bool
+    show_nary: bool
+    node_map: dict[str, pydot.Node] = field(default_factory=dict)
+    count: list[int] = field(
+        default_factory=lambda: [0, 0, 0, 0]
+    )  # counters for node ids
+
+
+def _attach_attribute_annotation(
+    state: _DotRenderState,
+    dot: pydot.Dot | pydot.Cluster,
+    node: pydot.Node,
+    record: ProvRecord,
+) -> None:
+    # Adding a node to show all attributes
+    attributes = [
+        (attr_name, value)
+        for attr_name, value in record.attributes
+        if attr_name not in PROV_ATTRIBUTE_QNAMES
+    ]
+
+    if not attributes:
+        return  # No attribute to display
+
+    # Sort the attributes.
+    attributes = sorted_attributes(record.get_type(), attributes)
+
+    ann_rows = [ANNOTATION_START_ROW]
+    ann_rows.extend(
+        ANNOTATION_ROW_TEMPLATE
+        % (
+            attr.uri,
+            escape(str(attr)),
+            f' href="{value.uri}"' if isinstance(value, Identifier) else "",
+            escape(
+                str(value)
+                if not isinstance(value, datetime)
+                else str(value.isoformat())
+            ),
+        )
+        for attr, value in attributes
+    )
+    ann_rows.append(ANNOTATION_END_ROW)
+    state.count[3] += 1
+    annotations = pydot.Node(
+        f"ann{state.count[3]}", label="\n".join(ann_rows), **ANNOTATION_STYLE
+    )
+    dot.add_node(annotations)
+    dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
+
+
+def _add_bundle(
+    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle
+) -> pydot.Cluster:
+    state.count[2] += 1
+    subdot = pydot.Cluster(
+        graph_name=f"c{state.count[2]}",
+        URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
+    )
+    # set_label is generated at runtime by pydot via setattr() for
+    # every Graphviz attribute (see pydot.core.__generate_attribute_methods),
+    # so it exists on Cluster instances but isn't visible to mypy.
+    subdot.set_label(f'"{bundle.identifier!s}"')  # type: ignore[attr-defined]
+    _bundle_to_dot(state, subdot, bundle)
+    # pydot types Graph.add_subgraph() as accepting only a Subgraph,
+    # but Cluster (a Graph subclass, not a Subgraph subclass) is the
+    # documented/idiomatic way to add a cluster subgraph in pydot.
+    dot.add_subgraph(subdot)  # type: ignore[arg-type]
+    return subdot
+
+
+def _add_node(
+    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, record: ProvRecord
+) -> pydot.Node:
+    state.count[0] += 1
+    node_id = f"n{state.count[0]}"
+    if state.use_labels:
+        if record.label == record.identifier:
+            node_label = f'"{record.label}"'
+        else:
+            # Fancier label if both are different. The label will be
+            # the main node text, whereas the identifier will be a
+            # kind of subtitle.
+            node_label = (
+                f"<{record.label}<br />"
+                f'<font color="#333333" point-size="10">'
+                f"{record.identifier}</font>>"
+            )
+    else:
+        node_label = f'"{record.identifier}"'
+
+    uri = record.identifier.uri  # type: ignore[union-attr]
+    style = DOT_PROV_STYLE[record.get_type()]
+    node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
+    state.node_map[uri] = node
+    dot.add_node(node)
+
+    if state.show_element_attributes:
+        _attach_attribute_annotation(state, dot, node, record)
+    return node
+
+
+def _add_generic_node(
+    state: _DotRenderState,
+    dot: pydot.Dot | pydot.Cluster,
+    qname: QualifiedName,
+    prov_type: type[ProvElement] | None = None,
+) -> pydot.Node:
+    state.count[0] += 1
+    node_id = f"n{state.count[0]}"
+    node_label = f'"{qname}"'
+
+    uri = qname.uri
+    style = GENERIC_NODE_STYLE[prov_type] if prov_type else DOT_PROV_STYLE[0]
+    node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
+    state.node_map[uri] = node
+    dot.add_node(node)
+    return node
+
+
+def _get_bnode(state: _DotRenderState, dot: pydot.Dot | pydot.Cluster) -> pydot.Node:
+    state.count[1] += 1
+    bnode_id = f"b{state.count[1]}"
+    bnode = pydot.Node(bnode_id, label='""', shape="point", color="gray")
+    dot.add_node(bnode)
+    return bnode
+
+
+def _get_node(
+    state: _DotRenderState,
+    dot: pydot.Dot | pydot.Cluster,
+    qname: QualifiedName | None,
+    prov_type: type[ProvElement] | None = None,
+) -> pydot.Node:
+    if qname is None:
+        return _get_bnode(state, dot)
+    uri = qname.uri
+    if uri not in state.node_map:
+        _add_generic_node(state, dot, qname, prov_type)
+    return state.node_map[uri]
+
+
+def _draw_nary_or_annotated_relation(
+    state: _DotRenderState,
+    dot: pydot.Dot | pydot.Cluster,
+    rec: ProvRecord,
+    nodes: tuple[Any, ...],
+    attr_names: tuple[Any, ...],
+    inferred_types: list[Any],
+    style: dict[str, Any],
+    add_nary_elements: bool,
+    add_attribute_annotation: bool,
+) -> None:
+    # a blank node for n-ary relations or the attribute annotation
+    bnode = _get_bnode(state, dot)
+
+    # the first segment
+    dot.add_edge(
+        pydot.Edge(
+            _get_node(state, dot, nodes[0], inferred_types[0]),
+            bnode,
+            arrowhead="none",
+            **style,
+        )
+    )
+    style = dict(style)  # copy the style
+    del style["label"]  # not showing label in the second segment
+    # the second segment
+    dot.add_edge(
+        pydot.Edge(bnode, _get_node(state, dot, nodes[1], inferred_types[1]), **style)
+    )
+    if add_nary_elements:
+        style["color"] = "gray"  # all remaining segment to be gray
+        style["fontcolor"] = "dimgray"  # text in darker gray
+        for attr_name, node, inferred_type in zip(
+            attr_names[2:], nodes[2:], inferred_types[2:], strict=False
+        ):
+            if node is not None:
+                style["label"] = attr_name.localpart
+                dot.add_edge(
+                    pydot.Edge(
+                        bnode, _get_node(state, dot, node, inferred_type), **style
+                    )
+                )
+    if add_attribute_annotation:
+        _attach_attribute_annotation(state, dot, bnode, rec)
+
+
+def _add_relation(
+    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, rec: ProvRecord
+) -> None:
+    args = rec.args
+    # skipping empty records
+    if not args:
+        return
+    # picking element nodes
+    attr_names, nodes = zip(
+        *(
+            (attr_name, value)
+            for attr_name, value in rec.formal_attributes
+            if attr_name in PROV_ATTRIBUTE_QNAMES
+        ),
+        strict=False,
+    )
+    inferred_types = list(map(INFERRED_ELEMENT_CLASS.get, attr_names))
+    other_attributes = [
+        (attr_name, value)
+        for attr_name, value in rec.attributes
+        if attr_name not in PROV_ATTRIBUTE_QNAMES
+    ]
+    add_attribute_annotation = state.show_relation_attributes and other_attributes
+    add_nary_elements = len(nodes) > 2 and state.show_nary
+    style = DOT_PROV_STYLE[rec.get_type()]
+    if len(nodes) < 2:  # too few elements for a relation?
+        return  # cannot draw this
+
+    if add_nary_elements or add_attribute_annotation:
+        _draw_nary_or_annotated_relation(
+            state,
+            dot,
+            rec,
+            nodes,
+            attr_names,
+            inferred_types,
+            style,
+            add_nary_elements,
+            bool(add_attribute_annotation),
+        )
+    else:
+        # show a simple binary relation with no annotation
+        dot.add_edge(
+            pydot.Edge(
+                _get_node(state, dot, nodes[0], inferred_types[0]),
+                _get_node(state, dot, nodes[1], inferred_types[1]),
+                **style,
+            )
+        )
+
+
+def _bundle_to_dot(
+    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle
+) -> None:
+    records = bundle.get_records()
+    relations = []
+    for rec in records:
+        if rec.is_element():
+            _add_node(state, dot, rec)
+        else:
+            # Saving the relations for later processing
+            relations.append(rec)
+
+    if not bundle.is_bundle():
+        # `bundle.bundles` is evaluated once before the loop starts, so
+        # reassigning `bundle` as the loop variable here is safe.
+        for bundle in bundle.bundles:  # noqa: B020
+            _add_bundle(state, dot, bundle)
+
+    for rec in relations:
+        _add_relation(state, dot, rec)
+
+
 def prov_to_dot(
     bundle: ProvBundle,
     show_nary: bool = True,
@@ -239,208 +513,12 @@ def prov_to_dot(
         direction = "BT"  # reset it to the default value
     maindot = pydot.Dot(graph_type="digraph", rankdir=direction, charset="utf-8")
 
-    node_map = {}  # type: dict[str, pydot.Node]
-    count = [0, 0, 0, 0]  # counters for node ids
-
-    def _bundle_to_dot(dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle) -> None:
-        def _attach_attribute_annotation(node: pydot.Node, record: ProvRecord) -> None:
-            # Adding a node to show all attributes
-            attributes = [
-                (attr_name, value)
-                for attr_name, value in record.attributes
-                if attr_name not in PROV_ATTRIBUTE_QNAMES
-            ]
-
-            if not attributes:
-                return  # No attribute to display
-
-            # Sort the attributes.
-            attributes = sorted_attributes(record.get_type(), attributes)
-
-            ann_rows = [ANNOTATION_START_ROW]
-            ann_rows.extend(
-                ANNOTATION_ROW_TEMPLATE
-                % (
-                    attr.uri,
-                    escape(str(attr)),
-                    f' href="{value.uri}"' if isinstance(value, Identifier) else "",
-                    escape(
-                        str(value)
-                        if not isinstance(value, datetime)
-                        else str(value.isoformat())
-                    ),
-                )
-                for attr, value in attributes
-            )
-            ann_rows.append(ANNOTATION_END_ROW)
-            count[3] += 1
-            annotations = pydot.Node(
-                f"ann{count[3]}", label="\n".join(ann_rows), **ANNOTATION_STYLE
-            )
-            dot.add_node(annotations)
-            dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
-
-        def _add_bundle(bundle: ProvBundle) -> pydot.Cluster:
-            count[2] += 1
-            subdot = pydot.Cluster(
-                graph_name=f"c{count[2]}",
-                URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
-            )
-            # set_label is generated at runtime by pydot via setattr() for
-            # every Graphviz attribute (see pydot.core.__generate_attribute_methods),
-            # so it exists on Cluster instances but isn't visible to mypy.
-            subdot.set_label(f'"{bundle.identifier!s}"')  # type: ignore[attr-defined]
-            _bundle_to_dot(subdot, bundle)
-            # pydot types Graph.add_subgraph() as accepting only a Subgraph,
-            # but Cluster (a Graph subclass, not a Subgraph subclass) is the
-            # documented/idiomatic way to add a cluster subgraph in pydot.
-            dot.add_subgraph(subdot)  # type: ignore[arg-type]
-            return subdot
-
-        def _add_node(record: ProvRecord) -> pydot.Node:
-            count[0] += 1
-            node_id = f"n{count[0]}"
-            if use_labels:
-                if record.label == record.identifier:
-                    node_label = f'"{record.label}"'
-                else:
-                    # Fancier label if both are different. The label will be
-                    # the main node text, whereas the identifier will be a
-                    # kind of subtitle.
-                    node_label = (
-                        f"<{record.label}<br />"
-                        f'<font color="#333333" point-size="10">'
-                        f"{record.identifier}</font>>"
-                    )
-            else:
-                node_label = f'"{record.identifier}"'
-
-            uri = record.identifier.uri  # type: ignore[union-attr]
-            style = DOT_PROV_STYLE[record.get_type()]
-            node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
-            node_map[uri] = node
-            dot.add_node(node)
-
-            if show_element_attributes:
-                _attach_attribute_annotation(node, rec)
-            return node
-
-        def _add_generic_node(
-            qname: QualifiedName, prov_type: type[ProvElement] | None = None
-        ) -> pydot.Node:
-            count[0] += 1
-            node_id = f"n{count[0]}"
-            node_label = f'"{qname}"'
-
-            uri = qname.uri
-            style = GENERIC_NODE_STYLE[prov_type] if prov_type else DOT_PROV_STYLE[0]
-            node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
-            node_map[uri] = node
-            dot.add_node(node)
-            return node
-
-        def _get_bnode() -> pydot.Node:
-            count[1] += 1
-            bnode_id = f"b{count[1]}"
-            bnode = pydot.Node(bnode_id, label='""', shape="point", color="gray")
-            dot.add_node(bnode)
-            return bnode
-
-        def _get_node(
-            qname: QualifiedName | None,
-            prov_type: type[ProvElement] | None = None,
-        ) -> pydot.Node:
-            if qname is None:
-                return _get_bnode()
-            uri = qname.uri
-            if uri not in node_map:
-                _add_generic_node(qname, prov_type)
-            return node_map[uri]
-
-        records = bundle.get_records()
-        relations = []
-        for rec in records:
-            if rec.is_element():
-                _add_node(rec)
-            else:
-                # Saving the relations for later processing
-                relations.append(rec)
-
-        if not bundle.is_bundle():
-            # `bundle.bundles` is evaluated once before the loop starts, so
-            # reassigning `bundle` as the loop variable here is safe.
-            for bundle in bundle.bundles:  # noqa: B020
-                _add_bundle(bundle)
-
-        for rec in relations:
-            args = rec.args
-            # skipping empty records
-            if not args:
-                continue
-            # picking element nodes
-            attr_names, nodes = zip(
-                *(
-                    (attr_name, value)
-                    for attr_name, value in rec.formal_attributes
-                    if attr_name in PROV_ATTRIBUTE_QNAMES
-                ),
-                strict=False,
-            )
-            inferred_types = list(map(INFERRED_ELEMENT_CLASS.get, attr_names))
-            other_attributes = [
-                (attr_name, value)
-                for attr_name, value in rec.attributes
-                if attr_name not in PROV_ATTRIBUTE_QNAMES
-            ]
-            add_attribute_annotation = show_relation_attributes and other_attributes
-            add_nary_elements = len(nodes) > 2 and show_nary
-            style = DOT_PROV_STYLE[rec.get_type()]
-            if len(nodes) < 2:  # too few elements for a relation?
-                continue  # cannot draw this
-
-            if add_nary_elements or add_attribute_annotation:
-                # a blank node for n-ary relations or the attribute annotation
-                bnode = _get_bnode()
-
-                # the first segment
-                dot.add_edge(
-                    pydot.Edge(
-                        _get_node(nodes[0], inferred_types[0]),
-                        bnode,
-                        arrowhead="none",
-                        **style,
-                    )
-                )
-                style = dict(style)  # copy the style
-                del style["label"]  # not showing label in the second segment
-                # the second segment
-                dot.add_edge(
-                    pydot.Edge(bnode, _get_node(nodes[1], inferred_types[1]), **style)
-                )
-                if add_nary_elements:
-                    style["color"] = "gray"  # all remaining segment to be gray
-                    style["fontcolor"] = "dimgray"  # text in darker gray
-                    for attr_name, node, inferred_type in zip(
-                        attr_names[2:], nodes[2:], inferred_types[2:], strict=False
-                    ):
-                        if node is not None:
-                            style["label"] = attr_name.localpart
-                            dot.add_edge(
-                                pydot.Edge(
-                                    bnode, _get_node(node, inferred_type), **style
-                                )
-                            )
-                if add_attribute_annotation:
-                    _attach_attribute_annotation(bnode, rec)
-            else:
-                # show a simple binary relation with no annotation
-                dot.add_edge(
-                    pydot.Edge(
-                        _get_node(nodes[0], inferred_types[0]),
-                        _get_node(nodes[1], inferred_types[1]),
-                        **style,
-                    )
-                )
+    state = _DotRenderState(
+        use_labels=use_labels,
+        show_element_attributes=show_element_attributes,
+        show_relation_attributes=show_relation_attributes,
+        show_nary=show_nary,
+    )
 
     try:
         unified = bundle.unified()
@@ -449,5 +527,5 @@ def prov_to_dot(
         # try the original document anyway
         unified = bundle
 
-    _bundle_to_dot(maindot, unified)
+    _bundle_to_dot(state, maindot, unified)
     return maindot

@@ -161,6 +161,8 @@ History
   threshold with byte-identical behaviour (#275)
 * Internal: refactored ``prov.read()`` below the complexity threshold with
   byte-identical behaviour (#275)
+* Internal: refactored ``prov_to_dot()``'s rendering tree-walk below the
+  complexity threshold with byte-identical output (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
