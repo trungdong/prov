@@ -73,25 +73,35 @@ More caveats apply across many rows rather than to one:
   [#341](https://github.com/trungdong/prov/issues/341), a sibling of the #217 limitation above
   but **not** a decided/closed matter — it is a known defect, unfixed in 3.0): a qualified name
   used as an **attribute key** whose local part *ends* in one of the seven characters `=` `'`
-  `,` `:` `;` `[` `]` does not survive the PROV-O round trip *when* the same document also
-  contains any other qualified name — an identifier, another attribute key, or a QualifiedName
-  attribute *value* — carrying that same character *mid-string*. Of the nine #223 PROV-N
-  metacharacters, only `(` and `)` are unaffected in every position; the other seven all trigger
-  this in the trailing position. Neither half fails alone: the mid-string occurrence makes
-  rdflib's `compute_qname()` silently mis-split, e.g., `http://example.org/e:0` into namespace
-  `http://example.org/e:` plus local part `0` rather than raising, so the true namespace is
-  never registered from that identifier's decoding. Identifier decoding tolerates this via a
-  fallback (`_resolve_iri`, `src/prov/serializers/provrdf.py:536`), but attribute-key decoding
-  does not (`_decode_attribute_triple` → `mandatory_valid_qname`,
-  `src/prov/serializers/provrdf.py:1573`), so a key ending in one of the seven characters is
-  rejected once some other qualified name in the same document has already narrowed the
-  namespace pool. Qualified names used as attribute values are unaffected either way. As with
-  #217, PROV-N escapes these characters and PROV-JSON/PROV-XML both round-trip them — PROV-O is
-  the odd one out. #341's title names only the colon instance; the surface described here is
-  broader. Excluded from the Hypothesis round-trip property test at generation time
-  (`src/prov/tests/strategies.py`) so it does not mask other findings, but — unlike #217 and
-  #248 above — this is not a maintainer decision to leave as a permanent limitation; it remains
-  open for a future fix.
+  `,` `:` `;` `[` `]` can fail to survive the PROV-O round trip. An IRI ending in one of these
+  characters makes rdflib's `compute_qname()` raise, since nothing follows the character to
+  serve as a local part; decoding an *identifier* tolerates this via a fallback split in
+  `ProvRDFSerializer._resolve_iri`, but decoding an *attribute key* has no equivalent fallback —
+  it can only resolve such an IRI if that key's namespace is **already registered** by the time
+  the key is decoded, which happens only when some *other* qualified name under the same
+  namespace has already been decoded from an IRI that splits cleanly. A qualified name whose own
+  local part carries the character *mid-string* (e.g. `http://example.org/e:0`) does not help
+  register the namespace — `compute_qname()` silently mis-splits it into an over-narrow namespace
+  (`http://example.org/e:`) instead of raising — but it does no active harm either: a clean
+  sibling elsewhere in the same namespace still rescues the key regardless of whether a
+  mid-string occurrence is also present. So the failure condition is registration-based: an
+  attribute key whose local part ends in one of these seven characters, in a namespace that no
+  cleanly-splitting qualified name has registered by the time the key is decoded — a mid-string
+  occurrence of the character elsewhere is neither necessary nor sufficient for the failure. The
+  unguarded call lives in `ProvRecord.add_attributes`
+  (`src/prov/model/records.py`), reached while emitting decoded records in
+  `ProvRDFSerializer._emit_decoded_records` (`src/prov/serializers/provrdf.py`), with the raise
+  itself coming from `mandatory_valid_qname` (`src/prov/model/bundle.py`). Of the nine #223
+  PROV-N metacharacters, only `(` and `)` are unaffected in every position. Qualified names used
+  as attribute *values* are unaffected. As with #217, PROV-N escapes these characters and
+  PROV-JSON/PROV-XML both round-trip them — PROV-O is the odd one out. #341's title names only
+  the colon instance; the surface described here is broader. The round-trip property test
+  excludes attribute keys ending in one of these seven characters at generation time
+  (`src/prov/tests/strategies.py`) so it does not mask other findings — slightly more
+  conservative than the true rule, since such a key is actually safe whenever its namespace
+  happens to already be registered, but the generator cannot guarantee that in general. Unlike
+  #217 and #248 above, this is not a maintainer decision to leave as a permanent limitation; it
+  remains open for a future fix.
 
 The value-typing and literal-semantics gaps the audit recorded here — #77, #89, #168, #218,
 #223, #225, #235, #238, #244, #246, #249, #251, #256, #259 — were fixed in 3.0; see
