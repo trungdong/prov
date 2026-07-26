@@ -1,10 +1,10 @@
 # Upgrading to 3.0
 
 3.0 is the one release in the `prov` roadmap allowed to break compatibility. Every
-change below is signposted in 2.4.0 (with a runtime warning where that is feasible), so
-most code that only sees a `DeprecationWarning`/`FutureWarning` today needs no change to
-keep working right up until 3.0 ships; this page lists what to do for each planned
-change. See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for
+change below was signposted in 2.4.0 (with a runtime warning where that was feasible), so
+code that only saw a `DeprecationWarning`/`FutureWarning` under 2.4.0 needed no change to
+keep working right up to 3.0; this page lists what to do for each change 3.0 makes.
+See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for
 the release-by-release plan and the
 [modernisation roadmap design](https://github.com/trungdong/prov/blob/master/docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md)
 for the full rationale.
@@ -129,7 +129,7 @@ generic `ProvException` the merge used to raise), whereas `prov_to_graph()` lets
 3.0 removes everything 2.4.0 marked deprecated:
 
 - The unconditional `pydot`/`networkx` dependencies (superseded by the `dot`/`graph`
-  extras above) — `import prov.dot` / `import prov.graph` will raise
+  extras above) — `import prov.dot` / `import prov.graph` raises
   `ModuleNotFoundError` if the corresponding extra isn't installed, rather than working
   out of the box.
 - `python-dateutil` as a runtime dependency (superseded by the stdlib swap above), along

@@ -85,38 +85,43 @@ attr_values = st.one_of(
 
 
 # Attribute keys draw from `local_part` too, but with their *trailing*
-# character restricted -- the failing shape found for #341 needs both an
-# attribute key ending in one of `= ' , : ; [ ]` and *any* other qualified
-# name (an identifier, another attribute key, or a QualifiedName value)
-# carrying that same character mid-string under the same namespace. Two
-# separate weaknesses combine to cause it:
+# character restricted -- the failing shape found for #341 is an attribute
+# key whose local part ends in one of `= ' , : ; [ ]`, decoded in a
+# namespace that no *other*, cleanly-splitting qualified name has already
+# registered by that point in decoding. Two separate weaknesses combine to
+# cause it:
 #
-# 1. rdflib's ``compute_qname()`` only raises when a #223 metacharacter is
-#    the very last character of an IRI with nothing after it; when one
-#    occurs mid-string (e.g. "http://example.org/e:0"), it silently
-#    mis-splits instead, folding the metacharacter into what it thinks is
-#    the namespace ("http://example.org/e:", local "0"). That mis-split is
-#    harmless for the identifier that caused it -- its reassembled URI still
-#    matches -- but it means the true "http://example.org/" namespace never
-#    gets registered from decoding that identifier.
-# 2. Decoding an *identifier* tolerates this: ``_resolve_iri``
-#    (provrdf.py:536) falls back to splitting at the last "/" or "#" itself
-#    whenever ``compute_qname()`` raises, which recovers the true namespace
-#    for any identifier whose own metacharacter is trailing (nothing follows
-#    it, so it does raise). Decoding an attribute *key* does not: its
-#    predicate is resolved via ``mandatory_valid_qname``
-#    (``_decode_attribute_triple``, provrdf.py:1573), which only matches
-#    already-registered namespaces and has no equivalent fallback. So a key
-#    ending in one of those seven characters -- every #223 metacharacter
-#    except `(` and `)` -- fails outright once some other qualified name's
-#    mid-string occurrence has already poisoned the namespace pool with an
-#    over-narrow registration instead of the true one.
+# 1. rdflib's ``compute_qname()`` raises when a #223 metacharacter is the
+#    very last character of an IRI, since nothing follows it to serve as a
+#    local part. Decoding an *identifier* tolerates this: ``_resolve_iri``
+#    falls back to splitting at the last "/" or "#" itself whenever
+#    ``compute_qname()`` raises, so the true namespace still gets
+#    registered from decoding that identifier.
+# 2. Decoding an attribute *key* has no such fallback: its predicate is
+#    resolved via ``mandatory_valid_qname``, reached from
+#    ``ProvRecord.add_attributes`` while emitting decoded records
+#    (``ProvRDFSerializer._emit_decoded_records``), which only matches an
+#    *already-registered* namespace. So a key ending in one of those seven
+#    characters -- every #223 metacharacter except `(` and `)` -- fails
+#    outright unless some other qualified name under the same namespace has
+#    already been decoded from an IRI that splits cleanly, registering the
+#    true namespace first.
 #
-# This excludes only that one shape: identifiers, mid-string occurrences in
-# other keys, and QualifiedName *values* are all unaffected and keep full
-# #223/#294 coverage. `(` and `)` are unaffected too -- rdflib splits them
-# correctly regardless of position -- so they stay reachable as key endings.
-# Excluding it is a generation-validity narrowing, not a serializer change.
+# A qualified name whose own local part carries the metacharacter
+# *mid-string* (e.g. "http://example.org/e:0") does not help: rdflib
+# mis-splits it into an over-narrow namespace ("http://example.org/e:")
+# instead of raising, so it never registers the true one -- but it does no
+# active harm either, since a clean sibling elsewhere in the same namespace
+# still rescues the key regardless. This excludes only the shape that
+# actually fails: identifiers, mid-string occurrences in other keys, and
+# QualifiedName *values* are all unaffected and keep full #223/#294
+# coverage. `(` and `)` are unaffected too -- rdflib splits them correctly
+# regardless of position -- so they stay reachable as key endings. Excluding
+# trailing-metacharacter key endings entirely is slightly more conservative
+# than the true rule (such a key is actually safe whenever its namespace
+# happens to already be registered), but the generator cannot guarantee that
+# in general, so this is a generation-validity narrowing, not a serializer
+# change.
 _KEY_SAFE_ENDING = string.ascii_lowercase + string.digits + "()"
 
 attribute_key_part = st.builds(
