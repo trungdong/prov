@@ -165,6 +165,8 @@ History
   complexity threshold with byte-identical output (#275)
 * Internal: refactored ``NamespaceManager.valid_qualified_name()`` below the
   complexity threshold with byte-identical behaviour (#275)
+* Internal: refactored the PROV-JSON deserializer's ``decode_json_container()``
+  below the complexity threshold with byte-identical behaviour (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

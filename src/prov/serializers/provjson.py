@@ -377,104 +377,186 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
-        prefixes = _expect_json_object(jc["prefix"], 'The "prefix" value')
-        for prefix, uri in prefixes.items():
-            if prefix != "default":
-                bundle.add_namespace(Namespace(prefix, uri))
-            else:
-                bundle.set_default_namespace(uri)
-        del jc["prefix"]
+        _decode_namespaces(jc, bundle)
 
     for rec_type_str in jc:
-        try:
-            rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
-        except KeyError as exc:
-            raise ProvJSONException(
-                f"{rec_type_str!r} is not a recognised PROV-N record-type"
-                f" keyword (e.g. 'entity', 'activity', 'wasGeneratedBy')"
-            ) from exc
-        records_by_id = _expect_json_object(
-            jc[rec_type_str], f"The {rec_type_str!r} value"
-        )
-        for rec_id, content in records_by_id.items():
-            elements = _json_record_elements(content, rec_type_str, rec_id)
+        _decode_record_group(jc, rec_type_str, bundle)
 
-            for element in elements:
-                attributes = {}  # type: dict[QualifiedNameCandidate, Any]
-                other_attributes = []  # type: list[tuple[QualifiedNameCandidate, Any]]
-                # this is for the multiple-entity membership hack to come
-                membership_extra_members = None
-                for attr_name, values in element.items():
-                    attr = (
-                        PROV_ATTRIBUTES_ID_MAP[attr_name]
-                        if attr_name in PROV_ATTRIBUTES_ID_MAP
-                        else bundle.mandatory_valid_qname(attr_name)
-                    )  # type: QualifiedName
-                    if attr in PROV_ATTRIBUTES:
-                        if isinstance(values, list):
-                            # only one value is allowed
-                            if len(values) > 1:
-                                # unless it is the membership hack
-                                if (
-                                    rec_type == PROV_MEMBERSHIP
-                                    and attr == PROV_ATTR_ENTITY
-                                ):
-                                    # This is a membership relation with
-                                    # multiple entities
-                                    # HACK: create multiple membership
-                                    # relations, one for each entity
 
-                                    # Store all the extra entities
-                                    membership_extra_members = values[1:]
-                                    # Create the first membership relation as
-                                    # normal for the first entity
-                                    value = values[0]
-                                else:
-                                    error_msg = (
-                                        "The prov package does not support PROV"
-                                        " attributes having multiple values."
-                                    )
-                                    logger.error(error_msg)
-                                    raise ProvJSONException(error_msg)
-                            else:
-                                value = values[0]
-                        else:
-                            value = values
-                        value = (
-                            valid_qualified_name(bundle, value)
-                            if attr in PROV_ATTRIBUTE_QNAMES
-                            else parse_xsd_datetime(value)
-                        )
-                        attributes[attr] = value
-                    else:
-                        if isinstance(values, list):
-                            other_attributes.extend(
-                                (
-                                    attr,
-                                    decode_json_representation(
-                                        value, bundle, attr_name
-                                    ),
-                                )
-                                for value in values
-                            )
-                        else:
-                            # single value
-                            other_attributes.append(
-                                (
-                                    attr,
-                                    decode_json_representation(
-                                        values, bundle, attr_name
-                                    ),
-                                )
-                            )
-                bundle.new_record(rec_type, rec_id, attributes, other_attributes)
-                # HACK: creating extra (unidentified) membership relations
-                if membership_extra_members:
-                    collection = attributes[PROV_ATTR_COLLECTION]
-                    for member in membership_extra_members:
-                        bundle.membership(
-                            collection, bundle.mandatory_valid_qname(member)
-                        )
+def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
+    """Register a container's namespaces on ``bundle`` and consume its ``"prefix"`` key.
+
+    Mutates ``jc`` in place, removing the ``"prefix"`` key once its
+    namespaces have been registered.
+
+    Args:
+        jc: PROV-JSON container dict; must contain a ``"prefix"`` key.
+        bundle: Bundle to register the namespaces on.
+
+    Raises:
+        ProvJSONException: If the ``"prefix"`` value is not a JSON object.
+    """
+    prefixes = _expect_json_object(jc["prefix"], 'The "prefix" value')
+    for prefix, uri in prefixes.items():
+        if prefix != "default":
+            bundle.add_namespace(Namespace(prefix, uri))
+        else:
+            bundle.set_default_namespace(uri)
+    del jc["prefix"]
+
+
+def _decode_record_group(
+    jc: ProvJSONDict, rec_type_str: str, bundle: ProvBundle
+) -> None:
+    """Decode every record instance filed under one PROV-N record-type keyword.
+
+    Args:
+        jc: PROV-JSON container dict (its ``"prefix"`` key, if any, already
+            consumed).
+        rec_type_str: The record-type keyword (e.g. ``"entity"``) naming the
+            ``jc`` entry to decode.
+        bundle: Bundle to add the decoded records to.
+
+    Raises:
+        ProvJSONException: If ``rec_type_str`` is not a recognised PROV-N
+            record-type keyword; if its value is not a JSON object mapping
+            record identifiers to content; if a record's content is not a
+            JSON object or a list of JSON objects; if a non-formal
+            attribute's typed-literal representation is missing its required
+            ``"$"`` key; or if a formal attribute has more than one value,
+            other than the documented multi-entity ``hadMember``
+            (membership) hack (both raised further down the call chain, by
+            :func:`_decode_record_instance` / :func:`_decode_formal_attribute`).
+    """
+    try:
+        rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
+    except KeyError as exc:
+        raise ProvJSONException(
+            f"{rec_type_str!r} is not a recognised PROV-N record-type"
+            f" keyword (e.g. 'entity', 'activity', 'wasGeneratedBy')"
+        ) from exc
+    records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
+    for rec_id, content in records_by_id.items():
+        elements = _json_record_elements(content, rec_type_str, rec_id)
+        for element in elements:
+            _decode_record_instance(rec_type, rec_id, element, bundle)
+
+
+def _decode_record_instance(
+    rec_type: QualifiedName,
+    rec_id: str,
+    element: dict[str, Any],
+    bundle: ProvBundle,
+) -> None:
+    """Decode one record instance's attributes and add it to ``bundle``.
+
+    Args:
+        rec_type: The record's PROV-N record type.
+        rec_id: The record's identifier string.
+        element: The instance's raw attribute dict, as produced by
+            :func:`_json_record_elements`.
+        bundle: Bundle to add the decoded record (and, for the multi-entity
+            ``hadMember`` hack, any extra membership relations) to.
+
+    Raises:
+        ProvJSONException: If a non-formal attribute's typed-literal
+            representation is missing its required ``"$"`` key; or if a
+            formal attribute has more than one value, other than the
+            documented multi-entity ``hadMember`` (membership) hack.
+    """
+    attributes = {}  # type: dict[QualifiedNameCandidate, Any]
+    other_attributes = []  # type: list[tuple[QualifiedNameCandidate, Any]]
+    # this is for the multiple-entity membership hack to come
+    membership_extra_members = None
+    for attr_name, values in element.items():
+        attr = (
+            PROV_ATTRIBUTES_ID_MAP[attr_name]
+            if attr_name in PROV_ATTRIBUTES_ID_MAP
+            else bundle.mandatory_valid_qname(attr_name)
+        )  # type: QualifiedName
+        if attr in PROV_ATTRIBUTES:
+            value, extra_members = _decode_formal_attribute(
+                rec_type, attr, values, bundle
+            )
+            attributes[attr] = value
+            if extra_members is not None:
+                membership_extra_members = extra_members
+        else:
+            if isinstance(values, list):
+                other_attributes.extend(
+                    (attr, decode_json_representation(value, bundle, attr_name))
+                    for value in values
+                )
+            else:
+                # single value
+                other_attributes.append(
+                    (attr, decode_json_representation(values, bundle, attr_name))
+                )
+    bundle.new_record(rec_type, rec_id, attributes, other_attributes)
+    # HACK: creating extra (unidentified) membership relations
+    if membership_extra_members:
+        collection = attributes[PROV_ATTR_COLLECTION]
+        for member in membership_extra_members:
+            bundle.membership(collection, bundle.mandatory_valid_qname(member))
+
+
+def _decode_formal_attribute(
+    rec_type: QualifiedName,
+    attr: QualifiedName,
+    values: Any,
+    bundle: ProvBundle,
+) -> tuple[Any, list[Any] | None]:
+    """Decode one formal (:data:`~prov.constants.PROV_ATTRIBUTES`) attribute's value(s).
+
+    Args:
+        rec_type: The enclosing record's PROV-N record type.
+        attr: The formal attribute being decoded.
+        values: The raw value(s) read from the PROV-JSON element, either a
+            single value or a JSON array.
+        bundle: Bundle used to resolve any QualifiedName value.
+
+    Returns:
+        A tuple of the decoded attribute value and, only for the
+        multi-entity ``hadMember`` (membership) hack, the list of extra
+        entity values still to be turned into their own membership
+        relations (``None`` otherwise).
+
+    Raises:
+        ProvJSONException: If ``values`` is a JSON array with more than one
+            value, other than the documented ``hadMember`` hack.
+    """
+    membership_extra_members = None
+    if isinstance(values, list):
+        # only one value is allowed
+        if len(values) > 1:
+            # unless it is the membership hack
+            if rec_type == PROV_MEMBERSHIP and attr == PROV_ATTR_ENTITY:
+                # This is a membership relation with multiple entities
+                # HACK: create multiple membership relations, one for each
+                # entity
+
+                # Store all the extra entities
+                membership_extra_members = values[1:]
+                # Create the first membership relation as normal for the
+                # first entity
+                value = values[0]
+            else:
+                error_msg = (
+                    "The prov package does not support PROV"
+                    " attributes having multiple values."
+                )
+                logger.error(error_msg)
+                raise ProvJSONException(error_msg)
+        else:
+            value = values[0]
+    else:
+        value = values
+    value = (
+        valid_qualified_name(bundle, value)
+        if attr in PROV_ATTRIBUTE_QNAMES
+        else parse_xsd_datetime(value)
+    )
+    return value, membership_extra_members
 
 
 def encode_json_representation(value: Any) -> Any:
