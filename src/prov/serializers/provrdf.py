@@ -621,60 +621,7 @@ class ProvRDFSerializer(Serializer):
             for ``URIRef`` values, or ``literal`` unchanged otherwise.
         """
         if isinstance(literal, RDFLiteral):
-            value = literal.value if literal.value is not None else literal
-            datatype = literal.datatype
-            langtag = literal.language
-            value_overridden = False
-            if datatype and "XMLLiteral" in datatype:
-                value = literal
-                value_overridden = True
-            if datatype and "base64Binary" in datatype:
-                # rdflib decodes xsd:base64Binary literals to bytes; re-encode and
-                # take the ASCII text, not the bytes repr (#288)
-                value = base64.standard_b64encode(cast(bytes, value)).decode("ascii")
-                value_overridden = True
-            if datatype == XSD["QName"]:
-                return pm.Literal(literal, datatype=XSD_QNAME)
-            if datatype == XSD["dateTime"]:
-                parsed = pm.parse_xsd_datetime(str(literal))
-                if parsed is None:
-                    raise ValueError(f"Invalid xsd:dateTime literal: {literal}")
-                return parsed
-            if datatype == XSD["gYear"]:
-                year_match = _XSD_GYEAR_RE.match(str(literal))
-                if year_match is None:
-                    raise ValueError(f"Invalid xsd:gYear literal: {literal}")
-                return pm.Literal(
-                    int(year_match.group(1)),
-                    datatype=self.valid_identifier(datatype),
-                )
-            if datatype == XSD["gYearMonth"]:
-                ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
-                if ym_match is None:
-                    raise ValueError(f"Invalid xsd:gYearMonth literal: {literal}")
-                return pm.Literal(
-                    f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
-                    datatype=self.valid_identifier(datatype),
-                )
-            else:
-                if (
-                    not value_overridden
-                    and datatype is not None
-                    and datatype not in _LOSSLESS_COLLAPSE_DATATYPES
-                ):
-                    # #218: datatypes without a lossless Python-value collapse
-                    # (e.g. xsd:decimal, xsd:unsignedInt, xsd:positiveInteger,
-                    # other XSD numeric subtypes, or custom datatypes) --
-                    # rdflib's coerced `.value` (a Decimal/int/etc.)
-                    # re-canonicalises the lexical form when stringified,
-                    # silently mutating the asserted literal on decode. Use
-                    # the RDF term's own lexical form instead, so what was
-                    # asserted on encode is exactly what comes back.
-                    value = str(literal)
-                # The literal of standard Python types is not converted here
-                # It will be automatically converted when added to a record by
-                # _auto_literal_conversion()
-                return pm.Literal(value, self.valid_identifier(datatype), langtag)
+            return self._decode_literal_representation(literal)
         elif isinstance(literal, URIRef):
             rval = self.valid_identifier(literal)
             if rval is None:
@@ -683,6 +630,108 @@ class ProvRDFSerializer(Serializer):
         else:
             # simple type, just return it
             return literal
+
+    def _normalize_literal_value(
+        self, literal: RDFLiteral
+    ) -> tuple[Any, Any, Any, bool]:
+        """Compute an RDF literal's initial value/datatype/langtag.
+
+        Extracted from ``decode_rdf_representation()`` for the
+        ``isinstance(literal, RDFLiteral)`` arm. An ``xsd:XMLLiteral`` or
+        ``xsd:base64Binary`` datatype overrides rdflib's coerced ``.value``
+        (with the literal term itself for the former, the ASCII-decoded
+        base64 text for the latter, #288); every other datatype keeps
+        rdflib's ``.value`` here (the datatype dispatch ladder in
+        :meth:`_decode_literal_representation` may still replace it).
+
+        Args:
+            literal: RDF literal term being decoded.
+
+        Returns:
+            A ``(value, datatype, langtag, value_overridden)`` tuple: the
+            (possibly overridden) value, the literal's datatype, its
+            language tag, and whether ``value`` was overridden by this
+            method (so the caller must not re-derive it from the literal's
+            lexical form).
+        """
+        value = literal.value if literal.value is not None else literal
+        datatype = literal.datatype
+        langtag = literal.language
+        value_overridden = False
+        if datatype and "XMLLiteral" in datatype:
+            value = literal
+            value_overridden = True
+        if datatype and "base64Binary" in datatype:
+            # rdflib decodes xsd:base64Binary literals to bytes; re-encode and
+            # take the ASCII text, not the bytes repr (#288)
+            value = base64.standard_b64encode(cast(bytes, value)).decode("ascii")
+            value_overridden = True
+        return value, datatype, langtag, value_overridden
+
+    def _decode_literal_representation(self, literal: RDFLiteral) -> Any:
+        """Decode a single RDF literal term back to its PROV attribute value.
+
+        Extracted from ``decode_rdf_representation()`` for the
+        ``isinstance(literal, RDFLiteral)`` arm; the datatype dispatch
+        ladder below keeps its exact precedence order from that method,
+        since which branch matches decides the decoded Python type.
+
+        Args:
+            literal: RDF literal term to decode.
+
+        Returns:
+            A :class:`datetime.datetime` for ``xsd:dateTime`` literals, or a
+            :class:`~prov.model.Literal` for any other typed/tagged literal.
+
+        Raises:
+            ValueError: If an ``xsd:dateTime``, ``xsd:gYear``, or
+                ``xsd:gYearMonth`` literal's lexical form cannot be parsed.
+        """
+        value, datatype, langtag, value_overridden = self._normalize_literal_value(
+            literal
+        )
+        if datatype == XSD["QName"]:
+            return pm.Literal(literal, datatype=XSD_QNAME)
+        if datatype == XSD["dateTime"]:
+            parsed = pm.parse_xsd_datetime(str(literal))
+            if parsed is None:
+                raise ValueError(f"Invalid xsd:dateTime literal: {literal}")
+            return parsed
+        if datatype == XSD["gYear"]:
+            year_match = _XSD_GYEAR_RE.match(str(literal))
+            if year_match is None:
+                raise ValueError(f"Invalid xsd:gYear literal: {literal}")
+            return pm.Literal(
+                int(year_match.group(1)),
+                datatype=self.valid_identifier(datatype),
+            )
+        if datatype == XSD["gYearMonth"]:
+            ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
+            if ym_match is None:
+                raise ValueError(f"Invalid xsd:gYearMonth literal: {literal}")
+            return pm.Literal(
+                f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
+                datatype=self.valid_identifier(datatype),
+            )
+        else:
+            if (
+                not value_overridden
+                and datatype is not None
+                and datatype not in _LOSSLESS_COLLAPSE_DATATYPES
+            ):
+                # #218: datatypes without a lossless Python-value collapse
+                # (e.g. xsd:decimal, xsd:unsignedInt, xsd:positiveInteger,
+                # other XSD numeric subtypes, or custom datatypes) --
+                # rdflib's coerced `.value` (a Decimal/int/etc.)
+                # re-canonicalises the lexical form when stringified,
+                # silently mutating the asserted literal on decode. Use
+                # the RDF term's own lexical form instead, so what was
+                # asserted on encode is exactly what comes back.
+                value = str(literal)
+            # The literal of standard Python types is not converted here
+            # It will be automatically converted when added to a record by
+            # _auto_literal_conversion()
+            return pm.Literal(value, self.valid_identifier(datatype), langtag)
 
     def encode_document(
         self,

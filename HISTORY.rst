@@ -167,6 +167,9 @@ History
   complexity threshold with byte-identical behaviour (#275)
 * Internal: refactored the PROV-JSON deserializer's ``decode_json_container()``
   below the complexity threshold with byte-identical behaviour (#275)
+* Internal: refactored the PROV-O (RDF) deserializer's
+  ``decode_rdf_representation()`` below the complexity threshold with
+  byte-identical behaviour (#275)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
