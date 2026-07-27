@@ -99,11 +99,11 @@ class Registry:
         The insertion order is kept as ``json, rdf, provn, xml`` (the
         historic order when all extras are present) because
         :func:`prov.read`'s format auto-detection iterates
-        ``Registry.serializers`` in order and several tests
-        (``test_read_auto_detects_rdf``,
-        ``test_read_auto_detect_of_xml_hits_uncaught_rdf_syntax_error``,
-        ``test_read_on_unparseable_content_raises_bad_syntax``) pin the
-        exact candidate tried second.
+        ``Registry.serializers`` in order and
+        ``test_read_auto_detect_with_broken_tell_degrades_to_no_rewind``
+        pins JSON as the first candidate tried — a non-seekable stream can
+        only attempt the first format, so JSON must remain first for JSON
+        content to be auto-detected on broken streams.
         """
         from prov.serializers.provjson import ProvJSONSerializer
         from prov.serializers.provn import ProvNSerializer
