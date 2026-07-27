@@ -4,13 +4,14 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 
 import datetime
 import decimal
+import io
 import logging
 import os
 import re
 import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, MutableSet
-from typing import TYPE_CHECKING, Any, Union, cast
+from typing import IO, TYPE_CHECKING, Any, Union, cast
 
 from prov import Error
 from prov.constants import (
@@ -93,6 +94,7 @@ ActivityRef: typing.TypeAlias = Union["ProvActivity", QualifiedNameCandidate]
 AgentRef: typing.TypeAlias = Union[
     "ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate
 ]
+InfluencerRef: typing.TypeAlias = EntityRef | ActivityRef | AgentRef
 GenerationRef: typing.TypeAlias = Union["ProvGeneration", QualifiedNameCandidate]
 UsageRef: typing.TypeAlias = Union["ProvUsage", QualifiedNameCandidate]
 NameValuePair: typing.TypeAlias = tuple[QualifiedName, Any]
@@ -103,6 +105,7 @@ RecordAttributesArg: typing.TypeAlias = (
 DatetimeOrStr: typing.TypeAlias = datetime.datetime | str
 NSCollection: typing.TypeAlias = dict[str, str] | Iterable[Namespace]
 PathLike: typing.TypeAlias = str | bytes | os.PathLike[str]
+StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 
 
 # Data Types
@@ -1281,7 +1284,7 @@ class ProvEntity(ProvElement):
 
     def wasInfluencedBy(
         self,
-        influencer: EntityRef | ActivityRef | AgentRef,
+        influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
         """Create a new influence record on this entity by an influencer.
@@ -1460,7 +1463,7 @@ class ProvActivity(ProvElement):
 
     def wasInfluencedBy(
         self,
-        influencer: EntityRef | ActivityRef | AgentRef,
+        influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvActivity:
         """Create a new influence record on this activity by an influencer.
@@ -1585,7 +1588,7 @@ class ProvAgent(ProvElement):
 
     def wasInfluencedBy(
         self,
-        influencer: EntityRef | ActivityRef | AgentRef,
+        influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvAgent:
         """Create a new influence record on this agent by an influencer.
