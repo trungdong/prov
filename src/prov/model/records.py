@@ -7,7 +7,7 @@ import decimal
 import logging
 import os
 import re
-import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
+import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, MutableSet
 from typing import TYPE_CHECKING, Any, Union
@@ -86,19 +86,23 @@ logger = logging.getLogger(__name__)
 
 
 # Type aliases for convenience
-QualifiedNameCandidate = QualifiedName | str | Identifier  # type: typing.TypeAlias
-OptionalID = QualifiedNameCandidate | None  # type: typing.TypeAlias
-EntityRef = Union["ProvEntity", QualifiedNameCandidate]  # type: typing.TypeAlias
-ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
-AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
-GenerationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
-UsageRef = Union["ProvUsage", QualifiedNameCandidate]  # type: typing.TypeAlias
-NameValuePair = tuple[QualifiedName, Any]  # type: typing.TypeAlias
-AttributePair = tuple[QualifiedNameCandidate, Any]  # type: typing.TypeAlias
-RecordAttributesArg = dict[QualifiedNameCandidate, Any] | Iterable[AttributePair]  # type: typing.TypeAlias
-DatetimeOrStr = datetime.datetime | str  # type: typing.TypeAlias
-NSCollection = dict[str, str] | Iterable[Namespace]  # type: typing.TypeAlias
-PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
+QualifiedNameCandidate: typing.TypeAlias = QualifiedName | str | Identifier
+OptionalID: typing.TypeAlias = QualifiedNameCandidate | None
+EntityRef: typing.TypeAlias = Union["ProvEntity", QualifiedNameCandidate]
+ActivityRef: typing.TypeAlias = Union["ProvActivity", QualifiedNameCandidate]
+AgentRef: typing.TypeAlias = Union[
+    "ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate
+]
+GenerationRef: typing.TypeAlias = Union["ProvGeneration", QualifiedNameCandidate]
+UsageRef: typing.TypeAlias = Union["ProvUsage", QualifiedNameCandidate]
+NameValuePair: typing.TypeAlias = tuple[QualifiedName, Any]
+AttributePair: typing.TypeAlias = tuple[QualifiedNameCandidate, Any]
+RecordAttributesArg: typing.TypeAlias = (
+    dict[QualifiedNameCandidate, Any] | Iterable[AttributePair]
+)
+DatetimeOrStr: typing.TypeAlias = datetime.datetime | str
+NSCollection: typing.TypeAlias = dict[str, str] | Iterable[Namespace]
+PathLike: typing.TypeAlias = str | bytes | os.PathLike[str]
 
 
 # Data Types
@@ -189,9 +193,9 @@ DATATYPE_PARSERS = {
 
 
 # Mappings for XSD datatypes to Python standard types
-SupportedXSDParsedTypes = (
+SupportedXSDParsedTypes: typing.TypeAlias = (
     str | datetime.datetime | float | int | bool | Identifier | None
-)  # type: typing.TypeAlias
+)
 XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedTypes]] = {
     XSD_STRING: str,
     XSD_DOUBLE: float,
@@ -505,9 +509,9 @@ class Literal:
 
 # Depends on `Literal` and `SupportedXSDParsedTypes` above, so it cannot join
 # the "Type aliases for convenience" block near the top of the module.
-CoercedAttributeValue = (
+CoercedAttributeValue: typing.TypeAlias = (
     QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
-)  # type: typing.TypeAlias
+)
 
 
 # Exceptions and warnings

@@ -207,6 +207,10 @@ History
   ``_ALWAYS_CHECK`` a ``frozenset``, and changed
   ``_needs_xsd_type_inference`` to take a plain ``bool`` computed by its
   caller instead of an XML element; behaviour is unchanged
+* Internal: the module-level type aliases in ``src/prov/model/records.py``
+  and ``src/prov/serializers/provrdf.py`` are now declared with the PEP 613
+  ``X: TypeAlias = ...`` form instead of the trailing ``# type:
+  typing.TypeAlias`` comment; behaviour is unchanged
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
