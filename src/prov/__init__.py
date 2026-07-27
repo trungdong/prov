@@ -180,7 +180,8 @@ def read(
     from prov.model import ProvDocument
     from prov.serializers import Registry
 
-    Registry.load_serializers()
+    if Registry.serializers is None:
+        Registry.load_serializers()
     if Registry.serializers is None:  # pragma: no cover -- populated above
         raise AssertionError("Registry.serializers is not populated")
     serializers = Registry.serializers.keys()
