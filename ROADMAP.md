@@ -63,9 +63,10 @@ feed into this list. The planned changes are:
 - **`rdflib` version floor raised**, shedding compatibility shims for older releases.
 - **Smaller install footprint**, informed by the 2.3.0 dependency audit:
   the graphics/graph-interop dependencies (`pydot`, `networkx`) now live behind the
-  `dot`/`graph` optional extras (landed in 3.0.0.dev0); `python-dateutil` is still to be
-  replaced by the standard library. Once that lands, a plain `pip install prov` will
-  pull in only what the core data model needs.
+  `dot`/`graph` optional extras, and `python-dateutil` has been dropped in favour of a
+  stdlib-based `xsd:dateTime` parser (`prov.model.parse_xsd_datetime()`) — both landed
+  in 3.0.0.dev0. `prov` now has no unconditional runtime dependencies at all, so a plain
+  `pip install prov` already pulls in only what the core data model needs.
 - **Unification reworked to follow [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)**:
   `unified()` used to just merge the attributes of records that share an identifier,
   with no conflict detection; it now applies the specification's merging rules (key
