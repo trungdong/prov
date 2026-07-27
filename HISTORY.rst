@@ -28,40 +28,25 @@ Breaking changes
   with ``ProvUnificationError`` instead of merging them order-dependently
   into the first record's type; spec-permitted overlaps (an agent that is
   also an entity or activity) are kept as separate records (#253)
-* The 2.4.0 ``FutureWarning`` on ``unified()`` (and its test-suite ignore)
-  is removed: the announced PROV-CONSTRAINTS rework has landed (#253)
 * Attribute values that are Python-equal but differently typed (``2`` vs
-  ``2.0``, ``1`` vs ``True``) are all retained on a record instead of silently
-  collapsing to whichever was asserted first — at construction, in
-  ``add_attributes()``, and through ``unified()``. This is observable via
-  ``attributes``/``extra_attributes`` iteration, record equality/hashing, and
-  serialization. ``ProvRecord.get_attribute()``, ``get_asserted_types()`` and
-  the ``value`` property keep their 2.x return type (a plain ``set``, built
-  fresh from the record's own storage on every call) rather than exposing the
-  new type-aware internal storage directly, so a Python-equal-but-differently-
-  typed pair still collapses in what those three accessors return, exactly
-  as in 2.x (``get_asserted_types()`` is unaffected in practice, since
-  ``prov:type`` values are always ``QualifiedName``\ s, which never
-  collapse). In 2.x these accessors returned the record's own live
-  ``set``, so mutating the returned object (e.g.
-  ``record.get_asserted_types().add(qn)``) mutated the record; that write-
-  through is gone now that a fresh copy is built on every call, so the same
-  mutation silently no-ops. Internally, iterating a record's attributes now
-  yields values in assertion order rather than an arbitrary hash-bucket
-  order; this also makes
-  ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
-  deterministic where they previously picked an arbitrary value among
-  several formally-invalid duplicates (#34)
+  ``2.0``, ``1`` vs ``True``) are all retained on a record instead of
+  collapsing to whichever was asserted first — visible in attribute
+  iteration, record equality and hashing, and serialization. Attributes now
+  iterate in assertion order rather than an arbitrary hash order, which makes
+  ``args``, ``formal_attributes``, ``get_startTime()`` and ``get_endTime()``
+  deterministic. ``ProvRecord.get_attribute()``, ``get_asserted_types()`` and
+  the ``value`` property still return a plain ``set``, but it is now built
+  fresh on every call, so mutating it no longer writes through to the record:
+  ``record.get_asserted_types().add(qn)`` now silently does nothing (#34)
 * ``pydot`` and ``networkx`` are no longer unconditional runtime
   dependencies. ``import prov.dot`` now requires the ``dot`` extra
   (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``
   extra; without them the import raises ``ModuleNotFoundError`` naming the
   extra to install. The ``plot`` extra now pulls in ``pydot``/``networkx``
-  as well, since ``plot()`` renders through ``prov.dot``. Signposted by the
-  2.4.0 ``DeprecationWarning`` (now removed); see ``docs/upgrading-3.0.md``.
-* The ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously
-  ``>=6.0.0``); internally the RDF serializer migrated from the deprecated
-  ``ConjunctiveGraph`` to ``Dataset``, with unchanged round-trip behaviour
+  as well, since ``plot()`` renders through ``prov.dot``. See
+  ``docs/upgrading-3.0.md``.
+* The ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously ``>=6.0.0``);
+  round-trip behaviour is unchanged
 * ``python-dateutil`` dropped — ``prov`` now has no unconditional
   runtime dependencies. Datetime strings are parsed as ``xsd:dateTime``
   (ISO 8601 plus the hour-24 end-of-day form) via the standard library;
@@ -76,16 +61,10 @@ Breaking changes
 Conformance and correctness fixes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-* Fixed: the type-aware attribute storage change (#34) kept the *last*
-  value seen when a genuine duplicate (equal type, equal value) was
-  re-added — e.g. asserting both ``Literal("10", XSD_DECIMAL)`` and
-  ``Literal("10.00", XSD_DECIMAL)`` (#77) on the same attribute retained
-  ``"10.00"``, and both ``Literal("hi", langtag="en")`` and
-  ``Literal("hi", langtag="EN")`` (#259) retained ``"hi"@EN`` — the
-  opposite of plain ``set.add()`` and of ``add_attributes()``'s own
-  single-value cardinality guard, which both keep the *first* value seen.
-  The retained value is now the first one asserted, in both cases, matching
-  2.x
+* When an attribute is asserted twice with an equal value of equal type — e.g.
+  ``Literal("10", XSD_DECIMAL)`` and ``Literal("10.00", XSD_DECIMAL)`` (#77),
+  or ``Literal("hi", langtag="en")`` and ``Literal("hi", langtag="EN")``
+  (#259) — the record retains the first value asserted, as in 2.x (#34)
 * Numeric datatype fidelity: ``Literal`` values typed ``xsd:long`` (and the
   rest of the XSD integer family) keep their asserted datatype instead of
   being silently re-typed ``xsd:int`` (#235); PROV-N output types plain
@@ -121,13 +100,11 @@ Conformance and correctness fixes
   PROV-O representational limitation — they serialize but do not round-trip
   through RDF, and deserializing such RDF now raises an error naming the
   limitation; all other formats are unaffected (#217)
-* PROV-O: a related gap is recorded, not fixed — an attribute key whose
-  local part ends in a #223 metacharacter can fail to round-trip through
-  RDF when its namespace has not already been registered by decoding some
-  other, cleanly-splitting qualified name under it; the round-trip
-  property test excludes this shape at generation time so it does not
-  mask other findings, and ``docs/reference/conformance.md`` documents it
-  as an open defect (#341)
+* PROV-O: a related gap is recorded, not fixed — an attribute key whose local
+  part ends in a PROV-N metacharacter (#223) can fail to round-trip through
+  RDF when its namespace has not already been registered by another qualified
+  name; ``docs/reference/conformance.md`` documents it as an open defect
+  (#341)
 * PROV-O (RDF) round-trip fidelity: mixed XSD-datatype attribute sets
   survive deserialization with their asserted datatypes intact (#218), and
   ``xsd:double`` values are emitted at full precision instead of rdflib's
@@ -144,23 +121,17 @@ Conformance and correctness fixes
 * PROV-O (RDF) deserialization returns ``xsd:base64Binary`` literals as
   their base64 text; previously the value was wrapped in a Python bytes
   repr (``b'…'``), corrupting the round trip (#288)
-* PROV-O (RDF) deserialization now recognizes ``prov:startedAtTime``/
+* PROV-O (RDF) deserialization reconciles ``prov:startedAtTime``/
   ``prov:endedAtTime`` asserted directly on a qualified ``prov:Start``/
-  ``prov:End`` node and reconciles the value into the relation's formal
-  ``prov:time`` attribute; previously it was misfiled as an extra attribute
-  named ``prov:startTime``/``prov:endTime`` and the formal attribute was
-  left ``None`` (#299)
+  ``prov:End`` node into the relation's formal ``prov:time`` attribute;
+  previously the formal attribute was left ``None`` and the value misfiled as
+  an extra attribute (#299)
 * PROV-O (RDF) round trip: an anonymous Communication/Attribution/Influence
   relation carrying extra attributes now deserializes back into a single
-  record instead of two; the binary triple is reconciled onto the same
-  ``prov:qualified*`` node used for the extra attributes, generalising the
-  mechanism Delegation/Association already used (#303)
+  record instead of two (#303)
 * PROV-O (RDF) round trip: a qualified name whose local part ends in a PROV-N
   metacharacter (``= ' , : ; [ ]``) now deserializes instead of raising
-  ``ValueError: Can't split ...``; the decoder resolves the IRI against the
-  document's registered namespaces (or splits at the last ``#``/``/`` when the
-  namespace is unknown) rather than relying on rdflib's ``compute_qname``,
-  which refuses such splits. Encode output is unchanged (#294)
+  ``ValueError: Can't split ...``; serialized output is unchanged (#294)
 * PROV-N output escapes qualified-name local parts per the grammar's
   ``PN_CHARS_ESC`` production, so identifiers containing ``' ( ) , : ; [ ]
   =`` no longer produce invalid PROV-N (#223)
@@ -179,78 +150,26 @@ Improvements
 * Security: PROV-XML parsing no longer resolves DTD entities and never
   touches the network (``resolve_entities=False``, ``no_network=True``),
   closing an XXE surface on untrusted input (#273)
+* New public type aliases in ``prov.model``, joining the existing
+  ``NameValuePair``: ``AttributePair`` (an attribute name/value pair before
+  qualified-name resolution), ``InfluencerRef`` (the ``influencer`` parameter
+  of ``wasInfluencedBy()`` and ``influence()``) and ``StreamOrPath`` (the
+  source and destination parameters of ``read()``, ``serialize()`` and
+  ``deserialize()``)
 
 Internal
 ~~~~~~~~
 
-* Internal: the PROV-O (RDF) serializer's encode/decode container functions
-  were decomposed into per-record-type dispatch (cyclomatic complexity 81/66
-  → under 15 per function), with byte-identical output (#274)
+* The PROV-O (RDF) serializer's encode/decode container functions were
+  decomposed into per-record-type dispatch, with byte-identical output (#274)
+* Functions across the model, the serializers and ``prov.dot`` were refactored
+  below the project's complexity threshold, with byte-identical behaviour
+  (#275)
+* Code-quality passes across ``src/prov/`` — type-alias adoption, removal of a
+  permanently-disabled branch in the PROV-O (RDF) encoder, and readability
+  clean-ups — with no change in behaviour
 * Test infrastructure: the RDF fixture-comparison helper ``find_diff()`` now
-  correctly detects single-triple differences in test assertions (previously
-  a one-triple difference was invisible, masking potential regressions in
-  fixture expectations) (#304)
-* Internal: refactored ProvRecord.add_attributes below the complexity
-  threshold with byte-identical behaviour (#275)
-* Internal: refactored ``prov.read()`` below the complexity threshold with
-  byte-identical behaviour (#275)
-* Internal: refactored ``prov_to_dot()``'s rendering tree-walk below the
-  complexity threshold with byte-identical output (#275)
-* Internal: refactored ``NamespaceManager.valid_qualified_name()`` below the
-  complexity threshold with byte-identical behaviour (#275)
-* Internal: refactored the PROV-JSON deserializer's ``decode_json_container()``
-  below the complexity threshold with byte-identical behaviour (#275)
-* Internal: refactored the PROV-O (RDF) deserializer's
-  ``decode_rdf_representation()`` below the complexity threshold with
-  byte-identical behaviour (#275)
-* Internal: refactored the PROV-XML serializer's ``serialize_bundle()`` below
-  the complexity threshold with byte-identical output (#275)
-* Internal: removed a permanently-disabled branch (``if False and ...``) from
-  the PROV-O (RDF) encoder's element attribute encoding; the ``prov:location``
-  predicate is now always emitted through the single code path that already
-  ran in practice, with identical output
-* Internal: lifted the ``docs`` dependency group's ``sphinx<9`` ceiling, which
-  had been in place since 2.4.0 to work around an autodoc crash when
-  documenting the PROV-O (RDF) serializer; the underlying rdflib defect is
-  fixed upstream, and the docs now build cleanly under Sphinx 9. No effect on
-  installing or using ``prov`` itself.
-* Internal: ``src/prov/model/`` quality pass — collapsed repeated dict
-  subscripts in ``ProvRecord._store_attribute_value``, removed a duplicated
-  base-type computation between ``_unify_record_group`` and
-  ``ProvBundle._unified_records``, and added the ``CoercedAttributeValue``
-  and ``AttributePair`` type aliases (the latter now public, alongside
-  ``NameValuePair``) to stop spelling out the same unions repeatedly;
-  behaviour is unchanged
-* Internal: ``src/prov/serializers/`` quality pass — adopted the public
-  ``NameValuePair`` and ``AttributePair`` type aliases in ``provxml.py``,
-  ``provrdf.py`` and ``provjson.py`` in place of the shapes they spell out,
-  added ``provrdf.py``-local ``RelationMapper``/``PredicateMapper``/
-  ``RecordTypeLabels``/``RdfTerm``/``RdfSubject`` aliases for its own
-  repeated dict and RDF-term-union parameters, made ``provxml.py``'s
-  ``_ALWAYS_CHECK`` a ``frozenset``, and changed
-  ``_needs_xsd_type_inference`` to take a plain ``bool`` computed by its
-  caller instead of an XML element; behaviour is unchanged
-* Internal: the module-level type aliases in ``src/prov/model/records.py``
-  and ``src/prov/serializers/provrdf.py`` are now declared with the PEP 613
-  ``X: TypeAlias = ...`` form instead of the trailing ``# type:
-  typing.TypeAlias`` comment; behaviour is unchanged
-* Internal: ``src/prov/__init__.py`` and ``src/prov/dot.py`` quality pass —
-  ``_detect_and_parse`` no longer threads a ``document_cls`` parameter for a
-  target that can never vary, doing its own lazy ``ProvDocument`` import
-  instead; the ``prov.model``-re-exported ``PathLike`` alias replaces six
-  spelled-out ``str | bytes | os.PathLike[str]`` unions in ``prov/__init__.py``;
-  ``_DotRenderState``'s positionally-indexed ``count`` list is now four named
-  counters (``node_count``, ``bnode_count``, ``cluster_count``,
-  ``annotation_count``); and a local ``DotContainer`` alias replaces the
-  repeated ``pydot.Dot | pydot.Cluster`` union across nine ``dot.py``
-  signatures; behaviour is unchanged
-* Two new public type aliases in ``prov.model``: ``InfluencerRef``
-  (``EntityRef | ActivityRef | AgentRef``, the shape of the ``influencer``
-  parameter on ``wasInfluencedBy()`` and ``influence()``) and
-  ``StreamOrPath`` (``io.IOBase | IO[Any] | PathLike``, the shape of the
-  source/destination parameters on ``read()``, ``serialize()`` and
-  ``deserialize()``); both replace repeated inline unions and resolve to
-  the same types as before
+  detects single-triple differences, which it previously missed (#304)
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
@@ -389,215 +308,7 @@ Internal
 * Removed support for EOL Python 2
 * Testing against Python 3.6+ and Pypy3
 
-1.5.3 (2018-11-20)
-^^^^^^^^^^^^^^^^^^
-* Reorganised source code to /src
-* Added Python 3.7 support
-* Removed Python 3.3 support due to end-of-life
-* plus minor improvements and bug fixes
-
-1.5.2 (2018-02-06)
-^^^^^^^^^^^^^^^^^^
-* Fixed association relation in RDF serialisation
-* Fixed compatibility with networkx 2.0+
-
-1.5.1 (2017-07-18)
-^^^^^^^^^^^^^^^^^^
-* Replaced pydotplus with pydot (see #111)
-* Fixed datetime and bundle error in RDF serialisation
-* Tested against Python 3.6
-* Improved documentation
-
-1.5.0 (2016-10-19)
-^^^^^^^^^^^^^^^^^^
-* Added: Support for `PROV-O <http://www.w3.org/TR/prov-o/>`_ (RDF) serialization and deserialization
-* Added: `direction` option for :py:meth:`prov.dot.prov_to_dot`
-* Added: :py:meth:`prov.graph.graph_to_prov` to convert a `MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_ back to a :py:class:`~prov.model.ProvDocument`
-* Testing with Python 3.5
-* Various minor bug fixes and improvements
-
-1.4.0 (2015-08-13)
-^^^^^^^^^^^^^^^^^^
-* Changed the type of qualified names to prov:QUALIFIED_NAME (fixed #68)
-* Removed XSDQName class and stopped supporting parsing xsd:QName as qualified names
-* Replaced pydot dependency with pydotplus
-* Removed support for Python 2.6
-* Various minor bug fixes and improvements
-
-1.3.2 (2015-06-17)
-^^^^^^^^^^^^^^^^^^
-* Added: prov-compare script to check equivalence of two PROV files (currently supporting JSON and XML)
-* Fixed: deserialising Python 3's bytes objects (issue #67)
-
-1.3.1 (2015-02-27)
-^^^^^^^^^^^^^^^^^^
-* Fixed unicode issue with deserialising text contents
-* Set the correct version requirement for six
-* Fixed format selection in prov-convert script
-
-1.3.0 (2015-02-03)
-^^^^^^^^^^^^^^^^^^
-* Python 3.3 and 3.4 supported
-* Updated prov-convert script to support XML output
-* Added missing test JSON and XML files in distributions
-
-
-1.2.0 (2014-12-19)
-^^^^^^^^^^^^^^^^^^
-* Added: :py:meth:`prov.graph.prov_to_graph` to convert a :py:class:`~prov.model.ProvDocument` to a `MultiDiGraph <https://networkx.readthedocs.io/en/stable/reference/classes.multigraph.html>`_
-* Added: PROV-N serializer
-* Fixed: None values for empty formal attributes in PROV-N output (issue #60)
-* Fixed: PROV-N representation for xsd:dateTime (issue #58)
-* Fixed: Unintended merging of Identifier and QualifiedName values
-* Fixed: Cloning the records when creating a new document from them
-* Fixed: incorrect SoftwareAgent records in XML serialization
-
-1.1.0 (2014-08-21)
-^^^^^^^^^^^^^^^^^^
-* Added: Support for `PROV-XML <http://www.w3.org/TR/prov-xml/>`_ serialization and deserialization
-* A :py:class:`~prov.model.ProvRecord` instance can now be used as the value of an attributes
-* Added: convenient assertions methods for :py:class:`~prov.model.ProvEntity`, :py:class:`~prov.model.ProvActivity`, and :py:class:`~prov.model.ProvAgent`
-* Added: :py:meth:`prov.model.ProvDocument.update` and :py:meth:`prov.model.ProvBundle.update`
-* Fixed: Handling default namespaces of bundles when flattened
-
-1.0.1 (2014-08-18)
-^^^^^^^^^^^^^^^^^^
-* Added: Default namespace inheritance for bundles
-* Fixed: :py:meth:`prov.model.NamespaceManager.valid_qualified_name` did not support :py:class:`~prov.model.XSDQName`
-* Added: Convenience :py:func:`prov.read` method with a lazy format detection
-* Added: Convenience :py:meth:`~prov.model.ProvBundle.plot` method on the :py:class:`~prov.model.ProvBundle` class (requiring matplotlib).
-* Changed: The previous :py:meth:`!add_record` method renamed to :py:meth:`~prov.model.ProvBundle.new_record`
-* Added: :py:meth:`~prov.model.ProvBundle.add_record` function which takes one argument, a :py:class:`~prov.model.ProvRecord`, has been added
-* Fixed: Document flattening (see :py:meth:`~prov.model.ProvDocument.flattened`)
-* Added: :py:meth:`~prov.model.ProvRecord.__hash__` function added to :py:class:`~prov.model.ProvRecord` (**at risk**: to be removed as :py:class:`~prov.model.ProvRecord` is expected to be mutable)
-* Added: :py:attr:`~prov.model.ProvRecord.extra_attributes` added to mirror existing :py:attr:`~prov.model.ProvRecord.formal_attributes`
-
-1.0.0 (2014-07-15)
-^^^^^^^^^^^^^^^^^^
-
-* The underlying data model has been rewritten and is **incompatible** with pre-1.0 versions.
-* References to PROV elements (i.e. entities, activities, agents) in relation records are now QualifiedName instances.
-* A document or bundle can have multiple records with the same identifier.
-* PROV-JSON serializer and deserializer are now separated from the data model.
-* Many tests added, including round-trip PROV-JSON encoding/decoding.
-* For changes pre-1.0, see the "Pre-1.0 change log" section below.
-
-Pre-1.0 change log
-------------------
-
-0.5.3 (2013-12-13)
-^^^^^^^^^^^^^^^^^^
-- Changed: Allowed namespaces at bundle level
-- Fixed: Only check equality of ProvBundles on asserted records
-- Fixed: Some string literals are wrongly converted to QNames
-- Updated test cases from ProvToolbox (v4.1)
-- Added text explanations for some ProvException subclasses
-- Added support for langtag in prov.persistence.LiteralAttribute
-- Fixed: Support for prov:InternationalizedString literals
-- Fixed: Keep timezone information when parsing xsd:dateTime
-
-0.5.2 (2013-10-18)
-^^^^^^^^^^^^^^^^^^
-- Added South migrations for prov.persistence
-- Fixed: Support for unlimited-length record identifier
-- Fixed: Support for unlimited-length URI in namespace
-- Fixed: Support for long literals (i.e. longer than 255 characters)
-- Fixed: (JSON) Support for membership with multiple members
-- Fixed: UnicodeEncodeError error
-- Fixed: Support for JSON having records sharing the same identifier
-- Fixed: Refactor the flattening code
-- Fixed: Parsing XSD dateTime
-- Fixed: Triple quoted multi-line string literals in PROV-N
-- Added: Support initialising namespaces when creating a ProvBundle
-
-0.5.1 (2013-09-13)
-^^^^^^^^^^^^^^^^^^
-- Added: JSON membership relation with a single entity (in a list)
-- Fixed: Not generating inferred records in JSON encoding.
-- Fixed: Generating JSON arrays for multi-value attributes
-- Fixed: Comparing unicode literal values (fixed #12)
-- Fixed: Returning the identifier of a record if the required attribute type is Identifier
-- Fixed: No longer trying to find the actual generalEntity record when creating a Mention record
-- Added informative arguments to ProvException classes
-- Fixed: Attribute validation does not fail if the attribute is already a ProvRecord
-
-0.5.0 (2013-09-02)
-^^^^^^^^^^^^^^^^^^
-- Allow inferred records to be retyped when flattening
-- prov.model.graph: check if a node of a relation already drawn
-- Add get_flattened() function to ProvBundle
-- Added: hash functions for Literal and Namespace
-- Changed: Add new bundle's namespaces to parent document
-- Fixed: prov.persistence only saves namespaces at document level
-- Added: is_document() and is_bundle() for ProvBundle
-- Fixed: Stop outputting prefix in an bundle's PROV-JSON
-- Changed: Removed namespace declarations in example bundles
-- Better handling of ids when generating PROV-JSON
-- Changed: Bundles cannot have their own namespace prefixes
-- When exporting a bundle as a document add namespaces from parent
-- Return pdbundle when calling add_prov_bundle
-- Fixed support for the default namespace
-- Fixed minor bugs.
-
-0.4.9 (2013-08-09)
-^^^^^^^^^^^^^^^^^^
-- Fixed: Cannot get_label() when self._extra_attributes is None
-
-0.4.8 (2013-08-06)
-^^^^^^^^^^^^^^^^^^
-- Added: Option to show attributes of relations in DOT graph generation
-- Added: option to show attributes of nodes in DOT graph representation
-- Added: Convenient methods for (de)serialising PROV-JSON (closes #17)
-- Fixed: No longer output inferred records in PROV-N and PROV-JSON
-- Fixed: Bundles now can have own namespaces
-- Fixed: missing return Literal(...)
-- Fixed: Error getting the value and datatype of Literal
-
-0.4.7 (2013-07-10)
-^^^^^^^^^^^^^^^^^^
-- Changed: Removed out-dated example_graph()
-- Changed: Improved mappings between default Python and XSD data types
-- Changed: Removed ProvElement as the inferred record for influence
-- Changed: Updated examples (primer, bundles1, bundles2)
-- Fixed: Removed the duplicated Bundle definition in PROV_RECORD_TYPES
-- Added JSON test files from ProvToolbox and a test for loading these
-- Changed: Improved Literal equality test
-- Added langtag getter to Literal
-
-0.4.6 (2013-04-24)
-^^^^^^^^^^^^^^^^^^
-- Fixed: Removed the 'activity' attribute from Influence expression
-- Fixed: Inferred records couldn't be created when the expected types provided as a list
-
-0.4.5 (2013-03-13)
-^^^^^^^^^^^^^^^^^^
-- Changed: ProvActivity.set_time() can now accept just one argument. It previously sets the time of the missing argument to None.
-- Changed: ProvAgent is now eligible for entity arguments and ProvEntity for agent ones
-- Fixed: Producing the right PROV-N representation for float values
-
-0.4.4
-^^^^^
-- Added float data type support for prov.persistence
-- Removed ProvCollection class since collections should be instantiated as entities
-- Added get_attribute() and get_value() to ProvRecord
-- Changed: Check if an attribute's value is a valid QName and return the QName
-- Fixed exception rendering graphs with empty records
-
-0.4.3
-^^^^^
-- Fixed: PROV-N export - top-level bundle -> document
-- Fixed: Bug when renaming prefixes
-
-0.4.2
-^^^^^
-- Updated graph colors to the PROV style
-
-0.4.1
-^^^^^
-- Restructured package folder
-- Moved to a new repo.
-- Fixed: 'memberof' -> 'hadMember'
-
-0.4.0 (2012-10-31)
-^^^^^^^^^^^^^^^^^^
-- Initial release.
+Earlier releases
+^^^^^^^^^^^^^^^^
+Releases before 2.0.0 are recorded in the `changelog archive
+<https://github.com/trungdong/prov/blob/master/docs/changelog-archive.rst>`_.
