@@ -138,7 +138,8 @@ also has.
 Revision, quotation, and primary source are PROV-DM *subtypes* of derivation, not separate PROV-N
 records: `prov` implements all four with the single {py:class}`~prov.model.ProvDerivation` class,
 and the three subtype factories call `derivation()` then add the corresponding `prov:type`
-(confirmed by inspection of `bundle.py:1011-1146`, and by running `get_provn()` on a `revision()`
+(confirmed by inspection of `ProvBundle.derivation`, `.revision`, `.quotation`, and
+`.primary_source` in `bundle.py`, and by running `get_provn()` on a `revision()`
 record — it emits `wasDerivedFrom(..., [prov:type='prov:Revision'])`, not a `wasRevisionOf(...)`
 keyword). `ADDITIONAL_N_MAP` does carry a `wasRevisionOf`/`wasQuotedFrom`/`hadPrimarySource`
 keyword mapping for contexts (such as PROV-XML) that treat these as top-level types; PROV-N

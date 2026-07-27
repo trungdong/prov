@@ -73,6 +73,7 @@ from prov.model.records import (
     PROV_REC_CLS,
     ActivityRef,
     AgentRef,
+    AttributePair,
     DatetimeOrStr,
     EntityRef,
     GenerationRef,
@@ -257,7 +258,7 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     return PROV_REC_CLS[record_type](first_record.bundle, identifier, attributes)
 
 
-def _unify_record_group(records: list[ProvRecord]) -> dict[QualifiedName, ProvRecord]:
+def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecord]:
     """Merge records sharing an identifier by PROV-CONSTRAINTS term unification.
 
     Records are first partitioned by base record type (:data:`PROV_BASE_CLS`,
@@ -272,10 +273,9 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[QualifiedName, ProvRe
             assertion order.
 
     Returns:
-        A mapping from each base record type present in the group to the
-        single, newly created record that stands for that type's records.
-        Usually one entry; more than one when the identifier legitimately
-        carries more than one type (e.g. an agent that is also an entity).
+        A mapping from each original record in the group to the single,
+        newly created record that stands for its base type. Records of the
+        same base type map to the same merged record.
 
     Raises:
         ProvUnificationError: If two records of the same type hold different
@@ -295,9 +295,12 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[QualifiedName, ProvRe
                 f"cannot unify {identifier}: incompatible types {type_a} and {type_b}"
             )
 
-    return {
-        base_type: _unify_same_type_group(group) for base_type, group in groups.items()
-    }
+    merged_records: dict[ProvRecord, ProvRecord] = {}
+    for group in groups.values():
+        merged = _unify_same_type_group(group)
+        for record in group:
+            merged_records[record] = merged
+    return merged_records
 
 
 class ProvBundle:
@@ -583,12 +586,7 @@ class ProvBundle:
                 # more than one record having the same identifier: unify them,
                 # per base record type (usually one type, but PROV-CONSTRAINTS
                 # permits an id to carry more than one, e.g. agent + entity)
-                merged_by_type = _unify_record_group(records)
-                # map each original record to its own type's merged record
-                for record in records:
-                    merged_records[record] = merged_by_type[
-                        PROV_BASE_CLS[record.get_type()]
-                    ]
+                merged_records.update(_unify_record_group(records))
         if not merged_records:
             # No merging done, just return the list of original records
             return list(self._records)
@@ -697,7 +695,7 @@ class ProvBundle:
         Returns:
             The newly created and added :class:`ProvRecord`.
         """
-        attr_list = []  # type: list[tuple[QualifiedNameCandidate, Any]]
+        attr_list: list[AttributePair] = []
         if attributes:
             if isinstance(attributes, dict):
                 attr_list.extend((attr, value) for attr, value in attributes.items())

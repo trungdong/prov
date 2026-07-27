@@ -191,6 +191,13 @@ History
 * BREAKING: the misspelled ``prov.model.GenrationRef`` type alias is renamed
   ``GenerationRef``; the old spelling is removed rather than kept as a
   deprecated alias
+* Internal: ``src/prov/model/`` quality pass — collapsed repeated dict
+  subscripts in ``ProvRecord._store_attribute_value``, removed a duplicated
+  base-type computation between ``_unify_record_group`` and
+  ``ProvBundle._unified_records``, and added the ``CoercedAttributeValue``
+  and ``AttributePair`` type aliases (the latter now public, alongside
+  ``NameValuePair``) to stop spelling out the same unions repeatedly;
+  behaviour is unchanged
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
