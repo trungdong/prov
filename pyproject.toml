@@ -2,7 +2,7 @@
 name = "prov"
 dynamic = ["version"]
 description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML and PROV-O (RDF)"
-readme = "README.rst"
+readme = "README.md"
 authors = [
     { name = "Trung Dong Huynh", email = "trungdong@donggiang.com" }
 ]
