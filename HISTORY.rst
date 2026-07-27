@@ -3,8 +3,33 @@
 History
 -------
 
-3.0.0 (unreleased)
+3.0.0 (2026-07-27)
 ^^^^^^^^^^^^^^^^^^
+
+3.0.0 is the compatibility release: the one release the roadmap allows to
+change behaviour and drop dependencies, closing out the standards-conformance
+work (PROV-DM, PROV-CONSTRAINTS, PROV-O) that a backward-compatible 2.x series
+could not fix. See `Upgrading to 3.0
+<https://github.com/trungdong/prov/blob/master/docs/upgrading-3.0.md>`_
+for what changed and what to do about it.
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
+  PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
+  formal attributes: records sharing an identifier whose formal attributes
+  hold different concrete values now raise the new documented
+  ``prov.model.ProvUnificationError`` instead of silently unioning; absent
+  formal attributes unify with concrete values; extra attributes keep
+  set-union semantics; bundles unify independently (#253)
+* ``unified()`` rejects same-identifier records of incompatible types
+  (entity vs activity, distinct relation kinds — PROV-CONSTRAINTS 53/54/55)
+  with ``ProvUnificationError`` instead of merging them order-dependently
+  into the first record's type; spec-permitted overlaps (an agent that is
+  also an entity or activity) are kept as separate records (#253)
+* The 2.4.0 ``FutureWarning`` on ``unified()`` (and its test-suite ignore)
+  is removed: the announced PROV-CONSTRAINTS rework has landed (#253)
 * Attribute values that are Python-equal but differently typed (``2`` vs
   ``2.0``, ``1`` vs ``True``) are all retained on a record instead of silently
   collapsing to whichever was asserted first — at construction, in
@@ -27,7 +52,31 @@ History
   ``args``/``formal_attributes``/``get_startTime()``/``get_endTime()``
   deterministic where they previously picked an arbitrary value among
   several formally-invalid duplicates (#34)
-* Fixed: the type-aware attribute storage above (#34) kept the *last*
+* ``pydot`` and ``networkx`` are no longer unconditional runtime
+  dependencies. ``import prov.dot`` now requires the ``dot`` extra
+  (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``
+  extra; without them the import raises ``ModuleNotFoundError`` naming the
+  extra to install. The ``plot`` extra now pulls in ``pydot``/``networkx``
+  as well, since ``plot()`` renders through ``prov.dot``. Signposted by the
+  2.4.0 ``DeprecationWarning`` (now removed); see ``docs/upgrading-3.0.md``.
+* The ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously
+  ``>=6.0.0``); internally the RDF serializer migrated from the deprecated
+  ``ConjunctiveGraph`` to ``Dataset``, with unchanged round-trip behaviour
+* ``python-dateutil`` dropped — ``prov`` now has no unconditional
+  runtime dependencies. Datetime strings are parsed as ``xsd:dateTime``
+  (ISO 8601 plus the hour-24 end-of-day form) via the standard library;
+  factory ``time=``/``startTime=``/``endTime=`` parameters raise
+  ``ProvException`` on invalid input instead of leaking a raw dateutil
+  error, and non-ISO forms previously tolerated by dateutil (e.g.
+  ``"Nov 7, 2011"``) are no longer accepted (#237)
+* The misspelled ``prov.model.GenrationRef`` type alias is renamed
+  ``GenerationRef``; the old spelling is removed rather than kept as a
+  deprecated alias
+
+Conformance and correctness fixes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Fixed: the type-aware attribute storage change (#34) kept the *last*
   value seen when a genuine duplicate (equal type, equal value) was
   re-added — e.g. asserting both ``Literal("10", XSD_DECIMAL)`` and
   ``Literal("10.00", XSD_DECIMAL)`` (#77) on the same attribute retained
@@ -37,26 +86,36 @@ History
   single-value cardinality guard, which both keep the *first* value seen.
   The retained value is now the first one asserted, in both cases, matching
   2.x
-* BREAKING: ``ProvBundle.unified()`` / ``ProvDocument.unified()`` implement
-  PROV-CONSTRAINTS key constraints (22/23) with pairwise term unification of
-  formal attributes: records sharing an identifier whose formal attributes
-  hold different concrete values now raise the new documented
-  ``prov.model.ProvUnificationError`` instead of silently unioning; absent
-  formal attributes unify with concrete values; extra attributes keep
-  set-union semantics; bundles unify independently (#253)
-* ``unified()`` rejects same-identifier records of incompatible types
-  (entity vs activity, distinct relation kinds — PROV-CONSTRAINTS 53/54/55)
-  with ``ProvUnificationError`` instead of merging them order-dependently
-  into the first record's type; spec-permitted overlaps (an agent that is
-  also an entity or activity) are kept as separate records (#253)
-* The 2.4.0 ``FutureWarning`` on ``unified()`` (and its test-suite ignore)
-  is removed: the announced PROV-CONSTRAINTS rework has landed (#253)
+* Numeric datatype fidelity: ``Literal`` values typed ``xsd:long`` (and the
+  rest of the XSD integer family) keep their asserted datatype instead of
+  being silently re-typed ``xsd:int`` (#235); PROV-N output types plain
+  integers by magnitude (``xsd:int``/``xsd:long``/``xsd:integer``) so
+  out-of-int32 values are no longer emitted as invalid bare int literals
+  (#249), and plain floats as full-precision ``xsd:double`` instead of
+  ``%g``-truncated ``xsd:float`` (#251)
+* Literal semantics: string literals have one canonical serialized form (RDF
+  output no longer decorates plain strings with ``^^xsd:string``) (#89);
+  ``xsd:decimal`` literals compare and hash in value space (#77); language
+  tags compare case-insensitively per RDF 1.1 while preserving their
+  original case in output (#259)
 * PROV-XML round trip preserves attributes whose value is the empty string;
   previously they were silently dropped on deserialization (#224)
 * PROV-XML serializes attribute names containing characters illegal in an
   XML NCName using the reversible ``_xHHHH_`` escaping convention instead
   of raising ``ValueError``; the deserializer applies the inverse, so such
   names round-trip (#289)
+* The PROV-JSON deserializer raises ``ProvJSONException`` on structurally
+  malformed input instead of leaking raw ``KeyError``/``AttributeError``
+  (#228)
+* PROV-JSON typed literals always encode ``$`` as a string, and plain
+  integers are typed by magnitude across PROV-JSON/PROV-XML/PROV-O output
+  (``xsd:int``/``xsd:long``/``xsd:integer``), fixing schema-invalid output
+  for out-of-int32 values (#244, #246, #256)
+* PROV-JSON encodes QualifiedName attribute values as ``xsd:QName`` typed
+  literals per the PROV-JSON submission (previously the non-standard
+  ``prov:QUALIFIED_NAME``, which remains accepted on input) (#168), and
+  ``prov:QUALIFIED_NAME``-typed ``Literal`` values are resolved to
+  QualifiedNames at assertion time, restoring round-trip equality (#238)
 * PROV-O: documents containing multiple same-identifier relations with
   differing formal attributes ("scruffy" statements) are documented as a
   PROV-O representational limitation — they serialize but do not round-trip
@@ -69,57 +128,10 @@ History
   property test excludes this shape at generation time so it does not
   mask other findings, and ``docs/reference/conformance.md`` documents it
   as an open defect (#341)
-* The PROV-JSON deserializer raises ``ProvJSONException`` on structurally
-  malformed input instead of leaking raw ``KeyError``/``AttributeError``
-  (#228)
-* BREAKING: ``pydot`` and ``networkx`` are no longer unconditional runtime
-  dependencies. ``import prov.dot`` now requires the ``dot`` extra
-  (``pip install "prov[dot]"``) and ``import prov.graph`` the ``graph``
-  extra; without them the import raises ``ModuleNotFoundError`` naming the
-  extra to install. The ``plot`` extra now pulls in ``pydot``/``networkx``
-  as well, since ``plot()`` renders through ``prov.dot``. Signposted by the
-  2.4.0 ``DeprecationWarning`` (now removed); see ``docs/upgrading-3.0.md``.
-* BREAKING: the ``rdf`` extra now requires ``rdflib>=7.0.0`` (previously
-  ``>=6.0.0``); internally the RDF serializer migrated from the deprecated
-  ``ConjunctiveGraph`` to ``Dataset``, with unchanged round-trip behaviour
-* BREAKING: ``python-dateutil`` dropped — ``prov`` now has no unconditional
-  runtime dependencies. Datetime strings are parsed as ``xsd:dateTime``
-  (ISO 8601 plus the hour-24 end-of-day form) via the standard library;
-  factory ``time=``/``startTime=``/``endTime=`` parameters raise
-  ``ProvException`` on invalid input instead of leaking a raw dateutil
-  error, and non-ISO forms previously tolerated by dateutil (e.g.
-  ``"Nov 7, 2011"``) are no longer accepted (#237)
-* Numeric datatype fidelity: ``Literal`` values typed ``xsd:long`` (and the
-  rest of the XSD integer family) keep their asserted datatype instead of
-  being silently re-typed ``xsd:int`` (#235); PROV-N output types plain
-  integers by magnitude (``xsd:int``/``xsd:long``/``xsd:integer``) so
-  out-of-int32 values are no longer emitted as invalid bare int literals
-  (#249), and plain floats as full-precision ``xsd:double`` instead of
-  ``%g``-truncated ``xsd:float`` (#251)
-* PROV-JSON typed literals always encode ``$`` as a string, and plain
-  integers are typed by magnitude across PROV-JSON/PROV-XML/PROV-O output
-  (``xsd:int``/``xsd:long``/``xsd:integer``), fixing schema-invalid output
-  for out-of-int32 values (#244, #246, #256)
-* PROV-JSON encodes QualifiedName attribute values as ``xsd:QName`` typed
-  literals per the PROV-JSON submission (previously the non-standard
-  ``prov:QUALIFIED_NAME``, which remains accepted on input) (#168), and
-  ``prov:QUALIFIED_NAME``-typed ``Literal`` values are resolved to
-  QualifiedNames at assertion time, restoring round-trip equality (#238)
-* Literal semantics: string literals have one canonical serialized form (RDF
-  output no longer decorates plain strings with ``^^xsd:string``) (#89);
-  ``xsd:decimal`` literals compare and hash in value space (#77); language
-  tags compare case-insensitively per RDF 1.1 while preserving their
-  original case in output (#259)
 * PROV-O (RDF) round-trip fidelity: mixed XSD-datatype attribute sets
   survive deserialization with their asserted datatypes intact (#218), and
   ``xsd:double`` values are emitted at full precision instead of rdflib's
   6-significant-digit canonical form (#225)
-* PROV-N output escapes qualified-name local parts per the grammar's
-  ``PN_CHARS_ESC`` production, so identifiers containing ``' ( ) , : ; [ ]
-  =`` no longer produce invalid PROV-N (#223)
-* Internal: the PROV-O (RDF) serializer's encode/decode container functions
-  were decomposed into per-record-type dispatch (cyclomatic complexity 81/66
-  → under 15 per function), with byte-identical output (#274)
 * PROV-O output: anonymous qualified Communication/Attribution/Delegation/
   Influence nodes now carry their influencer property (``prov:activity``/
   ``prov:agent``/``prov:agent``/``prov:influencer``) as the PROV-O
@@ -132,21 +144,6 @@ History
 * PROV-O (RDF) deserialization returns ``xsd:base64Binary`` literals as
   their base64 text; previously the value was wrapped in a Python bytes
   repr (``b'…'``), corrupting the round trip (#288)
-* Bundle-local and default namespace prefixes are now bound into RDF
-  serialization alongside document-level ones, so turtle/TriG output uses
-  the declared prefixes instead of auto-minted ``ns1:``-style fallbacks
-  (#96)
-* Security: PROV-XML parsing no longer resolves DTD entities and never
-  touches the network (``resolve_entities=False``, ``no_network=True``),
-  closing an XXE surface on untrusted input (#273)
-* PROV-N continues to emit Mention as bare ``mentionOf(...)`` — the
-  de-facto syntax of the reference implementations for the last decade —
-  rather than the ``prov:mentionOf`` form derivable from the PROV-Links
-  note; now documented as a deliberate deviation (#248)
-* Test infrastructure: the RDF fixture-comparison helper ``find_diff()`` now
-  correctly detects single-triple differences in test assertions (previously
-  a one-triple difference was invisible, masking potential regressions in
-  fixture expectations) (#304)
 * PROV-O (RDF) deserialization now recognizes ``prov:startedAtTime``/
   ``prov:endedAtTime`` asserted directly on a qualified ``prov:Start``/
   ``prov:End`` node and reconciles the value into the relation's formal
@@ -164,6 +161,35 @@ History
   document's registered namespaces (or splits at the last ``#``/``/`` when the
   namespace is unknown) rather than relying on rdflib's ``compute_qname``,
   which refuses such splits. Encode output is unchanged (#294)
+* PROV-N output escapes qualified-name local parts per the grammar's
+  ``PN_CHARS_ESC`` production, so identifiers containing ``' ( ) , : ; [ ]
+  =`` no longer produce invalid PROV-N (#223)
+* PROV-N continues to emit Mention as bare ``mentionOf(...)`` — the
+  de-facto syntax of the reference implementations for the last decade —
+  rather than the ``prov:mentionOf`` form derivable from the PROV-Links
+  note; now documented as a deliberate deviation (#248)
+
+Improvements
+~~~~~~~~~~~~
+
+* Bundle-local and default namespace prefixes are now bound into RDF
+  serialization alongside document-level ones, so turtle/TriG output uses
+  the declared prefixes instead of auto-minted ``ns1:``-style fallbacks
+  (#96)
+* Security: PROV-XML parsing no longer resolves DTD entities and never
+  touches the network (``resolve_entities=False``, ``no_network=True``),
+  closing an XXE surface on untrusted input (#273)
+
+Internal
+~~~~~~~~
+
+* Internal: the PROV-O (RDF) serializer's encode/decode container functions
+  were decomposed into per-record-type dispatch (cyclomatic complexity 81/66
+  → under 15 per function), with byte-identical output (#274)
+* Test infrastructure: the RDF fixture-comparison helper ``find_diff()`` now
+  correctly detects single-triple differences in test assertions (previously
+  a one-triple difference was invisible, masking potential regressions in
+  fixture expectations) (#304)
 * Internal: refactored ProvRecord.add_attributes below the complexity
   threshold with byte-identical behaviour (#275)
 * Internal: refactored ``prov.read()`` below the complexity threshold with
@@ -188,9 +214,6 @@ History
   documenting the PROV-O (RDF) serializer; the underlying rdflib defect is
   fixed upstream, and the docs now build cleanly under Sphinx 9. No effect on
   installing or using ``prov`` itself.
-* BREAKING: the misspelled ``prov.model.GenrationRef`` type alias is renamed
-  ``GenerationRef``; the old spelling is removed rather than kept as a
-  deprecated alias
 * Internal: ``src/prov/model/`` quality pass — collapsed repeated dict
   subscripts in ``ProvRecord._store_attribute_value``, removed a duplicated
   base-type computation between ``_unify_record_group`` and
