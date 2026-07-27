@@ -40,8 +40,8 @@ class AnonymousIDGenerator:
     """Assigns and caches stable blank-node identifiers for unidentified records."""
 
     def __init__(self) -> None:
-        self._cache = {}  # type: dict[ProvRecord, Identifier]
-        self._count = 0  # type: int
+        self._cache: dict[ProvRecord, Identifier] = {}
+        self._count: int = 0
 
     def get_anon_id(self, obj: ProvRecord, local_prefix: str = "id") -> Identifier:
         """Return a blank-node :class:`~prov.identifier.Identifier` for a record.
@@ -206,8 +206,8 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
         and one entry per PROV-N record-type keyword, each mapping record
         identifiers (real or anonymous) to their encoded attributes.
     """
-    container = defaultdict(dict)  # type: dict[str, dict[str, Any]]
-    prefixes = {}  # type: dict[str, str]
+    container: dict[str, dict[str, Any]] = defaultdict(dict)
+    prefixes: dict[str, str] = {}
     for namespace in bundle._namespaces.get_registered_namespaces():
         prefixes[namespace.prefix] = namespace.uri
     if bundle._namespaces._default:
@@ -225,7 +225,7 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
         rec_label = PROV_N_MAP[rec_type]
         identifier = str(real_or_anon_id(record))
 
-        record_json = {}  # type: dict[str, Any]
+        record_json: dict[str, Any] = {}
         if record._attributes:
             for attr, values in record._attributes.items():
                 if not values:
@@ -465,16 +465,16 @@ def _decode_record_instance(
             formal attribute has more than one value, other than the
             documented multi-entity ``hadMember`` (membership) hack.
     """
-    attributes = {}  # type: dict[QualifiedNameCandidate, Any]
+    attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     # this is for the multiple-entity membership hack to come
     membership_extra_members = None
     for attr_name, values in element.items():
-        attr = (
+        attr: QualifiedName = (
             PROV_ATTRIBUTES_ID_MAP[attr_name]
             if attr_name in PROV_ATTRIBUTES_ID_MAP
             else bundle.mandatory_valid_qname(attr_name)
-        )  # type: QualifiedName
+        )
         if attr in PROV_ATTRIBUTES:
             value, extra_members = _decode_formal_attribute(
                 rec_type, attr, values, bundle
@@ -636,7 +636,7 @@ def decode_json_representation(
                 f"The typed-literal representation for {where} is missing "
                 f'its required "$" (value) key; found {literal!r}'
             ) from exc
-        datatype_str = literal.get("type", None)  # type: str | None
+        datatype_str: str | None = literal.get("type", None)
         datatype = valid_qualified_name(bundle, datatype_str)
         langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:

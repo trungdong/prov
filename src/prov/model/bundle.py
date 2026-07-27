@@ -327,12 +327,12 @@ class ProvBundle:
         """
         #  Initializing bundle-specific attributes
         self._identifier = identifier
-        self._records = []  # type: list[ProvRecord]
-        self._id_map = defaultdict(list)  # type: dict[QualifiedName, list[ProvRecord]]
+        self._records: list[ProvRecord] = []
+        self._id_map: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
         self._document = document
-        self._namespaces = NamespaceManager(
+        self._namespaces: NamespaceManager = NamespaceManager(
             namespaces, parent=(document._namespaces if document is not None else None)
-        )  # type: NamespaceManager
+        )
         if records:
             for record in records:
                 self.add_record(record)
@@ -773,10 +773,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvActivity`.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_STARTTIME: _ensure_datetime(startTime),
             PROV_ATTR_ENDTIME: _ensure_datetime(endTime),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_ACTIVITY,
             identifier,
@@ -809,11 +809,11 @@ class ProvBundle:
         Returns:
             The new generation record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ENTITY: entity,
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_TIME: _ensure_datetime(time),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_GENERATION,
             identifier,
@@ -847,11 +847,11 @@ class ProvBundle:
         Returns:
             The new :class:`ProvUsage` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_ENTITY: entity,
             PROV_ATTR_TIME: _ensure_datetime(time),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_USAGE,
             identifier,
@@ -888,12 +888,12 @@ class ProvBundle:
         Returns:
             The new :class:`ProvStart` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_TRIGGER: trigger,
             PROV_ATTR_STARTER: starter,
             PROV_ATTR_TIME: _ensure_datetime(time),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_START,
             identifier,
@@ -929,12 +929,12 @@ class ProvBundle:
         Returns:
             The new :class:`ProvEnd` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_TRIGGER: trigger,
             PROV_ATTR_ENDER: ender,
             PROV_ATTR_TIME: _ensure_datetime(time),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_END,
             identifier,
@@ -967,11 +967,11 @@ class ProvBundle:
         Returns:
             The new :class:`ProvInvalidation` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ENTITY: entity,
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_TIME: _ensure_datetime(time),
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_INVALIDATION,
             identifier,
@@ -999,10 +999,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvCommunication` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_INFORMED: informed,
             PROV_ATTR_INFORMANT: informant,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_COMMUNICATION,
             identifier,
@@ -1049,10 +1049,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvAttribution` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ENTITY: entity,
             PROV_ATTR_AGENT: agent,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_ATTRIBUTION,
             identifier,
@@ -1084,11 +1084,11 @@ class ProvBundle:
         Returns:
             The new :class:`ProvAssociation` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_AGENT: agent,
             PROV_ATTR_PLAN: plan,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_ASSOCIATION,
             identifier,
@@ -1121,11 +1121,11 @@ class ProvBundle:
         Returns:
             The new :class:`ProvDelegation` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_DELEGATE: delegate,
             PROV_ATTR_RESPONSIBLE: responsible,
             PROV_ATTR_ACTIVITY: activity,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_DELEGATION,
             identifier,
@@ -1155,10 +1155,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvInfluence` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_INFLUENCEE: influencee,
             PROV_ATTR_INFLUENCER: influencer,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_INFLUENCE,
             identifier,
@@ -1198,13 +1198,13 @@ class ProvBundle:
         Returns:
             The new :class:`ProvDerivation` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_GENERATED_ENTITY: generatedEntity,
             PROV_ATTR_USED_ENTITY: usedEntity,
             PROV_ATTR_ACTIVITY: activity,
             PROV_ATTR_GENERATION: generation,
             PROV_ATTR_USAGE: usage,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_DERIVATION, identifier, attributes, other_attributes
         )  # type: ignore
@@ -1360,10 +1360,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvSpecialization` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
             PROV_ATTR_GENERAL_ENTITY: generalEntity,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_SPECIALIZATION,
             None,
@@ -1382,10 +1382,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvAlternate` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_ALTERNATE1: alternate1,
             PROV_ATTR_ALTERNATE2: alternate2,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_ALTERNATE,
             None,
@@ -1408,11 +1408,11 @@ class ProvBundle:
         Returns:
             The new :class:`ProvMention` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_SPECIFIC_ENTITY: specificEntity,
             PROV_ATTR_GENERAL_ENTITY: generalEntity,
             PROV_ATTR_BUNDLE: bundle,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_MENTION,
             None,
@@ -1452,10 +1452,10 @@ class ProvBundle:
         Returns:
             The new :class:`ProvMembership` record.
         """
-        attributes = {
+        attributes: dict[QualifiedNameCandidate, Any] = {
             PROV_ATTR_COLLECTION: collection,
             PROV_ATTR_ENTITY: entity,
-        }  # type: dict[QualifiedNameCandidate, Any]
+        }
         return self.new_record(
             PROV_MEMBERSHIP,
             None,
@@ -1588,7 +1588,7 @@ class ProvDocument(ProvBundle):
         ProvBundle.__init__(
             self, records=records, identifier=None, namespaces=namespaces
         )
-        self._bundles = {}  # type: dict[QualifiedName, ProvBundle]
+        self._bundles: dict[QualifiedName, ProvBundle] = {}
 
     def __repr__(self) -> str:
         return "<ProvDocument>"

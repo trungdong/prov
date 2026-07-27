@@ -14,7 +14,7 @@ DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
 class NamespaceManager(dict[str, Namespace]):
     """Manages namespaces for PROV documents and bundles."""
 
-    parent = None  # type: NamespaceManager | None
+    parent: NamespaceManager | None = None
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
 
     def __init__(
@@ -36,18 +36,18 @@ class NamespaceManager(dict[str, Namespace]):
         dict.__init__(self)
         self._default_namespaces = DEFAULT_NAMESPACES
         self.update(self._default_namespaces)
-        self._namespaces = {}  # type: dict[str, Namespace]
+        self._namespaces: dict[str, Namespace] = {}
 
         if default is not None:
             self.set_default_namespace(default)
         else:
-            self._default = None  # type: Namespace | None
+            self._default: Namespace | None = None
         self.parent = parent
         #  TODO check if default is in the default namespaces
         self._anon_id_count = 0
-        self._uri_map = {}  # type: dict[str, Namespace]
-        self._rename_map = {}  # type: dict[Namespace, Namespace]
-        self._prefix_renamed_map = {}  # type: dict[str, Namespace]
+        self._uri_map: dict[str, Namespace] = {}
+        self._rename_map: dict[Namespace, Namespace] = {}
+        self._prefix_renamed_map: dict[str, Namespace] = {}
         if namespaces is not None:
             self.add_namespaces(namespaces)
 
