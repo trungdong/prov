@@ -221,6 +221,13 @@ History
   ``annotation_count``); and a local ``DotContainer`` alias replaces the
   repeated ``pydot.Dot | pydot.Cluster`` union across nine ``dot.py``
   signatures; behaviour is unchanged
+* Two new public type aliases in ``prov.model``: ``InfluencerRef``
+  (``EntityRef | ActivityRef | AgentRef``, the shape of the ``influencer``
+  parameter on ``wasInfluencedBy()`` and ``influence()``) and
+  ``StreamOrPath`` (``io.IOBase | IO[Any] | PathLike``, the shape of the
+  source/destination parameters on ``read()``, ``serialize()`` and
+  ``deserialize()``); both replace repeated inline unions and resolve to
+  the same types as before
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

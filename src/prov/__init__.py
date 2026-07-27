@@ -1,6 +1,5 @@
 from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatures
 
-import io
 import logging
 import os
 import warnings
@@ -8,7 +7,7 @@ from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from prov.model import PathLike, ProvDocument
+    from prov.model import ProvDocument, StreamOrPath
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -22,15 +21,15 @@ class Error(Exception):
 
 
 def _resolve_source(
-    source: io.IOBase | IO[Any] | PathLike,
-) -> tuple[io.IOBase | IO[Any] | PathLike | None, str | bytes | None]:
+    source: StreamOrPath,
+) -> tuple[StreamOrPath | None, str | bytes | None]:
     """Split ``source`` into a ``(src, content)`` pair for deserialization.
 
     A ``str``/``bytes`` source naming an existing file stays as ``src`` (a
     path); any other ``str``/``bytes`` is returned as raw ``content``
     instead, with ``src`` set to ``None``.
     """
-    src: io.IOBase | IO[Any] | PathLike | None = source
+    src: StreamOrPath | None = source
     content: str | bytes | None = None
     if isinstance(src, (str, bytes)) and not os.path.isfile(src):
         # Not a path to an existing file: treat the string itself as raw
@@ -40,7 +39,7 @@ def _resolve_source(
 
 
 def _prepare_stream(
-    src: io.IOBase | IO[Any] | PathLike | None,
+    src: StreamOrPath | None,
 ) -> tuple[IO[Any] | None, int | None]:
     """Identify a seekable stream in ``src`` and capture its start position.
 
@@ -65,7 +64,7 @@ def _prepare_stream(
 
 
 def _detect_and_parse(
-    src: io.IOBase | IO[Any] | PathLike | None,
+    src: StreamOrPath | None,
     content: str | bytes | None,
     serializers: Iterable[str],
 ) -> ProvDocument:
@@ -139,7 +138,7 @@ def _detect_and_parse(
 
 
 def read(
-    source: io.IOBase | IO[Any] | PathLike,
+    source: StreamOrPath,
     format: str | None = None,
 ) -> ProvDocument | None:
     """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.

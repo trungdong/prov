@@ -10,7 +10,7 @@ import shutil
 import tempfile
 from collections import defaultdict
 from collections.abc import Iterable
-from typing import IO, Any, cast
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from prov import serializers
@@ -77,6 +77,7 @@ from prov.model.records import (
     DatetimeOrStr,
     EntityRef,
     GenerationRef,
+    InfluencerRef,
     NameValuePair,
     NSCollection,
     OptionalID,
@@ -104,6 +105,7 @@ from prov.model.records import (
     ProvUsage,
     QualifiedNameCandidate,
     RecordAttributesArg,
+    StreamOrPath,
     UsageRef,
     _ensure_datetime,
 )
@@ -1137,8 +1139,8 @@ class ProvBundle:
 
     def influence(
         self,
-        influencee: EntityRef | ActivityRef | AgentRef,
-        influencer: EntityRef | ActivityRef | AgentRef,
+        influencee: InfluencerRef,
+        influencer: InfluencerRef,
         identifier: OptionalID = None,
         other_attributes: RecordAttributesArg | None = None,
     ) -> ProvInfluence:
@@ -1801,7 +1803,7 @@ class ProvDocument(ProvBundle):
     # Serializing and deserializing
     def serialize(
         self,
-        destination: io.IOBase | IO[Any] | PathLike | None = None,
+        destination: StreamOrPath | None = None,
         format: str = "json",
         **args: Any,
     ) -> str | None:
@@ -1858,7 +1860,7 @@ class ProvDocument(ProvBundle):
 
     @staticmethod
     def deserialize(
-        source: io.IOBase | IO[Any] | PathLike | None = None,
+        source: StreamOrPath | None = None,
         content: str | bytes | None = None,
         format: str = "json",
         **args: Any,
