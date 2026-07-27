@@ -93,10 +93,9 @@ ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.Type
 AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 GenerationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
 UsageRef = Union["ProvUsage", QualifiedNameCandidate]  # type: typing.TypeAlias
-RecordAttributesArg = (
-    dict[QualifiedNameCandidate, Any] | Iterable[tuple[QualifiedNameCandidate, Any]]
-)  # type: typing.TypeAlias
 NameValuePair = tuple[QualifiedName, Any]  # type: typing.TypeAlias
+AttributePair = tuple[QualifiedNameCandidate, Any]  # type: typing.TypeAlias
+RecordAttributesArg = dict[QualifiedNameCandidate, Any] | Iterable[AttributePair]  # type: typing.TypeAlias
 DatetimeOrStr = datetime.datetime | str  # type: typing.TypeAlias
 NSCollection = dict[str, str] | Iterable[Namespace]  # type: typing.TypeAlias
 PathLike = str | bytes | os.PathLike[str]  # type: typing.TypeAlias
@@ -504,6 +503,13 @@ class Literal:
             return f"{quoted_value} %% {self._datatype!s}"
 
 
+# Depends on `Literal` and `SupportedXSDParsedTypes` above, so it cannot join
+# the "Type aliases for convenience" block near the top of the module.
+CoercedAttributeValue = (
+    QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
+)  # type: typing.TypeAlias
+
+
 # Exceptions and warnings
 class ProvException(Error):
     """Base class for PROV model exceptions."""
@@ -785,14 +791,14 @@ class ProvRecord:
 
     def _coerce_attribute_value(
         self, attr: QualifiedName, original_value: Any
-    ) -> QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes:
+    ) -> CoercedAttributeValue:
         # Normalise `original_value` to the datatype expected for `attr`.
         #
         # Raises:
         #     ProvException: If the value is invalid for `attr`.
 
         # the branches below bind `value` to different types
-        value: QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
+        value: CoercedAttributeValue
 
         if attr in PROV_ATTRIBUTE_QNAMES:
             # Expecting a qualified name
@@ -830,7 +836,7 @@ class ProvRecord:
     def _store_attribute_value(
         self,
         attr: QualifiedName,
-        value: QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes,
+        value: CoercedAttributeValue,
         is_collection: bool,
     ) -> None:
         # Add `value` for `attr`, enforcing single-valued (non-collection)
@@ -839,8 +845,15 @@ class ProvRecord:
         # Raises:
         #     ProvException: If a second, different value is supplied for a
         #         single-valued (non-collection) attribute.
-        if not is_collection and attr in PROV_ATTRIBUTES and self._attributes[attr]:
-            existing_value = first(self._attributes[attr])
+        #
+        # `_attributes` is a defaultdict(TypedValueSet): every code path below
+        # ends up subscripting `self._attributes[attr]` at least once (the
+        # early-return and raise paths via the guard/`first()`, the fall-through
+        # path via `.add()`), so binding it once up front auto-vivifies the
+        # entry no earlier than it would have been created anyway.
+        existing_values = self._attributes[attr]
+        if not is_collection and attr in PROV_ATTRIBUTES and existing_values:
+            existing_value = first(existing_values)
             is_not_same_value = True
             # This duplicate-value branch runs at scale in
             # _unified_records()'s merge loop (unified()/flattened() on
@@ -861,7 +874,7 @@ class ProvRecord:
                 # Same value, ignore it
                 return
 
-        self._attributes[attr].add(value)
+        existing_values.add(value)
 
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.

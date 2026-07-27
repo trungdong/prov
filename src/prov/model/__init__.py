@@ -43,6 +43,7 @@ from prov.model.records import (
     XSD_DATATYPE_PARSERS as XSD_DATATYPE_PARSERS,
     ActivityRef as ActivityRef,
     AgentRef as AgentRef,
+    AttributePair as AttributePair,
     DatetimeOrStr as DatetimeOrStr,
     EntityRef as EntityRef,
     GenerationRef as GenerationRef,
