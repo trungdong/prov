@@ -560,7 +560,7 @@ class ProvElementIdentifierRequired(ProvException):
 class ProvRecord:
     """Base class for PROV records."""
 
-    FORMAL_ATTRIBUTES = ()  # type: tuple[QualifiedName, ...]
+    FORMAL_ATTRIBUTES: tuple[QualifiedName, ...] = ()
     """Formal attributes names of this record type, in the expected order."""
 
     _prov_type: QualifiedName | None = None
@@ -1637,10 +1637,10 @@ class ProvInfluence(ProvRelation):
 class ProvSpecialization(ProvRelation):
     """Provenance Specialization relationship."""
 
-    FORMAL_ATTRIBUTES = (
+    FORMAL_ATTRIBUTES: tuple[QualifiedName, ...] = (
         PROV_ATTR_SPECIFIC_ENTITY,
         PROV_ATTR_GENERAL_ENTITY,
-    )  # type: tuple[QualifiedName, ...]
+    )
 
     _prov_type = PROV_SPECIALIZATION
 

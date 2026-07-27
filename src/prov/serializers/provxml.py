@@ -177,10 +177,10 @@ class ProvXMLSerializer(Serializer):
         Returns:
             A prefix-to-URI mapping suitable for lxml's ``nsmap`` argument.
         """
-        nsmap = {
+        nsmap: dict[str, str] = {
             ns.prefix: ns.uri
             for ns in self.document._namespaces.get_registered_namespaces()  # type: ignore[union-attr]
-        }  # type: dict[str, str]
+        }
         if self.document._namespaces._default:  # type: ignore[union-attr]
             # TODO: Check if the below works as expected.
             nsmap[None] = self.document._namespaces._default.uri  # type: ignore[union-attr, index]
@@ -246,7 +246,7 @@ class ProvXMLSerializer(Serializer):
             with io.BytesIO() as buf:
                 buf.write(stream.read().encode("utf-8"))
                 buf.seek(0, 0)
-                xml_doc = etree.parse(buf, parser=_XML_PARSER).getroot()  # type: etree._Element
+                xml_doc: etree._Element = etree.parse(buf, parser=_XML_PARSER).getroot()
         else:
             xml_doc = etree.parse(stream, parser=_XML_PARSER).getroot()  # type: ignore[arg-type]
 
@@ -587,7 +587,7 @@ def _extract_attributes(
             none of them is ``prov:ref``, ``xsi:type``, or ``xml:lang``, so
             no attribute value can be determined.
     """
-    attributes = []  # type: list[NameValuePair]
+    attributes: list[NameValuePair] = []
     _unassigned = object()
     for subel in element:
         sqname = etree.QName(subel)

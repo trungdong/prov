@@ -74,8 +74,8 @@ class AnonymousIDGenerator:
     """Assigns and caches stable blank-node identifier strings for unidentified records."""
 
     def __init__(self) -> None:
-        self._cache = {}  # type: dict[Any, str]
-        self._count = 0  # type: int
+        self._cache: dict[Any, str] = {}
+        self._count: int = 0
 
     def get_anon_id(self, obj: pm.ProvRecord, local_prefix: str = "id") -> str:
         """Return a blank-node identifier string (``"_:<local_prefix><n>"``) for a record.

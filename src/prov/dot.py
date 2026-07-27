@@ -66,7 +66,7 @@ __email__ = "trungdong@donggiang.com"
 
 # Visual styles for various elements (nodes) and relations (edges)
 # see http://graphviz.org/content/attrs
-GENERIC_NODE_STYLE = {
+GENERIC_NODE_STYLE: dict[type[ProvElement | ProvBundle] | None, dict[str, Any]] = {
     None: {
         "shape": "oval",
         "style": "filled",
@@ -97,7 +97,7 @@ GENERIC_NODE_STYLE = {
         "fillcolor": "lightgray",
         "color": "dimgray",
     },
-}  # type: dict[type[ProvElement | ProvBundle] | None, dict[str, Any]]
+}
 # Value type is widened to Any (rather than str) because mypy treats a
 # dict[str, str] unpacked via `**style` as needing to satisfy *every*
 # named parameter pydot.Node/Edge/Cluster declare (e.g. `obj_dict`), not
