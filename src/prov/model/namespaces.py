@@ -3,6 +3,7 @@
 from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
 from collections.abc import Iterable
+from typing import cast
 
 from prov.constants import PROV, XSD, XSI
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -148,7 +149,10 @@ class NamespaceManager(dict[str, Namespace]):
         if isinstance(namespaces, dict):
             # expecting a dictionary of {prefix: uri},
             # convert it to a list of Namespace
-            namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
+            namespaces = [
+                Namespace(prefix, uri)
+                for prefix, uri in cast("dict[str, str]", namespaces).items()
+            ]
         if namespaces:
             for ns in namespaces:
                 self.add_namespace(ns)
@@ -211,13 +215,13 @@ class NamespaceManager(dict[str, Namespace]):
         local_part = qname.localpart
         if not prefix:
             # the namespace is a default namespace
-            if self._default == namespace:
-                # the same default namespace is defined
-                new_qname = self._default[local_part]
-            elif self._default is None:
+            if self._default is None:
                 # no default namespace is defined, reused the one given
                 self._default = namespace
                 return qname  # no change, return the original
+            elif self._default == namespace:
+                # the same default namespace is defined
+                new_qname = self._default[local_part]
             else:
                 # different default namespace,
                 # use the 'dn' prefix for the new namespace
