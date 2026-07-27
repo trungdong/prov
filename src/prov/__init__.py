@@ -8,7 +8,7 @@ from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
-    from prov.model import ProvDocument
+    from prov.model import PathLike, ProvDocument
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -22,17 +22,15 @@ class Error(Exception):
 
 
 def _resolve_source(
-    source: io.IOBase | IO[Any] | str | bytes | os.PathLike[str],
-) -> tuple[
-    io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None, str | bytes | None
-]:
+    source: io.IOBase | IO[Any] | PathLike,
+) -> tuple[io.IOBase | IO[Any] | PathLike | None, str | bytes | None]:
     """Split ``source`` into a ``(src, content)`` pair for deserialization.
 
     A ``str``/``bytes`` source naming an existing file stays as ``src`` (a
     path); any other ``str``/``bytes`` is returned as raw ``content``
     instead, with ``src`` set to ``None``.
     """
-    src: io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None = source
+    src: io.IOBase | IO[Any] | PathLike | None = source
     content: str | bytes | None = None
     if isinstance(src, (str, bytes)) and not os.path.isfile(src):
         # Not a path to an existing file: treat the string itself as raw
@@ -42,7 +40,7 @@ def _resolve_source(
 
 
 def _prepare_stream(
-    src: io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None,
+    src: io.IOBase | IO[Any] | PathLike | None,
 ) -> tuple[IO[Any] | None, int | None]:
     """Identify a seekable stream in ``src`` and capture its start position.
 
@@ -67,10 +65,9 @@ def _prepare_stream(
 
 
 def _detect_and_parse(
-    src: io.IOBase | IO[Any] | str | bytes | os.PathLike[str] | None,
+    src: io.IOBase | IO[Any] | PathLike | None,
     content: str | bytes | None,
     serializers: Iterable[str],
-    document_cls: type[ProvDocument],
 ) -> ProvDocument:
     """Try each registered format in turn, returning the first non-empty parse.
 
@@ -78,6 +75,9 @@ def _detect_and_parse(
         TypeError: If no registered serializer produced a non-empty
             document from ``src``/``content``.
     """
+    # Lazy import: prov and prov.model are circularly dependent.
+    from prov.model import ProvDocument
+
     stream, start_pos = _prepare_stream(src)
 
     # Failed-candidate diagnostics (e.g. rdflib's "does not look like a
@@ -106,7 +106,7 @@ def _detect_and_parse(
                     # the remaining attempts rather than aborting detection.
                     start_pos = None
             try:
-                document = document_cls.deserialize(
+                document = ProvDocument.deserialize(
                     source=src, content=content, format=format
                 )
             except Exception:
@@ -139,7 +139,7 @@ def _detect_and_parse(
 
 
 def read(
-    source: io.IOBase | IO[Any] | str | bytes | os.PathLike[str],
+    source: io.IOBase | IO[Any] | PathLike,
     format: str | None = None,
 ) -> ProvDocument | None:
     """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.
@@ -204,4 +204,4 @@ def read(
                 )
             raise
 
-    return _detect_and_parse(src, content, serializers, ProvDocument)
+    return _detect_and_parse(src, content, serializers)

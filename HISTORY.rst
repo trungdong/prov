@@ -211,6 +211,16 @@ History
   and ``src/prov/serializers/provrdf.py`` are now declared with the PEP 613
   ``X: TypeAlias = ...`` form instead of the trailing ``# type:
   typing.TypeAlias`` comment; behaviour is unchanged
+* Internal: ``src/prov/__init__.py`` and ``src/prov/dot.py`` quality pass —
+  ``_detect_and_parse`` no longer threads a ``document_cls`` parameter for a
+  target that can never vary, doing its own lazy ``ProvDocument`` import
+  instead; the ``prov.model``-re-exported ``PathLike`` alias replaces six
+  spelled-out ``str | bytes | os.PathLike[str]`` unions in ``prov/__init__.py``;
+  ``_DotRenderState``'s positionally-indexed ``count`` list is now four named
+  counters (``node_count``, ``bnode_count``, ``cluster_count``,
+  ``annotation_count``); and a local ``DotContainer`` alias replaces the
+  repeated ``pydot.Dot | pydot.Cluster`` union across nine ``dot.py``
+  signatures; behaviour is unchanged
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

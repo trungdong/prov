@@ -12,6 +12,7 @@ References:
 .. moduleauthor:: Trung Dong Huynh <trungdong@donggiang.com>
 """
 
+import typing
 from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape
@@ -203,14 +204,17 @@ def htlm_link_if_uri(value: Any) -> str:
         return str(value)
 
 
+DotContainer: typing.TypeAlias = pydot.Dot | pydot.Cluster
+
+
 @dataclass
 class _DotRenderState:
     """Mutable state shared by the tree-walk helpers within one `prov_to_dot` call.
 
-    ``node_map`` and ``count`` are written and read across the whole,
-    possibly-nested bundle walk (they must stay shared across sub-bundles);
-    the four ``show_*``/``use_labels``/``show_nary`` flags are the
-    caller-supplied rendering options, constant for the call.
+    ``node_map`` and the ``*_count`` counters are written and read across
+    the whole, possibly-nested bundle walk (they must stay shared across
+    sub-bundles); the four ``show_*``/``use_labels``/``show_nary`` flags are
+    the caller-supplied rendering options, constant for the call.
     """
 
     use_labels: bool
@@ -218,14 +222,15 @@ class _DotRenderState:
     show_relation_attributes: bool
     show_nary: bool
     node_map: dict[str, pydot.Node] = field(default_factory=dict)
-    count: list[int] = field(
-        default_factory=lambda: [0, 0, 0, 0]
-    )  # counters for node ids
+    node_count: int = 0
+    bnode_count: int = 0
+    cluster_count: int = 0
+    annotation_count: int = 0
 
 
 def _attach_attribute_annotation(
     state: _DotRenderState,
-    dot: pydot.Dot | pydot.Cluster,
+    dot: DotContainer,
     node: pydot.Node,
     record: ProvRecord,
 ) -> None:
@@ -258,20 +263,20 @@ def _attach_attribute_annotation(
         for attr, value in attributes
     )
     ann_rows.append(ANNOTATION_END_ROW)
-    state.count[3] += 1
+    state.annotation_count += 1
     annotations = pydot.Node(
-        f"ann{state.count[3]}", label="\n".join(ann_rows), **ANNOTATION_STYLE
+        f"ann{state.annotation_count}", label="\n".join(ann_rows), **ANNOTATION_STYLE
     )
     dot.add_node(annotations)
     dot.add_edge(pydot.Edge(annotations, node, **ANNOTATION_LINK_STYLE))
 
 
 def _add_bundle(
-    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle
+    state: _DotRenderState, dot: DotContainer, bundle: ProvBundle
 ) -> pydot.Cluster:
-    state.count[2] += 1
+    state.cluster_count += 1
     subdot = pydot.Cluster(
-        graph_name=f"c{state.count[2]}",
+        graph_name=f"c{state.cluster_count}",
         URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
     )
     # set_label is generated at runtime by pydot via setattr() for
@@ -287,10 +292,10 @@ def _add_bundle(
 
 
 def _add_node(
-    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, record: ProvRecord
+    state: _DotRenderState, dot: DotContainer, record: ProvRecord
 ) -> pydot.Node:
-    state.count[0] += 1
-    node_id = f"n{state.count[0]}"
+    state.node_count += 1
+    node_id = f"n{state.node_count}"
     if state.use_labels:
         if record.label == record.identifier:
             node_label = f'"{record.label}"'
@@ -319,12 +324,12 @@ def _add_node(
 
 def _add_generic_node(
     state: _DotRenderState,
-    dot: pydot.Dot | pydot.Cluster,
+    dot: DotContainer,
     qname: QualifiedName,
     prov_type: type[ProvElement] | None = None,
 ) -> pydot.Node:
-    state.count[0] += 1
-    node_id = f"n{state.count[0]}"
+    state.node_count += 1
+    node_id = f"n{state.node_count}"
     node_label = f'"{qname}"'
 
     uri = qname.uri
@@ -335,9 +340,9 @@ def _add_generic_node(
     return node
 
 
-def _get_bnode(state: _DotRenderState, dot: pydot.Dot | pydot.Cluster) -> pydot.Node:
-    state.count[1] += 1
-    bnode_id = f"b{state.count[1]}"
+def _get_bnode(state: _DotRenderState, dot: DotContainer) -> pydot.Node:
+    state.bnode_count += 1
+    bnode_id = f"b{state.bnode_count}"
     bnode = pydot.Node(bnode_id, label='""', shape="point", color="gray")
     dot.add_node(bnode)
     return bnode
@@ -345,7 +350,7 @@ def _get_bnode(state: _DotRenderState, dot: pydot.Dot | pydot.Cluster) -> pydot.
 
 def _get_node(
     state: _DotRenderState,
-    dot: pydot.Dot | pydot.Cluster,
+    dot: DotContainer,
     qname: QualifiedName | None,
     prov_type: type[ProvElement] | None = None,
 ) -> pydot.Node:
@@ -359,7 +364,7 @@ def _get_node(
 
 def _draw_nary_or_annotated_relation(
     state: _DotRenderState,
-    dot: pydot.Dot | pydot.Cluster,
+    dot: DotContainer,
     rec: ProvRecord,
     formal: list[tuple[Any, Any, Any]],
     style: dict[str, Any],
@@ -404,9 +409,7 @@ def _draw_nary_or_annotated_relation(
         _attach_attribute_annotation(state, dot, bnode, rec)
 
 
-def _add_relation(
-    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, rec: ProvRecord
-) -> None:
+def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) -> None:
     args = rec.args
     # skipping empty records
     if not args:
@@ -455,7 +458,7 @@ def _add_relation(
 
 
 def _bundle_to_dot(
-    state: _DotRenderState, dot: pydot.Dot | pydot.Cluster, bundle: ProvBundle
+    state: _DotRenderState, dot: DotContainer, bundle: ProvBundle
 ) -> None:
     records = bundle.get_records()
     relations = []
