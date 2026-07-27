@@ -95,7 +95,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 
 ## Pre-1.0 change log
 
-## 0.5.3 (2013-12-13)
+### 0.5.3 (2013-12-13)
 
 - Changed: Allowed namespaces at bundle level
 - Fixed: Only check equality of ProvBundles on asserted records
@@ -106,7 +106,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Fixed: Support for prov:InternationalizedString literals
 - Fixed: Keep timezone information when parsing xsd:dateTime
 
-## 0.5.2 (2013-10-18)
+### 0.5.2 (2013-10-18)
 
 - Added South migrations for prov.persistence
 - Fixed: Support for unlimited-length record identifier
@@ -120,7 +120,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Fixed: Triple quoted multi-line string literals in PROV-N
 - Added: Support initialising namespaces when creating a ProvBundle
 
-## 0.5.1 (2013-09-13)
+### 0.5.1 (2013-09-13)
 
 - Added: JSON membership relation with a single entity (in a list)
 - Fixed: Not generating inferred records in JSON encoding.
@@ -131,7 +131,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Added informative arguments to ProvException classes
 - Fixed: Attribute validation does not fail if the attribute is already a ProvRecord
 
-## 0.5.0 (2013-09-02)
+### 0.5.0 (2013-09-02)
 
 - Allow inferred records to be retyped when flattening
 - prov.model.graph: check if a node of a relation already drawn
@@ -149,11 +149,11 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Fixed support for the default namespace
 - Fixed minor bugs.
 
-## 0.4.9 (2013-08-09)
+### 0.4.9 (2013-08-09)
 
 - Fixed: Cannot get_label() when self._extra_attributes is None
 
-## 0.4.8 (2013-08-06)
+### 0.4.8 (2013-08-06)
 
 - Added: Option to show attributes of relations in DOT graph generation
 - Added: option to show attributes of nodes in DOT graph representation
@@ -163,7 +163,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Fixed: missing return Literal(...)
 - Fixed: Error getting the value and datatype of Literal
 
-## 0.4.7 (2013-07-10)
+### 0.4.7 (2013-07-10)
 
 - Changed: Removed out-dated example_graph()
 - Changed: Improved mappings between default Python and XSD data types
@@ -174,18 +174,18 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Changed: Improved Literal equality test
 - Added langtag getter to Literal
 
-## 0.4.6 (2013-04-24)
+### 0.4.6 (2013-04-24)
 
 - Fixed: Removed the 'activity' attribute from Influence expression
 - Fixed: Inferred records couldn't be created when the expected types provided as a list
 
-## 0.4.5 (2013-03-13)
+### 0.4.5 (2013-03-13)
 
 - Changed: ProvActivity.set_time() can now accept just one argument. It previously sets the time of the missing argument to None.
 - Changed: ProvAgent is now eligible for entity arguments and ProvEntity for agent ones
 - Fixed: Producing the right PROV-N representation for float values
 
-## 0.4.4
+### 0.4.4
 
 - Added float data type support for prov.persistence
 - Removed ProvCollection class since collections should be instantiated as entities
@@ -193,21 +193,21 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 - Changed: Check if an attribute's value is a valid QName and return the QName
 - Fixed exception rendering graphs with empty records
 
-## 0.4.3
+### 0.4.3
 
 - Fixed: PROV-N export - top-level bundle -> document
 - Fixed: Bug when renaming prefixes
 
-## 0.4.2
+### 0.4.2
 
 - Updated graph colors to the PROV style
 
-## 0.4.1
+### 0.4.1
 
 - Restructured package folder
 - Moved to a new repo.
 - Fixed: 'memberof' -> 'hadMember'
 
-## 0.4.0 (2012-10-31)
+### 0.4.0 (2012-10-31)
 
 - Initial release.
