@@ -30,14 +30,14 @@ a free online repository for provenance documents.
 
 ## Roadmap
 
-The library is undergoing a staged modernisation (tooling, type hints, tests,
-documentation, standards conformance), a batch of bug fixes, and new format support.
-See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for the plan
-and the 2.x API-stability promise.
+3.0.0 has been released, completing the staged modernisation (tooling, type hints,
+tests, documentation, standards conformance). See
+[ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for the plan
+and the 3.x API-stability promise.
 Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/issues).
 
 ## Supported versions
 
-Only the latest 2.x release is supported; 1.x and earlier no longer receive
+Only the latest 3.x release is supported; 2.x and earlier no longer receive
 fixes. See [SECURITY.md](https://github.com/trungdong/prov/blob/master/SECURITY.md)
 for the full support table and how to report a vulnerability.

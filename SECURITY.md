@@ -2,15 +2,15 @@
 
 ## Supported Versions
 
-Only the latest `2.x` release is actively maintained. Security fixes are
-backported to the most recent `2.x` release; `1.x` and earlier are no
+Only the latest `3.x` release is actively maintained. Security fixes are
+backported to the most recent `3.x` release; `2.x` and earlier are no
 longer supported.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 2.x     | :white_check_mark: |
-| 1.x     | :x:                |
-| < 1.0   | :x:                |
+| 3.x     | :white_check_mark: |
+| 2.x     | :x:                |
+| < 2.0   | :x:                |
 
 Starting with `2.3.0`, `prov` requires Python 3.10 or later. Earlier `2.x`
 releases support Python 3.9+; consult the `classifiers` in a given
