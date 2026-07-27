@@ -10,7 +10,7 @@ import re
 import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, MutableSet
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 from prov import Error
 from prov.constants import (
@@ -903,7 +903,9 @@ class ProvRecord:
             if isinstance(attributes, dict):
                 # Converting the dictionary into a list of tuples
                 # (i.e. attribute-value pairs)
-                attributes = attributes.items()
+                attributes = cast(
+                    "dict[QualifiedNameCandidate, Any]", attributes
+                ).items()
 
             # Check if one of the attributes specifies that the current type
             # is a collection. In that case multiple attributes of the same

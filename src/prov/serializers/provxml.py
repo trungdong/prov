@@ -9,8 +9,8 @@ from typing import Any
 
 from lxml import etree
 
-import prov
 import prov.identifier
+import prov.model
 from prov.constants import *
 from prov.model import (
     DEFAULT_NAMESPACES,
@@ -374,6 +374,8 @@ class ProvXMLSerializer(Serializer):
                 continue
             if isinstance(value, prov.model.Literal):
                 value = value.value
+            if not isinstance(value, prov.identifier.QualifiedName):
+                continue
             if value in PROV_BASE_CLS and PROV_BASE_CLS[value] != value:
                 attributes.remove((key, value))
                 rec_label = FULL_NAMES_MAP[value]

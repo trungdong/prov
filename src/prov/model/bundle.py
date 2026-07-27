@@ -698,13 +698,15 @@ class ProvBundle:
         attr_list: list[AttributePair] = []
         if attributes:
             if isinstance(attributes, dict):
-                attr_list.extend((attr, value) for attr, value in attributes.items())
+                attr_list.extend(
+                    cast("dict[QualifiedNameCandidate, Any]", attributes).items()
+                )
             else:
                 # expecting a list of attributes here
                 attr_list.extend(attributes)
         if other_attributes:
             attr_list.extend(
-                other_attributes.items()
+                cast("dict[QualifiedNameCandidate, Any]", other_attributes).items()
                 if isinstance(other_attributes, dict)
                 else other_attributes
             )
@@ -1705,8 +1707,8 @@ class ProvDocument(ProvBundle):
                         bundle_id is None
                     ):  # pragma: no cover -- bundles are always named
                         raise AssertionError("bundle has no identifier")
-                    if bundle.identifier in self._bundles:
-                        self._bundles[bundle.identifier].update(bundle)
+                    if bundle_id in self._bundles:
+                        self._bundles[bundle_id].update(bundle)
                     else:
                         new_bundle = self.bundle(bundle_id)
                         new_bundle.update(bundle)
