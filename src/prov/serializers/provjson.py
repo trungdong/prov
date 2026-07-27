@@ -11,7 +11,7 @@ from prov import Error
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
-    AttributePair,  # noqa: F401 -- used by a `# type:` comment-annotation below
+    AttributePair,
     Literal,
     ProvBundle,
     ProvDocument,
@@ -466,7 +466,7 @@ def _decode_record_instance(
             documented multi-entity ``hadMember`` (membership) hack.
     """
     attributes = {}  # type: dict[QualifiedNameCandidate, Any]
-    other_attributes = []  # type: list[AttributePair]
+    other_attributes: list[AttributePair] = []
     # this is for the multiple-entity membership hack to come
     membership_extra_members = None
     for attr_name, values in element.items():

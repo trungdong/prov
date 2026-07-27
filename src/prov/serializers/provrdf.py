@@ -4,7 +4,7 @@ import base64
 import datetime
 import io
 import re
-import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
+import typing
 import warnings
 from collections import OrderedDict
 from collections.abc import Callable, Generator
@@ -59,11 +59,11 @@ __email__ = "satra@mit.edu"
 # Type aliases for convenience. Deliberately local to this module: records.py
 # carries no runtime dependency on rdflib, which is what makes the
 # minimal-install story work (see CLAUDE.md).
-RelationMapper = dict[URIRef, str]  # type: typing.TypeAlias
-PredicateMapper = dict[URIRef, pm.QualifiedName]  # type: typing.TypeAlias
-RecordTypeLabels = dict[pm.QualifiedName, str]  # type: typing.TypeAlias
-RdfTerm = URIRef | RDFLiteral  # type: typing.TypeAlias
-RdfSubject = URIRef | BNode  # type: typing.TypeAlias
+RelationMapper: typing.TypeAlias = dict[URIRef, str]
+PredicateMapper: typing.TypeAlias = dict[URIRef, pm.QualifiedName]
+RecordTypeLabels: typing.TypeAlias = dict[pm.QualifiedName, str]
+RdfTerm: typing.TypeAlias = URIRef | RDFLiteral
+RdfSubject: typing.TypeAlias = URIRef | BNode
 
 
 class ProvRDFException(Error):
