@@ -183,6 +183,11 @@ History
   the PROV-O (RDF) encoder's element attribute encoding; the ``prov:location``
   predicate is now always emitted through the single code path that already
   ran in practice, with identical output
+* Internal: lifted the ``docs`` dependency group's ``sphinx<9`` ceiling, which
+  had been in place since 2.4.0 to work around an autodoc crash when
+  documenting the PROV-O (RDF) serializer; the underlying rdflib defect is
+  fixed upstream, and the docs now build cleanly under Sphinx 9. No effect on
+  installing or using ``prov`` itself.
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^

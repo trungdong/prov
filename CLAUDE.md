@@ -9,13 +9,15 @@ provenance graphs, serialization to/from PROV-JSON, PROV-XML, PROV-O (RDF), and 
 (write-only), graphical export via Graphviz, and NetworkX conversion. Src-layout package under
 `src/prov`, Python 3.10+. Used by ProvStore, so treat the public API with care.
 
-## Modernisation roadmap (in progress)
+## Modernisation roadmap
 
 Plan: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`; public summary:
-`ROADMAP.md`. Rules:
+`ROADMAP.md`. The 2.x→3.0 modernisation programme is code-complete on `master`: every
+3.0.0 compatibility change (see ROADMAP.md's "What changes in 3.0") has landed, and the
+release itself is pending publication — a separate, later step, not more roadmap work.
+The next phase targets **3.1.0** (PROV-JSONLD support, purely additive; see ROADMAP.md).
+Rules that stay live across phases:
 
-- **No public API changes in 2.x.** Every documented name stays importable from its historic
-  location; behaviour-changing fixes wait for 3.0. Guarded by `src/prov/tests/test_public_api.py`.
 - One focused PR per roadmap step, green CI before merge.
 - If a step changes tooling, update the affected sections of this file in the same PR.
 - Never add AI attribution to commits or PRs (no "Co-Authored-By: Claude", no "Generated with
@@ -38,7 +40,8 @@ uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
 uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -b html docs docs/_build/html
 ```
 
-`docs/dependencies.md` explains every dependency pin (including why Sphinx is capped `<9`).
+`docs/dependencies.md` explains every dependency pin, including the `numpy<2.5` constraint
+needed for `mypy --strict` (transitive via `types-networkx`/`matplotlib`).
 
 ## Common commands
 
@@ -109,12 +112,20 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   instead of serializing). A `pytest_assertrepr_compare` hook shows which record differs when
   two documents compare unequal. Hypothesis profiles registered here; CI sets
   `HYPOTHESIS_PROFILE=ci`.
+- The suite invariant is **1391 passed, 24 skipped, 0 xfailed** (`uv run pytest -q`); any
+  deviation is a regression. `uv run pytest -q -rsx` breaks the 24 skips down as: 4 in
+  `test_minimal_install.py` (each extra's degradation test skips itself when that extra
+  *is* installed, e.g. "only meaningful without rdflib"), 14 in `test_statements.py` (the
+  #217 PROV-O limitation below), 3 in `test_unification_constraints.py` (ProvToolbox's
+  `<prov:bundle>` dialect, rejected on parse — see the gap analysis it cites), and 3 in
+  `test_xml_schema.py` (PROV-XML/XSD spec limits: `xsd:QName` local-name restrictions and
+  `prov:InternationalizedString` only being typed on `prov:label`).
 - Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
   `test_examples.py`) runs once per target via the `roundtrip` fixture. **Known-lossy RDF cases
-  are intentional**: 14 skips in `test_statements.py`, documented as a permanent PROV-O
-  representational limitation in `docs/reference/conformance.md` (closed as #217), attached via
-  per-function `@pytest.mark.parametrize("fmt", [...])` so only the `rdf` param is marked. Don't
-  "fix" these.
+  are intentional** (the 14 `test_statements.py` skips counted above), documented as a
+  permanent PROV-O representational limitation in `docs/reference/conformance.md` (closed as
+  #217), attached via per-function `@pytest.mark.parametrize("fmt", [...])` so only the `rdf`
+  param is marked. Don't "fix" these.
 - `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
   order significant — some tests reference individual values by index) feed the shared modules
   and several others.

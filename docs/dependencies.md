@@ -1,6 +1,11 @@
 # Dependency audit
 
 Audit date: 2026-07-05, against `master` @ `185c062` (Phase 2 dependency audit, T14).
+Pin rationales re-verified 2026-07-27, against `master` @ `970524f`, ahead of the 3.0.0
+release: every rationale below was re-read against `uv.lock`, and the Sphinx and numpy
+constraints were re-derived by actually re-resolving and re-running the tooling they
+guard (commands and outcomes recorded in their entries below), not by re-asserting the
+prior text.
 
 Why every runtime dependency, extra, and dev/docs-group entry exists, and why it's pinned
 the way it is. Re-check pins against `pyproject.toml` before trusting the version numbers
@@ -72,6 +77,14 @@ for end users.
 
 - **`coverage>=7.6.10`** — measures branch coverage for the `fail_under` ratchet enforced
   in CI (see `[tool.coverage]` in `pyproject.toml`).
+- **`hypothesis>=6.156.1`** — property-based testing; drives the round-trip strategies in
+  `src/prov/tests/strategies.py` exercised by `test_property_roundtrip.py` over
+  `ROUNDTRIP_FORMATS`. Added when that module was introduced (added to this audit
+  2026-07-27; the pin itself predates this note — it was missing from the dev-group list
+  above by omission, not by design).
+- **`jsonschema>=4`** — validates PROV-JSON output against the vendored member-submission
+  schema in `test_json_schema.py` (`src/prov/tests/schemas/`). Same omission/backfill as
+  `hypothesis` above.
 - **`lxml-stubs>=0.5.1`** — type stubs for `lxml`, needed for `mypy --strict` to type-check
   `provxml.py` without treating `lxml` as `Any`.
 - **`mypy>=1.19.1`** — the strict type checker (`[tool.mypy] strict = true`); floor is
@@ -111,15 +124,21 @@ before it could run `uv` in its build image — was deleted 2026-07-05 (T21) onc
 `build.jobs.create_environment` could install `uv` itself via `asdf`; keeping two
 manually-synced dependency lists was a standing liability.
 
-- **`sphinx>=8.1.3,<9`** — the documentation generator. The `<9` ceiling fixes a
-  ReadTheDocs build break (introduced 2026-07-04, see git history on this file):
+- **`sphinx>=8.1.3`** — the documentation generator. Was capped `<9` from 2026-07-04:
   Sphinx 9's autodoc calls `repr()` on class bases while documenting
-  `prov.serializers.provrdf`; rdflib's `DefinedNamespaceMeta.__repr__` raises
-  `AttributeError` on its abstract base class, crashing the build. Verified: 8.1.3 and
-  8.2.3 build fine; 9.0.4 and 9.1.0 crash. Re-verified 2026-07-05 (T21) with the furo
-  theme swap — the same crash reproduces on 9.1.0, so the cap stays. Revisit once rdflib
-  fixes `__repr__` on its namespace metaclass, or once this project drops the RDF
-  serializer's exposure to autodoc.
+  `prov.serializers.provrdf`, and rdflib's `DefinedNamespaceMeta.__repr__`
+  (`rdflib.namespace`) used to raise `AttributeError` on its abstract base class,
+  crashing the build; re-verified 2026-07-05 with the furo theme swap, the crash still
+  reproduced on 9.1.0. **Cap lifted 2026-07-27**: rdflib fixed it — the currently locked
+  rdflib (7.6.0) has `DefinedNamespaceMeta.__repr__` catch that `AttributeError` itself
+  and fall back to a placeholder string instead of propagating it (confirmed by reading
+  the method's source out of the installed package). Verified end to end by resolving
+  Sphinx unconstrained (`uv lock --upgrade-package sphinx`, which now locks 9.0.4 for
+  Python 3.11 and 9.1.0 for Python ≥3.12) and then building the docs against that lock
+  with `uv run --group docs --extra rdf --extra xml --extra dot --extra graph
+  sphinx-build -b html -W docs docs/_build/html`: build succeeds, 0 warnings. If a
+  similar autodoc crash resurfaces on a future Sphinx major, re-run that same build
+  with `-W` before assuming a new cap is needed.
 - **`furo`** — the HTML theme for the published docs, replacing `sphinx_rtd_theme`
   2026-07-05 (T21): actively maintained, accessible defaults, and native light/dark mode
   without extra configuration. No known version constraints yet.
@@ -139,7 +158,12 @@ Removed T21: `sphinx_rtd_theme` (superseded by `furo`, above).
   `types-networkx` and `matplotlib`. numpy 2.5 switched its inline stubs to unconditional
   PEP 695 `type` statements, which mypy refuses to parse once `[tool.mypy] python_version`
   is below 3.12 (this project's `python_version = "3.10"`), regardless of the interpreter
-  actually running mypy. Capping numpy avoids that crash. If a Dependabot bump of
+  actually running mypy. Capping numpy avoids that crash. **Re-checked 2026-07-27, still
+  needed**: numpy's current PyPI release is 2.5.1. Clearing the constraint and running
+  `uv lock --upgrade-package numpy` resolves numpy 2.5.1 for Python ≥3.12; `uv sync` that
+  lock and `uv run mypy src` immediately fails with `numpy/__init__.pyi: error: Type
+  statement is only supported in Python 3.12 and greater [syntax]`, reproducing the
+  original crash. Constraint restored and re-locked. If a Dependabot bump of
   `matplotlib`/`types-networkx` ever fails to resolve because of this constraint, lift it,
   run `uv run mypy src`, and keep the lift only if mypy stays green (e.g. once numpy gates
   the new stub syntax on `python_version`, or this project's mypy floor rises to 3.12).
