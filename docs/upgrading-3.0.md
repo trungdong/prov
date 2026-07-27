@@ -139,6 +139,15 @@ generic `ProvException` the merge used to raise), whereas `prov_to_graph()` lets
 There are no other 2.4.0-introduced deprecations beyond these two extras moves; nothing
 else is scheduled for removal.
 
+## Renamed type alias
+
+`prov.model.GenrationRef` — the misspelled `Union[...]` type alias used in the `generation`
+parameter's annotation on `ProvEntity.wasDerivedFrom`/`.wasRevisionOf`/`.wasQuotedFrom`/
+`.hadPrimarySource` and the matching `ProvBundle` factory methods — is renamed
+`GenerationRef`. The old spelling is removed outright, not kept as an alias. **What to
+do:** if your code imports `GenrationRef` by name, change the import to `GenerationRef`;
+nothing else references the old spelling.
+
 ## Summary: is my code affected?
 
 If your code:
@@ -157,6 +166,7 @@ If your code:
   incompatible types, sharing an identifier — unaffected by the unification rework.
 - Doesn't catch `KeyError`/`AttributeError`/`TypeError` around PROV-JSON deserialization
   to handle malformed input — unaffected by the #228 exception-contract change.
+- Doesn't import `GenrationRef` by name — unaffected by the type-alias rename.
 
 then upgrading to 3.0 should require no code changes at all. If you are upgrading from
 before 2.4.0, note that 2.4.0 signposted both the extras moves and the `unified()`
