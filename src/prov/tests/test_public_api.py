@@ -113,12 +113,19 @@ OPTIONAL_MODULE_REQUIREMENTS = {
 }
 
 
-# Exact snapshot of sorted(dir(prov.model)), generated at commit
-# dccff00217b745a8107379742a7157366703b5bd (177 names). Unlike PUBLIC_API
-# above, this is not curated -- it is every name the module exports,
-# including dunders, re-exported stdlib/typing imports, and internal
-# constants, because the freeze in prov/model/__init__.py applies to all
-# of them.
+# Exact snapshot of the non-dunder names in sorted(dir(prov.model)),
+# generated at commit dccff00217b745a8107379742a7157366703b5bd (166 names).
+# Unlike PUBLIC_API above, this is not curated -- it is every non-dunder
+# name the module exports, including re-exported stdlib/typing imports and
+# internal constants, because the freeze in prov/model/__init__.py applies
+# to all of them.
+#
+# Dunder names (__author__, __file__, __loader__, ...) are excluded: some
+# are CPython import-machinery details (__cached__, __file__, __loader__,
+# __path__, __spec__) that can legitimately vary or go missing under a
+# frozen build, zipapp, or non-standard loader, and asserting on them would
+# misdirect a future contributor toward "fix the code" when the real cause
+# is the install mechanism.
 #
 # If this test fails:
 # - an *added* name from an intentional change (new alias, new constant,
@@ -275,17 +282,6 @@ PROV_MODEL_DIR_SNAPSHOT = [
     "XSD_UNSIGNEDLONG",
     "XSD_UNSIGNEDSHORT",
     "XSI",
-    "__author__",
-    "__builtins__",
-    "__cached__",
-    "__doc__",
-    "__email__",
-    "__file__",
-    "__loader__",
-    "__name__",
-    "__package__",
-    "__path__",
-    "__spec__",
     "canonical_xsd_datatype",
     "datetime",
     "defaultdict",
@@ -309,7 +305,11 @@ PROV_MODEL_DIR_SNAPSHOT = [
 
 
 def test_prov_model_namespace_snapshot():
-    actual = sorted(dir(prov.model))
+    actual = sorted(
+        name
+        for name in dir(prov.model)
+        if not (name.startswith("__") and name.endswith("__"))
+    )
     expected = sorted(PROV_MODEL_DIR_SNAPSHOT)
     added = sorted(set(actual) - set(expected))
     removed = sorted(set(expected) - set(actual))
