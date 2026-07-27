@@ -188,6 +188,9 @@ History
   documenting the PROV-O (RDF) serializer; the underlying rdflib defect is
   fixed upstream, and the docs now build cleanly under Sphinx 9. No effect on
   installing or using ``prov`` itself.
+* BREAKING: the misspelled ``prov.model.GenrationRef`` type alias is renamed
+  ``GenerationRef``; the old spelling is removed rather than kept as a
+  deprecated alias
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
