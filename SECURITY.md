@@ -2,20 +2,20 @@
 
 ## Supported Versions
 
-Only the latest `3.x` release is actively maintained. Security fixes are
-backported to the most recent `3.x` release; `2.x` and earlier are no
-longer supported.
+The latest `3.x` release is actively maintained and receives all fixes.
+The most recent `2.x` release receives security fixes only — no bug fixes,
+no new features. `1.x` and earlier are no longer supported.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 3.x     | :white_check_mark: |
-| 2.x     | :x:                |
-| < 2.0   | :x:                |
+| Version | Supported          | Fixes               |
+| ------- | ------------------ | ------------------- |
+| 3.x     | :white_check_mark: | All fixes           |
+| 2.x     | :white_check_mark: | Security fixes only |
+| < 2.0   | :x:                | None                |
 
-Starting with `2.3.0`, `prov` requires Python 3.10 or later. Earlier `2.x`
-releases support Python 3.9+; consult the `classifiers` in a given
-release's `pyproject.toml`/`setup.py` for its exact supported Python
-versions.
+Both supported lines require Python 3.10 or later: `3.x` from the outset,
+and `2.x` from `2.3.0` onwards. Earlier `2.x` releases support Python 3.9+;
+consult the `classifiers` in a given release's `pyproject.toml`/`setup.py`
+for its exact supported Python versions.
 
 ## Reporting a Vulnerability
 

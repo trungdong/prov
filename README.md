@@ -1,11 +1,11 @@
 # Introduction
 
 [![Latest Release](https://badge.fury.io/py/prov.svg)](http://badge.fury.io/py/prov)
+[![License](https://img.shields.io/pypi/l/prov.svg)](https://pypi.python.org/pypi/prov/)
 [![CI Status](https://github.com/trungdong/prov/workflows/CI/badge.svg)](https://github.com/trungdong/prov/actions?workflow=CI)
 [![Coverage Status](https://img.shields.io/coveralls/trungdong/prov.svg)](https://coveralls.io/r/trungdong/prov?branch=master)
-[![Wheel Status](https://img.shields.io/pypi/wheel/prov.svg)](https://pypi.python.org/pypi/prov/)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/73bdf6dda3884abf9f5e79352c07e66c)](https://app.codacy.com/gh/trungdong/prov/dashboard)
 [![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.python.org/pypi/prov/)
-[![License](https://img.shields.io/pypi/l/prov.svg)](https://pypi.python.org/pypi/prov/)
 
 A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON import/export
 
@@ -38,6 +38,7 @@ Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/iss
 
 ## Supported versions
 
-Only the latest 3.x release is supported; 2.x and earlier no longer receive
-fixes. See [SECURITY.md](https://github.com/trungdong/prov/blob/master/SECURITY.md)
+The latest 3.x release receives all fixes. The most recent 2.x release
+receives security fixes only; 1.x and earlier no longer receive fixes. See
+[SECURITY.md](https://github.com/trungdong/prov/blob/master/SECURITY.md)
 for the full support table and how to report a vulnerability.
