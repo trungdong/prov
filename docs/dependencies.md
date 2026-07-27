@@ -91,7 +91,7 @@ for end users.
   whatever version this project first enforced strict mode + `py.typed` with.
 - **`pre-commit>=4.0.1`** — runs ruff (lint + format) and hygiene checks
   (trailing-whitespace/EOF-newline/YAML-TOML validation) automatically at commit time; see
-  `CONTRIBUTING.rst` step 4.
+  `CONTRIBUTING.md` step 4.
 - **`pytest>=8.4.2`** — the test runner; collects the `unittest.TestCase`-style test suite
   under `src/prov/tests/` natively.
 - **`pytest-cov>=7.1.0`** — pytest's coverage plugin, so `coverage` can attribute hits

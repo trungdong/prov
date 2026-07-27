@@ -105,7 +105,7 @@ More caveats apply across many rows rather than to one:
 
 The value-typing and literal-semantics gaps the audit recorded here — #77, #89, #168, #218,
 #223, #225, #235, #238, #244, #246, #249, #251, #256, #259 — were fixed in 3.0; see
-{doc}`../upgrading-3.0` and `HISTORY.rst` for the details.
+{doc}`../upgrading-3.0` and `HISTORY.md` for the details.
 
 ## Component 1 — Entities and Activities
 
