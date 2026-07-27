@@ -4,6 +4,7 @@ import base64
 import datetime
 import io
 import re
+import typing  # noqa: F401 -- used by `# type: typing.TypeAlias` comments below
 import warnings
 from collections import OrderedDict
 from collections.abc import Callable, Generator
@@ -53,6 +54,16 @@ from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
 __email__ = "satra@mit.edu"
+
+
+# Type aliases for convenience. Deliberately local to this module: records.py
+# carries no runtime dependency on rdflib, which is what makes the
+# minimal-install story work (see CLAUDE.md).
+RelationMapper = dict[URIRef, str]  # type: typing.TypeAlias
+PredicateMapper = dict[URIRef, pm.QualifiedName]  # type: typing.TypeAlias
+RecordTypeLabels = dict[pm.QualifiedName, str]  # type: typing.TypeAlias
+RdfTerm = URIRef | RDFLiteral  # type: typing.TypeAlias
+RdfSubject = URIRef | BNode  # type: typing.TypeAlias
 
 
 class ProvRDFException(Error):
@@ -344,9 +355,7 @@ class _DecodeState:
     unique_sets: dict[str, dict[pm.QualifiedName, list[Any]]] = field(
         default_factory=dict
     )
-    other_attributes: dict[str, list[tuple[pm.QualifiedNameCandidate, Any]]] = field(
-        default_factory=dict
-    )
+    other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
 
     def register(self, subj: str, prov_obj: pm.QualifiedName) -> None:
         """Record ``subj``'s type and seed its empty formal-attribute slots.
@@ -386,7 +395,7 @@ class ProvRDFSerializer(Serializer):
         self,
         stream: io.IOBase,
         rdf_format: str = "trig",
-        PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
+        PROV_N_MAP: RecordTypeLabels = PROV_N_MAP,
         **kwargs: Any,
     ) -> None:
         """Serialize ``self.document`` to `PROV-O <https://www.w3.org/TR/prov-o/>`_.
@@ -431,8 +440,8 @@ class ProvRDFSerializer(Serializer):
         self,
         stream: io.IOBase,
         rdf_format: str = "trig",
-        relation_mapper: dict[URIRef, str] = RELATION_MAP,
-        predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
+        relation_mapper: RelationMapper = RELATION_MAP,
+        predicate_mapper: PredicateMapper = PREDICATE_MAP,
         **kwargs: Any,
     ) -> pm.ProvDocument:
         """Deserialize a `PROV-O <https://www.w3.org/TR/prov-o/>`_ graph
@@ -489,7 +498,7 @@ class ProvRDFSerializer(Serializer):
         # through is safe despite its declared parameter type.
         return self.document.valid_qualified_name(value)  # type: ignore[union-attr, arg-type]
 
-    def encode_rdf_representation(self, value: Any) -> RDFLiteral | URIRef:
+    def encode_rdf_representation(self, value: Any) -> RdfTerm:
         """Encode a single attribute value to its RDF term representation.
 
         Args:
@@ -736,7 +745,7 @@ class ProvRDFSerializer(Serializer):
     def encode_document(
         self,
         document: pm.ProvDocument,
-        PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
+        PROV_N_MAP: RecordTypeLabels = PROV_N_MAP,
     ) -> Dataset:
         """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
 
@@ -810,7 +819,7 @@ class ProvRDFSerializer(Serializer):
     def encode_container(
         self,
         bundle: pm.ProvBundle,
-        PROV_N_MAP: dict[pm.QualifiedName, str] = PROV_N_MAP,
+        PROV_N_MAP: RecordTypeLabels = PROV_N_MAP,
         container: Graph | None = None,
         identifier: str | None = None,
     ) -> Graph:
@@ -916,17 +925,17 @@ class ProvRDFSerializer(Serializer):
             if value is None:
                 continue
             if isinstance(value, pm.ProvRecord):
-                obj: RDFLiteral | URIRef = URIRef(str(real_or_anon_id(value)))
+                obj: RdfTerm = URIRef(str(real_or_anon_id(value)))
             else:
                 #  Assuming this is a datetime value
                 obj = self.encode_rdf_representation(value)
-            pred: URIRef | RDFLiteral
+            pred: RdfTerm
             if attr == PROV["location"]:
                 pred = _prov_uri("atLocation")
                 container.add(
                     (
                         # elements always carry an identifier here
-                        cast("URIRef | BNode", identifier),
+                        cast(RdfSubject, identifier),
                         pred,
                         self.encode_rdf_representation(obj),
                     )
@@ -937,7 +946,7 @@ class ProvRDFSerializer(Serializer):
             else:
                 pred = self.encode_rdf_representation(attr)
             # elements always carry an identifier here
-            container.add((cast("URIRef | BNode", identifier), pred, obj))
+            container.add((cast(RdfSubject, identifier), pred, obj))
 
     def _encode_relation(
         self,
@@ -945,7 +954,7 @@ class ProvRDFSerializer(Serializer):
         record: pm.ProvRecord,
         rec_type: pm.QualifiedName,
         identifier: URIRef | None,
-        PROV_N_MAP: dict[pm.QualifiedName, str],
+        PROV_N_MAP: RecordTypeLabels,
     ) -> None:
         """Encode a relation using PROV-O's qualification pattern.
 
@@ -974,7 +983,7 @@ class ProvRDFSerializer(Serializer):
                 formal_qualifiers = True
         has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
 
-        node: URIRef | BNode | None = identifier
+        node: RdfSubject | None = identifier
         for attr, value in all_attributes:
             # The qualification head is (re)built until a blank node is minted
             # for it; for an identified relation no blank node is ever minted,
@@ -998,7 +1007,7 @@ class ProvRDFSerializer(Serializer):
                     (
                         # a qualified relation always has a URIRef or
                         # BNode identifier by this point
-                        cast("URIRef | BNode", node),
+                        cast(RdfSubject, node),
                         self._qualified_attr_predicate(rec_type, attr, formal_objects),
                         self.encode_rdf_representation(value),
                     )
@@ -1009,12 +1018,12 @@ class ProvRDFSerializer(Serializer):
         container: Graph,
         record: pm.ProvRecord,
         rec_type: pm.QualifiedName,
-        identifier: URIRef | BNode | None,
-        PROV_N_MAP: dict[pm.QualifiedName, str],
+        identifier: RdfSubject | None,
+        PROV_N_MAP: RecordTypeLabels,
         formal_objects: list[pm.QualifiedName],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
-    ) -> tuple[URIRef | BNode | None, BNode | None, bool]:
+    ) -> tuple[RdfSubject | None, BNode | None, bool]:
         """Emit a relation's binary triple and its ``prov:qualified*`` node.
 
         Args:
@@ -1042,7 +1051,7 @@ class ProvRDFSerializer(Serializer):
             if val:
                 valid_formal_indices.add(idx)
         used_objects[:] = [record.formal_attributes[0][0]]
-        subj: URIRef | RDFLiteral | None = None
+        subj: RdfTerm | None = None
         if record.formal_attributes[0][1]:
             subj = URIRef(record.formal_attributes[0][1].uri)
         if identifier is None and subj is not None:
@@ -1075,7 +1084,7 @@ class ProvRDFSerializer(Serializer):
         record: pm.ProvRecord,
         rec_type: pm.QualifiedName,
         pred: URIRef,
-        subj: URIRef | RDFLiteral,
+        subj: RdfTerm,
         valid_formal_indices: set[int],
         used_objects: list[pm.QualifiedName],
         has_qualifiers: bool,
@@ -1111,7 +1120,7 @@ class ProvRDFSerializer(Serializer):
         # attribute directly (as a rewrite of the formal attribute).
         if not (rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS and has_qualifiers):
             used_objects.append(record.formal_attributes[1][0])
-        obj_term: URIRef | RDFLiteral = self.encode_rdf_representation(obj_val)
+        obj_term: RdfTerm = self.encode_rdf_representation(obj_val)
         container.add((subj, pred, obj_term))
         if rec_type == PROV_MENTION:
             if record.formal_attributes[2][1]:
@@ -1131,9 +1140,9 @@ class ProvRDFSerializer(Serializer):
         container: Graph,
         record: pm.ProvRecord,
         rec_type: pm.QualifiedName,
-        identifier: URIRef | BNode | None,
-        subj: URIRef | RDFLiteral,
-    ) -> tuple[URIRef | BNode, BNode | None]:
+        identifier: RdfSubject | None,
+        subj: RdfTerm,
+    ) -> tuple[RdfSubject, BNode | None]:
         """Link (and, when anonymous, create and type) a ``prov:qualified*`` node.
 
         A ``prov:type`` of ``prov:Revision``/``prov:Quotation``/
@@ -1180,7 +1189,7 @@ class ProvRDFSerializer(Serializer):
         rec_type: pm.QualifiedName,
         attr: pm.QualifiedNameCandidate,
         formal_objects: list[pm.QualifiedName],
-    ) -> URIRef | RDFLiteral:
+    ) -> RdfTerm:
         """Return the PROV-O predicate for one attribute of a qualified relation.
 
         Picks a base predicate for ``attr``, then applies the common and
@@ -1195,7 +1204,7 @@ class ProvRDFSerializer(Serializer):
         Returns:
             The predicate term to use for ``attr``.
         """
-        pred: URIRef | RDFLiteral
+        pred: RdfTerm
         if attr in formal_objects:
             pred = attr2rdf(cast(QualifiedName, attr))
         elif isinstance(attr, pm.QualifiedName) and attr in _QUALIFIED_ATTR_PREDICATES:
@@ -1216,8 +1225,8 @@ class ProvRDFSerializer(Serializer):
         self,
         content: Dataset,
         document: pm.ProvDocument,
-        relation_mapper: dict[URIRef, str] = RELATION_MAP,
-        predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
+        relation_mapper: RelationMapper = RELATION_MAP,
+        predicate_mapper: PredicateMapper = PREDICATE_MAP,
     ) -> None:
         """Decode a whole RDF graph, including named subgraphs, into a document.
 
@@ -1280,8 +1289,8 @@ class ProvRDFSerializer(Serializer):
         self,
         graph: Graph,
         bundle: pm.ProvBundle,
-        relation_mapper: dict[URIRef, str] = RELATION_MAP,
-        predicate_mapper: dict[URIRef, pm.QualifiedName] = PREDICATE_MAP,
+        relation_mapper: RelationMapper = RELATION_MAP,
+        predicate_mapper: PredicateMapper = PREDICATE_MAP,
     ) -> None:
         """Decode a single RDF (sub)graph's triples into records added to a bundle.
 
@@ -1408,8 +1417,8 @@ class ProvRDFSerializer(Serializer):
         graph: Graph,
         bundle: pm.ProvBundle,
         state: "_DecodeState",
-        relation_mapper: dict[URIRef, str],
-        predicate_mapper: dict[URIRef, pm.QualifiedName],
+        relation_mapper: RelationMapper,
+        predicate_mapper: PredicateMapper,
     ) -> None:
         """Walk every triple, filling in relations and attributes.
 
@@ -1453,7 +1462,7 @@ class ProvRDFSerializer(Serializer):
         subj: str,
         pred: URIRef,
         obj: Node,
-        relation_mapper: dict[URIRef, str],
+        relation_mapper: RelationMapper,
     ) -> None:
         """Recreate one relation from its PROV-O binary triple.
 
@@ -1524,7 +1533,7 @@ class ProvRDFSerializer(Serializer):
         subj: str,
         pred: URIRef,
         obj: Node,
-        predicate_mapper: dict[URIRef, pm.QualifiedName],
+        predicate_mapper: PredicateMapper,
     ) -> None:
         """Decode one non-relation triple into a formal or extra attribute.
 
@@ -1660,7 +1669,7 @@ class ProvRDFSerializer(Serializer):
 
 def _repeated_formal_attribute(
     record_type: pm.QualifiedName,
-    attrs: list[tuple[pm.QualifiedNameCandidate, Any]] | None,
+    attrs: list[pm.AttributePair] | None,
 ) -> str | None:
     """Return the formal-attribute name repeated in ``attrs``, if any.
 

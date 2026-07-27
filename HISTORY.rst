@@ -198,6 +198,15 @@ History
   and ``AttributePair`` type aliases (the latter now public, alongside
   ``NameValuePair``) to stop spelling out the same unions repeatedly;
   behaviour is unchanged
+* Internal: ``src/prov/serializers/`` quality pass — adopted the public
+  ``NameValuePair`` and ``AttributePair`` type aliases in ``provxml.py``,
+  ``provrdf.py`` and ``provjson.py`` in place of the shapes they spell out,
+  added ``provrdf.py``-local ``RelationMapper``/``PredicateMapper``/
+  ``RecordTypeLabels``/``RdfTerm``/``RdfSubject`` aliases for its own
+  repeated dict and RDF-term-union parameters, made ``provxml.py``'s
+  ``_ALWAYS_CHECK`` a ``frozenset``, and changed
+  ``_needs_xsd_type_inference`` to take a plain ``bool`` computed by its
+  caller instead of an XML element; behaviour is unchanged
 
 2.5.1 (2026-07-13)
 ^^^^^^^^^^^^^^^^^^
