@@ -12,7 +12,12 @@ from lxml import etree
 import prov
 import prov.identifier
 from prov.constants import *
-from prov.model import DEFAULT_NAMESPACES, canonical_xsd_datatype, sorted_attributes
+from prov.model import (
+    DEFAULT_NAMESPACES,
+    NameValuePair,
+    canonical_xsd_datatype,
+    sorted_attributes,
+)
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -343,7 +348,7 @@ class ProvXMLSerializer(Serializer):
     def _derive_record_label(
         self,
         rec_type: prov.identifier.QualifiedName,
-        attributes: list[tuple[prov.identifier.QualifiedName, Any]],
+        attributes: list[NameValuePair],
     ) -> str:
         """Derive the PROV-XML element name for a record, honouring subtypes.
 
@@ -399,7 +404,8 @@ def _encode_attribute(
     )
     v = _encode_attribute_value(subelem, attr, value)
 
-    if _needs_xsd_type_inference(subelem, attr, value, v, force_types):
+    has_xsi_type = _ns_xsi("type") in subelem.attrib
+    if _needs_xsd_type_inference(has_xsi_type, attr, value, v, force_types):
         xsd_type, v = _infer_xsd_type(attr, value, v)
         if xsd_type is not None:
             subelem.attrib[_ns_xsi("type")] = str(xsd_type)
@@ -455,17 +461,19 @@ def _encode_attribute_value(
 # To enable a mapping of Python types to XML and back, the XSD type must be
 # written for values of these types. Membership is tested against the value's
 # exact type, deliberately not with isinstance().
-_ALWAYS_CHECK = {
-    bool,
-    datetime.datetime,
-    float,
-    int,
-    prov.identifier.Identifier,
-}
+_ALWAYS_CHECK = frozenset(
+    {
+        bool,
+        datetime.datetime,
+        float,
+        int,
+        prov.identifier.Identifier,
+    }
+)
 
 
 def _needs_xsd_type_inference(
-    subelem: etree._Element,
+    has_xsi_type: bool,
     attr: prov.identifier.QualifiedName,
     value: Any,
     v: str,
@@ -482,7 +490,8 @@ def _needs_xsd_type_inference(
     type.
 
     Args:
-        subelem: The attribute's XML element, as written so far.
+        has_xsi_type: Whether the attribute's XML element, as written so
+            far, already carries an ``xsi:type`` attribute.
         attr: The attribute's name.
         value: The attribute's value.
         v: The value's string rendering.
@@ -498,7 +507,7 @@ def _needs_xsd_type_inference(
             or type(value) in _ALWAYS_CHECK
             or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
         )
-        and _ns_xsi("type") not in subelem.attrib
+        and not has_xsi_type
         and not str(value).startswith("prov:")
         and not (attr in PROV_ATTRIBUTE_QNAMES and v)
         and attr not in [PROV_ATTR_TIME, PROV_LABEL]
@@ -551,7 +560,7 @@ def _infer_xsd_type(
 
 def _extract_attributes(
     element: etree._Element,
-) -> list[tuple[prov.identifier.QualifiedName, Any]]:
+) -> list[NameValuePair]:
     """Extract a record's attributes from its PROV-XML etree element.
 
     Each child of ``element`` becomes one ``(QualifiedName, value)`` pair:
@@ -578,7 +587,7 @@ def _extract_attributes(
             none of them is ``prov:ref``, ``xsi:type``, or ``xml:lang``, so
             no attribute value can be determined.
     """
-    attributes = []  # type: list[tuple[prov.identifier.QualifiedName, Any]]
+    attributes = []  # type: list[NameValuePair]
     _unassigned = object()
     for subel in element:
         sqname = etree.QName(subel)
