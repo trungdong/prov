@@ -45,7 +45,7 @@ jobs:
         if: matrix.python-version == '3.12'
         run: uv run coverage report
       - name: Coveralls Parallel
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329  # v2
         # Advisory upload: a Coveralls outage must not fail the build (rule added
         # after the 2026-07-03 outage blocked PR #174; hotfixed on master in PR #176 —
         # keep continue-on-error on all coverage-upload steps in the rewrite)
@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coveralls Finished
-        uses: coverallsapp/github-action@5cbfd81b66ca5d10c19b062c04de0199c215fb6e  # v2
+        uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329  # v2
         continue-on-error: true
         with:
           parallel-finished: true
