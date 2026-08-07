@@ -77,6 +77,22 @@ def test_serialize_default_namespace_as_vocab():
     doc.entity("e1")
     container = _dump(doc)
     assert container["@context"][0]["@vocab"] == EX_URI
+    # "@vocab" alone would only govern bare property terms and bare "@type"
+    # values in real JSON-LD -- NOT "@id" values or @id-typed terms like
+    # "entity"/"activity" -- so a bare identifier like "e1" would resolve
+    # against a consumer's own document base rather than EX_URI. "@base"
+    # must be emitted alongside "@vocab", pointing at the same URI, so those
+    # values resolve correctly too (see the pyld-backed proof in
+    # test_jsonld_semantics.py).
+    assert container["@context"][0]["@base"] == EX_URI
+
+
+def test_serialize_no_default_namespace_omits_base():
+    doc = _new_doc()
+    doc.entity("ex:e1")
+    container = _dump(doc)
+    assert "@base" not in container["@context"][0]
+    assert "@vocab" not in container["@context"][0]
 
 
 def test_serialize_default_namespace_attribute_uses_absolute_iri_key():

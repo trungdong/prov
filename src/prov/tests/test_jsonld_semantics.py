@@ -91,3 +91,37 @@ def test_expansion_language_tagged_label(context):
     label = by_id["http://example.org/e1"][RDFS_LABEL][0]
     assert label["@value"] == "bonjour"
     assert label["@language"] == "fr"
+
+
+@pytest.mark.parametrize("context", CONTEXT_MODES)
+def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context):
+    # Regression test: a document with a default namespace emits bare local
+    # names ("e1", not "ex:e1") for its identifiers. JSON-LD's "@vocab"
+    # governs bare property terms and bare "@type" values, but NOT "@id"
+    # values or the values of terms coerced "@type": "@id" (every
+    # identifier-valued term in the submission's context, including the
+    # "entity"/"activity" edges below) -- those resolve against "@base"
+    # instead. Without an explicit "@base" pointing at the default
+    # namespace URI, a real JSON-LD processor resolves them against its OWN
+    # document base rather than "http://example.org/", silently breaking
+    # every default-namespace identifier and edge. This must assert the
+    # actual absolute IRI, not merely that expansion/flattening succeeds --
+    # a wrong-but-still-absolute IRI (e.g. resolved against some other base)
+    # would otherwise pass a weaker check.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://example.org/")
+    doc.entity("e1")
+    doc.activity("a1", "2011-11-16T16:05:00")
+    doc.wasGeneratedBy("e1", "a1")
+
+    by_id = _flatten(doc, context)
+
+    assert "http://example.org/e1" in by_id
+    assert "http://example.org/a1" in by_id
+    e1 = by_id["http://example.org/e1"]
+    assert f"{PROV_NS}Entity" in e1["@type"]
+    # The Generation statement's "entity" attribute is @id-typed and
+    # @reverse-encoded in the context; if it resolved against the wrong
+    # base it would neither match "http://example.org/e1" here nor land on
+    # this node once flattened.
+    assert f"{PROV_NS}qualifiedGeneration" in e1

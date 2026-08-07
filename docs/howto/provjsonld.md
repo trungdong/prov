@@ -30,7 +30,8 @@ print(jsonld_str)
 {
   "@context": [
     {
-      "@vocab": "http://example.org/"
+      "@vocab": "http://example.org/",
+      "@base": "http://example.org/"
     },
     "https://openprovenance.org/prov-jsonld/context.jsonld"
   ],
@@ -52,11 +53,12 @@ print(jsonld_str)
 }
 ```
 
-A document's registered namespace prefixes (and its default namespace, as `@vocab`) become
-the first entry of `@context`; every unprefixed `@type` (`Entity`, `Activity`, `Generation`,
-...) is resolved against the submission's context, referenced as the second entry. Named
-bundles nest as `{"@type": "Bundle", "@id", "@context", "@graph"}` objects inside the
-top-level `@graph`.
+A document's registered namespace prefixes (and its default namespace, as both `@vocab` and
+`@base` -- JSON-LD's `@vocab` alone does not govern `@id` values or `@id`-typed terms like
+`entity`/`activity`, so `@base` is needed too) become the first entry of `@context`; every
+unprefixed `@type` (`Entity`, `Activity`, `Generation`, ...) is resolved against the
+submission's context, referenced as the second entry. Named bundles nest as `{"@type":
+"Bundle", "@id", "@context", "@graph"}` objects inside the top-level `@graph`.
 
 ## Choose how the context is referenced
 

@@ -124,14 +124,25 @@ def _encode_namespaces(bundle: ProvBundle) -> dict[str, str]:
         bundle: Bundle (or document) whose namespaces are encoded.
 
     Returns:
-        A dict mapping each registered prefix to its namespace URI, plus an
-        ``"@vocab"`` entry if ``bundle`` has a default namespace. Empty if
-        ``bundle`` has neither registered nor a default namespace.
+        A dict mapping each registered prefix to its namespace URI, plus
+        ``"@vocab"`` and ``"@base"`` entries (both set to the same URI) if
+        ``bundle`` has a default namespace. Empty if ``bundle`` has neither
+        registered nor a default namespace.
+
+        Both keys are needed: JSON-LD's ``@vocab`` governs bare property
+        terms and bare ``@type`` values, but NOT ``@id`` values or the
+        values of terms coerced ``"@type": "@id"`` (every identifier-valued
+        term in the submission's context, e.g. ``entity``, ``activity``,
+        ``role``) -- those resolve against ``@base`` instead. Without an
+        explicit ``@base``, a JSON-LD processor resolves them against ITS
+        OWN document base, not this library's default namespace. See
+        :func:`_decode_context` for the matching decode-side handling.
     """
     ns_map = {ns.prefix: ns.uri for ns in bundle.get_registered_namespaces()}
     default_ns = bundle.get_default_namespace()
     if default_ns is not None:
         ns_map["@vocab"] = default_ns.uri
+        ns_map["@base"] = default_ns.uri
     return ns_map
 
 
@@ -318,8 +329,11 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     embedded copy of the submission context, whose terms are already known
     to this library via the built-in ``prov``/``xsd`` namespaces) are
     skipped; namespace maps -- dicts whose values are all strings -- are
-    registered, with ``@vocab`` as the default namespace and ``@version``
-    ignored.
+    registered, with ``@vocab`` as the default namespace. Every other
+    JSON-LD keyword key (``@base``, ``@version``, ...) is ignored: ``@base``
+    is written by :func:`_encode_namespaces` as a duplicate of ``@vocab``
+    (needed for real JSON-LD processors, see that function's docstring) and
+    carries no information this library doesn't already get from ``@vocab``.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
@@ -334,11 +348,9 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
         if any(isinstance(v, dict) for v in item.values()):
             continue  # embedded submission context, not a namespace map
         for prefix, uri in item.items():
-            if prefix == "@version":
-                continue
             if prefix == "@vocab":
                 bundle.set_default_namespace(uri)
-            else:
+            elif not prefix.startswith("@"):
                 bundle.add_namespace(Namespace(prefix, uri))
 
 
