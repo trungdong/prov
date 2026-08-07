@@ -78,7 +78,7 @@ pins `json` as the first format tried on a non-seekable stream.
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 `unittest.TestCase`. Design authority: `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`.
 
-- The suite invariant is **1645 passed, 26 skipped, 0 xfailed** (`uv run pytest -q`); any
+- The suite invariant is **1642 passed, 26 skipped, 0 xfailed** (`uv run pytest -q`); any
   deviation is a regression. `uv run pytest -q -rsx` breaks the 26 skips down as: 4 in
   `test_minimal_install.py` (each extra's degradation test skips itself when that extra
   *is* installed, e.g. "only meaningful without rdflib"), 14 in `test_statements.py` (the

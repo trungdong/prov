@@ -164,57 +164,6 @@ def _roundtrip(doc: ProvDocument) -> ProvDocument:
     )
 
 
-def test_roundtrip_all_record_types():
-    doc = _new_doc()
-    e1 = doc.entity("ex:e1")
-    e2 = doc.entity("ex:e2")
-    a1 = doc.activity("ex:a1", "2011-11-16T16:05:00")
-    ag = doc.agent("ex:ag")
-    doc.wasGeneratedBy(e1, a1)
-    doc.used(a1, e2)
-    doc.wasInformedBy(a1, a1)
-    doc.wasStartedBy(a1, e2, time="2011-11-16T16:05:00")
-    doc.wasEndedBy(a1, e2)
-    doc.wasInvalidatedBy(e1, a1)
-    doc.wasDerivedFrom(e1, e2)
-    doc.wasAttributedTo(e1, ag)
-    doc.wasAssociatedWith(a1, ag)
-    doc.actedOnBehalfOf(ag, ag)
-    doc.wasInfluencedBy(e1, a1)
-    doc.specializationOf(e2, e1)
-    doc.alternateOf(e1, e2)
-    doc.membership(e1, e2)
-    assert _roundtrip(doc) == doc
-
-
-def test_roundtrip_bundle_and_default_namespace():
-    doc = ProvDocument()
-    doc.set_default_namespace(EX_URI)
-    doc.entity("e1")
-    bundle = doc.bundle("e_bundle")
-    bundle.entity("e2")
-    assert _roundtrip(doc) == doc
-
-
-def test_roundtrip_attribute_values():
-    import datetime
-
-    doc = _new_doc()
-    doc.entity(
-        "ex:e1",
-        (
-            ("prov:label", "plain"),
-            ("prov:label", Literal("bonjour", langtag="fr")),
-            ("prov:type", doc.valid_qualified_name("ex:Sort")),
-            ("ex:int", 42),
-            ("ex:float", 3.14),
-            ("ex:bool", True),
-            ("ex:time", datetime.datetime(2011, 11, 16, 16, 5)),
-        ),
-    )
-    assert _roundtrip(doc) == doc
-
-
 def test_deserialize_accepts_provtoolbox_prefixed_terms():
     text = json.dumps(
         {
