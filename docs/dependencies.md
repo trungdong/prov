@@ -83,8 +83,9 @@ for end users.
   2026-07-27; the pin itself predates this note — it was missing from the dev-group list
   above by omission, not by design).
 - **`jsonschema>=4`** — validates PROV-JSON output against the vendored member-submission
-  schema in `test_json_schema.py` (`src/prov/tests/schemas/`). Same omission/backfill as
-  `hypothesis` above.
+  schema in `test_json_schema.py`, and PROV-JSONLD output against a second vendored schema
+  in `test_jsonld_schema.py` (both under `src/prov/tests/schemas/`). Same omission/backfill
+  as `hypothesis` above.
 - **`lxml-stubs>=0.5.1`** — type stubs for `lxml`, needed for `mypy --strict` to type-check
   `provxml.py` without treating `lxml` as `Any`.
 - **`mypy>=1.19.1`** — the strict type checker (`[tool.mypy] strict = true`); floor is

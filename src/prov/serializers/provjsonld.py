@@ -31,11 +31,13 @@ from prov.constants import (
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
     PROV_REC_CLS,
+    AttributePair,
     Literal,
     ProvBundle,
     ProvDocument,
     ProvElement,
     ProvRecord,
+    QualifiedNameCandidate,
     canonical_xsd_datatype,
     first,
     parse_xsd_datetime,
@@ -103,8 +105,13 @@ def _vendored_context_text() -> str:
     return files("prov.serializers").joinpath("prov-jsonld-context.jsonld").read_text()
 
 
-def _load_vendored_context() -> dict[str, Any]:
+def load_vendored_context() -> dict[str, Any]:
     """Return the vendored submission context (the ``@context`` object).
+
+    Useful to callers who want to embed the submission's context object
+    themselves, e.g. to substitute it for :data:`JSONLD_CONTEXT_URL` when
+    processing this module's ``context="url"`` output with a JSON-LD
+    processor offline.
 
     Returns:
         The ``@context`` object read from the vendored
@@ -210,8 +217,9 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
     """
     rec_type = record.get_type()
     if rec_type == PROV_MENTION:
+        suffix = f" ({record.identifier})" if record.identifier is not None else ""
         raise ProvJSONLDException(
-            f"PROV-JSONLD cannot represent mentionOf ({record.identifier}): "
+            f"PROV-JSONLD cannot represent mentionOf{suffix}: "
             "the submission defines no Mention term; see "
             "docs/reference/conformance.md"
         )
@@ -275,7 +283,7 @@ def encode_jsonld_document(document: ProvDocument, context: str) -> dict[str, An
         object per named bundle).
     """
     context_tail: Any = (
-        JSONLD_CONTEXT_URL if context == "url" else _load_vendored_context()
+        JSONLD_CONTEXT_URL if context == "url" else load_vendored_context()
     )
     ns_map = _encode_namespaces(document)
     graph = encode_jsonld_container(document)
@@ -519,8 +527,8 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'A {type_term} statement requires an "@id"; found {item!r}'
         )
-    attributes: dict[Any, Any] = {}
-    other_attributes: list[Any] = []
+    attributes: dict[QualifiedNameCandidate, Any] = {}
+    other_attributes: list[AttributePair] = []
     for key, value in item.items():
         if key in ("@type", "@id"):
             continue

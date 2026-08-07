@@ -16,7 +16,7 @@ import pytest
 from pyld import jsonld
 
 from prov.model import Literal, ProvDocument
-from prov.serializers.provjsonld import _load_vendored_context
+from prov.serializers.provjsonld import load_vendored_context
 
 PROV_NS = "http://www.w3.org/ns/prov#"
 RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
@@ -50,7 +50,7 @@ def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
     """
     container = json.loads(document.serialize(format="jsonld", context=context))
     container["@context"] = [
-        item if isinstance(item, dict) else _load_vendored_context()
+        item if isinstance(item, dict) else load_vendored_context()
         for item in container["@context"]
     ]
     flattened = jsonld.flatten(container)

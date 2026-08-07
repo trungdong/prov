@@ -767,8 +767,9 @@ class ProvRecord:
                 # the opaque Literal rather than reject it (#257 lock). Only
                 # PROV_QUALIFIEDNAME is handled here: an XSD_QNAME literal
                 # keeps today's opaque model-side behaviour -- the PROV-JSON
-                # codec is the only place that treats xsd:QName as a
-                # QualifiedName value, per the submission (#168).
+                # and PROV-JSONLD codecs are the only places that treat
+                # xsd:QName as a QualifiedName value, per the submission
+                # (#168).
                 resolved = self._bundle.valid_qualified_name(literal.value)
                 return resolved if resolved is not None else literal
             if literal.datatype:

@@ -336,7 +336,7 @@ def _expected_primer_document() -> ProvDocument:
 
 
 def test_interop_submission_example():
-    doc = prov.read(str(FIXTURE_DIR / "submission-example-3.jsonld"), format="jsonld")
+    doc = prov.read(FIXTURE_DIR / "submission-example-3.jsonld", format="jsonld")
     assert doc == _expected_primer_document()
     assert _roundtrip(doc) == doc
 
@@ -376,8 +376,6 @@ def _expected_provtoolbox_primer_document() -> ProvDocument:
 
 
 def test_interop_provtoolbox_mini_primer():
-    doc = prov.read(
-        str(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld"), format="jsonld"
-    )
+    doc = prov.read(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld", format="jsonld")
     assert doc == _expected_provtoolbox_primer_document()
     assert _roundtrip(doc) == doc

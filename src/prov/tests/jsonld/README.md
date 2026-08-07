@@ -33,7 +33,12 @@ the submission example in one substantive way: `ex:derek`'s `foaf:mbox` is an
 empty plain string (`{"@value": ""}`) rather than the submission's
 `"<mailto:derek@example.org>"` — this is ProvToolbox's fixture as retrieved,
 not a transcription error, so the test's expected document reproduces it
-verbatim rather than the submission's mbox value.
+verbatim rather than the submission's mbox value. It also carries a trailing
+tab on one line (its `"@language" : "EN"` line), preserved here rather than
+stripped, since the point of vendoring is to keep the file byte-identical to
+upstream; this is why `.pre-commit-config.yaml` excludes this directory from
+the trailing-whitespace/EOF-newline hooks, the same as the `json`/`xml`/
+`rdf`/`unification` fixture directories.
 
 ## Licence
 

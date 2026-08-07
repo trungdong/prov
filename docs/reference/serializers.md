@@ -1,7 +1,7 @@
 # prov.serializers
 
 `prov.serializers` defines the pluggable serializer interface used by
-{py:meth}`ProvDocument.serialize() <prov.model.ProvBundle.serialize>` and
+{py:meth}`ProvDocument.serialize() <prov.model.ProvDocument.serialize>` and
 {py:meth}`ProvDocument.deserialize() <prov.model.ProvDocument.deserialize>`, and the registry
 that looks up the serializer class for a given format string (`"json"`, `"xml"`, `"rdf"`,
 `"provn"`, `"jsonld"`). For how to use each format, see the {doc}`../howto/provjson`,
