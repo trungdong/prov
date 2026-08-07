@@ -10,7 +10,7 @@
 A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON import/export
 
 - Free software: MIT license
-- Documentation: http://prov.readthedocs.io/.
+- Documentation: <http://prov.readthedocs.io/>.
 - Python 3 only.
 
 ## Features
