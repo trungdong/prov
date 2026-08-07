@@ -1,13 +1,16 @@
 """PROV-JSONLD format-specific tests: encoder shape, options, error paths."""
 
 import json
+from pathlib import Path
 
 import pytest
 
+import prov
 from prov.model import Literal, ProvDocument
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 
 EX_URI = "http://example.org/"
+FIXTURE_DIR = Path(__file__).parent / "jsonld"
 
 
 def _new_doc() -> ProvDocument:
@@ -204,3 +207,79 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms():
 def test_deserialize_malformed(payload, match):
     with pytest.raises(ProvJSONLDException, match=match):
         ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
+
+
+def _expected_primer_document() -> ProvDocument:
+    """Build the document ``submission-example-3.jsonld`` is expected to decode to."""
+    doc = ProvDocument()
+    doc.add_namespace("xsd", "http://www.w3.org/2001/XMLSchema#")
+    doc.add_namespace("dcterms", "http://purl.org/dc/terms/")
+    doc.add_namespace("ex", "http://example/")
+    doc.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    doc.entity("ex:dataSet1")
+    doc.entity(
+        "ex:article1",
+        (("dcterms:title", Literal("Crime rises in cities", langtag="EN")),),
+    )
+    doc.wasDerivedFrom("ex:article1", "ex:dataSet1")
+    doc.agent(
+        "ex:derek",
+        (
+            ("prov:type", doc.valid_qualified_name("prov:Person")),
+            ("foaf:givenName", "Derek"),
+            ("foaf:mbox", "<mailto:derek@example.org>"),
+        ),
+    )
+    doc.wasAssociatedWith("ex:compose", "ex:derek")
+    doc.activity("ex:compose")
+    doc.used("ex:compose", "ex:dataSet1")
+    doc.wasGeneratedBy("ex:article1", "ex:compose")
+    return doc
+
+
+def test_interop_submission_example():
+    doc = prov.read(str(FIXTURE_DIR / "submission-example-3.jsonld"), format="jsonld")
+    assert doc == _expected_primer_document()
+    assert _roundtrip(doc) == doc
+
+
+def _expected_provtoolbox_primer_document() -> ProvDocument:
+    """Build the document ``provtoolbox-mini-primer.jsonld`` is expected to decode to.
+
+    Differs from :func:`_expected_primer_document` in ``ex:derek``'s
+    ``foaf:mbox``: the ProvToolbox fixture (as vendored) carries an empty
+    string there rather than the submission example's mailto value -- see
+    ``src/prov/tests/jsonld/README.md``.
+    """
+    doc = ProvDocument()
+    doc.add_namespace("xsd", "http://www.w3.org/2001/XMLSchema#")
+    doc.add_namespace("dcterms", "http://purl.org/dc/terms/")
+    doc.add_namespace("ex", "http://example/")
+    doc.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    doc.entity("ex:dataSet1")
+    doc.entity(
+        "ex:article1",
+        (("dcterms:title", Literal("Crime rises in cities", langtag="EN")),),
+    )
+    doc.wasDerivedFrom("ex:article1", "ex:dataSet1")
+    doc.agent(
+        "ex:derek",
+        (
+            ("foaf:mbox", ""),
+            ("prov:type", doc.valid_qualified_name("prov:Person")),
+            ("foaf:givenName", "Derek"),
+        ),
+    )
+    doc.wasAssociatedWith("ex:compose", "ex:derek")
+    doc.activity("ex:compose")
+    doc.used("ex:compose", "ex:dataSet1")
+    doc.wasGeneratedBy("ex:article1", "ex:compose")
+    return doc
+
+
+def test_interop_provtoolbox_mini_primer():
+    doc = prov.read(
+        str(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld"), format="jsonld"
+    )
+    assert doc == _expected_provtoolbox_primer_document()
+    assert _roundtrip(doc) == doc
