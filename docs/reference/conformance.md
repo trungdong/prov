@@ -4,7 +4,7 @@ This page tracks how each PROV-DM concept maps onto `prov`'s classes and factory
 how well each serializer round-trips it. It is the audit artefact for Phase 3.5 of the
 [modernisation roadmap](https://github.com/trungdong/prov/blob/master/ROADMAP.md) (roadmap step
 28) and is **revisited at every release** as behaviour changes — last revised for the 3.1.0
-release, which adds the **PROV-JSONLD** serializer/deserializer (`format="jsonld"`,
+release (2026-08-07), which adds the **PROV-JSONLD** serializer/deserializer (`format="jsonld"`,
 {doc}`../howto/provjsonld`) and its JSON-LD column below. For prose background on PROV-DM's six
 components and how they group in `prov.model`, see {doc}`../explanation/prov-dm`; this page is
 the detailed, verified-against-source reference underneath that explanation.
