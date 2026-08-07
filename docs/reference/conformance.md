@@ -66,7 +66,7 @@ More caveats apply across many rows rather than to one:
 - **PROV-JSONLD Mention gap** (JSON-LD, permanent — maintainer ruling 2026-08-07, documented
   the same way as the PROV-O limitation above): the PROV-JSONLD submission defines no JSON-LD
   term for `mentionOf` (PROV-DM's Mention relation, PROV-LINKS §5.5.3), so there is no shape the
-  encoder could emit it in. `ProvBundle.serialize(format="jsonld")` raises
+  encoder could emit it in. `ProvDocument.serialize(format="jsonld")` raises
   `prov.serializers.provjsonld.ProvJSONLDException` naming the offending record and pointing
   back at this page for any document containing a {py:class}`~prov.model.ProvMention` record;
   the decoder likewise raises `ProvJSONLDException` on an input statement typed `"Mention"` (or

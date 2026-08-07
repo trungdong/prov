@@ -1809,8 +1809,8 @@ class ProvDocument(ProvBundle):
     ) -> str | None:
         """Serialize this document to a destination or return it as a string.
 
-        The available serialization formats are ``"json"``, ``"rdf"``, ``"xml"``
-        and ``"provn"`` (see :func:`prov.serializers.get`).
+        The available serialization formats are ``"json"``, ``"rdf"``, ``"xml"``,
+        ``"provn"`` and ``"jsonld"`` (see :func:`prov.serializers.get`).
 
         Args:
             destination: A writable stream (any object with a ``write``

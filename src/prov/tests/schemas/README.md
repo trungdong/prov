@@ -77,8 +77,9 @@ serializer's `context="embed"` option embeds it into the output.
 ## Licence
 
 The XSD files are W3C Recommendation-track normative schemas; the PROV-JSON
-schema is linked from a W3C Member Submission (not Recommendation-track, but
-published under the same W3C document terms). All are redistributed here as
+and PROV-JSONLD schemas are linked from W3C Member Submissions (not
+Recommendation-track, but published under the same W3C document terms). All
+are redistributed here as
 permitted under the **W3C Software and Document Licence**:
 <https://www.w3.org/copyright/software-license-2023/> (formerly
 <https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document>).

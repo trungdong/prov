@@ -340,7 +340,7 @@ def test_serializer_registry_formats():
 
 def test_round_trip_each_format():
     document = primer_example()
-    for fmt in ("json", "xml", "rdf"):
+    for fmt in ("json", "xml", "rdf", "jsonld"):
         stream = io.StringIO()
         document.serialize(destination=stream, format=fmt)
         stream.seek(0)

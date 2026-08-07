@@ -7,7 +7,8 @@ model, then follow the links below for identifiers, the PROV vocabulary, seriali
 graph/graphics interop modules, plus the {doc}`conformance` matrix mapping every PROV-DM concept
 to its `prov` class, factory method, and serializer round-trip status. For task-oriented
 walkthroughs, see the {doc}`../tutorial/getting-started`
-and the {doc}`../howto/provjson` (and its sibling how-to pages) instead.
+and the {doc}`../howto/provjson`/{doc}`../howto/provjsonld` (and their sibling how-to pages)
+instead.
 
 ```{toctree}
 :maxdepth: 1

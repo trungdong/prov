@@ -139,7 +139,7 @@ def get(format_name: str) -> type[Serializer]:
 
     Args:
         format_name: Registry key, e.g. ``"json"``, ``"xml"``, ``"rdf"``,
-            ``"provn"``.
+            ``"provn"``, ``"jsonld"``.
 
     Returns:
         The :class:`Serializer` subclass for the format.

@@ -19,10 +19,11 @@
   (`src/prov/tests/jsonld/`)
 - `jsonld` joins `json`/`xml`/`rdf` in the shared round-trip test matrix
   (`SHARED_TARGETS` in `src/prov/tests/conftest.py`); output is additionally
-  validated against the submission's vendored JSON Schema
-  (`context="url"` mode only — the schema's `Context` production cannot
-  describe an embedded context) and, for `context="embed"`, proven valid
-  JSON-LD via `pyld` expansion
+  validated against the submission's vendored JSON Schema in both context
+  modes (`context="embed"` after substituting the canonical context URL for
+  the embedded object, since the schema's `Context` production cannot
+  describe an embedded context) and, for `context="embed"`, additionally
+  proven valid JSON-LD via `pyld` flatten
 - **Known limitation:** the PROV-JSONLD submission defines no term for
   `mentionOf` (PROV-DM's Mention relation); `serialize()` raises
   `prov.serializers.provjsonld.ProvJSONLDException` for any document
