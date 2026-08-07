@@ -13,7 +13,7 @@ Plan: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`; publi
 `ROADMAP.md`. The 2.x→3.0 modernisation programme is code-complete on `master`: every
 3.0.0 compatibility change (see ROADMAP.md's "What changes in 3.0") has landed, and the
 release itself is pending publication — a separate, later step, not more roadmap work.
-The next phase targets **3.1.0** (PROV-JSONLD support, purely additive; see ROADMAP.md).
+3.1.0 (PROV-JSONLD support, purely additive; see ROADMAP.md) is also code-complete and stamped.
 Rules that stay live across phases:
 
 - One focused PR per roadmap step, green CI before merge.
@@ -66,12 +66,19 @@ PROV-N is serialize-only — there is no PROV-N parser.
 Since 3.0.0.dev0 `src/prov/graph.py` and `src/prov/dot.py` sit behind extras (`graph`, `dot`)
 — importing either without its extra raises `ModuleNotFoundError` naming the extra to install.
 
+### Serializers
+
+`prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld` — `jsonld`
+(registry key for PROV-JSONLD) is deliberately appended last, since `prov.read()`'s
+auto-detection walks that order and `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind`
+pins `json` as the first format tried on a non-seekable stream.
+
 ### Tests (`src/prov/tests/`)
 
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 `unittest.TestCase`. Design authority: `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`.
 
-- The suite invariant is **1629 passed, 26 skipped, 0 xfailed** (`uv run pytest -q`); any
+- The suite invariant is **1638 passed, 26 skipped, 0 xfailed** (`uv run pytest -q`); any
   deviation is a regression. `uv run pytest -q -rsx` breaks the 26 skips down as: 4 in
   `test_minimal_install.py` (each extra's degradation test skips itself when that extra
   *is* installed, e.g. "only meaningful without rdflib"), 14 in `test_statements.py` (the
