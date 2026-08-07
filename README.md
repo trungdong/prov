@@ -39,6 +39,8 @@ Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/iss
 ## Supported versions
 
 The latest 3.x release receives all fixes. The most recent 2.x release
-receives security fixes only; 1.x and earlier no longer receive fixes. See
+receives security fixes, plus bug fixes back-ported from 3.x up to and
+including 2.6.0, after which it reverts to security fixes only; 1.x and
+earlier no longer receive fixes. See
 [SECURITY.md](https://github.com/trungdong/prov/blob/master/SECURITY.md)
 for the full support table and how to report a vulnerability.
