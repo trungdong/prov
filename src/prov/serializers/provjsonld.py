@@ -199,6 +199,34 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
     return {"@value": str(value)}
 
 
+def _encode_attribute_term(attr: QualifiedName, rec_type: QualifiedName) -> str:
+    """Return the JSON-LD key a non-formal attribute is emitted under.
+
+    Args:
+        attr: The non-formal attribute's qualified name.
+        rec_type: The enclosing record's type, needed because the submission
+            context scopes the bare ``"value"`` term to ``Entity``.
+
+    Returns:
+        The unprefixed special term (``"type"``, ``"label"``, ...) where one
+        applies; otherwise ``str(attr)`` (``"prefix:local"``), except that an
+        attribute with no prefix -- one in the document's default namespace --
+        or one whose bare local part collides with a reserved term (see
+        :data:`RESERVED_BARE_TERMS`) is emitted as its absolute IRI. A bare
+        reserved key is rejected by the schema's ``prefix:local`` pattern and
+        would be silently re-homed into the ``prov:``/formal namespace on
+        decode.
+    """
+    term = SPECIAL_ATTR_TERMS.get(attr, str(attr))
+    if attr == PROV_VALUE and rec_type != PROV_ENTITY:
+        term = str(attr)  # the schema scopes bare "value" to Entity
+    if attr not in SPECIAL_ATTR_TERMS and (
+        not attr.namespace.prefix or term in RESERVED_BARE_TERMS
+    ):
+        return attr.uri
+    return term
+
+
 def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
     """Encode one PROV record as its submission §4 statement object.
 
@@ -238,18 +266,7 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
     for attr, values in record._attributes.items():
         if attr in record.FORMAL_ATTRIBUTES or not values:
             continue
-        term = SPECIAL_ATTR_TERMS.get(attr, str(attr))
-        if attr == PROV_VALUE and rec_type != PROV_ENTITY:
-            term = str(attr)  # the schema scopes bare "value" to Entity
-        if attr not in SPECIAL_ATTR_TERMS and (
-            not attr.namespace.prefix or term in RESERVED_BARE_TERMS
-        ):
-            # A default-namespace attribute's key has no prefix (see
-            # RESERVED_BARE_TERMS above): emit the absolute IRI instead of
-            # the bare local part, which the schema's "prefix:local" pattern
-            # rejects and which a reserved term (e.g. "type", "entity")
-            # would silently re-home on decode.
-            term = attr.uri
+        term = _encode_attribute_term(attr, rec_type)
         obj[term] = [encode_jsonld_value(v, term) for v in values]
     return obj
 
@@ -493,6 +510,37 @@ def _decode_formal_qname(
     return resolved
 
 
+def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
+    """Resolve a statement object's ``"@type"`` to a PROV record type.
+
+    Args:
+        item: The statement object (one ``@graph`` entry).
+
+    Returns:
+        A ``(record type, the raw "@type" string)`` pair; the raw string is
+        carried through for the messages of later errors about ``item``.
+
+    Raises:
+        ProvJSONLDException: If ``"@type"`` is missing or not a string, or
+            names no PROV-JSONLD statement type. ``"Mention"`` gets a
+            dedicated hint -- the submission defines no term for it.
+    """
+    type_term = item.get("@type")
+    if not isinstance(type_term, str):
+        raise ProvJSONLDException(
+            f'Every @graph statement needs a string "@type"; found {item!r}'
+        )
+    stripped_type = _strip_prov_prefix(type_term)
+    rec_type = JSONLD_TYPE_TERMS.get(stripped_type)
+    if rec_type is None:
+        hint = " (the submission defines no Mention term)"
+        raise ProvJSONLDException(
+            f"{type_term!r} is not a PROV-JSONLD statement type"
+            + (hint if stripped_type == "Mention" else "")
+        )
+    return rec_type, type_term
+
+
 def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
     """Decode one submission §4 statement object and add it to ``bundle``.
 
@@ -510,22 +558,7 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             resolved to a qualified name; or if a non-formal attribute's
             value is not a JSON array.
     """
-    type_term = item.get("@type")
-    if not isinstance(type_term, str):
-        raise ProvJSONLDException(
-            f'Every @graph statement needs a string "@type"; found {item!r}'
-        )
-    stripped_type = _strip_prov_prefix(type_term)
-    rec_type = JSONLD_TYPE_TERMS.get(stripped_type)
-    if rec_type is None:
-        raise ProvJSONLDException(
-            f"{type_term!r} is not a PROV-JSONLD statement type"
-            + (
-                " (the submission defines no Mention term)"
-                if stripped_type == "Mention"
-                else ""
-            )
-        )
+    rec_type, type_term = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
     formal_by_term = FORMAL_ATTRS_BY_TERM[cls]
     rec_id = item.get("@id")
@@ -627,13 +660,14 @@ class ProvJSONLDSerializer(Serializer):
 
         Raises:
             ValueError: If ``context`` is neither ``"url"`` nor ``"embed"``.
-            ProvJSONLDException: If the document contains a
-                :class:`~prov.model.ProvMention` record.
+            ProvJSONLDException: If ``self.document`` is ``None``, or if the
+                document contains a :class:`~prov.model.ProvMention` record.
         """
         context = args.pop("context", "url")
         if context not in ("url", "embed"):
             raise ValueError(f'context must be "url" or "embed"; got {context!r}')
-        assert self.document is not None
+        if self.document is None:
+            raise ProvJSONLDException("No document to serialize.")
         container = encode_jsonld_document(self.document, context)
         buf = io.StringIO()
         try:

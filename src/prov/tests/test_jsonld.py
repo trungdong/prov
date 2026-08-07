@@ -1,5 +1,6 @@
 """PROV-JSONLD format-specific tests: encoder shape, options, error paths."""
 
+import io
 import json
 from pathlib import Path
 
@@ -7,7 +8,11 @@ import pytest
 
 import prov
 from prov.model import Literal, ProvDocument
-from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
+from prov.serializers.provjsonld import (
+    JSONLD_CONTEXT_URL,
+    ProvJSONLDException,
+    ProvJSONLDSerializer,
+)
 
 EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
@@ -156,6 +161,13 @@ def test_serialize_mention_raises():
     doc.mention("ex:e2", "ex:e1", "ex:b")
     with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
         doc.serialize(format="jsonld")
+
+
+def test_serialize_without_a_document_raises():
+    serializer = ProvJSONLDSerializer(document=None)
+    with pytest.raises(ProvJSONLDException) as ctx:
+        serializer.serialize(io.BytesIO())
+    assert "No document to serialize" in str(ctx.value)
 
 
 def _roundtrip(doc: ProvDocument) -> ProvDocument:
