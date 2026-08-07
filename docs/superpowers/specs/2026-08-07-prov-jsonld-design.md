@@ -22,6 +22,7 @@ no new runtime dependencies, ships as minor release 3.1.0.
 | Internal architecture | **Declarative mapping table + thin engine** | One module-level table (record class ↔ `@type` term ↔ ordered formal-attribute keys) drives both encode and decode, so the two directions cannot drift and conformance auditing is a table-vs-§4 comparison. Special-case overrides where the submission deviates from the tabular pattern. |
 | Validation depth | **pyld processor tests + ProvToolbox interop fixtures + submission examples** | pyld (test-only dependency) proves emitted documents are valid JSON-LD against the real context; vendored ProvToolbox-generated fixtures prove cross-implementation interop; the submission's own examples anchor spec conformance. |
 | rdflib involvement | **None** | Fixed by roadmap step 40: native JSON implementation like `provjson.py`. |
+| `mentionOf` handling | **Reject + document** | The submission defines no Mention term (its `prov:Statement` schema and §5 context omit it entirely). `serialize()` raises `ProvJSONLDException` naming the record; the two shared-corpus mention cases carry a per-format skip for `jsonld` citing the submission gap, recorded in the conformance matrix — the same pattern as the #217 PROV-O limitation. *(Decided 2026-08-07 after plan-time recon.)* |
 
 ## Target format (established against the submission and ProvToolbox)
 
@@ -30,15 +31,29 @@ A PROV-JSONLD document is:
 ```json
 {
   "@context": [ { "<prefix>": "<namespace-uri>", ... }, "<canonical context URL>" ],
-  "@graph": [ { "@type": "prov:Entity", "@id": "ex:e1", ... }, ... ]
+  "@graph": [ { "@type": "Entity", "@id": "ex:e1", ... }, ... ]
 }
 ```
 
-- Each `@graph` member is one PROV-DM statement, dispatched on `@type`
-  (`prov:Entity`, `prov:Activity`, `prov:Agent`, `prov:Generation`, `prov:Derivation`, …).
+- The canonical context URL — the one the submission's own examples reference and the
+  serializer emits — is `https://openprovenance.org/prov-jsonld/context.jsonld`
+  (w3.org hosts a copy at `https://www.w3.org/submissions/prov-jsonld/context.jsonld`).
+  The submission also publishes a JSON Schema (`schema.json`, `$id`
+  `https://openprovenance.org/prov-jsonld/schema.json`). Both are vendored (context as
+  package data; schema under `tests/schemas/`).
+- Each `@graph` member is one PROV-DM statement, dispatched on `@type`. The 2024
+  submission uses **unprefixed** type terms (`Entity`, `Activity`, `Agent`,
+  `Generation`, `Derivation`, …) — the local part of the PROV record-type name — and
+  likewise unprefixed special attribute terms (`type`, `label`, `role`, `location`,
+  `value`). A document's default namespace is written as the `@vocab` entry of the
+  context's namespace map.
 - Formal attributes use fixed keys defined per record type by the §5 context
   (`entity`, `activity`, `agent`, `generatedEntity`, `usedEntity`, `time`, …), with
-  `@id`-typed terms holding qualified-name strings.
+  `@id`-typed terms holding qualified-name strings. These keys are exactly the local
+  parts of the record classes' existing `FORMAL_ATTRIBUTES` qualified names, and each
+  holds a **single** value (times as `xsd:dateTime` strings) — so the mapping table
+  reduces to the record type's local part plus per-class validation, with no
+  multi-value membership hack (multiple members = multiple Membership statements).
 - Other attributes appear under their prefixed names as arrays of JSON-LD value objects
   (`{"@value": ..., "@type": ...}`, `{"@value": ..., "@language": ...}`) or `@id` strings,
   per the context's term typing. `prov:type`, `prov:role`, `prov:label`, `prov:location`
@@ -54,9 +69,11 @@ A PROV-JSONLD document is:
   (ProvToolbox uses `http://openprovenance.org/prov-jsonld.json`).
 
 **Fidelity goal:** PROV-JSONLD is a native PROV-DM representation, so round-trips are
-expected lossless for the full shared corpus — **zero permanent skips**, unlike PROV-O
-(#217). If implementation uncovers a construct the submission genuinely cannot represent,
-it is documented in the conformance matrix with a tracking issue, not silently skipped.
+expected lossless for the full shared corpus — with **one known exception**: `mentionOf`
+(no Mention term exists in the submission; see the decision table), whose two corpus
+cases skip the `jsonld` target with the gap documented in the conformance matrix. If
+implementation uncovers any further construct the submission cannot represent, it is
+likewise documented with a tracking issue, never silently skipped.
 
 ## Module architecture
 
@@ -87,8 +104,9 @@ New module `src/prov/serializers/provjsonld.py` (flat one-module-per-format layo
 - **Registration**: format name `"jsonld"` in the serializer `Registry`. No optional
   extra — the implementation is stdlib-only, always available (like `json`).
   `prov.read(..., format="jsonld")`, `ProvDocument.serialize(format="jsonld")`, and the
-  CLI tools pick it up through the registry; `.jsonld` added to `prov-convert`'s
-  extension→format inference.
+  CLI tools pick it up through the registry with no code changes — `prov-convert`
+  auto-detects its input and accepts any registered name as `-f` output (docstrings and
+  help text mentioning the format list are updated).
 - **Auto-detection**: appended to `prov.read()`'s detection sequence. The strict shape
   check makes cross-detection safe: PROV-JSON (an object keyed by record-type sections,
   no `@graph`) fails the JSON-LD shape check and vice versa. A cheap
@@ -107,9 +125,11 @@ New module `src/prov/serializers/provjsonld.py` (flat one-module-per-format layo
 
 - **Shared coverage**: `"jsonld"` joins `ROUNDTRIP_FORMATS` in `conftest.py`, so
   `test_statements.py`, `test_attributes.py`, `test_qnames.py`, `test_examples.py` run
-  against it via the `roundtrip` fixture with zero expected skips. The Hypothesis
-  property round-trip picks the format up from the same constant with no new
-  generation-time exclusions.
+  against it via the `roundtrip` fixture, the only expected skips being the two
+  mention cases. The Hypothesis property round-trip picks the format up from the same
+  constant with no new generation-time exclusions; documents containing `mentionOf`
+  (the bundle profile emits them) are `assume()`d away for the `jsonld` parameter
+  only, citing the documented Mention gap.
 - **`test_jsonld.py`** (format-specific): encoder internals, `context` option output
   shapes, strict-shape rejection (PROV-JSON input, expanded-form JSON-LD, unknown
   `@type`), error-message quality, fixture-dir round-trips over a new
