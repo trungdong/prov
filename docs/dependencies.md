@@ -92,6 +92,11 @@ for end users.
 - **`pre-commit>=4.0.1`** — runs ruff (lint + format) and hygiene checks
   (trailing-whitespace/EOF-newline/YAML-TOML validation) automatically at commit time; see
   `CONTRIBUTING.md` step 4.
+- **`pyld>=2.0.4`** — reference JSON-LD processor used only by `test_jsonld_semantics.py`
+  to prove PROV-JSONLD output expands to the intended RDF terms. Test-time only: `prov`
+  itself never imports it, so it carries no runtime dependency. Floor `2.0.4` is a
+  defensive modern baseline (the resolved/locked version at introduction was `3.1.0`), not
+  a verified minimum.
 - **`pytest>=8.4.2`** — the test runner; collects the `unittest.TestCase`-style test suite
   under `src/prov/tests/` natively.
 - **`pytest-cov>=7.1.0`** — pytest's coverage plugin, so `coverage` can attribute hits
