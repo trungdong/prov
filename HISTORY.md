@@ -1,5 +1,36 @@
 # History
 
+## 3.1.0 (unreleased)
+
+- New PROV-JSONLD serializer and deserializer, selected with `format="jsonld"`
+  (`src/prov/serializers/provjsonld.py`): implements the W3C member submission
+  ["A JSON-LD Representation for the PROV Data Model"](https://www.w3.org/submissions/prov-jsonld/),
+  the canonical §4 compacted shape only, with no runtime dependency beyond the
+  standard library. Registered in `prov.serializers.Registry` and included in
+  `prov.read()`'s format auto-detection. See
+  [Work with PROV-JSONLD](https://github.com/trungdong/prov/blob/master/docs/howto/provjsonld.md)
+- `serialize(format="jsonld", ...)` takes a `context` keyword: `"url"` (the
+  default) references the submission's context by URL; `"embed"` inlines the
+  vendored context object for fully self-contained output; any other value
+  raises `ValueError`
+- The deserializer additionally tolerates ProvToolbox's `prov:`-prefixed
+  spellings of the type and special terms, and is exercised against both the
+  submission's own example and a vendored ProvToolbox fixture
+  (`src/prov/tests/jsonld/`)
+- `jsonld` joins `json`/`xml`/`rdf` in the shared round-trip test matrix
+  (`SHARED_TARGETS` in `src/prov/tests/conftest.py`); output is additionally
+  validated against the submission's vendored JSON Schema
+  (`context="url"` mode only — the schema's `Context` production cannot
+  describe an embedded context) and, for `context="embed"`, proven valid
+  JSON-LD via `pyld` expansion
+- **Known limitation:** the PROV-JSONLD submission defines no term for
+  `mentionOf` (PROV-DM's Mention relation); `serialize()` raises
+  `prov.serializers.provjsonld.ProvJSONLDException` for any document
+  containing a `ProvMention` record, and the deserializer raises the same
+  exception on an input statement typed `"Mention"`. This is a permanent
+  limitation of the submission, not a `prov` defect — see
+  `docs/reference/conformance.md`
+
 ## 3.0.0 (2026-07-27)
 
 3.0.0 is the compatibility release: the one release the roadmap allows to

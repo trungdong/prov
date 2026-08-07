@@ -3,11 +3,11 @@
 This page tracks how each PROV-DM concept maps onto `prov`'s classes and factory methods, and
 how well each serializer round-trips it. It is the audit artefact for Phase 3.5 of the
 [modernisation roadmap](https://github.com/trungdong/prov/blob/master/ROADMAP.md) (roadmap step
-28) and is **revisited at every release** as behaviour changes — last revised for the 3.0.0
-release (2026-07-26). A JSON-LD column is planned for 3.1.0 once the PROV-JSONLD serializer
-lands. For prose background on PROV-DM's six components and
-how they group in `prov.model`, see {doc}`../explanation/prov-dm`; this page is the detailed,
-verified-against-source reference underneath that explanation.
+28) and is **revisited at every release** as behaviour changes — last revised for the 3.1.0
+release, which adds the **PROV-JSONLD** serializer/deserializer (`format="jsonld"`,
+{doc}`../howto/provjsonld`) and its JSON-LD column below. For prose background on PROV-DM's six
+components and how they group in `prov.model`, see {doc}`../explanation/prov-dm`; this page is
+the detailed, verified-against-source reference underneath that explanation.
 
 Every cell below was checked directly against the current source: model classes against
 `src/prov/model/records.py`, factory methods and camelCase aliases against
@@ -17,10 +17,20 @@ Every cell below was checked directly against the current source: model classes 
 
 ## Round-trip column key
 
-- **JSON** / **XML** / **RDF** — whether the type round-trips (`deserialize(serialize(doc)) ==
-  doc`) under the shared `fmt` test matrix (`SHARED_TARGETS = ("model", "json", "xml", "rdf")`
-  in `conftest.py`). ✓ means every shared case for that concept passes cleanly; a caveat cites
-  the tracking issue and says what still fails.
+- **JSON** / **XML** / **RDF** / **JSON-LD** — whether the type round-trips
+  (`deserialize(serialize(doc)) == doc`) under the shared `fmt` test matrix
+  (`SHARED_TARGETS = ("model", "json", "xml", "rdf", "jsonld")` in `conftest.py`). ✓ means every
+  shared case for that concept passes cleanly; a caveat cites the tracking issue (or, for
+  JSON-LD's one gap, the conformance limitation below) and says what still fails. JSON-LD
+  ([PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), a W3C member submission) is
+  implemented natively in `src/prov/serializers/provjsonld.py`, vendoring that submission's own
+  `@context` and JSON Schema as authorities (`src/prov/serializers/prov-jsonld-context.jsonld`,
+  `src/prov/tests/schemas/prov-jsonld.schema.json`) — no `rdflib`/JSON-LD-processor dependency —
+  and, unlike RDF, its input side accepts only the submission's canonical §4 compacted shape:
+  expanded or flattened JSON-LD (otherwise valid per the submission) is rejected, since `prov`
+  does no general-purpose JSON-LD expansion/flattening/framing at parse time. The decoder
+  additionally accepts [ProvToolbox](https://lucmoreau.github.io/ProvToolbox/)'s `prov:`-prefixed
+  spellings of the type and special terms.
 - **PROV-N** — PROV-N is **output-only**: `prov` has no PROV-N parser (issue
   [#122](https://github.com/trungdong/prov/issues/122), planned for 3.2.0), so there is no
   PROV-N round trip to test, only the keyword `get_provn()` emits.
@@ -53,6 +63,22 @@ More caveats apply across many rows rather than to one:
   assertion time, [#257](https://github.com/trungdong/prov/issues/257)). Only `unified()`
   detects records that share an identifier but hold conflicting formal attributes, as part
   of the separate PROV-CONSTRAINTS rework described in {doc}`../upgrading-3.0`.
+- **PROV-JSONLD Mention gap** (JSON-LD, permanent — maintainer ruling 2026-08-07, documented
+  the same way as the PROV-O limitation above): the PROV-JSONLD submission defines no JSON-LD
+  term for `mentionOf` (PROV-DM's Mention relation, PROV-LINKS §5.5.3), so there is no shape the
+  encoder could emit it in. `ProvBundle.serialize(format="jsonld")` raises
+  `prov.serializers.provjsonld.ProvJSONLDException` naming the offending record and pointing
+  back at this page for any document containing a {py:class}`~prov.model.ProvMention` record;
+  the decoder likewise raises `ProvJSONLDException` on an input statement typed `"Mention"` (or
+  ProvToolbox's `"prov:Mention"`), since accepting one on read would create a record with no way
+  to write it back out. This is why `test_mention_1`/`test_mention_2`
+  (`src/prov/tests/test_statements.py`) skip the `jsonld` param (`JSONLD_MENTION_SKIP`) and why
+  the `"Bundle2"` canonical example (`src/prov/tests/examples.py`, the one example using
+  `mentionOf`) asserts the exception instead of round-tripping under the `jsonld` target
+  (`test_examples.py`). Every other relation and element round-trips through PROV-JSONLD
+  cleanly, including the 14 same-identifier/differing-`prov:time` "scruffy" cases that are a
+  permanent RDF-only limitation above — PROV-JSONLD has no equivalent problem, since (unlike
+  PROV-O) it does not reify a relation as a node named by the relation's own identifier.
 - **XML attribute-name escaping** (XML, permanent convention — closed as
   [#289](https://github.com/trungdong/prov/issues/289)): an attribute name is written as a
   PROV-XML child element tag, but its local part is not guaranteed to be a legal XML NCName
@@ -109,16 +135,16 @@ The value-typing and literal-semantics gaps the audit recorded here — #77, #89
 
 ## Component 1 — Entities and Activities
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ |
-| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ |
-| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
-| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
-| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ |
-| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) |
-| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) |
-| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Entity §5.1.1 | {py:class}`~prov.model.ProvEntity` | `entity()` | `entity` | ✓ | ✓ | ✓ | ✓ |
+| Activity §5.1.2 | {py:class}`~prov.model.ProvActivity` | `activity()` | `activity` | ✓ | ✓ | ✓ | ✓ |
+| Generation §5.1.3 | {py:class}`~prov.model.ProvGeneration` | `generation()` / `wasGeneratedBy()` | `wasGeneratedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) | ✓ |
+| Usage §5.1.4 | {py:class}`~prov.model.ProvUsage` | `usage()` / `used()` | `used` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) | ✓ |
+| Communication §5.1.5 | {py:class}`~prov.model.ProvCommunication` | `communication()` / `wasInformedBy()` | `wasInformedBy` | ✓ | ✓ | ✓ | ✓ |
+| Start §5.1.6 | {py:class}`~prov.model.ProvStart` | `start()` / `wasStartedBy()` | `wasStartedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) | ✓ |
+| End §5.1.7 | {py:class}`~prov.model.ProvEnd` | `end()` / `wasEndedBy()` | `wasEndedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 4 same-id/differing-time cases — see above) | ✓ |
+| Invalidation §5.1.8 | {py:class}`~prov.model.ProvInvalidation` | `invalidation()` / `wasInvalidatedBy()` | `wasInvalidatedBy` | ✓ | ✓ | ✓ (permanent PROV-O representational limitation for the 2 same-id/differing-time cases — see above) | ✓ |
 
 {py:class}`~prov.model.ProvEntity` additionally exposes `wasGeneratedBy()`/`wasInvalidatedBy()`
 and {py:class}`~prov.model.ProvActivity` exposes
@@ -128,12 +154,12 @@ also has.
 
 ## Component 2 — Derivations
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ |
-| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` (plus `[prov:type='prov:Revision']`) | ✓ | ✓ | ✓ |
-| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` (plus `[prov:type='prov:Quotation']`) | ✓ | ✓ | ✓ |
-| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` (plus `[prov:type='prov:PrimarySource']`) | ✓ | ✓ | ✓ |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Derivation §5.2.1 | {py:class}`~prov.model.ProvDerivation` | `derivation()` / `wasDerivedFrom()` | `wasDerivedFrom` | ✓ | ✓ | ✓ | ✓ |
+| Revision §5.2.2 | {py:class}`~prov.model.ProvDerivation` + `prov:Revision` type | `revision()` / `wasRevisionOf()` | `wasDerivedFrom` (plus `[prov:type='prov:Revision']`) | ✓ | ✓ | ✓ | ✓ |
+| Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` (plus `[prov:type='prov:Quotation']`) | ✓ | ✓ | ✓ | ✓ |
+| Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` (plus `[prov:type='prov:PrimarySource']`) | ✓ | ✓ | ✓ | ✓ |
 
 Revision, quotation, and primary source are PROV-DM *subtypes* of derivation, not separate PROV-N
 records: `prov` implements all four with the single {py:class}`~prov.model.ProvDerivation` class,
@@ -147,15 +173,15 @@ output from this library always uses the base `wasDerivedFrom` form.
 
 ## Component 3 — Agents, Responsibility, and Influence
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ |
-| Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | none — see finding below | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ |
-| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ |
-| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ |
-| Plan §5.3.3 | via `association(plan=...)` | — | — (plan is an ordinary entity referenced by the association's `plan` formal attribute) | ✓ | ✓ | ✓ |
-| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ |
-| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Agent §5.3.1 | {py:class}`~prov.model.ProvAgent` | `agent()` | `agent` | ✓ | ✓ | ✓ | ✓ |
+| Person / Organization / SoftwareAgent §5.3.1 | via `prov:type` on {py:class}`~prov.model.ProvAgent` | none — see finding below | `person` / `organization` / `softwareAgent` (`ADDITIONAL_N_MAP`, not emitted directly by this library) | ✓ | ✓ | ✓ | ✓ |
+| Attribution §5.3.2 | {py:class}`~prov.model.ProvAttribution` | `attribution()` / `wasAttributedTo()` | `wasAttributedTo` | ✓ | ✓ | ✓ | ✓ |
+| Association §5.3.3 | {py:class}`~prov.model.ProvAssociation` | `association()` / `wasAssociatedWith()` | `wasAssociatedWith` | ✓ | ✓ | ✓ | ✓ |
+| Plan §5.3.3 | via `association(plan=...)` | — | — (plan is an ordinary entity referenced by the association's `plan` formal attribute) | ✓ | ✓ | ✓ | ✓ |
+| Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ | ✓ |
+| Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ | ✓ |
 
 **Finding:** PROV-DM defines Person, Organization, and SoftwareAgent as agent subtypes, and Plan
 as an entity subtype used with associations. `prov` has no dedicated classes or factories for the
@@ -169,10 +195,10 @@ Component 6) are now tracked as
 
 ## Component 4 — Bundles
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Bundle constructor §5.4.1 | {py:class}`~prov.model.ProvBundle` | `ProvDocument.bundle()` / `add_bundle()` | `bundle <id> ... endBundle` (structural, hand-emitted by `get_provn()`) | ✓ | ✓ | ✓ |
-| Bundle type §5.4.2 | not implemented — see finding below | — | — | — | — | — |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Bundle constructor §5.4.1 | {py:class}`~prov.model.ProvBundle` | `ProvDocument.bundle()` / `add_bundle()` | `bundle <id> ... endBundle` (structural, hand-emitted by `get_provn()`) | ✓ | ✓ | ✓ | ✓ |
+| Bundle type §5.4.2 | not implemented — see finding below | — | — | — | — | — | — |
 
 **Finding:** PROV-DM §5.4.1 defines bundle *containment* — a named, nestable set of records —
 which `prov` fully implements via `ProvDocument.bundle()`/`add_bundle()`; only a
@@ -190,19 +216,19 @@ attribute a bundle to an agent as a first-class PROV statement. Tracked as
 
 ## Component 5 — Alternate Entities
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ |
-| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple follows the PROV-DM argument order — `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` — since 3.0: [#258](https://github.com/trungdong/prov/issues/258)) |
-| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted as a bare keyword, not the `prov:` prefix the PROV-Links grammar requires — this is a deliberate documented deviation: the bare form has been the de-facto output of reference implementations for the last decade and matches ProvToolbox's ANTLR grammar, so `provconvert` keeps parsing prov's output; closed as design decision 2026-07-20, [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Specialization §5.5.1 | {py:class}`~prov.model.ProvSpecialization` | `specialization()` / `specializationOf()` | `specializationOf` | ✓ | ✓ | ✓ | ✓ |
+| Alternate §5.5.2 | {py:class}`~prov.model.ProvAlternate` | `alternate()` / `alternateOf()` | `alternateOf` | ✓ | ✓ | ✓ (the RDF triple follows the PROV-DM argument order — `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` — since 3.0: [#258](https://github.com/trungdong/prov/issues/258)) | ✓ |
+| Mention (PROV-LINKS) | {py:class}`~prov.model.ProvMention` (subclass of {py:class}`~prov.model.ProvSpecialization`) | `mention()` / `mentionOf()` | `mentionOf` (emitted as a bare keyword, not the `prov:` prefix the PROV-Links grammar requires — this is a deliberate documented deviation: the bare form has been the de-facto output of reference implementations for the last decade and matches ProvToolbox's ANTLR grammar, so `provconvert` keeps parsing prov's output; closed as design decision 2026-07-20, [#248](https://github.com/trungdong/prov/issues/248)) | ✓ | ✓ | ✓ | ✗ (permanent PROV-JSONLD Mention gap — no term for `mentionOf`; `serialize()`/`deserialize()` raise `ProvJSONLDException` — see above) |
 
 ## Component 6 — Collections
 
-| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF |
-| --- | --- | --- | --- | --- | --- | --- |
-| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` (plus `[prov:type='prov:Collection']`) | ✓ | ✓ | ✓ |
-| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type — no dedicated factory | none — see finding below | `entity` (plus `[prov:type='prov:EmptyCollection']`, keyword `emptyCollection` in `ADDITIONAL_N_MAP`, not emitted directly) | ✓ | ✓ | ✓ |
-| Membership §5.6 | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` | `hadMember` | ✓ | ✓ | ✓ |
+| Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Collection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:Collection` type | `collection()` | `entity` (plus `[prov:type='prov:Collection']`) | ✓ | ✓ | ✓ | ✓ |
+| EmptyCollection §5.6 | {py:class}`~prov.model.ProvEntity` + `prov:EmptyCollection` type — no dedicated factory | none — see finding below | `entity` (plus `[prov:type='prov:EmptyCollection']`, keyword `emptyCollection` in `ADDITIONAL_N_MAP`, not emitted directly) | ✓ | ✓ | ✓ | ✓ |
+| Membership §5.6 | {py:class}`~prov.model.ProvMembership` | `membership()` / `hadMember()` | `hadMember` | ✓ | ✓ | ✓ | ✓ |
 
 **Finding:** like collections, `EmptyCollection` is a real PROV-DM type with a real
 `ADDITIONAL_N_MAP`/`PROV_BASE_CLS` entry in `constants.py`, so the round-trip machinery
@@ -220,23 +246,22 @@ shared attribute test matrix (`test_attributes.py`, `ATTRIBUTE_VALUES` in
 
 | Attribute | Constant (`prov.constants`) | Round-trip notes |
 | --- | --- | --- |
-| `prov:label` | `PROV_LABEL` | ✓ JSON/XML/RDF, including language-tagged literals and multiple values on one record. |
-| `prov:location` | `PROV_LOCATION` | ✓ JSON/XML/RDF across the full `ATTRIBUTE_VALUES` datatype corpus. |
-| `prov:role` | `PROV_ROLE` | ✓ JSON/XML/RDF; used throughout the qualified-relation tests (association, usage, generation, ...). |
-| `prov:type` | `PROV_TYPE` | ✓ JSON/XML/RDF, including mixed multi-datatype attribute sets on one record (`xsd:decimal` value-space equality and multi-datatype RDF fidelity fixed in 3.0: [#77](https://github.com/trungdong/prov/issues/77), [#218](https://github.com/trungdong/prov/issues/218)). |
-| `prov:value` | `PROV_VALUE` | ✓ JSON/XML/RDF. |
+| `prov:label` | `PROV_LABEL` | ✓ JSON/XML/RDF/JSON-LD, including language-tagged literals and multiple values on one record. |
+| `prov:location` | `PROV_LOCATION` | ✓ JSON/XML/RDF/JSON-LD across the full `ATTRIBUTE_VALUES` datatype corpus. |
+| `prov:role` | `PROV_ROLE` | ✓ JSON/XML/RDF/JSON-LD; used throughout the qualified-relation tests (association, usage, generation, ...). |
+| `prov:type` | `PROV_TYPE` | ✓ JSON/XML/RDF/JSON-LD, including mixed multi-datatype attribute sets on one record (`xsd:decimal` value-space equality and multi-datatype RDF fidelity fixed in 3.0: [#77](https://github.com/trungdong/prov/issues/77), [#218](https://github.com/trungdong/prov/issues/218)). |
+| `prov:value` | `PROV_VALUE` | ✓ JSON/XML/RDF/JSON-LD. |
 
 ## Maintenance
 
 This matrix reflects the codebase as of the Phase 3.5 conformance audit (roadmap steps 28–32,
 completed 2026-07-11), refreshed for the 3.0 value-typing and literal-semantics conformance
-fixes, and should be revisited at each release as serializers change or issues close. Beyond
-the per-format round trips above, the audit's gap analysis found that `ProvBundle.unified()`
+fixes and for the 3.1.0 PROV-JSONLD serializer/deserializer, and should be revisited at each
+release as serializers change or issues close. Beyond the per-format round trips above, the
+audit's gap analysis found that `ProvBundle.unified()`
 performed an identifier-keyed attribute union rather than
 [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) merging — tracked as the umbrella
 issue [#253](https://github.com/trungdong/prov/issues/253); 3.0 lands that rework (see
 {doc}`../explanation/unification-flattening` for the full write-up and
-{doc}`../upgrading-3.0` for what changed). Release 3.1.0 adds a
-PROV-JSONLD serializer; when that lands, this page gains a JSON-LD column
-alongside JSON/XML/RDF. See {doc}`../explanation/prov-dm` for the conceptual background behind
-each component, and {doc}`model` for the full class/method API reference.
+{doc}`../upgrading-3.0` for what changed). See {doc}`../explanation/prov-dm` for the conceptual
+background behind each component, and {doc}`model` for the full class/method API reference.
