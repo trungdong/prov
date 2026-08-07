@@ -33,8 +33,16 @@ logger = logging.getLogger(__name__)
 def find_diff(g_rdf, g0_rdf):
     graphs_equal = True
     in_both, in_first, in_second = graph_diff(g_rdf, g0_rdf)
-    g1 = sorted(in_first.serialize(format="nt", encoding="utf-8").splitlines())[1:]
-    g2 = sorted(in_second.serialize(format="nt", encoding="utf-8").splitlines())[1:]
+    g1 = sorted(
+        line
+        for line in in_first.serialize(format="nt", encoding="utf-8").splitlines()
+        if line.strip()
+    )
+    g2 = sorted(
+        line
+        for line in in_second.serialize(format="nt", encoding="utf-8").splitlines()
+        if line.strip()
+    )
     # Compare literals
     if len(g1) != len(g2):
         graphs_equal = False
@@ -354,3 +362,48 @@ def test_qualified_delegation_pair_survives_rdf_roundtrip():
     document.delegation("ex:g0", "ex:g1", "ex:a")
     document.delegation("ex:g0", "ex:g0", "ex:a")
     assert roundtrip_document(document, "rdf") == document
+
+
+def test_find_diff_detects_single_triple_difference():
+    # #304: find_diff must report a mismatch for graphs differing by a single
+    # triple. The [1:] slices that removed a leading blank line from nt
+    # serialization were too aggressive: after sorted(), when the difference
+    # was a single triple, the slice discarded the only real line, leaving both
+    # g1 and g2 empty, and the function returned the initial graphs_equal=True.
+    # Regression test for the fix: replace [1:] slices with explicit
+    # blank-line filtering.
+
+    # Case 1: Single-triple graphs with transposed subject/object
+    # (genuinely differ, not just formatting)
+    a = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:a ex:p ex:b .", format="turtle"
+    )
+    b = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:b ex:p ex:a .", format="turtle"
+    )
+    match, _, _, _ = find_diff(a, b)
+    assert not match, (
+        "Single-triple graphs with transposed subject/object should differ"
+    )
+
+    # Case 2: Two-triple graphs differing in exactly one triple
+    c = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:a ex:p ex:b . ex:c ex:p ex:d .",
+        format="turtle",
+    )
+    d = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:b ex:p ex:a . ex:c ex:p ex:d .",
+        format="turtle",
+    )
+    match, _, _, _ = find_diff(c, d)
+    assert not match, "Two-triple graphs differing in exactly one triple should differ"
+
+    # Case 3: Identical graphs should still match (ensure fix doesn't over-correct)
+    e = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:a ex:p ex:b .", format="turtle"
+    )
+    f = Graph().parse(
+        data="@prefix ex: <http://e/> . ex:a ex:p ex:b .", format="turtle"
+    )
+    match, _, _, _ = find_diff(e, f)
+    assert match, "Identical graphs should match"
