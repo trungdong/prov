@@ -79,6 +79,46 @@ def test_serialize_default_namespace_as_vocab():
     assert container["@context"][0]["@vocab"] == EX_URI
 
 
+def test_serialize_default_namespace_attribute_uses_absolute_iri_key():
+    # A non-formal attribute in the default namespace has no prefix, so its
+    # bare local part ("mine") would be indistinguishable from a JSON-LD
+    # term the context itself defines and is schema-invalid regardless
+    # (patternProperties requires a "prefix:local" shape); the encoder must
+    # emit the absolute IRI as the key instead.
+    doc = ProvDocument()
+    doc.set_default_namespace(EX_URI)
+    doc.entity("e1", {"mine": "x"})
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[EX_URI + "mine"] == [{"@value": "x"}]
+    assert "mine" not in stmt
+
+
+def test_serialize_default_namespace_attribute_colliding_with_reserved_term():
+    # "type" is one of the 5 special (bare) terms the context defines; a
+    # default-namespace attribute that happens to be called "type" must not
+    # collide with it.
+    doc = ProvDocument()
+    doc.set_default_namespace(EX_URI)
+    doc.entity("e1", {"type": "y"})
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[EX_URI + "type"] == [{"@value": "y"}]
+    assert "type" not in stmt
+
+
+def test_serialize_default_namespace_attribute_colliding_with_formal_attribute():
+    # Regression for a formal attribute being silently overwritten: Usage's
+    # formal "entity" attribute is written first, then a non-formal
+    # default-namespace attribute also called "entity" must not clobber it.
+    doc = ProvDocument()
+    doc.set_default_namespace(EX_URI)
+    doc.activity("a1")
+    doc.entity("e1")
+    doc.used("a1", "e1", other_attributes={"entity": "collides"})
+    (stmt,) = [s for s in _dump(doc)["@graph"] if s["@type"] == "Usage"]
+    assert stmt["entity"] == "e1"  # the formal attribute, untouched
+    assert stmt[EX_URI + "entity"] == [{"@value": "collides"}]
+
+
 def test_serialize_context_embed():
     doc = _new_doc()
     doc.entity("ex:e1")

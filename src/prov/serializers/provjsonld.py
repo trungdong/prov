@@ -71,6 +71,18 @@ SPECIAL_TERM_ATTRS: dict[str, QualifiedName] = {
 #: qualified-name strings, not value objects.
 ID_TYPED_TERMS = frozenset({"type", "role", "location"})
 
+#: Every bare (unprefixed) term the submission context defines: each record
+#: type's formal-attribute local parts, plus the 5 special terms above.
+#: Derived, not hand-written, so it can never drift from ``PROV_REC_CLS``. A
+#: non-formal attribute in a document's default namespace has no prefix, so
+#: ``str(attr)`` (see :class:`~prov.identifier.QualifiedName.__str__`) would
+#: otherwise emit one of these reserved words as a bare JSON-LD key --
+#: schema-invalid, and silently re-homed into the ``prov:``/formal namespace
+#: on decode. See the guard in :func:`encode_jsonld_statement`.
+RESERVED_BARE_TERMS: frozenset[str] = frozenset(
+    attr.localpart for cls in PROV_REC_CLS.values() for attr in cls.FORMAL_ATTRIBUTES
+) | frozenset(SPECIAL_ATTR_TERMS.values())
+
 
 class ProvJSONLDException(Error):
     """Raised when a document cannot be written as, or read from, PROV-JSONLD."""
@@ -193,6 +205,15 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
         term = SPECIAL_ATTR_TERMS.get(attr, str(attr))
         if attr == PROV_VALUE and rec_type != PROV_ENTITY:
             term = str(attr)  # the schema scopes bare "value" to Entity
+        if attr not in SPECIAL_ATTR_TERMS and (
+            not attr.namespace.prefix or term in RESERVED_BARE_TERMS
+        ):
+            # A default-namespace attribute's key has no prefix (see
+            # RESERVED_BARE_TERMS above): emit the absolute IRI instead of
+            # the bare local part, which the schema's "prefix:local" pattern
+            # rejects and which a reserved term (e.g. "type", "entity")
+            # would silently re-home on decode.
+            term = attr.uri
         obj[term] = [encode_jsonld_value(v, term) for v in values]
     return obj
 

@@ -33,6 +33,8 @@ from prov.model import ProvDocument, ProvMention  # noqa: E402
 from prov.serializers.provjsonld import ProvJSONLDException  # noqa: E402
 from prov.tests import examples  # noqa: E402
 
+EX_URI = "http://example.org/"
+
 SCHEMA_PATH = Path(__file__).parent / "schemas" / "prov-jsonld.schema.json"
 
 #: The canonical context URL substituted for an embedded context object
@@ -100,5 +102,23 @@ def test_example_documents_validate_against_prov_jsonld_schema(
     container = json.loads(document.serialize(format="jsonld", context=context))
     if context == "embed":
         container = _canonicalize_embedded_context(container)
+    errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
+    assert not errors, "\n".join(str(e) for e in errors)
+
+
+def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
+    prov_jsonld_validator,
+):
+    """A default-namespace attribute must not encode to a bare (unprefixed) key.
+
+    None of the 8 canonical ``examples.tests`` documents sets a default
+    namespace, so this gap went uncaught: a bare key like ``"mine"`` matches
+    none of the schema's ``patternProperties`` (which all require a
+    ``prefix:local`` shape) under its ``additionalProperties: false``.
+    """
+    document = ProvDocument()
+    document.set_default_namespace(EX_URI)
+    document.entity("e1", {"mine": "x", "type": "y"})
+    container = json.loads(document.serialize(format="jsonld"))
     errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
     assert not errors, "\n".join(str(e) for e in errors)
