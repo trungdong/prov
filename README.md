@@ -7,7 +7,7 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73bdf6dda3884abf9f5e79352c07e66c)](https://app.codacy.com/gh/trungdong/prov/dashboard)
 [![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.python.org/pypi/prov/)
 
-A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON import/export
+A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON and PROV-JSONLD import/export
 
 - Free software: MIT license
 - Documentation: <http://prov.readthedocs.io/>.
@@ -17,7 +17,7 @@ A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-
 
 - An implementation of the [W3C PROV Data Model](http://www.w3.org/TR/prov-dm/) in Python.
 - In-memory classes for PROV assertions, which can then be output as [PROV-N](http://www.w3.org/TR/prov-n/)
-- Serialization and deserialization support: [PROV-O](http://www.w3.org/TR/prov-o/) (RDF), [PROV-XML](http://www.w3.org/TR/prov-xml/) and [PROV-JSON](http://www.w3.org/Submission/prov-json/).
+- Serialization and deserialization support: [PROV-O](http://www.w3.org/TR/prov-o/) (RDF), [PROV-XML](http://www.w3.org/TR/prov-xml/), [PROV-JSON](http://www.w3.org/Submission/prov-json/) and [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/).
 - Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
 - Convert a PROV document to a [Networkx MultiDiGraph](https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html) and back.
 

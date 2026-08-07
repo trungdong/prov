@@ -1,12 +1,12 @@
 [project]
 name = "prov"
 dynamic = ["version"]
-description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML and PROV-O (RDF)"
+description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML, PROV-O (RDF) and PROV-JSONLD"
 readme = "README.md"
 authors = [
     { name = "Trung Dong Huynh", email = "trungdong@donggiang.com" }
 ]
-keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C", "PROV-XML", "PROV-N", "PROV-O", "RDF"]
+keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C", "PROV-XML", "PROV-N", "PROV-O", "RDF", "PROV-JSONLD", "JSON-LD"]
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
