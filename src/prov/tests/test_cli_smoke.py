@@ -69,3 +69,17 @@ def test_prov_convert_and_compare_end_to_end(tmp_path):
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_prov_convert_jsonld_output_format(tmp_path):
+    infile = tmp_path / "doc.json"
+    outfile = tmp_path / "doc.jsonld"
+    primer_example().serialize(str(infile), format="json")
+
+    result = subprocess.run(
+        [_console_script("prov-convert"), "-f", "jsonld", str(infile), str(outfile)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert outfile.stat().st_size > 0

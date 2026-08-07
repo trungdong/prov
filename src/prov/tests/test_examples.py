@@ -8,9 +8,23 @@ baseline; per-example isolation is a deferred improvement. The legacy mixin
 remains for the not-yet-migrated ``test_dot.py``.
 """
 
+import pytest
+
+from prov.serializers.provjsonld import ProvJSONLDException
 from prov.tests import examples
+
+from .conftest import contains_mention
 
 
 def test_all_examples(roundtrip, fmt):
     for _name, build in examples.tests:
-        roundtrip(build())
+        document = build()
+        # PROV-JSONLD defines no Mention term (permanent, documented
+        # limitation, like the test_mention_1/test_mention_2 cases in
+        # test_statements.py — see docs/reference/conformance.md), so a
+        # mention-bearing example is expected to raise rather than round-trip.
+        if fmt == "jsonld" and contains_mention(document):
+            with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
+                roundtrip(document)
+            continue
+        roundtrip(document)

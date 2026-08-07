@@ -1,0 +1,471 @@
+{
+	"definitions": {
+		"DateTime": {
+			"$id": "#/definitions/DateTime",
+			"type": "string",
+			"format": "date-time"
+		},
+		"QualifiedName": {
+			"$id": "#/definitions/QualifiedName",
+			"type": "string",
+			"title": "The QualifiedName Schema",
+			"default": "",
+			"pattern": "(^[A-Za-z0-9_]+:)?(.*)$"
+		},
+		"QualifiedName+": {
+			"$id": "#/definitions/QualifiedName+",
+			"oneOf": [
+				{ "$ref": "#/definitions/QualifiedName" },
+				{
+					"type": "array",
+					"items": { "$ref": "#/definitions/QualifiedName" }
+				}
+			]
+		},
+		"non_prov_properties": {
+			"$id": "#/definitions/non_prov_properties",
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": {}
+			}
+		},
+		"typed_value": {
+			"type": "object",
+			"required": [ "@value", "@type"],
+			"properties": {
+				"@value": {
+					"type": "string"
+				},
+				"@type": {
+					"type": "string"
+				}
+			},
+			"additionalProperties": false
+		},
+		"lang_string": {
+			"type": "object",
+			"required": [ "@value" ],
+			"properties": {
+				"@value": {
+					"type": "string"
+				},
+				"@language": {
+					"type": "string"
+				}
+			},
+			"additionalProperties": false
+		},
+		"ArrayOfValues": {
+			"$id": "#/definitions/ArrayOfValues",
+			"type": "array",
+			"items": {
+				"anyOf": [
+					{ "$ref": "#/definitions/QualifiedName" },
+					{ "$ref": "#/definitions/typed_value" },
+					{ "$ref": "#/definitions/lang_string" }
+				]
+			}
+		},
+		"ArrayOfLabelValues": {
+			"$id": "#/definitions/ArrayOfLabelValues",
+			"type": "array",
+			"items": { "$ref": "#/definitions/lang_string" }
+		},
+		"Context": {
+			"$id": "#/definitions/Context",
+			"type": "array",
+			"title": "The @context Schema",
+			"items": {
+				"oneOf": [
+					{
+						"type": "string",
+						"format": "uri"
+
+					},
+					{
+						"type": "object",
+						"title": "The Items Schema",
+						"additionalProperties": { "type": "string" }
+					}
+				]
+			}
+		},
+		"prov:StatementOrBundle": {
+			"oneOf": [
+				{ "$ref": "#/definitions/prov:Statement" },
+				{ "$ref": "#/definitions/prov:Bundle" }
+			]
+		},
+		"prov:Statement": {
+			"oneOf": [
+				{ "$ref": "#/definitions/prov:Entity" },
+				{ "$ref": "#/definitions/prov:Activity" },
+				{ "$ref": "#/definitions/prov:Agent" },
+				{ "$ref": "#/definitions/prov:Usage" },
+				{ "$ref": "#/definitions/prov:Generation" },
+				{ "$ref": "#/definitions/prov:Attribution" },
+				{ "$ref": "#/definitions/prov:Association" },
+				{ "$ref": "#/definitions/prov:Delegation" },
+				{ "$ref": "#/definitions/prov:Invalidation" },
+				{ "$ref": "#/definitions/prov:Start" },
+				{ "$ref": "#/definitions/prov:End" },
+				{ "$ref": "#/definitions/prov:Derivation" },
+				{ "$ref": "#/definitions/prov:Alternate" },
+				{ "$ref": "#/definitions/prov:Specialization" },
+				{ "$ref": "#/definitions/prov:Membership" },
+				{ "$ref": "#/definitions/prov:Influence" },
+				{ "$ref": "#/definitions/prov:Communication" }
+			]
+		},
+		"prov:Entity": {
+			"type": "object",
+			"required": [ "@type", "@id" ],
+			"properties": {
+				"@type":      { "pattern": "Entity" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"value":      { "$ref": "#/definitions/ArrayOfValues"},
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Agent": {
+			"type": "object",
+			"required": [ "@type", "@id" ],
+			"properties": {
+				"@type":      { "pattern": "Agent" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Activity": {
+			"type": "object",
+			"required": [ "@type", "@id" ],
+			"properties": {
+				"@type":      { "pattern": "Activity" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"startTime":  { "$ref": "#/definitions/DateTime" },
+				"endTime":    { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Usage": {
+			"type": "object",
+			"required": [ "@type" ],
+			"properties": {
+				"@type":      { "pattern": "Usage" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"entity":     { "$ref": "#/definitions/QualifiedName"},
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"time":       { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Generation": {
+			"type": "object",
+			"required": [ "@type" ],
+			"properties": {
+				"@type":      { "pattern": "Generation" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"entity":     { "$ref": "#/definitions/QualifiedName"},
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"time":       { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Invalidation": {
+			"type": "object",
+			"required": [ "@type" ],
+			"properties": {
+				"@type":      { "pattern": "Invalidation" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"entity":     { "$ref": "#/definitions/QualifiedName"},
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"time":       { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Start": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Start" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"starter":    { "$ref": "#/definitions/QualifiedName"},
+				"trigger":    { "$ref": "#/definitions/QualifiedName" },
+				"time":       { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:End": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "End" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"ender" :     { "$ref": "#/definitions/QualifiedName"},
+				"trigger":    { "$ref": "#/definitions/QualifiedName" },
+				"time":       { "$ref": "#/definitions/DateTime" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"location":   { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Attribution": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Attribution" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"entity":     { "$ref": "#/definitions/QualifiedName" },
+				"agent" :     { "$ref": "#/definitions/QualifiedName"},
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Association": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Association" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"agent" :     { "$ref": "#/definitions/QualifiedName"},
+				"plan" :      { "$ref": "#/definitions/QualifiedName"},
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"role":       { "$ref": "#/definitions/ArrayOfValues" },
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Delegation": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Delegation" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"delegate":   { "$ref": "#/definitions/QualifiedName" },
+				"responsible":{ "$ref": "#/definitions/QualifiedName" },
+				"activity":   { "$ref": "#/definitions/QualifiedName" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Derivation": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":           { "pattern": "Derivation" },
+				"@id":             { "$ref": "#/definitions/QualifiedName" },
+				"activity":        { "$ref": "#/definitions/QualifiedName" },
+				"generation":      { "$ref": "#/definitions/QualifiedName" },
+				"usage":           { "$ref": "#/definitions/QualifiedName" },
+				"generatedEntity": { "$ref": "#/definitions/QualifiedName" },
+				"usedEntity":      { "$ref": "#/definitions/QualifiedName" },
+				"type":            { "$ref": "#/definitions/ArrayOfValues"},
+				"label":           { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Alternate": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Alternate" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"alternate1": { "$ref": "#/definitions/QualifiedName" },
+				"alternate2": { "$ref": "#/definitions/QualifiedName" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Specialization": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":           { "pattern": "Specialization" },
+				"@id":             { "$ref": "#/definitions/QualifiedName" },
+				"generalEntity":   { "$ref": "#/definitions/QualifiedName" },
+				"specificEntity":  { "$ref": "#/definitions/QualifiedName" },
+				"type":            { "$ref": "#/definitions/ArrayOfValues"},
+				"label":           { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Membership": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":       { "pattern": "Membership" },
+				"@id":         { "$ref": "#/definitions/QualifiedName" },
+				"entity":      { "$ref": "#/definitions/QualifiedName+" },
+				"collection":  { "$ref": "#/definitions/QualifiedName" },
+				"type":        { "$ref": "#/definitions/ArrayOfValues"},
+				"label":       { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Influence": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":       { "pattern": "Influence" },
+				"@id":         { "$ref": "#/definitions/QualifiedName" },
+				"influencer":  { "$ref": "#/definitions/QualifiedName" },
+				"influencee":  { "$ref": "#/definitions/QualifiedName" },
+				"type":        { "$ref": "#/definitions/ArrayOfValues"},
+				"label":       { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Communication": {
+			"type": "object",
+			"required": [
+				"@type"
+			],
+			"properties": {
+				"@type":      { "pattern": "Communication" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"informant":  { "$ref": "#/definitions/QualifiedName" },
+				"informed":   { "$ref": "#/definitions/QualifiedName" },
+				"type":       { "$ref": "#/definitions/ArrayOfValues"},
+				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
+			},
+			"patternProperties": {
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+			},
+			"additionalProperties": false
+		},
+		"prov:Bundle": {
+			"type": "object",
+			"required": [
+				"@type", "@id", "@graph", "@context"
+			],
+			"properties": {
+				"@type":      { "pattern": "Bundle" },
+				"@id":        { "$ref": "#/definitions/QualifiedName" },
+				"@context":   { "$ref": "#/definitions/Context" },
+				"@graph":     {
+					"type": "array",
+					"items": { "$ref": "#/definitions/prov:Statement" }
+				}
+			},
+			"additionalProperties": false
+		},
+		"prov:Document": {
+			"type": "object",
+			"required": [
+				"@context", "@graph"
+			],
+			"properties": {
+				"@type":       { "pattern": "Document" },
+				"@context":    { "$ref": "#/definitions/Context" },
+				"@graph":      {
+					"type": "array",
+					"items": { "$ref": "#/definitions/prov:StatementOrBundle" }
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"$id": "https://openprovenance.org/prov-jsonld/schema.json",
+	"$ref": "#/definitions/prov:Document"
+}

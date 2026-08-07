@@ -12,6 +12,7 @@ Prov Python package's documentation
    :caption: How-to guides
 
    howto/provjson
+   howto/provjsonld
    howto/provxml
    howto/provo-rdf
    howto/provn

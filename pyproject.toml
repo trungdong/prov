@@ -1,12 +1,12 @@
 [project]
 name = "prov"
 dynamic = ["version"]
-description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML and PROV-O (RDF)"
+description = "A library for W3C Provenance Data Model supporting PROV-JSON, PROV-XML, PROV-O (RDF) and PROV-JSONLD"
 readme = "README.md"
 authors = [
     { name = "Trung Dong Huynh", email = "trungdong@donggiang.com" }
 ]
-keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C", "PROV-XML", "PROV-N", "PROV-O", "RDF"]
+keywords = ["provenance", "graph", "model", "PROV", "PROV-DM", "PROV-JSON", "W3C", "PROV-XML", "PROV-N", "PROV-O", "RDF", "PROV-JSONLD", "JSON-LD"]
 license = "MIT"
 license-files = ["LICENSE"]
 classifiers = [
@@ -76,11 +76,13 @@ version = {attr = "prov.__version__"}
 
 [tool.setuptools.package-data]
 prov = ["py.typed"]
+"prov.serializers" = ["*.jsonld"]
 "prov.tests" = [
     "json/*.json",
     "xml/*.xml",
     "rdf/*.ttl",
     "rdf/*.trig",
+    "jsonld/*",
     "unification/*.json",
     "unification/constraints/*",
     "malformed/*",
@@ -95,6 +97,7 @@ dev = [
     "lxml-stubs>=0.5.1",
     "mypy>=1.19.1",
     "pre-commit>=4.0.1",
+    "pyld>=2.0.4",
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
     "ruff>=0.15.20",

@@ -2,7 +2,7 @@
 
 Run by the ``minimal-install`` CI job (which syncs without the rdf/xml/dot/
 graph extras). Under the normal matrix (extras installed) the skipif-guarded
-tests are skipped and the availability test asserts all four formats
+tests are skipped and the availability test asserts all five formats
 register.
 """
 
@@ -44,7 +44,7 @@ def test_xml_unavailable_raises_informative_error() -> None:
     not (HAS_RDFLIB and HAS_LXML), reason="only meaningful with both extras"
 )
 def test_all_formats_available_with_extras() -> None:
-    for fmt in ("json", "provn", "rdf", "xml"):
+    for fmt in ("json", "provn", "rdf", "xml", "jsonld"):
         assert prov.serializers.get(fmt) is not None
 
 

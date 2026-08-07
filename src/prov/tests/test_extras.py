@@ -20,6 +20,7 @@ from prov.model import (
 )
 from prov.serializers import DoNotExist, Registry, get as get_serializer
 from prov.serializers.provjson import ProvJSONSerializer
+from prov.serializers.provjsonld import ProvJSONLDSerializer
 from prov.serializers.provn import ProvNSerializer
 from prov.serializers.provrdf import ProvRDFSerializer
 from prov.serializers.provxml import ProvXMLSerializer
@@ -311,6 +312,7 @@ def test_get_serializer_returns_class_for_each_known_format():
     assert get_serializer("rdf") is ProvRDFSerializer
     assert get_serializer("provn") is ProvNSerializer
     assert get_serializer("xml") is ProvXMLSerializer
+    assert get_serializer("jsonld") is ProvJSONLDSerializer
 
 
 def test_get_serializer_lazily_populates_registry():
@@ -320,7 +322,13 @@ def test_get_serializer_lazily_populates_registry():
         assert Registry.serializers is None
         get_serializer("json")
         assert Registry.serializers is not None
-        assert set(Registry.serializers.keys()) == {"json", "rdf", "provn", "xml"}
+        assert set(Registry.serializers.keys()) == {
+            "json",
+            "rdf",
+            "provn",
+            "xml",
+            "jsonld",
+        }
     finally:
         Registry.serializers = original
 
@@ -339,7 +347,13 @@ def test_read_lazily_populates_registry():
         # Now call read() with pre-built content, with the registry uninitialized
         document = prov.read(json_content)
         assert Registry.serializers is not None
-        assert set(Registry.serializers.keys()) == {"json", "rdf", "provn", "xml"}
+        assert set(Registry.serializers.keys()) == {
+            "json",
+            "rdf",
+            "provn",
+            "xml",
+            "jsonld",
+        }
         assert document is not None
     finally:
         Registry.serializers = original

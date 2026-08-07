@@ -20,6 +20,7 @@ external `$ref`s).
 | `prov-links.xsd`         | <https://www.w3.org/ns/prov-links.xsd>                              | 2026-07-10 |
 | `xml.xsd`                | <https://www.w3.org/2001/xml.xsd>                                   | 2026-07-10 |
 | `prov-json.schema.json`  | <https://www.w3.org/submissions/prov-json/schema>                   | 2026-07-10 |
+| `prov-jsonld.schema.json` | <https://www.w3.org/submissions/prov-jsonld/schema.json>            | 2026-08-07 |
 
 `prov.xsd` is the entry point referenced by the PROV-XML specification
 (<https://www.w3.org/TR/prov-xml/>); it `xs:include`s `prov-core.xsd`,
@@ -63,11 +64,22 @@ draft. Two authoring quirks in the schema itself were noted during the audit
 therefore absent from the schema entirely) is only accepted inside a named
 bundle, not at the document root.
 
+`prov-jsonld.schema.json` is the PROV-JSONLD JSON Schema from the W3C member
+submission, retrieved 2026-08-07 from
+<https://www.w3.org/submissions/prov-jsonld/schema.json>. It declares
+`"$schema": "http://json-schema.org/draft-07/schema#"` and has `$id`
+`https://openprovenance.org/prov-jsonld/schema.json`. A companion JSONLD
+context file is also vendored as package data at
+`src/prov/serializers/prov-jsonld-context.jsonld` (retrieved from
+<https://www.w3.org/submissions/prov-jsonld/context.jsonld>) because the
+serializer's `context="embed"` option embeds it into the output.
+
 ## Licence
 
 The XSD files are W3C Recommendation-track normative schemas; the PROV-JSON
-schema is linked from a W3C Member Submission (not Recommendation-track, but
-published under the same W3C document terms). All are redistributed here as
+and PROV-JSONLD schemas are linked from W3C Member Submissions (not
+Recommendation-track, but published under the same W3C document terms). All
+are redistributed here as
 permitted under the **W3C Software and Document Licence**:
 <https://www.w3.org/copyright/software-license-2023/> (formerly
 <https://www.w3.org/Consortium/Legal/2015/copyright-software-and-document>).

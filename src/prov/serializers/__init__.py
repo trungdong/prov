@@ -96,16 +96,17 @@ class Registry:
         unavailable format then raises an informative :class:`DoNotExist`
         (see :func:`get`) rather than a bare ``ModuleNotFoundError``.
 
-        The insertion order is kept as ``json, rdf, provn, xml`` (the
-        historic order when all extras are present) because
-        :func:`prov.read`'s format auto-detection iterates
-        ``Registry.serializers`` in order and
+        The insertion order is kept as ``json, rdf, provn, xml, jsonld`` (the
+        historic order when all extras are present, with ``jsonld``
+        appended last) because :func:`prov.read`'s format auto-detection
+        iterates ``Registry.serializers`` in order and
         ``test_read_auto_detect_with_broken_tell_degrades_to_no_rewind``
         pins JSON as the first candidate tried — a non-seekable stream can
         only attempt the first format, so JSON must remain first for JSON
         content to be auto-detected on broken streams.
         """
         from prov.serializers.provjson import ProvJSONSerializer
+        from prov.serializers.provjsonld import ProvJSONLDSerializer
         from prov.serializers.provn import ProvNSerializer
 
         serializers: dict[str, type[Serializer]] = {
@@ -124,6 +125,7 @@ class Registry:
             pass
         else:
             serializers["xml"] = ProvXMLSerializer
+        serializers["jsonld"] = ProvJSONLDSerializer
         Registry.serializers = serializers
 
 
@@ -137,7 +139,7 @@ def get(format_name: str) -> type[Serializer]:
 
     Args:
         format_name: Registry key, e.g. ``"json"``, ``"xml"``, ``"rdf"``,
-            ``"provn"``.
+            ``"provn"``, ``"jsonld"``.
 
     Returns:
         The :class:`Serializer` subclass for the format.

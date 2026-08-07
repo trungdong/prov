@@ -1,0 +1,49 @@
+{
+  "@context" : [ {
+    "xsd" : "http://www.w3.org/2001/XMLSchema#",
+    "dcterms" : "http://purl.org/dc/terms/",
+    "ex" : "http://example/",
+    "prov" : "http://www.w3.org/ns/prov#",
+    "foaf" : "http://xmlns.com/foaf/0.1/"
+  }, "http://openprovenance.org/prov-jsonld.json" ],
+  "@graph" : [ {
+    "@type" : "prov:Entity",
+    "@id" : "ex:dataSet1"
+  }, {
+    "@type" : "prov:Entity",
+    "@id" : "ex:article1",
+    "dcterms:title" : [ {
+	"@value" : "Crime rises in cities",
+	"@language" : "EN"	
+    } ]
+  }, {
+    "@type" : "prov:Derivation",
+    "generatedEntity" : "ex:article1",
+    "usedEntity" : "ex:dataSet1"
+  }, {
+    "@type" : "prov:Agent",
+    "@id" : "ex:derek",
+    "foaf:mbox" : [ {
+      "@value" : ""
+    } ],
+    "prov:type" : [ "prov:Person" ],
+    "foaf:givenName" : [ {
+      "@value" : "Derek"
+    } ]
+  }, {
+    "@type" : "prov:Association",
+    "activity" : "ex:compose",
+    "agent" : "ex:derek"
+  }, {
+    "@type" : "prov:Activity",
+    "@id" : "ex:compose"
+  }, {
+    "@type" : "prov:Usage",
+    "activity" : "ex:compose",
+    "entity" : "ex:dataSet1"
+  }, {
+    "@type" : "prov:Generation",
+    "entity" : "ex:article1",
+    "activity" : "ex:compose"
+  } ]
+}

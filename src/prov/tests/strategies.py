@@ -8,9 +8,13 @@ one named sub-bundle populated the same way.
 
 Every construct generated here is expected to survive a
 serialize -> deserialize round trip through *all* deserializable formats
-(json, xml, rdf). Known-lossy constructs are deliberately excluded, each with a
-comment linking the tracking issue, so that a property failure signals a *new*
-bug rather than a documented one. See the exclusions inline below.
+(json, xml, rdf, jsonld). Generation stays format-agnostic: known-lossy
+constructs are excluded here only when every format loses them, each with a
+comment linking the tracking issue, so that a property failure signals a
+*new* bug rather than a documented one. See the exclusions inline below.
+PROV-JSONLD's one lossy construct (Mention; the submission defines no term
+for it) is instead skipped per-format with an ``assume()`` in
+``test_property_roundtrip.py``, so it does not need an exclusion here.
 """
 
 import string

@@ -538,6 +538,22 @@ def long_literals():
     return g
 
 
+def default_namespace_attributes():
+    # A document whose attributes live in the default namespace (JSON-LD
+    # "@vocab"), including local parts that collide with PROV-JSONLD's
+    # reserved bare terms ("type", "entity" -- see RESERVED_BARE_TERMS in
+    # prov.serializers.provjsonld). Regression coverage for the encoder
+    # emitting bare, unprefixed JSON-LD keys for such attributes, which is
+    # both schema-invalid and, for the colliding local parts, silently
+    # corrupted on decode.
+    g = ProvDocument()
+    g.set_default_namespace("http://example.org/")
+    g.entity("e1", {"mine": "x", "type": "y"})
+    g.activity("a1")
+    g.used("a1", "e1", other_attributes={"entity": "collides"})
+    return g
+
+
 tests = [
     ("Bundle1", bundles1),
     ("Bundle2", bundles2),
@@ -547,4 +563,5 @@ tests = [
     ("collections", collections),
     ("datatypes", datatypes),
     ("Long literals", long_literals),
+    ("Default namespace attributes", default_namespace_attributes),
 ]
