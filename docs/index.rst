@@ -42,6 +42,7 @@ Prov Python package's documentation
    contributing
    authors
    history
+   changelog-archive
 
 Indices and tables
 ==================

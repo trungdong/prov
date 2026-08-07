@@ -1,0 +1,42 @@
+# Introduction
+
+[![Latest Release](https://badge.fury.io/py/prov.svg)](http://badge.fury.io/py/prov)
+[![CI Status](https://github.com/trungdong/prov/workflows/CI/badge.svg)](https://github.com/trungdong/prov/actions?workflow=CI)
+[![Coverage Status](https://img.shields.io/coveralls/trungdong/prov.svg)](https://coveralls.io/r/trungdong/prov?branch=master)
+[![Wheel Status](https://img.shields.io/pypi/wheel/prov.svg)](https://pypi.python.org/pypi/prov/)
+[![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.python.org/pypi/prov/)
+[![License](https://img.shields.io/pypi/l/prov.svg)](https://pypi.python.org/pypi/prov/)
+
+A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON import/export
+
+- Free software: MIT license
+- Documentation: <http://prov.readthedocs.io/>.
+- Python 3 only.
+
+## Features
+
+- An implementation of the [W3C PROV Data Model](http://www.w3.org/TR/prov-dm/) in Python.
+- In-memory classes for PROV assertions, which can then be output as [PROV-N](http://www.w3.org/TR/prov-n/)
+- Serialization and deserialization support: [PROV-O](http://www.w3.org/TR/prov-o/) (RDF), [PROV-XML](http://www.w3.org/TR/prov-xml/) and [PROV-JSON](http://www.w3.org/Submission/prov-json/).
+- Exporting PROV documents into various graphical formats (e.g. PDF, PNG, SVG).
+- Convert a PROV document to a [Networkx MultiDiGraph](https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html) and back.
+
+### Uses
+
+See [a short tutorial](http://trungdong.github.io/prov-python-short-tutorial.html) for using this package.
+
+This package is used extensively by [ProvStore](https://openprovenance.org/store/),
+a free online repository for provenance documents.
+
+## Roadmap
+
+The library is undergoing a staged modernisation (tooling, type hints, tests,
+documentation, standards conformance), a batch of bug fixes, and new format support.
+See [ROADMAP.md](https://github.com/trungdong/prov/blob/2.x/ROADMAP.md) for the plan and the 2.x API-stability promise.
+Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/issues).
+
+## Supported versions
+
+Only the latest 2.x release is supported; 1.x and earlier no longer receive
+fixes. See [SECURITY.md](https://github.com/trungdong/prov/blob/2.x/SECURITY.md)
+for the full support table and how to report a vulnerability.
