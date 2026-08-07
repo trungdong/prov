@@ -76,6 +76,7 @@ version = {attr = "prov.__version__"}
 
 [tool.setuptools.package-data]
 prov = ["py.typed"]
+"prov.serializers" = ["*.jsonld"]
 "prov.tests" = [
     "json/*.json",
     "xml/*.xml",

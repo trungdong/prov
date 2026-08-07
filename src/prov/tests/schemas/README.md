@@ -20,6 +20,7 @@ external `$ref`s).
 | `prov-links.xsd`         | <https://www.w3.org/ns/prov-links.xsd>                              | 2026-07-10 |
 | `xml.xsd`                | <https://www.w3.org/2001/xml.xsd>                                   | 2026-07-10 |
 | `prov-json.schema.json`  | <https://www.w3.org/submissions/prov-json/schema>                   | 2026-07-10 |
+| `prov-jsonld.schema.json` | <https://www.w3.org/submissions/prov-jsonld/schema.json>            | 2026-08-07 |
 
 `prov.xsd` is the entry point referenced by the PROV-XML specification
 (<https://www.w3.org/TR/prov-xml/>); it `xs:include`s `prov-core.xsd`,
@@ -62,6 +63,16 @@ draft. Two authoring quirks in the schema itself were noted during the audit
 `mentionOf` relation (a PROV-Links extension postdating this submission, and
 therefore absent from the schema entirely) is only accepted inside a named
 bundle, not at the document root.
+
+`prov-jsonld.schema.json` is the PROV-JSONLD JSON Schema from the W3C member
+submission, retrieved 2026-08-07 from
+<https://www.w3.org/submissions/prov-jsonld/schema.json>. It declares
+`"$schema": "http://json-schema.org/draft-06/schema#"` and has `$id`
+`https://openprovenance.org/prov-jsonld/schema.json`. A companion JSONLD
+context file is also vendored as package data at
+`src/prov/serializers/prov-jsonld-context.jsonld` (retrieved from
+<https://www.w3.org/submissions/prov-jsonld/context.jsonld>) because the
+serializer's `context="embed"` option embeds it into the output.
 
 ## Licence
 

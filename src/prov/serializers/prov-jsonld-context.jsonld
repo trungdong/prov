@@ -1,0 +1,297 @@
+{
+    "@context": {
+	"@version": 1.1,
+	"prov": "http://www.w3.org/ns/prov#",
+	"provext" : "https://openprovenance.org/ns/provext#",
+	"xsd": "http://www.w3.org/2001/XMLSchema#",
+	"rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+	"rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+	"role": {
+	    "@id": "prov:hadRole",
+	    "@type": "@id"
+	},
+	"type": {
+	    "@id": "rdf:type",
+	    "@type": "@id"
+	},
+	"label": {
+	    "@id": "rdfs:label"
+	},
+	"location": {
+	    "@id": "prov:atLocation",
+	    "@type": "@id"
+	},
+
+	"entity": {
+	    "@id": "prov:entity",
+	    "@type": "@id"
+	},
+	"activity": {
+	    "@id": "prov:activity",
+	    "@type": "@id"
+	},
+	"agent": {
+	    "@id": "prov:agent",
+	    "@type": "@id"
+	},
+
+	"Activity": {
+	    "@id": "prov:Activity",
+	    "@context" : {
+		"startTime": {
+		    "@id": "prov:startedAtTime",
+		    "@type": "xsd:dateTime"
+		},
+		"endTime": {
+		    "@id": "prov:endedAtTime",
+		    "@type": "xsd:dateTime"
+		}
+	    }
+	},
+
+	"Entity": {
+	    "@id": "prov:Entity",
+	    "@context" : {
+		"value": {
+		    "@id": "prov:value"
+		}
+	    }
+	},
+
+	"Agent": {
+	    "@id": "prov:Agent",
+	    "@context" : {}
+	},
+
+	"Delegation": {
+	    "@id": "prov:Delegation",
+	    "@context": {
+		"responsible": {
+		    "@id": "prov:agent",
+		    "@type" : "@id"
+		},
+		"delegate": {
+		    "@reverse": "prov:qualifiedDelegation",
+		    "@type": "@id"
+		},
+		"activity": {
+		    "@id" : "prov:hadActivity",
+		    "@type" : "@id"
+		}
+
+	    }
+	},
+
+	"Usage": {
+	    "@id": "prov:Usage",
+	    "@context": {
+		"activity": {
+		    "@reverse" : "prov:qualifiedUsage",
+		    "@type" : "@id"
+		},
+		"time": {
+		    "@id": "prov:atTime",
+		    "@type": "xsd:dateTime"
+		}
+
+	    }
+	},
+
+	"Generation": {
+	    "@id": "prov:Generation",
+	    "@context": {
+		"entity": {
+		    "@reverse" : "prov:qualifiedGeneration",
+		    "@type" : "@id"
+		},
+		"time": {
+		    "@id": "prov:atTime",
+		    "@type": "xsd:dateTime"
+		}
+
+	    }
+	},
+
+	"Invalidation": {
+	    "@id": "prov:Invalidation",
+	    "@context": {
+		"entity": {
+		    "@reverse" : "prov:qualifiedInvalidation",
+		    "@type" : "@id"
+		},
+		"time": {
+		    "@id": "prov:atTime",
+		    "@type": "xsd:dateTime"
+		}
+
+	    }
+	},
+
+	"Attribution": {
+	    "@id": "prov:Attribution",
+	    "@context": {
+		"entity": {
+		    "@reverse" : "prov:qualifiedAttribution",
+		    "@type" : "@id"
+		}
+	    }
+
+	},
+
+	"Association": {
+	    "@id": "prov:Association",
+	    "@context": {
+		"activity": {
+		    "@reverse" : "prov:qualifiedAssociation",
+		    "@type" : "@id"
+		},
+		"plan": {
+		    "@id": "prov:hadPlan",
+		    "@type": "@id"
+		}
+	    }
+	},
+
+	"Communication": {
+	    "@id": "prov:Communication",
+	    "@context": {
+		"informed": {
+		    "@reverse" : "prov:qualifiedCommunication",
+		    "@type" : "@id"
+		},
+		"informant": {
+		    "@id": "prov:activity",
+		    "@type": "@id"
+		}
+	    }
+	},
+
+	"Influence": {
+	    "@id": "prov:Influence",
+	    "@context": {
+		"influencee": {
+		    "@reverse" : "prov:qualifiedInfluence",
+		    "@type" : "@id"
+		},
+		"influencer": {
+		    "@id": "prov:influencer",
+		    "@type": "@id"
+		}
+	    }
+	},
+
+	"Derivation": {
+	    "@id": "prov:Derivation",
+	    "@context": {
+		"generatedEntity": {
+		    "@reverse": "prov:qualifiedDerivation",
+		    "@type": "@id"
+		},
+		"usedEntity": {
+		    "@id": "prov:entity",
+		    "@type": "@id"
+		},
+		"generation": {
+		    "@id": "prov:hadGeneration",
+		    "@type": "@id"
+		},
+		"activity": {
+		    "@id": "prov:hadActivity",
+		    "@type": "@id"
+		},
+		"usage": {
+		    "@id": "prov:hadUsage",
+		    "@type": "@id"
+		}
+	    }
+	},
+	"Start": {
+	    "@id": "prov:Start",
+	    "@context": {
+		"activity": {
+		    "@reverse": "prov:qualifiedStart",
+		    "@type": "@id"
+		},
+		"trigger": {
+		    "@id": "prov:entity",
+		    "@type": "@id"
+		},
+		"starter": {
+		    "@id": "prov:hadActivity",
+		    "@type": "@id"
+		},
+		"time": {
+		    "@id": "prov:atTime",
+		    "@type": "xsd:dateTime"
+		}
+
+	    }
+	},
+
+	"End": {
+	    "@id": "prov:End",
+	    "@context": {
+		"activity": {
+		    "@reverse": "prov:qualifiedEnd",
+		    "@type": "@id"
+		},
+		"trigger": {
+		    "@id": "prov:entity",
+		    "@type": "@id"
+		},
+		"ender": {
+		    "@id": "prov:hadActivity",
+		    "@type": "@id"
+		},
+		"time": {
+		    "@id": "prov:atTime",
+		    "@type": "xsd:dateTime"
+		}
+
+	    }
+	},
+
+	"Specialization": {
+	    "@id": "provext:Specialization",
+	    "@context": {
+		"specificEntity": {
+		    "@reverse" : "provext:qualifiedSpecialization",
+		    "@type" : "@id"
+		},
+		"generalEntity": {
+		    "@id": "provext:generalEntity",
+		    "@type": "@id"
+		}
+	    }
+	},
+
+
+	"Membership": {
+	    "@id": "provext:Membership",
+	    "@context": {
+		"collection": {
+		    "@reverse" : "provext:qualifiedMembership",
+		    "@type" : "@id"
+		},
+		"entity": {
+		    "@id": "provext:member",
+		    "@type": "@id"
+		}
+	    }
+	},
+
+	"Alternate": {
+	    "@id": "provext:Alternate",
+	    "@context": {
+		"alternate1": {
+		    "@reverse" : "provext:qualifiedAlternate",
+		    "@type" : "@id"
+		},
+		"alternate2": {
+		    "@id": "provext:alternate",
+		    "@type": "@id"
+		}
+	    }
+	}
+    }
+}
