@@ -501,7 +501,11 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
     bundles: list[dict[str, Any]] = []
     for item in graph:
         item = _expect_object(item, "A @graph statement")
-        if _strip_prov_prefix(item.get("@type", "")) == "Bundle" or "@graph" in item:
+        type_term = item.get("@type")
+        is_bundle = (
+            isinstance(type_term, str) and _strip_prov_prefix(type_term) == "Bundle"
+        ) or "@graph" in item
+        if is_bundle:
             bundles.append(item)
         else:
             decode_jsonld_statement(item, document)

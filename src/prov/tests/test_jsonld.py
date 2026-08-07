@@ -196,6 +196,9 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms():
             },
             "single",
         ),
+        ({"@context": [], "@graph": [{"@type": None}]}, "@type"),
+        ({"@context": [], "@graph": [{"@type": 123}]}, "@type"),
+        ({"@context": [], "@graph": [{"@type": ["Entity"]}]}, "@type"),
     ],
 )
 def test_deserialize_malformed(payload, match):
