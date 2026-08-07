@@ -14,7 +14,7 @@ import os
 import pytest
 from hypothesis import settings
 
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvMention
 
 # Hypothesis profiles for the property-based round-trip tests
 # (``test_property_roundtrip.py``). The local ``default`` profile is
@@ -33,6 +33,20 @@ ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld")
 # self-equality invariant WITHOUT serialization. The model axis preserves the
 # coverage the old RoundTripModelTest provided.
 SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)
+
+
+def contains_mention(doc: ProvDocument) -> bool:
+    """Whether ``doc`` or any of its bundles asserts a ``mentionOf`` relation.
+
+    PROV-JSONLD cannot represent one (the submission defines no Mention term —
+    a permanent, documented limitation, see ``docs/reference/conformance.md``),
+    so the jsonld target exempts such documents. Detecting the construct beats
+    naming the documents that currently use it.
+    """
+    records = list(doc.get_records())
+    for bundle in doc.bundles:
+        records.extend(bundle.get_records())
+    return any(isinstance(r, ProvMention) for r in records)
 
 
 def roundtrip_document(doc: ProvDocument, fmt: str) -> ProvDocument:

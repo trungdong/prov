@@ -8,6 +8,7 @@ compacted shape only, one JSON object per PROV-DM statement in ``@graph``.
 import datetime
 import io
 import json
+from functools import lru_cache
 from importlib.resources import files
 from typing import Any
 
@@ -83,9 +84,23 @@ RESERVED_BARE_TERMS: frozenset[str] = frozenset(
     attr.localpart for cls in PROV_REC_CLS.values() for attr in cls.FORMAL_ATTRIBUTES
 ) | frozenset(SPECIAL_ATTR_TERMS.values())
 
+#: Record class -> its formal attributes keyed by local part, the lookup the
+#: decoder needs per statement. Derived once here rather than rebuilt on every
+#: decoded record.
+FORMAL_ATTRS_BY_TERM: dict[type[ProvRecord], dict[str, QualifiedName]] = {
+    cls: {attr.localpart: attr for attr in cls.FORMAL_ATTRIBUTES}
+    for cls in PROV_REC_CLS.values()
+}
+
 
 class ProvJSONLDException(Error):
     """Raised when a document cannot be written as, or read from, PROV-JSONLD."""
+
+
+@lru_cache(maxsize=1)
+def _vendored_context_text() -> str:
+    """Return the vendored context resource's text, read once per process."""
+    return files("prov.serializers").joinpath("prov-jsonld-context.jsonld").read_text()
 
 
 def _load_vendored_context() -> dict[str, Any]:
@@ -94,9 +109,11 @@ def _load_vendored_context() -> dict[str, Any]:
     Returns:
         The ``@context`` object read from the vendored
         ``prov-jsonld-context.jsonld`` resource shipped alongside this module.
+        A fresh object each call -- callers embed it in documents they own,
+        so it must not be shared -- but the resource itself is read only once
+        (see :func:`_vendored_context_text`).
     """
-    text = files("prov.serializers").joinpath("prov-jsonld-context.jsonld").read_text()
-    result: dict[str, Any] = json.loads(text)["@context"]
+    result: dict[str, Any] = json.loads(_vendored_context_text())["@context"]
     return result
 
 
@@ -444,18 +461,19 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'Every @graph statement needs a string "@type"; found {item!r}'
         )
-    rec_type = JSONLD_TYPE_TERMS.get(_strip_prov_prefix(type_term))
+    stripped_type = _strip_prov_prefix(type_term)
+    rec_type = JSONLD_TYPE_TERMS.get(stripped_type)
     if rec_type is None:
         raise ProvJSONLDException(
             f"{type_term!r} is not a PROV-JSONLD statement type"
             + (
                 " (the submission defines no Mention term)"
-                if _strip_prov_prefix(type_term) == "Mention"
+                if stripped_type == "Mention"
                 else ""
             )
         )
     cls = PROV_REC_CLS[rec_type]
-    formal_by_term = {attr.localpart: attr for attr in cls.FORMAL_ATTRIBUTES}
+    formal_by_term = FORMAL_ATTRS_BY_TERM[cls]
     rec_id = item.get("@id")
     if rec_id is None and issubclass(cls, ProvElement):
         raise ProvJSONLDException(
@@ -519,18 +537,15 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         raise ProvJSONLDException(
             f'"@graph" must be a JSON array; found {type(graph).__name__}'
         )
-    bundles: list[dict[str, Any]] = []
     for item in graph:
         item = _expect_object(item, "A @graph statement")
         type_term = item.get("@type")
         is_bundle = (
             isinstance(type_term, str) and _strip_prov_prefix(type_term) == "Bundle"
         ) or "@graph" in item
-        if is_bundle:
-            bundles.append(item)
-        else:
+        if not is_bundle:
             decode_jsonld_statement(item, document)
-    for item in bundles:
+            continue
         if "@id" not in item:
             raise ProvJSONLDException(f'A Bundle requires an "@id"; found {item!r}')
         bundle = ProvBundle(document=document)

@@ -29,9 +29,11 @@ import pytest
 
 jsonschema = pytest.importorskip("jsonschema")
 
-from prov.model import ProvDocument, ProvMention  # noqa: E402
+from prov.model import ProvDocument  # noqa: E402
 from prov.serializers.provjsonld import ProvJSONLDException  # noqa: E402
 from prov.tests import examples  # noqa: E402
+
+from .conftest import contains_mention  # noqa: E402
 
 EX_URI = "http://example.org/"
 
@@ -48,13 +50,6 @@ def prov_jsonld_validator():
     validator_cls = jsonschema.validators.validator_for(schema)
     validator_cls.check_schema(schema)
     return validator_cls(schema)
-
-
-def _contains_mention(document: ProvDocument) -> bool:
-    records = list(document.get_records())
-    for bundle in document.bundles:
-        records.extend(bundle.get_records())
-    return any(isinstance(r, ProvMention) for r in records)
 
 
 def _canonicalize_embedded_context(container: dict[str, Any]) -> dict[str, Any]:
@@ -95,7 +90,7 @@ def test_example_documents_validate_against_prov_jsonld_schema(
     prov_jsonld_validator, make_document, context
 ):
     document = make_document()
-    if _contains_mention(document):
+    if contains_mention(document):
         with pytest.raises(ProvJSONLDException):
             document.serialize(format="jsonld", context=context)
         return

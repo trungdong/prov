@@ -15,17 +15,8 @@ selected in ``conftest.py`` via ``HYPOTHESIS_PROFILE`` (CI uses the bounded
 import pytest
 from hypothesis import assume, given
 
-from prov.model import ProvDocument, ProvMention
-
-from .conftest import ROUNDTRIP_FORMATS, roundtrip_document
+from .conftest import ROUNDTRIP_FORMATS, contains_mention, roundtrip_document
 from .strategies import prov_documents
-
-
-def _has_mention(doc: ProvDocument) -> bool:
-    records = list(doc.get_records())
-    for bundle in doc.bundles:
-        records.extend(bundle.get_records())
-    return any(isinstance(r, ProvMention) for r in records)
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
@@ -35,5 +26,5 @@ def test_generated_document_roundtrips(doc, fmt):
     # PROV-JSONLD defines no Mention term (documented limitation, see
     # docs/reference/conformance.md) — mention-bearing documents only apply
     # to the other formats.
-    assume(fmt != "jsonld" or not _has_mention(doc))
+    assume(fmt != "jsonld" or not contains_mention(doc))
     assert roundtrip_document(doc, fmt) == doc
