@@ -1,5 +1,13 @@
 # History
 
+## 2.5.2 (unreleased)
+
+- Documentation: the support policy on this branch is brought in line with
+  the 3.x line's — the 2.x release receives security fixes plus bug fixes
+  back-ported from 3.x up to and including 2.6.0, after which it reverts to
+  security fixes only. The previous text still described 2.x as the only
+  maintained line, which predates the 3.0.0 release
+
 ## 2.5.1 (2026-07-13)
 
 - `prov.read()` polish following 2.5.0's #239: seekable streams are now
