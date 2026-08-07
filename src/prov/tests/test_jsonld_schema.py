@@ -1,6 +1,6 @@
 """Validate serializer output against the vendored PROV-JSONLD JSON Schema.
 
-Serializes each of the 8 canonical `examples.tests` documents and validates the
+Serializes each of the 9 canonical `examples.tests` documents and validates the
 resulting JSON-LD against the vendored `prov-jsonld.schema.json` (Draft-07)
 schema (`src/prov/tests/schemas/`, see that directory's README.md for
 provenance). Documents containing a `mentionOf` statement have no PROV-JSONLD
@@ -106,10 +106,15 @@ def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
 ):
     """A default-namespace attribute must not encode to a bare (unprefixed) key.
 
-    None of the 8 canonical ``examples.tests`` documents sets a default
-    namespace, so this gap went uncaught: a bare key like ``"mine"`` matches
-    none of the schema's ``patternProperties`` (which all require a
-    ``prefix:local`` shape) under its ``additionalProperties: false``.
+    When this test was first written, none of the canonical
+    ``examples.tests`` documents set a default namespace, so this gap went
+    uncaught: a bare key like ``"mine"`` matches none of the schema's
+    ``patternProperties`` (which all require a ``prefix:local`` shape)
+    under its ``additionalProperties: false``. ``examples.tests`` has since
+    grown a 9th document ("Default namespace attributes") that does set one
+    -- covering the gap through the parametrized test above too -- but this
+    dedicated test is kept for its sharper failure message and its coverage
+    of the reserved-term collision (``"type"``) alongside the plain one.
     """
     document = ProvDocument()
     document.set_default_namespace(EX_URI)
