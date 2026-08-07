@@ -262,6 +262,53 @@ def test_deserialize_mixed_context_registers_namespace_prefixes():
     }
 
 
+def test_deserialize_context_with_version_registers_namespace_prefixes():
+    # "@version": 1.1 is a normal, common JSON-LD 1.1 context marker, not
+    # unique to the vendored embedded submission context -- a namespace map
+    # that happens to declare it must not be misclassified as that context
+    # and have its prefixes silently dropped.
+    text = json.dumps(
+        {
+            "@context": [
+                {"@version": 1.1, "ex": EX_URI},
+                JSONLD_CONTEXT_URL,
+            ],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    expected = _new_doc()
+    expected.entity("ex:e1")
+    assert doc == expected
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        "ex": EX_URI
+    }
+
+
+def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixes():
+    # A single object-valued term whose key happens to collide with one of
+    # PROV-DM's own record-type local names ("Entity") is not, by itself,
+    # evidence that the whole object is the embedded submission context
+    # (which defines all 17 such terms) -- a lone coincidence must not
+    # cause "ex" to be dropped.
+    text = json.dumps(
+        {
+            "@context": [
+                {"ex": EX_URI, "Entity": {"@id": EX_URI + "SomeUnrelatedThing"}},
+                JSONLD_CONTEXT_URL,
+            ],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    expected = _new_doc()
+    expected.entity("ex:e1")
+    assert doc == expected
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        "ex": EX_URI
+    }
+
+
 def test_roundtrip_context_embed_registers_no_extra_namespaces():
     # The embedded submission context (context="embed") must still be
     # recognised as a whole and skipped -- not treated as a namespace map --

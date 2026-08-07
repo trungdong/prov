@@ -331,21 +331,27 @@ def _is_embedded_submission_context(item: dict[str, Any]) -> bool:
         item: A ``@context`` array entry that is a JSON object.
 
     Returns:
-        ``True`` if ``item`` is (a copy of) the submission's own context
-        object -- identified by carrying the ``"@version"`` JSON-LD keyword,
-        and/or by defining one of PROV-DM's own record-type local names
-        (``"Entity"``, ``"Activity"``, ..., see :data:`JSONLD_TYPE_TERMS`) as
-        an object-valued term, both traits unique to that document (see
-        ``prov-jsonld-context.jsonld``) and not expected of a third-party
-        namespace map, even one that mixes plain prefix strings with an
-        inline term definition of its own.
+        ``True`` if ``item`` defines object-valued terms for a *majority* of
+        PROV-DM's own record-type local names (``"Entity"``, ``"Activity"``,
+        ..., see :data:`JSONLD_TYPE_TERMS`) -- the vendored submission
+        context (``prov-jsonld-context.jsonld``) defines all of them, so
+        this collective overlap is strong evidence the whole object is that
+        context. A single coincidental overlap (e.g. a third-party
+        namespace map that happens to also define its own ``"Entity"``
+        term) is deliberately not enough to trigger this, unlike a lone-key
+        check would be. This does not look for the ``"@version"`` keyword:
+        it is a normal, common JSON-LD 1.1 context marker, not unique to the
+        vendored resource, and :func:`_decode_context` already ignores
+        every ``@``-prefixed keyword key on its own, so a stray
+        ``"@version"`` in a genuine namespace map needs no special handling
+        here.
     """
-    if "@version" in item:
-        return True
-    return any(
-        key in JSONLD_TYPE_TERMS and isinstance(value, dict)
+    matches = sum(
+        1
         for key, value in item.items()
+        if key in JSONLD_TYPE_TERMS and isinstance(value, dict)
     )
+    return matches > len(JSONLD_TYPE_TERMS) // 2
 
 
 def _decode_context(context: Any, bundle: ProvBundle) -> None:
