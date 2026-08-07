@@ -333,7 +333,7 @@ def test_names_importable():
 
 
 def test_serializer_registry_formats():
-    for fmt in ("json", "xml", "rdf", "provn"):
+    for fmt in ("json", "xml", "rdf", "provn", "jsonld"):
         # get() raises DoNotExist for unknown formats
         assert issubclass(prov.serializers.get(fmt), prov.serializers.Serializer)
 

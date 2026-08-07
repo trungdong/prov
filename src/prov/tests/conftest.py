@@ -27,7 +27,7 @@ settings.register_profile("ci", max_examples=50, deadline=None, derandomize=True
 settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 # Formats that support a full serialize -> deserialize -> compare round trip.
-ROUNDTRIP_FORMATS = ("json", "xml", "rdf")
+ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld")
 # The full target axis: the round-trip formats PLUS a "model" target that
 # constructs the document, exercises PROV-N generation, and checks the
 # self-equality invariant WITHOUT serialization. The model axis preserves the

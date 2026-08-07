@@ -52,6 +52,12 @@ def test_read_explicit_rdf_format(document, tmp_path):
     assert result == document
 
 
+def test_read_explicit_jsonld_format(document, tmp_path):
+    path = _write(document, tmp_path, "jsonld", "doc.jsonld")
+    result = prov.read(str(path), format="jsonld")
+    assert result == document
+
+
 def test_read_explicit_format_is_lowercased(document, tmp_path):
     path = _write(document, tmp_path, "json", "doc-upper.json")
     result = prov.read(str(path), format="JSON")
@@ -96,6 +102,12 @@ def test_read_auto_detects_xml(document, tmp_path):
     # XML input; read() must treat any candidate failure as "try the next
     # format" so the xml deserializer is reached.
     path = _write(document, tmp_path, "xml", "auto.xml")
+    result = prov.read(str(path))
+    assert result == document
+
+
+def test_read_auto_detects_jsonld(document, tmp_path):
+    path = _write(document, tmp_path, "jsonld", "auto.jsonld")
     result = prov.read(str(path))
     assert result == document
 

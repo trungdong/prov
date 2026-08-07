@@ -2,11 +2,13 @@
 
 Migrated from the ``TestStatementsBase`` mixin (``statements.py``): each test
 method becomes a module-level function taking the ``roundtrip`` fixture, which
-runs it once per target in ``SHARED_TARGETS`` (model/json/xml/rdf). The 14
-"scruffy" cases opt out of the shared ``fmt`` fixture with their own explicit
-parametrization so the rdf param can be skipped (permanent PROV-O
+runs it once per target in ``SHARED_TARGETS`` (model/json/xml/rdf/jsonld). The
+14 "scruffy" cases opt out of the shared ``fmt`` fixture with their own
+explicit parametrization so the rdf param can be skipped (permanent PROV-O
 representational limitation, see ``docs/reference/conformance.md``; the
-``scruffy_fmt`` decorator below). The legacy mixin remains for the
+``scruffy_fmt`` decorator below). ``test_mention_1``/``test_mention_2``
+likewise opt out via ``mention_fmt`` so only the jsonld param is skipped
+(PROV-JSONLD defines no Mention term). The legacy mixin remains for the
 not-yet-migrated ``test_dot.py``.
 """
 
@@ -42,7 +44,23 @@ RDF_SCRUFFY_SKIP = pytest.mark.skip(
 # the rdf param; model/json/xml still run normally.
 scruffy_fmt = pytest.mark.parametrize(
     "fmt",
-    ["model", "json", "xml", pytest.param("rdf", marks=RDF_SCRUFFY_SKIP)],
+    ["model", "json", "xml", pytest.param("rdf", marks=RDF_SCRUFFY_SKIP), "jsonld"],
+)
+
+# The PROV-JSONLD submission defines no Mention term, so mentionOf cannot be
+# serialized — a permanent, documented limitation like the PROV-O one above;
+# see docs/reference/conformance.md.
+JSONLD_MENTION_SKIP = pytest.mark.skip(
+    reason="PROV-JSONLD defines no Mention term — permanent, documented "
+    "limitation, see docs/reference/conformance.md",
+)
+
+# These functions opt out of the module-wide `fmt` fixture with their own
+# explicit parametrization so the skip mark attaches only to the jsonld param;
+# model/json/xml/rdf still run normally.
+mention_fmt = pytest.mark.parametrize(
+    "fmt",
+    ["model", "json", "xml", "rdf", pytest.param("jsonld", marks=JSONLD_MENTION_SKIP)],
 )
 
 
@@ -1316,12 +1334,14 @@ def test_specialization_1(roundtrip):
     roundtrip(document)
 
 
+@mention_fmt
 def test_mention_1(roundtrip):
     document = new_document()
     document.mention(EX_NS["e2"], EX_NS["e1"], None)
     roundtrip(document)
 
 
+@mention_fmt
 def test_mention_2(roundtrip):
     document = new_document()
     document.mention(EX_NS["e2"], EX_NS["e1"], EX_NS["b"])
