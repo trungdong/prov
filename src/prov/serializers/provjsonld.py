@@ -316,6 +316,30 @@ def _expect_object(value: Any, description: str) -> dict[str, Any]:
     return value
 
 
+def _is_embedded_submission_context(item: dict[str, Any]) -> bool:
+    """Recognise the vendored submission context embedded by ``context="embed"``.
+
+    Args:
+        item: A ``@context`` array entry that is a JSON object.
+
+    Returns:
+        ``True`` if ``item`` is (a copy of) the submission's own context
+        object -- identified by carrying the ``"@version"`` JSON-LD keyword,
+        and/or by defining one of PROV-DM's own record-type local names
+        (``"Entity"``, ``"Activity"``, ..., see :data:`JSONLD_TYPE_TERMS`) as
+        an object-valued term, both traits unique to that document (see
+        ``prov-jsonld-context.jsonld``) and not expected of a third-party
+        namespace map, even one that mixes plain prefix strings with an
+        inline term definition of its own.
+    """
+    if "@version" in item:
+        return True
+    return any(
+        key in JSONLD_TYPE_TERMS and isinstance(value, dict)
+        for key, value in item.items()
+    )
+
+
 def _decode_context(context: Any, bundle: ProvBundle) -> None:
     """Register namespaces from a submission §4 ``@context`` on ``bundle``.
 
@@ -325,15 +349,19 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
             :func:`encode_jsonld_container`.
         bundle: Bundle (or document) to register the decoded namespaces on.
 
-    String items (the context URL) and dict items containing dict values (an
-    embedded copy of the submission context, whose terms are already known
-    to this library via the built-in ``prov``/``xsd`` namespaces) are
-    skipped; namespace maps -- dicts whose values are all strings -- are
-    registered, with ``@vocab`` as the default namespace. Every other
-    JSON-LD keyword key (``@base``, ``@version``, ...) is ignored: ``@base``
-    is written by :func:`_encode_namespaces` as a duplicate of ``@vocab``
-    (needed for real JSON-LD processors, see that function's docstring) and
-    carries no information this library doesn't already get from ``@vocab``.
+    String items (the context URL) and the embedded copy of the submission
+    context (see :func:`_is_embedded_submission_context`; its terms are
+    already known to this library via the built-in ``prov``/``xsd``
+    namespaces) are skipped entirely. Every other object is treated as a
+    namespace map: its string-valued entries are registered as prefixes
+    (``"@vocab"`` as the default namespace), and any dict-valued entries --
+    third-party inline term definitions this library does not model -- are
+    ignored individually rather than causing the whole object to be
+    skipped. Every other JSON-LD keyword key (``@base``, ``@version``, ...)
+    is likewise ignored: ``@base`` is written by :func:`_encode_namespaces`
+    as a duplicate of ``@vocab`` (needed for real JSON-LD processors, see
+    that function's docstring) and carries no information this library
+    doesn't already get from ``@vocab``.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
@@ -345,13 +373,13 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
         if isinstance(item, str):
             continue
         item = _expect_object(item, "A @context entry")
-        if any(isinstance(v, dict) for v in item.values()):
-            continue  # embedded submission context, not a namespace map
-        for prefix, uri in item.items():
-            if prefix == "@vocab":
-                bundle.set_default_namespace(uri)
-            elif not prefix.startswith("@"):
-                bundle.add_namespace(Namespace(prefix, uri))
+        if _is_embedded_submission_context(item):
+            continue
+        for prefix, value in item.items():
+            if prefix == "@vocab" and isinstance(value, str):
+                bundle.set_default_namespace(value)
+            elif not prefix.startswith("@") and isinstance(value, str):
+                bundle.add_namespace(Namespace(prefix, value))
 
 
 def _strip_prov_prefix(term: str) -> str:
@@ -554,7 +582,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         type_term = item.get("@type")
         is_bundle = (
             isinstance(type_term, str) and _strip_prov_prefix(type_term) == "Bundle"
-        ) or "@graph" in item
+        )
         if not is_bundle:
             decode_jsonld_statement(item, document)
             continue

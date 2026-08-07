@@ -237,6 +237,48 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms():
     assert doc == expected
 
 
+def test_deserialize_mixed_context_registers_namespace_prefixes():
+    # A third-party context object can carry plain prefix strings alongside
+    # one inline term definition (a dict value) without being the vendored
+    # submission context (see _is_embedded_submission_context): every
+    # string-valued prefix in it must still be registered, and "ex:e1" must
+    # resolve, even though "myTerm" (a dict value this library doesn't model)
+    # sits right next to "ex" in the same object.
+    text = json.dumps(
+        {
+            "@context": [
+                {"ex": EX_URI, "myTerm": {"@id": EX_URI + "myTerm"}},
+                JSONLD_CONTEXT_URL,
+            ],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    expected = _new_doc()
+    expected.entity("ex:e1")
+    assert doc == expected
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        "ex": EX_URI
+    }
+
+
+def test_roundtrip_context_embed_registers_no_extra_namespaces():
+    # The embedded submission context (context="embed") must still be
+    # recognised as a whole and skipped -- not treated as a namespace map --
+    # or its own prov/xsd/rdfs/rdf prefix strings would get registered on
+    # the bundle, changing what deserialize() produces (see the docstring of
+    # _is_embedded_submission_context).
+    doc = _new_doc()
+    doc.entity("ex:e1")
+    doc.activity("ex:a1", "2011-11-16T16:05:00")
+    doc.wasGeneratedBy("ex:e1", "ex:a1")
+    roundtripped = ProvDocument.deserialize(
+        content=doc.serialize(format="jsonld", context="embed"), format="jsonld"
+    )
+    assert roundtripped == doc
+    assert {ns.prefix for ns in roundtripped.get_registered_namespaces()} == {"ex"}
+
+
 @pytest.mark.parametrize(
     "payload, match",
     [
