@@ -67,7 +67,7 @@ bundle, not at the document root.
 `prov-jsonld.schema.json` is the PROV-JSONLD JSON Schema from the W3C member
 submission, retrieved 2026-08-07 from
 <https://www.w3.org/submissions/prov-jsonld/schema.json>. It declares
-`"$schema": "http://json-schema.org/draft-06/schema#"` and has `$id`
+`"$schema": "http://json-schema.org/draft-07/schema#"` and has `$id`
 `https://openprovenance.org/prov-jsonld/schema.json`. A companion JSONLD
 context file is also vendored as package data at
 `src/prov/serializers/prov-jsonld-context.jsonld` (retrieved from
