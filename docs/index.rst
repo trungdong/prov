@@ -41,7 +41,6 @@ Prov Python package's documentation
    installation
    upgrading-3.0
    contributing
-   releasing
    authors
    history
    changelog-archive

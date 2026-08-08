@@ -30,11 +30,12 @@ master_doc = "index"
 exclude_patterns = [
     "_build",
     # Internal working docs (roadmap plans/specs, dependency notes, gap
-    # checklists) live under docs/ for convenience but are not part of the
-    # published documentation.
+    # checklists, the release runbook) live under docs/ for convenience but
+    # are not part of the published documentation.
     "superpowers",
     "dependencies.md",
     "test-gap-checklist.md",
+    "releasing.md",
 ]
 
 intersphinx_mapping = {

@@ -1,7 +1,6 @@
 # Releasing
 
-How a `prov` release is cut, from a green `master` to PyPI and conda-forge. Written after
-the 3.1.0 release and validated against it; the 3.0.0 release followed the same sequence.
+How a `prov` release is cut, from a green `master` to PyPI and conda-forge.
 
 Substitute the version being released for `X.Y.Z` throughout.
 
@@ -84,8 +83,8 @@ interpreting:
 
 ## 4. Publish
 
-**Confirm with the maintainer before this step.** Everything up to here is reversible;
-nothing below is. A PyPI version number can never be reused, even after deletion.
+Everything up to here is reversible; nothing below is. A PyPI version number can never be
+reused, even after deletion.
 
 ```bash
 # Dry run to TestPyPI
@@ -144,11 +143,10 @@ The bot supplies the version, sha256 and build number and re-renders. Review the
 dependencies: conda has no extras, so by convention the recipe stays full-featured and
 mirrors the `rdf`/`xml`/`dot`/`graph` extras as hard dependencies.
 
-**The trap that cost time on 3.0.0:** if the bot's rerender touched
-`.github/workflows/`, `gh pr merge` fails with "the base branch policy prohibits the
-merge". That message is wrong. The real cause is a `gh` token without the `workflow`
-scope, which the merge REST API reports as a 403. Fix with
-`gh auth refresh -h github.com -s workflow`, or merge in the web UI.
+**Known trap:** if the bot's rerender touched `.github/workflows/`, `gh pr merge` fails
+with "the base branch policy prohibits the merge". That message is wrong. The real cause
+is a `gh` token without the `workflow` scope, which the merge REST API reports as a 403.
+Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 
 ## 7. Close out
 
