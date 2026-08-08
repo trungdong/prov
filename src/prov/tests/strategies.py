@@ -48,13 +48,9 @@ local_part = st.text(
 # not a serializer behaviour we could round-trip; RDF handles every Cc codepoint
 # unchanged). Excluding both is a generation-validity narrowing (not a serializer
 # behaviour change) — the values that remain still cover the full non-ASCII range.
-# min_size=1: an *empty*-string attribute value is dropped entirely by the XML
-# serializer (the attribute vanishes on round trip), while JSON and RDF preserve
-# it — #224, a genuine XML round-trip bug deferred to 3.0, excluded here rather
-# than fixed under the 2.x output freeze.
 text_values = st.text(
     alphabet=st.characters(exclude_categories=("Cs", "Cc")),
-    min_size=1,
+    min_size=0,
     max_size=30,
 )
 

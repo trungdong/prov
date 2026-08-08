@@ -11,6 +11,11 @@
   interpretable without its shorthand binary triple (#250). Decoding uses
   that property to tell several same-kind qualification nodes apart instead
   of guessing (#226).
+- PROV-XML now round-trips empty-string attribute values, which previously
+  vanished entirely because lxml reports an empty element's text as `None`
+  (#224), and escapes attribute-name local parts that are not legal XML
+  NCNames using the `_xHHHH_` convention instead of emitting invalid XML
+  (#289).
 
 ## 2.5.2 (2026-08-08)
 
