@@ -1107,3 +1107,86 @@ def test_trailing_metacharacter_encode_output_unchanged():
     for ch in _TRAILING_METACHARS:
         expected.add((URIRef(ns + "a" + ch), RDF.type, URIRef(prov + "Entity")))
     assert isomorphic(reparsed, expected)
+
+
+# _resolve_iri()'s step 1 (a namespace bound in the *graph* being decoded,
+# not the document) only matters when the document hasn't already resolved
+# the IRI some other way. decode_document() hoists every one of a Dataset's
+# namespaces onto the document before decoding any statement (so
+# valid_identifier() -- itself a first-match, not longest-match, namespace
+# scan -- already succeeds by the time a real subject/object is decoded, and
+# _resolve_iri() is never reached with a matching graph namespace). Driving
+# these cases through decode_container() directly -- the same method
+# decode_document() calls per (sub)graph, and the real caller of
+# _resolve_iri() via _decode_type_triples() -- keeps a document with no
+# pre-hoisted namespaces, so _resolve_iri()'s own graph-namespace scan is
+# actually exercised, honestly reaching the branch under test.
+def _decode_via_container(turtle: str) -> ProvDocument:
+    graph = Graph().parse(data=turtle, format="turtle")
+    doc = ProvDocument()
+    ProvRDFSerializer(document=doc).decode_container(graph, doc)
+    return doc
+
+
+def test_resolve_iri_reuses_namespace_bound_in_graph_for_metacharacter_local_part():
+    # Step 1 of _resolve_iri(): an IRI under a namespace bound in the graph
+    # (but not on the document) must resolve against that namespace and reuse
+    # its declared prefix, rather than falling through to compute_qname's
+    # ValueError (#294's motivating case: a local part ending in a PROV-N
+    # metacharacter) and then minting a throwaway "ns" prefix in step 3.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+    <http://example.org/thing;> a prov:Entity .
+    """
+    doc = _decode_via_container(turtle)
+
+    (record,) = doc.get_records()
+    identifier = record.identifier
+    assert identifier.uri == "http://example.org/thing;"
+    assert identifier.namespace.uri == "http://example.org/"
+    assert identifier.namespace.prefix == "ex"
+    assert identifier.localpart == "thing;"
+
+
+def test_resolve_iri_picks_longest_matching_bound_namespace():
+    # Step 1 must pick the *longest* bound namespace that prefixes the IRI,
+    # not merely the first one found: with "http://example.org/" and
+    # "http://example.org/sub/" both bound, an IRI under the longer namespace
+    # must split there, not against the shorter one it also happens to match.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+    @prefix exsub: <http://example.org/sub/> .
+    <http://example.org/sub/thing> a prov:Entity .
+    """
+    doc = _decode_via_container(turtle)
+
+    (record,) = doc.get_records()
+    identifier = record.identifier
+    assert identifier.uri == "http://example.org/sub/thing"
+    assert identifier.namespace.uri == "http://example.org/sub/"
+    assert identifier.namespace.prefix == "exsub"
+    assert identifier.localpart == "thing"
+
+
+def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself():
+    # The `iri != uri` guard: an IRI that exactly equals a bound namespace
+    # URI must not match against *that* namespace (which would produce a
+    # degenerate empty local part) even though it is also bound in the
+    # graph. It must fall through to a shorter namespace that is a genuine
+    # (non-equal) prefix, giving a real, non-empty local part instead.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix top: <http://example.org/> .
+    @prefix full: <http://example.org/thing> .
+    <http://example.org/thing> a prov:Entity .
+    """
+    doc = _decode_via_container(turtle)
+
+    (record,) = doc.get_records()
+    identifier = record.identifier
+    assert identifier.uri == "http://example.org/thing"
+    assert identifier.namespace.uri == "http://example.org/"
+    assert identifier.namespace.prefix == "top"
+    assert identifier.localpart == "thing"
