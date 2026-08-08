@@ -30,6 +30,9 @@
 - Qualified names whose local part ends in a PROV-N metacharacter now
   round-trip through PROV-O instead of raising `ValueError: Can't split` from
   rdflib during deserialization (#294). Encoded output is unchanged.
+- `prov.read()` now populates the serializer registry only when it is empty,
+  instead of discarding and rebuilding it on every call. No observable
+  behaviour change (#353).
 
 ## 2.5.2 (2026-08-08)
 

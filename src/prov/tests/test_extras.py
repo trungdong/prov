@@ -311,6 +311,26 @@ def test_get_serializer_lazily_populates_registry():
         Registry.serializers = original
 
 
+def test_read_lazily_populates_registry():
+    import prov
+
+    # Build the serialized content BEFORE resetting the registry, so the
+    # serialize() call doesn't populate it via prov.serializers.get()
+    json_content = primer_example().serialize(format="json")
+
+    original = Registry.serializers
+    Registry.serializers = None
+    try:
+        assert Registry.serializers is None
+        # Now call read() with pre-built content, with the registry uninitialized
+        document = prov.read(json_content)
+        assert Registry.serializers is not None
+        assert set(Registry.serializers.keys()) == {"json", "rdf", "provn", "xml"}
+        assert document is not None
+    finally:
+        Registry.serializers = original
+
+
 def test_plot_without_matplotlib_raises_helpful_error():
     # Deliberately exercises matplotlib's *absence*: builtins.__import__ is
     # patched to fail for matplotlib imports, so this import must stay local
