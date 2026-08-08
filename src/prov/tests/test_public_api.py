@@ -8,7 +8,7 @@ import importlib
 import io
 
 import prov.serializers
-from prov.model import ProvDocument
+from prov.model import GenerationRef, GenrationRef, ProvDocument
 from prov.tests.examples import primer_example
 
 PUBLIC_API = {
@@ -101,6 +101,13 @@ def test_names_importable():
             if not hasattr(module, name):
                 missing.append(f"{module_name}.{name}")
     assert missing == [], f"Public API names missing: {missing}"
+
+
+def test_generation_ref_spellings_are_the_same_alias():
+    # The historic spelling is a typo (missing the "e"). 2.x adds the correct
+    # one without removing the old, so annotations written against either
+    # keep resolving; `master` renames it outright for 3.0.
+    assert GenrationRef is GenerationRef
 
 
 def test_serializer_registry_formats():
