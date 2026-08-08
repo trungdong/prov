@@ -9,17 +9,12 @@ public API with care.
 
 ## Modernisation roadmap
 
-Plan: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`; public summary:
-`ROADMAP.md`. The 2.x→3.0 modernisation programme is code-complete on `master`: every
-3.0.0 compatibility change (see ROADMAP.md's "What changes in 3.0") has landed, and the
-release itself is pending publication — a separate, later step, not more roadmap work.
-3.1.0 (PROV-JSONLD support, purely additive; see ROADMAP.md) is also code-complete and stamped.
-Rules that stay live across phases:
+`ROADMAP.md` has current status — check it rather than assuming from memory of past work.
+Design detail: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`. Durable
+rules, regardless of phase:
 
 - One focused PR per roadmap step, green CI before merge.
 - If a step changes tooling, update the affected sections of this file in the same PR.
-- Never add AI attribution to commits or PRs (no "Co-Authored-By: Claude", no "Generated with
-  Claude Code").
 
 ## Releasing
 
@@ -86,38 +81,23 @@ pins `json` as the first format tried on a non-seekable stream.
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 `unittest.TestCase`. Design authority: `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`.
 
-- The suite invariant is **1643 passed, 26 skipped, 0 xfailed** (`uv run pytest -q`); any
-  deviation is a regression. `uv run pytest -q -rsx` breaks the 26 skips down as: 4 in
-  `test_minimal_install.py` (each extra's degradation test skips itself when that extra
-  *is* installed, e.g. "only meaningful without rdflib"), 14 in `test_statements.py` (the
-  #217 PROV-O limitation below), 2 more in `test_statements.py` (mentionOf, no Mention term
-  in PROV-JSONLD), 3 in `test_unification_constraints.py` (ProvToolbox's `<prov:bundle>`
-  dialect, rejected on parse — see the gap analysis it cites), and 3 in `test_xml_schema.py`
-  (PROV-XML/XSD spec limits: `xsd:QName` local-name restrictions and
-  `prov:InternationalizedString` only being typed on `prov:label`).
+- No fixed pass/skip/xfail count is tracked here — it drifts every time a test is added and
+  isn't CI-enforced. Instead, compare `uv run pytest -q -rsx` against the prior run: a skip or
+  xfail that's new, gone, or unexplained by your own change is a regression worth investigating;
+  one that matches an existing `reason=` tied to a tracked issue is routine.
+- Known-lossy cases are permanent, documented limitations — don't "fix" them. RDF's PROV-O gap
+  (`docs/reference/conformance.md`, #217) and PROV-JSONLD's missing Mention term (#248) are each
+  marked via `@pytest.mark.parametrize("fmt", [...])` on only the affected `fmt` param, in
+  `test_statements.py`.
 - Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
-  `test_examples.py`) runs once per target via the `roundtrip` fixture. **Known-lossy RDF cases
-  are intentional** (the 14 `test_statements.py` skips counted above), documented as a
-  permanent PROV-O representational limitation in `docs/reference/conformance.md` (closed as
-  #217), attached via per-function `@pytest.mark.parametrize("fmt", [...])` so only the `rdf`
-  param is marked. **`mentionOf` under PROV-JSONLD is the same kind of permanent, documented
-  limitation** — the submission defines no Mention term — marking only the `jsonld` param on
-  `test_mention_1`/`test_mention_2`. Don't "fix" either case.
-- `examples.py` (canonical example documents) and `attribute_values.py` (datatype corpus;
-  order significant — some tests reference individual values by index) feed the shared modules
-  and several others.
+  `test_examples.py`) runs once per target via the `roundtrip` fixture. `examples.py` (canonical
+  example documents) and `attribute_values.py` (datatype corpus; order significant — some tests
+  reference individual values by index) feed those and several other modules.
 - `test_json.py`/`test_xml.py`/`test_rdf.py`/`test_jsonld.py` keep only format-specific tests
-  (encoder internals, error paths, `find_diff`, fixture-dir round-trips over `json/`, `xml/`,
-  `rdf/`, `jsonld/`). `test_xml.py`'s disabled `_perform_round_trip` glob scaffold is
-  intentional (design doc §4).
+  (encoder internals, error paths, `find_diff`, fixture-dir round-trips). `test_xml.py`'s
+  disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
 - `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
-  `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs
-  (mention-bearing documents are instead assumed away for `jsonld` in the test body — generation
-  stays format-agnostic).
-- Other modules are self-describing by name (e.g. `test_conformance_dm.py`,
-  `test_unification_constraints.py`, `test_malformed.py`, `test_public_api.py`,
-  `test_minimal_install.py`); fixture data lives in `json/`, `xml/`, `rdf/`, `jsonld/`,
-  `malformed/`, `schemas/`, `unification/`.
+  `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
 
 New shared record types, attributes, or serializer behaviors go into the shared parametrized
 modules so every target is exercised — not into per-format tests.
