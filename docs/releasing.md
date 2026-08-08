@@ -1,6 +1,6 @@
 # Releasing
 
-How a `prov` release is cut, from a green `master` to PyPI and conda-forge.
+How a `prov` release is cut, from a green `main` to PyPI and conda-forge.
 
 Substitute the version being released for `X.Y.Z` throughout.
 
@@ -22,7 +22,7 @@ environments — there are no API tokens to rotate.
 ## 1. Pre-flight
 
 Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
-rather than `master`? Read "Releasing from the `2.x` maintenance branch" at the end first —
+rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the end first —
 four of the steps below change.
 
 ```bash
@@ -90,7 +90,7 @@ reused, even after deletion.
 
 ```bash
 # Dry run to TestPyPI
-gh workflow run release.yml --repo trungdong/prov --ref master
+gh workflow run release.yml --repo trungdong/prov --ref main
 gh run watch <run-id> --repo trungdong/prov --exit-status
 curl -s https://test.pypi.org/pypi/prov/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
 ```
@@ -101,7 +101,7 @@ Then cut the release, which fires the real publish. Take the notes from the `HIS
 section you just dated, so the release page and the changelog cannot drift:
 
 ```bash
-gh release create X.Y.Z --repo trungdong/prov --target master \
+gh release create X.Y.Z --repo trungdong/prov --target main \
     --title X.Y.Z --notes-file <notes.md>
 gh run watch <run-id> --repo trungdong/prov --exit-status
 ```
@@ -166,7 +166,7 @@ Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 
 ## Releasing from the `2.x` maintenance branch
 
-The steps above assume `master`. A back-port release cut from `2.x` follows the same shape,
+The steps above assume `main`. A back-port release cut from `2.x` follows the same shape,
 with four deviations — established across 2.5.2 and 2.5.3, and expected to hold for any
 later 2.x release.
 
@@ -178,10 +178,10 @@ on `2.x`:
 uv run --extra rdf --extra xml pytest -q
 ```
 
-**The suite invariant in `CLAUDE.md` is master's.** `2.x` carries its own counts and, unlike
-master, a non-zero xfail count. Compare against the previous release's numbers on `2.x`
+**The suite invariant in `CLAUDE.md` is main's.** `2.x` carries its own counts and, unlike
+main, a non-zero xfail count. Compare against the previous release's numbers on `2.x`
 itself, not against the invariant — and treat a moved skip or xfail the same way you would
-on master: a regression to investigate unless the release's own changes explain it.
+on main: a regression to investigate unless the release's own changes explain it.
 
 **Two of §2's four stamped files do not apply.** `2.x` has no per-release row in
 `ROADMAP.md` — its table stops at the last release stamped before the branch diverged — and

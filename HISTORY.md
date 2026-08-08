@@ -8,7 +8,7 @@
   the canonical §4 compacted shape only, with no runtime dependency beyond the
   standard library. Registered in `prov.serializers.Registry` and included in
   `prov.read()`'s format auto-detection. See
-  [Work with PROV-JSONLD](https://github.com/trungdong/prov/blob/master/docs/howto/provjsonld.md)
+  [Work with PROV-JSONLD](https://github.com/trungdong/prov/blob/main/docs/howto/provjsonld.md)
 - `serialize(format="jsonld", ...)` takes a `context` keyword: `"url"` (the
   default) references the submission's context by URL; `"embed"` inlines the
   vendored context object for fully self-contained output; any other value
@@ -38,7 +38,7 @@
 change behaviour and drop dependencies, closing out the standards-conformance
 work (PROV-DM, PROV-CONSTRAINTS, PROV-O) that a backward-compatible 2.x series
 could not fix. See
-[Upgrading to 3.0](https://github.com/trungdong/prov/blob/master/docs/upgrading-3.0.md)
+[Upgrading to 3.0](https://github.com/trungdong/prov/blob/main/docs/upgrading-3.0.md)
 for what changed and what to do about it.
 
 ### Breaking changes
@@ -266,7 +266,7 @@ for what changed and what to do about it.
   about the upcoming PROV-CONSTRAINTS unification rework. Both warnings are
   hidden by default (standard `DeprecationWarning`/`FutureWarning`
   semantics) and link to the new
-  [Upgrading to 3.0](https://github.com/trungdong/prov/blob/master/docs/upgrading-3.0.md)
+  [Upgrading to 3.0](https://github.com/trungdong/prov/blob/main/docs/upgrading-3.0.md)
   guide, which tables every planned 3.0 change and what to do about it.
 
 ## 2.3.0 (2026-07-05)
@@ -335,4 +335,4 @@ for what changed and what to do about it.
 ## Earlier releases
 
 Releases before 2.0.0 are recorded in the
-[changelog archive](https://github.com/trungdong/prov/blob/master/docs/changelog-archive.md).
+[changelog archive](https://github.com/trungdong/prov/blob/main/docs/changelog-archive.md).

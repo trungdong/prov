@@ -3,7 +3,7 @@
 [![Latest Release](https://badge.fury.io/py/prov.svg)](http://badge.fury.io/py/prov)
 [![License](https://img.shields.io/pypi/l/prov.svg)](https://pypi.python.org/pypi/prov/)
 [![CI Status](https://github.com/trungdong/prov/workflows/CI/badge.svg)](https://github.com/trungdong/prov/actions?workflow=CI)
-[![Coverage Status](https://img.shields.io/coveralls/trungdong/prov.svg)](https://coveralls.io/r/trungdong/prov?branch=master)
+[![Coverage Status](https://img.shields.io/coveralls/trungdong/prov.svg)](https://coveralls.io/r/trungdong/prov?branch=main)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73bdf6dda3884abf9f5e79352c07e66c)](https://app.codacy.com/gh/trungdong/prov/dashboard)
 [![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.python.org/pypi/prov/)
 
@@ -32,7 +32,7 @@ a free online repository for provenance documents.
 
 3.0.0 has been released, completing the staged modernisation (tooling, type hints,
 tests, documentation, standards conformance). See
-[ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for the plan
+[ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) for the plan
 and the 3.x API-stability promise.
 Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/issues).
 
@@ -42,5 +42,5 @@ The latest 3.x release receives all fixes. The most recent 2.x release
 receives security fixes, plus bug fixes back-ported from 3.x up to and
 including 2.6.0, after which it reverts to security fixes only; 1.x and
 earlier no longer receive fixes. See
-[SECURITY.md](https://github.com/trungdong/prov/blob/master/SECURITY.md)
+[SECURITY.md](https://github.com/trungdong/prov/blob/main/SECURITY.md)
 for the full support table and how to report a vulnerability.

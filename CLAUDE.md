@@ -18,7 +18,7 @@ rules, regardless of phase:
 
 ## Releasing
 
-`docs/releasing.md` is the runbook for cutting a release, from a green `master` to PyPI and
+`docs/releasing.md` is the runbook for cutting a release, from a green `main` to PyPI and
 conda-forge — read it before starting release work. It is written for Claude Code to execute,
 not for the published docs site, so it's excluded from the Sphinx build (`docs/conf.py`'s
 `exclude_patterns`) and not in `docs/index.rst`'s toctree. If a release turns up a new gotcha,

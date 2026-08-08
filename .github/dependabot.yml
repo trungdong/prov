@@ -27,9 +27,9 @@ updates:
           - "patch"
 
   # 2.x maintenance branch: version updates default to the repo's default
-  # branch (master), so it needs its own explicit target-branch entries to
+  # branch (main), so it needs its own explicit target-branch entries to
   # get security/dependency PRs at all. Its runtime deps differ from
-  # master's (networkx/pydot/python-dateutil are unconditional there,
+  # main's (networkx/pydot/python-dateutil are unconditional there,
   # rdflib's floor is >=6 not >=7), hence separate blocks rather than
   # reusing the ones above.
   - package-ecosystem: "github-actions"
