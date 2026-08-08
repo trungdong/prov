@@ -21,7 +21,9 @@ environments — there are no API tokens to rotate.
 
 ## 1. Pre-flight
 
-Run on the commit you intend to release, before stamping anything.
+Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
+rather than `master`? Read "Releasing from the `2.x` maintenance branch" at the end first —
+four of the steps below change.
 
 ```bash
 # Full interpreter matrix, matching the CI matrix
@@ -124,6 +126,14 @@ uv venv .v && uv pip install --python .v/bin/python prov==X.Y.Z
 .v/bin/python -c "import prov; print(prov.__version__)"
 ```
 
+**If that install fails with `no version of prov==X.Y.Z`, do not treat it as a failed
+upload.** uv caches index responses, so for several minutes after a release it keeps
+insisting the version does not exist while PyPI is already serving it. Pass `--refresh` to
+bust the cache — `uv pip install --refresh …`, or `uv run --with prov==X.Y.Z --refresh …`
+for the one-liner form. A genuine upload failure looks different: the `curl` metadata query
+above returns 404 rather than the new version, and the release workflow's `publish-pypi`
+job is red. Check those two before re-running anything.
+
 Then exercise the release's headline feature through the installed package, not the
 checkout — that is what catches package-data that was never added to
 `[tool.setuptools.package-data]`. A serializer that reads a vendored file at runtime works
@@ -153,3 +163,34 @@ Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 - Close the release's GitHub milestone.
 - Confirm <https://pypi.org/project/prov/> and the conda-forge feed both show the new
   version.
+
+## Releasing from the `2.x` maintenance branch
+
+The steps above assume `master`. A back-port release cut from `2.x` follows the same shape,
+with four deviations — established across 2.5.2 and 2.5.3, and expected to hold for any
+later 2.x release.
+
+**Only two extras exist.** `2.x` predates the extras split, so it has no `dot` or `graph`
+extra and errors out if you pass them. Every command in §1 that names four extras takes two
+on `2.x`:
+
+```bash
+uv run --extra rdf --extra xml pytest -q
+```
+
+**The suite invariant in `CLAUDE.md` is master's.** `2.x` carries its own counts and, unlike
+master, a non-zero xfail count. Compare against the previous release's numbers on `2.x`
+itself, not against the invariant — and treat a moved skip or xfail the same way you would
+on master: a regression to investigate unless the release's own changes explain it.
+
+**Two of §2's four stamped files do not apply.** `2.x` has no per-release row in
+`ROADMAP.md` — its table stops at the last release stamped before the branch diverged — and
+`docs/reference/conformance.md` carries no "last revised for the X.Y.Z release" sentence.
+Stamp `src/prov/__init__.py` and the `HISTORY.md` heading, and confirm those two absences
+rather than assuming them; if either has since gained the relevant line, stamp it.
+
+**The release must target the branch.** `gh release create X.Y.Z --target 2.x`. The
+workflow triggers on `release: types: [published]` repo-wide and is not gated to a branch,
+so publishing from `2.x` needs nothing else. conda-forge, however, gets no bump PR: the
+feedstock tracks the newest release, and the autotick-bot only moves forward. §6 does not
+apply to a 2.x release unless a maintainer wants a dedicated 2.x conda label.
