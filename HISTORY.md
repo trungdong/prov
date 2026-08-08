@@ -27,6 +27,9 @@
   extra attributes now reconcile onto their `prov:qualified*` node when
   decoded from RDF, as delegation and association already did, instead of
   producing a duplicate record (#303).
+- Qualified names whose local part ends in a PROV-N metacharacter now
+  round-trip through PROV-O instead of raising `ValueError: Can't split` from
+  rdflib during deserialization (#294). Encoded output is unchanged.
 
 ## 2.5.2 (2026-08-08)
 
