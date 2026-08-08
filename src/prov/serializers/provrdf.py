@@ -31,6 +31,7 @@ from prov.constants import (
     PROV_ATTR_TIME,
     PROV_ATTR_TRIGGER,
     PROV_ATTR_USED_ENTITY,
+    PROV_ATTRIBUTION,
     PROV_BASE_CLS,
     PROV_COMMUNICATION,
     PROV_DELEGATION,
@@ -38,6 +39,7 @@ from prov.constants import (
     PROV_END,
     PROV_GENERATION,
     PROV_ID_ATTRIBUTES_MAP,
+    PROV_INFLUENCE,
     PROV_INVALIDATION,
     PROV_LOCATION,
     PROV_MENTION,
@@ -135,6 +137,20 @@ PREDICATE_MAP = {
 :meth:`~ProvRDFSerializer.decode_container`: maps PROV-O predicate URIRefs
 that don't already match a PROV formal-attribute QualifiedName to the
 QualifiedName of the formal attribute they represent."""
+
+#: Relation types whose plain binary triple is always emitted *and* whose
+#: second formal attribute is the relation's influencer per the PROV-O
+#: section 3.1 qualification tables (``prov:activity``/``prov:agent``/
+#: ``prov:agent``/``prov:influencer``). Whenever one of these relations gets
+#: a ``prov:qualified*`` node -- identified, or anonymous with extra
+#: qualifiers -- that influencer must also be asserted directly on the node,
+#: not only implied by the binary triple, so the node is interpretable in
+#: isolation (#250). ``prov:mentionOf`` and ``prov:alternateOf`` are
+#: deliberately excluded: they are already special-cased elsewhere in the
+#: binary-triple/qualification-node machinery.
+_BINARY_TRIPLE_INFLUENCER_RELATIONS = frozenset(
+    {PROV_COMMUNICATION, PROV_ATTRIBUTION, PROV_DELEGATION, PROV_INFLUENCE}
+)
 
 
 def attr2rdf(attr: QualifiedName) -> URIRef:
@@ -510,6 +526,20 @@ class ProvRDFSerializer(Serializer):
                                                 )
                                             )
                                         has_qualifiers = False
+                                    elif (
+                                        rec_type in _BINARY_TRIPLE_INFLUENCER_RELATIONS
+                                        and has_qualifiers
+                                    ):
+                                        # #250: a qualification node is about to be
+                                        # minted for this relation, so un-consume the
+                                        # influencer attribute here: the generic
+                                        # emission loop below will then also assert it
+                                        # directly on that node, instead of leaving the
+                                        # node interpretable only via the shorthand
+                                        # triple just added above.
+                                        used_objects.remove(
+                                            record.formal_attributes[1][0]
+                                        )
                             if rec_type in [PROV_ALTERNATE]:
                                 continue
                             if subj and (has_qualifiers or identifier):
@@ -847,10 +877,26 @@ class ProvRDFSerializer(Serializer):
                         + relation_mapper[pred][1:]
                     )
                     qualifier_bnode = None
+                    agent_pred = URIRef(pm.PROV["agent"].uri)
                     for stmt in graph.triples(
                         (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
                     ):
-                        qualifier_bnode = stmt[2]
+                        candidate = stmt[2]
+                        # #226/#250: a subject may point at more than one
+                        # qualification node of the same kind -- e.g. two
+                        # delegations from the same delegate to the same
+                        # activity, differing only in `responsible` -- which
+                        # "last node seen" cannot tell apart. Since #250, a
+                        # freshly-encoded node also carries its own
+                        # `prov:agent` triple, so prefer whichever
+                        # candidate's `prov:agent` matches this binary
+                        # triple's object; only fall back to "last node
+                        # seen" (the pre-#250 behaviour, which cannot do
+                        # better) when no candidate carries that triple at
+                        # all, i.e. legacy input.
+                        qualifier_bnode = candidate
+                        if (candidate, agent_pred, obj) in graph:
+                            break
                     if qualifier_bnode is None:
                         getattr(bundle, relation_mapper[pred])(subj, str(obj))
                     else:
