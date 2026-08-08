@@ -1,6 +1,6 @@
 # History
 
-## 2.5.3 (unreleased)
+## 2.5.3 (2026-08-08)
 
 - Escaped PROV-N metacharacters (`= ' ( ) , : ; [ ]`) in the local parts of
   qualified names, so identifiers containing them serialise to valid PROV-N
