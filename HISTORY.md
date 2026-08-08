@@ -10,6 +10,9 @@
   `etree.set_default_parser()` — with a permissive parser installed that
   way, an external entity resolved and leaked the referenced file's
   contents through `ProvDocument.deserialize()` (#273)
+- Security: CI workflows now pin every third-party action to a commit SHA
+  rather than a mutable tag, and the CI workflow's `GITHUB_TOKEN` is
+  restricted to `contents: read`
 - Documentation: the support policy on this branch is brought in line with
   the 3.x line's — the 2.x release receives security fixes plus bug fixes
   back-ported from 3.x up to and including 2.6.0, after which it reverts to
