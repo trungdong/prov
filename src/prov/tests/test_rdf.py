@@ -794,6 +794,67 @@ def test_unsplittable_iri_raises_clear_error():
     assert "urn:no-separator;" in str(ctx.value)
 
 
+_PROV_ENTITY_URI = "http://www.w3.org/ns/prov#Entity"
+
+
+# ProvDocument.deserialize() cannot reach _resolve_iri's step 1 (the longest
+# graph-bound namespace) for any namespace a source declares via @prefix:
+# decode_document() pre-registers every namespace content.namespaces() reports
+# onto the document *before* decoding a single triple (its own docstring says
+# so -- "any that applied would have resolved there"), so valid_identifier()
+# always resolves such subjects first, via its own first-match (not
+# longest-match) scan, before decode_container ever calls _resolve_iri. These
+# tests instead call decode_container() directly -- the actual call site of
+# the branch (`if ... valid_identifier(subj) is None: self._resolve_iri(...)`)
+# -- with a document that does *not* already know the namespace, so the
+# branch is genuinely exercised, same as decode_document exercises it for a
+# subject whose namespace truly has no declared prefix anywhere in the source.
+def test_decode_container_resolves_bound_namespace_iri_with_metacharacter():
+    # #294 step 1 must fire at all: an IRI under a namespace bound on the
+    # *graph* (not the document) with a local part ending in a PROV-N
+    # metacharacter must resolve against that namespace and reuse its prefix,
+    # rather than falling through to compute_qname (which raises for this
+    # shape, "Can't split ...") and on to the '#'/'/' minting fallback, which
+    # would decode the same URI but under a freshly-minted "ns" prefix instead
+    # of the graph's "ex" -- so the prefix, not just the URI, is what proves
+    # step 1 fired.
+    document = ProvDocument()
+    serializer = ProvRDFSerializer(document=document)
+    graph = Graph()
+    graph.bind("ex", "http://example.org/", override=True)
+    graph.add((URIRef("http://example.org/a="), RDF.type, URIRef(_PROV_ENTITY_URI)))
+
+    serializer.decode_container(graph, document)
+
+    record = next(iter(document.get_records()))
+    assert record.identifier.uri == "http://example.org/a="
+    assert record.identifier.namespace.prefix == "ex"
+
+
+def test_decode_container_resolves_bound_namespace_iri_via_longest_match():
+    # #294 step 1 must pick the LONGEST namespace bound on the graph that
+    # prefixes the IRI, not merely the first one encountered: "short" binds
+    # "http://example.org/" and "long" binds "http://example.org/sub/", one a
+    # proper prefix of the other. An IRI under the longer namespace must
+    # resolve against "long", reusing its prefix and shorter local part, not
+    # match "short" with a longer leftover local part instead.
+    document = ProvDocument()
+    serializer = ProvRDFSerializer(document=document)
+    graph = Graph()
+    graph.bind("short", "http://example.org/", override=True)
+    graph.bind("long", "http://example.org/sub/", override=True)
+    graph.add(
+        (URIRef("http://example.org/sub/thing"), RDF.type, URIRef(_PROV_ENTITY_URI))
+    )
+
+    serializer.decode_container(graph, document)
+
+    record = next(iter(document.get_records()))
+    assert record.identifier.uri == "http://example.org/sub/thing"
+    assert record.identifier.namespace.prefix == "long"
+    assert record.identifier.localpart == "thing"
+
+
 def test_trailing_metacharacter_encode_output_unchanged():
     # #294 is a decode-side-only fix: the encoded graph must be byte-identical
     # in content to what master produced. Compare by graph isomorphism (rdflib
