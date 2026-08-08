@@ -327,6 +327,11 @@ def test_read_lazily_populates_registry():
         assert Registry.serializers is not None
         assert set(Registry.serializers.keys()) == {"json", "rdf", "provn", "xml"}
         assert document is not None
+        # added: the guard's actual effect — a populated registry is not rebuilt
+        Registry.load_serializers()
+        existing = Registry.serializers
+        prov.read(json_content)
+        assert Registry.serializers is existing
     finally:
         Registry.serializers = original
 
