@@ -121,6 +121,22 @@ RELATION_MAP = {
 :meth:`~ProvRDFSerializer.decode_container`: maps each PROV-O relation
 predicate URIRef to the name of the :class:`~prov.model.ProvBundle` factory
 method used to recreate it (e.g. ``bundle.derivation(...)``)."""
+
+#: Relation families that emit both a binary triple and a prov:qualified*
+#: node for an anonymous relation with extra attributes; on decode the binary
+#: triple is reconciled onto that qualified node (its first two formal
+#: attributes) rather than creating a second record. Maps each family's
+#: factory name to the PROV-O predicate that carries its influencer on the
+#: qualified node (used to disambiguate when a subject points at several
+#: nodes of the same kind, #226/#250).
+_QUALIFIED_RELATION_INFLUENCER: dict[str, URIRef] = {
+    "delegation": URIRef(PROV["agent"].uri),
+    "association": URIRef(PROV["agent"].uri),
+    "attribution": URIRef(PROV["agent"].uri),
+    "communication": URIRef(PROV["activity"].uri),
+    "influence": URIRef(PROV["influencer"].uri),
+}
+
 PREDICATE_MAP = {
     RDFS.label: pm.PROV["label"],
     URIRef(PROV["atLocation"].uri): PROV_LOCATION,
@@ -870,14 +886,11 @@ class ProvRDFSerializer(Serializer):
                     getattr(bundle, relation_mapper[pred])(
                         subj, str(obj), mentionBundle
                     )
-                elif "actedOnBehalfOf" in pred or "wasAssociatedWith" in pred:
-                    qualifier = (
-                        "qualified"
-                        + relation_mapper[pred].upper()[0]
-                        + relation_mapper[pred][1:]
-                    )
+                elif relation_mapper[pred] in _QUALIFIED_RELATION_INFLUENCER:
+                    name = relation_mapper[pred]
+                    qualifier = "qualified" + name.upper()[0] + name[1:]
                     qualifier_bnode = None
-                    agent_pred = URIRef(pm.PROV["agent"].uri)
+                    influencer_pred = _QUALIFIED_RELATION_INFLUENCER[name]
                     for stmt in graph.triples(
                         (URIRef(subj), URIRef(pm.PROV[qualifier].uri), None)
                     ):
@@ -888,14 +901,14 @@ class ProvRDFSerializer(Serializer):
                         # activity, differing only in `responsible` -- which
                         # "last node seen" cannot tell apart. Since #250, a
                         # freshly-encoded node also carries its own
-                        # `prov:agent` triple, so prefer whichever
-                        # candidate's `prov:agent` matches this binary
-                        # triple's object; only fall back to "last node
-                        # seen" (the pre-#250 behaviour, which cannot do
-                        # better) when no candidate carries that triple at
-                        # all, i.e. legacy input.
+                        # influencer triple, so prefer whichever candidate's
+                        # influencer matches this binary triple's object;
+                        # only fall back to "last node seen" (the pre-#250
+                        # behaviour, which cannot do better) when no
+                        # candidate carries that triple at all, i.e. legacy
+                        # input.
                         qualifier_bnode = candidate
-                        if (candidate, agent_pred, obj) in graph:
+                        if (candidate, influencer_pred, obj) in graph:
                             break
                     if qualifier_bnode is None:
                         getattr(bundle, relation_mapper[pred])(subj, str(obj))

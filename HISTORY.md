@@ -23,6 +23,10 @@
   qualified `prov:Start`/`prov:End` node are now decoded into the relation's
   formal `prov:time` attribute, instead of being stripped into extra
   attributes (#299).
+- Anonymous attribution, communication and influence relations carrying
+  extra attributes now reconcile onto their `prov:qualified*` node when
+  decoded from RDF, as delegation and association already did, instead of
+  producing a duplicate record (#303).
 
 ## 2.5.2 (2026-08-08)
 
