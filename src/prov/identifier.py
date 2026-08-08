@@ -5,6 +5,15 @@ from typing import Any
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
+# PROV-N metacharacters that must be backslash-escaped in the local part of a
+# qualified name (grammar production [55] PN_CHARS_ESC, #223). PN_CHARS_ESC
+# also lists '-' and '.' as escapable, but both are otherwise legal unescaped
+# there ('-' is a PN_CHARS character; '.' is legal unescaped except as the
+# final character of PN_LOCAL) so they are left untouched here -- only the
+# nine characters that are illegal unescaped anywhere in a local part are
+# escaped.
+_PROVN_LOCAL_ESCAPE = str.maketrans({c: f"\\{c}" for c in "='(),:;[]"})
+
 
 class Identifier:
     """Base class for all identifiers and also represents xsd:anyURI."""
@@ -91,9 +100,23 @@ class QualifiedName(Identifier):
     def __hash__(self) -> int:
         return hash(self.uri)
 
+    def provn_bare_representation(self) -> str:
+        """Return the ``prefix:local`` PROV-N form used at IDENTIFIER positions.
+
+        The local part's PROV-N metacharacters (``= ' ( ) , : ; [ ]``) are
+        backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223);
+        the prefix is never escaped, as it cannot contain these characters.
+        """
+        escaped_localpart = self._localpart.translate(_PROVN_LOCAL_ESCAPE)
+        return (
+            ":".join([self._namespace.prefix, escaped_localpart])
+            if self._namespace.prefix
+            else escaped_localpart
+        )
+
     def provn_representation(self) -> str:
         """Return the PROV-N representation of this qualified name as a quoted string."""
-        return f"'{self._str}'"
+        return f"'{self.provn_bare_representation()}'"
 
 
 class Namespace:

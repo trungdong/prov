@@ -1,5 +1,11 @@
 # History
 
+## 2.5.3 (unreleased)
+
+- Escaped PROV-N metacharacters (`= ' ( ) , : ; [ ]`) in the local parts of
+  qualified names, so identifiers containing them serialise to valid PROV-N
+  (#223). Backslashes in string literals are now escaped before quotes.
+
 ## 2.5.2 (2026-08-08)
 
 - Security: PROV-XML parsing no longer resolves DTD entities and never
