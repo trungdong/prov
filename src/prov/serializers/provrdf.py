@@ -361,7 +361,8 @@ class ProvRDFSerializer(Serializer):
         Raises:
             ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
         """
-        assert self.document is not None
+        if self.document is None:  # pragma: no cover -- set by the caller
+            raise AssertionError("self.document is not populated")
         # 1. Longest namespace URI bound in the graph that is a proper prefix
         # of the IRI (see the docstring on why document namespaces are skipped).
         best_prefix, best_uri = None, ""
