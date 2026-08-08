@@ -2,6 +2,14 @@
 
 ## 2.5.2 (unreleased)
 
+- Security: PROV-XML parsing no longer resolves DTD entities and never
+  touches the network (`resolve_entities=False`, `no_network=True`),
+  closing an XXE surface on untrusted input. Both `etree.parse()` call
+  sites previously inherited lxml's process-global default parser, which
+  any other library in the same process can repoint via
+  `etree.set_default_parser()` — with a permissive parser installed that
+  way, an external entity resolved and leaked the referenced file's
+  contents through `ProvDocument.deserialize()` (#273)
 - Documentation: the support policy on this branch is brought in line with
   the 3.x line's — the 2.x release receives security fixes plus bug fixes
   back-ported from 3.x up to and including 2.6.0, after which it reverts to
