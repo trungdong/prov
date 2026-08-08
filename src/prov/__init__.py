@@ -65,7 +65,8 @@ def read(
     from prov.model import ProvDocument
     from prov.serializers import Registry
 
-    Registry.load_serializers()
+    if Registry.serializers is None:
+        Registry.load_serializers()
     assert Registry.serializers is not None  # populated by load_serializers()
     serializers = Registry.serializers.keys()
 
