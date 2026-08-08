@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
-__version__ = "2.5.1"
+__version__ = "2.5.2"
 
 __all__ = ["Error", "model", "read"]
 

@@ -1,6 +1,6 @@
 # History
 
-## 2.5.2 (unreleased)
+## 2.5.2 (2026-08-08)
 
 - Security: PROV-XML parsing no longer resolves DTD entities and never
   touches the network (`resolve_entities=False`, `no_network=True`),
