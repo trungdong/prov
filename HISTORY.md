@@ -5,6 +5,12 @@
 - Escaped PROV-N metacharacters (`= ' ( ) , : ; [ ]`) in the local parts of
   qualified names, so identifiers containing them serialise to valid PROV-N
   (#223). Backslashes in string literals are now escaped before quotes.
+- Anonymous `prov:qualified*` nodes for communication, attribution,
+  delegation and influence now carry their own influencer property, as the
+  PROV-O qualification tables require, so a qualification node is
+  interpretable without its shorthand binary triple (#250). Decoding uses
+  that property to tell several same-kind qualification nodes apart instead
+  of guessing (#226).
 
 ## 2.5.2 (2026-08-08)
 
