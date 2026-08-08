@@ -16,6 +16,9 @@
   (#224), and escapes attribute-name local parts that are not legal XML
   NCNames using the `_xHHHH_` convention instead of emitting invalid XML
   (#289).
+- The PROV-JSON deserializer now raises `ProvJSONException` with a message
+  naming the offending construct when given malformed input, instead of
+  letting `KeyError`, `AttributeError` or `TypeError` escape (#228).
 
 ## 2.5.2 (2026-08-08)
 
