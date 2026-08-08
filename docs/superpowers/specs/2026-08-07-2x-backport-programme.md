@@ -1,7 +1,9 @@
 # Back-porting 3.x Bug Fixes to the 2.x Maintenance Line — Design
 
 **Date:** 2026-08-07
-**Status:** Draft, awaiting maintainer review. Authority for the staged back-port PRs once approved.
+**Status:** **Complete, 2026-08-08.** Stages 0–2 shipped (2.5.2, 2.5.3). Stage 3 was declined
+on the compatibility promise; see "Stage 3 outcome" at the end for what that means per item.
+The programme is closed — this document is now a record, not a work queue.
 **Scope:** Decides *which* fixes merged into `master` after the 2.5.1 tag are portable to
 `origin/2.x`, *in what order*, and *under which release*. This document ships no code; each
 stage below is executed as its own PR series.
@@ -226,6 +228,11 @@ Each PR carries its own regression test ported from `master`'s corresponding tes
 
 ## Stage 3 — 2.6.0, output-changing conformance fixes
 
+> **DECLINED, 2026-08-08 — not implemented.** Everything below is the plan as designed, kept
+> for the record. Only 3B.1 (#345) shipped, and in an additive shape rather than the one
+> described here. See "Stage 3 outcome" at the end of this document for the decision and the
+> per-item reasoning. Do not execute this section.
+
 Everything here changes output or decoded values for documents that already round-trip today.
 That is why it cannot ride in a patch release.
 
@@ -338,3 +345,56 @@ changelog line.
 **Resolved 2026-08-07:** the 2.x support window is bounded by scope, not time — back-ported
 fixes through 2.6.0, then security-only (see 0.1). The migrated 2.x changelog mirrors
 `master`'s structure, archiving pre-2.0.0 entries (see 0.2).
+
+**Resolved 2026-08-08:** question 1 is answered **no** — Stage 3 is declined and there is no
+2.6.0. Question 3 is moot. Question 2 is settled by events: 2.7/2.8 shipped in 2.5.3 and no
+Stage 3A exists to move them to. See below.
+
+## Stage 3 outcome — declined, 2026-08-08
+
+Stage 3 was planned, then declined by the maintainer before implementation, on the grounds
+that it breaks the API-stability promise published in `ROADMAP.md` §"API-stability promise
+for 2.x" (identical text on both branches):
+
+> - Every documented name stays importable from its historic location.
+> - No behaviour-changing bug fixes land in 2.x. Where a fix would alter existing output or
+>   semantics, it is documented and deferred to **3.0**, so upgrading within 2.x is always safe.
+
+Stage 3 was *defined* as "everything that changes output or decoded values for documents that
+already round-trip today", so the promise excludes it almost by construction. This is the
+alternative the Stage 3 preamble already named: leave it unported and direct affected users
+at 3.x. The semver stretch argued for there was never reached — the blocker is the published
+compatibility promise, which is a stronger commitment than semver alone and was not the
+maintainer's to trade away quietly.
+
+**One item survived and shipped:** 3B.1 (#345), because the 2.x port is additive rather than
+a rename. Merged to `2.x` unreleased ([PR #390](https://github.com/trungdong/prov/pull/390));
+its changelog entry sits under `## Unreleased` in `HISTORY.md` for whatever ships next.
+
+### Per-item reasons for not porting
+
+| # | PR | What it changes for a working document | Verdict |
+|---|---|---|---|
+| 3A.1 | #282 | PROV-N floats go from `%g`-truncated `xsd:float` to full-precision `xsd:double`; out-of-int32 ints gain explicit datatype suffixes; `Literal("42", XSD_LONG)` stops collapsing to `int` | Declined — output *and* decoded values |
+| 3A.2 | #285 | RDF stops decorating plain strings with `^^xsd:string` (81 of 2.x's own `.ttl` fixtures carry it); `xsd:decimal` compares in value space; language tags compare case-insensitively | Declined — already listed in `docs/upgrading-3.0.md`'s "Behaviour-changing bug fixes" table as deferred to 3.0, so the promise had already committed to holding it |
+| 3A.3 | #286 | `xsd:double` emits at full precision instead of rdflib's 6-significant-digit form; datatypes without a lossless collapse decode from the RDF term's lexical form | Declined — output *and* decoded values |
+| 3A.4 | #296 | Turtle/TriG uses declared prefixes instead of rdflib-minted `ns1:` fallbacks, and renders a default namespace as `:local` | Declined, and the closest call. The RDF graph is isomorphic — identical IRIs, identical triples, round-trip equality untouched — so only byte-comparers see it. Declined on the strict reading: "existing output" means bytes |
+| 3B.1 | #345 | Nothing — additive on 2.x | **Shipped**, PR #390 |
+| 3C.1 | #283 | PROV-JSON `"$"` becomes a JSON string for every int and float, where 2.5.x emits a native JSON number | Declined. Was briefly taken during planning (overturning this document's hold recommendation), then moot once Stage 3 was declined |
+| 3C.2 | #284 | PROV-JSON emits `"type": "xsd:QName"` instead of `prov:QUALIFIED_NAME`; `prov:QUALIFIED_NAME` literals resolve to `QualifiedName`s at assertion time | Declined — output and decoded values. The decode-widening half alone (also accepting `xsd:QName` on input) is close to additive, but it still changes what an already-parsing document decodes to |
+| 3D.1 | #292 | Reverses the `alternateOf` RDF triple direction | Declined — the most visible break in the set |
+| 3D.2 | #293 | `xsd:base64Binary` decodes to `str` instead of `bytes` | Declined — decoded value type |
+
+### Consequences
+
+- **No 2.6.0.** The back-port programme ends at 2.5.3.
+- **`ROADMAP.md` needs no amendment.** Stage 3 would have contradicted the API-stability
+  promise on both branches — an amendment Stage 0 never contemplated, since 0.1/0.4 covered
+  only `SECURITY.md`/`README.md`. Declining Stage 3 leaves the promise intact and true.
+- **The support-policy text now overshoots.** `SECURITY.md` and `README.md` on both branches
+  promise back-ported bug fixes "until `2.6.0`" / "up to and including 2.6.0", written when a
+  substantive 2.6.0 was expected. With no 2.6.0 coming, that wording should be revisited to
+  say the window closed at 2.5.3. Not done here — it is a user-facing policy edit, separate
+  from this record.
+- **Users needing the conformance corrections go to 3.x**, which is exactly what the promise
+  told them would happen.
