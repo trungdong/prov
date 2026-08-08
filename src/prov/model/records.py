@@ -88,7 +88,11 @@ OptionalID = QualifiedNameCandidate | None  # type: typing.TypeAlias
 EntityRef = Union["ProvEntity", QualifiedNameCandidate]  # type: typing.TypeAlias
 ActivityRef = Union["ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
 AgentRef = Union["ProvAgent", "ProvEntity", "ProvActivity", QualifiedNameCandidate]  # type: typing.TypeAlias
-GenrationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
+GenerationRef = Union["ProvGeneration", QualifiedNameCandidate]  # type: typing.TypeAlias
+#: Misspelling of :data:`GenerationRef`, kept as an alias because it has been
+#: the public spelling since 2.4.0 and the 2.x line does not remove documented
+#: names. `master` renames it outright for 3.0.
+GenrationRef = GenerationRef  # type: typing.TypeAlias
 UsageRef = Union["ProvUsage", QualifiedNameCandidate]  # type: typing.TypeAlias
 RecordAttributesArg = (
     dict[QualifiedNameCandidate, Any] | Iterable[tuple[QualifiedNameCandidate, Any]]
@@ -823,7 +827,7 @@ class ProvEntity(ProvElement):
         self,
         usedEntity: EntityRef,
         activity: ActivityRef | None = None,
-        generation: GenrationRef | None = None,
+        generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
@@ -906,7 +910,7 @@ class ProvEntity(ProvElement):
         self,
         usedEntity: EntityRef,
         activity: ActivityRef | None = None,
-        generation: GenrationRef | None = None,
+        generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
@@ -935,7 +939,7 @@ class ProvEntity(ProvElement):
         self,
         usedEntity: EntityRef,
         activity: ActivityRef | None = None,
-        generation: GenrationRef | None = None,
+        generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:
@@ -964,7 +968,7 @@ class ProvEntity(ProvElement):
         self,
         usedEntity: EntityRef,
         activity: ActivityRef | None = None,
-        generation: GenrationRef | None = None,
+        generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
     ) -> ProvEntity:

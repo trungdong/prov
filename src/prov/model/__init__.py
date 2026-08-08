@@ -49,6 +49,7 @@ from prov.model.records import (
     AgentRef as AgentRef,
     DatetimeOrStr as DatetimeOrStr,
     EntityRef as EntityRef,
+    GenerationRef as GenerationRef,
     GenrationRef as GenrationRef,
     Literal as Literal,
     NameValuePair as NameValuePair,

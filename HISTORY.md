@@ -1,5 +1,14 @@
 # History
 
+## Unreleased
+
+- Added `prov.model.GenerationRef`, the correctly spelled name for the
+  `GenrationRef` type alias used in the `generation` parameter's annotation
+  on `wasDerivedFrom`/`wasRevisionOf`/`wasQuotedFrom`/`hadPrimarySource`
+  (#345). The misspelling remains importable as an alias for the correct
+  name, so existing annotations keep resolving; `master` renames it outright
+  for 3.0.
+
 ## 2.5.3 (2026-08-08)
 
 - Escaped PROV-N metacharacters (`= ' ( ) , : ; [ ]`) in the local parts of
