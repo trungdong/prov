@@ -6,6 +6,7 @@ pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
 only the genuinely RDF-specific cases.
 """
 
+import datetime
 import logging
 import os
 import struct
@@ -19,7 +20,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import ConjunctiveGraph, Dataset, Graph
 
 import prov.model as pm
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvException
 from prov.serializers.provrdf import (
     ProvRDFException,
     ProvRDFSerializer,
@@ -512,3 +513,121 @@ def test_legacy_qualified_delegation_without_influencer_still_parses():
         if record.get_type().localpart == "Delegation"
     ]
     assert len(delegations) == 2
+
+
+def test_decode_qualified_start_started_at_time_lands_in_formal_time():
+    # #299: some PROV-O producers put the time on a qualified prov:Start
+    # node using the binary prov:startedAtTime predicate (which prov's own
+    # encoder never emits for a qualified node -- it always uses
+    # prov:atTime there) rather than the generic prov:atTime spelling.
+    # Document equality would pass even with the bug (that is exactly why
+    # it stayed invisible), so this asserts formal_attributes/extra_attributes
+    # directly instead.
+    turtle = """
+    @prefix ex: <http://example.org/> .
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+    ex:a1 a prov:Activity ;
+        prov:qualifiedStart ex:n1 .
+
+    ex:n1 a prov:Start ;
+        prov:startedAtTime "2020-01-01T00:00:00"^^xsd:dateTime ;
+        prov:entity ex:trig .
+    """
+    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    (start,) = [r for r in doc.get_records() if type(r).__name__ == "ProvStart"]
+    formal = dict(start.formal_attributes)
+    time_values = {value for name, value in formal.items() if name.localpart == "time"}
+    assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}
+    extra_names = {str(name) for name, _value in start.extra_attributes}
+    assert "prov:startTime" not in extra_names
+
+
+def test_decode_qualified_end_ended_at_time_lands_in_formal_time():
+    # #299, End's half of the fix above.
+    turtle = """
+    @prefix ex: <http://example.org/> .
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+    ex:a1 a prov:Activity ;
+        prov:qualifiedEnd ex:n1 .
+
+    ex:n1 a prov:End ;
+        prov:endedAtTime "2020-01-01T00:00:00"^^xsd:dateTime ;
+        prov:entity ex:trig .
+    """
+    doc = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    (end,) = [r for r in doc.get_records() if type(r).__name__ == "ProvEnd"]
+    formal = dict(end.formal_attributes)
+    time_values = {value for name, value in formal.items() if name.localpart == "time"}
+    assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}
+    extra_names = {str(name) for name, _value in end.extra_attributes}
+    assert "prov:endTime" not in extra_names
+
+
+def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_limitation():
+    # #217 guard: the #299 rewrite must not resurrect the rejected
+    # permutation-decode option. Two prov:startedAtTime values on the same
+    # identified qualified prov:Start node are just as irreconcilable as two
+    # prov:atTime values, and must fail rather than silently fabricating two
+    # same-identifier records.
+    #
+    # On `master`, this failure is relabelled with a friendly
+    # "documented PROV-O representational limitation" message pointing at
+    # conformance.md (see `_repeated_formal_attribute`/`_emit_decoded_records`
+    # in `provrdf.py`). That relabelling was introduced by a separate,
+    # 3.0-only commit ("Document #217 as a permanent PROV-O representational
+    # limitation") that Stage 2 does not back-port, so on 2.x the same
+    # duplicate-value case still raises the raw
+    # `ProvRecord.add_attributes()` message. This test is adapted to assert
+    # that raw message instead, while still guarding the behaviour that
+    # matters here: a ProvException, not a second fabricated record.
+    turtle = """
+    @prefix ex: <http://example.org/> .
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+    ex:a1 a prov:Activity ;
+        prov:qualifiedStart ex:n1 .
+
+    ex:n1 a prov:Start ;
+        prov:entity ex:trig ;
+        prov:startedAtTime "2020-01-01T00:00:00"^^xsd:dateTime,
+            "2021-01-01T00:00:00"^^xsd:dateTime .
+    """
+    with pytest.raises(ProvException) as ctx:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    message = str(ctx.value)
+    assert "Cannot have more than one value for attribute" in message
+    assert "prov:time" in message
+
+
+def test_decode_qualified_start_at_time_still_lands_in_formal_time():
+    # Regression: prov's own qualified-node spelling (prov:atTime, built via
+    # the model API's start(..., time=...)) must keep decoding onto the
+    # formal prov:time slot exactly as before the #299 rewrite.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    document.start(
+        "ex:a1", "ex:e1", identifier="ex:s1", time=datetime.datetime(2020, 1, 1)
+    )
+
+    rdf = document.serialize(format="rdf")
+
+    # Encode must be unaffected by this decode-only fix: the qualified node
+    # still uses prov:atTime, never the binary prov:startedAtTime spelling.
+    assert "prov:atTime" in rdf
+    assert "startedAtTime" not in rdf
+
+    decoded = ProvDocument.deserialize(content=rdf, format="rdf")
+    (start,) = [r for r in decoded.get_records() if type(r).__name__ == "ProvStart"]
+    formal = dict(start.formal_attributes)
+    time_values = {value for name, value in formal.items() if name.localpart == "time"}
+    assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}

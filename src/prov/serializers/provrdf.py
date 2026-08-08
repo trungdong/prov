@@ -926,6 +926,15 @@ class ProvRDFSerializer(Serializer):
                     pred_new = PROV_ATTR_ENDER
                 if record_types[subj] in [PROV_START] and "activity" in str(pred_new):
                     pred_new = PROV_ATTR_STARTER
+                # #299: some producers put the binary-triple predicates
+                # prov:startedAtTime/prov:endedAtTime directly on the
+                # qualified Start/End node rather than prov:atTime. Rewrite
+                # them onto the generic prov:time formal attribute, so they
+                # are decoded like every other timed relation's time.
+                if record_types[subj] in [PROV_END] and "endTime" in str(pred_new):
+                    pred_new = PROV_ATTR_TIME
+                if record_types[subj] in [PROV_START] and "startTime" in str(pred_new):
+                    pred_new = PROV_ATTR_TIME
                 if record_types[subj] == PROV_DERIVATION and "entity" in str(pred_new):
                     pred_new = PROV_ATTR_USED_ENTITY
                 if str(pred_new) in [val.uri for val in formal_attributes[subj]]:

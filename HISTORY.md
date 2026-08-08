@@ -19,6 +19,10 @@
 - The PROV-JSON deserializer now raises `ProvJSONException` with a message
   naming the offending construct when given malformed input, instead of
   letting `KeyError`, `AttributeError` or `TypeError` escape (#228).
+- `prov:startedAtTime` and `prov:endedAtTime` asserted directly on a
+  qualified `prov:Start`/`prov:End` node are now decoded into the relation's
+  formal `prov:time` attribute, instead of being stripped into extra
+  attributes (#299).
 
 ## 2.5.2 (2026-08-08)
 
