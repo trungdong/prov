@@ -21,6 +21,14 @@ Rules that stay live across phases:
 - Never add AI attribution to commits or PRs (no "Co-Authored-By: Claude", no "Generated with
   Claude Code").
 
+## Releasing
+
+`docs/releasing.md` is the runbook for cutting a release, from a green `master` to PyPI and
+conda-forge — read it before starting release work. It is written for Claude Code to execute,
+not for the published docs site, so it's excluded from the Sphinx build (`docs/conf.py`'s
+`exclude_patterns`) and not in `docs/index.rst`'s toctree. If a release turns up a new gotcha,
+add it to that file rather than to a plan document.
+
 ## Setup
 
 Uses `uv`. RDF/XML support and graphical/graph interop (`dot`, `graph`) are optional
