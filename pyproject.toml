@@ -59,7 +59,7 @@ Issues = "https://github.com/trungdong/prov/issues"
 Changelog = "https://prov.readthedocs.io/en/latest/history.html"
 
 [build-system]
-requires = ["setuptools>=83.0.0", "wheel"]  # PEP 508 specifications.
+requires = ["setuptools>=84.0.0", "wheel"]  # PEP 508 specifications.
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
