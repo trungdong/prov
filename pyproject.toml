@@ -41,7 +41,7 @@ rdf = [
     "rdflib>=6.0.0,<8",
 ]
 xml = [
-    "lxml>=3.3.5",
+    "lxml>=6.1.2",
 ]
 plot = [
     "matplotlib>=3.6",
@@ -88,7 +88,7 @@ dev = [
     "pre-commit>=4.6.2",
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.3",
+    "ruff>=0.16.4",
     "types-networkx>=3.4.2.20250509",
     "types-python-dateutil>=2.9.0.20260807",
 ]
