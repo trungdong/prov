@@ -1,177 +1,126 @@
 # Upgrading to 3.0
 
-3.0 is the one release in the `prov` roadmap allowed to break compatibility. Every
-change below was signposted in 2.4.0 (with a runtime warning where that was feasible), so
-code that only saw a `DeprecationWarning`/`FutureWarning` under 2.4.0 needed no change to
-keep working right up to 3.0; this page lists what to do for each change 3.0 makes.
-See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for
-the release-by-release plan and the
+## TL;DR
+
+3.0 is the only release in the `prov` roadmap allowed to break compatibility. Every change
+below was signposted in 2.4.0 with a runtime warning, so **if your test suite ran clean under
+2.4.0 with `-W error::DeprecationWarning -W error::FutureWarning`, upgrading needs no code
+changes.**
+
+The two changes that matter for most users:
+
+1. **`prov.dot` and `prov.graph` need extras now.** Install `prov[dot]` and/or `prov[graph]`
+   if your code imports either module, or calls `prov_to_dot()`/`prov_to_graph()`/
+   `graph_to_prov()`.
+2. **`unified()` now raises instead of silently merging.** `ProvBundle.unified()`/
+   `ProvDocument.unified()` raise `prov.model.ProvUnificationError` when records sharing an
+   identifier disagree on a formal attribute or have incompatible types.
+   `prov_to_dot()`/`prov_to_graph()` call `unified()` internally, so they can raise too.
+
+Everything else is a set of narrow bug fixes (mostly affecting serializer output for edge
+cases, listed below) and one renamed type alias. If neither change above applies to your code,
+skip straight to [what's removed](#removed).
+
+See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for the
+release-by-release plan and the
 [modernisation roadmap design](https://github.com/trungdong/prov/blob/master/docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md)
 for the full rationale.
 
-## Smaller install footprint
+## Install the extras you need
 
-| Change | Signposted in 2.4.0 by | What to do |
+| If your code uses | Install |
+|---|---|
+| `prov.dot`, `prov_to_dot()` | `prov[dot]` |
+| `prov.graph`, `prov_to_graph()`/`graph_to_prov()` | `prov[graph]` |
+| `ProvBundle.plot()`/`ProvDocument.plot()`'s interactive display | `prov[dot]` (pulls in `graph` too) |
+
+A plain `pip install prov` still gives you the core data model and the PROV-JSON/PROV-N/
+PROV-JSONLD serializers with no extras. Extras combine, e.g. `pip install "prov[rdf,xml,dot,graph]"`.
+
+## Dependency changes
+
+- **`python-dateutil` is dropped** in favour of the standard library's
+  `datetime.fromisoformat()`. Typical ISO-8601 timestamps are unaffected. Non-standard strings
+  dateutil parsed permissively (e.g. `"Nov 7, 2011"`, or a bare `xsd:date` like
+  `"2011-11-16"`) are no longer accepted; an unparseable `time=`/`startTime=`/`endTime=`
+  factory argument now raises `prov.model.ProvException` instead of a raw `dateutil` error.
+- **`rdflib` floor raised to 7.0.0.** Upgrade if you pin rdflib 6.x alongside `prov[rdf]`.
+  Output differences are limited to those rdflib 7 already introduced under 2.x.
+
+## Bug fixes that change output or equality
+
+These fix real bugs, but each one changes output bytes or equality semantics for inputs that
+work without error today — that's why they waited for 3.0 rather than shipping in 2.x. Skim
+the "Action" column; most users are unaffected by most rows.
+
+| Issue | What changed | Action |
 |---|---|---|
-| **Done in 3.0.0.dev0:** `pydot`/Graphviz support (`prov.dot`, `prov_to_dot()`) moves behind the `dot` extra | Importing `prov.dot` emitted a `DeprecationWarning` (now removed) | Depend on `prov[dot]` instead of (or in addition to) `prov` if your code imports `prov.dot` or calls `prov_to_dot()`. |
-| **Done in 3.0.0.dev0:** `networkx` graph interop (`prov.graph`, `prov_to_graph()`/`graph_to_prov()`) moves behind the `graph` extra | Importing `prov.graph` emitted a `DeprecationWarning` (now removed) | Depend on `prov[graph]` instead of (or in addition to) `prov` if your code imports `prov.graph` or calls `prov_to_graph()`/`graph_to_prov()`. Note `prov.dot` itself uses `prov.graph`, so `prov[dot]` pulls in `prov[graph]`'s dependency (`networkx`) too. |
-| `python-dateutil` dropped in favour of the standard library's `datetime.fromisoformat()` ([#237](https://github.com/trungdong/prov/issues/237)) | Not separately warned (internal dependency swap) | No action for typical ISO-8601 timestamps. If you rely on `dateutil.parser.parse()`'s more permissive parsing of non-ISO date/time strings inside PROV-JSON/XML/RDF documents, verify those strings still parse under 3.0 — `fromisoformat()` accepts a narrower grammar; bare `xsd:date` strings (e.g. `"2011-11-16"`) and free-form strings like `"Nov 7, 2011"` are no longer accepted. Two behaviour fixes ride along with the swap: factory `time=`/`startTime=`/`endTime=` parameters now raise `prov.model.ProvException` for unparseable strings (previously a raw `dateutil.parser.ParserError` leaked out), and the valid `xsd:dateTime` hour-24 end-of-day lexical form (e.g. `"2011-11-16T24:00:00"`) is now accepted instead of rejected. |
-| `rdf` extra floor raised to `rdflib>=7.0.0` | Not separately warned (dependency floor) | If you pin rdflib 6.x alongside `prov[rdf]`, upgrade to rdflib 7. Serialization differences are limited to those already present under rdflib 7 in 2.x (bundle-local namespaces appear as full IRIs in TriG; round-trip equality is unaffected). |
+| [#89](https://github.com/trungdong/prov/issues/89) | RDF no longer decorates a plain string value with `^^xsd:string`. | Only matters if you byte-compare RDF output — semantic equality is unaffected. |
+| [#34](https://github.com/trungdong/prov/issues/34) | Attribute sets used to silently drop Python-equal-but-differently-typed values (e.g. `2`/`2.0`, `1`/`True`); all distinct values are now kept. `get_attribute()`/`get_asserted_types()`/`.value` keep their 2.x behaviour. | Recheck code that reads attributes via `attributes`/`extra_attributes`/equality/serialization and relied on the old collapsing, or that mutated a `get_asserted_types()` result in place (no longer writes through). |
+| [#77](https://github.com/trungdong/prov/issues/77) | `xsd:decimal` literals now compare/hash by value, not lexical form (`10` and `10.00` are now equal). | Recheck code relying on differently-formatted decimals comparing unequal. |
+| [#259](https://github.com/trungdong/prov/issues/259) | Language tags now compare/hash case-insensitively; serialized output keeps its original casing. | Recheck code relying on differently-cased tags comparing unequal. |
+| [#168](https://github.com/trungdong/prov/issues/168) | PROV-JSON now emits `xsd:QName` (not the non-standard `prov:QUALIFIED_NAME`) for qualified-name values; both still decode. | Accept `xsd:QName` if you hand-parse this type yourself. |
+| [#238](https://github.com/trungdong/prov/issues/238) | A `prov:QUALIFIED_NAME`-typed `Literal` now resolves to a `QualifiedName` on assertion, restoring round-trip equality. | Recheck code that inspected the raw `Literal` type. |
+| [#235](https://github.com/trungdong/prov/issues/235)/[#249](https://github.com/trungdong/prov/issues/249)/[#251](https://github.com/trungdong/prov/issues/251) | A typed integer literal keeps its asserted datatype instead of silently re-typing to `xsd:int`; PROV-N types plain numbers by magnitude instead of truncating. | Recheck byte-comparisons of PROV-N output. |
+| [#244](https://github.com/trungdong/prov/issues/244)/[#246](https://github.com/trungdong/prov/issues/246)/[#256](https://github.com/trungdong/prov/issues/256) | Plain ints are typed by magnitude (not always `xsd:int`) in JSON/XML/RDF output; PROV-JSON's typed-literal value is always a JSON string. | Recheck code that parses PROV-JSON's `$` as a JSON number. |
+| [#218](https://github.com/trungdong/prov/issues/218)/[#225](https://github.com/trungdong/prov/issues/225) | RDF decoding preserves the original lexical form for datatypes Python can't losslessly round-trip; `xsd:double` values are emitted at full precision. | Recheck byte-comparisons of RDF/turtle output. |
+| [#223](https://github.com/trungdong/prov/issues/223) | PROV-N now escapes metacharacters in identifiers and backslashes in string literals. | Recheck any hand-parsing of PROV-N output. |
+| [#250](https://github.com/trungdong/prov/issues/250)/[#226](https://github.com/trungdong/prov/issues/226) | Anonymous qualified relations (Communication/Attribution/Delegation/Influence) now always carry their influencer property in PROV-O. | Recheck dedup logic keyed on the old (incomplete) triple shape. |
+| [#258](https://github.com/trungdong/prov/issues/258) | `alternate()` now emits PROV-O in the correct (untransposed) subject/object order. | Only matters if you byte-compare output — `alternateOf` is symmetric, so semantic equality is unaffected. |
+| [#288](https://github.com/trungdong/prov/issues/288) | `xsd:base64Binary` RDF values decode to their base64 text, not a Python bytes repr. | Recheck code that processes this attribute type. |
+| [#299](https://github.com/trungdong/prov/issues/299) | A qualified Start/End node's binary `prov:startedAtTime`/`endedAtTime` predicate now populates the relation's formal `prov:time`, instead of landing as an extra attribute. | Recheck code reading the old extra attribute. |
+| [#303](https://github.com/trungdong/prov/issues/303) | Anonymous Communication/Attribution/Influence relations with extra attributes no longer decode into two duplicate records. | None — this only fixes a round-trip bug. |
+| [#294](https://github.com/trungdong/prov/issues/294) | A qualified name ending in a PROV-N metacharacter now round-trips through PROV-O instead of raising `ValueError`. | None — this only fixes a round-trip bug. |
+| [#96](https://github.com/trungdong/prov/issues/96) | Bundle-local and default namespace prefixes are now bound in RDF output instead of falling back to an rdflib-minted prefix. | Recheck byte-comparisons of turtle/TriG prefixes. |
+| [#217](https://github.com/trungdong/prov/issues/217) | **Documented limitation, not a fix:** two same-identifier relations that disagree on a formal attribute still can't round-trip through PROV-O. Decoding now raises a clear, chained error pointing at {doc}`reference/conformance` instead of a raw one. | Give such relations distinct identifiers if you need them to survive an RDF round trip. |
+| [#224](https://github.com/trungdong/prov/issues/224) | Empty-string attribute values now survive a PROV-XML round trip (previously dropped). | None — this only fixes a round-trip bug. |
+| [#289](https://github.com/trungdong/prov/issues/289) | An attribute name that isn't a legal XML NCName is now escaped instead of raising `ValueError`; see {doc}`reference/conformance` for the escaping rules. | None for already-legal names. Drop any workaround you had for the old `ValueError`. |
+| [#228](https://github.com/trungdong/prov/issues/228) | Malformed PROV-JSON now raises `prov.serializers.provjson.ProvJSONException` instead of a raw `KeyError`/`AttributeError`/`TypeError`. | **Update exception handlers**: catch `ProvJSONException` instead of the raw types around PROV-JSON deserialization. |
+| [#273](https://github.com/trungdong/prov/issues/273) | PROV-XML parsing now uses a hardened parser; external DTD entities no longer resolve (affected values come back empty instead of expanded). | If you need to *detect* rather than just neutralise entity use, reject documents containing `<!DOCTYPE` before deserializing. |
 
-A plain `pip install prov` keeps working for the core data model and the JSON/PROV-N
-serializers; add the relevant extra(s) if you use graphics export or graph interop. The
-`plot` extra (`ProvBundle.plot()`/`ProvDocument.plot()`) also now carries `pydot` and
-`networkx`, since its interactive-display path renders through `prov.dot`.
+## `unified()` now enforces PROV-CONSTRAINTS
 
-## Behaviour-changing bug fixes
+Before 3.0, `unified()` merged same-identifier records by unioning their attributes with no
+conflict detection. 3.0 replaces this with real
+[PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) merging — see the
+[unification and flattening explanation](explanation/unification-flattening.md) for the full
+model. In short:
 
-These fix real bugs, but each one changes output or equality semantics for inputs that
-work (without error) today, so none of them can land in the 2.x series under the
-API-stability promise. No 2.4.0 runtime warning is feasible for these — the affected
-code paths are ordinary attribute/literal handling with no single import or call site to
-hook a warning onto — so this table is their only 2.4.0 signpost.
+- Records sharing an identifier are merged by unifying formal attributes position-by-position.
+  **Two different concrete values for the same formal attribute now raise
+  `prov.model.ProvUnificationError`** instead of merging silently. A missing attribute still
+  unifies with any concrete value, as before.
+- Records sharing an identifier but of **incompatible types** (e.g. an entity and an activity)
+  now raise the same error, naming both types, instead of merging into whichever record was
+  asserted first. Overlaps the spec permits (e.g. an agent that's also an entity) still merge
+  as separate, per-type records.
+- Each bundle unifies independently — nothing merges across a bundle boundary.
+- Non-formal ("extra") attributes still keep their set-union behaviour.
+- Out of scope: uniqueness constraints not keyed on the record identifier (Constraints 24–29)
+  belong to the separate, opt-in validation engine tracked as
+  [#62](https://github.com/trungdong/prov/issues/62).
 
-| Issue | Problem today | What changes in 3.0 | What to do |
-|---|---|---|---|
-| [#89](https://github.com/trungdong/prov/issues/89) | A literal parsed with an explicit `^^xsd:string` datatype and a plain (datatype-less) literal are both stored as a bare `str`, so the original form isn't recoverable on re-serialization, and the RDF/PROV-JSON serializers disagree on which form to emit. | Serializers emit one consistent canonical form for string literals: the plain, undecorated form. RDF output no longer decorates a plain string attribute value with `^^xsd:string`; PROV-JSON was already undecorated. | If you compare serialized RDF output byte-for-byte, re-check it against 3.0 output. Document-level (semantic) equality is unaffected: RDF 1.1 treats a plain literal and an `xsd:string`-typed one as the same value, so deserializing either still yields the same `str`. |
-| [#34](https://github.com/trungdong/prov/issues/34) | Each attribute's values are stored in a plain Python `set`, whose membership test is value-based, so Python-equal-but-differently-typed values (e.g. `2` and `2.0`, or `1` and `True`) silently collapse to whichever was inserted first — at record construction, across `add_attributes()` calls, and inside `unified()`'s extra-attribute union. Record equality/hashing (which read the same storage) can't tell a lossy record from a complete one either. | Each attribute's values are now held internally in a type-aware container keyed on `(type(value), value)`, so distinct PROV values are retained instead of colliding; genuine duplicates (equal type and value) still dedupe to the *first* value asserted, matching plain `set.add()` and `add_attributes()`'s own single-value cardinality guard — including across `Literal`'s `xsd:decimal` value-space equality (#77) and its language-tag case-insensitive equality (#259), where the first-asserted lexical form/tag casing is the one that survives. This is observable through `attributes`/`extra_attributes` iteration (each retained value now appears, once per value), record equality and hashing (two records differing only in a previously-lost value no longer compare equal), and serialization (a mixed-type multi-value attribute round-trips through JSON/XML/RDF with every value intact). **`get_attribute()`, `get_asserted_types()` and the `value` property deliberately keep their 2.x return type** — `prov` is a published dependency of ProvStore, and the maintainer chose return-type stability over exposing the new internal container type. Each still returns a plain `set`, built fresh from the record's own storage on every call, and a Python-equal-but-differently-typed pair still collapses in what these three accessors specifically return, exactly as in 2.x — but the fresh-copy-per-call semantics itself is new: in 2.x these accessors returned the record's own live `set`, so mutating the returned object (e.g. `record.get_asserted_types().add(qn)`) mutated the record, and that write-through path is gone in 3.0, so the same mutation now silently no-ops instead. `get_asserted_types()` is unaffected in practice: `prov:type` values are always `QualifiedName`s, which never collapse under Python equality. Separately, iterating a record's attributes now visits values in assertion order rather than an arbitrary hash-bucket order, which also makes `args`, `formal_attributes`, and `ProvActivity.get_startTime()`/`get_endTime()` deterministic where they previously picked an arbitrary one of several values. | If your code depends on same-value-different-type attributes collapsing (or on which of the colliding values survives) when read through `attributes`/`extra_attributes`, equality, or serialization, re-check it against 3.0 — most callers will simply see more attributes preserved. Code that only ever reads attributes through `get_attribute()`/`get_asserted_types()`/`.value` sees unchanged (2.x) behaviour and needs no change. If you relied on `args`/`formal_attributes`/an activity's start or end time resolving an ambiguous multi-value case to an arbitrary value, expect a specific (assertion-order) one instead. |
-| [#77](https://github.com/trungdong/prov/issues/77) | `Literal` stores its value as a string and compares/hashes lexically, so `Literal(10, XSD_DECIMAL)` and `Literal(10.0, XSD_DECIMAL)` compare unequal despite denoting the same `xsd:decimal` value. | `xsd:decimal` literals compare and hash in value space (via Python's `decimal.Decimal`), so `Literal(10, XSD_DECIMAL)`, `Literal(10.0, XSD_DECIMAL)` and `Literal("10.00", XSD_DECIMAL)` are now equal and deduplicate in attribute sets; the literal itself is unchanged (still a `Literal`, not converted to a native `Decimal`). | If you rely on lexical (string) inequality between differently-formatted decimal literals denoting the same value, re-check that code against 3.0. |
-| [#259](https://github.com/trungdong/prov/issues/259) | `Literal` language tags compare/hash case-sensitively, so `Literal("hello", langtag="EN")` and `Literal("hello", langtag="en")` compare unequal even though RDF 1.1 language tags are case-insensitive. | Language tags compare and hash case-insensitively; the stored tag itself is left untouched, so serialized output still carries its original case verbatim. | If you rely on differently-cased language tags comparing unequal, re-check that code against 3.0. Serialized output is unaffected. |
-| [#168](https://github.com/trungdong/prov/issues/168) | PROV-JSON encodes `QualifiedName` attribute values with the non-standard `prov:QUALIFIED_NAME` type instead of the `xsd:QName` type the PROV-JSON submission specifies. | PROV-JSON emits `{"$": ..., "type": "xsd:QName"}` for `QualifiedName` values; `prov:QUALIFIED_NAME`-typed values in input documents (2.x output, or hand-written) still decode correctly. | If you consume PROV-JSON produced by `prov` and parse the `"type"` of qualified-name attributes yourself, accept `xsd:QName` as well as (or instead of) `prov:QUALIFIED_NAME`. |
-| [#238](https://github.com/trungdong/prov/issues/238) | A `Literal` explicitly typed `prov:QUALIFIED_NAME` (for example one decoded from a `prov:QUALIFIED_NAME`-typed PROV-JSON value) is kept as an opaque `Literal` rather than resolved to a `QualifiedName`, so a document built from one and a document round-tripped through PROV-JSON compare unequal. | Asserting a `prov:QUALIFIED_NAME`-typed `Literal` on a record resolves it to a `QualifiedName` using that record's in-scope namespaces, restoring round-trip equality; if the value's prefix has no in-scope namespace it is left as an opaque `Literal` rather than rejected. | If your code inspects the type of an attribute value asserted from a `prov:QUALIFIED_NAME`-typed `Literal`, expect a `QualifiedName` instead where the prefix resolves. |
-| [#235](https://github.com/trungdong/prov/issues/235), [#249](https://github.com/trungdong/prov/issues/249), [#251](https://github.com/trungdong/prov/issues/251) | `Literal("42", XSD_LONG)` is silently re-typed `xsd:int` at assertion time; PROV-N renders out-of-`int32` plain ints as bare (invalid) `INT_LITERAL`s and plain floats as `%g`-truncated `xsd:float`. | A typed `Literal` keeps its asserted datatype unless collapsing it to a plain Python value would be lossless; PROV-N types plain ints by magnitude (`xsd:int`/`xsd:long`/`xsd:integer`) and plain floats as full-precision `xsd:double`. | If you byte-compare PROV-N output or relied on an asserted `xsd:long`/`xsd:integer` literal mutating to `xsd:int`, re-check it against 3.0; the underlying document values are unchanged. |
-| [#244](https://github.com/trungdong/prov/issues/244), [#246](https://github.com/trungdong/prov/issues/246), [#256](https://github.com/trungdong/prov/issues/256) | PROV-JSON, PROV-XML, and PROV-O always tag a plain Python `int` as `xsd:int` regardless of magnitude, producing schema-invalid output for out-of-`int32` values; PROV-JSON also puts the raw `int`/`float` value straight into the typed-literal `$` property instead of a string, which is schema-invalid per the submission. | Plain ints are typed by magnitude (`xsd:int`/`xsd:long`/`xsd:integer`) across all three serializers, and PROV-JSON's `$` is always a JSON string for typed literals. | If you parse PROV-JSON `$` as a JSON number, or assume every plain int is tagged `xsd:int` in PROV-JSON/PROV-XML/PROV-O output, re-check that code against 3.0. |
-| [#218](https://github.com/trungdong/prov/issues/218), [#225](https://github.com/trungdong/prov/issues/225) | PROV-O (RDF) decoding rebuilds a typed `Literal` from rdflib's Python-coerced value, so datatypes without a lossless Python collapse (`xsd:decimal`, `xsd:unsignedInt`, `xsd:positiveInteger`, and similar XSD numeric subtypes) can lose their asserted datatype/lexical form on decode; separately, a plain Python `float` (`xsd:double`) is abbreviated by rdflib's Turtle/TriG writer to ~7 significant digits, so a full-precision value comes back changed. | RDF decoding reconstructs a `Literal` from the RDF term's own lexical form for datatypes without a lossless collapse, so the asserted datatype and lexical form survive; `xsd:double` values are emitted with an explicit datatype tag at full `repr()` precision instead of rdflib's abbreviated bare-literal form. | If you byte-compare PROV-O (RDF) output, expect `xsd:double` values to appear as quoted, explicitly-datatyped literals (e.g. `"0.1"^^xsd:double`) instead of the bare abbreviated form; document-level (semantic) equality and round-trip fidelity both improve. |
-| [#223](https://github.com/trungdong/prov/issues/223) | PROV-N output does not escape a qualified name's local part, so an identifier containing a PROV-N metacharacter (``' ( ) , : ; [ ] =``) produces PROV-N a parser cannot read; string literals containing a backslash are similarly ambiguous, since only `"` was escaped. | PROV-N escapes local-part metacharacters per the grammar's `PN_CHARS_ESC` production, and string literals escape a backslash before escaping `"`. Local parts without these characters, and strings without a backslash, are unaffected. | If you consume PROV-N produced by `prov` and hand-parse identifiers or string literals yourself, expect backslash-escaped metacharacters where they previously appeared bare (invalid) PROV-N. |
-| [#250](https://github.com/trungdong/prov/issues/250), [#226](https://github.com/trungdong/prov/issues/226) | PROV-O output for an anonymous *qualified* Communication/Attribution/Delegation/Influence node omits that relation's influencer property (`prov:activity`/`prov:agent`/`prov:agent`/`prov:influencer`), so the node isn't interpretable in isolation per PROV-O section 3.1; for Delegation specifically, this also means two anonymous delegations sharing the same delegate and qualifying activity but differing in `responsible` collapse on the RDF round trip, since the qualifiedDelegation blank nodes can only be told apart by that missing property. | Every qualification node — identified or anonymous — now carries its influencer property directly, alongside the existing shorthand triple; decoding matches a delegation's qualifiedDelegation node by that property instead of an ambiguous "last node seen" guess. | If you consume PROV-O produced by `prov` and deduplicate qualification nodes by their previous (influencer-less) triple shape, re-check that code against 3.0. Legacy (pre-3.0) input without the influencer property on its qualification nodes still deserializes; where two such legacy nodes are genuinely ambiguous, decoding keeps the old best-effort behaviour. |
-| [#258](https://github.com/trungdong/prov/issues/258) | PROV-O output for `alternate()`/`alternateOf` transposes subject and object relative to the PROV-O cross reference: `alternate(alt1, alt2)` emits `alt2 prov:alternateOf alt1`, and decoding applies the same swap in reverse. | `alternate(alt1, alt2)` emits `alt1 prov:alternateOf alt2` (subject = first argument), and decoding maps the triple's subject straight onto the relation's first argument. `prov:alternateOf` is symmetric per PROV-CONSTRAINTS, so document-level (semantic) equality of `alternate()` statements is unaffected either way. | If you byte-compare PROV-O output for `alternateOf`, or hand-parse `alternateOf` triples and assume the pre-3.0 (transposed) argument order, re-check that code against 3.0. |
-| [#288](https://github.com/trungdong/prov/issues/288) | PROV-O (RDF) decoding of an `xsd:base64Binary` literal wraps the value in a Python bytes repr (e.g. `"b'aGVsbG8='"`) instead of returning the base64 text itself, corrupting the RDF round trip. | `xsd:base64Binary` literals are decoded to their base64 lexical text; a document with a base64Binary-typed attribute round-trips through RDF equal. | If you consume PROV-O produced by `prov` and process `xsd:base64Binary` attribute values, expect the base64 text (e.g. `"aGVsbG8="`) rather than a bytes repr. |
-| [#299](https://github.com/trungdong/prov/issues/299) | PROV-O (RDF) decoding of a qualified `prov:Start`/`prov:End` node that carries its time via the binary `prov:startedAtTime`/`prov:endedAtTime` predicate (rather than the generic `prov:atTime` form `prov` itself always emits) misfiles the value as an extra attribute named `prov:startTime`/`prov:endTime`, leaving the relation's formal `prov:time` attribute `None`. | Decoding reconciles `prov:startedAtTime`/`prov:endedAtTime` asserted on a qualified Start/End node into that relation's formal `prov:time` attribute, matching how `prov:atTime` there is already handled. Encoding is unchanged — `prov` still always emits `prov:atTime` for the qualified form. | If you consume third-party PROV-O using the binary predicate spelling on a qualified Start/End node, expect the time to now populate the formal `prov:time` attribute instead of appearing as an extra `prov:startTime`/`prov:endTime` attribute. |
-| [#303](https://github.com/trungdong/prov/issues/303) | PROV-O (RDF) decoding of an anonymous (unidentified) Communication/Attribution/Influence relation carrying extra attributes reconstructs it twice: once from the shorthand binary triple (`prov:wasInformedBy`/`prov:wasAttributedTo`/`prov:wasInfluencedBy`), once from the `prov:qualified*` node the extra attributes live on, so a document with one such relation decodes back with two, and the round trip is unequal. Delegation and Association already reconciled the two into a single record; the other three families did not. | Decoding reconciles the binary triple onto the same `prov:qualified*` node used for the extra attributes — the mechanism Delegation/Association already used, now generalised to the other three families (Communication, Attribution, Influence) — so exactly one record comes back. Encoding is unchanged — both the binary triple and the qualified node are still emitted. | If you decode third-party PROV-O with this shape, expect one record back instead of two; document-level (semantic) equality now matches what was actually asserted. |
-| [#294](https://github.com/trungdong/prov/issues/294) | A qualified name whose local part ends in a PROV-N metacharacter (`= ' , : ; [ ]`) serializes to PROV-O without error, but decoding it back raised `ValueError: Can't split '<iri>'`: the decoder handed the full IRI to rdflib's `compute_qname`, which refuses to split an IRI ending in such a character (even when it is a perfectly valid qualified name), and the namespace was often absent from the re-parsed graph's prefixes because rdflib drops a prefix declaration it can't use to abbreviate any term. | Decoding resolves an IRI to a `QualifiedName` using `prov`'s own logic: the longest registered namespace (document- or graph-known) that prefixes the IRI, else `compute_qname`, else — when `compute_qname` itself refuses — a split at the IRI's last `#` or `/` with a freshly minted namespace. A genuinely unsplittable IRI (no `#` or `/`) now raises a clear error naming it instead of an obscure rdflib one. Encoding is unchanged. | If you decode PROV-O containing such identifiers, they now round-trip instead of raising. Since `QualifiedName` equality is URI-based, a minted prefix label may differ from the original, but the full IRI (and document-level equality) is preserved. |
-| [#96](https://github.com/trungdong/prov/issues/96) | A namespace registered only on a bundle (not the document), or a document/bundle default namespace (`set_default_namespace()`), is never bound into the RDF serializer's namespace manager, so turtle/TriG output falls back to an rdflib-minted `ns1:`-style prefix, or a full IRI, instead of the declared prefix. | Bundle-local and default namespace prefixes are bound into the output alongside document-level ones; a bundle-local prefix colliding with a document-level one is renamed by rdflib rather than clobbering the document-level binding. | If you byte-compare turtle/TriG output, expect different (and now-declared) prefix labels; document-level (semantic) equality is unaffected. |
-| [#217](https://github.com/trungdong/prov/issues/217) | A document containing two relations that share one identifier but disagree on a formal attribute (e.g. two `wasGeneratedBy` statements for the same identifier asserting different `prov:time` — the "scruffy" pattern referenced below) serializes to RDF without error, but PROV-O has no way to represent the construct: both values land on the same qualified node, so decoding that RDF back raised a raw, unhelpful `ProvException`. | Not a fix — **documented as a permanent PROV-O representational limitation** (see {doc}`reference/conformance`): the RDF serializer's decoder now raises a chained `prov.model.ProvException` that names the limitation and points at that page instead of the raw underlying error. Serialization itself, and every other format (JSON, XML, PROV-N) plus the in-memory model, are unaffected — the construct round-trips cleanly through all of them; only decoding RDF containing this shape is affected. | If you decode third-party RDF and hit this error, the source document encodes a construct PROV-O cannot represent; there is no `prov`-side fix to apply — give the differing relations distinct identifiers (or omit the identifier) instead of reusing one. |
-| [#224](https://github.com/trungdong/prov/issues/224) | An attribute whose value is the empty string `""` (on any attribute, including `prov:label`/`prov:value` and language-tagged literals) is silently dropped by the PROV-XML round trip: lxml reports an empty element's text as `None` rather than `""` on parse, and that `None` then makes the attribute vanish entirely at record construction. JSON and RDF already preserved it. | PROV-XML deserialization coalesces an empty text-value element back to `""` instead of `None`; a genuinely *absent* optional formal attribute (no XML element for it at all) still deserializes as `None` as before. | None — this is a straightforward round-trip fix. If you depended on empty-string attributes vanishing through XML, they now survive instead. |
-| [#289](https://github.com/trungdong/prov/issues/289) | An attribute name is written as a PROV-XML child element tag, but the serializer never checked that the name's local part is a legal XML NCName; a name starting with a digit or containing a character such as `' ( ) , : ; [ ] =` raised a raw `ValueError` instead of serializing. | The serializer escapes NCName-illegal characters using the `_xHHHH_` convention (the same one used by the OpenXML/SQL Server ecosystems for this problem), and the deserializer applies the inverse, so such names now round-trip instead of raising; see {doc}`reference/conformance` for the full escaping rules. Names that are already legal NCNames — including non-ASCII letters, which are legal NCName characters — are emitted exactly as before. | None for existing (legal-NCName) attribute names — output is unchanged. If you previously worked around the `ValueError` by avoiding certain attribute names, that workaround is no longer necessary. If you hand-parse PROV-XML produced by `prov` and an attribute name might contain `_xHHHH_`-shaped text, be aware it is now an escape sequence rather than literal text. |
-| [#228](https://github.com/trungdong/prov/issues/228) | The PROV-JSON deserializer assumes its input has the expected shape (a JSON object container, with a dict-of-records under each record-type key, a dict under `"prefix"`/`"bundle"`, and a `"$"` key on every typed-literal attribute value); structurally malformed but syntactically valid JSON (e.g. a top-level array, a record's value given as a plain string, an unrecognised record-type keyword, a typed-literal value missing `"$"`) leaks a raw `KeyError`/`AttributeError`/`TypeError` from deep inside the decoder instead of the package's own `ProvJSONException`. | The deserializer validates container and typed-literal shape as it decodes and raises `prov.serializers.provjson.ProvJSONException` — naming the offending key and the shape found — for all such cases; where the underlying cause was itself an exception (an unrecognised record-type keyword, a missing `"$"` key), it is chained via `__cause__`. | **BREAKING for exception-handling code:** if you catch `KeyError`/`AttributeError`/`TypeError` around PROV-JSON deserialization to handle malformed input, catch `ProvJSONException` instead. Well-formed PROV-JSON is unaffected. |
-| [#273](https://github.com/trungdong/prov/issues/273) | PROV-XML deserialization parses with `lxml.etree.parse(stream)` and no explicit parser, so entity resolution and network access follow whatever lxml's process-global default parser happens to be configured with — its own default changed across lxml versions, and any other library sharing the process can repoint it via `etree.set_default_parser()`. A crafted document can reference a `SYSTEM` DTD entity that reads a local file into an attribute value if that global default resolves external entities. | PROV-XML parsing always uses an explicit, hardened parser (`resolve_entities=False`, `no_network=True`), independent of lxml's own default or global-parser state. A document with an unresolvable entity reference now deserializes with that reference left unexpanded (e.g. an empty attribute value) instead of raising or, on a permissive parser, resolving it. | If you relied on DTD entity resolution inside PROV-XML input (there is no legitimate PROV use for it), it no longer happens; affected attribute values come back empty instead of expanded. Note that this is a *silent* substitution: combined with the empty-string round-trip fix above ([#224](https://github.com/trungdong/prov/issues/224)), an attribute whose entity was neutered is indistinguishable from one that genuinely carried an empty string. If you deserialize untrusted PROV-XML and need to detect entity use rather than merely neutralise it, reject documents containing a `<!DOCTYPE` declaration — checked against the decoded text, not the raw bytes — before handing them to the deserializer. Well-formed PROV-XML without DTD entities is unaffected. |
+`ProvUnificationError` subclasses `ProvException`, so an existing `except ProvException`
+handler around `unified()` keeps working. `prov_to_dot()` catches the error and falls back to
+rendering the non-unified bundle; `prov_to_graph()` lets it propagate. Building and
+serializing a document with these conflicts is still legal in 3.0 — `prov` performs no
+structural validation at assertion/serialization time by design
+([#257](https://github.com/trungdong/prov/issues/257)) — only calling `unified()` on one (or
+decoding its RDF form) raises.
 
-## Unification rework (PROV-CONSTRAINTS)
+**Action:** if you call `unified()` — directly, or via `prov_to_dot()`/`prov_to_graph()` — on
+documents where same-identifier records might disagree on a formal attribute or type, catch
+`ProvUnificationError` or fix the document to avoid the conflict.
 
-Before 3.0, `ProvBundle.unified()` and `ProvDocument.unified()` performed a simple,
-identifier-keyed attribute union: for each identifier shared by more than one record,
-the attributes of all such records were merged onto a copy of the first, with no
-conflict detection. 2.4.0 signposted the change with a `FutureWarning` on every call.
-See the [unification and flattening explanation](explanation/unification-flattening.md)
-for the full write-up of the 3.0 behaviour.
+## Removed
 
-3.0 lands that reimplementation (closing umbrella issue #253): `unified()` now follows
-the merging rules of [W3C PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)
-(key constraints and term unification), and the 2.4.0 `FutureWarning` is gone —
-`unified()` just does this now, unconditionally. Concretely:
+3.0 removes everything 2.4.0 marked deprecated — nothing else is scheduled for removal:
 
-- Records sharing an identifier are merged by unifying their formal attributes position
-  by position. Two records that hold **different concrete values for the same formal
-  attribute** now **raise `prov.model.ProvUnificationError`** (a `ProvException`
-  subclass) instead of having their attributes silently unioned.
-- An **absent** formal attribute is treated as an existential ("unknown") and unifies
-  with any concrete value, so partial records still merge — this is PROV-CONSTRAINTS
-  §6.1's worked example, and it is unchanged from 2.x. `prov`'s model cannot represent
-  PROV-N's placeholder `-` (every deserializer drops the distinction between "absent"
-  and "explicitly `-`"), so the specification's `-`-versus-concrete merge failure is out
-  of scope by representation.
-- Non-formal ("extra") attributes keep their set-union semantics.
-- Records sharing an identifier but holding **incompatible types** — an entity and an
-  activity, or two distinct relation kinds such as a generation and a usage — now
-  **raise `ProvUnificationError`** naming both types, in either assertion order,
-  instead of merging into a copy of whichever record was asserted first
-  (PROV-CONSTRAINTS Constraints 53/54/55). Overlaps the specification explicitly
-  permits — an agent that is also an entity and/or an activity — are kept as separate,
-  per-type-merged records rather than combined into one.
-- Each scope is unified independently: `ProvDocument.unified()` unifies the top-level
-  records and each bundle separately, and never merges across a bundle boundary
-  (PROV-CONSTRAINTS §7.2).
-- **Out of scope for `unified()`**: the uniqueness constraints keyed on something other
-  than the record identifier (Constraints 24–29) are not checked and never raise; they
-  belong to the opt-in validation engine tracked as
-  [#62](https://github.com/trungdong/prov/issues/62). If that engine ever pulls these
-  constraints in, the natural shape for them is ProvToolbox's — existential expansion
-  plus a substitution fixpoint — not an extension of this simpler per-group merge.
-- The `#34` attribute-merging fix above landed as part of this same rework.
-
-**What to do:** if your code calls `unified()` on documents where records sharing an
-identifier can disagree on a formal attribute (for example, two `wasGeneratedBy`
-statements for the same identifier asserting different `prov:time` values — the
-"scruffy" pattern used in this repo's own test suite, and the RDF representational
-limitation tracked as #217 above) — or where an identifier is shared by incompatible
-types, such as an `entity` and an `activity` asserted under the same identifier — expect
-that call to raise where it previously merged silently. Catch the new exception
-(or restructure the document to avoid conflicting formal attributes or incompatible
-same-identifier types). `ProvUnificationError` is importable from `prov.model`, and
-subclasses `ProvException`, so code that already catches `ProvException` around
-`unified()` keeps working. Documents without this pattern are unaffected. This is
-strictly an opt-in `unified()` behaviour: `prov` performs no structural validation at
-assertion/serialization time (a deliberate design choice, #257 — validation is separate,
-opt-in territory belonging to #62), so building and serializing a "scruffy" document
-remains legal in 3.0 — only calling `unified()` on one, or decoding its RDF form, raises.
-
-Note that `prov_to_dot()` (`prov.dot`) and `prov_to_graph()` (`prov.graph`, not
-`graph_to_prov()`, which does not unify) call `unified()` internally, so a document
-whose records disagree on a formal attribute or incompatible type now raises from these
-functions too, regardless of whether the caller ever calls `unified()` directly. The two
-differ in how they handle a document that fails to unify: `prov_to_dot()` catches the
-exception and renders the original, non-unified bundle (as it has always done for the
-generic `ProvException` the merge used to raise), whereas `prov_to_graph()` lets
-`ProvUnificationError` propagate to the caller.
-
-## Removal of names deprecated in 2.4.0
-
-3.0 removes everything 2.4.0 marked deprecated:
-
-- The unconditional `pydot`/`networkx` dependencies (superseded by the `dot`/`graph`
-  extras above) — `import prov.dot` / `import prov.graph` raises
-  `ModuleNotFoundError` if the corresponding extra isn't installed, rather than working
-  out of the box.
-- `python-dateutil` as a runtime dependency (superseded by the stdlib swap above), along
-  with the incidental `prov.model.dateutil` module re-export that came from importing it
-  there.
-
-There are no other 2.4.0-introduced deprecations beyond these two extras moves; nothing
-else is scheduled for removal.
-
-## Renamed type alias
-
-`prov.model.GenrationRef` — the misspelled `Union[...]` type alias used in the `generation`
-parameter's annotation on `ProvEntity.wasDerivedFrom`/`.wasRevisionOf`/`.wasQuotedFrom`/
-`.hadPrimarySource` and the matching `ProvBundle` factory methods — is renamed
-`GenerationRef`. The old spelling is removed outright, not kept as an alias. **What to
-do:** if your code imports `GenrationRef` by name, change the import to `GenerationRef`;
-nothing else references the old spelling.
-
-## Summary: is my code affected?
-
-If your code:
-
-- Doesn't import `prov.dot`/`prov.graph` (or their `prov_to_dot`/`prov_to_graph`/
-  `graph_to_prov` re-exports elsewhere) — unaffected by the extras moves.
-- Doesn't compare `xsd:decimal` literals across differing lexical forms, doesn't rely on
-  same-value-different-type attribute collapsing when reading attributes through
-  `attributes`/`extra_attributes`/equality/serialization, doesn't rely on `args`/
-  `formal_attributes`/an activity's start or end time resolving an ambiguous multi-value
-  case to a specific arbitrary value, doesn't byte-compare serialized string literals,
-  doesn't parse the `"type"` of PROV-JSON qualified-name attribute values, and doesn't
-  inspect the type of an attribute value asserted from a `prov:QUALIFIED_NAME`-typed
-  `Literal` — unaffected by the bug fixes.
-- Doesn't call `unified()` on documents with conflicting formal attributes, or
-  incompatible types, sharing an identifier — unaffected by the unification rework.
-- Doesn't catch `KeyError`/`AttributeError`/`TypeError` around PROV-JSON deserialization
-  to handle malformed input — unaffected by the #228 exception-contract change.
-- Doesn't import `GenrationRef` by name — unaffected by the type-alias rename.
-
-then upgrading to 3.0 should require no code changes at all. If you are upgrading from
-before 2.4.0, note that 2.4.0 signposted both the extras moves and the `unified()`
-rework with a runtime warning (`DeprecationWarning`/`FutureWarning` respectively) on
-every affected call, so running your test suite under 2.4.0 with
-`-W error::DeprecationWarning -W error::FutureWarning` would have surfaced every call
-site ahead of time; 3.0 itself emits neither warning — by 3.0 these are just how the
-functions behave.
+- The unconditional `pydot`/`networkx` dependencies — superseded by the `dot`/`graph` extras
+  above. `import prov.dot`/`import prov.graph` now raises `ModuleNotFoundError` naming the
+  extra to install.
+- `python-dateutil` as a runtime dependency, and the incidental `prov.model.dateutil`
+  re-export that came from importing it.
+- `prov.model.GenrationRef` — the misspelled type alias used in `wasDerivedFrom`/
+  `wasRevisionOf`/`wasQuotedFrom`/`hadPrimarySource`'s `generation` parameter — is renamed
+  `GenerationRef`, with no alias kept for the old spelling.
