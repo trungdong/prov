@@ -3,7 +3,7 @@
 ```{important}
 **PROV-N is write-only.** `prov` can produce [PROV-N](https://www.w3.org/TR/prov-n/) text,
 but there is no parser: deserializing PROV-N raises `NotImplementedError`. If you need to
-read a document back, save it in PROV-JSON, PROV-XML, or PROV-O/RDF instead.
+read a document back, save it in PROV-JSON, PROV-XML, PROV-O/RDF, or PROV-JSONLD instead.
 ```
 
 PROV-N needs no extra dependency.
@@ -52,5 +52,5 @@ except NotImplementedError:
     print("PROV-N has no deserializer")
 ```
 
-If your workflow needs a round trip, keep a PROV-JSON (or PROV-XML/RDF) copy alongside any
-PROV-N output — see {doc}`provjson`.
+If your workflow needs a round trip, keep a PROV-JSON (or PROV-XML/RDF/JSONLD) copy alongside
+any PROV-N output — see {doc}`provjson`.

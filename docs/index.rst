@@ -25,6 +25,7 @@ Prov Python package's documentation
    :caption: Reference
 
    reference/index
+   reference/conformance
 
 .. toctree::
    :maxdepth: 1

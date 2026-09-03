@@ -8,8 +8,8 @@ At the command line:
 python -m pip install prov
 ```
 
-This installs the core data model, PROV-JSON support, and the write-only PROV-N
-serializer. Several features live behind optional extras and raise
+This installs the core data model, PROV-JSON and PROV-JSONLD support, and the write-only
+PROV-N serializer. Several features live behind optional extras and raise
 `ModuleNotFoundError` (naming the extra to install) if used without them:
 
 - `prov[rdf]` — PROV-O/RDF serialization (`rdflib`).

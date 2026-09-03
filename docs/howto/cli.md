@@ -6,8 +6,8 @@ API described in the other how-to pages.
 
 ## `prov-convert`
 
-Convert a PROV-JSON document to PROV-N, PROV-XML, PROV-O/RDF, or any image format
-supported by Graphviz.
+Convert a PROV-JSON document to PROV-N, PROV-XML, PROV-O/RDF, PROV-JSONLD, or any image
+format supported by Graphviz.
 
 ### Synopsis
 

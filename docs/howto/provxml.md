@@ -51,10 +51,10 @@ loaded = pm.ProvDocument.deserialize(content=xml_str, format="xml")
 ## Auto-detect the format with `prov.read()`
 
 `prov.read()` tries each registered deserializer in turn — PROV-JSON, then PROV-O/RDF, then
-PROV-N, then PROV-XML — treating any failure from a candidate as "not this format" and
-moving on to the next one, stopping at the first deserializer that both succeeds and
-produces a non-empty document. Valid PROV-XML therefore auto-detects, whether the source is
-a file path or raw content:
+PROV-N, then PROV-XML, then PROV-JSONLD — treating any failure from a candidate as "not this
+format" and moving on to the next one, stopping at the first deserializer that both succeeds
+and produces a non-empty document. Valid PROV-XML therefore auto-detects, whether the source
+is a file path or raw content:
 
 ```python
 import prov

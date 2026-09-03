@@ -219,6 +219,8 @@ several of its serialisations:
 - [**PROV-O**](https://www.w3.org/TR/prov-o/) — the mapping of PROV-DM onto an OWL ontology
   for expression as RDF, handled by the `rdf` serializer.
 
-`prov` additionally supports the PROV-JSON and PROV-XML serialisations. For choosing and using
-each format see the how-to guides ({doc}`../howto/provjson`, {doc}`../howto/provo-rdf`,
-{doc}`../howto/provxml`, {doc}`../howto/provn`).
+`prov` additionally supports the [PROV-JSON](https://www.w3.org/submissions/prov-json/),
+PROV-XML, and [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/) serialisations. For
+choosing and using each format see the how-to guides ({doc}`../howto/provjson`,
+{doc}`../howto/provo-rdf`, {doc}`../howto/provxml`, {doc}`../howto/provn`,
+{doc}`../howto/provjsonld`).
