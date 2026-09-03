@@ -79,6 +79,10 @@ More caveats apply across many rows rather than to one:
   cleanly, including the 14 same-identifier/differing-`prov:time` "scruffy" cases that are a
   permanent RDF-only limitation above — PROV-JSONLD has no equivalent problem, since (unlike
   PROV-O) it does not reify a relation as a node named by the relation's own identifier.
+- **RDF's `json-ld` output is not PROV-JSONLD**: `rdf_format="json-ld"` runs the PROV-O graph
+  through rdflib's generic RDF→JSON-LD writer, not the PROV-JSONLD submission's compacted
+  shape — the two just share a name, and it inherits every PROV-O representational limitation
+  above. For actual PROV-JSONLD, use `format="jsonld"` instead.
 - **XML attribute-name escaping** (XML, permanent convention — closed as
   [#289](https://github.com/trungdong/prov/issues/289)): an attribute name is written as a
   PROV-XML child element tag, but its local part is not guaranteed to be a legal XML NCName

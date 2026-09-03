@@ -405,7 +405,10 @@ class ProvRDFSerializer(Serializer):
                 serialized text directly; other (binary) streams receive it
                 UTF-8-encoded.
             rdf_format: The rdflib RDF format name for the output (e.g.
-                ``"trig"``, ``"xml"``, ``"turtle"``, ``"nquads"``).
+                ``"trig"``, ``"xml"``, ``"turtle"``, ``"nquads"``). ``"json-ld"`` here
+                produces rdflib's generic RDF-graph JSON-LD, not PROV-JSONLD (the W3C
+                submission) -- for that, use ``ProvDocument.serialize(format="jsonld")``
+                instead; see docs/reference/conformance.md.
             PROV_N_MAP: Maps record type QualifiedName to PROV-N keyword,
                 used when building the relation predicates; defaults to
                 :data:`~prov.constants.PROV_N_MAP`.
