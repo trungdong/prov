@@ -80,15 +80,15 @@ prov = ["py.typed"]
 
 [dependency-groups]
 dev = [
-    "coverage>=7.15.4",
-    "hypothesis>=6.165.10",
+    "coverage>=7.16.0",
+    "hypothesis>=6.167.1",
     "jsonschema>=4",
     "lxml-stubs>=0.5.1",
     "mypy>=2.3.1",
     "pre-commit>=4.6.2",
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.4",
+    "ruff>=0.16.5",
     "types-networkx>=3.4.2.20250509",
     "types-python-dateutil>=2.9.0.20260807",
 ]
