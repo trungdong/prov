@@ -3,8 +3,8 @@
 ## 3.1.1 (2026-09-10)
 
 3.1.1 is a point release: bug fixes, hardening of the graphical export, test
-coverage for long-open issues, a "What's new in 3" page, and the community
-files the repository lacked. No API, dependency or Python-floor changes.
+coverage for long-open issues, a "What's new in 3" page, and community and
+citation files for the repository. No API, dependency or Python-floor changes.
 
 ### Fixes
 
