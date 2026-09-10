@@ -21,9 +21,9 @@ Everything else is a set of narrow bug fixes (mostly affecting serializer output
 cases, listed below) and one renamed type alias. If neither change above applies to your code,
 skip straight to [what's removed](#removed).
 
-See [ROADMAP.md](https://github.com/trungdong/prov/blob/master/ROADMAP.md) for the
+See [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) for the
 release-by-release plan and the
-[modernisation roadmap design](https://github.com/trungdong/prov/blob/master/docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md)
+[modernisation roadmap design](https://github.com/trungdong/prov/blob/main/planning/specs/2026-07-03-modernisation-roadmap-design.md)
 for the full rationale.
 
 ## Install the extras you need

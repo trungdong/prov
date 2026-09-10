@@ -166,7 +166,7 @@ source = ["prov"]
 omit = ["*/prov/tests/*"]
 
 [tool.coverage.report]
-# Coverage ratchet (docs/test-gap-checklist.md). T13 fixed the `omit` glob
+# Coverage ratchet (planning/test-gap-checklist.md). T13 fixed the `omit` glob
 # above (it previously did not exclude src/prov/tests/, inflating TOTAL by
 # ~3.8pt with near-fully-covered test code) and closed the remaining
 # checklist gaps; the honest package-only TOTAL measured after that work is

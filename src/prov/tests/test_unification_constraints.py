@@ -52,7 +52,7 @@ corpus README):
   (agent + entity, a permitted overlap) both unify without complaint, as
   their own "PASS" label claims.
 
-Authority: docs/superpowers/specs/2026-07-10-unification-gap-analysis.md and
+Authority: planning/specs/2026-07-10-unification-gap-analysis.md and
 umbrella issue #253.
 """
 

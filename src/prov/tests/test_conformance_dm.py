@@ -4,7 +4,7 @@ Strict-xfail tests reproduce defects filed by the audit (each reason cites its
 issue); characterization tests pin the current permissive behaviour that the
 audit recorded for 3.0 triage (findings doc §2.8) without endorsing it.
 
-Audit authority: docs/superpowers/specs/2026-07-10-conformance-audit-findings.md
+Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
 section 2.
 """
 

@@ -10,11 +10,14 @@ public API with care.
 ## Modernisation roadmap
 
 `ROADMAP.md` has current status — check it rather than assuming from memory of past work.
-Design detail: `docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md`. Durable
+Design detail: `planning/specs/2026-07-03-modernisation-roadmap-design.md`. Durable
 rules, regardless of phase:
 
 - One focused PR per roadmap step, green CI before merge.
 - If a step changes tooling, update the affected sections of this file in the same PR.
+- Design specs and implementation plans live under `planning/` (`planning/specs/`,
+  `planning/plans/`), not `docs/`. Write new ones there; `docs/` is the published site plus
+  the two internal runbooks it excludes.
 
 ## Releasing
 
@@ -79,7 +82,7 @@ pins `json` as the first format tried on a non-seekable stream.
 ### Tests (`src/prov/tests/`)
 
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
-`unittest.TestCase`. Design authority: `docs/superpowers/specs/2026-07-06-test-suite-redesign.md`.
+`unittest.TestCase`. Design authority: `planning/specs/2026-07-06-test-suite-redesign.md`.
 
 - No fixed pass/skip/xfail count is tracked here — it drifts every time a test is added and
   isn't CI-enforced. Instead, compare `uv run pytest -q -rsx` against the prior run: a skip or

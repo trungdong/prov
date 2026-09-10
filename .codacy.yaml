@@ -7,4 +7,4 @@ engines:
       - "src/prov/tests/**"
   markdownlint:
     exclude_paths:
-      - "docs/superpowers/**"
+      - "planning/**"

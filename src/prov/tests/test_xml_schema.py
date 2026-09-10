@@ -5,7 +5,7 @@ per entry of the `ATTRIBUTE_VALUES` datatype corpus, then validates the
 resulting XML against the vendored `prov.xsd` schema closure
 (`src/prov/tests/schemas/`, see that directory's README.md for provenance).
 
-Audit authority: docs/superpowers/specs/2026-07-10-conformance-audit-findings.md
+Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
 section 3.1.
 """
 

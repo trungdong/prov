@@ -34,7 +34,7 @@ def test_svg_render(build):
     )
 
 
-# Covers dot.htlm_link_if_uri() (docs/test-gap-checklist.md, T13 item under
+# Covers dot.htlm_link_if_uri() (planning/test-gap-checklist.md, T13 item under
 # dot.py); not called internally by prov_to_dot() but a module-level function
 # usable by external callers.
 

@@ -29,12 +29,10 @@ source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 master_doc = "index"
 exclude_patterns = [
     "_build",
-    # Internal working docs (roadmap plans/specs, dependency notes, gap
-    # checklists, the release runbook) live under docs/ for convenience but
-    # are not part of the published documentation.
-    "superpowers",
+    # Internal working docs (dependency notes, the release runbook) live under
+    # docs/ for convenience but are not part of the published documentation.
+    # Design specs and plans live in the top-level planning/ directory.
     "dependencies.md",
-    "test-gap-checklist.md",
     "releasing.md",
 ]
 

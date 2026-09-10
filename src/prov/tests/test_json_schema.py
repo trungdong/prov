@@ -4,7 +4,7 @@ Serializes each of the 8 canonical `examples.tests` documents and validates the
 resulting JSON against the vendored `prov-json.schema.json` (Draft-04) schema
 (`src/prov/tests/schemas/`, see that directory's README.md for provenance).
 
-Audit authority: docs/superpowers/specs/2026-07-10-conformance-audit-findings.md
+Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
 section 3.2.
 """
 
