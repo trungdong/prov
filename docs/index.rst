@@ -31,6 +31,7 @@ Prov Python package's documentation
    :maxdepth: 1
    :caption: Explanation
 
+   explanation/architecture
    explanation/prov-dm
    explanation/unification-flattening
 
