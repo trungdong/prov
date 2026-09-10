@@ -35,6 +35,12 @@
 
 ### Tests
 
+- Regression test pinning insertion-ordered attribute output in PROV-N and
+  PROV-JSON; the non-determinism reported in
+  [#130](https://github.com/trungdong/prov/issues/130) was removed by the
+  3.0.0 attribute-storage rework and the guarantee is now documented in the
+  PROV-N how-to
+
 ### Documentation
 
 ### Project

@@ -5,6 +5,7 @@ Created on Jan 25, 2012
 """
 
 import datetime
+import json
 import logging
 import os
 import shutil
@@ -14,6 +15,7 @@ import pytest
 from prov.constants import PROV, PROV_INTERNATIONALIZEDSTRING, XSD
 from prov.identifier import Namespace
 from prov.model import (
+    PROV_TYPE,
     Literal,
     NamespaceManager,
     ProvBundle,
@@ -845,3 +847,20 @@ def test_add_bundle_from_document_keeps_namespace_order():
 
     bundle = next(iter(target.bundles))
     assert [ns.prefix for ns in bundle.get_registered_namespaces()] == prefixes
+
+
+# #130: multi-valued attributes are written in insertion order. Attribute
+# values have been insertion-ordered since 3.0, so this pins the guarantee.
+
+
+@pytest.mark.parametrize("values", [("foo", "bar", "baz"), ("baz", "bar", "foo")])
+def test_attribute_values_keep_insertion_order_in_provn_and_json(values):
+    document = ProvDocument()
+    document.set_default_namespace("https://example.com/")
+    document.entity("id", [(PROV_TYPE, value) for value in values])
+
+    expected_provn = ", ".join(f'prov:type="{value}"' for value in values)
+    assert expected_provn in document.get_provn()
+
+    encoded = json.loads(document.serialize(format="json"))
+    assert encoded["entity"]["id"]["prov:type"] == list(values)

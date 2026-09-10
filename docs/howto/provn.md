@@ -41,6 +41,19 @@ provn_str = document.serialize(format="provn")
 assert provn_str == document.get_provn()
 ```
 
+## Attribute order is stable
+
+Attribute values are written in the order they were added to a record, in PROV-N and in
+every other format. Since 3.0.0 a record stores its attribute values insertion-ordered, so
+two runs of the same program produce the same text and PROV-N output is safe to use in
+doctests and golden files:
+
+```python
+document.entity("e2", [(pm.PROV_TYPE, "foo"), (pm.PROV_TYPE, "bar")])
+print(document.get_provn())
+# entity(e2, [prov:type="foo", prov:type="bar"])
+```
+
 ## Deserializing raises `NotImplementedError`
 
 There is no PROV-N reader, in the library or via `prov.read()`'s auto-detection:
