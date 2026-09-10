@@ -31,7 +31,9 @@ a free online repository for provenance documents.
 ## Roadmap
 
 3.0.0 has been released, completing the staged modernisation (tooling, type hints,
-tests, documentation, standards conformance). See
+tests, documentation, standards conformance), and 3.1.0 added PROV-JSONLD. See
+[What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html) for a summary
+aimed at projects still on 2.x, and
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) for the plan
 and the 3.x API-stability promise.
 Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/issues).
