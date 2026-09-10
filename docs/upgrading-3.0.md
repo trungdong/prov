@@ -2,24 +2,26 @@
 
 ## Summary
 
-3.0 is the only release in the `prov` roadmap allowed to break compatibility. Every change
-below was signposted in 2.4.0 with a runtime warning. **If your test suite ran clean under
-2.4.0 with `-W error::DeprecationWarning -W error::FutureWarning`, upgrading needs no code
-changes.**
-
-Two changes matter for most users:
+3.0 is the only release in the `prov` roadmap allowed to break compatibility. Two changes
+matter for most users:
 
 1. **`prov.dot` and `prov.graph` need extras.** Install `prov[dot]` or `prov[graph]` if
    your code imports either module, or calls `prov_to_dot()`, `prov_to_graph()` or
    `graph_to_prov()`.
 2. **`unified()` raises instead of silently merging.** `ProvBundle.unified()` and
    `ProvDocument.unified()` raise `prov.model.ProvUnificationError` when records sharing an
-   identifier disagree on a formal attribute or have incompatible types. `prov_to_dot()`
-   and `prov_to_graph()` call `unified()` internally, so they can raise too.
+   identifier disagree on a formal attribute or have incompatible types. `prov_to_graph()`
+   calls `unified()` internally, so it can raise too. `prov_to_dot()` catches the error and
+   renders the document without unifying it.
+
+Both were signposted from 2.4.0 with a runtime warning, which every later 2.x release also
+carries. **If your test suite ran clean under 2.4.0 or later with
+`-W error::DeprecationWarning -W error::FutureWarning`, neither change affects your code.**
 
 Everything else is a set of narrow bug fixes, mostly to serializer output for edge cases,
-and one renamed type alias. If neither change above applies to your code, skip to
-[what's removed](#removed).
+and one renamed type alias. Those could not be signposted by a warning, because they
+change the result of calls that already succeeded. Skim the table below for the ones that
+touch your code, or skip to [what's removed](#removed).
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) has the
 release-by-release plan and the
@@ -110,9 +112,9 @@ no structural validation at assertion or serialization time by design
 ([#257](https://github.com/trungdong/prov/issues/257)). Only calling `unified()` on such a
 document, or decoding its RDF form, raises.
 
-**Action:** if you call `unified()`, directly or through `prov_to_dot()` or
-`prov_to_graph()`, on documents where same-identifier records might disagree on a formal
-attribute or type, catch `ProvUnificationError` or fix the document to avoid the conflict.
+**Action:** if you call `unified()`, directly or through `prov_to_graph()`, on documents
+where same-identifier records might disagree on a formal attribute or type, catch
+`ProvUnificationError` or fix the document to avoid the conflict.
 
 ## Removed
 

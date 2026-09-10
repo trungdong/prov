@@ -9,9 +9,9 @@
 | < 2.0   | :x:                | None                |
 
 The latest 3.x release receives all fixes. The most recent 2.x release receives security
-fixes only. The back-port programme that followed the 3.0.0 release closed with 2.5.3, so
-bug fixes are no longer back-ported to 2.x. New features and behaviour-breaking corrections
-were never back-ported and stay on 3.x. Releases before 2.0 are no longer supported.
+fixes only; 2.5.3 was the last release to carry bug fixes back-ported from 3.x. New
+features and behaviour-breaking corrections were never back-ported and stay on 3.x.
+Releases before 2.0 receive no fixes.
 
 Both supported lines require Python 3.10 or later. 3.x has required it from the outset
 and 2.x from 2.3.0 onwards. Earlier 2.x releases support Python 3.9 and later. The

@@ -1663,7 +1663,7 @@ class ProvRDFSerializer(Serializer):
                     "same-identifier relations that disagree on a formal "
                     "attribute (e.g. two prov:atTime values) cannot both be "
                     "represented. See "
-                    "https://github.com/trungdong/prov/blob/master/docs/reference/conformance.md "
+                    "https://github.com/trungdong/prov/blob/main/docs/reference/conformance.md "
                     "for details."
                 ) from exc
 

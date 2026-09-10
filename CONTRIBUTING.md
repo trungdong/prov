@@ -85,8 +85,8 @@ a volunteer-driven project.
 1. Include tests.
 2. If the pull request adds functionality, update the docs. Give new functions a docstring
    and add the feature to the list in README.md.
-3. The pull request must pass on Python 3.10 and later and on PyPy. The automated checks
-   at the bottom of the pull request run the full matrix.
+3. The pull request must pass on CPython 3.10 to 3.14 and on PyPy 3.11. The automated
+   checks at the bottom of the pull request run the full matrix.
 
 ## Licensing
 
