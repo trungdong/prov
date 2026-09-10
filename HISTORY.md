@@ -37,6 +37,12 @@
 
 ### Documentation
 
+- `README.md` and `SECURITY.md` now state the 2.x support policy as it
+  stands: security fixes only, with 2.5.3 the last back-port release
+- New [What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html)
+  page summarising the 3.x line for projects still on 2.x, linked from the
+  README
+
 ### Project
 
 - A non-blocking CI job fails if `prov` raises a `DeprecationWarning` or

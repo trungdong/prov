@@ -31,7 +31,9 @@ a free online repository for provenance documents.
 ## Roadmap
 
 3.0.0 has been released, completing the staged modernisation (tooling, type hints,
-tests, documentation, standards conformance). See
+tests, documentation, standards conformance), and 3.1.0 added PROV-JSONLD. See
+[What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html) for a summary
+aimed at projects still on 2.x, and
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) for the plan
 and the 3.x API-stability promise.
 Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/issues).
@@ -39,8 +41,7 @@ Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/iss
 ## Supported versions
 
 The latest 3.x release receives all fixes. The most recent 2.x release
-receives security fixes, plus bug fixes back-ported from 3.x up to and
-including 2.6.0, after which it reverts to security fixes only; 1.x and
-earlier no longer receive fixes. See
+receives security fixes only; the last release to carry bug fixes
+back-ported from 3.x was 2.5.3. 1.x and earlier no longer receive fixes. See
 [SECURITY.md](https://github.com/trungdong/prov/blob/main/SECURITY.md)
 for the full support table and how to report a vulnerability.

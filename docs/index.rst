@@ -40,6 +40,7 @@ Prov Python package's documentation
 
    readme
    installation
+   whats-new-3
    upgrading-3.0
    contributing
    authors
