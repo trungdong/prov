@@ -68,10 +68,10 @@ naming the extra when imported without it.
 ## Tests
 
 The test suite lives inside the package, at `src/prov/tests/`, and ships with it. Shared
-coverage runs once per target through a parametrised round-trip fixture: the in-memory model
-plus each of the four round-trippable formats, PROV-JSON, PROV-XML, PROV-O and PROV-JSONLD.
-PROV-N is excluded because it is write-only. This exercises a new record type or attribute
-shape against every target at once; per-format modules keep only what is specific to that
-format. `examples.py` holds the canonical example documents that several modules and the DOT
-smoke tests reuse, and a Hypothesis property test round-trips generated documents through
-those same four formats.
+coverage runs once per target through a parametrised round-trip fixture. The targets are the
+in-memory model and the four round-trippable formats, PROV-JSON, PROV-XML, PROV-O and
+PROV-JSONLD. PROV-N is excluded because it is write-only. This exercises a new record type
+or attribute shape against every target at once; per-format modules keep only what is
+specific to that format. `examples.py` holds the canonical example documents that several
+modules and the DOT smoke tests reuse, and a Hypothesis property test round-trips generated
+documents through those same four formats.
