@@ -1,13 +1,13 @@
 # prov.model
 
-`prov.model` is the core of the library: the in-memory object model for
-[PROV-DM](https://www.w3.org/TR/prov-dm/) documents. A {py:class}`~prov.model.ProvDocument`
-contains {py:class}`~prov.model.ProvBundle`\ s of records — elements (entities, activities,
-agents) and relations between them — plus the namespace machinery used to build and resolve
-their identifiers. See the {doc}`../tutorial/getting-started` for a walk-through of building
-a document with this API, and the
-[PROV-DM Primer](https://www.w3.org/TR/prov-primer/) for the concepts behind the classes
-below.
+`prov.model` is the in-memory object model for [PROV-DM](https://www.w3.org/TR/prov-dm/)
+documents. A {py:class}`~prov.model.ProvDocument` contains
+{py:class}`~prov.model.ProvBundle` objects, which hold records. Records are elements
+(entities, activities, agents) and the relations between them. The namespace machinery
+that builds and resolves their identifiers lives here too. The
+{doc}`../tutorial/getting-started` walks through building a document with this API, and
+the [PROV-DM Primer](https://www.w3.org/TR/prov-primer/) covers the concepts behind the
+classes.
 
 ## Documents and bundles
 
