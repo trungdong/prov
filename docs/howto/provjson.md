@@ -1,8 +1,8 @@
 # Work with PROV-JSON
 
-[PROV-JSON](https://openprovenance.org/prov-json/) is the default format used by
-{py:meth}`~prov.model.ProvDocument.serialize`/{py:meth}`~prov.model.ProvDocument.deserialize`.
-It needs no extra dependency — the serializer is always available.
+[PROV-JSON](https://www.w3.org/submissions/prov-json/) is the default format for
+{py:meth}`~prov.model.ProvDocument.serialize` and
+{py:meth}`~prov.model.ProvDocument.deserialize`. It needs no extra.
 
 ## Serialize to a file
 
@@ -18,7 +18,7 @@ document.serialize("document.json")  # format="json" is the default
 
 ## Serialize to a string
 
-Omit `destination` (or pass `None`) to get the serialization back as a string:
+Omit `destination`, or pass `None`, to get the serialization back as a string:
 
 ```python
 json_str = document.serialize()
@@ -28,7 +28,7 @@ print(json_str)
 ## Deserialize from a file or stream
 
 ```python
-loaded = pm.ProvDocument.deserialize("document.json")
+loaded = pm.ProvDocument.deserialize("document.json")  # format="json" is the default
 assert loaded == document
 ```
 
@@ -47,12 +47,14 @@ Use the `content` keyword instead of `source`:
 loaded = pm.ProvDocument.deserialize(content=json_str, format="json")
 ```
 
+(auto-detect)=
+
 ## Auto-detect the format with `prov.read()`
 
-{py:func}`prov.read` tries every registered deserializer in turn — PROV-JSON, then
-PROV-O/RDF, then PROV-N, then PROV-XML — until one both succeeds and produces a non-empty
-document, so it works without knowing the format up front. PROV-JSON is tried first, so
-valid PROV-JSON content always auto-detects correctly:
+{py:func}`prov.read` reads a document without being told its format. It tries every
+registered deserializer in turn, in the order PROV-JSON, PROV-O (RDF), PROV-N, PROV-XML,
+PROV-JSONLD, and returns the first result that is a non-empty document. PROV-JSON is tried
+first, so valid PROV-JSON always auto-detects.
 
 ```python
 import prov
@@ -61,13 +63,16 @@ loaded = prov.read("document.json")
 assert loaded == document
 ```
 
-Passing `format="json"` explicitly skips the trial-and-error and gives a proper traceback
-if the content is not valid JSON.
+A seekable stream, such as an open file or `io.StringIO`, is rewound between attempts. A
+non-seekable stream is consumed by the first attempt, so pass `format=` for those.
+
+Auto-detection swallows every deserializer's error. When no format succeeds it raises a
+generic `TypeError`. Pass `format=` explicitly when you want the real error from one
+deserializer.
 
 ## Common errors
 
-Malformed JSON raises the standard library's decoder error, not a `prov`-specific
-exception:
+Malformed JSON raises the standard library's decoder error:
 
 ```python
 try:
@@ -80,9 +85,18 @@ except Exception as e:
 JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 ```
 
-Since 2.5.0, `prov.read()` swallows *every* candidate deserializer's failure during
-auto-detection — including a candidate that raises, and a candidate that parses
-successfully but yields an empty document (e.g. an empty file) — and always raises the
-fallback `TypeError` ("Could not read from the source...") once every registered format has
-been tried without success. Pass `format=` explicitly if you want a predictable,
-format-specific error instead of that generic `TypeError`.
+Valid JSON with the wrong structure raises
+`prov.serializers.provjson.ProvJSONException`:
+
+```python
+from prov.serializers.provjson import ProvJSONException
+
+try:
+    pm.ProvDocument.deserialize(content='{"entity": "oops"}', format="json")
+except ProvJSONException as e:
+    print(f"{type(e).__name__}: {e}")
+```
+
+```text
+ProvJSONException: The 'entity' value must be a JSON object; found str: 'oops'
+```

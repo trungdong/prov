@@ -1,14 +1,13 @@
 # Work with PROV-O (RDF)
 
-[PROV-O](https://www.w3.org/TR/prov-o/) support needs the optional `rdflib` dependency:
+[PROV-O](https://www.w3.org/TR/prov-o/) needs the `rdf` extra, which installs `rdflib`:
 
 ```bash
 python -m pip install "prov[rdf]"
 ```
 
-The serialization format is selected with `format="rdf"`. A second, RDF-specific keyword,
-`rdf_format`, chooses the concrete RDF syntax (`"trig"` by default) — do not confuse the
-two.
+Two keywords are involved. `format="rdf"` selects PROV-O. `rdf_format` chooses the
+concrete RDF syntax and defaults to `"trig"`.
 
 ## Serialize to a file
 
@@ -24,10 +23,16 @@ document.wasGeneratedBy(e, a)
 document.serialize("document.trig", format="rdf")  # rdf_format="trig" is the default
 ```
 
+## Serialize to a string
+
+```python
+trig_str = document.serialize(format="rdf")
+```
+
 ## Choose a different RDF syntax
 
-`rdf_format` accepts anything `rdflib` can serialize to, e.g. `"turtle"`, `"xml"`
-(RDF/XML), `"nt"`, `"nquads"`:
+`rdf_format` accepts any syntax `rdflib` can write, such as `"turtle"`, `"xml"` for
+RDF/XML, `"nt"` or `"nquads"`:
 
 ```python
 turtle_str = document.serialize(format="rdf", rdf_format="turtle")
@@ -35,16 +40,10 @@ print(turtle_str)
 ```
 
 ```{important}
-Only quad-based syntaxes (`"trig"` — the default — and `"nquads"`) preserve **bundles** as
-separate named graphs. Triple-based syntaxes such as `"turtle"` or `"xml"` flatten every
-bundle's statements into a single graph, discarding which bundle each statement came from.
-Stick with the default TriG if your document has bundles.
-```
-
-## Serialize to a string
-
-```python
-trig_str = document.serialize(format="rdf")
+Only quad-based syntaxes, `"trig"` and `"nquads"`, keep bundles as separate named graphs.
+Triple-based syntaxes such as `"turtle"` and `"xml"` flatten every bundle into one graph
+and lose which bundle each statement came from. Keep the default TriG if your document has
+bundles.
 ```
 
 ## Deserialize from a file or stream
@@ -54,7 +53,7 @@ loaded = pm.ProvDocument.deserialize("document.trig", format="rdf")
 assert loaded == document
 ```
 
-Pass the matching `rdf_format` if the input is not TriG:
+Pass the matching `rdf_format` when the input is not TriG:
 
 ```python
 loaded = pm.ProvDocument.deserialize(content=turtle_str, format="rdf", rdf_format="turtle")
@@ -68,8 +67,8 @@ loaded = pm.ProvDocument.deserialize(content=trig_str, format="rdf")
 
 ## Auto-detect the format with `prov.read()`
 
-PROV-O/RDF is the second format `prov.read()` tries (after PROV-JSON), so genuine RDF
-content auto-detects reliably:
+{py:func}`prov.read` tries PROV-O second, after PROV-JSON. See {ref}`auto-detect` in the
+PROV-JSON guide for how detection works and when to pass `format=` instead.
 
 ```python
 import prov
@@ -92,3 +91,26 @@ except Exception as e:
 ```text
 BadSyntax
 ```
+
+Two relations that share an identifier but differ in a formal attribute cannot round-trip
+through PROV-O, because PROV-O stores a relation as one node named by its identifier.
+Decoding such RDF raises `prov.model.ProvException`:
+
+```python
+document = pm.ProvDocument()
+document.set_default_namespace("http://example.org/")
+document.wasGeneratedBy("e1", "a1", time="2024-01-01T00:00:00", identifier="g1")
+document.wasGeneratedBy("e1", "a1", time="2024-01-02T00:00:00", identifier="g1")
+trig_str = document.serialize(format="rdf")
+
+try:
+    pm.ProvDocument.deserialize(content=trig_str, format="rdf")
+except pm.ProvException as e:
+    print(type(e).__name__)
+```
+
+```text
+ProvException
+```
+
+{doc}`../reference/conformance` explains the limitation.

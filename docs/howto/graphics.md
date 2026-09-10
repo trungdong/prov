@@ -1,20 +1,24 @@
-# Render a document as a graph (PNG/SVG/PDF)
+# Render a document as a graph (PNG, SVG, PDF)
 
 `prov.dot` turns a document into a [pydot](https://pypi.org/project/pydot/) graph, which
-can then be written out in any format Graphviz supports.
+Graphviz can write in any format it supports. It needs the `dot` extra and a local
+Graphviz install.
+
+```bash
+python -m pip install "prov[dot]"
+```
 
 ```{important}
-Rendering needs a local **Graphviz** installation (the `dot` executable) in addition to the
-`pydot` Python package (which is a core dependency of `prov`, always installed). Installing
-`pydot` alone is not enough — this is the most common source of confusion:
+The `dot` extra installs the `pydot` and `networkx` packages. Rendering also needs the
+Graphviz `dot` executable, which you install separately:
 
-- **macOS**: `brew install graphviz`
-- **Debian/Ubuntu**: `apt install graphviz`
-- **Windows**: download and run the installer from <https://graphviz.org/download/>
+- macOS: `brew install graphviz`
+- Debian and Ubuntu: `apt install graphviz`
+- Windows: the installer from <https://graphviz.org/download/>
 
-Without it, `dot.write_*()` calls below fail (typically with a `FileNotFoundError` for the
-`dot` executable, surfaced by `pydot` as an assertion/`Exception` depending on version) —
-verify Graphviz is on `PATH` with `dot -V` before debugging your own code.
+Without it every `write_*()` call below fails, usually with an error about the missing
+`dot` executable. Check with `dot -V` that Graphviz is on your `PATH` before debugging
+your own code.
 ```
 
 ## Convert a document to a `pydot.Dot`
@@ -32,9 +36,9 @@ document.wasGeneratedBy(e, a)
 dot = prov_to_dot(document)
 ```
 
-## Write PNG, SVG, or PDF
+## Write PNG, SVG or PDF
 
-`pydot.Dot` has a `write_<format>` method for most Graphviz output formats:
+`pydot.Dot` has a `write_<format>` method for each Graphviz output format:
 
 ```python
 dot.write_png("document.png")
@@ -44,8 +48,8 @@ dot.write_pdf("document.pdf")
 
 ## Layout direction
 
-`direction` controls the rank direction Graphviz lays the graph out in — `"BT"`
-(bottom-to-top, the default), `"TB"`, `"LR"`, or `"RL"`:
+`direction` sets the rank direction. The default is `"BT"`, bottom to top. The other
+values are `"TB"`, `"LR"` and `"RL"`:
 
 ```python
 dot_lr = prov_to_dot(document, direction="LR")
@@ -54,8 +58,8 @@ dot_lr.write_svg("document-lr.svg")
 
 ## Hide attribute annotations
 
-By default every element and relation gets an attached note node listing its non-formal
-attributes. Turn either off to declutter dense graphs:
+By default every element and relation gets a note node listing its non-formal attributes.
+Turn either off to declutter a dense graph:
 
 ```python
 dot_plain = prov_to_dot(
@@ -67,8 +71,8 @@ dot_plain = prov_to_dot(
 
 ## Use labels instead of identifiers
 
-Pass `use_labels=True` to show each element's `prov:label` (falling back to its
-identifier) as the node text instead of always showing the identifier:
+Pass `use_labels=True` to show each element's `prov:label` as the node text. An element
+without a label falls back to its identifier:
 
 ```python
 document.entity("e1", {pm.PROV_LABEL: "Crime report"})
@@ -77,9 +81,9 @@ dot_labelled = prov_to_dot(document, use_labels=True)
 
 ## Hide n-ary relation elements
 
-Relations with more than two formal attributes (e.g. a `wasDerivedFrom` recording an
-activity and usage/generation) render every element by default. Set `show_nary=False` to
-draw only the first two:
+A relation with more than two formal attributes, such as a `wasDerivedFrom` that also
+records an activity, usage and generation, draws every element by default. Set
+`show_nary=False` to draw only the first two:
 
 ```python
 dot_binary = prov_to_dot(document, show_nary=False)
@@ -98,4 +102,4 @@ dot = prov_to_dot(
 )
 ```
 
-See {py:func}`prov.dot.prov_to_dot` for the full parameter reference.
+{py:func}`prov.dot.prov_to_dot` documents every parameter.

@@ -1,17 +1,17 @@
 # Work with PROV-N
 
 ```{important}
-**PROV-N is write-only.** `prov` can produce [PROV-N](https://www.w3.org/TR/prov-n/) text,
-but there is no parser: deserializing PROV-N raises `NotImplementedError`. If you need to
-read a document back, save it in PROV-JSON, PROV-XML, PROV-O/RDF, or PROV-JSONLD instead.
+PROV-N is write-only. `prov` produces [PROV-N](https://www.w3.org/TR/prov-n/) text but has
+no parser, so deserializing PROV-N raises `NotImplementedError`. Save a document in
+PROV-JSON, PROV-JSONLD, PROV-XML or PROV-O if you need to read it back.
 ```
 
-PROV-N needs no extra dependency.
+PROV-N needs no extra.
 
 ## Get the PROV-N text directly
 
-{py:meth}`~prov.model.ProvBundle.get_provn` returns the notation as a string without going
-through the serializer registry at all — this is the simplest way to print or inspect it:
+{py:meth}`~prov.model.ProvBundle.get_provn` returns the notation as a string. This is the
+simplest way to print or inspect a document:
 
 ```python
 import prov.model as pm
@@ -28,7 +28,7 @@ print(document.get_provn())
 ## Serialize to a file
 
 `format="provn"` goes through the same {py:meth}`~prov.model.ProvDocument.serialize` API
-as the other formats, for consistency with tooling that dispatches on `format`:
+as the other formats, for tooling that dispatches on `format`:
 
 ```python
 document.serialize("document.provn", format="provn")
@@ -43,10 +43,9 @@ assert provn_str == document.get_provn()
 
 ## Attribute order is stable
 
-Attribute values are written in the order they were added to a record, in PROV-N and in
-every other format. Since 3.0.0 a record stores its attribute values insertion-ordered, so
-two runs of the same program produce the same text and PROV-N output is safe to use in
-doctests and golden files:
+A record stores its attribute values in the order they were added, and every format
+writes them in that order. Two runs of the same program produce the same text, so PROV-N
+output is safe to use in doctests and golden files:
 
 ```python
 document.entity("e2", [(pm.PROV_TYPE, "foo"), (pm.PROV_TYPE, "bar")])
@@ -56,7 +55,7 @@ print(document.get_provn())
 
 ## Deserializing raises `NotImplementedError`
 
-There is no PROV-N reader, in the library or via `prov.read()`'s auto-detection:
+There is no PROV-N reader, in the library or in `prov.read()`'s auto-detection:
 
 ```python
 try:
@@ -65,5 +64,5 @@ except NotImplementedError:
     print("PROV-N has no deserializer")
 ```
 
-If your workflow needs a round trip, keep a PROV-JSON (or PROV-XML/RDF/JSONLD) copy alongside
-any PROV-N output — see {doc}`provjson`.
+Keep a copy in another format alongside any PROV-N output if your workflow needs a round
+trip. See {doc}`provjson`.

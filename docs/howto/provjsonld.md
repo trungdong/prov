@@ -1,9 +1,8 @@
 # Work with PROV-JSONLD
 
 [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/) is a W3C member submission
-describing a JSON-LD representation of the PROV Data Model. It is selected with
-`format="jsonld"`. Like PROV-JSON, it needs no extra dependency — the serializer is
-implemented against the standard library only and is always available.
+that represents the PROV Data Model in JSON-LD. Select it with `format="jsonld"`. It needs
+no extra.
 
 ## Serialize to a file
 
@@ -53,32 +52,28 @@ print(jsonld_str)
 }
 ```
 
-A document's registered namespace prefixes (and its default namespace, as both `@vocab` and
-`@base` -- JSON-LD's `@vocab` alone does not govern `@id` values or `@id`-typed terms like
-`entity`/`activity`, so `@base` is needed too) become the first entry of `@context`; every
-unprefixed `@type` (`Entity`, `Activity`, `Generation`, ...) is resolved against the
-submission's context, referenced as the second entry. Named bundles nest as `{"@type":
-"Bundle", "@id", "@context", "@graph"}` objects inside the top-level `@graph`.
+The first entry of `@context` holds the document's namespace prefixes. The default
+namespace appears as both `@vocab` and `@base`. `@vocab` expands unprefixed property
+names, and `@base` expands unprefixed `@id` values such as `e1`, which would otherwise
+resolve against the document's own location. The second entry references the submission's context, which resolves the
+unprefixed types such as `Entity` and `Generation`. A named bundle nests inside the
+top-level `@graph` as an object with `@type: "Bundle"`, its own `@context` and its own
+`@graph`.
 
 ## Choose how the context is referenced
 
-The `context` keyword controls how the submission's context (the second entry of
-`@context`) is emitted:
+The `context` keyword controls the second entry of `@context`:
 
-- `context="url"` (the default) references it by URL, exactly as shown above. This is the
-  smaller, more common output, but a consumer needs network access to resolve
-  `https://openprovenance.org/prov-jsonld/context.jsonld` to fully process the document as
-  JSON-LD.
-- `context="embed"` inlines the vendored context object instead, so the document is fully
-  self-contained:
+- `context="url"`, the default, references the submission's context by URL, as above. The
+  output is smaller, but a consumer needs network access to process it as JSON-LD.
+- `context="embed"` inlines the context object, so the document is self-contained:
 
   ```python
   document.serialize(format="jsonld", context="embed")
   ```
 
-Any other value raises `ValueError`. Prefer `context="embed"` when the output needs to be
-processed offline or archived without a dependency on the submission's context URL staying
-reachable.
+Any other value raises `ValueError`. Use `context="embed"` for output that will be
+archived or processed offline.
 
 ## Deserialize from a file or stream
 
@@ -102,9 +97,9 @@ loaded = pm.ProvDocument.deserialize(content=jsonld_str, format="jsonld")
 
 ## Auto-detect the format with `prov.read()`
 
-{py:func}`prov.read` tries every registered deserializer in turn — PROV-JSON, PROV-O/RDF,
-PROV-N, PROV-XML, then PROV-JSONLD last — until one both succeeds and produces a non-empty
-document:
+{py:func}`prov.read` tries PROV-JSONLD last, after the four other formats, so valid
+PROV-JSONLD still auto-detects. See {ref}`auto-detect` in the PROV-JSON guide for how
+detection works and when to pass `format=` instead.
 
 ```python
 import prov
@@ -113,16 +108,16 @@ loaded = prov.read("document.jsonld")
 assert loaded == document
 ```
 
-Passing `format="jsonld"` explicitly skips the trial-and-error and gives a proper traceback
-if the content is not valid PROV-JSONLD.
-
 ## Input scope
 
-The deserializer only accepts the submission's canonical §4 *compacted* shape — one JSON
-object per PROV-DM statement under a top-level `"@graph"`, exactly the shape this
-serializer writes. It does not run general-purpose JSON-LD processing (no expansion,
-flattening, or framing), so expanded or flattened JSON-LD that is otherwise valid
-PROV-JSONLD is rejected. Malformed or unrecognised JSON-LD raises
+The deserializer accepts the submission's compacted shape only. That is one JSON object per
+PROV-DM statement under a top-level `"@graph"`, which is the shape this serializer writes.
+It does not run a JSON-LD processor, so expanded or flattened JSON-LD is rejected even when
+it is otherwise valid PROV-JSONLD. It does accept
+[ProvToolbox](https://lucmoreau.github.io/ProvToolbox/)'s `prov:`-prefixed spellings of
+the type and special terms, such as `"prov:Entity"` and `"prov:type"`.
+
+Malformed or unrecognised JSON-LD raises
 `prov.serializers.provjsonld.ProvJSONLDException`:
 
 ```python
@@ -138,8 +133,7 @@ except ProvJSONLDException as e:
 ProvJSONLDException: A PROV-JSONLD document requires both "@context" and "@graph"; found keys ['entity']
 ```
 
-Malformed JSON itself (not valid JSON at all) raises the standard library's decoder error,
-not `ProvJSONLDException`:
+Input that is not valid JSON at all raises the standard library's decoder error instead:
 
 ```python
 try:
@@ -152,16 +146,11 @@ except Exception as e:
 JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 ```
 
-The decoder additionally tolerates [ProvToolbox](https://lucmoreau.github.io/ProvToolbox/)'s
-`prov:`-prefixed spellings of the type and special terms (`"prov:Entity"` alongside
-`"Entity"`, `"prov:type"` alongside `"type"`), so documents produced by that reference
-implementation read in without modification.
-
 ## Limitations
 
-`mentionOf` (PROV-DM's Mention relation) cannot be represented: the submission defines no
-JSON-LD term for it. `serialize()` raises `ProvJSONLDException` for any document containing
-a `ProvMention` record:
+The submission defines no term for `mentionOf`, PROV-DM's Mention relation, so
+PROV-JSONLD cannot represent it. `serialize()` raises `ProvJSONLDException` for any
+document containing a {py:class}`~prov.model.ProvMention` record:
 
 ```python
 document = pm.ProvDocument()
@@ -174,17 +163,15 @@ except ProvJSONLDException as e:
 ```
 
 ```text
-ProvJSONLDException: PROV-JSONLD cannot represent mentionOf (None): the submission defines no Mention term; see docs/reference/conformance.md
+ProvJSONLDException: PROV-JSONLD cannot represent mentionOf: the submission defines no Mention term; see docs/reference/conformance.md
 ```
 
-This is a permanent limitation of the PROV-JSONLD submission, not a gap in this library; see
-{doc}`../reference/conformance` for the full write-up alongside the equivalent PROV-O
-limitation.
+This is a limitation of the submission, not of the library. {doc}`../reference/conformance`
+records it alongside the equivalent PROV-O limitation.
 
 ## Media type and file extension
 
-The submission associates PROV-JSONLD with the `application/ld+json` media type; by
-convention, files use the `.jsonld` extension, as in the examples above. `prov` does not
-dispatch on either of these — the format is always selected via `format="jsonld"` or
-auto-detected by content — but they are worth using for interoperability with other JSON-LD
-tooling.
+The submission associates PROV-JSONLD with the `application/ld+json` media type, and files
+conventionally use the `.jsonld` extension. `prov` dispatches on neither. The format is
+selected with `format="jsonld"` or auto-detected from content. Use them anyway for
+interoperability with other JSON-LD tooling.
