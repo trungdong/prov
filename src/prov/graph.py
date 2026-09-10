@@ -1,5 +1,6 @@
 from __future__ import annotations  # defer eval: MultiDiGraph isn't subscriptable
 
+import warnings
 from typing import Any
 
 try:
@@ -39,6 +40,7 @@ from prov.model import (
     ProvEntity,
     ProvRecord,
     ProvRelation,
+    ProvWarning,
 )
 
 __author__ = "Trung Dong Huynh"
@@ -85,7 +87,7 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     already added as a node, a bare node is created for it using
     :data:`INFERRED_ELEMENT_CLASS`. Relations whose first two formal
     attributes are not both populated, or whose attribute type is not in
-    :data:`INFERRED_ELEMENT_CLASS`, are silently skipped.
+    :data:`INFERRED_ELEMENT_CLASS`, are skipped with a :class:`~prov.model.ProvWarning`.
 
     Args:
         prov_document: The :class:`~prov.model.ProvDocument` instance to
@@ -98,6 +100,12 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     Raises:
         ProvUnificationError: Propagated, unhandled, from
             :meth:`~prov.model.ProvBundle.unified`.
+
+    Warns:
+        ProvWarning: For each relation skipped because one of its first two
+            formal attributes is unset, or because an undeclared endpoint's
+            element type cannot be inferred (its attribute has no
+            :data:`INFERRED_ELEMENT_CLASS` entry).
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()
@@ -111,16 +119,31 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
         attr_pair_1, attr_pair_2 = relation.formal_attributes[:2]
         # only need the QualifiedName (i.e. the value of the attribute)
         qn1, qn2 = attr_pair_1[1], attr_pair_2[1]
-        if qn1 and qn2:  # only proceed if both ends of the relation exist
-            try:
-                if qn1 not in node_map:
-                    node_map[qn1] = INFERRED_ELEMENT_CLASS[attr_pair_1[0]](None, qn1)
-                if qn2 not in node_map:
-                    node_map[qn2] = INFERRED_ELEMENT_CLASS[attr_pair_2[0]](None, qn2)
-            except KeyError:
-                # Unsupported attribute; cannot infer the type of the element
-                continue  # skipping this relation
-            g.add_edge(node_map[qn1], node_map[qn2], relation=relation)
+        if not (qn1 and qn2):
+            warnings.warn(
+                f"Skipping {relation!r}: both of its first two formal "
+                "attributes must be set to add it as an edge",
+                ProvWarning,
+                stacklevel=2,
+            )
+            continue
+        try:
+            if qn1 not in node_map:
+                node_map[qn1] = INFERRED_ELEMENT_CLASS[attr_pair_1[0]](None, qn1)
+            if qn2 not in node_map:
+                node_map[qn2] = INFERRED_ELEMENT_CLASS[attr_pair_2[0]](None, qn2)
+        except KeyError as exc:
+            # No element class is inferred for this attribute (the
+            # influencee/influencer of a generic influence), so an undeclared
+            # endpoint has no known kind and the relation cannot be drawn.
+            warnings.warn(
+                f"Skipping {relation!r}: endpoint referenced by {exc.args[0]} "
+                "is not declared as an element and its type cannot be inferred",
+                ProvWarning,
+                stacklevel=2,
+            )
+            continue
+        g.add_edge(node_map[qn1], node_map[qn2], relation=relation)
     return g
 
 

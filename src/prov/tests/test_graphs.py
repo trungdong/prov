@@ -1,9 +1,11 @@
+import warnings
+
 import pytest
 
 nx = pytest.importorskip("networkx", reason="prov.graph requires the graph extra")
 
 from prov.graph import graph_to_prov, prov_to_graph
-from prov.model import ProvActivity, ProvDocument, ProvEntity
+from prov.model import ProvActivity, ProvDocument, ProvEntity, ProvWarning
 from prov.tests.examples import primer_example, tests
 
 
@@ -35,14 +37,16 @@ def document():
     return d
 
 
-def test_relation_with_missing_end_is_skipped(document):
-    # A generation record with no activity: the "if qn1 and qn2" guard
-    # should skip adding an edge for it since one QualifiedName is None.
+def test_relation_with_missing_end_is_skipped_with_warning(document):
+    # A generation record with no activity: one endpoint is None, so the
+    # relation cannot become an edge. The drop is reported, not silent.
     document.generation(entity="ex:e1", activity=None)
 
-    g = prov_to_graph(document)
+    with pytest.warns(ProvWarning, match="Generation") as record:
+        g = prov_to_graph(document)
 
     assert list(g.edges()) == []
+    assert len(record) == 1
 
 
 def test_relation_endpoints_get_inferred_nodes(document):
@@ -63,21 +67,35 @@ def test_relation_endpoints_get_inferred_nodes(document):
     assert len(g.edges()) == 1
 
 
-def test_relation_with_uninferrable_endpoint_type_is_skipped(document):
-    # ProvInfluence's formal attributes (influencee/influencer) are not
-    # keys of INFERRED_ELEMENT_CLASS, so a generic influence relation
-    # between two undeclared identifiers hits the "except KeyError:
-    # continue" branch and is dropped, while later relations are still
-    # processed normally.
+def test_relation_with_uninferrable_endpoint_type_is_skipped_with_warning(document):
+    # prov:influencee/prov:influencer are the only first-two formal
+    # attributes with no INFERRED_ELEMENT_CLASS entry, so an influence
+    # between undeclared identifiers cannot get placeholder nodes. It is
+    # reported and dropped; later relations are still processed.
     document.influence("ex:inf1", "ex:inf2")
     document.wasGeneratedBy("ex:e2", "ex:a2")
 
-    g = prov_to_graph(document)
+    with pytest.warns(ProvWarning, match="Influence") as record:
+        g = prov_to_graph(document)
 
+    assert len(record) == 1
     assert len(g.nodes()) == 2
     assert len(g.edges()) == 1
     (_, _, edge_data) = next(iter(g.edges(data=True)))
     assert edge_data["relation"].get_type().localpart == "Generation"
+
+
+def test_complete_document_emits_no_warning(document):
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    document.wasGeneratedBy("ex:e1", "ex:a1")
+    document.influence("ex:e1", "ex:a1")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
+        g = prov_to_graph(document)
+
+    assert len(g.edges()) == 2
 
 
 def test_ignores_non_record_and_bundle_less_nodes():
