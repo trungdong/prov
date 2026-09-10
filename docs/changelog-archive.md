@@ -23,7 +23,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 
 ## 1.5.0 (2016-10-19)
 
-- Added: Support for [PROV-O](http://www.w3.org/TR/prov-o/) (RDF) serialization and deserialization
+- Added: Support for [PROV-O](https://www.w3.org/TR/prov-o/) (RDF) serialization and deserialization
 - Added: `direction` option for {py:meth}`prov.dot.prov_to_dot`
 - Added: {py:meth}`prov.graph.graph_to_prov` to convert a [MultiDiGraph](https://networkx.org/documentation/stable/reference/classes/multidigraph.html) back to a {py:class}`~prov.model.ProvDocument`
 - Testing with Python 3.5
@@ -66,7 +66,7 @@ Releases before 2.0.0. For 2.0.0 and later, see the [current changelog](https://
 
 ## 1.1.0 (2014-08-21)
 
-- Added: Support for [PROV-XML](http://www.w3.org/TR/prov-xml/) serialization and deserialization
+- Added: Support for [PROV-XML](https://www.w3.org/TR/prov-xml/) serialization and deserialization
 - A {py:class}`~prov.model.ProvRecord` instance can now be used as the value of an attributes
 - Added: convenient assertions methods for {py:class}`~prov.model.ProvEntity`, {py:class}`~prov.model.ProvActivity`, and {py:class}`~prov.model.ProvAgent`
 - Added: {py:meth}`prov.model.ProvDocument.update` and {py:meth}`prov.model.ProvBundle.update`
