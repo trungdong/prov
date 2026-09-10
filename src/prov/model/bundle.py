@@ -557,7 +557,13 @@ class ProvBundle:
         this_records = set(self.get_records())
         if len(this_records) != len(other_records):
             return False
-        #  check if all records for equality
+        if this_records == other_records:
+            # The common case (e.g. after a round trip): every record has a
+            # hash-equal counterpart, settled in O(n).
+            return True
+        # ProvRecord.__eq__ is looser than ProvRecord.__hash__ (a record
+        # without an identifier equals one with, given the same type and
+        # attributes), so records that hash differently may still match.
         for record_a in this_records:
             #  Manually look for the record
             found = False

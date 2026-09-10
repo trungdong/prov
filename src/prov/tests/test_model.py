@@ -11,7 +11,7 @@ import shutil
 
 import pytest
 
-from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD
+from prov.constants import PROV, PROV_INTERNATIONALIZEDSTRING, XSD
 from prov.identifier import Namespace
 from prov.model import (
     Literal,
@@ -552,6 +552,36 @@ def test_get_namespace_miss_and_hit():
     assert nm.get_namespace("http://example.org/") == ns
 
 
+def test_get_namespace_finds_built_in_and_default_namespaces():
+    nm = NamespaceManager(default="http://default.example.org/")
+    assert nm.get_namespace(PROV.uri) == PROV
+    assert nm.get_namespace("http://default.example.org/") is nm.get_default_namespace()
+
+
+def test_get_namespace_after_prefix_rename_returns_renamed_namespace():
+    nm = NamespaceManager()
+    nm.add_namespace(Namespace("ex", "http://a.example.org/"))
+    renamed = nm.add_namespace(Namespace("ex", "http://b.example.org/"))
+    assert renamed.prefix == "ex_1"
+    assert nm.get_namespace("http://b.example.org/") is renamed
+    assert nm.get_namespace("http://a.example.org/").prefix == "ex"
+
+
+def test_get_namespace_after_reregistering_uri_under_other_prefix():
+    nm = NamespaceManager()
+    first = nm.add_namespace(Namespace("ex", "http://a.example.org/"))
+    again = nm.add_namespace(Namespace("other", "http://a.example.org/"))
+    assert again is first
+    assert "other" not in nm
+    assert nm.get_namespace("http://a.example.org/") is first
+
+
+def test_get_namespace_prefers_registered_over_default_for_same_uri():
+    nm = NamespaceManager(default="http://shared.example.org/")
+    registered = nm.add_namespace(Namespace("sh", "http://shared.example.org/"))
+    assert nm.get_namespace("http://shared.example.org/") is registered
+
+
 def test_add_namespace_reuses_renamed_namespace_from_cache():
     nm = NamespaceManager()
     nm.add_namespace(Namespace("ex", "http://a.example.org/"))
@@ -717,6 +747,43 @@ def test_not_equal_when_matching_bundle_content_differs():
     d2.bundle("b1").entity("e2")
 
     assert d1 != d2
+
+
+# ProvBundle.__eq__: the set-equality fast path and the slow path it
+# falls back to when ProvRecord.__eq__ is looser than ProvRecord.__hash__.
+
+
+def test_equal_when_same_records_added_in_different_order():
+    d1 = ProvDocument()
+    d1.set_default_namespace("http://example.org/")
+    d1.entity("e1")
+    d1.activity("a1")
+    d1.wasGeneratedBy("e1", "a1")
+
+    d2 = ProvDocument()
+    d2.set_default_namespace("http://example.org/")
+    d2.wasGeneratedBy("e1", "a1")
+    d2.activity("a1")
+    d2.entity("e1")
+
+    assert d1 == d2
+    assert d2 == d1
+
+
+def test_anonymous_relation_still_equals_identified_relation():
+    # ProvRecord.__eq__ skips the identifier check when *this* record has no
+    # identifier, while __hash__ includes it; the two records hash
+    # differently, so set equality fails and __eq__ must fall through to the
+    # record-by-record loop to find the match.
+    d1 = ProvDocument()
+    d1.set_default_namespace("http://example.org/")
+    d1.wasGeneratedBy("e1", "a1")
+
+    d2 = ProvDocument()
+    d2.set_default_namespace("http://example.org/")
+    d2.wasGeneratedBy("e1", "a1", identifier="g1")
+
+    assert d1 == d2
 
 
 def test_unified_with_no_bundles():
