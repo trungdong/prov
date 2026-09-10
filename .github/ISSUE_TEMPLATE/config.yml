@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions and discussion
+    url: https://github.com/trungdong/prov/discussions
+    about: Ask how to do something, or discuss an idea before proposing it
+  - name: Report a security vulnerability
+    url: https://github.com/trungdong/prov/security/advisories/new
+    about: Please report vulnerabilities privately, as described in SECURITY.md

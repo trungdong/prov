@@ -1,0 +1,39 @@
+name: Bug report
+description: Something behaves differently from the documentation or the PROV specifications
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: prov version
+      description: Output of `python -c "import prov; print(prov.__version__)"`
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version and implementation
+      placeholder: "3.12.4 (CPython) on macOS 15"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal script or document that shows the problem. Say which format and extras are involved.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the full traceback if there is one.
+    validations:
+      required: true

@@ -1,0 +1,14 @@
+{
+  "title": "prov: a Python library for the W3C PROV Data Model",
+  "description": "A library for the W3C Provenance Data Model with import and export in PROV-JSON, PROV-XML, PROV-O (RDF), PROV-JSONLD and PROV-N, graph conversion via NetworkX, and Graphviz rendering.",
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "creators": [
+    {
+      "name": "Huynh, Trung Dong",
+      "orcid": "0000-0003-4937-2473"
+    }
+  ],
+  "keywords": ["provenance", "W3C PROV", "PROV-DM", "PROV-JSON", "PROV-XML", "PROV-O", "PROV-JSONLD"]
+}

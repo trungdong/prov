@@ -59,6 +59,11 @@
 - Design specs, implementation plans and the test-gap checklist moved from
   `docs/` to a top-level `planning/` directory; the published documentation
   is unaffected
+- Contributor Covenant 2.1 code of conduct, issue forms, a pull-request
+  template, `CITATION.cff` (kept in step with `prov.__version__` by a test)
+  and `.zenodo.json`; contributions are accepted under the project's MIT
+  licence on an inbound-equals-outbound basis and the contributor licence
+  agreements in `cla/` are removed
 
 ## 3.1.0 (2026-08-07)
 
