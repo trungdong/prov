@@ -20,6 +20,9 @@
   drops a relation (an unset endpoint, or an undeclared endpoint whose type
   cannot be inferred, which only a `wasInfluencedBy` can trigger) instead of
   skipping it silently
+- The PROV-O deserializer no longer warns "attributes were not converted"
+  for documents that decode cleanly; the warning fires only when a subject
+  is left with unconverted attributes and names only those subjects
 
 ### Security
 

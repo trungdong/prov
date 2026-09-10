@@ -1334,10 +1334,14 @@ class ProvRDFSerializer(Serializer):
         self._decode_triples(graph, bundle, state, relation_mapper, predicate_mapper)
         self._emit_decoded_records(bundle, state)
 
-        if state.other_attributes:
+        # Every subject gets a (possibly empty) entry while decoding; only
+        # entries still holding attributes are unconverted.
+        unconverted = {
+            subj: attrs for subj, attrs in state.other_attributes.items() if attrs
+        }
+        if unconverted:
             warnings.warn(
-                "The following attributes were not converted: "
-                + str(state.other_attributes),
+                "The following attributes were not converted: " + str(unconverted),
                 UserWarning,
                 stacklevel=2,
             )

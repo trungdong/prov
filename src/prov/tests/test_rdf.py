@@ -10,6 +10,7 @@ import datetime
 import logging
 import os
 import struct
+import warnings
 from glob import glob
 from io import BytesIO, StringIO
 
@@ -1216,3 +1217,43 @@ def test_bundle_namespace_order_follows_registration_in_rdf():
         if prefix in BUNDLE_NAMESPACE_ORDER
     ]
     assert bound == BUNDLE_NAMESPACE_ORDER
+
+
+NOT_CONVERTED = "The following attributes were not converted"
+
+
+def test_clean_round_trip_emits_no_not_converted_warning():
+    document = ProvDocument()
+    document.set_default_namespace("http://example.org/")
+    document.entity("e1", other_attributes={"prov:label": "an entity"})
+    document.activity("a1")
+    document.wasGeneratedBy("e1", "a1")
+    document.wasAttributedTo("e1", "ag1")
+    rdf_text = document.serialize(format="rdf", rdf_format="trig")
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("error", message=NOT_CONVERTED)
+        reloaded = ProvDocument.deserialize(
+            content=rdf_text, format="rdf", rdf_format="trig"
+        )
+
+    assert reloaded == document
+
+
+def test_unmapped_subject_still_warns_and_is_named():
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+    ex:e1 a prov:Entity .
+    ex:orphan a ex:Custom .
+    """
+
+    with pytest.warns(UserWarning, match=NOT_CONVERTED) as record:
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+    # Filter to UserWarnings only (rdflib may emit DeprecationWarnings)
+    user_warnings = [r for r in record if issubclass(r.category, UserWarning)]
+    assert len(user_warnings) == 1
+    message = str(user_warnings[0].message)
+    assert "http://example.org/orphan" in message
+    assert "http://example.org/e1" not in message
