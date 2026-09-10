@@ -4,8 +4,8 @@ Guidance for Claude Code when working in this repository.
 
 ## Project overview
 
-`prov` is a Python implementation of the W3C PROV Data Model. Used by ProvStore, so treat the
-public API with care.
+`prov` is a Python implementation of the W3C PROV Data Model. Downstream projects depend on it, so
+treat the public API with care.
 
 ## Roadmap and planning
 

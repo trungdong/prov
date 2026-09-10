@@ -27,8 +27,6 @@ import and export in PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
 - Command-line tools, `prov-convert` and `prov-compare`.
 
 Start with the [tutorial](https://prov.readthedocs.io/en/latest/tutorial/getting-started.html).
-[ProvStore](https://openprovenance.org/store/), a free online repository for provenance
-documents, is built on this package.
 
 ## Status
 
