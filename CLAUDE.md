@@ -98,6 +98,9 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
 - `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
   `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
+- CI's `own-warnings` job (non-blocking) fails if `prov` raises a `DeprecationWarning` or
+  `FutureWarning` of its own. It uses pytest's ini-style `filterwarnings` because the `-W`
+  command-line form anchors the module field and silently ignores submodules (#340).
 
 New shared record types, attributes, or serializer behaviors go into the shared parametrized
 modules so every target is exercised — not into per-format tests.
