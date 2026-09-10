@@ -1190,3 +1190,29 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself():
     assert identifier.namespace.uri == "http://example.org/"
     assert identifier.namespace.prefix == "top"
     assert identifier.localpart == "thing"
+
+
+BUNDLE_NAMESPACE_ORDER = [f"ex{i}" for i in range(1, 6)]
+
+
+def test_bundle_namespace_order_follows_registration_in_rdf():
+    # #337: bundle namespaces are bound on the bundle graph in registration
+    # order. rdflib sorts prefixes when it serializes, so the bound order on
+    # the graph is the observable.
+    document = ProvDocument()
+    document.set_default_namespace("http://example.org/")
+    bundle = document.bundle("b1")
+    for i, prefix in enumerate(BUNDLE_NAMESPACE_ORDER, start=1):
+        bundle.add_namespace(prefix, f"http://example.org/ns{i}/")
+        bundle.entity(f"{prefix}:e{i}")
+
+    serializer = ProvRDFSerializer(document)
+    graph = serializer.encode_container(
+        bundle, identifier=URIRef("http://example.org/b1")
+    )
+    bound = [
+        prefix
+        for prefix, _ in graph.namespace_manager.namespaces()
+        if prefix in BUNDLE_NAMESPACE_ORDER
+    ]
+    assert bound == BUNDLE_NAMESPACE_ORDER

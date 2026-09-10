@@ -10,6 +10,12 @@
 - `NamespaceManager.get_namespace()` looks a URI up by index instead of
   scanning every known namespace; where a URI is both registered and the
   default namespace, the registered one is now returned consistently
+- PROV-XML and PROV-O serializers declare a bundle's namespaces in
+  registration order instead of hash-seed-dependent set order, and
+  `ProvDocument.add_bundle()` registers a copied document's namespaces in the
+  same order; PROV-XML byte output changes for bundles carrying two or more
+  of their own namespaces
+  ([#337](https://github.com/trungdong/prov/issues/337))
 
 ### Security
 

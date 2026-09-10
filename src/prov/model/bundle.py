@@ -1757,7 +1757,7 @@ class ProvDocument(ProvBundle):
                     "Cannot add a document with nested bundles as a bundle."
                 )
             # Make it a new ProvBundle
-            new_bundle = ProvBundle(namespaces=bundle.namespaces)
+            new_bundle = ProvBundle(namespaces=list(bundle.get_registered_namespaces()))
             new_bundle.update(bundle)
             bundle = new_bundle
 

@@ -828,3 +828,20 @@ def test_plot_unknown_format_raises_value_error(plot_doc, tmp_path):
     path = tmp_path / "out.not-a-real-format"
     with pytest.raises(ValueError):
         plot_doc.plot(filename=str(path))
+
+
+def test_add_bundle_from_document_keeps_namespace_order():
+    # #337: ProvDocument.add_bundle() copies a document's namespaces into
+    # the new bundle in registration order.
+    source = ProvDocument()
+    prefixes = [f"ex{i}" for i in range(1, 6)]
+    for i, prefix in enumerate(prefixes, start=1):
+        source.add_namespace(prefix, f"http://example.org/ns{i}/")
+        source.entity(f"{prefix}:e{i}")
+
+    target = ProvDocument()
+    target.set_default_namespace("http://example.org/")
+    target.add_bundle(source, identifier="b1")
+
+    bundle = next(iter(target.bundles))
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == prefixes

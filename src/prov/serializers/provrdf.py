@@ -867,17 +867,17 @@ class ProvRDFSerializer(Serializer):
             nm = container.namespace_manager
             nm.bind("prov", PROV.uri)
 
-        for namespace in bundle.namespaces:
+        for namespace in bundle.get_registered_namespaces():
             container.bind(namespace.prefix, namespace.uri)
-        # #96: `bundle.namespaces` excludes the bundle's default namespace
-        # (a separate concept from the core prov/xsd/xsi namespaces that
-        # `get_registered_namespaces` excludes -- `set_default_namespace`
-        # never writes to the registered-namespace dict), so it needs its
-        # own bind() call here, under the empty prefix, for its terms to
-        # render as `:local` rather than a full IRI. Note this widens the
-        # surface of #294: a default- or bundle-namespace term whose local
-        # part ends in a character rdflib cannot abbreviate is now bound
-        # but still emitted as a full IRI, and fails to decode.
+        # #96: `get_registered_namespaces()` excludes the bundle's default
+        # namespace (a separate concept from the core prov/xsd/xsi
+        # namespaces that it also excludes -- `set_default_namespace` never
+        # writes to the registered-namespace dict), so it needs its own
+        # bind() call here, under the empty prefix, for its terms to render
+        # as `:local` rather than a full IRI. Note this widens the surface
+        # of #294: a default- or bundle-namespace term whose local part ends
+        # in a character rdflib cannot abbreviate is now bound but still
+        # emitted as a full IRI, and fails to decode.
         default_namespace = bundle.get_default_namespace()
         if default_namespace is not None:
             container.bind("", default_namespace.uri)
