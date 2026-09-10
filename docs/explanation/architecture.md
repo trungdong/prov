@@ -1,7 +1,10 @@
 # Architecture
 
-`prov` is one package, `src/prov/`, in layers that depend in one direction. Reading it in
-that order gives the shape of the library.
+`prov` is one package, `src/prov/`, in layers that depend in one direction with one
+deliberate exception. `prov.model` imports `prov.serializers` so that `serialize()` and
+`deserialize()` can dispatch through the registry, and the format modules import
+`prov.model` back. The cycle is broken by the registry importing the format modules lazily,
+on first use. Reading the layers in order gives the shape of the library.
 
 ## Layers
 
@@ -18,13 +21,13 @@ that order gives the shape of the library.
 `prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`) whose `__init__.py`
 re-exports every public name at its historic `prov.model` location, so user code imports
 from `prov.model` and never from the submodules. Both `prov.model.__init__` and
-`prov.model.bundle` import `prov.serializers` at module load time, not lazily.
+`prov.model.bundle` import `prov.serializers` at module load time.
 
 ## The object model
 
 A `ProvRecord` is a PROV type, an optional identifier, and an ordered multi-valued attribute
-map. Two subclasses split the PROV-DM world: `ProvElement` (entity, activity, agent) and
-`ProvRelation` (generation, usage, derivation and the rest). Each concrete class declares
+map. `ProvElement` (entity, activity, agent) and `ProvRelation` (generation, usage,
+derivation and the rest) split the PROV-DM world between them. Each concrete class declares
 its formal attributes in order; everything else on the record is an "other" attribute.
 
 A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and offers a
@@ -33,7 +36,7 @@ factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 is the unit that serializes. Records are created through the bundle so that identifiers
 resolve against its namespaces; the bundle records every namespace a record mentions.
 
-Two transformations produce new documents rather than mutating:
+Two transformations produce new documents rather than mutating the original.
 {py:meth}`~prov.model.ProvDocument.flattened` lifts bundle contents to the top level, and
 {py:meth}`~prov.model.ProvBundle.unified` merges records that share an identifier under the
 PROV-CONSTRAINTS rules. See {doc}`unification-flattening`.
@@ -54,7 +57,7 @@ the only attempt that can succeed on a non-seekable stream.
 The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
 {py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional
 dependency (`rdf`, `xml`) are registered only if that dependency imports successfully;
-otherwise they are left out of the registry, so its shape does depend on what is installed.
+otherwise they are left out of the registry, so its shape depends on what is installed.
 Requesting a format that is not registered raises {py:class}`~prov.serializers.DoNotExist`,
 naming the extra to install when the format is one of the optional ones.
 
