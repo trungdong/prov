@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 """
-prov-compare -- Compare two PROV-JSON, PROV-XML, or RDF (PROV-O) files for equivalence
+prov-compare -- Compare two PROV documents (PROV-JSON, PROV-XML, PROV-O or PROV-JSONLD) for equivalence
 
 @author:     Trung Dong Huynh
 
-@copyright:  2025 Trung Dong Huynh
+@copyright:  2026 Trung Dong Huynh
 
 @license:    MIT Licence
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2025-06-07
+@deffield    updated: 2026-09-10
 """
 
 import logging
@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 __all__: list[str] = []
 __version__ = 0.1
 __date__ = "2015-06-16"
-__updated__ = "2025-06-07"
+__updated__ = "2026-09-10"
 
 DEBUG = 0
 TESTRUN = 0
@@ -77,10 +77,10 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     program_shortdesc = __doc__.split("\n")[1]
     program_license = f"""{program_shortdesc}
 
-  Copyright 2025 Trung Dong Huynh.
+  Copyright 2026 Trung Dong Huynh.
 
   Licensed under the MIT License
-  https://github.com/trungdong/prov/blob/master/LICENSE
+  https://github.com/trungdong/prov/blob/main/LICENSE
 
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
@@ -101,7 +101,7 @@ USAGE
             dest="format1",
             action="store",
             default="json",
-            help="File 1's format: json or xml",
+            help="File 1's format: json, xml, rdf or jsonld",
         )
         parser.add_argument(
             "-F",
@@ -109,7 +109,7 @@ USAGE
             dest="format2",
             action="store",
             default="json",
-            help="File 2's format: json or xml",
+            help="File 2's format: json, xml, rdf or jsonld",
         )
         parser.add_argument(
             "-V", "--version", action="version", version=program_version_message

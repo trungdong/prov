@@ -4,12 +4,12 @@ convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG
 
 @author:     Trung Dong Huynh
 
-@copyright:  2025 Trung Dong Huynh
+@copyright:  2026 Trung Dong Huynh
 
 @license:    MIT License
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2025-06-07
+@deffield    updated: 2026-09-10
 """
 
 import io
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 __all__: list[str] = []
 __version__ = 0.1
 __date__ = "2014-03-14"
-__updated__ = "2025-06-07"
+__updated__ = "2026-09-10"
 
 DEBUG = 0
 TESTRUN = 0
@@ -87,8 +87,8 @@ class CLIError(Exception):
 def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> None:
     """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
 
-    ``infile`` is auto-detected across all registered deserialization
-    formats (see :meth:`~prov.model.ProvDocument.deserialize`). For
+    ``infile`` is always read as PROV-JSON, the default format of
+    :meth:`~prov.model.ProvDocument.deserialize`. For
     ``output_format``, ``"provn"`` is written directly via
     :meth:`~prov.model.ProvDocument.get_provn`, a name in
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
@@ -100,7 +100,7 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
         outfile: File-like object (opened in binary mode) to write the
             converted output to.
         output_format: Target format name (e.g. ``"json"``, ``"xml"``,
-            ``"rdf"``, ``"provn"``, or a Graphviz output format such as
+            ``"rdf"``, ``"jsonld"``, ``"provn"``, or a Graphviz output format such as
             ``"svg"``/``"pdf"``/``"png"``).
 
     Raises:
@@ -161,10 +161,10 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     program_shortdesc = __doc__.split("\n")[1]
     program_license = f"""{program_shortdesc}
 
-  Copyright 2025 Trung Dong Huynh.
+  Copyright 2026 Trung Dong Huynh.
 
   Licensed under the MIT License
-  https://github.com/trungdong/prov/blob/master/LICENSE
+  https://github.com/trungdong/prov/blob/main/LICENSE
 
   Distributed on an "AS IS" basis without warranties
   or conditions of any kind, either express or implied.
@@ -183,7 +183,7 @@ USAGE
             dest="format",
             action="store",
             default="json",
-            help="output format: json, xml, provn, or one supported by GraphViz (e.g. svg, pdf)",
+            help="output format: json, xml, rdf, jsonld, provn, or a Graphviz output format (e.g. svg, pdf, png)",
         )
         parser.add_argument("infile", nargs="?", type=FileType("r"), default=sys.stdin)
         parser.add_argument(
