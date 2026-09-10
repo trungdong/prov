@@ -35,6 +35,14 @@
 
 ### Tests
 
+- Regression test pinning insertion-ordered attribute output in PROV-N and
+  PROV-JSON; the non-determinism reported in
+  [#130](https://github.com/trungdong/prov/issues/130) was removed by the
+  3.0.0 attribute-storage rework and the guarantee is now documented in the
+  PROV-N how-to
+- The PROV-XML serializer's `force_types` parameter is now covered in both
+  states ([#338](https://github.com/trungdong/prov/issues/338))
+
 ### Documentation
 
 - `README.md` and `SECURITY.md` now state the 2.x support policy as it

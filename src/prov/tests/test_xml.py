@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import difflib
 import inspect
 import io
@@ -859,3 +860,37 @@ def test_bundle_namespace_order_follows_registration_in_xml():
     )
     declared = re.findall(rb"xmlns:(ex\d)=", xml_bytes)
     assert [p.decode() for p in declared] == BUNDLE_NAMESPACE_ORDER
+
+
+# #338: force_types coverage, independent of the disabled _perform_round_trip
+# scaffold above.
+
+XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
+FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/prov#"}
+
+
+@pytest.mark.parametrize("force_types", [True, False])
+def test_force_types_controls_xsi_type_on_non_prov_attributes(force_types):
+    document = prov.ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity(
+        "ex:e1",
+        {
+            "ex:text": "plain",
+            "ex:count": 7,
+            "ex:when": datetime.datetime(2026, 9, 10, 12, 0, 0),
+            "prov:type": "a type",
+        },
+    )
+
+    root = etree.fromstring(
+        document.serialize(format="xml", force_types=force_types).encode()
+    )
+
+    def xsi_type(path):
+        return root.find(path, FORCE_TYPES_NS).get(XSI_TYPE)
+
+    assert xsi_type(".//ex:text") == ("xsd:string" if force_types else None)
+    assert xsi_type(".//ex:count") == "xsd:int"
+    assert xsi_type(".//ex:when") == "xsd:dateTime"
+    assert xsi_type(".//prov:type") == "xsd:string"
