@@ -34,10 +34,16 @@ done
 uv run mypy src
 uv run ruff check src/
 uv run ruff format --check src/
+
+# prov must raise no DeprecationWarning or FutureWarning of its own (#340); the
+# ini-style filter is deliberate, the -W form silently ignores submodules
+uv run pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
 ```
 
-The suite must match the invariant recorded in `CLAUDE.md` exactly — pass count, skip
-count, and zero xfails. A deviation is a regression, not a new baseline.
+Compare the suite's pass, skip and xfail counts against the previous run and against the
+count the release PR states; `CLAUDE.md` deliberately records no fixed number. A skip or
+xfail that is new, gone, or unexplained by the release's own changes is a regression, not a
+new baseline.
 
 Check the build, including any package data the release depends on at runtime:
 
@@ -78,11 +84,23 @@ interpreting:
   `codacy pr gh trungdong prov <PR#>` — it names file, line and rule. In Markdown, write
   bare URLs as `<https://…>`. Note that new code can push an existing function over the
   Lizard cyclomatic-complexity threshold of 15 even when the function itself looks
-  untouched.
+  untouched. The `codacy` CLI's stored token expires: `Error: Unauthorized` means re-login
+  in a real terminal (`codacy login --token <token>`, never inside a Claude Code session).
+  A Cloud-only finding that `codacy-analysis analyze --files <changed files>` does not
+  reproduce locally (seen: an Opengrep "lxml.etree DoS" pattern on a test parsing prov's own
+  XML output) is cleared with `codacy pr gh trungdong prov <PR#> -I <issue-id>` followed by
+  `codacy pr gh trungdong prov <PR#> --reanalyze`; the GitHub check turns green a minute
+  or so later.
 - **Coveralls is advisory.** A "Coverage decreased" failure is non-blocking *provided* the
   local gate passes: `uv run coverage run -m pytest && uv run coverage report` must exit 0
   against the `fail_under = 97` floor in `pyproject.toml`. Defensive `raise` branches in
   new code routinely cost a fraction of a percent on the delta while the floor still holds.
+- **Two CI hiccups that look like failures and are not.** GitHub occasionally drops the
+  `pull_request` event on a freshly opened PR, so `gh pr checks` reports "no checks";
+  `gh pr close <PR#> && gh pr reopen <PR#>` fires the `reopened` event and CI starts. A matrix
+  job can also stall in its "Setup Graphviz" step for half an hour or more while its siblings
+  finish; `gh run cancel <run-id>` and then `gh run rerun <run-id> --failed` repeats only the
+  stalled job and keeps the green results.
 
 ## 4. Publish
 
@@ -106,6 +124,18 @@ gh release create X.Y.Z --repo trungdong/prov --target main \
     --title X.Y.Z --notes-file <notes.md>
 gh run watch <run-id> --repo trungdong/prov --exit-status
 ```
+
+The tag also mints a Zenodo DOI through the repository's Zenodo webhook, within about a
+minute. Look the record up by the tag's related identifier rather than by free text:
+
+```bash
+curl -s "https://zenodo.org/api/records?q=metadata.related_identifiers.identifier:%22https://github.com/trungdong/prov/tree/X.Y.Z%22" \
+    | python3 -c "import json,sys; h=json.load(sys.stdin)['hits']['hits'][0]; print(h['doi'], h['conceptdoi'])"
+```
+
+The README badge carries the concept DOI (`10.5281/zenodo.22696001`), which resolves to the
+newest version, so no README change is needed per release. Do not switch it to the
+`zenodo.org/badge/latestdoi/<repo-id>` form; that endpoint answered 504 when 3.1.1 was cut.
 
 ## 5. Verify what shipped
 
@@ -161,7 +191,9 @@ Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 
 ## 7. Close out
 
-- Close the release's GitHub milestone.
+- Create the release's GitHub milestone if it does not exist, assign the issues the release
+  closed, and close it. Check the previous release's milestone is closed too; 3.1.0's was
+  still open when 3.1.1 was cut.
 - Confirm <https://pypi.org/project/prov/> and the conda-forge feed both show the new
   version.
 
@@ -179,10 +211,10 @@ on `2.x`:
 uv run --extra rdf --extra xml pytest -q
 ```
 
-**The suite invariant in `CLAUDE.md` is main's.** `2.x` carries its own counts and, unlike
-main, a non-zero xfail count. Compare against the previous release's numbers on `2.x`
-itself, not against the invariant — and treat a moved skip or xfail the same way you would
-on main: a regression to investigate unless the release's own changes explain it.
+**`2.x` has its own suite counts**, including, unlike main, a non-zero xfail count. Compare
+against the previous release's numbers on `2.x` itself, and treat a moved skip or xfail the
+same way you would on main: a regression to investigate unless the release's own changes
+explain it.
 
 **Two of §2's four stamped files do not apply.** `2.x` has no per-release row in
 `ROADMAP.md` — its table stops at the last release stamped before the branch diverged — and
