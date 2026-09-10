@@ -16,6 +16,10 @@
   same order; PROV-XML byte output changes for bundles carrying two or more
   of their own namespaces
   ([#337](https://github.com/trungdong/prov/issues/337))
+- `prov.graph.prov_to_graph()` warns with `prov.model.ProvWarning` when it
+  drops a relation (an unset endpoint, or an undeclared endpoint whose type
+  cannot be inferred, which only a `wasInfluencedBy` can trigger) instead of
+  skipping it silently
 
 ### Security
 
