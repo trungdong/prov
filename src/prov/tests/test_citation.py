@@ -31,5 +31,5 @@ def test_citation_version_matches_package_version():
 
 def test_zenodo_metadata_names_the_maintainer():
     metadata = json.loads(ZENODO_FILE.read_text())
-    assert metadata["license"] == "MIT"
+    assert metadata["license"] == "mit"
     assert metadata["creators"][0]["orcid"] == "0000-0003-4937-2473"
