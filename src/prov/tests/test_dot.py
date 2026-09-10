@@ -134,3 +134,60 @@ def test_unresolvable_unification_falls_back_to_original_bundle():
     dot = prov_to_dot(doc)
     svg_content = dot.create(format="svg", encoding="utf-8")
     assert len(svg_content) > MIN_SVG_SIZE
+
+
+# Link and label hardening: identifier URIs and labels are document content
+# and rendered SVG makes link attributes live.
+
+
+def test_javascript_scheme_identifier_gets_no_url_or_href():
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.add_namespace("js", "javascript:")
+    doc.entity(
+        "ex:safe", other_attributes={"ex:link": doc.valid_qualified_name("js:alert")}
+    )
+    doc.entity("js:payload", other_attributes={"js:attr": "value"})
+
+    dot_text = prov_to_dot(doc).to_string()
+
+    assert 'URL="http://example.org/safe"' in dot_text
+    assert 'href="http://example.org/link"' in dot_text
+    assert 'URL="javascript' not in dot_text
+    assert 'href="javascript' not in dot_text
+
+
+def test_bundle_with_javascript_identifier_gets_no_url():
+    doc = ProvDocument()
+    doc.add_namespace("js", "javascript:")
+    bundle = doc.bundle("js:bundle")
+    bundle.entity("js:e1")
+
+    dot_text = prov_to_dot(doc).to_string()
+
+    assert 'URL="javascript' not in dot_text
+
+
+def test_html_label_special_characters_are_escaped():
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1", other_attributes={"prov:label": 'A<b> & "c"'})
+
+    dot = prov_to_dot(doc, use_labels=True)
+    dot_text = dot.to_string()
+
+    assert "A&lt;b&gt; &amp; &quot;c&quot;" in dot_text
+    assert 'A<b> & "c"' not in dot_text
+    assert len(dot.create(format="svg")) > 0
+
+
+def test_quoted_label_escapes_double_quote():
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity('ex:e"1')
+
+    dot = prov_to_dot(doc)
+    dot_text = dot.to_string()
+
+    assert 'label="ex:e\\"1"' in dot_text
+    assert len(dot.create(format="svg")) > 0
