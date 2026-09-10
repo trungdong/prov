@@ -1,14 +1,13 @@
 # API reference
 
 This section documents every public class and function in `prov`, module by module, with
-their type hints as shipped in the source (`prov` ships inline types via `py.typed`). It is
-organised by concept rather than alphabetically — start with {doc}`model` for the core object
-model, then follow the links below for identifiers, the PROV vocabulary, serializers, and the
-graph/graphics interop modules, plus the {doc}`conformance` matrix mapping every PROV-DM concept
-to its `prov` class, factory method, and serializer round-trip status. For task-oriented
-walkthroughs, see the {doc}`../tutorial/getting-started`
-and the {doc}`../howto/provjson`/{doc}`../howto/provjsonld` (and their sibling how-to pages)
-instead.
+the type hints shipped in the source. Start with {doc}`model` for the core object model.
+The other pages cover identifiers, the PROV vocabulary, serializers and the graph and
+graphics modules. {doc}`conformance` maps every PROV-DM concept to its class, factory
+method and round-trip status per format.
+
+For task-oriented guidance see the {doc}`../tutorial/getting-started` and the how-to
+guides.
 
 ```{toctree}
 :maxdepth: 1

@@ -3,7 +3,7 @@
 `prov` is one package, `src/prov/`, in layers that depend in one direction with one
 deliberate exception. `prov.model` imports `prov.serializers` so that `serialize()` and
 `deserialize()` can dispatch through the registry, and the format modules import
-`prov.model` back. The cycle is broken by the registry importing the format modules lazily,
+`prov.model` back. The registry breaks the cycle by importing the format modules lazily,
 on first use. Reading the layers in order gives the shape of the library.
 
 ## Layers
@@ -19,22 +19,22 @@ on first use. Reading the layers in order gives the shape of the library.
 | `prov.scripts` | The `prov-convert` and `prov-compare` command-line tools | `prov.model`, `prov.serializers` |
 
 `prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`) whose `__init__.py`
-re-exports every public name at its historic `prov.model` location, so user code imports
-from `prov.model` and never from the submodules. Both `prov.model.__init__` and
+re-exports every public name at its historic `prov.model` location. User code imports from
+`prov.model` and never from the submodules. Both `prov.model.__init__` and
 `prov.model.bundle` import `prov.serializers` at module load time.
 
 ## The object model
 
-A `ProvRecord` is a PROV type, an optional identifier, and an ordered multi-valued attribute
+A `ProvRecord` is a PROV type, an optional identifier and an ordered multi-valued attribute
 map. `ProvElement` (entity, activity, agent) and `ProvRelation` (generation, usage,
 derivation and the rest) split the PROV-DM world between them. Each concrete class declares
-its formal attributes in order; everything else on the record is an "other" attribute.
+its formal attributes in order. Everything else on the record is an "other" attribute.
 
 A {py:class}`~prov.model.ProvBundle` owns records and a namespace manager, and offers a
 factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 {py:class}`~prov.model.ProvDocument` is a bundle that can also contain named bundles, and
 is the unit that serializes. Records are created through the bundle so that identifiers
-resolve against its namespaces; the bundle records every namespace a record mentions.
+resolve against its namespaces. The bundle records every namespace a record mentions.
 
 Two transformations produce new documents rather than mutating the original.
 {py:meth}`~prov.model.ProvDocument.flattened` lifts bundle contents to the top level, and
@@ -56,8 +56,8 @@ the only attempt that can succeed on a non-seekable stream.
 
 The registry is populated lazily, on the first call to {py:func}`prov.serializers.get` or
 {py:func}`prov.read`, by `Registry.load_serializers()`. Formats whose parser is an optional
-dependency (`rdf`, `xml`) are registered only if that dependency imports successfully;
-otherwise they are left out of the registry, so its shape depends on what is installed.
+dependency (`rdf`, `xml`) are registered only if that dependency imports successfully.
+Otherwise they are left out of the registry, so its shape depends on what is installed.
 Requesting a format that is not registered raises {py:class}`~prov.serializers.DoNotExist`,
 naming the extra to install when the format is one of the optional ones.
 
@@ -74,7 +74,7 @@ The test suite lives inside the package, at `src/prov/tests/`, and ships with it
 coverage runs once per target through a parametrised round-trip fixture. The targets are the
 in-memory model and the four round-trippable formats, PROV-JSON, PROV-XML, PROV-O and
 PROV-JSONLD. PROV-N is excluded because it is write-only. This exercises a new record type
-or attribute shape against every target at once; per-format modules keep only what is
+or attribute shape against every target at once, and per-format modules keep only what is
 specific to that format. `examples.py` holds the canonical example documents that several
 modules and the DOT smoke tests reuse, and a Hypothesis property test round-trips generated
 documents through those same four formats.
