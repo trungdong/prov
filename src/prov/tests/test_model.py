@@ -29,6 +29,7 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.tests import examples
+from prov.tests.conftest import add_ordered_namespaces
 
 logger = logging.getLogger(__name__)
 
@@ -836,10 +837,7 @@ def test_add_bundle_from_document_keeps_namespace_order():
     # #337: ProvDocument.add_bundle() copies a document's namespaces into
     # the new bundle in registration order.
     source = ProvDocument()
-    prefixes = [f"ex{i}" for i in range(1, 6)]
-    for i, prefix in enumerate(prefixes, start=1):
-        source.add_namespace(prefix, f"http://example.org/ns{i}/")
-        source.entity(f"{prefix}:e{i}")
+    prefixes = add_ordered_namespaces(source)
 
     target = ProvDocument()
     target.set_default_namespace("http://example.org/")

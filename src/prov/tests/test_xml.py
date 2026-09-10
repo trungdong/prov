@@ -20,7 +20,7 @@ from prov.serializers.provxml import (
     _unescape_ncname_localpart,
     xml_qname_to_QualifiedName,
 )
-from prov.tests.conftest import roundtrip_document
+from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")
@@ -839,27 +839,16 @@ def _perform_round_trip(filename, force_types=False):
         compare_xml(filename, new_xml)
 
 
-BUNDLE_NAMESPACE_ORDER = [f"ex{i}" for i in range(1, 6)]
-
-
-def _document_with_ordered_bundle_namespaces():
+def test_bundle_namespace_order_follows_registration_in_xml():
+    # #337: bundle namespaces are declared in registration order.
     document = prov.ProvDocument()
     document.set_default_namespace("http://example.org/")
-    bundle = document.bundle("b1")
-    for i, prefix in enumerate(BUNDLE_NAMESPACE_ORDER, start=1):
-        bundle.add_namespace(prefix, f"http://example.org/ns{i}/")
-        bundle.entity(f"{prefix}:e{i}")
-    return document
+    prefixes = add_ordered_namespaces(document.bundle("b1"))
 
+    xml_bytes = document.serialize(format="xml").encode()
 
-def test_bundle_namespace_order_follows_registration_in_xml():
-    # #337: five namespaces give a one-in-120 chance of the old
-    # set-iteration order matching by accident.
-    xml_bytes = (
-        _document_with_ordered_bundle_namespaces().serialize(format="xml").encode()
-    )
     declared = re.findall(rb"xmlns:(ex\d)=", xml_bytes)
-    assert [p.decode() for p in declared] == BUNDLE_NAMESPACE_ORDER
+    assert [p.decode() for p in declared] == prefixes
 
 
 # #338: force_types coverage, independent of the disabled _perform_round_trip

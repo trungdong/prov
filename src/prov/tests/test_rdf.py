@@ -27,7 +27,7 @@ from prov.serializers.provrdf import (
     ProvRDFSerializer,
     literal_rdf_representation,
 )
-from prov.tests.conftest import roundtrip_document
+from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
 
 logger = logging.getLogger(__name__)
 
@@ -1193,9 +1193,6 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself():
     assert identifier.localpart == "thing"
 
 
-BUNDLE_NAMESPACE_ORDER = [f"ex{i}" for i in range(1, 6)]
-
-
 def test_bundle_namespace_order_follows_registration_in_rdf():
     # #337: bundle namespaces are bound on the bundle graph in registration
     # order. rdflib sorts prefixes when it serializes, so the bound order on
@@ -1203,20 +1200,19 @@ def test_bundle_namespace_order_follows_registration_in_rdf():
     document = ProvDocument()
     document.set_default_namespace("http://example.org/")
     bundle = document.bundle("b1")
-    for i, prefix in enumerate(BUNDLE_NAMESPACE_ORDER, start=1):
-        bundle.add_namespace(prefix, f"http://example.org/ns{i}/")
-        bundle.entity(f"{prefix}:e{i}")
+    prefixes = add_ordered_namespaces(bundle)
 
     serializer = ProvRDFSerializer(document)
     graph = serializer.encode_container(
         bundle, identifier=URIRef("http://example.org/b1")
     )
+
     bound = [
         prefix
         for prefix, _ in graph.namespace_manager.namespaces()
-        if prefix in BUNDLE_NAMESPACE_ORDER
+        if prefix in prefixes
     ]
-    assert bound == BUNDLE_NAMESPACE_ORDER
+    assert bound == prefixes
 
 
 NOT_CONVERTED = "The following attributes were not converted"
