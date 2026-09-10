@@ -184,7 +184,7 @@ class ProvXMLSerializer(Serializer):
         if self.document._namespaces._default:  # type: ignore[union-attr]
             # TODO: Check if the below works as expected.
             nsmap[None] = self.document._namespaces._default.uri  # type: ignore[union-attr, index]
-        for namespace in bundle.namespaces:
+        for namespace in bundle.get_registered_namespaces():
             if namespace not in nsmap:
                 nsmap[namespace.prefix] = namespace.uri
 

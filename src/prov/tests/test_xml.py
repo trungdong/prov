@@ -3,6 +3,7 @@ import difflib
 import inspect
 import io
 import os
+import re
 import warnings
 
 import pytest
@@ -835,3 +836,26 @@ def _perform_round_trip(filename, force_types=False):
     with io.BytesIO() as new_xml:
         document.serialize(format="xml", destination=new_xml, force_types=force_types)
         compare_xml(filename, new_xml)
+
+
+BUNDLE_NAMESPACE_ORDER = [f"ex{i}" for i in range(1, 6)]
+
+
+def _document_with_ordered_bundle_namespaces():
+    document = prov.ProvDocument()
+    document.set_default_namespace("http://example.org/")
+    bundle = document.bundle("b1")
+    for i, prefix in enumerate(BUNDLE_NAMESPACE_ORDER, start=1):
+        bundle.add_namespace(prefix, f"http://example.org/ns{i}/")
+        bundle.entity(f"{prefix}:e{i}")
+    return document
+
+
+def test_bundle_namespace_order_follows_registration_in_xml():
+    # #337: five namespaces give a one-in-120 chance of the old
+    # set-iteration order matching by accident.
+    xml_bytes = (
+        _document_with_ordered_bundle_namespaces().serialize(format="xml").encode()
+    )
+    declared = re.findall(rb"xmlns:(ex\d)=", xml_bytes)
+    assert [p.decode() for p in declared] == BUNDLE_NAMESPACE_ORDER
