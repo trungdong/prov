@@ -39,6 +39,10 @@
 
 ### Project
 
+- A non-blocking CI job fails if `prov` raises a `DeprecationWarning` or
+  `FutureWarning` of its own
+  ([#340](https://github.com/trungdong/prov/issues/340))
+
 ## 3.1.0 (2026-08-07)
 
 - New PROV-JSONLD serializer and deserializer, selected with `format="jsonld"`

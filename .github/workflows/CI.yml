@@ -105,6 +105,36 @@ jobs:
       - name: Degradation tests
         run: uv run --no-sync pytest src/prov/tests/test_minimal_install.py -v
 
+  own-warnings:
+    # Non-blocking guard (#340): prov must raise no DeprecationWarning or
+    # FutureWarning of its own. It runs apart from the matrix so a failure
+    # names exactly one cause, and rdflib's deprecation notices (attributed
+    # to rdflib's own modules) stay out of scope.
+    #
+    # The ini-style filterwarnings form is deliberate. pytest's command-line
+    # `-W error::DeprecationWarning:prov` escapes and anchors the module
+    # field, so it matches only warnings raised in prov/__init__.py and is a
+    # silent no-op for every submodule. The ini-style path treats the module
+    # field as a regular expression, so `prov` matches every submodule. It
+    # is not added to pyproject.toml because rdflib's warning surface is not
+    # a stability contract and must not redden every contributor's run.
+    name: own-warnings guard (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Graphviz
+        uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Run the suite with prov's own deprecation warnings as errors
+        env:
+          HYPOTHESIS_PROFILE: ci
+        run: |
+          uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
+          uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
+
   typecheck:
     runs-on: ubuntu-latest
     steps:
