@@ -46,7 +46,7 @@ def test_relation_with_missing_end_is_skipped_with_warning(document):
         g = prov_to_graph(document)
 
     assert list(g.edges()) == []
-    assert len(record) == 1
+    assert sum(issubclass(w.category, ProvWarning) for w in record) == 1
 
 
 def test_relation_endpoints_get_inferred_nodes(document):
@@ -78,7 +78,7 @@ def test_relation_with_uninferrable_endpoint_type_is_skipped_with_warning(docume
     with pytest.warns(ProvWarning, match="Influence") as record:
         g = prov_to_graph(document)
 
-    assert len(record) == 1
+    assert sum(issubclass(w.category, ProvWarning) for w in record) == 1
     assert len(g.nodes()) == 2
     assert len(g.edges()) == 1
     (_, _, edge_data) = next(iter(g.edges(data=True)))

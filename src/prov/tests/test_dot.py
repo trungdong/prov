@@ -140,6 +140,27 @@ def test_unresolvable_unification_falls_back_to_original_bundle():
 # and rendered SVG makes link attributes live.
 
 
+def _node_with_label_fragment(dot, fragment):
+    """The one node whose label contains ``fragment``."""
+    matches = [n for n in dot.get_nodes() if fragment in (n.get_label() or "")]
+    assert len(matches) == 1, fragment
+    return matches[0]
+
+
+def _assert_javascript_links_dropped(doc):
+    """``ex:safe`` keeps its links; the ``js:`` node and annotation get none."""
+    dot = prov_to_dot(doc)
+
+    safe = _node_with_label_fragment(dot, "ex:safe")
+    assert safe.get("URL") == '"http://example.org/safe"'
+    payload = _node_with_label_fragment(dot, "js:payload")
+    assert payload.get("URL") is None
+    annotation = _node_with_label_fragment(dot, "ex:link")
+    assert 'href="http://example.org/link"' in annotation.get_label()
+    assert 'href="javascript' not in annotation.get_label()
+    assert 'href=" javascript' not in annotation.get_label()
+
+
 def test_javascript_scheme_identifier_gets_no_url_or_href():
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
@@ -149,12 +170,7 @@ def test_javascript_scheme_identifier_gets_no_url_or_href():
     )
     doc.entity("js:payload", other_attributes={"js:attr": "value"})
 
-    dot_text = prov_to_dot(doc).to_string()
-
-    assert 'URL="http://example.org/safe"' in dot_text
-    assert 'href="http://example.org/link"' in dot_text
-    assert 'URL="javascript' not in dot_text
-    assert 'href="javascript' not in dot_text
+    _assert_javascript_links_dropped(doc)
 
 
 @pytest.mark.parametrize(
@@ -172,13 +188,7 @@ def test_encoded_or_padded_javascript_scheme_gets_no_url_or_href(namespace_uri):
     doc.entity("ex:safe", other_attributes={"ex:link": js})
     doc.entity("js:payload")
 
-    dot_text = prov_to_dot(doc).to_string()
-
-    assert 'URL="http://example.org/safe"' in dot_text
-    assert 'URL="javascript' not in dot_text
-    assert 'URL=" javascript' not in dot_text
-    assert 'href="javascript' not in dot_text
-    assert 'href=" javascript' not in dot_text
+    _assert_javascript_links_dropped(doc)
 
 
 def test_bundle_with_javascript_identifier_gets_no_url():
@@ -187,9 +197,10 @@ def test_bundle_with_javascript_identifier_gets_no_url():
     bundle = doc.bundle("js:bundle")
     bundle.entity("js:e1")
 
-    dot_text = prov_to_dot(doc).to_string()
+    dot = prov_to_dot(doc)
 
-    assert 'URL="javascript' not in dot_text
+    (cluster,) = dot.get_subgraphs()
+    assert cluster.get("URL") is None
 
 
 def test_html_label_special_characters_are_escaped():

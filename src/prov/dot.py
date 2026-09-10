@@ -198,13 +198,7 @@ def _link_uri(uri: str) -> str | None:
     because Graphviz passes HTML character references through to SVG, where
     the consumer decodes them.
     """
-    decoded = uri
-    for _ in range(3):
-        candidate = unescape(decoded)
-        if candidate == decoded:
-            break
-        decoded = candidate
-    scheme = urlsplit(decoded.strip()).scheme.lower()
+    scheme = urlsplit(unescape(uri).strip()).scheme.lower()
     return uri if scheme == "" or scheme in _LINK_SCHEMES else None
 
 

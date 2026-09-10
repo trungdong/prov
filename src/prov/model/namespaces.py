@@ -67,7 +67,9 @@ class NamespaceManager(dict[str, Namespace]):
             The matching :class:`~prov.identifier.Namespace`, or ``None`` if no
             known namespace has that URI.
         """
-        namespace = _DEFAULT_NAMESPACES_BY_URI.get(uri) or self._uri_map.get(uri)
+        namespace = _DEFAULT_NAMESPACES_BY_URI.get(uri)
+        if namespace is None:
+            namespace = self._uri_map.get(uri)
         if namespace is not None:
             return namespace
         if self._default is not None and self._default.uri == uri:

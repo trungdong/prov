@@ -14,7 +14,7 @@ import os
 import pytest
 from hypothesis import settings
 
-from prov.model import ProvDocument, ProvMention
+from prov.model import ProvBundle, ProvDocument, ProvMention
 
 # Hypothesis profiles for the property-based round-trip tests
 # (``test_property_roundtrip.py``). The local ``default`` profile is
@@ -106,6 +106,21 @@ def _document_record_strings(doc: ProvDocument) -> set[str]:
         for bundle in doc.bundles:
             records.update(f"{bundle.identifier} | {r}" for r in bundle.get_records())
     return records
+
+
+ORDERED_NAMESPACE_PREFIXES = [f"ex{i}" for i in range(1, 6)]
+
+
+def add_ordered_namespaces(container: ProvBundle) -> list[str]:
+    """Register five namespaces on ``container`` in a fixed order, one entity each.
+
+    Five namespaces give a one-in-120 chance that hash-seed set order matches
+    registration order by accident (#337).
+    """
+    for i, prefix in enumerate(ORDERED_NAMESPACE_PREFIXES, start=1):
+        container.add_namespace(prefix, f"http://example.org/ns{i}/")
+        container.entity(f"{prefix}:e{i}")
+    return list(ORDERED_NAMESPACE_PREFIXES)
 
 
 def pytest_assertrepr_compare(config, op, left, right):

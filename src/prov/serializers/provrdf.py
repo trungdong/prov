@@ -1334,14 +1334,12 @@ class ProvRDFSerializer(Serializer):
         self._decode_triples(graph, bundle, state, relation_mapper, predicate_mapper)
         self._emit_decoded_records(bundle, state)
 
-        # Every subject gets a (possibly empty) entry while decoding; only
-        # entries still holding attributes are unconverted.
-        unconverted = {
-            subj: attrs for subj, attrs in state.other_attributes.items() if attrs
-        }
-        if unconverted:
+        # Entries are created only when an attribute is gathered and are
+        # removed as records consume them, so whatever remains is unconverted.
+        if state.other_attributes:
             warnings.warn(
-                "The following attributes were not converted: " + str(unconverted),
+                "The following attributes were not converted: "
+                + str(state.other_attributes),
                 UserWarning,
                 stacklevel=2,
             )
@@ -1442,7 +1440,6 @@ class ProvRDFSerializer(Serializer):
             subj = str(subj_node)
             # predicates in RDF are always URIRefs; rdflib types them as Node
             pred = cast(URIRef, pred_node)
-            state.other_attributes.setdefault(subj, [])
             if pred == RDF.type:
                 continue
             if pred in relation_mapper:
@@ -1594,7 +1591,7 @@ class ProvRDFSerializer(Serializer):
                 # by walking every combination in _emit_decoded_records().
                 state.formal_attributes[subj][qname_key] = None
         elif "qualified" not in str(pred_new) and "asInBundle" not in str(pred_new):
-            state.other_attributes[subj].append((str(pred_new), obj1))
+            state.other_attributes.setdefault(subj, []).append((str(pred_new), obj1))
 
     def _emit_decoded_records(
         self, bundle: pm.ProvBundle, state: "_DecodeState"

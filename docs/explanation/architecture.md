@@ -63,10 +63,10 @@ naming the extra to install when the format is one of the optional ones.
 
 ## Extras
 
-The core package has no runtime dependencies. `rdflib`, `lxml`, `networkx`, `pydot` and
-`matplotlib` sit behind the `rdf`, `xml`, `graph`, `dot` and `plot` extras respectively
-(see {doc}`../installation`). `prov.graph` and `prov.dot` raise `ModuleNotFoundError`
-naming the extra when imported without it.
+The core package has no runtime dependencies. `rdflib` sits behind the `rdf` extra, `lxml`
+behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, and
+`matplotlib`, `pydot` and `networkx` behind `plot` (see {doc}`../installation`). `prov.graph`
+and `prov.dot` raise `ModuleNotFoundError` naming the extra when imported without it.
 
 ## Tests
 
