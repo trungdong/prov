@@ -1,175 +1,125 @@
-# Dependency audit
+# Dependencies
 
-Audit date: 2026-07-05, against `master` @ `185c062` (Phase 2 dependency audit, T14).
-Pin rationales re-verified 2026-07-27, against `master` @ `970524f`, ahead of the 3.0.0
-release: every rationale below was re-read against `uv.lock`, and the Sphinx and numpy
-constraints were re-derived by actually re-resolving and re-running the tooling they
-guard (commands and outcomes recorded in their entries below), not by re-asserting the
-prior text.
+Why each runtime extra, dev-group and docs-group entry exists, and why it is pinned the
+way it is. Last checked 2026-09-10 against `pyproject.toml` and `uv.lock` at 3.1.1. Version
+numbers quoted here drift after that date, so check `pyproject.toml` before relying on
+them.
 
-Why every runtime dependency, extra, and dev/docs-group entry exists, and why it's pinned
-the way it is. Re-check pins against `pyproject.toml` before trusting the version numbers
-below — they drift after the audit date above.
+## Runtime dependencies
 
-## Runtime dependencies (`[project.dependencies]`)
+`prov` has no unconditional runtime dependencies. `pydot` and `networkx` moved behind the
+`dot` and `graph` extras in 3.0.0, and `python-dateutil` was dropped in the same release in
+favour of `prov.model.parse_xsd_datetime()`, an `xsd:dateTime` parser built on the standard
+library's `datetime.fromisoformat()`.
 
-`prov` has **no unconditional runtime dependencies** as of 3.0.0.dev0. `pydot` and
-`networkx` moved behind the `dot`/`graph` extras, and `python-dateutil` was dropped in
-3.0 — datetime strings are now parsed by `prov.model.parse_xsd_datetime()`, a stdlib
-`datetime.fromisoformat()`-based `xsd:dateTime` parser, resolving the long-standing
-`# TODO: is this really needed?` that used to sit next to the `python-dateutil` entry here.
+## Optional extras
 
-## Optional extras (`[project.optional-dependencies]`)
+Install with `prov[extra]`. A missing extra raises an error naming it when the capability is
+used, not at `import prov` time.
 
-Install with `prov[extra]`; omitting them makes the corresponding serializer/module raise
-`ModuleNotFoundError` when used, not at `import prov` time.
+| Extra | Packages | Backs |
+|---|---|---|
+| `rdf` | `rdflib>=7.0.0,<8` | `prov.serializers.provrdf`, PROV-O (RDF) |
+| `xml` | `lxml>=3.3.5` | `prov.serializers.provxml`, PROV-XML |
+| `dot` | `pydot>=1.2.0`, `networkx>=2.0` | `prov.dot`, Graphviz rendering |
+| `graph` | `networkx>=2.0` | `prov.graph`, NetworkX interop |
+| `plot` | `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0` | The interactive display in `ProvBundle.plot()` |
 
-- **`dot` → `pydot>=1.2.0`, `networkx>=2.0`** — backs `prov.dot` (`prov_to_dot()`),
-  rendering a document to a `pydot.Graph` for export via Graphviz (PDF/PNG/SVG). Requires
-  a *local* `graphviz` binary installed separately; `pydot` alone only builds the DOT
-  representation. `prov.dot` renders through `prov.graph` internally, so this extra
-  carries `networkx` too, not just `pydot`. `pydot` floor `1.2.0` predates this project's
-  use of it; `networkx` floor `2.0` is the first release with the API `prov.graph` relies
-  on. Both were unconditional runtime dependencies before 3.0.0.dev0 (see
-  `docs/upgrading-3.0.md`).
-- **`graph` → `networkx>=2.0`** — backs `prov.graph` (`prov_to_graph()`/
-  `graph_to_prov()`), the NetworkX `MultiDiGraph` interop. Same floor/rationale as the
-  `networkx` pin under `dot` above.
-- **`rdf` → `rdflib>=7.0.0,<8`** — backs `prov.serializers.provrdf` (PROV-O/RDF
-  serialization). Floor raised to `7.0.0` 2026-07-18 (roadmap step 35, 3.0.0.dev0): the
-  rdflib-6 accidental prefix-carrying behaviour described below is no longer supported,
-  and the serializer now depends on `rdflib.graph.Dataset`/`DATASET_DEFAULT_GRAPH_ID`,
-  which don't exist before rdflib 7. Internally, `provrdf.py` migrated off the deprecated
-  `ConjunctiveGraph` to `Dataset(default_union=True)` plus named `Graph`s — deferred from
-  2.x precisely because `Dataset`'s defaults (e.g. `default_union`) are not
-  behaviour-neutral, so the switch waited for a 3.0 breaking-change window.
-  `default_union=True` reproduces `ConjunctiveGraph`'s union-query semantics, and
-  round-trip behaviour (including the bundle-local-namespaces-as-full-IRIs point below)
-  is unchanged by the migration. The `rdflib-compat` CI job proves both bounds (`7.0.0`
-  floor and newest 7.x); the main matrix uses the locked version. Under rdflib 7,
-  bundle-local namespaces serialize as full IRIs instead of their original prefixes
-  (round-trips stay equivalent — `QualifiedName` equality is by IRI). Separately, from
-  rdflib 7.3.0 onward rdflib's own internals (`ConjunctiveGraph.add()`/`.parse()`, and
-  the TriG parser/serializer plugins) call their own now-deprecated `Dataset.contexts()`/
-  `Dataset.default_context` under the hood, so a `-W error::DeprecationWarning` run
-  against `test_rdf.py` fails on rdflib >=7.3 even though `provrdf.py` no longer
-  directly calls a deprecated rdflib name in the document-encoding path (confirmed
-  clean against the `7.0.0` floor); this is rdflib's own migration debt, slated for
-  cleanup by their 8.0. (`encode_container()` still accepts a caller-supplied `Dataset`
-  as its `container` argument for API-compatibility reasons; that path's own `.add()`
-  calls do re-trip rdflib's internal warning, since `Dataset` inherits `.add()` from the
-  deprecated `ConjunctiveGraph` unchanged — see the method's docstring.)
-- **`xml` → `lxml>=3.3.5`** — backs `prov.serializers.provxml` (PROV-XML). Floor predates
-  this project's adoption; no known upper-bound issue.
-- **`plot` → `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0`** — backs the
-  interactive-display path of `ProvBundle.plot()`/`ProvDocument.plot()` in
-  `src/prov/model/bundle.py`; `plot()` renders through `prov.dot` (lazily imported), so
-  this extra pulls in `pydot`/`networkx` alongside `matplotlib` rather than requiring
-  `prov[dot]` to be depended on separately. `matplotlib` floor `3.6` is a defensive modern
-  baseline rather than a verified minimum; not exercised in CI (no display backend in the
-  test environment), so this path is coverage-`defer`red (see
-  `planning/test-gap-checklist.md`).
+### `rdf`
 
-## Dev dependency group (`[dependency-groups] dev`)
+The floor rose from 6.0.0 to 7.0.0 in 3.0.0. The serializer uses `rdflib.graph.Dataset` and
+`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7, and rdflib 6's accidental
+prefix-carrying behaviour is no longer supported. `Dataset(default_union=True)` reproduces
+the union-query semantics of the deprecated `ConjunctiveGraph` it replaced, so round-trip
+behaviour is unchanged. Under rdflib 7, bundle-local namespaces serialize as full IRIs
+rather than their original prefixes; round trips stay equivalent because `QualifiedName`
+equality is by IRI.
 
-Tools needed to develop/test/lint/typecheck the package locally and in CI; never installed
-for end users.
+The `rdflib-compat` CI job runs the RDF tests against both bounds, `==7.0.0` and the newest
+7.x. The main matrix uses the locked version.
 
-- **`coverage>=7.6.10`** — measures branch coverage for the `fail_under` ratchet enforced
-  in CI (see `[tool.coverage]` in `pyproject.toml`).
-- **`hypothesis>=6.156.1`** — property-based testing; drives the round-trip strategies in
-  `src/prov/tests/strategies.py` exercised by `test_property_roundtrip.py` over
-  `ROUNDTRIP_FORMATS`. Added when that module was introduced (added to this audit
-  2026-07-27; the pin itself predates this note — it was missing from the dev-group list
-  above by omission, not by design).
-- **`jsonschema>=4`** — validates PROV-JSON output against the vendored member-submission
-  schema in `test_json_schema.py`, and PROV-JSONLD output against a second vendored schema
-  in `test_jsonld_schema.py` (both under `src/prov/tests/schemas/`). Same omission/backfill
-  as `hypothesis` above.
-- **`lxml-stubs>=0.5.1`** — type stubs for `lxml`, needed for `mypy --strict` to type-check
-  `provxml.py` without treating `lxml` as `Any`.
-- **`mypy>=1.19.1`** — the strict type checker (`[tool.mypy] strict = true`); floor is
-  whatever version this project first enforced strict mode + `py.typed` with.
-- **`pre-commit>=4.0.1`** — runs ruff (lint + format) and hygiene checks
-  (trailing-whitespace/EOF-newline/YAML-TOML validation) automatically at commit time; see
-  `CONTRIBUTING.md` step 4.
-- **`pyld>=2.0.4`** — reference JSON-LD processor used only by `test_jsonld_semantics.py`
-  to prove PROV-JSONLD output expands to the intended RDF terms. Test-time only: `prov`
-  itself never imports it, so it carries no runtime dependency. Floor `2.0.4` is a
-  defensive modern baseline (the resolved/locked version at introduction was `3.1.0`), not
-  a verified minimum.
-- **`pytest>=8.4.2`** — the test runner; collects the `unittest.TestCase`-style test suite
-  under `src/prov/tests/` natively.
-- **`pytest-cov>=7.1.0`** — pytest's coverage plugin, so `coverage` can attribute hits
-  correctly when tests run under pytest instead of `unittest`.
-- **`ruff>=0.15.20`** — combined linter (replacing the historic flake8) and formatter
-  (replacing the historic black); see `[tool.ruff]` for the enabled rule families.
-- **`types-networkx>=3.4.2.20250509`** — type stubs for `networkx`, needed for
-  `mypy --strict` on `graph.py`. Pulls in `numpy` transitively (see the `numpy<2.5`
-  constraint below).
+From rdflib 7.3.0 its own internals call deprecated `Dataset` members, so a
+`-W error::DeprecationWarning` run of the RDF tests fails on rdflib 7.3 and later even
+though `provrdf.py` calls no deprecated rdflib name in the encoding path. That is rdflib's
+migration debt, slated for its 8.0. The `own-warnings` CI job therefore counts only
+warnings attributed to `prov` modules. `encode_container()` still accepts a caller-supplied
+`Dataset` for API compatibility; that path's `.add()` calls trip the same rdflib warning.
 
-Previously in this group and removed by this audit: `bumpversion` (a release-time-only
-tool with no place in the routine dev loop — reintroduce as a dedicated group if release
-automation is scripted later), `setuptools`/`wheel` (build-backend concerns declared under
-`[build-system]`, not something a dev environment needs to import directly), `tox`
-(replaced by direct `uv run --python 3.X pytest` invocations across the supported
-interpreter matrix; CI already covers the matrix independently — see "Local multi-version
-testing" in `CLAUDE.md`), and `sphinx`/`sphinx-rtd-theme` (moved to the new `docs` group
-below, since building the documentation is a separate concern from running/lint/typecheck
-tests; at that point the RTD build still installed `docs/requirements.txt` directly, not
-the dev group — since T21/docs-tooling (2026-07-05) RTD installs the `docs` group directly
-via `uv sync`, see below).
+### `xml`
 
-## Docs dependency group (`[dependency-groups] docs`)
+The `lxml` floor predates this project's adoption. No known upper-bound issue. The
+deserializer passes its own hardened `XMLParser` at every parse site; see the comment in
+`provxml.py` for why the floor matters there.
 
-The single source of truth for docs build dependencies — both local builds
-(`uv sync --group docs --extra rdf --extra xml`) and ReadTheDocs (`.readthedocs.yml` runs
-`uv sync --frozen --no-dev --group docs --extra rdf --extra xml` directly) install from
-this group. `docs/requirements.txt` — a hand-maintained mirror of this list that RTD used
-before it could run `uv` in its build image — was deleted 2026-07-05 (T21) once RTD's
-`build.jobs.create_environment` could install `uv` itself via `asdf`; keeping two
-manually-synced dependency lists was a standing liability.
+### `dot`, `graph` and `plot`
 
-- **`sphinx>=8.1.3`** — the documentation generator. Was capped `<9` from 2026-07-04:
-  Sphinx 9's autodoc calls `repr()` on class bases while documenting
-  `prov.serializers.provrdf`, and rdflib's `DefinedNamespaceMeta.__repr__`
-  (`rdflib.namespace`) used to raise `AttributeError` on its abstract base class,
-  crashing the build; re-verified 2026-07-05 with the furo theme swap, the crash still
-  reproduced on 9.1.0. **Cap lifted 2026-07-27**: rdflib fixed it — the currently locked
-  rdflib (7.6.0) has `DefinedNamespaceMeta.__repr__` catch that `AttributeError` itself
-  and fall back to a placeholder string instead of propagating it (confirmed by reading
-  the method's source out of the installed package). Verified end to end by resolving
-  Sphinx unconstrained (`uv lock --upgrade-package sphinx`, which now locks 9.0.4 for
-  Python 3.11 and 9.1.0 for Python ≥3.12) and then building the docs against that lock
-  with `uv run --group docs --extra rdf --extra xml --extra dot --extra graph
-  sphinx-build -b html -W docs docs/_build/html`: build succeeds, 0 warnings. If a
-  similar autodoc crash resurfaces on a future Sphinx major, re-run that same build
-  with `-W` before assuming a new cap is needed.
-- **`furo`** — the HTML theme for the published docs, replacing `sphinx_rtd_theme`
-  2026-07-05 (T21): actively maintained, accessible defaults, and native light/dark mode
-  without extra configuration. No known version constraints yet.
-- **`myst-parser`** — lets `.md` sources (in addition to `.rst`) build as Sphinx pages,
-  via `source_suffix` in `conf.py`. Added T21 so future docs content (Diátaxis
-  restructure, tasks 3–6 of the modernisation roadmap) isn't forced into reStructuredText.
-  Enables the `colon_fence`/`deflist` MyST extensions only; no other extensions are
-  needed by the current page set.
-- **`sphinx-copybutton`** — adds a "copy" button to code blocks in the rendered HTML;
-  purely a UX nicety for the many shell/PROV-N/JSON snippets across the docs. Added T21.
+`prov.dot` renders through `prov.graph`, so the `dot` extra carries `networkx` as well as
+`pydot`. Rendering also needs a local Graphviz binary, which no extra installs. `plot()`
+renders through `prov.dot`, so the `plot` extra carries `pydot` and `networkx` alongside
+`matplotlib`. The `pydot` floor predates this project's use of it and the `networkx` floor
+is the first release with the API `prov.graph` relies on. The `matplotlib` floor is a
+defensive modern baseline, not a verified minimum. The interactive `plot()` path is not
+exercised in CI because the test environment has no display backend; it is annotated
+"defer" in `planning/test-gap-checklist.md`.
 
-Removed T21: `sphinx_rtd_theme` (superseded by `furo`, above).
+## Dev dependency group
 
-## `[tool.uv] constraint-dependencies`
+Tools for developing, testing, linting and type-checking the package locally and in CI.
+Never installed for end users.
 
-- **`numpy<2.5`** — numpy is never imported by `prov` itself; it arrives transitively via
-  `types-networkx` and `matplotlib`. numpy 2.5 switched its inline stubs to unconditional
-  PEP 695 `type` statements, which mypy refuses to parse once `[tool.mypy] python_version`
-  is below 3.12 (this project's `python_version = "3.10"`), regardless of the interpreter
-  actually running mypy. Capping numpy avoids that crash. **Re-checked 2026-07-27, still
-  needed**: numpy's current PyPI release is 2.5.1. Clearing the constraint and running
-  `uv lock --upgrade-package numpy` resolves numpy 2.5.1 for Python ≥3.12; `uv sync` that
-  lock and `uv run mypy src` immediately fails with `numpy/__init__.pyi: error: Type
-  statement is only supported in Python 3.12 and greater [syntax]`, reproducing the
-  original crash. Constraint restored and re-locked. If a Dependabot bump of
-  `matplotlib`/`types-networkx` ever fails to resolve because of this constraint, lift it,
-  run `uv run mypy src`, and keep the lift only if mypy stays green (e.g. once numpy gates
-  the new stub syntax on `python_version`, or this project's mypy floor rises to 3.12).
+| Package | Purpose |
+|---|---|
+| `coverage>=7.6.10` | Branch coverage for the `fail_under` ratchet in `[tool.coverage]`. |
+| `hypothesis>=6.156.1` | Property-based round-trip tests, `strategies.py` and `test_property_roundtrip.py`. |
+| `jsonschema>=4` | Validates PROV-JSON and PROV-JSONLD output against the vendored schemas under `src/prov/tests/schemas/`. |
+| `lxml-stubs>=0.5.1` | Type stubs so `mypy --strict` can check `provxml.py`. |
+| `mypy>=1.19.1` | Strict type checking; the floor is the version strict mode was first enforced with. |
+| `pre-commit>=4.0.1` | Runs ruff and the hygiene hooks at commit time; see `CONTRIBUTING.md`. |
+| `pyld>=2.0.4` | Reference JSON-LD processor used only by `test_jsonld_semantics.py`; `prov` never imports it. The floor is a defensive baseline, not a verified minimum. |
+| `pytest>=8.4.2` | The test runner. |
+| `pytest-cov>=7.1.0` | Coverage attribution under pytest. |
+| `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
+| `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
+
+Removed from this group in 2.3.0: `bumpversion`, `setuptools`, `wheel` and `tox`. Build
+backend requirements live under `[build-system]`, and the interpreter matrix is run with
+`uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows. `sphinx` and `sphinx-rtd-theme`
+moved to the docs group below.
+
+## Docs dependency group
+
+The single source of truth for documentation builds. Local builds and Read the Docs both
+install it, with all four extras because autodoc imports the serializers, `prov.dot` and
+`prov.graph`:
+
+```bash
+uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
+```
+
+`.readthedocs.yml` runs the same `uv sync` with `--frozen --no-dev`.
+
+| Package | Purpose |
+|---|---|
+| `sphinx>=8.1.3` | The documentation generator. |
+| `furo` | The HTML theme. Actively maintained, accessible defaults, native light and dark mode. |
+| `myst-parser` | Builds the `.md` sources; only the `colon_fence` and `deflist` extensions are enabled. |
+| `sphinx-copybutton` | A copy button on code blocks. |
+
+Sphinx was capped below 9 from 2.3.0 to 3.0.0 because Sphinx 9's autodoc called `repr()`
+on rdflib's `DefinedNamespaceMeta`, which raised `AttributeError` and crashed the build.
+rdflib 7.6.0 catches that error itself, so the cap was lifted for 3.0.0 after a clean
+`sphinx-build -W` against Sphinx 9. The lock file currently resolves Sphinx 8.1.3. If a
+similar autodoc crash appears on a future Sphinx major, rebuild with `-W` before assuming a
+new cap is needed.
+
+## `[tool.uv]` constraint
+
+`numpy<2.5`. `prov` never imports numpy; it arrives transitively through `types-networkx`
+and `matplotlib`. numpy 2.5 switched its inline stubs to unconditional PEP 695 `type`
+statements, which mypy refuses to parse while `[tool.mypy] python_version` is below 3.12,
+whatever interpreter runs mypy. Clearing the constraint and re-locking reproduces the crash
+(`numpy/__init__.pyi: error: Type statement is only supported in Python 3.12 and greater`).
+If a Dependabot bump of `matplotlib` or `types-networkx` fails to resolve because of this
+constraint, lift it, run `uv run mypy src`, and keep the lift only if mypy stays green.
+That becomes possible once numpy gates the new syntax on `python_version` or this
+project's mypy floor rises to 3.12.

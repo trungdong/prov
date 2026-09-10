@@ -51,8 +51,7 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 # a safe lxml release, any other library sharing the process can repoint the
 # *global* default parser via `etree.set_default_parser(...)`, which is what
 # a bare `etree.parse(...)` call (no `parser=`) silently inherits; and prov
-# is consumed by other applications (e.g. ProvStore) that may load such
-# libraries. Passing this parser explicitly at both parse sites closes all
+# is embedded in other applications that may load such libraries. Passing this parser explicitly at both parse sites closes all
 # three regardless of the installed lxml version or what else is loaded in
 # the process. `huge_tree` is left at its lxml default of `False`: raising it
 # disables libxml2's own hard limits on tree depth/text length/entity
@@ -63,8 +62,8 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 # "is not harmful", only less efficient than per-thread instances under
 # heavy concurrent load (access is internally serialized). PROV-XML
 # deserialization is not expected to be a high-frequency, highly concurrent
-# hot path even in a web service such as ProvStore, so the simplicity of a
-# single shared parser wins over per-parse allocation; if profiling ever
+# hot path even in a web service, so the simplicity of a single shared
+# parser wins over per-parse allocation; if profiling ever
 # shows lock contention here, switch to constructing a parser per call.
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
