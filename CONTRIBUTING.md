@@ -1,98 +1,76 @@
 # Contributing
 
-Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given.
+Contributions are welcome. Every little bit helps, and credit is always given.
 
-You can contribute in many ways:
+## Ways to contribute
 
-## Types of Contributions
+### Report bugs
 
-### Report Bugs
+Report bugs at <https://github.com/trungdong/prov/issues>. Include your operating system
+and version, any details about your local setup that might help, and the steps to
+reproduce the bug.
 
-Report bugs at <https://github.com/trungdong/prov/issues>.
+### Fix bugs or implement features
 
-If you are reporting a bug, please include:
+Look through the [issues](https://github.com/trungdong/prov/issues). Anything tagged
+"bug" or "feature" is open to whoever wants to work on it.
 
-- Your operating system name and version.
-- Any details about your local setup that might be helpful in troubleshooting.
-- Detailed steps to reproduce the bug.
+### Write documentation
 
-### Fix Bugs
+More documentation is always useful, whether in the official docs, in docstrings, or as
+blog posts and articles elsewhere.
 
-Look through the GitHub [issues](https://github.com/trungdong/prov/issues) for bugs.
-Anything tagged with "bug" is open to whoever wants to implement it.
+### Propose a feature
 
-### Implement Features
+File an issue at <https://github.com/trungdong/prov/issues>. Explain how the feature would
+work and keep the scope as narrow as possible, so that it is easier to implement. This is
+a volunteer-driven project.
 
-Look through the GitHub [issues](https://github.com/trungdong/prov/issues)
-for features. Anything tagged with "feature" is open to whoever wants to implement it.
+## Set up for development
 
-### Write Documentation
-
-We could always use more documentation, whether as part of the
-official prov docs, in docstrings, or even on the web in blog posts,
-articles, and such.
-
-### Submit Feedback
-
-The best way to send feedback is to file an issue at <https://github.com/trungdong/prov/issues>.
-
-If you are proposing a feature:
-
-- Explain in detail how it would work.
-- Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
-
-## Get Started
-
-Ready to contribute? Here's how to set up `prov` for local development.
-
-1. Fork the `prov` repo on GitHub.
-2. Clone your fork locally:
+1. Fork the `prov` repository on GitHub.
+2. Clone your fork:
 
    ```bash
    git clone git@github.com:your_name_here/prov.git
    ```
 
-3. Set up the development environment with [uv](https://docs.astral.sh/uv/), which creates and manages the project virtualenv for you:
+3. Create the development environment with [uv](https://docs.astral.sh/uv/), which
+   manages the project virtualenv for you:
 
    ```bash
    cd prov/
    uv sync --extra rdf --extra xml --extra dot --extra graph
    ```
 
-   The `rdf`, `xml`, `dot`, and `graph` extras are required for the full test
-   suite to pass. See `docs/dependencies.md` for what each dependency is for.
+   The full test suite needs all four extras.
+   [docs/dependencies.md](https://github.com/trungdong/prov/blob/main/docs/dependencies.md)
+   explains what each dependency is for.
 
-4. Set up pre-commit hooks to ensure code quality checks run automatically:
+4. Install the pre-commit hooks:
 
    ```bash
    uv run pre-commit install
    ```
 
-   This installs the pre-commit framework hooks that will run ruff (linting and
-   formatting) and hygiene checks (trailing whitespace, end-of-file newlines,
-   YAML/TOML validation) on every commit, catching issues before they're pushed.
+   The hooks run ruff (lint and format) and hygiene checks (trailing whitespace,
+   end-of-file newlines, YAML and TOML validation) on every commit.
 
-5. Create a branch for local development:
+5. Create a branch:
 
    ```bash
    git checkout -b name-of-your-bugfix-or-feature
    ```
 
-   Now you can make your changes locally.
-
-6. When you're done making changes, check that your changes pass the tests, including testing other supported Python versions via uv:
+6. Make your changes, then run the tests on every supported interpreter:
 
    ```bash
    for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break; done
    ```
 
-   The first run downloads any interpreter you don't already have cached, so
-   expect some network traffic.
+   The first run downloads any interpreter you do not already have cached.
 
-7. Commit your changes and push your branch to GitHub:
+7. Commit and push your branch:
 
    ```bash
    git add .
@@ -100,23 +78,19 @@ Ready to contribute? Here's how to set up `prov` for local development.
    git push origin name-of-your-bugfix-or-feature
    ```
 
-8. Submit a pull request through the GitHub website.
+8. Open a pull request on GitHub.
 
-## Pull Request Guidelines
+## Pull request guidelines
 
-Before you submit a pull request, check that it meets these guidelines:
-
-1. The pull request should include tests.
-2. If the pull request adds functionality, the docs should be updated. Put
-   your new functionality into a function with a docstring, and add the
-   feature to the list in README.md.
-3. The pull request should work for Python 3.10+ and for PyPy3.
-   Look for the automated checks at the bottom of your pull request and make sure that
-   the tests pass for all supported Python versions.
+1. Include tests.
+2. If the pull request adds functionality, update the docs. Give new functions a docstring
+   and add the feature to the list in README.md.
+3. The pull request must pass on CPython 3.10 to 3.14 and on PyPy 3.11. The automated
+   checks at the bottom of the pull request run the full matrix.
 
 ## Licensing
 
 `prov` is released under the MIT licence (see `LICENSE`). By submitting a contribution you
-agree that it is licensed under the same terms, with no additional restrictions: the
+agree that it is licensed under the same terms, with no additional restrictions. The
 licence that applies to your contribution inbound is the licence the project applies
 outbound. There is no contributor licence agreement to sign.
