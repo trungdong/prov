@@ -113,3 +113,10 @@ Before you submit a pull request, check that it meets these guidelines:
 3. The pull request should work for Python 3.10+ and for PyPy3.
    Look for the automated checks at the bottom of your pull request and make sure that
    the tests pass for all supported Python versions.
+
+## Licensing
+
+`prov` is released under the MIT licence (see `LICENSE`). By submitting a contribution you
+agree that it is licensed under the same terms, with no additional restrictions: the
+licence that applies to your contribution inbound is the licence the project applies
+outbound. There is no contributor licence agreement to sign.

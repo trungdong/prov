@@ -53,7 +53,7 @@ type error. Re-run it pinned:
 
 ## 2. Stamp the release
 
-Four files, in one commit:
+Five files, in one commit:
 
 | File | Change |
 |---|---|
@@ -61,6 +61,7 @@ Four files, in one commit:
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it |
 | `ROADMAP.md` | Stamp the row: `**X.Y.Z** *(released YYYY-MM-DD)*` |
 | `docs/reference/conformance.md` | Per-release revisit — the page states it is "revisited at every release"; verify its claims still hold and update the "last revised for the X.Y.Z release (YYYY-MM-DD)" sentence |
+| `CITATION.cff` | `version: "X.Y.Z"` — `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
 If the release adds or changes a serializer, check the parts of the packaging metadata that
 face users on PyPI: `pyproject.toml`'s `description` and `keywords`, and `README.md`'s
