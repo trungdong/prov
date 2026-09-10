@@ -34,8 +34,14 @@ files the repository lacked. No API, dependency or Python-floor changes.
   link attributes unless the scheme is `http`, `https`, `mailto`, `urn` or
   absent, and escapes labels and identifiers in both HTML-like and quoted
   node labels; a hostile document could previously plant `javascript:` links
-  or break out of a label in rendered SVG. Ordinary documents render
-  byte-identically
+  or break out of a label in rendered SVG. The scheme is checked on the
+  decoded form of the URI, because Graphviz passes HTML character
+  references such as `&#58;` through to SVG unchanged and every consumer
+  decodes them, so an undecoded check could not catch a namespace URI that
+  smuggled a `javascript:` link this way. Annotation-row `href` values are
+  now HTML-escaped too. Ordinary documents render byte-identically, except
+  that identifier URIs containing `&` now change bytes in the escaped
+  `href`
 
 ### Tests
 

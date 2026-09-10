@@ -15,7 +15,7 @@ References:
 import typing
 from dataclasses import dataclass, field
 from datetime import datetime
-from html import escape
+from html import escape, unescape
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -194,9 +194,17 @@ def _link_uri(uri: str) -> str | None:
 
     Identifiers are document content and rendered SVG makes link attributes
     live, so only ``http``, ``https``, ``mailto``, ``urn`` and scheme-less
-    URIs are linked.
+    URIs are linked. The scheme is read from the decoded form of the URI,
+    because Graphviz passes HTML character references through to SVG, where
+    the consumer decodes them.
     """
-    scheme = urlsplit(uri).scheme.lower()
+    decoded = uri
+    for _ in range(3):
+        candidate = unescape(decoded)
+        if candidate == decoded:
+            break
+        decoded = candidate
+    scheme = urlsplit(decoded.strip()).scheme.lower()
     return uri if scheme == "" or scheme in _LINK_SCHEMES else None
 
 

@@ -157,6 +157,30 @@ def test_javascript_scheme_identifier_gets_no_url_or_href():
     assert 'href="javascript' not in dot_text
 
 
+@pytest.mark.parametrize(
+    "namespace_uri",
+    ["javascript&#58;", "javascript&#x3A;", "javascript&colon;", " javascript:"],
+    ids=["decimal-ref", "hex-ref", "named-ref", "leading-space"],
+)
+def test_encoded_or_padded_javascript_scheme_gets_no_url_or_href(namespace_uri):
+    # Graphviz passes character references through to SVG, where the consumer
+    # decodes them, so the scheme check must run on the decoded form.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.add_namespace("js", namespace_uri)
+    js = doc.valid_qualified_name("js:alert")
+    doc.entity("ex:safe", other_attributes={"ex:link": js})
+    doc.entity("js:payload")
+
+    dot_text = prov_to_dot(doc).to_string()
+
+    assert 'URL="http://example.org/safe"' in dot_text
+    assert 'URL="javascript' not in dot_text
+    assert 'URL=" javascript' not in dot_text
+    assert 'href="javascript' not in dot_text
+    assert 'href=" javascript' not in dot_text
+
+
 def test_bundle_with_javascript_identifier_gets_no_url():
     doc = ProvDocument()
     doc.add_namespace("js", "javascript:")
