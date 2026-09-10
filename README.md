@@ -5,6 +5,7 @@
 [![CI Status](https://github.com/trungdong/prov/workflows/CI/badge.svg)](https://github.com/trungdong/prov/actions?workflow=CI)
 [![Coverage Status](https://img.shields.io/coveralls/trungdong/prov.svg)](https://coveralls.io/r/trungdong/prov?branch=main)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/73bdf6dda3884abf9f5e79352c07e66c)](https://app.codacy.com/gh/trungdong/prov/dashboard)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22696001.svg)](https://doi.org/10.5281/zenodo.22696001)
 [![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.python.org/pypi/prov/)
 
 A library for W3C Provenance Data Model supporting PROV-O (RDF), PROV-XML, PROV-JSON and PROV-JSONLD import/export
