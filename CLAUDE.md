@@ -7,25 +7,21 @@ Guidance for Claude Code when working in this repository.
 `prov` is a Python implementation of the W3C PROV Data Model. Used by ProvStore, so treat the
 public API with care.
 
-## Modernisation roadmap
+## Roadmap and planning
 
-`ROADMAP.md` has current status — check it rather than assuming from memory of past work.
-Design detail: `planning/specs/2026-07-03-modernisation-roadmap-design.md`. Durable
-rules, regardless of phase:
+`ROADMAP.md` is the release plan and current status — check it rather than assuming from
+memory of past work. Design specs and implementation plans live under `planning/`
+(`planning/specs/`, `planning/plans/`), not `docs/`; write new ones there. The
+`*.tasks.json` files beside plans are local execution state and are gitignored by design.
+Durable rules:
 
 - One focused PR per roadmap step, green CI before merge.
 - If a step changes tooling, update the affected sections of this file in the same PR.
-- Design specs and implementation plans live under `planning/` (`planning/specs/`,
-  `planning/plans/`), not `docs/`. Write new ones there; `docs/` is the published site plus
-  the two internal runbooks it excludes.
 
 ## Releasing
 
-`docs/releasing.md` is the runbook for cutting a release, from a green `main` to PyPI and
-conda-forge — read it before starting release work. It is written for Claude Code to execute,
-not for the published docs site, so it's excluded from the Sphinx build (`docs/conf.py`'s
-`exclude_patterns`) and not in `docs/index.rst`'s toctree. If a release turns up a new gotcha,
-add it to that file rather than to a plan document.
+`docs/releasing.md` is the runbook, from a green `main` to PyPI and conda-forge. Read it
+before starting release work, and add any new gotcha there rather than to a plan.
 
 ## Setup
 
@@ -47,42 +43,50 @@ uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-bui
 `docs/dependencies.md` explains every dependency pin, including the `numpy<2.5` constraint
 needed for `mypy --strict` (transitive via `types-networkx`/`matplotlib`).
 
-## Common commands
+## Gates every PR must pass
 
 ```bash
 # All supported interpreters (matches CI matrix)
 for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
 done
+
+uv run mypy src                  # strict, configured in pyproject.toml
+uv run ruff check src/
+uv run ruff format --check src/
+codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 ```
+
+Codacy's Cloud gate blocks a PR on a single finding of any severity, including markdownlint
+on Markdown files, so run the local analyser on every changed file before pushing. Coveralls
+is advisory as long as `uv run coverage report` stays above the 97% floor. CI also runs a
+non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning` or
+`FutureWarning` of its own (#340).
+
+## Commits and PRs
+
+- Merge commits, never squash; one focused PR per change with a body that says what and why.
+- Commit-message and PR-body paragraphs stay unwrapped (one line each); GitHub soft-wraps.
+- No AI attribution lines in commits or PR bodies.
+- British English in shipped documentation and changelog text; describe changes by release,
+  never by plan task or batch.
 
 ## Architecture
 
 `docs/explanation/architecture.md` is the overview (layers, object model, registry and
-auto-detection, extras, tests). The notes below are the agent-specific rules on top of it.
+auto-detection, extras, tests). The rules below are what an agent must not break.
 
-### Core object model (`src/prov/model/` package)
+- **Always import from `prov.model`, never from its submodules.** `prov/model/__init__.py`
+  re-exports every public name at its historic location and deletes the submodule
+  attributes, and `test_public_api.py` freezes `dir(prov.model)`.
+- `prov.graph` and `prov.dot` sit behind the `graph` and `dot` extras and raise
+  `ModuleNotFoundError` naming the extra when imported without it.
+- `prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld`, with
+  `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and
+  `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind` pins `json` as the first
+  format tried on a non-seekable stream.
 
-- `__init__.py` — re-exports every public name at its historic `prov.model` location and then
-  deletes the submodule attributes, freezing `dir(prov.model)` to the pre-split namespace.
-  **Always import from `prov.model`, never from the submodules.**
-
-`src/prov/constants.py` is the PROV vocabulary; all identifier↔class translation goes through it.
-PROV-N is serialize-only — there is no PROV-N parser.
-
-### Graph interop
-
-Since 3.0.0.dev0 `src/prov/graph.py` and `src/prov/dot.py` sit behind extras (`graph`, `dot`)
-— importing either without its extra raises `ModuleNotFoundError` naming the extra to install.
-
-### Serializers
-
-`prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld` — `jsonld`
-(registry key for PROV-JSONLD) is deliberately appended last, since `prov.read()`'s
-auto-detection walks that order and `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind`
-pins `json` as the first format tried on a non-seekable stream.
-
-### Tests (`src/prov/tests/`)
+## Tests (`src/prov/tests/`)
 
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
 `unittest.TestCase`. Design authority: `planning/specs/2026-07-06-test-suite-redesign.md`.
@@ -104,9 +108,6 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
 - `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
   `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
-- CI's `own-warnings` job (non-blocking) fails if `prov` raises a `DeprecationWarning` or
-  `FutureWarning` of its own. It uses pytest's ini-style `filterwarnings` because the `-W`
-  command-line form anchors the module field and silently ignores submodules (#340).
 
-New shared record types, attributes, or serializer behaviors go into the shared parametrized
+New shared record types, attributes, or serializer behaviours go into the shared parametrized
 modules so every target is exercised — not into per-format tests.
