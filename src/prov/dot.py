@@ -17,6 +17,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape
 from typing import Any
+from urllib.parse import urlsplit
 
 try:
     import pydot
@@ -179,10 +180,41 @@ ANNOTATION_LINK_STYLE: dict[str, Any] = {
 }
 ANNOTATION_START_ROW = '<<TABLE cellpadding="0" border="0">'
 ANNOTATION_ROW_TEMPLATE = """    <TR>
-        <TD align=\"left\" href=\"%s\">%s</TD>
+        <TD align=\"left\"%s>%s</TD>
         <TD align=\"left\"%s>%s</TD>
     </TR>"""
 ANNOTATION_END_ROW = "    </TABLE>>"
+
+
+_LINK_SCHEMES = frozenset({"http", "https", "mailto", "urn"})
+
+
+def _link_uri(uri: str) -> str | None:
+    """Return ``uri`` if it may be emitted as a Graphviz link, else ``None``.
+
+    Identifiers are document content and rendered SVG makes link attributes
+    live, so only ``http``, ``https``, ``mailto``, ``urn`` and scheme-less
+    URIs are linked.
+    """
+    scheme = urlsplit(uri).scheme.lower()
+    return uri if scheme == "" or scheme in _LINK_SCHEMES else None
+
+
+def _quoted(text: str) -> str:
+    """Render ``text`` as a double-quoted DOT string."""
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _url_attr(uri: str) -> dict[str, Any]:
+    """Graphviz ``URL`` attribute for ``uri``, or no attribute if it is not linkable."""
+    link = _link_uri(uri)
+    return {"URL": _quoted(link)} if link is not None else {}
+
+
+def _href_attr(uri: str) -> str:
+    """HTML-like-label ``href`` attribute text for ``uri``, or ``""`` if it is not linkable."""
+    link = _link_uri(uri)
+    return f' href="{escape(link)}"' if link is not None else ""
 
 
 def htlm_link_if_uri(value: Any) -> str:
@@ -251,9 +283,9 @@ def _attach_attribute_annotation(
     ann_rows.extend(
         ANNOTATION_ROW_TEMPLATE
         % (
-            attr.uri,
+            _href_attr(attr.uri),
             escape(str(attr)),
-            f' href="{value.uri}"' if isinstance(value, Identifier) else "",
+            _href_attr(value.uri) if isinstance(value, Identifier) else "",
             escape(
                 str(value)
                 if not isinstance(value, datetime)
@@ -277,12 +309,12 @@ def _add_bundle(
     state.cluster_count += 1
     subdot = pydot.Cluster(
         graph_name=f"c{state.cluster_count}",
-        URL=f'"{bundle.identifier.uri}"',  # type: ignore[union-attr]
+        **_url_attr(bundle.identifier.uri),  # type: ignore[union-attr]
     )
     # set_label is generated at runtime by pydot via setattr() for
     # every Graphviz attribute (see pydot.core.__generate_attribute_methods),
     # so it exists on Cluster instances but isn't visible to mypy.
-    subdot.set_label(f'"{bundle.identifier!s}"')  # type: ignore[attr-defined]
+    subdot.set_label(_quoted(str(bundle.identifier)))  # type: ignore[attr-defined]
     _bundle_to_dot(state, subdot, bundle)
     # pydot types Graph.add_subgraph() as accepting only a Subgraph,
     # but Cluster (a Graph subclass, not a Subgraph subclass) is the
@@ -298,22 +330,22 @@ def _add_node(
     node_id = f"n{state.node_count}"
     if state.use_labels:
         if record.label == record.identifier:
-            node_label = f'"{record.label}"'
+            node_label = _quoted(str(record.label))
         else:
             # Fancier label if both are different. The label will be
             # the main node text, whereas the identifier will be a
             # kind of subtitle.
             node_label = (
-                f"<{record.label}<br />"
+                f"<{escape(str(record.label))}<br />"
                 f'<font color="#333333" point-size="10">'
-                f"{record.identifier}</font>>"
+                f"{escape(str(record.identifier))}</font>>"
             )
     else:
-        node_label = f'"{record.identifier}"'
+        node_label = _quoted(str(record.identifier))
 
     uri = record.identifier.uri  # type: ignore[union-attr]
     style = DOT_PROV_STYLE[record.get_type()]
-    node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
+    node = pydot.Node(node_id, label=node_label, **_url_attr(uri), **style)
     state.node_map[uri] = node
     dot.add_node(node)
 
@@ -330,11 +362,11 @@ def _add_generic_node(
 ) -> pydot.Node:
     state.node_count += 1
     node_id = f"n{state.node_count}"
-    node_label = f'"{qname}"'
+    node_label = _quoted(str(qname))
 
     uri = qname.uri
     style = GENERIC_NODE_STYLE[prov_type] if prov_type else DOT_PROV_STYLE[0]
-    node = pydot.Node(node_id, label=node_label, URL=f'"{uri}"', **style)
+    node = pydot.Node(node_id, label=node_label, **_url_attr(uri), **style)
     state.node_map[uri] = node
     dot.add_node(node)
     return node

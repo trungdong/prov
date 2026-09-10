@@ -19,6 +19,13 @@
 
 ### Security
 
+- `prov.dot` no longer writes identifier URIs into Graphviz `URL`/`href`
+  link attributes unless the scheme is `http`, `https`, `mailto`, `urn` or
+  absent, and escapes labels and identifiers in both HTML-like and quoted
+  node labels; a hostile document could previously plant `javascript:` links
+  or break out of a label in rendered SVG. Ordinary documents render
+  byte-identically
+
 ### Tests
 
 ### Documentation
