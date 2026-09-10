@@ -115,7 +115,8 @@ Plan entity subtype used with associations. These are not separate classes or fa
 `prov`. You express them by adding a `prov:type` attribute whose value is the predefined
 qualified name, for example `agent("ag", {pm.PROV_TYPE: pm.PROV["Person"]})`. The value
 must be a qualified name. A plain string such as `"prov:Person"` is stored and serialized
-as that string, which under PROV-DM §5.7.2.4 does not denote the predefined type.
+as that literal string. Under PROV-DM §5.7.2.4 such a string does not denote the
+predefined type.
 
 ### Component 4: Bundles
 

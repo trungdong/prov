@@ -38,7 +38,8 @@ This is a permanent limitation, not an open bug
 guessing attribute values on decode were both considered and rejected. Serializing such a
 document stays legal, because `prov` never enforces structural constraints at assertion
 time ([#257](https://github.com/trungdong/prov/issues/257)). `unified()` does detect the
-conflict, as part of its PROV-CONSTRAINTS support (see {doc}`../upgrading-3.0`).
+conflict, as part of its PROV-CONSTRAINTS support (see
+{doc}`../explanation/unification-flattening`).
 
 ### No `mentionOf` term in PROV-JSONLD (JSON-LD, permanent)
 
@@ -103,10 +104,8 @@ record itself as subject.
 | Quotation §5.2.3 | {py:class}`~prov.model.ProvDerivation` + `prov:Quotation` type | `quotation()` / `wasQuotedFrom()` | `wasDerivedFrom` (plus `[prov:type='prov:Quotation']`) | ✓ | ✓ | ✓ | ✓ |
 | Primary Source §5.2.4 | {py:class}`~prov.model.ProvDerivation` + `prov:PrimarySource` type | `primary_source()` / `hadPrimarySource()` | `wasDerivedFrom` (plus `[prov:type='prov:PrimarySource']`) | ✓ | ✓ | ✓ | ✓ |
 
-Revision, quotation and primary source are PROV-DM subtypes of derivation, not separate
-PROV-N records. `prov` implements all four with the single
-{py:class}`~prov.model.ProvDerivation` class. The three subtype factories call
-`derivation()` and add the corresponding `prov:type`, so `get_provn()` on a `revision()`
+The three subtypes share the {py:class}`~prov.model.ProvDerivation` class and differ only
+in `prov:type` (see {doc}`../explanation/prov-dm`), so `get_provn()` on a `revision()`
 record emits `wasDerivedFrom(..., [prov:type='prov:Revision'])` rather than a
 `wasRevisionOf(...)` keyword. `ADDITIONAL_N_MAP` carries the `wasRevisionOf`,
 `wasQuotedFrom` and `hadPrimarySource` keywords for contexts such as PROV-XML that treat
@@ -125,11 +124,8 @@ these as top-level types, but PROV-N output from this library always uses
 | Delegation §5.3.4 | {py:class}`~prov.model.ProvDelegation` | `delegation()` / `actedOnBehalfOf()` | `actedOnBehalfOf` | ✓ | ✓ | ✓ | ✓ |
 | Influence §5.3.5 | {py:class}`~prov.model.ProvInfluence` | `influence()` / `wasInfluencedBy()` | `wasInfluencedBy` | ✓ | ✓ | ✓ | ✓ |
 
-PROV-DM defines Person, Organization and SoftwareAgent as agent subtypes, and Plan as an
-entity subtype used with associations. `prov` has no dedicated classes for the agent
-subtypes. Express them with `agent("ag", {PROV_TYPE: PROV["Person"]})`. Plan needs no
-special handling, because it is an entity passed as the `plan=` argument to
-`association()`. This is a design choice, explained in {doc}`../explanation/prov-dm`.
+The agent subtypes and Plan have no dedicated classes. They are expressed through
+`prov:type` and the `plan=` argument, as {doc}`../explanation/prov-dm` explains.
 Convenience factories for the three agent subtypes and for `EmptyCollection` (Component 6)
 are tracked as [#260](https://github.com/trungdong/prov/issues/260).
 
