@@ -55,6 +55,9 @@ done
 
 ## Architecture
 
+`docs/explanation/architecture.md` is the overview (layers, object model, registry and
+auto-detection, extras, tests). The notes below are the agent-specific rules on top of it.
+
 ### Core object model (`src/prov/model/` package)
 
 - `__init__.py` — re-exports every public name at its historic `prov.model` location and then

@@ -42,6 +42,8 @@
 - New [What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html)
   page summarising the 3.x line for projects still on 2.x, linked from the
   README
+- New [architecture overview](https://prov.readthedocs.io/en/latest/explanation/architecture.html)
+  under Explanation
 
 ### Project
 
