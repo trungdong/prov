@@ -27,6 +27,8 @@ import and export in PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
 - Command-line tools, `prov-convert` and `prov-compare`.
 
 Start with the [tutorial](https://prov.readthedocs.io/en/latest/tutorial/getting-started.html).
+Over 7,000 public repositories on GitHub
+[depend on this package](https://github.com/trungdong/prov/network/dependents).
 
 ## Status
 
