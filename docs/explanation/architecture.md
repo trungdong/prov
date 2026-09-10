@@ -9,10 +9,10 @@ that order gives the shape of the library.
 |---|---|---|
 | `prov.identifier` | `Identifier`, `QualifiedName`, `Namespace`: the names records are made of | standard library |
 | `prov.constants` | The PROV vocabulary as `QualifiedName` constants (`PROV_ENTITY`, `PROV_ATTR_ACTIVITY`, ...), plus the tables that map record types to classes and to their PROV-N, PROV-JSON and PROV-XML spellings | `prov.identifier` |
-| `prov.model` | The in-memory data model: records, bundles, documents and namespace management | `prov.constants`, `prov.serializers` (for `serialize()`/`deserialize()` dispatch) |
+| `prov.model` | The in-memory data model: records, bundles, documents and namespace management | `prov.identifier`, `prov.constants`, `prov.serializers` (for `serialize()`/`deserialize()` dispatch) |
 | `prov.serializers` | One module per format behind a registry; `ProvDocument.serialize()`, `ProvDocument.deserialize()` and `prov.read()` dispatch through it | `prov.model`, plus `rdflib` (`provrdf`) and `lxml` (`provxml`) behind extras |
-| `prov.graph` | `prov_to_graph()` / `graph_to_prov()`: conversion to and from a NetworkX `MultiDiGraph` | `prov.model`, `networkx` (extra `graph`) |
-| `prov.dot` | `prov_to_dot()`: Graphviz rendering via pydot | `prov.graph`, `prov.model`, `pydot` (extra `dot`) |
+| `prov.graph` | `prov_to_graph()` / `graph_to_prov()`: conversion to and from a NetworkX `MultiDiGraph` | `prov.identifier`, `prov.model`, `networkx` (extra `graph`) |
+| `prov.dot` | `prov_to_dot()`: Graphviz rendering via pydot | `prov.identifier`, `prov.graph`, `prov.model`, `pydot` (extra `dot`) |
 | `prov.scripts` | The `prov-convert` and `prov-compare` command-line tools | `prov.model`, `prov.serializers` |
 
 `prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`) whose `__init__.py`
@@ -68,8 +68,10 @@ naming the extra when imported without it.
 ## Tests
 
 The test suite lives inside the package, at `src/prov/tests/`, and ships with it. Shared
-coverage runs once per serializer through a parametrised round-trip fixture, so a new
-record type or attribute shape is exercised against every format at once; per-format
-modules keep only what is specific to that format. `examples.py` holds the canonical example
-documents that several modules and the DOT smoke tests reuse, and a Hypothesis property test
-round-trips generated documents through every format.
+coverage runs once per target through a parametrised round-trip fixture: the in-memory model
+plus each of the four round-trippable formats, PROV-JSON, PROV-XML, PROV-O and PROV-JSONLD.
+PROV-N is excluded because it is write-only. This exercises a new record type or attribute
+shape against every target at once; per-format modules keep only what is specific to that
+format. `examples.py` holds the canonical example documents that several modules and the DOT
+smoke tests reuse, and a Hypothesis property test round-trips generated documents through
+those same four formats.
