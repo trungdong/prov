@@ -13,8 +13,8 @@ attribute union.
 This module characterizes the fixed behaviour: both values are now retained
 on the record -- observable through ``attributes``/``extra_attributes``
 iteration, record equality/hashing, and serialization -- and the retained
-values survive serialization round trips. By maintainer decision (`prov` is
-a published dependency of ProvStore), the three narrowing accessors
+values survive serialization round trips. By maintainer decision (downstream
+projects depend on the 2.x return types), the three narrowing accessors
 (``get_attribute()``, ``get_asserted_types()``, ``.value``) deliberately keep
 their 2.x return type: a plain ``set`` built fresh from the record's own
 type-aware storage, which re-collapses a Python-equal-but-differently-typed
@@ -200,9 +200,8 @@ def test_mixed_typed_attribute_round_trips(fmt):
 #
 # get_attribute()/get_asserted_types()/.value deliberately keep returning a
 # plain `set` built fresh from the record's own type-aware storage, instead
-# of exposing that storage directly: `prov` is a published dependency of
-# ProvStore, so the narrow, 2.x-compatible return type was chosen over a new
-# public container type. The accepted consequence is that a Python-equal-
+# of exposing that storage directly: downstream projects depend on the 2.x
+# return type, so it was kept over a new public container type. The accepted consequence is that a Python-equal-
 # but-differently-typed pair retained on the record re-collapses in what
 # these three accessors return -- exactly the 2.x behaviour -- even though
 # the record's own storage, `attributes`/`extra_attributes`, equality/

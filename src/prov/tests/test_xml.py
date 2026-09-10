@@ -690,8 +690,8 @@ def test_escape_unescape_ncname_localpart_is_inverse(local):
 #   public API. Both `etree.parse` call sites in provxml.py pass no
 #   `parser=` argument, so they silently inherit whatever
 #   `lxml.etree.set_default_parser()` last installed process-wide -- which
-#   any other library sharing the interpreter (prov is embedded in
-#   ProvStore, among others) is free to do. Measured directly:
+#   any other library sharing the interpreter is free to do, and prov is
+#   embedded in other applications. Measured directly:
 #
 #     pristine global default              -> XMLSyntaxError (safe)
 #     after set_default_parser(permissive) -> parsed, file contents leaked
