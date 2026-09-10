@@ -27,7 +27,7 @@ Every page that states one of these facts states it this way.
 | Unpublished repo docs | Link with a full GitHub URL, never a relative path. |
 | Example import | `import prov.model as pm`. |
 
-## Defects found
+## Defects found and fixed
 
 | Page | Defect |
 |---|---|
