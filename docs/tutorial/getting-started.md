@@ -1,55 +1,53 @@
 # Getting started
 
-This tutorial walks you through the whole life cycle of a provenance document with
-`prov`: building it in memory, printing it as [PROV-N](https://www.w3.org/TR/prov-n/),
-saving it to (and loading it back from) [PROV-JSON](https://www.w3.org/Submission/prov-json/),
-and rendering it as a diagram. Every code block runs as written; paste them into a Python
-session in order, or copy them into a script.
+This tutorial follows one provenance document through its life cycle. You build it in
+memory, print it as [PROV-N](https://www.w3.org/TR/prov-n/), save it as
+[PROV-JSON](https://www.w3.org/submissions/prov-json/), load it back and render it as a
+diagram. Every code block runs as written. Paste them into a Python session in order, or
+copy them into a script.
 
-If you have not installed the library yet, see {doc}`../installation`. To follow the
-visualisation section you will also need a local [Graphviz](https://graphviz.org/) install
-(more on that below).
+If you have not installed the library yet, see {doc}`../installation`. The visualisation
+section also needs a local [Graphviz](https://graphviz.org/) install.
 
 ## Build a document
 
 A {py:class}`~prov.model.ProvDocument` is the top-level container for provenance
-statements. We start by declaring the namespaces our identifiers live in — a *default*
-namespace for the things this document is primarily about, and an `ex` prefix for
-everything else.
+statements. Start by declaring the namespaces your identifiers live in. The default
+namespace is for the things this document is about, and the `ex` prefix is for everything
+else.
 
 ```python
-import prov.model as prov
+import prov.model as pm
 
-document = prov.ProvDocument()
+document = pm.ProvDocument()
 document.set_default_namespace("http://anotherexample.org/")
 document.add_namespace("ex", "http://example.org/")
 ```
 
-Now we add an **entity** — the file whose provenance we are describing. Attributes are
-given as a list (or dict) of `(name, value)` pairs. Names can be `prov:*` constants such
-as {py:data}`prov.model.PROV_TYPE` or any prefixed name like `ex:path`.
+Now add an **entity**, the file whose provenance you are describing. Attributes are a list
+or dict of `(name, value)` pairs. A name is either a `prov:` constant such as
+{py:data}`prov.model.PROV_TYPE` or a prefixed name such as `ex:path`.
 
 ```python
 e2 = document.entity("e2", (
-    (prov.PROV_TYPE, "File"),
+    (pm.PROV_TYPE, "File"),
     ("ex:path", "/shared/crime.txt"),
     ("ex:creator", "Alice"),
     ("ex:content", "There was a lot of crime in London last month"),
 ))
 ```
 
-Next, the **activity** that produced the file, an **agent** responsible for it, and the
-relations that tie them together. The factory methods return the record they create, so
-you can pass either the record objects (`e2`, `a1`) or their string identifiers as
-references.
+Next add the **activity** that produced the file, an **agent** responsible for it, and the
+relations that tie them together. Each factory method returns the record it creates, so you
+can refer to a record either by the object (`e2`, `a1`) or by its identifier string.
 
 ```python
-a1 = document.activity("a1", "2024-07-09T16:39:38", None, {prov.PROV_TYPE: "edit"})
+a1 = document.activity("a1", "2024-07-09T16:39:38", None, {pm.PROV_TYPE: "edit"})
 
 # Pass extra attributes with the ``other_attributes`` keyword.
 document.wasGeneratedBy(e2, a1, other_attributes={"ex:fct": "save"})
-document.wasAssociatedWith("a1", "ag2", None, None, {prov.PROV_ROLE: "author"})
-document.agent("ag2", {prov.PROV_TYPE: prov.PROV["Person"], "ex:name": "Bob"})
+document.wasAssociatedWith("a1", "ag2", None, None, {pm.PROV_ROLE: "author"})
+document.agent("ag2", {pm.PROV_TYPE: pm.PROV["Person"], "ex:name": "Bob"})
 ```
 
 That is a complete provenance document. Print it in PROV-N, the human-readable notation
@@ -74,28 +72,27 @@ endDocument
 
 ## Save it and load it back
 
-{py:meth}`~prov.model.ProvDocument.serialize` writes the document out. With no
-destination it returns a string; given a file path it writes the file. The default format
-is PROV-JSON.
+{py:meth}`~prov.model.ProvDocument.serialize` writes the document out. With no destination
+it returns a string. With a file path it writes the file. The default format is PROV-JSON.
 
 ```python
 document.serialize("article-prov.json")
 ```
 
 {py:meth}`~prov.model.ProvDocument.deserialize` is the inverse. It accepts a file path or
-an open stream as `source`, or a string via the `content` keyword. Because a round trip
-through PROV-JSON preserves the model exactly, the loaded document compares equal to the
+an open stream as `source`, or a string through the `content` keyword. A round trip
+through PROV-JSON preserves the model exactly, so the loaded document compares equal to the
 original:
 
 ```python
-loaded = prov.ProvDocument.deserialize("article-prov.json")
+loaded = pm.ProvDocument.deserialize("article-prov.json")
 assert loaded == document
 ```
 
 ## Visualise it
 
-The {py:mod}`prov.dot` module turns a document into a [pydot](https://pypi.org/project/pydot/)
-graph, which you can write straight to an image file:
+{py:mod}`prov.dot` turns a document into a [pydot](https://pypi.org/project/pydot/) graph,
+which you can write straight to an image file. This needs the `dot` extra.
 
 ```python
 from prov.dot import prov_to_dot
@@ -105,22 +102,21 @@ dot.write_png("article-prov.png")
 ```
 
 ```{note}
-Rendering to PNG/PDF/SVG needs a local **Graphviz** installation (the `dot` executable),
-not just the `pydot` Python package. Install it from your package manager (for example
-`brew install graphviz` or `apt install graphviz`) or from <https://graphviz.org/download/>.
-For styling options — direction, labels, hiding attributes — see the graphics how-to guide.
+Rendering to PNG, PDF or SVG needs a local Graphviz installation, not just the `pydot`
+package. Install it from your package manager, for example `brew install graphviz` or
+`apt install graphviz`, or from <https://graphviz.org/download/>. The {doc}`../howto/graphics`
+guide covers layout direction, labels and hiding attributes.
 ```
 
 ## Bundles
 
-A **bundle** is a named set of statements with its own namespaces, letting you describe
-the provenance of provenance. A {py:class}`~prov.model.ProvDocument` is the only kind of
-bundle that may contain other, named bundles. Note how the same local name `e001` refers
-to two different entities because each bundle resolves it against a different default
-namespace:
+A **bundle** is a named set of statements with its own namespaces. It lets you describe the
+provenance of provenance. Only a {py:class}`~prov.model.ProvDocument` may contain named
+bundles. In the example below the local name `e001` names two different entities, because
+each bundle resolves it against its own default namespace:
 
 ```python
-d = prov.ProvDocument()
+d = pm.ProvDocument()
 d.set_default_namespace("http://example.org/0/")
 d.add_namespace("ex1", "http://example.org/1/")
 d.add_namespace("ex2", "http://example.org/2/")
@@ -151,10 +147,10 @@ endDocument
 
 ## Where next
 
-- **How-to guides** — task-focused recipes: serialising to the other formats (PROV-XML,
-  PROV-O/RDF, PROV-N, PROV-JSONLD), producing graphics, converting to and from a NetworkX
-  graph, and using the command-line tools.
-- **Reference** — the full API, generated from the source, under {doc}`../reference/index`.
-- **The PROV data model** — for the concepts behind entities, activities, agents and the
-  relations between them, read the W3C
-  [PROV-DM Primer](https://www.w3.org/TR/prov-primer/).
+- The how-to guides cover the other formats ({doc}`../howto/provxml`,
+  {doc}`../howto/provo-rdf`, {doc}`../howto/provn`, {doc}`../howto/provjsonld`), graphics,
+  NetworkX conversion and the command-line tools.
+- {doc}`../reference/index` documents the full API, generated from the source.
+- {doc}`../explanation/prov-dm` explains entities, activities, agents and the relations
+  between them. The W3C [PROV-DM Primer](https://www.w3.org/TR/prov-primer/) is the
+  authoritative introduction.
