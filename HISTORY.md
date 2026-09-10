@@ -7,6 +7,9 @@
 - `ProvBundle.__eq__` (and therefore `ProvDocument.__eq__`) compares equal
   bundles in linear time by testing record-set equality first, falling back
   to the record-by-record search only when the sets differ
+- `NamespaceManager.get_namespace()` looks a URI up by index instead of
+  scanning every known namespace; where a URI is both registered and the
+  default namespace, the registered one is now returned consistently
 
 ### Security
 

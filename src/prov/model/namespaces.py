@@ -10,6 +10,7 @@ from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model.records import NSCollection, QualifiedNameCandidate
 
 DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
+_DEFAULT_NAMESPACES_BY_URI = {ns.uri: ns for ns in DEFAULT_NAMESPACES.values()}
 
 
 class NamespaceManager(dict[str, Namespace]):
@@ -55,6 +56,10 @@ class NamespaceManager(dict[str, Namespace]):
     def get_namespace(self, uri: str) -> Namespace | None:
         """Return the known namespace with the given URI.
 
+        Lookup is by index, not by scan. When more than one known namespace
+        has the URI, the built-in ``prov``/``xsd``/``xsi`` namespaces win,
+        then the explicitly registered namespace, then the default namespace.
+
         Args:
             uri: The namespace URI to look up.
 
@@ -62,9 +67,11 @@ class NamespaceManager(dict[str, Namespace]):
             The matching :class:`~prov.identifier.Namespace`, or ``None`` if no
             known namespace has that URI.
         """
-        for namespace in self.values():
-            if uri == namespace._uri:
-                return namespace
+        namespace = _DEFAULT_NAMESPACES_BY_URI.get(uri) or self._uri_map.get(uri)
+        if namespace is not None:
+            return namespace
+        if self._default is not None and self._default.uri == uri:
+            return self._default
         return None
 
     def get_registered_namespaces(self) -> Iterable[Namespace]:

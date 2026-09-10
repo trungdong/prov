@@ -11,7 +11,7 @@ import shutil
 
 import pytest
 
-from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD
+from prov.constants import PROV, PROV_INTERNATIONALIZEDSTRING, XSD
 from prov.identifier import Namespace
 from prov.model import (
     Literal,
@@ -550,6 +550,36 @@ def test_get_namespace_miss_and_hit():
     ns = Namespace("ex", "http://example.org/")
     nm.add_namespace(ns)
     assert nm.get_namespace("http://example.org/") == ns
+
+
+def test_get_namespace_finds_built_in_and_default_namespaces():
+    nm = NamespaceManager(default="http://default.example.org/")
+    assert nm.get_namespace(PROV.uri) == PROV
+    assert nm.get_namespace("http://default.example.org/") is nm.get_default_namespace()
+
+
+def test_get_namespace_after_prefix_rename_returns_renamed_namespace():
+    nm = NamespaceManager()
+    nm.add_namespace(Namespace("ex", "http://a.example.org/"))
+    renamed = nm.add_namespace(Namespace("ex", "http://b.example.org/"))
+    assert renamed.prefix == "ex_1"
+    assert nm.get_namespace("http://b.example.org/") is renamed
+    assert nm.get_namespace("http://a.example.org/").prefix == "ex"
+
+
+def test_get_namespace_after_reregistering_uri_under_other_prefix():
+    nm = NamespaceManager()
+    first = nm.add_namespace(Namespace("ex", "http://a.example.org/"))
+    again = nm.add_namespace(Namespace("other", "http://a.example.org/"))
+    assert again is first
+    assert "other" not in nm
+    assert nm.get_namespace("http://a.example.org/") is first
+
+
+def test_get_namespace_prefers_registered_over_default_for_same_uri():
+    nm = NamespaceManager(default="http://shared.example.org/")
+    registered = nm.add_namespace(Namespace("sh", "http://shared.example.org/"))
+    assert nm.get_namespace("http://shared.example.org/") is registered
 
 
 def test_add_namespace_reuses_renamed_namespace_from_cache():
