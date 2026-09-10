@@ -93,5 +93,24 @@ BadSyntax
 ```
 
 Two relations that share an identifier but differ in a formal attribute cannot round-trip
-through PROV-O. Decoding such RDF raises `prov.model.ProvException`.
-{doc}`../reference/conformance` explains why.
+through PROV-O, because PROV-O stores a relation as one node named by its identifier.
+Decoding such RDF raises `prov.model.ProvException`:
+
+```python
+document = pm.ProvDocument()
+document.set_default_namespace("http://example.org/")
+document.wasGeneratedBy("e1", "a1", time="2024-01-01T00:00:00", identifier="g1")
+document.wasGeneratedBy("e1", "a1", time="2024-01-02T00:00:00", identifier="g1")
+trig_str = document.serialize(format="rdf")
+
+try:
+    pm.ProvDocument.deserialize(content=trig_str, format="rdf")
+except pm.ProvException as e:
+    print(type(e).__name__)
+```
+
+```text
+ProvException
+```
+
+{doc}`../reference/conformance` explains the limitation.

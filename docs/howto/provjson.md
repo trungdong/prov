@@ -28,7 +28,7 @@ print(json_str)
 ## Deserialize from a file or stream
 
 ```python
-loaded = pm.ProvDocument.deserialize("document.json")
+loaded = pm.ProvDocument.deserialize("document.json")  # format="json" is the default
 assert loaded == document
 ```
 

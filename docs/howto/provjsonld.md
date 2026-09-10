@@ -53,8 +53,9 @@ print(jsonld_str)
 ```
 
 The first entry of `@context` holds the document's namespace prefixes. The default
-namespace appears as both `@vocab` and `@base`, because `@vocab` alone does not govern
-`@id` values. The second entry references the submission's context, which resolves the
+namespace appears as both `@vocab` and `@base`. `@vocab` expands unprefixed property
+names, and `@base` expands unprefixed `@id` values such as `e1`, which would otherwise
+resolve against the document's own location. The second entry references the submission's context, which resolves the
 unprefixed types such as `Entity` and `Generation`. A named bundle nests inside the
 top-level `@graph` as an object with `@type: "Bundle"`, its own `@context` and its own
 `@graph`.

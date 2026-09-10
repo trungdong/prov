@@ -9,8 +9,8 @@ python -m pip install "prov[dot]"
 ```
 
 ```{important}
-The `dot` extra installs the `pydot` package. Rendering also needs the Graphviz `dot`
-executable, which you install separately:
+The `dot` extra installs the `pydot` and `networkx` packages. Rendering also needs the
+Graphviz `dot` executable, which you install separately:
 
 - macOS: `brew install graphviz`
 - Debian and Ubuntu: `apt install graphviz`
