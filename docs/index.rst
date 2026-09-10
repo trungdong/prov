@@ -1,5 +1,9 @@
-Prov Python package's documentation
-===================================
+prov documentation
+==================
+
+``prov`` is a Python implementation of the W3C PROV Data Model. Start with the tutorial,
+then use the how-to guides for individual tasks. The reference section documents the API
+and the explanation section covers the concepts behind it.
 
 .. toctree::
    :maxdepth: 1
