@@ -46,7 +46,7 @@ a1 = document.activity("a1", "2024-07-09T16:39:38", None, {pm.PROV_TYPE: "edit"}
 
 # Pass extra attributes with the ``other_attributes`` keyword.
 document.wasGeneratedBy(e2, a1, other_attributes={"ex:fct": "save"})
-document.wasAssociatedWith("a1", "ag2", None, None, {pm.PROV_ROLE: "author"})
+document.wasAssociatedWith("a1", "ag2", other_attributes={pm.PROV_ROLE: "author"})
 document.agent("ag2", {pm.PROV_TYPE: pm.PROV["Person"], "ex:name": "Bob"})
 ```
 

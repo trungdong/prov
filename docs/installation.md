@@ -1,14 +1,15 @@
 # Installation
 
-`prov` needs Python 3.10 or later.
+`prov` needs Python 3.10 or later. Support for Python 3.10 ends in the first release
+after its end of life on 2026-10-31.
 
 ```bash
 python -m pip install prov
 ```
 
 This installs the core data model and the PROV-JSON, PROV-JSONLD and PROV-N serializers.
-PROV-N is write-only. Every other capability sits behind an optional extra and raises
-`ModuleNotFoundError`, naming the extra to install, when used without it.
+PROV-N is write-only. Every other capability sits behind an optional extra. Using one
+without its extra raises an error that names the extra to install.
 
 | Extra | Enables | Installs |
 |---|---|---|
