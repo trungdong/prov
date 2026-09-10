@@ -56,6 +56,9 @@
 - A non-blocking CI job fails if `prov` raises a `DeprecationWarning` or
   `FutureWarning` of its own
   ([#340](https://github.com/trungdong/prov/issues/340))
+- Design specs, implementation plans and the test-gap checklist moved from
+  `docs/` to a top-level `planning/` directory; the published documentation
+  is unaffected
 
 ## 3.1.0 (2026-08-07)
 

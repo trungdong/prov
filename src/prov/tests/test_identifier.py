@@ -1,5 +1,5 @@
 """Exercises prov.identifier.Namespace edges not otherwise covered by the
-serializer round-trip tests (docs/test-gap-checklist.md, T13)."""
+serializer round-trip tests (planning/test-gap-checklist.md, T13)."""
 
 import pytest
 

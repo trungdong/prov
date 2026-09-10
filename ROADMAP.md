@@ -6,7 +6,7 @@ hardening (tooling, type hints, tests, documentation, standards conformance),
 a batch of long-standing bug fixes, and new serialization capabilities.
 
 The full design detail lives in the
-[modernisation roadmap design](docs/superpowers/specs/2026-07-03-modernisation-roadmap-design.md).
+[modernisation roadmap design](planning/specs/2026-07-03-modernisation-roadmap-design.md).
 This page is the community-facing summary. The table below shows the **order** of
 planned releases, not dates — timelines depend on available effort.
 
@@ -78,7 +78,7 @@ feed into this list. The planned changes are:
   for the full write-up. Constraints keyed on something other than the record
   identifier (24–29) remain out of scope, deferred to the opt-in validation engine,
   [#62](https://github.com/trungdong/prov/issues/62). The
-  [gap analysis](docs/superpowers/specs/2026-07-10-unification-gap-analysis.md) produced
+  [gap analysis](planning/specs/2026-07-10-unification-gap-analysis.md) produced
   by the pre-3.0 conformance audit (completed 2026-07-11) was the authority for this
   rework, which closes umbrella issue
   [#253](https://github.com/trungdong/prov/issues/253).

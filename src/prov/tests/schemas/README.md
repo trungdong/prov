@@ -41,7 +41,7 @@ referenced) and was left as-is.
 Closure was verified by grepping every vendored file for `schemaLocation=`
 and `xs:import`/`xs:include` elements and confirming each target is itself
 vendored in this directory; see the roadmap step 30 audit notes
-(`docs/superpowers/specs/2026-07-10-conformance-audit-findings.md`, §3.1)
+(`planning/specs/2026-07-10-conformance-audit-findings.md`, §3.1)
 for the verification transcript.
 
 `prov-json.schema.json` is the schema linked from §2.3 ("Validating PROV-JSON
@@ -55,7 +55,7 @@ still ships a `Draft4Validator`, so it is used as-is (no upgrade/rewrite);
 `jsonschema.validators.validator_for(schema)` rather than hard-coding that
 draft. Two authoring quirks in the schema itself were noted during the audit
 (not fixed here — the file is vendored verbatim) and are recorded in
-`docs/superpowers/specs/2026-07-10-conformance-audit-findings.md` §3.2: the
+`planning/specs/2026-07-10-conformance-audit-findings.md` §3.2: the
 `wasEndedby` property key (both at the document root and inside
 `definitions.bundle`) is misspelled — the submission's own prose (§3.2.5) and
 `prov`'s serializer both use `wasEndedBy` — and the document-root object sets

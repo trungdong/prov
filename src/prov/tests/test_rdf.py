@@ -364,7 +364,7 @@ def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
     # legally repeat a formal-attribute predicate on the same qualified-
     # relation bnode; decode_container()'s walk() helper must expand
     # that into one new_record() call per combination rather than
-    # silently overwriting (docs/test-gap-checklist.md, T13 item under
+    # silently overwriting (planning/test-gap-checklist.md, T13 item under
     # provrdf.py: "multi-valued unique-set walking").
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .

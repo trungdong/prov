@@ -406,7 +406,7 @@ def test_deserialization_with_xsd_as_default_namespace():
 
 
 # The following cover ProvXMLSerializer error/warning paths not reached by
-# the round-trip fixtures (docs/test-gap-checklist.md, T13 item under
+# the round-trip fixtures (planning/test-gap-checklist.md, T13 item under
 # serializers/provxml.py).
 
 
@@ -828,7 +828,7 @@ def test_deserialize_ignores_tampered_default_parser(
 # Re-enabling it is a possible future coverage chore (2.4.0 window /
 # conformance phase), explicitly out of scope for the pytest-matrix
 # migration -- see design doc §4 Decision 3
-# (docs/superpowers/specs/2026-07-06-test-suite-redesign.md).
+# (planning/specs/2026-07-06-test-suite-redesign.md).
 
 
 def _perform_round_trip(filename, force_types=False):

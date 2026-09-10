@@ -290,7 +290,7 @@ def test_literal_provn_with_triple_quotes():
 
 
 # The following cover the Literal/datatype-parsing helpers
-# (docs/test-gap-checklist.md, T13 item under model.py: parse_xsd_datetime,
+# (planning/test-gap-checklist.md, T13 item under model.py: parse_xsd_datetime,
 # parse_boolean, Literal __eq__/__ne__/__hash__, and the langtag-forces-
 # InternationalizedString warning).
 
@@ -337,7 +337,7 @@ def test_langtag_without_datatype_defaults_to_internationalizedstring():
 
 
 # The following cover ProvException paths in ProvRecord.add_attributes()
-# (docs/test-gap-checklist.md, T13 item under model.py).
+# (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 @pytest.fixture
@@ -393,7 +393,7 @@ def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc):
     # separately: no PROV_ATTRIBUTES value type raises TypeError on
     # `!=`, so the `except TypeError` branch at model.py:521-523 is
     # dead code for any value this library can construct; left
-    # deferred per docs/test-gap-checklist.md). This still exercises
+    # deferred per planning/test-gap-checklist.md). This still exercises
     # the duplicate-value ProvException with two "different" datetimes.
     activity = doc.activity("ex:a4", startTime=datetime.datetime(2020, 1, 1))
     aware_time = datetime.datetime(2020, 1, 1, tzinfo=datetime.timezone.utc)
@@ -442,7 +442,7 @@ def test_provexceptioninvalidqualifiedname_str():
 
 
 # The following cover small ProvRecord accessors not otherwise exercised
-# (docs/test-gap-checklist.md, T13 item under model.py).
+# (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 def test_get_asserted_types_default_empty(doc):
@@ -462,7 +462,7 @@ def test_value_property_default_empty(doc):
 
 # The following exercise the fluent convenience wrappers on
 # ProvEntity/ProvActivity that examples.py does not otherwise reach
-# (docs/test-gap-checklist.md, T13 item under model.py).
+# (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 @pytest.fixture
@@ -538,7 +538,7 @@ def test_activity_set_time_end_only(ns_doc):
 
 
 # The following cover NamespaceManager branches not exercised by round-trip
-# serialization (docs/test-gap-checklist.md, T13 item under model.py).
+# serialization (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 def test_construction_without_default_namespace():
@@ -647,7 +647,7 @@ def test_get_unused_prefix_returns_original_when_available():
 
 
 # The following cover ProvBundle API edges not reached by round-trip
-# serialization (docs/test-gap-checklist.md, T13 item under model.py).
+# serialization (planning/test-gap-checklist.md, T13 item under model.py).
 
 
 def test_bundles_property_raises_on_a_plain_bundle():
@@ -701,7 +701,7 @@ def test_has_bundles_false_for_plain_bundle():
 
 
 # The following cover ProvDocument.serialize()'s file-path save path and
-# .deserialize()'s argument-validation error (docs/test-gap-checklist.md, T13
+# .deserialize()'s argument-validation error (planning/test-gap-checklist.md, T13
 # item under model.py, natural neighbours of the T12 read() tests).
 
 
@@ -724,7 +724,7 @@ def test_deserialize_without_source_or_content_raises_type_error():
 
 
 # The following cover ProvDocument.__eq__'s bundle-comparison early-outs and
-# unified()'s no-bundles loop (docs/test-gap-checklist.md, T13 item under
+# unified()'s no-bundles loop (planning/test-gap-checklist.md, T13 item under
 # model.py).
 
 
@@ -800,7 +800,7 @@ def test_unified_with_no_bundles():
 
 
 # The following cover ProvDocument.plot()'s filename-based save path and its
-# unknown-format ValueError (docs/test-gap-checklist.md, T13 item under
+# unknown-format ValueError (planning/test-gap-checklist.md, T13 item under
 # model.py; the matplotlib/interactive-display path remains deferred, see
 # checklist).
 

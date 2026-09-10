@@ -77,7 +77,7 @@ def test_third_record_with_same_identifier_appends_to_existing_list():
     # The first duplicate-identifier record turns the container entry
     # into a singleton list; a third (or later) record with the same
     # identifier must append directly to that list without re-wrapping
-    # it (docs/test-gap-checklist.md, T13 item under provjson.py).
+    # it (planning/test-gap-checklist.md, T13 item under provjson.py).
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.activity("ex:a1", other_attributes={"ex:tag": "one"})

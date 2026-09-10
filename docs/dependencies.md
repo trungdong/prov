@@ -68,7 +68,7 @@ Install with `prov[extra]`; omitting them makes the corresponding serializer/mod
   `prov[dot]` to be depended on separately. `matplotlib` floor `3.6` is a defensive modern
   baseline rather than a verified minimum; not exercised in CI (no display backend in the
   test environment), so this path is coverage-`defer`red (see
-  `docs/test-gap-checklist.md`).
+  `planning/test-gap-checklist.md`).
 
 ## Dev dependency group (`[dependency-groups] dev`)
 
