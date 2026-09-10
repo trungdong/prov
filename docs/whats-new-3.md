@@ -62,8 +62,9 @@ carry bug fixes back-ported from 3.x. See
 
 ## If you pin `prov==2.1.1` or `prov==1.5.1`
 
-Those pins predate the 3.x work. Both versions are outside the support policy, and both
-predate the 2.x line. Lift the pin to `prov>=3` and add the extras your code uses.
+Those pins predate the 3.x work. Both are outside the current support policy. 1.5.1
+predates the 2.x line and 2.1.1 is an early 2.x release from before the modernisation
+work. Lift the pin to `prov>=3` and add the extras your code uses.
 Please open an issue if anything in the upgrade guide does not cover your case.
 
 ## What comes next
