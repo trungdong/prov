@@ -2,8 +2,8 @@
 
 This page maps each PROV-DM concept onto `prov`'s classes and factory methods, and shows how
 well each serializer round-trips it. It's revisited at every release — last revised for the
-3.1.0 release (2026-08-07), which added the **PROV-JSONLD** serializer/deserializer
-(`format="jsonld"`, {doc}`../howto/provjsonld`) and its JSON-LD column below.
+3.1.1 release (2026-09-10), which changed no round-trip result; the JSON-LD column was added for
+3.1.0's **PROV-JSONLD** serializer/deserializer (`format="jsonld"`, {doc}`../howto/provjsonld`).
 
 Every cell is checked directly against the current source code and the shared test suite, not
 against the spec text alone. For conceptual background on PROV-DM's six components, see
