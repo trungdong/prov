@@ -89,7 +89,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.6",
-    "types-networkx>=3.4.2.20250509",
+    "types-networkx>=3.6.1.20260903",
     "types-python-dateutil>=2.9.0.20260807",
 ]
 docs = [
