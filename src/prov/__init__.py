@@ -106,8 +106,13 @@ def _detect_and_parse(
                     # the remaining attempts rather than aborting detection.
                     start_pos = None
             try:
+                # kwargs are format-specific (e.g. profile= for provn); a
+                # candidate that doesn't understand them would otherwise
+                # raise TypeError, indistinguishable here from "not this
+                # format", so only the candidate they're meant for gets them.
+                candidate_kwargs = kwargs if format == "provn" else {}
                 document = ProvDocument.deserialize(
-                    source=src, content=content, format=format, **kwargs
+                    source=src, content=content, format=format, **candidate_kwargs
                 )
             except Exception:
                 # Any failure from a candidate deserializer means "not this
@@ -171,7 +176,12 @@ def read(
             ``"rdf"``, ``"provn"``). If ``None``, every registered format is
             tried in turn.
         **kwargs: Passed to the deserializer, for example ``profile`` for
-            PROV-N. With auto-detection every candidate receives them.
+            PROV-N. With ``format`` given explicitly, the named deserializer
+            receives them as given. With auto-detection, only the ``provn``
+            candidate receives them, since ``json``/``rdf``/``xml``/``jsonld``
+            do not accept format-specific keyword arguments and would
+            otherwise raise a ``TypeError`` indistinguishable from "not this
+            format".
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.

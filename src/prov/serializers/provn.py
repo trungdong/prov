@@ -2,15 +2,51 @@ __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
 import io
+import os
+import sys
 import warnings
+from types import FrameType
 from typing import Any
 
+import prov
 from prov.model import ProvDocument, ProvWarning
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import PROFILES, ProvNParser
 
 __all__ = ["PROFILES", "ProvNSerializer", "ProvNSyntaxError"]
+
+_PROV_PACKAGE_DIR = os.path.dirname(os.path.abspath(prov.__file__))
+# prov.tests lives inside the package directory but is caller code (this
+# module's own test suite exercises deserialize() directly), not part of
+# the deserialize() call chain being walked past below.
+_PROV_TESTS_DIR = os.path.join(_PROV_PACKAGE_DIR, "tests") + os.sep
+
+
+def _external_stacklevel() -> int:
+    """``warnings.warn()`` stacklevel that reaches the caller's caller.
+
+    Walks the real call stack outward from this function's caller until a
+    frame's file sits outside the ``prov`` package (or inside its own test
+    suite), since a fixed level would be wrong for one of the several ways
+    to reach here (a direct ``ProvDocument.deserialize()`` call,
+    ``prov.read()`` with an explicit format, or ``prov.read()``
+    auto-detecting) each adding a different number of ``prov``-internal
+    frames. Falls back to ``3`` (the direct-call depth) if every frame up to
+    the top of the stack is inside ``prov``, which should not happen in
+    practice.
+    """
+    frame: FrameType | None = sys._getframe(1)
+    level = 1
+    while frame is not None:
+        filename = os.path.abspath(frame.f_code.co_filename)
+        if not filename.startswith(_PROV_PACKAGE_DIR) or filename.startswith(
+            _PROV_TESTS_DIR
+        ):
+            return level
+        frame = frame.f_back
+        level += 1
+    return 3
 
 
 class ProvNSerializer(Serializer):
@@ -65,11 +101,14 @@ class ProvNSerializer(Serializer):
             content = content.decode("utf-8")
         parser = ProvNParser(content, profile)
         document = parser.parse()
-        # Warned here, not inside the parser, so stacklevel=3 (this frame's
-        # caller is always ProvBundle.deserialize()'s call to
-        # serializer.deserialize(), two frames below the user's call to
-        # ProvDocument.deserialize()) attributes every skip -- document-level
-        # or inside a bundle alike -- to the user's call site.
-        for message in parser.skipped:
-            warnings.warn(message, ProvWarning, stacklevel=3)
+        # Warned here, not inside the parser, so a single stacklevel
+        # attributes every skip -- document-level or inside a bundle alike
+        # -- to the caller of ProvDocument.deserialize(). The level is
+        # computed dynamically (see _external_stacklevel()) since the
+        # caller may be ProvDocument.deserialize() directly or reach here
+        # via prov.read(), each adding a different number of frames.
+        if parser.skipped:
+            stacklevel = _external_stacklevel()
+            for message in parser.skipped:
+                warnings.warn(message, ProvWarning, stacklevel=stacklevel)
         return document

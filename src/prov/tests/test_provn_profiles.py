@@ -192,6 +192,52 @@ def test_model_rejection_is_wrapped_and_skippable(monkeypatch):
     assert [str(r.identifier) for r in records(doc)] == ["ex:good"]
 
 
+def test_typed_literal_value_error_is_wrapped_and_skippable():
+    """``parse_xsd_types()`` raises a bare ``ValueError``/``OverflowError``
+    for a malformed typed literal (e.g. ``int("abc")``); the parser must
+    wrap it into a ``ProvNSyntaxError`` with the statement's position, just
+    like a ``ProvException`` from ``new_record()``."""
+    body = 'entity(ex:e1, [ex:v="abc" %% xsd:int])\nentity(ex:e2)'
+
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        parse(body, profile="default")
+    assert ctx.value.line == 3
+
+    with pytest.warns(ProvWarning):
+        doc = parse(body, profile="lenient")
+    assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
+
+
+def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal():
+    # The bad literal 'entity' inside [ex:k=entity] is itself spelt like a
+    # statement keyword; resync must not treat it as a fresh statement
+    # boundary just because it matches by name.
+    body = "entity(ex:e1, [ex:k=entity]) entity(ex:e2)"
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
+
+
+def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value():
+    # Same bug, dressed as the shape examples.default_namespace_attributes's
+    # writer output takes: a keyword-shaped bare name used as an attribute
+    # key/value in the statement that should be recovered into, not treated
+    # as a second, spurious statement boundary.
+    text = (
+        "document\n"
+        "  default <http://example.org/>\n"
+        "  entity(e1, [mine=entity])\n"
+        '  used(a1, e1, -, [entity="collides"])\n'
+        "endDocument"
+    )
+    with pytest.warns(ProvWarning) as caught:
+        doc = ProvDocument.deserialize(content=text, format="provn", profile="lenient")
+    assert len(caught) == 1
+    (record,) = records(doc)
+    assert record.get_type() == PROV["Usage"]
+
+
 def test_lenient_warning_reports_the_deserialize_call_site():
     """The warning's reported filename/line is this test module's call to
     ``ProvDocument.deserialize()``, not a frame inside the parser -- whether
@@ -201,6 +247,32 @@ def test_lenient_warning_reports_the_deserialize_call_site():
         parse("foo(ex:e1)\nentity(ex:e2)", profile="lenient")
     assert len(caught) == 1
     assert caught[0].filename == __file__
+
+
+def test_lenient_warning_reports_the_read_call_site(tmp_path):
+    """The same guarantee holds through prov.read()'s extra frame, for both
+    an explicit format= and auto-detection."""
+    import prov
+
+    path = tmp_path / "doc.provn"
+    path.write_text(f"document\n{PREFIXES}foo(ex:e1)\nentity(ex:e2)\nendDocument")
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        prov.read(str(path), format="provn", profile="lenient")
+    prov_warnings = [w for w in caught if w.category is ProvWarning]
+    assert len(prov_warnings) == 1
+    assert prov_warnings[0].filename == __file__
+
+    # Auto-detection: other candidates (rdflib in particular) may emit their
+    # own unrelated warnings while failing to match, so filter to ProvWarning.
+    text = f"document\n{PREFIXES}foo(ex:e1)\nentity(ex:e2)\nendDocument"
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        prov.read(text, profile="lenient")
+    prov_warnings = [w for w in caught if w.category is ProvWarning]
+    assert len(prov_warnings) == 1
+    assert prov_warnings[0].filename == __file__
 
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")

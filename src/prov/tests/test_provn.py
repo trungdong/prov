@@ -142,6 +142,17 @@ def test_literal_equivalence_with_json():
     assert doc == reloaded
 
 
+def test_bare_identifier_with_escaped_colon_resolves_via_default():
+    # A bare (unprefixed) identifier whose local part contains an escaped
+    # ':' can't be turned back into 'prefix:local' text without looking
+    # like a (wrong) prefixed name, so it must stay resolved rather than
+    # round-tripping through a reconstructed string.
+    doc = parse(r"entity(a\:b)", prefixes="default <http://d.org/>\n" + PREFIXES)
+    record = only_record(doc)
+    assert str(record.identifier) == "a:b"
+    assert record.identifier.uri == "http://d.org/a:b"
+
+
 def test_multiple_attributes_and_repeated_keys():
     record = only_record(parse('entity(ex:e1, [prov:type="a", prov:type="b", ex:k=1])'))
     assert record.get_attribute("prov:type") == {"a", "b"}
@@ -154,6 +165,10 @@ def test_bundle_with_own_prefixes():
     assert str(bundle.identifier) == "ex:b1"
     assert str(only_record(bundle).identifier) == "bob:e1"
     assert "bob" not in {ns.prefix for ns in doc.get_registered_namespaces()}
+    # "ex" is a document-level prefix, not one of the bundle's own -- using
+    # it to spell the bundle's own identifier must not redundantly copy it
+    # onto the bundle too.
+    assert "ex" not in {ns.prefix for ns in bundle.get_registered_namespaces()}
 
 
 def test_bundle_bare_name_uses_document_default():
@@ -163,6 +178,59 @@ def test_bundle_bare_name_uses_document_default():
     )
     (bundle,) = doc.bundles
     assert only_record(bundle).identifier.uri == "http://d.org/e1"
+
+
+def test_bundle_identifier_resolves_against_its_own_prefix():
+    # PROV-N 3.1.3: the bundle identifier is interpreted with the bundle's
+    # own declarations, not just the document's -- bx is only declared
+    # inside the bundle.
+    body = "bundle bx:b1\n  prefix bx <http://bundle.org/>\n  entity(bx:e1)\nendBundle"
+    doc = parse(body)
+    (bundle,) = doc.bundles
+    assert str(bundle.identifier) == "bx:b1"
+    assert str(only_record(bundle).identifier) == "bx:e1"
+    assert "bx" not in {ns.prefix for ns in doc.get_registered_namespaces()}
+
+
+def test_bundle_local_prefix_json_round_trip():
+    import json
+
+    source = ProvDocument.deserialize(
+        content=json.dumps(
+            {
+                "prefix": {"ex": "http://example.org/"},
+                "bundle": {
+                    "bx:b1": {
+                        "prefix": {"bx": "http://bundle.org/"},
+                        "entity": {"bx:e1": {}},
+                    }
+                },
+            }
+        ),
+        format="json",
+    )
+    reloaded = ProvNParser(source.get_provn(), "default").parse()
+    assert reloaded == source
+    assert "bx" not in {ns.prefix for ns in reloaded.get_registered_namespaces()}
+
+
+def test_bundle_without_own_default_gains_none_on_reparse():
+    # A bare name inside a bundle resolves against the document's default
+    # namespace (via NamespaceManager's parent delegation) without that
+    # delegation being cached as the bundle's own default.
+    doc = parse(
+        "bundle ex:b\n  entity(e1)\nendBundle",
+        prefixes="default <http://d.org/>\n" + PREFIXES,
+    )
+    (bundle,) = doc.bundles
+    assert bundle.get_default_namespace() is None
+    inside_bundle = doc.get_provn().split("bundle ex:b")[1].split("endBundle")[0]
+    assert "default " not in inside_bundle
+
+
+def test_bundle_bare_name_with_no_default_anywhere_still_raises():
+    with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
+        parse("bundle ex:b1\n  entity(e1)\nendBundle")
 
 
 def test_comments_anywhere():
@@ -241,6 +309,40 @@ def test_prefix_declaration_rejects_a_qualified_name():
         ).parse()
 
 
+def test_prefix_declaration_rejects_redeclaring_a_reserved_prefix():
+    with pytest.raises(ProvNSyntaxError, match="reserved") as ctx:
+        ProvNParser(
+            "document\nprefix xsi <http://example.org/other#>\nendDocument", "strict"
+        ).parse()
+    assert ctx.value.line == 2
+
+
+def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri():
+    from prov.constants import PROV
+
+    record = only_record(
+        ProvNParser(
+            f"document\nprefix prov <{PROV.uri}>\nentity(prov:e1)\nendDocument",
+            "strict",
+        ).parse()
+    )
+    assert str(record.identifier) == "prov:e1"
+
+
+def test_strict_requires_an_identifier_at_the_named_position():
+    with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
+        parse("hadMember(-, -)")
+    # default keeps the model's own scruffy-statement policy (#257): both
+    # markers are accepted, producing a membership with no formal values set.
+    record = only_record(parse("hadMember(-, -)", profile="default"))
+    assert all(value is None for _, value in record.formal_attributes)
+
+
+def test_strict_still_accepts_wasderivedfrom_with_trailing_markers():
+    record = only_record(parse("wasDerivedFrom(ex:e2, ex:e1, -, -, -)"))
+    assert record.get_type() == _RELATIONS["wasDerivedFrom"][0]
+
+
 def test_unterminated_bundle_reports_end_of_input():
     with pytest.raises(ProvNSyntaxError, match="expected 'endBundle'"):
         ProvNParser(
@@ -248,9 +350,16 @@ def test_unterminated_bundle_reports_end_of_input():
         ).parse()
 
 
-def test_semicolon_identifier_must_be_a_name():
+def test_semicolon_marker_leaves_identifier_unset():
+    # Grammar [10]/[11]: identifierOrMarker ';' -- the Recommendation's own
+    # example is used(-; ex:a1, ex:e1, -).
+    record = only_record(parse("used(-; ex:a1, ex:e1, -)"))
+    assert record.identifier is None
+
+
+def test_semicolon_identifier_must_be_a_name_or_marker():
     with pytest.raises(ProvNSyntaxError, match="expected an identifier before ';'"):
-        parse("used(-; ex:a1, ex:e1, -)")
+        parse("used(2011-11-16T16:05:00; ex:a1, ex:e1, -)")
 
 
 def test_time_attribute_rejects_a_non_datetime_argument():
