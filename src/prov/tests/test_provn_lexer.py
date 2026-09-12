@@ -357,3 +357,9 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges():
         char = chr(codepoint)
         for old_re, new_re in compiled:
             assert bool(old_re.match(char)) == bool(new_re.match(char)), hex(codepoint)
+
+
+@pytest.mark.parametrize("text", ['"a\rb"', "'a\rb'"])
+def test_carriage_return_ends_a_short_literal(text):
+    with pytest.raises(ProvNSyntaxError, match="unterminated"):
+        list(tokenize(text))

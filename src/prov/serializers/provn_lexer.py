@@ -115,9 +115,9 @@ _INT = re.compile(r"-?[0-9]+")
 # control characters that aren't spaces.
 _IRI = re.compile(r"<([^<>\"{}|^`\\\x00-\x20]*)>")
 _LANGTAG = re.compile(r"@([A-Za-z]+(?:-[A-Za-z0-9]+)*)")
-_SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n])*)"')
+_SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n\r])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
-_QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n])*)'")
+_QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n\r])*)'")
 # A '//' comment ends at CR or LF (the Recommendation's note on comments),
 # not just LF.
 _SKIP = re.compile(r"(?:\s+|//[^\n\r]*|/\*.*?\*/)+", re.S)
@@ -334,4 +334,7 @@ def tokenize(text: str) -> Iterator[Token]:
         ProvNSyntaxError: On the first character that starts no valid token,
             with the line and column of that character.
     """
+    if text.startswith("﻿"):
+        # A UTF-8 byte order mark is not part of the document.
+        text = text[1:]
     return _Lexer(text).tokens()

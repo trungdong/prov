@@ -345,3 +345,30 @@ def test_lenient_warning_reports_the_read_call_site(tmp_path):
     prov_warnings = [w for w in caught if w.category is ProvWarning]
     assert len(prov_warnings) == 1
     assert prov_warnings[0].filename == __file__
+
+
+def test_lenient_resync_stops_at_a_bundle_header_after_an_unclosed_statement():
+    body = 'entity(ex:e, [ex:a="x"\nbundle ex:b\n  entity(ex:f)\nendBundle'
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    assert records(doc) == []
+    (bundle,) = doc.bundles
+    assert [str(r.identifier) for r in records(bundle)] == ["ex:f"]
+
+
+def test_lenient_resync_stops_at_end_document_after_an_unclosed_statement():
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse("entity(", profile="lenient")
+    assert len(caught) == 1
+    assert records(doc) == []
+
+
+def test_lenient_skips_a_duplicate_bundle_whole():
+    body = "bundle ex:b\n  entity(ex:e1)\nendBundle\nbundle ex:b\n  entity(ex:e2)\nendBundle\nentity(ex:e3)"
+    with pytest.warns(ProvWarning, match="already exists") as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    (bundle,) = doc.bundles
+    assert [str(r.identifier) for r in records(bundle)] == ["ex:e1"]
+    assert [str(r.identifier) for r in records(doc)] == ["ex:e3"]

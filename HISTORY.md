@@ -58,6 +58,15 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - A URI equal to the default namespace itself is no longer compacted to a qualified name
   with an empty local part, and the PROV-N writer raises instead of writing an empty
   identifier for one; `prefix:` with an empty local part is still written and read
+- PROV-N parser: a prefix declared twice in one scope is a `ProvNSyntaxError` (the
+  Recommendation forbids it); a bare qualified-name literal with an escaped colon and no
+  default namespace is an error instead of resolving in the wrong namespace; a duplicate
+  bundle identifier is a positioned `ProvNSyntaxError`, and `lenient` skips that bundle
+  whole; an all-digit local name is accepted as an attribute name and as a datatype; a
+  leading byte order mark is skipped; a carriage return ends a short string like a line
+  feed; a `bytearray` stream is decoded
+- The `lenient` PROV-N profile no longer swallows a `bundle` header or `endDocument` that
+  follows a statement missing its closing bracket
 
 ## 3.2.0 (2026-09-12)
 
