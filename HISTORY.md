@@ -25,9 +25,10 @@
 ### Performance
 
 - `NamespaceManager` caches string-to-`QualifiedName` resolutions per manager, cleared
-  whenever a namespace is added or the default namespace changes, so building or
-  deserialising a document no longer re-resolves the same identifier text for every
-  record that mentions it
+  whenever a namespace is added or the default namespace changes, so deserialising a
+  document no longer re-resolves the same identifier text for every record that mentions
+  it (PROV-O deserialisation about 9% faster on the benchmark suite; construction through
+  the API is unchanged, as its cost lies elsewhere)
 
 ### Fixes
 
