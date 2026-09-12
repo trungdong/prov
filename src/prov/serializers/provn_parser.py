@@ -192,13 +192,46 @@ class ProvNParser:
             TokenKind.NAME, token.text, ("", token.text), token.line, token.column
         )
 
-    def _identifier_token(self) -> Token:
+    def _identifier_token(self, *, inside_parens: bool = True) -> Token:
         """An identifier position also accepts a bare, all-digit local name;
-        see :meth:`_digit_run_as_name`. Anything else falls through to the
+        see :meth:`_digit_run_as_name`. Inside a statement's parentheses
+        (``inside_parens``, the default), also guards against swallowing a
+        structural keyword; see :meth:`_reject_unclosed_structural_keyword`.
+        A bundle's own header identifier (``bundle <id>``) is not inside
+        parentheses, so :meth:`_bundle` passes ``inside_parens=False`` and
+        accepts a bare keyword-shaped name (e.g. a bundle literally named
+        ``bundle``) unconditionally. Anything else falls through to the
         usual NAME-expected error."""
-        return self._digit_run_as_name() or self._expect(
-            TokenKind.NAME, "an identifier"
-        )
+        digit_run = self._digit_run_as_name()
+        if digit_run is not None:
+            return digit_run
+        if inside_parens:
+            self._reject_unclosed_structural_keyword()
+        return self._expect(TokenKind.NAME, "an identifier")
+
+    def _reject_unclosed_structural_keyword(self) -> None:
+        """Refuse a bare structural keyword as an identifier or argument
+        unless it is immediately followed by ',', ')' or ';' -- the only
+        tokens that follow a real identifier inside a statement's
+        parentheses. Anything else means a statement left open by a
+        missing ')'/']' has read straight through a following 'bundle',
+        'endBundle' or 'endDocument' as if it were data; raising here
+        without consuming the token lets lenient resync (and, outside
+        lenient, the enclosing loop) still find it.
+        """
+        current = self._current
+        if current.kind is not TokenKind.NAME:
+            return
+        prefix, local = current.value
+        if prefix or local not in _STRUCTURAL:
+            return
+        if self._peek().kind in (
+            TokenKind.COMMA,
+            TokenKind.RPAREN,
+            TokenKind.SEMICOLON,
+        ):
+            return
+        raise self._error(f"expected an identifier, found {self._found()}")
 
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
@@ -224,8 +257,6 @@ class ProvNParser:
         self._apply_declarations(document, namespaces, default)
         while not self._at_keyword("endDocument"):
             if self._current.kind is TokenKind.EOF:
-                if self._eof_after_lenient_skip():
-                    return document
                 raise self._error("expected 'endDocument', found end of input")
             if self._at_keyword("bundle"):
                 self._bundle(document)
@@ -235,24 +266,6 @@ class ProvNParser:
         if self._current.kind is not TokenKind.EOF:
             raise self._error("unexpected content after 'endDocument'")
         return document
-
-    def _eof_after_lenient_skip(self) -> bool:
-        """Whether end of input, reached looking for 'endBundle'/'endDocument',
-        is the tail of a statement lenient already skipped, rather than a
-        genuinely missing closing keyword.
-
-        A statement left open by a missing ``)``/``]`` can read straight
-        through a following ``bundle``/``endBundle``/``endDocument`` as if it
-        were ordinary data (e.g. an identifier or an attribute value), since
-        the lexer does not distinguish keywords from names; the resulting
-        error is only raised once resolving that data fails, by which point
-        the keyword is gone from the token stream and cannot be resynced to.
-        Under ``lenient``, once at least one statement has already been
-        skipped, reaching end of input this way ends the document instead of
-        raising, rather than punishing the one profile meant to salvage a
-        damaged file for a token its own recovery consumed.
-        """
-        return self.profile == "lenient" and bool(self.skipped)
 
     def _declarations(self) -> tuple[list[Namespace], str | None]:
         """Consume 'prefix'/'default' declarations without committing them.
@@ -306,7 +319,7 @@ class ProvNParser:
 
     def _bundle(self, document: ProvDocument) -> None:
         self._advance()  # 'bundle'
-        id_token = self._identifier_token()
+        id_token = self._identifier_token(inside_parens=False)
         namespaces, default = self._declarations()
         # PROV-N 3.1.3: the bundle identifier is resolved with the bundle's
         # own declarations. Only take the bundle-based resolution path when
@@ -343,8 +356,6 @@ class ProvNParser:
             return
         while not self._at_keyword("endBundle"):
             if self._current.kind is TokenKind.EOF:
-                if self._eof_after_lenient_skip():
-                    return
                 raise self._error("expected 'endBundle', found end of input")
             if self._at_keyword("bundle"):
                 raise self._error("a bundle cannot contain a bundle")
@@ -529,6 +540,7 @@ class ProvNParser:
             raise self._error(
                 f"expected an identifier, a time or '-', found {self._found()}"
             )
+        self._reject_unclosed_structural_keyword()
         return self._advance()
 
     def _argument_value(

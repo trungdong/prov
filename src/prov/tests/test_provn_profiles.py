@@ -372,3 +372,17 @@ def test_lenient_skips_a_duplicate_bundle_whole():
     (bundle,) = doc.bundles
     assert [str(r.identifier) for r in records(bundle)] == ["ex:e1"]
     assert [str(r.identifier) for r in records(doc)] == ["ex:e3"]
+
+
+@pytest.mark.parametrize("profile", ["strict", "default"])
+def test_structural_keyword_shaped_data_still_parses(profile):
+    """The lookahead that stops an unclosed statement from swallowing a
+    following 'bundle'/'endDocument' as data (see
+    test_lenient_resync_stops_at_end_document_after_an_unclosed_statement)
+    only rejects a bare structural keyword not followed by ',', ')' or ';';
+    a genuine identifier or argument spelt the same way still parses."""
+    body = "default <http://example.org/>\nentity(bundle)\nused(ex:a, endBundle, -)"
+    doc = parse(body, profile=profile)
+    ids = sorted(str(r.identifier) for r in records(doc) if r.identifier is not None)
+    assert ids == ["bundle"]
+    assert len(records(doc)) == 2
