@@ -562,6 +562,22 @@ def test_bundle_in_document_default_with_its_own_default_round_trips():
     assert bundle.identifier.uri == "http://doc.org/b1"
 
 
+def test_bundle_header_prefix_avoids_a_taken_dn_prefix():
+    # When the bundle already declares its own "dn" prefix for something
+    # else, the header's minted prefix falls back to "dn_1" instead of
+    # colliding with it.
+    d = ProvDocument()
+    d.set_default_namespace("http://doc.org/")
+    b = d.bundle("b1")
+    b.set_default_namespace("http://bundle.org/")
+    b.add_namespace("dn", "http://other.org/")
+    b.entity("e1")
+    text = d.get_provn()
+    assert "bundle dn_1:b1" in text
+    assert "prefix dn_1 <http://doc.org/>" in text
+    assert ProvDocument.deserialize(content=text, format="provn") == d
+
+
 def test_namespace_uri_that_is_not_an_iri_cannot_be_written():
     d = ProvDocument()
     d.add_namespace("bad", "http://example.org/a b/")
