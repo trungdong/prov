@@ -9,14 +9,15 @@ prov-compare -- Compare two PROV documents (PROV-JSON, PROV-XML, PROV-O or PROV-
 @license:    MIT Licence
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2026-09-10
+@deffield    updated: 2026-09-12
 """
 
 import logging
 import os
 import sys
 import traceback
-from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from typing import BinaryIO
 
 from prov.model import ProvDocument
 
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 __all__: list[str] = []
 __version__ = 0.1
 __date__ = "2015-06-16"
-__updated__ = "2026-09-10"
+__updated__ = "2026-09-12"
 
 DEBUG = 0
 TESTRUN = 0
@@ -48,7 +49,8 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
 
     Parses two positional file arguments plus ``-f/--format1`` and
     ``-F/--format2`` (each defaulting to ``"json"``), deserializes both
-    files, and compares the resulting documents for equality.
+    files, and compares the resulting documents for equality. Files are
+    opened after parsing; an unopenable path is a usage error (exit 2).
 
     Args:
         argv: Extra command-line arguments. If not ``None``, they are
@@ -93,8 +95,8 @@ USAGE
         parser = ArgumentParser(
             description=program_license, formatter_class=RawDescriptionHelpFormatter
         )
-        parser.add_argument("file1", nargs="?", type=FileType("r"))
-        parser.add_argument("file2", nargs="?", type=FileType("r"))
+        parser.add_argument("file1", help="first document")
+        parser.add_argument("file2", help="second document")
         parser.add_argument(
             "-f",
             "--format1",
@@ -115,20 +117,20 @@ USAGE
             "-V", "--version", action="version", version=program_version_message
         )
 
-        args = None
+        args = parser.parse_args()
+        opened: list[BinaryIO] = []
         try:
-            # Process arguments
-            args = parser.parse_args()
-            doc1 = ProvDocument.deserialize(args.file1, format=args.format1.lower())
-            doc2 = ProvDocument.deserialize(args.file2, format=args.format2.lower())
+            for path in (args.file1, args.file2):
+                try:
+                    opened.append(open(path, "rb"))  # noqa: SIM115 -- closed by main()
+                except OSError as exc:
+                    parser.error(f"can't open '{path}': {exc}")
+            doc1 = ProvDocument.deserialize(opened[0], format=args.format1.lower())
+            doc2 = ProvDocument.deserialize(opened[1], format=args.format2.lower())
             return doc1 != doc2
-
         finally:
-            if args:
-                if args.file1:
-                    args.file1.close()
-                if args.file2:
-                    args.file2.close()
+            for stream in opened:
+                stream.close()
 
     except Exception as e:
         if DEBUG or TESTRUN:

@@ -9,16 +9,15 @@ convert -- Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, 
 @license:    MIT License
 
 @contact:    trungdong@donggiang.com
-@deffield    updated: 2026-09-10
+@deffield    updated: 2026-09-12
 """
 
-import io
 import logging
 import os
 import sys
 import traceback
-from argparse import ArgumentParser, FileType, RawDescriptionHelpFormatter
-from typing import cast
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from typing import BinaryIO, cast
 
 from prov import serializers
 from prov.model import ProvDocument
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 __all__: list[str] = []
 __version__ = 0.1
 __date__ = "2014-03-14"
-__updated__ = "2026-09-10"
+__updated__ = "2026-09-12"
 
 DEBUG = 0
 TESTRUN = 0
@@ -84,9 +83,30 @@ class CLIError(Exception):
         return self.msg
 
 
+def _open_binary(
+    parser: ArgumentParser, path: str, mode: str, standard_name: str
+) -> tuple[BinaryIO, bool]:
+    """Open ``path`` in binary ``mode``, or return the standard stream for ``"-"``.
+
+    ``standard_name`` is ``"stdin"`` or ``"stdout"``; its ``.buffer`` is
+    resolved only when ``path`` is ``"-"``, so the other standard stream is
+    never touched. The second element says whether the caller owns the
+    returned stream and must close it; the standard streams belong to the
+    process. An unopenable path is reported through
+    :meth:`argparse.ArgumentParser.error`, which exits with status 2 like
+    argparse's own file handling did.
+    """
+    if path == "-":
+        return cast(BinaryIO, getattr(sys, standard_name).buffer), False
+    try:
+        return cast(BinaryIO, open(path, mode)), True
+    except OSError as exc:
+        parser.error(f"can't open '{path}': {exc}")
+
+
 def convert_file(
-    infile: io.FileIO,
-    outfile: io.FileIO,
+    infile: BinaryIO,
+    outfile: BinaryIO,
     output_format: str,
     input_format: str = "json",
 ) -> None:
@@ -145,7 +165,8 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
 
     Parses ``-f/--format``, ``-i/--input-format``, an optional input file
     (default stdin), and an optional output file (default stdout), then
-    converts between them via :func:`convert_file`.
+    converts between them via :func:`convert_file`. Files are opened after
+    parsing; the standard streams are used for ``-`` and are not closed.
 
     Args:
         argv: Extra command-line arguments. If not ``None``, they are
@@ -204,28 +225,32 @@ USAGE
             default="json",
             help="output format: json, xml, rdf, jsonld, provn, or a Graphviz output format (e.g. svg, pdf, png)",
         )
-        parser.add_argument("infile", nargs="?", type=FileType("rb"), default="-")
-        parser.add_argument("outfile", nargs="?", type=FileType("wb"), default="-")
+        parser.add_argument(
+            "infile", nargs="?", default="-", help="input file (default: stdin)"
+        )
+        parser.add_argument(
+            "outfile", nargs="?", default="-", help="output file (default: stdout)"
+        )
         parser.add_argument(
             "-V", "--version", action="version", version=program_version_message
         )
 
-        args = None
+        args = parser.parse_args()
+        owned: list[BinaryIO] = []
         try:
-            # Process arguments
-            args = parser.parse_args()
+            infile, owns_infile = _open_binary(parser, args.infile, "rb", "stdin")
+            if owns_infile:
+                owned.append(infile)
+            outfile, owns_outfile = _open_binary(parser, args.outfile, "wb", "stdout")
+            if owns_outfile:
+                owned.append(outfile)
             convert_file(
-                args.infile,
-                args.outfile,
-                args.format.lower(),
-                args.input_format.lower(),
+                infile, outfile, args.format.lower(), args.input_format.lower()
             )
+            outfile.flush()
         finally:
-            if args:
-                if args.infile:
-                    args.infile.close()
-                if args.outfile:
-                    args.outfile.close()
+            for stream in owned:
+                stream.close()
 
         return 0
     except KeyboardInterrupt:

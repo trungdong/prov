@@ -60,8 +60,9 @@ codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 Codacy's Cloud gate blocks a PR on a single finding of any severity, including markdownlint
 on Markdown files, so run the local analyser on every changed file before pushing. Coveralls
 is advisory as long as `uv run coverage report` stays above the 97% floor. CI also runs a
-non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning` or
-`FutureWarning` of its own (#340).
+non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning`,
+`PendingDeprecationWarning` or `FutureWarning` of its own on the newest interpreter
+(#340, #441).
 
 Performance changes also run `uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json`
 and `uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json`; the

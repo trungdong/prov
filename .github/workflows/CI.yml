@@ -106,10 +106,11 @@ jobs:
         run: uv run --no-sync pytest src/prov/tests/test_minimal_install.py -v
 
   own-warnings:
-    # Non-blocking guard (#340): prov must raise no DeprecationWarning or
-    # FutureWarning of its own. It runs apart from the matrix so a failure
-    # names exactly one cause, and rdflib's deprecation notices (attributed
-    # to rdflib's own modules) stay out of scope.
+    # Non-blocking guard (#340): prov must raise no DeprecationWarning,
+    # PendingDeprecationWarning or FutureWarning of its own. It runs apart
+    # from the matrix so a failure names exactly one cause, and rdflib's
+    # deprecation notices (attributed to rdflib's own modules) stay out of
+    # scope.
     #
     # The ini-style filterwarnings form is deliberate. pytest's command-line
     # `-W error::DeprecationWarning:prov` escapes and anchors the module
@@ -127,13 +128,13 @@ jobs:
         uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
         with:
-          python-version: "3.12"
-      - name: Run the suite with prov's own deprecation warnings as errors
+          python-version: "3.14"
+      - name: Run the suite with prov's own deprecation warnings as errors (Python 3.14)
         env:
           HYPOTHESIS_PROFILE: ci
         run: |
           uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
-          uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
+          uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 
   benchmark:
     # Non-blocking regression check. Compares this run against the committed
