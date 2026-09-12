@@ -315,6 +315,47 @@ def test_deserialize_malformed(payload, match):
         ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
 
 
+def _membership_payload(entities) -> str:
+    return json.dumps(
+        {
+            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@graph": [
+                {"@type": "Entity", "@id": "ex:c"},
+                {"@type": "Membership", "collection": "ex:c", "entity": entities},
+            ],
+        }
+    )
+
+
+def test_deserialize_membership_entity_array_gives_one_record_per_member():
+    # Submission 4.18: "a single entity or an array of them"; PROV-DM's
+    # hadMember is binary, so the array fans out.
+    doc = ProvDocument.deserialize(
+        content=_membership_payload(["ex:e1", "ex:e2"]), format="jsonld"
+    )
+    expected = _new_doc()
+    expected.entity("ex:c")
+    expected.hadMember("ex:c", "ex:e1")
+    expected.hadMember("ex:c", "ex:e2")
+    assert doc == expected
+
+
+def test_deserialize_membership_single_element_array():
+    # ProvToolbox writes the array form even for one member.
+    doc = ProvDocument.deserialize(
+        content=_membership_payload(["ex:e1"]), format="jsonld"
+    )
+    expected = _new_doc()
+    expected.entity("ex:c")
+    expected.hadMember("ex:c", "ex:e1")
+    assert doc == expected
+
+
+def test_deserialize_membership_empty_entity_array_raises():
+    with pytest.raises(ProvJSONLDException, match="empty"):
+        ProvDocument.deserialize(content=_membership_payload([]), format="jsonld")
+
+
 def _expected_primer_document() -> ProvDocument:
     """Build the document ``submission-example-3.jsonld`` is expected to decode to."""
     doc = ProvDocument()

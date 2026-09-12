@@ -29,6 +29,9 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   `<entity><entity prov:ref="..."/></entity>`; the nested reference is now used, with a
   `ProvWarning`, and a reference element with neither a `prov:ref` nor text raises
   `ProvXMLException`
+- The PROV-JSONLD deserializer accepts an array-valued `entity` on a `Membership`
+  statement, which the submission (section 4.18) allows and ProvToolbox always writes,
+  decoding one `hadMember` per member; an empty array raises `ProvJSONLDException`
 
 ## 3.2.0 (2026-09-12)
 
