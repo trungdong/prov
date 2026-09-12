@@ -1,6 +1,6 @@
 # History
 
-## 3.2.1 (unreleased)
+## 3.2.1 (2026-09-12)
 
 3.2.1 is a point release that corrects what a by-eye verification of the 3.2.0 PROV-N
 parser against ProvToolbox and PLEAD documents found: the `default` profile, the
