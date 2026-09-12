@@ -397,8 +397,9 @@ class Literal:
 
     __slots__ = ("_datatype", "_langtag", "_value")
 
-    # Assign-once: the hash is derived from these fields at construction, so a
-    # later reassignment would desynchronise it. #444 tracks a runtime guard.
+    # These fields are assign-once. They take part in equality and hashing,
+    # so reassigning one after the object has been used as a set member or
+    # dict key corrupts that container. #444 tracks the runtime guard.
     _value: Final[str]
     _datatype: Final[QualifiedName | None]
     _langtag: Final[str | None]

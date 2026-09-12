@@ -67,8 +67,9 @@ class Identifier:
 
     __slots__ = ("_hash", "_uri")
 
-    # Assign-once: the hash is derived from this field at construction, so a
-    # later reassignment would desynchronise it. #444 tracks a runtime guard.
+    # This field is assign-once. The hash is computed from it at construction,
+    # and a later reassignment would leave the cached hash stale. #444 tracks
+    # the runtime guard.
     _uri: Final[str]
 
     def __init__(self, uri: str):
@@ -116,8 +117,9 @@ class QualifiedName(Identifier):
 
     __slots__ = ("_localpart", "_namespace", "_str")
 
-    # Assign-once: the hash is derived from these fields at construction, so a
-    # later reassignment would desynchronise it. #444 tracks a runtime guard.
+    # These fields are assign-once. The hash is computed from them at
+    # construction, and a later reassignment would leave the cached hash
+    # stale. #444 tracks the runtime guard.
     _namespace: Final[Namespace]
     _localpart: Final[str]
     _str: Final[str]
@@ -187,8 +189,9 @@ class Namespace:
 
     __slots__ = ("_cache", "_prefix", "_uri")
 
-    # Assign-once: the hash is derived from these fields at construction, so a
-    # later reassignment would desynchronise it. #444 tracks a runtime guard.
+    # These fields are assign-once. They take part in equality and hashing,
+    # so reassigning one after the object has been used as a set member or
+    # dict key corrupts that container. #444 tracks the runtime guard.
     _prefix: Final[str]
     _uri: Final[str]
 
