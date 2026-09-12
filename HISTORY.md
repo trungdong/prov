@@ -29,6 +29,11 @@
   document no longer re-resolves the same identifier text for every record that mentions
   it (PROV-O deserialisation about 9% faster on the benchmark suite; construction through
   the API is unchanged, as its cost lies elsewhere)
+- `Identifier`, `QualifiedName`, `Namespace` and `Literal` declare `__slots__` and
+  `QualifiedName` stores its hash at construction, cutting the cost of the many hash
+  lookups a record's attributes require; the `__slots__` memory saving is offset by the
+  stored hash value each `Identifier`/`QualifiedName` now retains, so overall memory per
+  record is essentially unchanged
 
 ### Fixes
 

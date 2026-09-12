@@ -395,6 +395,8 @@ class Literal:
     PROV-JSON/PROV-XML rules for language-tagged strings.
     """
 
+    __slots__ = ("_datatype", "_langtag", "_value")
+
     def __init__(
         self,
         value: Any,
