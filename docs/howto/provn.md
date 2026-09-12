@@ -1,12 +1,7 @@
 # Work with PROV-N
 
-```{important}
-PROV-N is write-only. `prov` produces [PROV-N](https://www.w3.org/TR/prov-n/) text but has
-no parser, so deserializing PROV-N raises `NotImplementedError`. Save a document in
-PROV-JSON, PROV-JSONLD, PROV-XML or PROV-O if you need to read it back.
-```
-
-PROV-N needs no extra.
+`prov` reads and writes [PROV-N](https://www.w3.org/TR/prov-n/), the W3C notation for
+PROV. Neither direction needs an extra.
 
 ## Get the PROV-N text directly
 
@@ -41,6 +36,81 @@ provn_str = document.serialize(format="provn")
 assert provn_str == document.get_provn()
 ```
 
+## Read a file or a string
+
+{py:meth}`~prov.model.ProvDocument.deserialize` with `format="provn"` parses PROV-N text:
+
+```python
+document = pm.ProvDocument.deserialize("document.provn", format="provn")
+document = pm.ProvDocument.deserialize(content=provn_str, format="provn")
+```
+
+{py:func}`prov.read` detects PROV-N without a `format` argument, because a PROV-N
+document starts with the `document` keyword:
+
+```python
+import prov
+
+document = prov.read("document.provn")
+```
+
+## Choose a parsing profile
+
+The parser accepts three dialects, selected with `profile`:
+
+| Profile | Accepts |
+| --- | --- |
+| `strict` | The W3C grammar only. Mention is written `prov:mentionOf`, as in the PROV-Links note. |
+| `default` | The grammar plus what `prov` and ProvToolbox write: the bare `mentionOf` keyword, and the shorthand keywords `person`, `organization`, `softwareAgent`, `collection`, `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource`, each read as the base record with the matching `prov:type`. |
+| `lenient` | As `default`. A statement that fails to parse is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column, and parsing resumes at the next statement. |
+
+```python
+document = pm.ProvDocument.deserialize("document.provn", format="provn", profile="strict")
+```
+
+Use `strict` to check that a document conforms to the Recommendation, `default` for
+files other tools wrote, and `lenient` to salvage what a damaged file still holds. The
+lenient profile recovers from parse errors and from statements the model rejects; a
+tokenisation error, such as an unterminated string, IRI or comment, still raises.
+
+## Handle syntax errors
+
+A syntax error raises {py:class}`~prov.serializers.provn_lexer.ProvNSyntaxError`, which
+carries the line, the column and what the parser expected:
+
+```python
+from prov.serializers.provn import ProvNSyntaxError
+
+try:
+    pm.ProvDocument.deserialize(content="document\n  entity(ex:e1)\nendDocument", format="provn")
+except ProvNSyntaxError as error:
+    print(error.line, error.column, error.message)
+    # 2 10 cannot resolve 'ex:e1': prefix 'ex' is not declared
+```
+
+With {py:func}`prov.read` and no `format`, a PROV-N error is swallowed like any other
+candidate format's error; pass `format="provn"` to see it.
+
+## Write strictly conformant output
+
+`get_provn()` and `serialize(format="provn")` write the bare `mentionOf` keyword by
+default, which ProvToolbox reads. Pass `strict=True` to write `prov:mentionOf` instead, so
+the output parses under the `strict` profile:
+
+```python
+document.serialize("document.provn", format="provn", strict=True)
+```
+
+## Convert on the command line
+
+`prov-convert` reads PROV-N with `-i provn`:
+
+```bash
+prov-convert -i provn -f json document.provn document.json
+```
+
+See {doc}`cli`.
+
 ## Attribute order is stable
 
 A record stores its attribute values in the order they were added, and every format
@@ -52,17 +122,3 @@ document.entity("e2", [(pm.PROV_TYPE, "foo"), (pm.PROV_TYPE, "bar")])
 print(document.get_provn())
 # entity(e2, [prov:type="foo", prov:type="bar"])
 ```
-
-## Deserializing raises `NotImplementedError`
-
-There is no PROV-N reader, in the library or in `prov.read()`'s auto-detection:
-
-```python
-try:
-    pm.ProvDocument.deserialize("document.provn", format="provn")
-except NotImplementedError:
-    print("PROV-N has no deserializer")
-```
-
-Keep a copy in another format alongside any PROV-N output if your workflow needs a round
-trip. See {doc}`provjson`.

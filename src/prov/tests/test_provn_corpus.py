@@ -316,17 +316,12 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     return params
 
 
-@pytest.mark.parametrize("path", _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES))
-def test_prov_n_spec_examples_parse_strictly_and_round_trip(path):
-    document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
-    reloaded = ProvDocument.deserialize(
-        content=document.get_provn(strict=True), format="provn", profile="strict"
-    )
-    assert reloaded == document
-
-
-@pytest.mark.parametrize("path", _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES))
-def test_prov_dm_spec_examples_parse_strictly_and_round_trip(path):
+@pytest.mark.parametrize(
+    "path",
+    _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
+    + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
+)
+def test_spec_examples_parse_strictly_and_round_trip(path):
     document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
     reloaded = ProvDocument.deserialize(
         content=document.get_provn(strict=True), format="provn", profile="strict"

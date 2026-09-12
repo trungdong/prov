@@ -38,7 +38,25 @@ def test_implicit_default_from_a_prefixless_qualified_name_uses_the_setter():
     qname = Namespace("", "http://implicit.org/")["e1"]
     manager.valid_qualified_name(qname)
     assert manager.get_default_namespace().uri == "http://implicit.org/"
-    assert manager[""] is manager.get_default_namespace()
+    # The implicit default is not registered under the "" prefix, so it
+    # does not take part in URI compaction or ":local" resolution.
+    assert "" not in manager
+
+
+def test_implicit_default_does_not_shadow_an_existing_prefix():
+    # Reviewer scenario: a document registers "ex", then a bundle adopts an
+    # unprefixed default namespace with the same URI. Before the fix,
+    # adopting the default also registered it under "", so URI compaction
+    # picked the bare local name instead of the "ex:" prefix, and ":local"
+    # resolved against the adopted default even though no default namespace
+    # was ever explicitly set on the bundle.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://ex/")
+    bundle = document.bundle("ex:b")
+    bundle.valid_qualified_name(Namespace("", "http://ex/")["e"])
+
+    assert str(bundle.valid_qualified_name("http://ex/other")) == "ex:other"
+    assert bundle.valid_qualified_name(":foo") is None
 
 
 def test_child_lookup_answered_by_parent_is_not_cached_in_the_child():

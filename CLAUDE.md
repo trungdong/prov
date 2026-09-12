@@ -29,7 +29,7 @@ Uses `uv`. RDF/XML support and graphical/graph interop (`dot`, `graph`) are opti
 extras — without them many tests fail with `ModuleNotFoundError`:
 
 ```bash
-uv sync --extra rdf --extra xml --extra dot --extra graph
+uv sync --extra rdf --extra xml --extra dot --extra graph --group bench
 ```
 
 Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers
@@ -89,6 +89,10 @@ auto-detection, extras, tests). The rules below are what an agent must not break
   `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and
   `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind` pins `json` as the first
   format tried on a non-seekable stream.
+- New serializers follow the conventions in `docs/explanation/architecture.md` (Conventions
+  for serializers): one error type carrying position, grammar clauses cited on the code,
+  tables cross-checked against the model, records through `new_record()`, warnings emitted by
+  the serializer.
 
 ## Tests (`src/prov/tests/`)
 

@@ -6,8 +6,8 @@
 registry that maps a format name (`"json"`, `"rdf"`, `"provn"`, `"xml"`, `"jsonld"`) to
 its serializer class. The how-to guides ({doc}`../howto/provjson`,
 {doc}`../howto/provxml`, {doc}`../howto/provo-rdf`, {doc}`../howto/provn`,
-{doc}`../howto/provjsonld`) show how to use each format. This page documents the interface
-and the registry only.
+{doc}`../howto/provjsonld`) show how to use each format. This page documents the interface,
+the registry and PROV-N's error type.
 
 ```{eval-rst}
 .. autoclass:: prov.serializers.Serializer
@@ -30,7 +30,20 @@ and the registry only.
 deserializer in registry order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and returning the
 first non-empty document. The order matters for a non-seekable stream, which only the
 first attempt can read. The {doc}`../howto/provjson` guide describes the error behaviour.
+With `format` given explicitly, keyword arguments such as `profile` pass straight through
+to that format's deserializer. During auto-detection, `read()` passes them only to the
+`provn` candidate, since a keyword such as `profile` would raise `TypeError` from a
+deserializer that does not understand it, which auto-detection cannot tell apart from "not
+this format".
 
 ```{eval-rst}
 .. autofunction:: prov.read
+```
+
+## PROV-N errors
+
+```{eval-rst}
+.. autoclass:: prov.serializers.provn_lexer.ProvNSyntaxError
+   :members:
+   :show-inheritance:
 ```

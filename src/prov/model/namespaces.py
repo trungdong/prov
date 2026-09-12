@@ -99,9 +99,10 @@ class NamespaceManager(dict[str, Namespace]):
         """
         self._set_default(Namespace("", uri))
 
-    def _set_default(self, namespace: Namespace) -> None:
+    def _set_default(self, namespace: Namespace, register: bool = True) -> None:
         self._default = namespace
-        self[""] = namespace
+        if register:
+            self[""] = namespace
         self._resolve_cache.clear()
 
     def get_default_namespace(self) -> Namespace | None:
@@ -214,25 +215,20 @@ class NamespaceManager(dict[str, Namespace]):
             # read and write, because the cache is keyed by string value only
             # and would otherwise conflate the two.
             resolved = self._resolve_string(qname.uri, is_plain_str=False)
-            if resolved is None and self.parent:
-                # all attempts have failed so far
-                # now delegate this to the parent NamespaceManager
-                resolved = self.parent.valid_qualified_name(qname)
-            return resolved
+        else:
+            # Plain string input: served from, and written to, this
+            # manager's own cache.
+            resolved = self._resolve_cache.get(qname)
+            if resolved is None:
+                resolved = self._resolve_string(qname, is_plain_str=True)
+                if resolved is not None:
+                    self._resolve_cache[qname] = resolved
 
-        # Plain string input: served from, and written to, this manager's own cache
-        cached = self._resolve_cache.get(qname)
-        if cached is not None:
-            return cached
-        resolved = self._resolve_string(qname, is_plain_str=True)
-        if resolved is not None:
-            self._resolve_cache[qname] = resolved
+        if resolved is not None or not self.parent:
             return resolved
-        if self.parent:
-            # all attempts have failed so far; delegate to the parent, but do
-            # not cache a result this manager did not itself resolve
-            return self.parent.valid_qualified_name(qname)
-        return None
+        # all attempts have failed so far; delegate to the parent, but do
+        # not cache a result this manager did not itself resolve
+        return self.parent.valid_qualified_name(qname)
 
     def _resolve_string(
         self, str_value: str, is_plain_str: bool
@@ -256,8 +252,11 @@ class NamespaceManager(dict[str, Namespace]):
         if not prefix:
             # the namespace is a default namespace
             if self._default is None:
-                # no default namespace is defined, reuse the one given
-                self._set_default(namespace)
+                # no default namespace is defined, reuse the one given;
+                # this only sets _default, it does not register the
+                # namespace under "" (an adopted default must not take
+                # part in URI compaction or ":local" resolution)
+                self._set_default(namespace, register=False)
                 return qname  # no change, return the original
             elif self._default == namespace:
                 # the same default namespace is defined

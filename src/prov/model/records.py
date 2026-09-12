@@ -980,12 +980,11 @@ class ProvRecord:
         # Generating identifier
         relation_id = ""  # default blank
         if self._identifier:
-            # #223: escape PN_CHARS_ESC metacharacters in the local part
             identifier = self._identifier.provn_bare_representation()
             if self.is_element():
                 items.append(identifier)
             else:
-                # this is a relation, which relation uses a semicolon to separate identifiers
+                # a relation's identifier is followed by a semicolon
                 relation_id = identifier + "; "
 
         # Writing out the formal attributes
@@ -997,7 +996,6 @@ class ProvRecord:
                 if isinstance(value, datetime.datetime):
                     items.append(value.isoformat())
                 elif isinstance(value, QualifiedName):
-                    # #223: escape PN_CHARS_ESC metacharacters in the local part
                     items.append(value.provn_bare_representation())
                 else:
                     items.append(str(value))
@@ -1011,12 +1009,11 @@ class ProvRecord:
                 for value in self._attributes[attr]:
                     try:
                         # try if there is a prov-n representation defined
-                        provn_represenation = value.provn_representation()
+                        provn_representation = value.provn_representation()
                     except AttributeError:
-                        provn_represenation = encoding_provn_value(value)
-                    # #223: escape PN_CHARS_ESC metacharacters in the local part
+                        provn_representation = encoding_provn_value(value)
                     attr_name = attr.provn_bare_representation()
-                    extra.append(f"{attr_name}={provn_represenation}")
+                    extra.append(f"{attr_name}={provn_representation}")
 
         if extra:
             # .format(), not an f-string: the nested string literals reuse the

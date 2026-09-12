@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
 
 __all__ = ["ProvNSyntaxError", "Token", "TokenKind", "tokenize"]
@@ -61,7 +62,7 @@ class TokenKind(Enum):
     EOF = "end of input"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class Token:
     kind: TokenKind
     text: str
@@ -70,15 +71,16 @@ class Token:
     column: int
 
 
-# Character classes from the Recommendation ([53] to [55]); '.' and '-' are
-# handled in the local-part patterns because their placement rules differ.
-_PN_CHARS_BASE = (
-    r"A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF"
-    r"\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF"
-    r"\uFDF0-\uFFFD\U00010000-\U000EFFFF"
-)
-_PN_CHARS_U = _PN_CHARS_BASE + "_"
-_PN_CHARS = _PN_CHARS_U + r"\-0-9\u00B7\u0300-\u036F\u203F-\u2040"
+# Character classes from the Recommendation ([53] to [55]); '.' is handled
+# in the local-part patterns because its placement rules differ, so PN_CHARS
+# is PROV-N's share of prov.identifier's NCName tables minus '.'. PN_CHARS_U
+# (NCName's NameStartChar, '_' included) is that table unchanged; PN_CHARS_BASE
+# (SPARQL's PN_CHARS_BASE, no leading '_') strips '_' back out. Both classes'
+# equivalence to the NCName tables over the full codepoint space is pinned
+# by test_provn_lexer.py.
+_PN_CHARS_U = _NCNAME_START_CHARS
+_PN_CHARS_BASE = _PN_CHARS_U.replace("_", "")
+_PN_CHARS = _NCNAME_CHARS.replace(".", "")
 _PN_OTHERS = r"/@~&+*?#$!"
 _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = r"\\[=',\-:;\[\]().]"
@@ -86,9 +88,8 @@ _LOCAL_START = rf"[{_PN_CHARS_U}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 # The last character of a local part can't be a bare '.' ([54]); an escaped
 # '\.' or a percent-escape are still fine, so this is _LOCAL_CONT without
-# the bare-dot alternative. Folding the end rule into the grammar (rather
-# than stripping dots off the match afterwards) keeps matching linear even
-# for a long run of trailing dots.
+# the bare-dot alternative. Folding the end rule into the grammar keeps
+# matching linear even for a long run of trailing dots.
 _LOCAL_LAST = rf"[{_PN_CHARS}{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _PN_LOCAL = rf"(?:{_LOCAL_START})(?:(?:{_LOCAL_CONT})*(?:{_LOCAL_LAST}))?"
 # SPARQL's PN_PREFIX ([52]'s reference production) is PN_CHARS_BASE
@@ -99,7 +100,9 @@ _PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 # own `bbc:`), so the prefixed branch's local part is optional; group 3 is
 # the bare, unprefixed local part.
 _QNAME = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))")
-_QNAME_FULL = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))\Z")
+# Anchored variant of _QNAME, built from the same pattern so the two can't
+# drift apart.
+_QNAME_FULL = re.compile(_QNAME.pattern + r"\Z")
 # DIGIT is [0-9] ([55]); \d would also match other Unicode decimal digits,
 # which the grammar treats as ordinary name characters, not digits.
 _DATETIME = re.compile(
@@ -160,15 +163,21 @@ def _unescape_string(raw: str, locate: _Locate, start: int) -> str:
     return _ESCAPE_CHAR.sub(replace, raw)
 
 
+def _qname_value(match: re.Match[str]) -> tuple[str, str]:
+    """Unescape a _QNAME/_QNAME_FULL match into its (prefix, local) value."""
+    prefix, local, bare = match.groups()
+    if prefix is not None:
+        return prefix, _ESCAPE_CHAR.sub(r"\1", local or "")
+    return "", _ESCAPE_CHAR.sub(r"\1", bare or "")
+
+
 def _split_qname(raw: str, locate: _Locate, start: int) -> tuple[str, str]:
     match = _QNAME_FULL.match(raw)
     if match is None:
         partial = _QNAME.match(raw)
         line, column = locate(start + (partial.end() if partial else 0))
         raise ProvNSyntaxError(f"invalid qualified name '{raw}'", line, column)
-    if match.group(1) is not None:
-        return match.group(1), _ESCAPE_CHAR.sub(r"\1", match.group(2) or "")
-    return "", _ESCAPE_CHAR.sub(r"\1", match.group(3) or "")
+    return _qname_value(match)
 
 
 class _Lexer:
@@ -280,6 +289,7 @@ class _Lexer:
             return self.emit(TokenKind.DATETIME, raw, raw)
         int_match = _INT.match(text, pos)
         name_match = _QNAME.match(text, pos)
+        # Longer match wins; on a tie, the integer reading wins.
         if int_match and (name_match is None or name_match.end() <= int_match.end()):
             raw = int_match.group(0)
             return self.emit(TokenKind.INT, raw, self._int_value(raw))
@@ -298,8 +308,7 @@ class _Lexer:
         # _PN_LOCAL already excludes a bare trailing '.' ([54]), so the
         # match never needs trimming here.
         raw = match.group(0)
-        value = _split_qname(raw, self.locate, self.pos)
-        token = self.emit(TokenKind.NAME, raw, value)
+        token = self.emit(TokenKind.NAME, raw, _qname_value(match))
         if self.pos < len(self.text) and self.text[self.pos] == ":":
             raise self.error("unexpected ':' inside a qualified name")
         return token

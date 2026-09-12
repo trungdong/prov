@@ -6,6 +6,42 @@ from typing import Any, Final
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
+# Character classes for the XML 1.0 5th-edition Name productions, minus ':'
+# (NCName). Shared by prov.serializers.provxml (PROV-XML element-tag
+# legality, #289) and prov.serializers.provn_lexer, whose PN_CHARS_BASE/
+# PN_CHARS_U/PN_CHARS ([53]-[55]) are these same ranges, bar '.', which
+# PROV-N's grammar handles positionally rather than as an ordinary name char.
+#
+# Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
+# a literal glyph) and annotated with the spec clause it implements, so a
+# mangled/look-alike codepoint is visible on inspection rather than hiding
+# in the source as an indistinguishable glyph.
+_NCNAME_START_CHARS = (
+    "\x41-\x5a"  # NameStartChar: [A-Z]
+    "\x5f"  # NameStartChar: "_"
+    "\x61-\x7a"  # NameStartChar: [a-z]
+    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
+    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
+    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
+    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
+    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
+    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
+    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
+    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
+    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
+    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
+    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
+    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
+)
+_NCNAME_CHARS = _NCNAME_START_CHARS + (
+    "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
+    "\x2e"  # NameChar: "."
+    "\x30-\x39"  # NameChar: [0-9]
+    "\xb7"  # NameChar: #xB7
+    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
+    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
+)
+
 # PROV-N metacharacters that must be backslash-escaped anywhere in the local
 # part of a qualified name (grammar production [55] PN_CHARS_ESC, #223).
 _PROVN_LOCAL_METACHARS = "='(),:;[]"
@@ -13,27 +49,31 @@ _PROVN_LOCAL_METACHARS = "='(),:;[]"
 # forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
 # last character; elsewhere both are ordinary PN_CHARS and stay unescaped.
 _PROVN_LOCAL_LEADING_ESCAPE = "-."
-# Characters PN_LOCAL cannot express at all, even escaped, are percent-encoded
-# ([54]'s PERCENT), which is valid PROV-N. The lexer keeps percent-encoding
-# verbatim, so this reads back as the literal text "%XX" rather than the
-# original character, a documented, deliberate exclusion (see
-# strategies.py's local_part comment).
-_PROVN_LOCAL_PERCENT_ENCODE = ' <>"{}|^`\\'
+# PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
+# (see the comment on _NCNAME_CHARS above).
+_PN_CHARS = _NCNAME_CHARS.replace(".", "")
+# The remaining characters PN_LOCAL allows unescaped ([54]'s PLX minus '%').
+_PN_CHARS_OTHER = "/@~&+*?#$!"
 _PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
+# Everything PN_LOCAL can spell as-is or via a backslash escape: PN_CHARS,
+# PN_CHARS_OTHER, the backslash-escaped metacharacters, and '-'/'.' (whose
+# escaping is positional, decided in the loop below). Any character outside
+# this set cannot be written at all, even escaped, so it is percent-encoded
+# ([54]'s PERCENT) as its UTF-8 bytes instead -- valid PROV-N, but read back
+# as the literal text "%XX" rather than the original character, a
+# documented, deliberate exclusion (see strategies.py's local_part comment).
+_PROVN_LOCAL_ALLOWED_UNESCAPED = _PN_CHARS + re.escape(
+    _PN_CHARS_OTHER + _PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE
+)
+_PROVN_LOCAL_NEEDS_PERCENT_ENCODING = re.compile(f"[^{_PROVN_LOCAL_ALLOWED_UNESCAPED}]")
 # Matches any character the escaping loop below treats specially, anywhere
-# in the local part. A bare '%' is included too, since it may need
-# %25-encoding, which the loop's hex-pair check decides. A local part
-# matching none of these needs no escaping at all, including the
-# leading/trailing '-'/'.' rule, since both characters are in this class.
+# in the local part; a local part matching none of these needs no escaping
+# at all, including the leading/trailing '-'/'.' rule and percent-encoding.
 _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     "["
-    + re.escape(
-        _PROVN_LOCAL_METACHARS
-        + _PROVN_LOCAL_LEADING_ESCAPE
-        + _PROVN_LOCAL_PERCENT_ENCODE
-        + "%"
-    )
+    + re.escape(_PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE + "%")
     + "]"
+    + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
 
 
@@ -44,16 +84,19 @@ def _provn_escape_local(localpart: str) -> str:
     last_index = len(localpart) - 1
     parts = []
     for i, char in enumerate(localpart):
-        if char in _PROVN_LOCAL_PERCENT_ENCODE:
-            parts.append(f"%{ord(char):02X}")
-        elif char == "%" and not _PROVN_HEX_PAIR.match(localpart, i + 1):
-            parts.append("%25")
+        if char == "%":
+            # An existing valid escape (e.g. "%20") is kept verbatim; a bare
+            # '%' not followed by two hex digits is not, so it is escaped
+            # itself to keep the sequence unambiguous.
+            parts.append(char if _PROVN_HEX_PAIR.match(localpart, i + 1) else "%25")
         elif (
             (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
             or (i == last_index and char == ".")
             or char in _PROVN_LOCAL_METACHARS
         ):
             parts.append(f"\\{char}")
+        elif _PROVN_LOCAL_NEEDS_PERCENT_ENCODING.match(char):
+            parts.extend(f"%{byte:02X}" for byte in char.encode("utf-8"))
         else:
             parts.append(char)
     return "".join(parts)
@@ -80,7 +123,12 @@ class Identifier:
                 already one.
         """
         self._uri = str(uri)  # Ensure this is a unicode string
-        self._hash = hash((self._uri, self.__class__))
+        self._hash = self._compute_hash()
+
+    def _compute_hash(self) -> int:
+        """Hash for this identifier, class-distinguished so identifiers with
+        the same URI but a different concrete type do not collide."""
+        return hash((self._uri, self.__class__))
 
     @property
     def uri(self) -> str:
@@ -141,7 +189,12 @@ class QualifiedName(Identifier):
         self._str = (
             ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
         )
-        self._hash = hash(self._uri)
+
+    def _compute_hash(self) -> int:
+        """Hash by URI alone. Unlike the base class, a QualifiedName never
+        needs class-distinguishing, so no different concrete type shares a
+        URI with it in practice."""
+        return hash(self._uri)
 
     @property
     def namespace(self) -> Namespace:

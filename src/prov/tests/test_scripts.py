@@ -14,6 +14,7 @@ full desired argv (program name included) and then call ``main()`` with no
 argument, rather than passing ``argv=[...]`` to ``main()``.
 """
 
+import contextlib
 import io
 import shutil
 import sys
@@ -250,6 +251,34 @@ def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch):
         monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out))
         assert convert_main() == 0
     assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
+
+
+def test_convert_help_under_redirected_stdout(monkeypatch):
+    # --help formats usage to sys.stdout; the old sys.stdout.buffer default
+    # broke when stdout was something without a .buffer attribute (e.g.
+    # contextlib.redirect_stdout(io.StringIO())).
+    monkeypatch.setattr(sys, "argv", ["prov-convert", "--help"])
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf), pytest.raises(SystemExit) as ctx:
+        convert_main()
+    assert ctx.value.code == 0
+    assert buf.getvalue().startswith("usage:")
+
+
+def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch):
+    # Both files given explicitly, so sys.stdin is never touched; this must
+    # succeed even when sys.stdin is None (e.g. under some process
+    # supervisors).
+    outfile = tmp_path / "doc.xml"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prov-convert", "-i", "json", "-f", "xml", str(infile), str(outfile)],
+    )
+    monkeypatch.setattr(sys, "stdin", None)
+    rc = convert_main()
+    assert rc == 0
+    assert outfile.stat().st_size > 0
 
 
 @pytest.fixture

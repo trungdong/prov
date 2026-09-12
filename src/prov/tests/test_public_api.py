@@ -340,11 +340,10 @@ def test_serializer_registry_formats():
 
 def test_round_trip_each_format():
     document = primer_example()
-    for fmt in ("json", "xml", "rdf", "jsonld"):
+    # PROV-N serialize and deserialize must both succeed.
+    for fmt in ("json", "xml", "rdf", "jsonld", "provn"):
         stream = io.StringIO()
         document.serialize(destination=stream, format=fmt)
         stream.seek(0)
         round_tripped = ProvDocument.deserialize(source=stream, format=fmt)
         assert document == round_tripped, fmt
-    # PROV-N is write-only: serialize must succeed
-    assert document.serialize(format="provn")

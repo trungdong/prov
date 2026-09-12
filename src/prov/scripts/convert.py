@@ -204,12 +204,8 @@ USAGE
             default="json",
             help="output format: json, xml, rdf, jsonld, provn, or a Graphviz output format (e.g. svg, pdf, png)",
         )
-        parser.add_argument(
-            "infile", nargs="?", type=FileType("rb"), default=sys.stdin.buffer
-        )
-        parser.add_argument(
-            "outfile", nargs="?", type=FileType("wb"), default=sys.stdout.buffer
-        )
+        parser.add_argument("infile", nargs="?", type=FileType("rb"), default="-")
+        parser.add_argument("outfile", nargs="?", type=FileType("wb"), default="-")
         parser.add_argument(
             "-V", "--version", action="version", version=program_version_message
         )

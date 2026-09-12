@@ -13,7 +13,7 @@ authors:
 repository-code: "https://github.com/trungdong/prov"
 url: "https://prov.readthedocs.io"
 license: MIT
-version: "3.1.1"
+version: "3.2.0"
 keywords:
   - provenance
   - W3C PROV

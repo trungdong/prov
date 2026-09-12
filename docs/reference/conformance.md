@@ -2,8 +2,10 @@
 
 This page maps each PROV-DM concept to `prov`'s classes and factory methods and shows how
 each serializer round-trips it. It is revised at every release. The last revision was for
-3.1.1 (2026-09-10), which changed no round-trip result. The JSON-LD column arrived with
-3.1.0's PROV-JSONLD serializer (`format="jsonld"`, {doc}`../howto/provjsonld`).
+3.2.0 (2026-09-12), which added the PROV-N round-trip column and closed the last
+generation-time exclusion in the round-trip property test ([#341](https://github.com/trungdong/prov/issues/341)).
+The JSON-LD column arrived with 3.1.0's PROV-JSONLD serializer (`format="jsonld"`,
+{doc}`../howto/provjsonld`).
 
 Every cell is checked against the current source code and the shared test suite, not
 against the specification text alone. {doc}`../explanation/prov-dm` gives the conceptual
@@ -18,10 +20,17 @@ background for PROV-DM's six components. This page is the detailed reference und
   submission's compacted shape only, plus
   [ProvToolbox](https://lucmoreau.github.io/ProvToolbox/)'s `prov:`-prefixed spellings of
   the type and special terms.
-- **PROV-N** is output only. `prov` has no PROV-N parser
-  ([#122](https://github.com/trungdong/prov/issues/122), planned for 3.2.0), so there is
-  nothing to round-trip. The column shows the keyword `get_provn()` emits.
-  <!-- 3.2.0: corpus exceptions -->
+- **PROV-N** round-trips every row, verified by `deserialize(serialize(doc,
+  format="provn"), format="provn") == doc` for every shared test case under the `default`
+  profile. The column shows the keyword `get_provn()` emits. Mention is the one keyword
+  that differs between profiles. The writer emits `mentionOf` by default and
+  `prov:mentionOf` with `strict=True`, and the `strict` profile reads only the latter. The
+  [conformance corpus](https://github.com/trungdong/prov/tree/main/src/prov/tests/provn)
+  additionally parses every example of the PROV-N and PROV-DM Recommendations and the
+  PROV-N that ProvToolbox writes for the shared test corpus; the differences it found are
+  listed under "PROV-N corpus" below. A namespace prefix must be a valid PROV-N `PN_PREFIX`
+  (start with a letter, not end with `.`) for the PROV-N output to be readable; `prov` does
+  not validate or rename a prefix that isn't.
 
 ## Caveats that span several rows
 
@@ -66,6 +75,43 @@ the same one OpenXML and SQL Server use, and reverses it on read, so such names 
 ([#289](https://github.com/trungdong/prov/issues/289)). Legal names are written unchanged.
 One consequence is that a third-party document whose attribute name already looks like an
 `_xHHHH_` escape is unescaped on read.
+
+### PROV-N corpus
+
+The conformance corpus parses the PROV-N and PROV-DM Recommendations' own examples under
+the `strict` profile, ProvToolbox's hand-written PROV-N test documents under the `default`
+profile, and the PROV-N that ProvToolbox's writer produced from the shared test corpus,
+compared against the PROV-JSON fixture of the same name. The corpus files are ProvToolbox's
+own test-generator output, the same generator that produced the PROV-JSON fixtures in 2014,
+not a conversion of `prov`'s JSON.
+
+**27 specification examples** are excluded because the Recommendation's prose presents them
+as valid PROV-N but the formal grammar does not accept them. Most are grammar fragments (a
+statement missing a required paired attribute such as time or plan, a bare literal or list
+of literals rather than a complete statement, a literal ellipsis that elides the rest of the
+example, a copy-paste `dateTime` error, a missing default namespace, a missing closing
+bracket), one is an extensibility expression (`dictExt:hadMembers(...)`), and one is the
+PROV-Dictionary set-of-pairs literal (`{("k1",e1), ...}`), a construct the lexer has no
+punctuation for.
+
+**159 files** in the ProvToolbox-written corpus differ from the PROV-JSON fixture of the
+same name, for two reasons in ProvToolbox's own 2023 test-data generator rather than in
+`prov`'s parser or writer. 80 files embed a wall-clock demonstration timestamp, because the
+generator calls `newTimeNow()` for a record's time or for a demonstration `xsd:dateTime`
+value instead of using the fixture's fixed value. 79 files carry a datatype or location list
+that no longer lines up with the JSON fixture, because the generator's shared
+`addTypes()`/`addLocations()` helper does not cover `xsd:gMonth`, `xsd:yearMonthDuration` or
+`xsd:dayTimeDuration`, each of which the JSON fixture's list carries six times.
+
+**5 ProvToolbox documents** are excluded because they use constructs outside what the
+`default` profile parses. `container0.provn` has bare local-name identifiers with no default
+namespace declared anywhere in the document; `container1.provn`, `prov-family.provn` and
+`prov-family-graphics.provn` each use `derivedByInsertionFrom`'s dictionary set-of-pairs
+literal, the same unsupported PROV-Dictionary syntax as above; `container2.provn` uses a
+bare IRI as a datatype, where the grammar requires a qualified name.
+
+`src/prov/tests/provn/README.md` records every excluded or differing file by name, with its
+individual reason.
 
 ## Component 1: Entities and Activities
 

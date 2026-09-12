@@ -111,6 +111,27 @@ def test_inner_dash_and_dot_stay_bare():
     assert "entity(ex:ab-cd.ef)" in provn
 
 
+@pytest.mark.parametrize(
+    ("local", "escaped"),
+    [
+        ("a\tb", "a%09b"),  # tab: not a PN_CHAR, previously written raw
+        ("a\u00d7b", "a%C3%97b"),  # multiplication sign, 2-byte UTF-8
+        ("a\u2192b", "a%E2%86%92b"),  # rightwards arrow, 3-byte UTF-8
+        ("a b", "a%20b"),  # space, already covered but kept for symmetry
+    ],
+)
+def test_unrepresentable_chars_are_percent_encoded(local, escaped):
+    document = _doc()
+    document.entity(f"ex:{local}")
+    provn = document.get_provn()
+    assert f"entity(ex:{escaped})" in provn
+    # Documented non-round-trip: the reloaded local part is the
+    # percent-encoded text, not the original character.
+    reloaded = ProvDocument.deserialize(content=provn, format="provn")
+    (reloaded_entity,) = reloaded.get_records()
+    assert reloaded_entity.identifier.localpart == escaped
+
+
 def test_unrepresentable_char_is_percent_encoded():
     """A space cannot appear in PN_LOCAL even escaped, so it is percent-encoded.
 

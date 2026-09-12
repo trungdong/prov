@@ -42,6 +42,21 @@ Bundles unify independently. See {doc}`explanation/unification-flattening`.
 PROV-XML and PROV-O in the shared round-trip test matrix and in `prov.read()`'s format
 auto-detection. See {doc}`howto/provjsonld`.
 
+## Two-way PROV-N
+
+3.2.0 added a PROV-N parser, so the notation `prov` has always written can now be read:
+`format="provn"` in `deserialize()`, auto-detected by `prov.read()`, and accepted by
+`prov-convert -i provn`. The parser is hand-written and needs no extra. Three profiles
+select how much beyond the W3C grammar it accepts; the default reads what `prov` and
+ProvToolbox write. PROV-N joins the shared round-trip test matrix, and a conformance corpus
+checks every example of the PROV-N and PROV-DM Recommendations. See {doc}`howto/provn`.
+
+3.2.0 also ships a benchmark suite with a non-blocking regression check in CI, and the
+first measured speed-ups from it. Namespace resolution is now cached per document, cutting
+PROV-O deserialisation time by about 9% and giving PROV-JSONLD and PROV-JSON a few percent
+each. Slimmer identifier and literal objects make construction, equality and unification a
+few percent faster, and PROV-N tokenising is faster after the simplify round.
+
 ## Typed and documented
 
 Every public name carries type hints and the package ships `py.typed`, so type checkers
@@ -70,6 +85,5 @@ upgrade guide does not cover your case.
 ## What comes next
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
-releases in order. Next is 3.2.0 with a PROV-N parser, making the notation readable as
-well as writable. Python 3.10 support ends in the first release after its end of life on
-2026-10-31.
+releases in order. Next is 3.3.0, which raises the Python floor to 3.11 under the support
+policy, since Python 3.10's support ends on 2026-10-31.

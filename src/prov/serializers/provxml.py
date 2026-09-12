@@ -12,6 +12,7 @@ from lxml import etree
 import prov.identifier
 import prov.model
 from prov.constants import *
+from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
     DEFAULT_NAMESPACES,
     NameValuePair,
@@ -718,40 +719,10 @@ def _ns_xml(tag: str) -> str:
     return _ns(NS_XML, tag)
 
 
-# Character classes for the XML 1.0 5th-edition Name productions, minus ':'
-# (NCName), used to detect/escape attribute-name local parts that are not
-# legal NCNames when used as PROV-XML element tags (#289).
-#
-# Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
-# a literal glyph) and annotated with the spec clause it implements, so a
-# mangled/look-alike codepoint (as happened once with the CJK-compatibility
-# range below, which briefly read U+8C48 instead of U+F900) is visible on
-# inspection rather than hiding in the source as an indistinguishable glyph.
-_NCNAME_START_CHARS = (
-    "\x41-\x5a"  # NameStartChar: [A-Z]
-    "\x5f"  # NameStartChar: "_"
-    "\x61-\x7a"  # NameStartChar: [a-z]
-    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
-    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
-    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
-    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
-    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
-    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
-    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
-    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
-    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
-    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
-    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
-    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
-)
-_NCNAME_CHARS = _NCNAME_START_CHARS + (
-    "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
-    "\x2e"  # NameChar: "."
-    "\x30-\x39"  # NameChar: [0-9]
-    "\xb7"  # NameChar: #xB7
-    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
-    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
-)
+# NCName character classes (XML 1.0 5th-edition Name productions, minus ':')
+# live in prov.identifier, shared with the PROV-N lexer's PN_CHARS classes.
+# Used here to detect/escape attribute-name local parts that are not legal
+# NCNames when used as PROV-XML element tags (#289).
 _NCNAME_START_RE = re.compile(f"[{_NCNAME_START_CHARS}]")
 _NCNAME_CHAR_RE = re.compile(f"[{_NCNAME_CHARS}]")
 _NCNAME_RE = re.compile(f"[{_NCNAME_START_CHARS}][{_NCNAME_CHARS}]*")
