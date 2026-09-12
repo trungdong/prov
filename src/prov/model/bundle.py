@@ -521,7 +521,6 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        # #223: escape PN_CHARS_ESC metacharacters in the local part
         bundle_id = (
             self._identifier.provn_bare_representation() if self._identifier else ""
         )

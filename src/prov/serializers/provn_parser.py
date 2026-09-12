@@ -141,7 +141,7 @@ class ProvNParser:
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
-        self._depth = 0
+        self._depth = 0  # bracket nesting, read only by lenient resync
 
     # -- token helpers -----------------------------------------------------
 
@@ -221,7 +221,8 @@ class ProvNParser:
         self._depth = 0
         document = ProvDocument()
         self._expect_keyword("document")
-        self._declarations(document)
+        namespaces, default = self._declarations()
+        self._apply_declarations(document, namespaces, default)
         while not self._at_keyword("endDocument"):
             if self._current.kind is TokenKind.EOF:
                 raise self._error("expected 'endDocument', found end of input")
@@ -234,12 +235,13 @@ class ProvNParser:
             raise self._error("unexpected content after 'endDocument'")
         return document
 
-    def _parse_declarations(self) -> tuple[list[Namespace], str | None]:
+    def _declarations(self) -> tuple[list[Namespace], str | None]:
         """Consume 'prefix'/'default' declarations without committing them.
 
-        Used both by :meth:`_declarations` (applied immediately) and by
-        :meth:`_bundle` (which needs the bundle's own declarations before
-        the bundle exists, to resolve its identifier against them).
+        Used both by :meth:`parse` (applied immediately via
+        :meth:`_apply_declarations`) and by :meth:`_bundle` (which needs the
+        bundle's own declarations before the bundle exists, to resolve its
+        identifier against them).
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -277,14 +279,10 @@ class ProvNParser:
         if default is not None:
             target.set_default_namespace(default)
 
-    def _declarations(self, bundle: ProvBundle) -> None:
-        namespaces, default = self._parse_declarations()
-        self._apply_declarations(bundle, namespaces, default)
-
     def _bundle(self, document: ProvDocument) -> None:
         self._advance()  # 'bundle'
         id_token = self._identifier_token()
-        namespaces, default = self._parse_declarations()
+        namespaces, default = self._declarations()
         # PROV-N 3.1.3: the bundle identifier is resolved with the bundle's
         # own declarations. Only take the bundle-based resolution path when
         # the identifier actually needs one of those declarations (a
@@ -320,27 +318,24 @@ class ProvNParser:
         start_depth = self._depth
         try:
             self._expression(bundle)
+        except ProvNSyntaxError as error:
+            self._skip_or_raise(error, start_depth)
         except (ProvException, ValueError, OverflowError) as exc:
             # A model rejection (e.g. from new_record()) or a bad typed
-            # literal (e.g. int("abc") inside parse_xsd_types()) is not
-            # already positioned, so wrap it the same way a grammar error
-            # already is; every kind then gets the same lenient skip-or-raise.
-            error = (
-                exc
-                if isinstance(exc, ProvNSyntaxError)
-                else ProvNSyntaxError(str(exc), start.line, start.column)
-            )
-            if self.profile != "lenient":
-                if error is exc:
-                    raise
-                raise error from exc
-            self.skipped.append(f"PROV-N statement skipped: {error}")
-            self._resync(start_depth)
+            # literal (e.g. int("abc") inside parse_xsd_types()) is reported
+            # as a positioned syntax error and, under lenient, skipped.
+            wrapped = ProvNSyntaxError(str(exc), start.line, start.column)
+            wrapped.__cause__ = exc
+            self._skip_or_raise(wrapped, start_depth)
+
+    def _skip_or_raise(self, error: ProvNSyntaxError, start_depth: int) -> None:
+        if self.profile != "lenient":
+            raise error
+        self.skipped.append(f"PROV-N statement skipped: {error}")
+        self._resync(start_depth)
 
     def _looks_like_statement_start(self, token: Token) -> bool:
         prefix, local = token.value
-        if not prefix and local in _STRUCTURAL:
-            return True
         is_candidate = (
             not prefix
             and (
@@ -415,7 +410,7 @@ class ProvNParser:
     def _expression(self, bundle: ProvBundle) -> None:
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
         rec_type, arities, is_element, asserted_type = self._classify(keyword)
-        self._expect(TokenKind.LPAREN, "'('")
+        self._expect(TokenKind.LPAREN)
         identifier: QualifiedName | str | None = None
         args: list[Token] = []
         if is_element:
@@ -435,16 +430,15 @@ class ProvNParser:
             else:
                 args.append(first)
         other_attributes: list[tuple[QualifiedName, Any]] = []
-        while True:
-            separator_kind = self._current.kind
-            if separator_kind is not TokenKind.COMMA:
-                break
+        separator = self._current.kind
+        while separator is TokenKind.COMMA:
             self._advance()
             if self._current.kind is TokenKind.LBRACKET:
                 other_attributes = self._attributes(bundle)
                 break
             args.append(self._argument())
-        self._expect(TokenKind.RPAREN, "')'")
+            separator = self._current.kind
+        self._expect(TokenKind.RPAREN)
 
         if len(args) not in arities:
             allowed = " or ".join(str(n) for n in arities)
@@ -468,7 +462,7 @@ class ProvNParser:
     ) -> None:
         """Under ``strict``, reject '-' where the grammar has a plain
         identifier (no ``OrMarker``); ``default``/``lenient`` keep accepting
-        it there, matching the model's scruffy-statement policy (#257)."""
+        it there, matching the model's scruffy-statement policy."""
         if self.profile != "strict":
             return
         required = _STRICT_REQUIRED_LEADING.get(local, 0)
@@ -577,7 +571,7 @@ class ProvNParser:
     # -- attributes and literals -----------------------------------------------
 
     def _attributes(self, bundle: ProvBundle) -> list[tuple[QualifiedName, Any]]:
-        self._expect(TokenKind.LBRACKET, "'['")
+        self._expect(TokenKind.LBRACKET)
         pairs: list[tuple[QualifiedName, Any]] = []
         if self._current.kind is TokenKind.RBRACKET:
             self._advance()
@@ -585,12 +579,12 @@ class ProvNParser:
         while True:
             name = self._expect(TokenKind.NAME, "an attribute name")
             attr = self._resolve(name, bundle)
-            self._expect(TokenKind.EQUALS, "'='")
+            self._expect(TokenKind.EQUALS)
             pairs.append((attr, self._literal(bundle)))
             if self._current.kind is TokenKind.COMMA:
                 self._advance()
                 continue
-            self._expect(TokenKind.RBRACKET, "']'")
+            self._expect(TokenKind.RBRACKET)
             return pairs
 
     def _literal(self, bundle: ProvBundle) -> Any:
@@ -624,6 +618,6 @@ class ProvNParser:
             text = f"{prefix}:{local}" if prefix else local
             qname = bundle.valid_qualified_name(text)
             # An unresolvable prefix stays an opaque literal, as it does when
-            # decoded from PROV-JSON (#257 lock).
+            # decoded from PROV-JSON.
             return qname if qname is not None else Literal(text, PROV_QUALIFIEDNAME)
         raise self._error(f"expected a literal value, found {self._found()}")

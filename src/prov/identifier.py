@@ -14,9 +14,8 @@ __email__ = "trungdong@donggiang.com"
 #
 # Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
 # a literal glyph) and annotated with the spec clause it implements, so a
-# mangled/look-alike codepoint (as happened once with the CJK-compatibility
-# range below, which briefly read U+8C48 instead of U+F900) is visible on
-# inspection rather than hiding in the source as an indistinguishable glyph.
+# mangled/look-alike codepoint is visible on inspection rather than hiding
+# in the source as an indistinguishable glyph.
 _NCNAME_START_CHARS = (
     "\x41-\x5a"  # NameStartChar: [A-Z]
     "\x5f"  # NameStartChar: "_"
