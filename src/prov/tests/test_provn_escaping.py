@@ -156,6 +156,13 @@ def test_langtag_underscore_written_as_hyphen():
     assert reloaded_literal.langtag == "en-US"
 
 
+def test_short_string_carriage_return_is_escaped():
+    document = _doc()
+    document.entity("ex:e1", {"ex:note": "a\rb"})
+    provn = _roundtrips(document)
+    assert '[ex:note="a\\rb"]' in provn
+
+
 def test_mention_bare_keyword_no_prefix():
     """PROV-N Mention emits bare mentionOf(...) without prov: prefix (decision 2026-07-20).
 

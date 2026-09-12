@@ -347,6 +347,9 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
     if "\n" in s:
         return f'"""{s}"""'
     else:
+        # STRING_LITERAL2 ([60]) forbids a bare CR in a short string; the
+        # lexer decodes the "\r" escape, so use it rather than emit one raw.
+        s = s.replace("\r", "\\r")
         return f'"{s}"'
 
 
