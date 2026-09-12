@@ -46,17 +46,20 @@ def test_pickle_round_trips_under_every_protocol(obj, protocol):
     assert hash(loaded) == hash(obj)
 
 
-def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process():
+def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(tmp_path):
     # The hash is process-specific (str hashing is seeded), so a pickle must
     # not carry it. Produce the pickle under a different seed and look the
-    # object up in a dict keyed by a fresh, equal qualified name.
-    script = (
-        "import pickle, sys; from prov.identifier import Namespace; "
-        "sys.stdout.buffer.write(pickle.dumps(Namespace('ex', 'http://example.org/')['e1']))"
+    # object up in a dict keyed by a fresh, equal qualified name. The script
+    # is a file rather than a "-c" argument, so it is a static string.
+    script = tmp_path / "produce_pickle.py"
+    script.write_text(
+        "import pickle, sys\n"
+        "from prov.identifier import Namespace\n"
+        "sys.stdout.buffer.write(pickle.dumps(Namespace('ex', 'http://example.org/')['e1']))\n"
     )
     for seed in ("12345", "54321"):
         produced = subprocess.run(
-            [sys.executable, "-c", script],
+            [sys.executable, str(script)],
             capture_output=True,
             check=True,
             env={**os.environ, "PYTHONHASHSEED": seed},
