@@ -20,10 +20,27 @@ _PROVN_LOCAL_LEADING_ESCAPE = "-."
 # strategies.py's local_part comment).
 _PROVN_LOCAL_PERCENT_ENCODE = ' <>"{}|^`\\'
 _PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
+# Matches any character the escaping loop below treats specially, anywhere
+# in the local part. A bare '%' is included too, since it may need
+# %25-encoding, which the loop's hex-pair check decides. A local part
+# matching none of these needs no escaping at all, including the
+# leading/trailing '-'/'.' rule, since both characters are in this class.
+_PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
+    "["
+    + re.escape(
+        _PROVN_LOCAL_METACHARS
+        + _PROVN_LOCAL_LEADING_ESCAPE
+        + _PROVN_LOCAL_PERCENT_ENCODE
+        + "%"
+    )
+    + "]"
+)
 
 
 def _provn_escape_local(localpart: str) -> str:
     """Return ``localpart`` escaped for use in a PROV-N ``PN_LOCAL`` position."""
+    if not _PROVN_LOCAL_NEEDS_ESCAPE.search(localpart):
+        return localpart
     last_index = len(localpart) - 1
     parts = []
     for i, char in enumerate(localpart):
