@@ -11,7 +11,7 @@ import re
 import typing
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, MutableSet
-from typing import IO, TYPE_CHECKING, Any, Union, cast
+from typing import IO, TYPE_CHECKING, Any, Final, Union, cast
 
 from prov import Error
 from prov.constants import (
@@ -397,6 +397,13 @@ class Literal:
 
     __slots__ = ("_datatype", "_langtag", "_value")
 
+    # These fields are assign-once. They take part in equality and hashing,
+    # so reassigning one after the object has been used as a set member or
+    # dict key corrupts that container. #444 tracks the runtime guard.
+    _value: Final[str]
+    _datatype: Final[QualifiedName | None]
+    _langtag: Final[str | None]
+
     def __init__(
         self,
         value: Any,
@@ -412,7 +419,7 @@ class Literal:
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
         """
-        self._value: str = str(value)  # value is always a string
+        self._value = str(value)  # value is always a string
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -429,9 +436,9 @@ class Literal:
                     "prov:InternationalizedString."
                 )
                 datatype = PROV_INTERNATIONALIZEDSTRING
-        self._datatype: QualifiedName | None = datatype
+        self._datatype = datatype
         # langtag is always a string
-        self._langtag: str | None = str(langtag) if langtag is not None else None
+        self._langtag = str(langtag) if langtag is not None else None
 
     def __str__(self) -> str:
         return self.provn_representation()

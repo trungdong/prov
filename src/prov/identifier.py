@@ -1,7 +1,7 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-from typing import Any
+from typing import Any, Final
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -67,6 +67,11 @@ class Identifier:
 
     __slots__ = ("_hash", "_uri")
 
+    # This field is assign-once. The hash is computed from it at construction,
+    # and a later reassignment would leave the cached hash stale. #444 tracks
+    # the runtime guard.
+    _uri: Final[str]
+
     def __init__(self, uri: str):
         """Create an identifier for the given URI.
 
@@ -74,7 +79,7 @@ class Identifier:
             uri: URI string for the identifier. Converted to ``str`` if not
                 already one.
         """
-        self._uri: str = str(uri)  # Ensure this is a unicode string
+        self._uri = str(uri)  # Ensure this is a unicode string
         self._hash = hash((self._uri, self.__class__))
 
     @property
@@ -111,6 +116,13 @@ class QualifiedName(Identifier):
     """
 
     __slots__ = ("_localpart", "_namespace", "_str")
+
+    # These fields are assign-once. The hash is computed from them at
+    # construction, and a later reassignment would leave the cached hash
+    # stale. #444 tracks the runtime guard.
+    _namespace: Final[Namespace]
+    _localpart: Final[str]
+    _str: Final[str]
 
     def __init__(self, namespace: Namespace, localpart: str):
         """
@@ -176,6 +188,12 @@ class Namespace:
     """PROV Namespace."""
 
     __slots__ = ("_cache", "_prefix", "_uri")
+
+    # These fields are assign-once. They take part in equality and hashing,
+    # so reassigning one after the object has been used as a set member or
+    # dict key corrupts that container. #444 tracks the runtime guard.
+    _prefix: Final[str]
+    _uri: Final[str]
 
     def __init__(self, prefix: str, uri: str):
         """Create a namespace with the given prefix and URI.

@@ -77,6 +77,13 @@
 ### Project
 
 - A benchmark suite under `benchmarks/` with a non-blocking CI job that fails on a 20% regression against a committed baseline
+- `pre-commit run --all-files` now passes on a clean checkout. The vendored W3C schemas are
+  excluded from the whitespace hooks and the Codacy configuration file ends with a newline
+- The citation tests skip from an installed wheel when either repository metadata file is
+  absent
+- `Identifier`, `QualifiedName`, `Namespace` and `Literal` declare their identity fields
+  `Final`, so type checkers reject reassignment of a field that equality and hashing depend
+  on
 
 ## 3.1.1 (2026-09-10)
 

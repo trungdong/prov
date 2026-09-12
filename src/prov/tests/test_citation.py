@@ -17,7 +17,8 @@ CITATION_FILE = REPO_ROOT / "CITATION.cff"
 ZENODO_FILE = REPO_ROOT / ".zenodo.json"
 
 pytestmark = pytest.mark.skipif(
-    not CITATION_FILE.is_file(), reason="CITATION.cff only exists in a source checkout"
+    not (CITATION_FILE.is_file() and ZENODO_FILE.is_file()),
+    reason="CITATION.cff and .zenodo.json only exist in a source checkout",
 )
 
 
