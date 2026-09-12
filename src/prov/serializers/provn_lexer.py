@@ -9,7 +9,7 @@ context-sensitive rule is the language tag, which only follows a string.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -83,8 +83,11 @@ _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _PN_LOCAL = rf"(?:{_LOCAL_START})(?:{_LOCAL_CONT})*"
 _PN_PREFIX = rf"[{_PN_CHARS_BASE}][{_PN_CHARS}.]*"
 
-_QNAME = re.compile(rf"(?:({_PN_PREFIX}):)?({_PN_LOCAL})")
-_QNAME_FULL = re.compile(rf"(?:({_PN_PREFIX}):)?({_PN_LOCAL})\Z")
+# [52] allows "PN_PREFIX ':'" alone (empty local, e.g. the Recommendation's
+# own `bbc:`), so the prefixed branch's local part is optional; group 3 is
+# the bare, unprefixed local part.
+_QNAME = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))")
+_QNAME_FULL = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))\Z")
 _DATETIME = re.compile(
     r"-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?"
 )
@@ -118,22 +121,30 @@ _PUNCTUATION = {
 }
 
 
-def _unescape_string(raw: str, line: int, column: int) -> str:
+# A locator maps an absolute offset in the source text to its (line, column).
+_Locate = Callable[[int], tuple[int, int]]
+
+
+def _unescape_string(raw: str, locate: _Locate, start: int) -> str:
     def replace(match: re.Match[str]) -> str:
         char = match.group(1)
         if char not in _STRING_ESCAPES:
+            line, column = locate(start + match.start())
             raise ProvNSyntaxError(f"unknown string escape '\\{char}'", line, column)
         return _STRING_ESCAPES[char]
 
     return re.sub(r"\\(.)", replace, raw, flags=re.S)
 
 
-def _split_qname(raw: str, line: int, column: int) -> tuple[str, str]:
+def _split_qname(raw: str, locate: _Locate, start: int) -> tuple[str, str]:
     match = _QNAME_FULL.match(raw)
     if match is None:
+        partial = _QNAME.match(raw)
+        line, column = locate(start + (partial.end() if partial else 0))
         raise ProvNSyntaxError(f"invalid qualified name '{raw}'", line, column)
-    prefix, local = match.group(1) or "", match.group(2)
-    return prefix, _UNESCAPE_LOCAL.sub(r"\1", local)
+    if match.group(1) is not None:
+        return match.group(1), _UNESCAPE_LOCAL.sub(r"\1", match.group(2) or "")
+    return "", _UNESCAPE_LOCAL.sub(r"\1", match.group(3) or "")
 
 
 class _Lexer:
@@ -159,6 +170,17 @@ class _Lexer:
     def error(self, message: str) -> ProvNSyntaxError:
         return ProvNSyntaxError(message, self.line, self.column)
 
+    def locate(self, offset: int) -> tuple[int, int]:
+        """Line and column of the absolute ``offset``, which must be at or
+        after ``self.pos``; used to report errors inside a literal's body
+        rather than at the literal's opening delimiter."""
+        segment = self.text[self.pos : offset]
+        newlines = segment.count("\n")
+        if newlines:
+            line_start = self.pos + segment.rfind("\n") + 1
+            return self.line + newlines, offset - line_start + 1
+        return self.line, offset - self.line_start + 1
+
     def emit(self, kind: TokenKind, text: str, value: Any) -> Token:
         token = Token(kind, text, value, self.line, self.column)
         self.advance(len(text))
@@ -171,6 +193,8 @@ class _Lexer:
             skip = _SKIP.match(text, self.pos)
             if skip:
                 self.advance(skip.end() - self.pos)
+            if text.startswith("/*", self.pos):
+                raise self.error("unterminated comment")
             if self.pos >= len(text):
                 yield Token(TokenKind.EOF, "", None, self.line, self.column)
                 return
@@ -208,7 +232,7 @@ class _Lexer:
         match = _QNAME_LITERAL.match(self.text, self.pos)
         if match is None:
             raise self.error("unterminated qualified name literal")
-        value = _split_qname(match.group(1), self.line, self.column)
+        value = _split_qname(match.group(1), self.locate, match.start(1))
         return self.emit(TokenKind.QNAME_LITERAL, match.group(0), value)
 
     def langtag_token(self) -> Token:
@@ -238,7 +262,7 @@ class _Lexer:
         # '\.' is a regular character, so only a bare trailing dot backs off.
         while raw.endswith(".") and not raw.endswith("\\."):
             raw = raw[:-1]
-        value = _split_qname(raw, self.line, self.column)
+        value = _split_qname(raw, self.locate, self.pos)
         token = self.emit(TokenKind.NAME, raw, value)
         if self.pos < len(self.text) and self.text[self.pos] == ":":
             raise self.error("unexpected ':' inside a qualified name")
@@ -254,7 +278,7 @@ class _Lexer:
             match = _SHORT_STRING.match(text, pos)
             if match is None:
                 raise self.error("unterminated string")
-        value = _unescape_string(match.group(1), self.line, self.column)
+        value = _unescape_string(match.group(1), self.locate, match.start(1))
         return self.emit(TokenKind.STRING, match.group(0), value)
 
 

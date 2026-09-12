@@ -158,15 +158,59 @@ def test_escaped_colon_at_end_of_local_part():
 
 
 def test_unknown_string_escape_raises():
-    with pytest.raises(ProvNSyntaxError, match="unknown string escape"):
+    with pytest.raises(ProvNSyntaxError, match="unknown string escape") as ctx:
         list(tokenize(r'"\q"'))
+    assert (ctx.value.line, ctx.value.column) == (1, 2)
 
 
 def test_invalid_qname_literal_raises():
-    with pytest.raises(ProvNSyntaxError, match="invalid qualified name"):
+    with pytest.raises(ProvNSyntaxError, match="invalid qualified name") as ctx:
         list(tokenize("'not a qname'"))
+    assert (ctx.value.line, ctx.value.column) == (1, 5)
 
 
 def test_invalid_language_tag_raises():
     with pytest.raises(ProvNSyntaxError, match="invalid language tag"):
         list(tokenize('"a"@'))
+
+
+def test_prefix_only_name_has_empty_local():
+    # [52] permits "PN_PREFIX ':'" alone; the Recommendation's own example
+    # (section 3.6) is entity(bbc:).
+    tokens = list(tokenize("entity(bbc:)"))
+    assert [t.value for t in tokens[:4]] == [
+        ("", "entity"),
+        "(",
+        ("bbc", ""),
+        ")",
+    ]
+
+
+def test_escaped_hyphen_in_local_part():
+    # The Recommendation's own example (section 3.8) is entity(ex:\-).
+    assert values(r"ex:\-") == [("ex", "-")]
+
+
+def test_unterminated_block_comment_raises_with_position():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize("entity(ex:e1) /* open"))
+    assert (ctx.value.line, ctx.value.column) == (1, 15)
+    assert "unterminated comment" in str(ctx.value)
+
+
+def test_string_escape_error_position_is_inside_the_literal():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize('"abc \\q def"'))
+    assert (ctx.value.line, ctx.value.column) == (1, 6)
+
+
+def test_string_escape_error_position_spans_lines_in_a_long_string():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize('"""ab\ncd \\q"""'))
+    assert (ctx.value.line, ctx.value.column) == (2, 4)
+
+
+def test_qname_literal_error_position_is_the_first_invalid_character():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize("'ex:bad name'"))
+    assert (ctx.value.line, ctx.value.column) == (1, 8)
