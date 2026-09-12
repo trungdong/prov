@@ -32,6 +32,9 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - The PROV-JSONLD deserializer accepts an array-valued `entity` on a `Membership`
   statement, which the submission (section 4.18) allows and ProvToolbox always writes,
   decoding one `hadMember` per member; an empty array raises `ProvJSONLDException`
+- PROV-N output spells `xsd:boolean` values `"true"` and `"false"` instead of `"1"` and
+  `"0"`. Both are legal lexical forms and the parser reads all four, but every other
+  producer writes the words
 
 ## 3.2.0 (2026-09-12)
 
