@@ -153,6 +153,25 @@ def test_bare_identifier_with_escaped_colon_resolves_via_default():
     assert record.identifier.uri == "http://d.org/a:b"
 
 
+def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default():
+    # Accepted, documented limitation: a bare local part with an escaped
+    # ':' can't go through the string-based resolution path (it would be
+    # mis-split at the colon), so it resolves eagerly against the document's
+    # default and, unlike a plain bare name, the bundle then adopts that
+    # default as its own on this path -- see the comment in
+    # ProvNParser._identifier_text().
+    doc = parse(
+        "bundle ex:b\n  entity(a\\:b)\nendBundle",
+        prefixes="prefix ex <http://example.org/>\ndefault <http://d.org/>\n",
+    )
+    (bundle,) = doc.bundles
+    record = only_record(bundle)
+    assert record.identifier.uri == "http://d.org/a:b"
+    assert bundle.get_default_namespace().uri == "http://d.org/"
+    reloaded = ProvDocument.deserialize(content=doc.get_provn(), format="provn")
+    assert reloaded == doc
+
+
 def test_multiple_attributes_and_repeated_keys():
     record = only_record(parse('entity(ex:e1, [prov:type="a", prov:type="b", ex:k=1])'))
     assert record.get_attribute("prov:type") == {"a", "b"}

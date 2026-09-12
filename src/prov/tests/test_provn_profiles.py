@@ -248,6 +248,12 @@ def test_lenient_warning_reports_the_deserialize_call_site():
     assert len(caught) == 1
     assert caught[0].filename == __file__
 
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        parse("bundle ex:b\n  foo(ex:x)\n  entity(ex:e1)\nendBundle", profile="lenient")
+    assert len(caught) == 1
+    assert caught[0].filename == __file__
+
 
 def test_lenient_warning_reports_the_read_call_site(tmp_path):
     """The same guarantee holds through prov.read()'s extra frame, for both
@@ -273,9 +279,3 @@ def test_lenient_warning_reports_the_read_call_site(tmp_path):
     prov_warnings = [w for w in caught if w.category is ProvWarning]
     assert len(prov_warnings) == 1
     assert prov_warnings[0].filename == __file__
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        parse("bundle ex:b\n  foo(ex:x)\n  entity(ex:e1)\nendBundle", profile="lenient")
-    assert len(caught) == 1
-    assert caught[0].filename == __file__

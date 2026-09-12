@@ -491,7 +491,14 @@ class ProvNParser:
         if not prefix and ":" in local:
             # An escaped colon in a bare local part can't be turned back
             # into text without looking like a (wrong) prefixed name, so
-            # this one shape is passed on already resolved.
+            # this one shape is passed on already resolved -- accepted,
+            # documented limitation: inside a bundle with no default of its
+            # own, this resolves against the enclosing document's default,
+            # and passing the already-resolved QualifiedName on to
+            # new_record() then makes the bundle adopt that default as its
+            # own (visible as an extra 'default <...>' line inside the
+            # bundle on re-serialisation), unlike a plain bare name, which
+            # goes through the string path and is not cached this way.
             return resolved
         return f"{prefix}:{local}" if prefix else local
 
