@@ -137,13 +137,18 @@ document
   prefix ex2 <http://example.org/2/>
 
   entity(e001)
-  bundle e001
+  bundle dn:e001
     default <http://example.org/2/>
+    prefix dn <http://example.org/0/>
 
     entity(e001)
   endBundle
 endDocument
 ```
+
+The bundle's identifier lives in the document's default namespace while the bundle declares
+its own default, so the writer gives that namespace the prefix `dn` inside the bundle; a bare
+`bundle e001` would be read as `http://example.org/2/e001`.
 
 ## Where next
 

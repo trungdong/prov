@@ -353,6 +353,15 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
         return f'"{s}"'
 
 
+def _xsd_datetime_text(value: datetime.datetime) -> str:
+    """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
+    whole number of minutes (historical LMT offsets) is normalised to UTC."""
+    offset = value.utcoffset()
+    if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
+        value = value.astimezone(datetime.timezone.utc)
+    return value.isoformat()
+
+
 def encoding_provn_value(
     value: str | datetime.datetime | float | bool | int | QualifiedName,
 ) -> str:
@@ -369,7 +378,7 @@ def encoding_provn_value(
     if isinstance(value, str):
         return _ensure_multiline_string_triple_quoted(value)
     elif isinstance(value, datetime.datetime):
-        return f'"{value.isoformat()}" %% xsd:dateTime'
+        return f'"{_xsd_datetime_text(value)}" %% xsd:dateTime'
     elif isinstance(value, float):
         return f'"{value!r}" %% xsd:double'
     elif isinstance(value, bool):
@@ -558,10 +567,6 @@ CoercedAttributeValue: typing.TypeAlias = (
 # Exceptions and warnings
 class ProvException(Error):
     """Base class for PROV model exceptions."""
-
-
-class ProvWarning(Warning):
-    """Base class for PROV model warnings."""
 
 
 class ProvExceptionInvalidQualifiedName(ProvException):
@@ -1007,7 +1012,7 @@ class ProvRecord:
                 # Formal attributes always have single values
                 value = first(values)
                 if isinstance(value, datetime.datetime):
-                    items.append(value.isoformat())
+                    items.append(_xsd_datetime_text(value))
                 elif isinstance(value, QualifiedName):
                     items.append(value.provn_bare_representation())
                 else:

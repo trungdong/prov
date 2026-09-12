@@ -1,9 +1,11 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
+import warnings
 from typing import Any, Final
 
 from prov import Error
+from prov._warnings import ProvWarning, external_stacklevel
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -54,6 +56,19 @@ _PROVN_LOCAL_LEADING_ESCAPE = "-."
 # PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
 # (see the comment on _NCNAME_CHARS above).
 _PN_CHARS = _NCNAME_CHARS.replace(".", "")
+# The characters in _PN_CHARS that are legal anywhere in PN_LOCAL but, being
+# combining marks rather than letters, cannot start it ([53]'s PN_CHARS_BASE
+# vs. PN_CHARS): the NameChar-only part of _NCNAME_CHARS, minus '-'/'.'
+# (handled positionally above) and the digits (PN_LOCAL allows a leading
+# digit). Spelled the same way as _NCNAME_CHARS so a look-alike codepoint
+# stays visible on inspection.
+_PN_LOCAL_BAD_START = re.compile(
+    "["
+    "\xb7"  # NameChar: #xB7 (middle dot)
+    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
+    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
+    "]"
+)
 # The remaining characters PN_LOCAL allows unescaped ([54]'s PLX minus '%').
 _PN_CHARS_OTHER = "/@~&+*?#$!"
 _PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
@@ -79,29 +94,78 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
 )
 
 
-def _provn_escape_local(localpart: str) -> str:
-    """Return ``localpart`` escaped for use in a PROV-N ``PN_LOCAL`` position."""
-    if not _PROVN_LOCAL_NEEDS_ESCAPE.search(localpart):
-        return localpart
+def _escape_local_char(
+    localpart: str, i: int, last_index: int, char: str
+) -> tuple[str, bool]:
+    """Return one character's PROV-N spelling and whether it was percent-encoded."""
+    if i == 0 and _PN_LOCAL_BAD_START.match(char):
+        # PN_LOCAL_BAD_START chars are legal PN_CHARS but cannot start a
+        # PN_LOCAL, and there is no backslash escape for "start here";
+        # percent-encoding is the only way to write one first.
+        return "".join(f"%{byte:02X}" for byte in char.encode("utf-8")), True
+    if char == "%":
+        # An existing valid escape (e.g. "%20") is kept verbatim; a bare
+        # '%' not followed by two hex digits is not, so it is escaped
+        # itself to keep the sequence unambiguous.
+        return (char if _PROVN_HEX_PAIR.match(localpart, i + 1) else "%25"), False
+    if (
+        (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
+        or (i == last_index and char == ".")
+        or char in _PROVN_LOCAL_METACHARS
+    ):
+        return f"\\{char}", False
+    if _PROVN_LOCAL_NEEDS_PERCENT_ENCODING.match(char):
+        # "surrogatepass" lets a lone surrogate (unpaired, e.g. from WTF-8 or
+        # a Windows filename) be percent-encoded from its raw UTF-16 code
+        # unit rather than raising UnicodeEncodeError.
+        encoded = char.encode("utf-8", "surrogatepass")
+        return "".join(f"%{byte:02X}" for byte in encoded), True
+    return char, False
+
+
+def _provn_escape_local(localpart: str) -> tuple[str, bool]:
+    """Return ``localpart`` escaped for use in a PROV-N ``PN_LOCAL`` position.
+
+    Returns the escaped text and whether it was percent-encoded anywhere: a
+    backslash escape (a metacharacter, or a leading/trailing ``-``/``.``) is
+    reversible and a PROV-N reader recovers the original text, but a
+    percent-encoded character is not, so the caller warns when it happens.
+    """
+    if not _PROVN_LOCAL_NEEDS_ESCAPE.search(localpart) and not (
+        localpart and _PN_LOCAL_BAD_START.match(localpart[0])
+    ):
+        return localpart, False
     last_index = len(localpart) - 1
     parts = []
+    encoded = False
     for i, char in enumerate(localpart):
-        if char == "%":
-            # An existing valid escape (e.g. "%20") is kept verbatim; a bare
-            # '%' not followed by two hex digits is not, so it is escaped
-            # itself to keep the sequence unambiguous.
-            parts.append(char if _PROVN_HEX_PAIR.match(localpart, i + 1) else "%25")
-        elif (
-            (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
-            or (i == last_index and char == ".")
-            or char in _PROVN_LOCAL_METACHARS
-        ):
-            parts.append(f"\\{char}")
-        elif _PROVN_LOCAL_NEEDS_PERCENT_ENCODING.match(char):
-            parts.extend(f"%{byte:02X}" for byte in char.encode("utf-8"))
-        else:
-            parts.append(char)
-    return "".join(parts)
+        text, char_was_encoded = _escape_local_char(localpart, i, last_index, char)
+        parts.append(text)
+        encoded = encoded or char_was_encoded
+    return "".join(parts), encoded
+
+
+def _provn_escape_local_and_warn(localpart: str, uri: str) -> str:
+    """Escape ``localpart`` for a PROV-N ``PN_LOCAL`` position, warning if that
+    changes the IRI a PROV-N reader recovers.
+
+    ``uri`` is the identifier's full URI, named in the warning so the caller
+    can find which identifier is affected. Shared by
+    :meth:`QualifiedName.provn_bare_representation` and the bundle-header
+    prefix path in :mod:`prov.model.bundle`, so both raise the same
+    :class:`~prov.model.ProvWarning` for the same reason rather than one of
+    them silently changing the IRI.
+    """
+    escaped, encoded = _provn_escape_local(localpart)
+    if encoded:
+        warnings.warn(
+            f"the local part {localpart!r} of <{uri}> contains a character PROV-N "
+            "cannot write; it is percent-encoded, which changes the IRI a PROV-N "
+            "reader recovers",
+            ProvWarning,
+            stacklevel=external_stacklevel(),
+        )
+    return escaped
 
 
 class Identifier:
@@ -243,9 +307,10 @@ class QualifiedName(Identifier):
         The local part's PROV-N metacharacters (``= ' ( ) , : ; [ ]``) are
         backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223),
         as are a leading ``-``/``.`` and a trailing ``.`` (forbidden bare by
-        [53]/[54]); characters PN_LOCAL cannot express at all are
-        percent-encoded. The prefix is never escaped, as it cannot contain
-        these characters.
+        [53]/[54]); a character PN_LOCAL cannot express at all, or cannot
+        start it, is percent-encoded instead, which changes the IRI a PROV-N
+        reader recovers, so that emits a :class:`~prov.model.ProvWarning`.
+        The prefix is never escaped, as it cannot contain these characters.
 
         Raises:
             Error: If the local part is empty and the namespace has no prefix,
@@ -257,7 +322,7 @@ class QualifiedName(Identifier):
                 "namespace with no prefix, which PROV-N cannot write; give the "
                 "namespace a prefix"
             )
-        escaped_localpart = _provn_escape_local(self._localpart)
+        escaped_localpart = _provn_escape_local_and_warn(self._localpart, self._uri)
         return (
             ":".join([self._namespace.prefix, escaped_localpart])
             if self._namespace.prefix

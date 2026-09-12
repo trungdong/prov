@@ -1,4 +1,8 @@
-"""Shared ``warnings.warn()`` stacklevel helper.
+"""``ProvWarning`` and the shared ``warnings.warn()`` stacklevel helper.
+
+Both live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
+can raise ``ProvWarning`` without importing :mod:`prov.model` and creating a
+cycle; :mod:`prov.model` re-exports both under their historic names.
 
 Attributing a warning to its caller with a fixed ``stacklevel`` only works
 when every call path between the ``warn()`` site and the external caller
@@ -10,6 +14,10 @@ found by walking the real call stack instead.
 
 import sys
 from types import FrameType
+
+
+class ProvWarning(Warning):
+    """Base class for PROV model warnings."""
 
 
 def external_stacklevel(skip: int = 1) -> int:
