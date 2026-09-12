@@ -13,11 +13,11 @@ _PROVN_LOCAL_METACHARS = "='(),:;[]"
 # forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
 # last character; elsewhere both are ordinary PN_CHARS and stay unescaped.
 _PROVN_LOCAL_LEADING_ESCAPE = "-."
-# Characters PN_LOCAL cannot express at all, even escaped: percent-encode
-# them ([54]'s PERCENT), which is valid PROV-N and, since the lexer keeps
-# percent-encoding verbatim, reads back as the literal text "%XX" rather than
-# the original character -- a documented, deliberate exclusion (see
-# strategies.py's local_part comment), not a round trip.
+# Characters PN_LOCAL cannot express at all, even escaped, are percent-encoded
+# ([54]'s PERCENT), which is valid PROV-N. The lexer keeps percent-encoding
+# verbatim, so this reads back as the literal text "%XX" rather than the
+# original character, a documented, deliberate exclusion (see
+# strategies.py's local_part comment).
 _PROVN_LOCAL_PERCENT_ENCODE = ' <>"{}|^`\\'
 _PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
 

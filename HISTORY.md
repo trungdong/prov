@@ -27,8 +27,9 @@
   escaped (a space, `<`, `>`, `"`, `{`, `}`, `|`, `^`, `` ` ``, `\`, or a bare `%` not followed
   by two hex digits); the local part changes on such a round trip (`a b` becomes `a%20b`), a
   documented limitation rather than a bug
-- A `Literal` given an empty language tag is now treated as having no language tag, matching a
-  `Literal` given none at all
+- PROV-N output writes a `Literal` with an empty language tag as a plain string, the same as
+  one with no language tag at all; the model and the other serializers are unaffected, so a
+  `Literal("hi", langtag="")` still writes PROV-XML's `xml:lang=""`
 - PROV-N output writes an underscore-separated language tag (e.g. `en_US`) with a hyphen
   (`en-US`), the separator the grammar and BCP 47 both use
 - PROV-N output escapes a carriage return in a short string as `\r` instead of writing it raw,

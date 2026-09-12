@@ -114,11 +114,10 @@ def test_inner_dash_and_dot_stay_bare():
 def test_unrepresentable_char_is_percent_encoded():
     """A space cannot appear in PN_LOCAL even escaped, so it is percent-encoded.
 
-    This is a documented exclusion, not a round trip: the local part changes
-    from "a b" to "a%20b", so the reloaded QualifiedName is not equal to the
-    original one, even though the document containing it is unaffected (the
-    entity's own identity survives the round trip; only this bare local part
-    changes).
+    The local part changes from "a b" to "a%20b", so the reloaded
+    QualifiedName is not equal to the original one, a documented exclusion.
+    The entity's own identity still survives the round trip; only this bare
+    local part changes.
     """
     document = _doc()
     document.entity("ex:a b")
@@ -130,10 +129,18 @@ def test_unrepresentable_char_is_percent_encoded():
 
 
 def test_empty_langtag_literal_written_as_plain_string():
-    """An empty langtag is no langtag, not a Literal with a ``None`` datatype."""
+    """An empty langtag has no PROV-N spelling, so the writer treats it as none.
+
+    The model itself is unaffected. The ``Literal``'s own ``langtag`` stays
+    ``""`` (not ``None``), so this is a writer-only choice, not a round trip;
+    the JSON/XML/RDF/JSON-LD codecs still keep the empty tag, e.g. PROV-XML's
+    ``xml:lang=""``, which this task leaves untouched.
+    """
+    literal = Literal("hi", langtag="")
+    assert literal.langtag == ""
     document = _doc()
-    document.entity("ex:e1", {"ex:note": Literal("hi", langtag="")})
-    provn = _roundtrips(document)
+    document.entity("ex:e1", {"ex:note": literal})
+    provn = document.get_provn()
     assert '[ex:note="hi"]' in provn
     assert "None" not in provn
 
@@ -141,10 +148,10 @@ def test_empty_langtag_literal_written_as_plain_string():
 def test_langtag_underscore_written_as_hyphen():
     """An underscore-separated langtag is not valid PROV-N LANGTAG ([63]).
 
-    Not a round trip like the other fixes here: BCP 47 tags use hyphens, so
-    writing one changes the tag's lexical form from "en_US" to "en-US",
-    which is a different value under the model's case-insensitive langtag
-    comparison, not merely a different spelling of the same one.
+    BCP 47 tags use hyphens, so writing one changes the tag's lexical form
+    from "en_US" to "en-US". That is a different value under the model's
+    case-insensitive langtag comparison, so this is not a round trip like the
+    other fixes here.
     """
     document = _doc()
     document.entity("ex:e1", {"ex:note": Literal("hi", langtag="en_US")})
@@ -161,6 +168,14 @@ def test_short_string_carriage_return_is_escaped():
     document.entity("ex:e1", {"ex:note": "a\rb"})
     provn = _roundtrips(document)
     assert '[ex:note="a\\rb"]' in provn
+
+
+def test_crlf_string_stays_triple_quoted():
+    """A CRLF value still takes the triple-quoted path, CR unaffected by the escape fix."""
+    document = _doc()
+    document.entity("ex:e1", {"ex:note": "a\r\nb"})
+    provn = _roundtrips(document)
+    assert '[ex:note="""a\r\nb"""]' in provn
 
 
 def test_mention_bare_keyword_no_prefix():
