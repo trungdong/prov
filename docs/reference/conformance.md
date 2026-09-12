@@ -67,16 +67,6 @@ the same one OpenXML and SQL Server use, and reverses it on read, so such names 
 One consequence is that a third-party document whose attribute name already looks like an
 `_xHHHH_` escape is unescaped on read.
 
-### Some attribute keys can fail to round-trip through RDF (RDF, open bug)
-
-An attribute key whose local part ends in one of `= ' , : ; [ ]` can fail to decode from
-PROV-O ([#341](https://github.com/trungdong/prov/issues/341)). rdflib cannot split such an
-IRI into namespace and local part unless another identifier in the same namespace has
-already registered it during decoding, so the failure depends on decode order rather than
-being universal. Attribute values are unaffected, and PROV-N, PROV-JSON and PROV-XML
-round-trip these keys. Unlike the same-identifier limitation, this one remains open for a
-fix. The issue lists the exact conditions.
-
 ## Component 1: Entities and Activities
 
 | Concept (PROV-DM §) | Model class | Factory / alias | PROV-N keyword | JSON | XML | RDF | JSON-LD |

@@ -53,6 +53,14 @@
 - PROV-N input accepts a bare, unprefixed local name that starts with a digit (for example
   `entity(4567)`), as `PN_LOCAL` allows; the lexer previously read it as an integer literal
   and the parser rejected it as an identifier
+- `prov.dot` warns with `ProvWarning` when a relation's endpoint is unset (it is drawn to a
+  blank node, as before) or when a relation has too few endpoints to draw, instead of
+  staying silent, matching what `prov_to_graph()` does since 3.1.1
+- PROV-O decoding resolves attribute keys against the namespaces declared in the RDF
+  source, so a key whose local part ends in a PROV-N metacharacter (`= ' , : ; [ ]`) under
+  a namespace no identifier uses now reads back; the last generation-time exclusion in the
+  round-trip property test is lifted
+  ([#341](https://github.com/trungdong/prov/issues/341))
 
 ### Tests
 

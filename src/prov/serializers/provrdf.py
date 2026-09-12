@@ -1583,7 +1583,9 @@ class ProvRDFSerializer(Serializer):
         # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
         # reconcile mechanism described here is otherwise unchanged.
         if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
-            qname_key = self.document.mandatory_valid_qname(pred_new)  # type: ignore[union-attr]
+            qname_key = self.document.valid_qualified_name(  # type: ignore[union-attr]
+                str(pred_new)
+            ) or self._resolve_iri(str(pred_new), graph)
             state.formal_attributes[subj][qname_key] = obj1
             state.unique_sets[subj][qname_key].append(obj1)
             if len(state.unique_sets[subj][qname_key]) > 1:
@@ -1591,7 +1593,15 @@ class ProvRDFSerializer(Serializer):
                 # by walking every combination in _emit_decoded_records().
                 state.formal_attributes[subj][qname_key] = None
         elif "qualified" not in str(pred_new) and "asInBundle" not in str(pred_new):
-            state.other_attributes.setdefault(subj, []).append((str(pred_new), obj1))
+            key: pm.QualifiedNameCandidate = pred_new
+            if isinstance(pred_new, URIRef):
+                # Resolve against the graph's bindings so a key under a
+                # namespace no identifier has registered yet still splits
+                # at the declared namespace, colon or not (#341).
+                key = self.document.valid_qualified_name(  # type: ignore[union-attr]
+                    str(pred_new)
+                ) or self._resolve_iri(str(pred_new), graph)
+            state.other_attributes.setdefault(subj, []).append((key, obj1))
 
     def _emit_decoded_records(
         self, bundle: pm.ProvBundle, state: "_DecodeState"

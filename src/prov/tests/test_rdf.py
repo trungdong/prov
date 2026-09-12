@@ -1253,3 +1253,25 @@ def test_unmapped_subject_still_warns_and_is_named():
     message = str(user_warnings[0].message)
     assert "http://example.org/orphan" in message
     assert "http://example.org/e1" not in message
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda d: d.entity("ex:e0", {"ex2:k:": ""}),
+        lambda d: d.entity("ex:e0", {"ex2:k=": ""}),
+        lambda d: (
+            d.entity("ex:e:0", {"ex:k:": ""}),
+            d.activity("ex:a:0"),
+            d.agent("ex:g'0"),
+        ),
+    ],
+    ids=["key-colon-unshared-ns", "key-equals-unshared-ns", "issue-341-falsifier"],
+)
+def test_metachar_attribute_keys_round_trip_through_provo(build):
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.add_namespace("ex2", "http://example2.org/")
+    build(document)
+    content = document.serialize(format="rdf")
+    assert ProvDocument.deserialize(content=content, format="rdf") == document
