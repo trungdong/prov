@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 import prov
-from prov.model import Literal, ProvDocument
+from prov.constants import PROV
+from prov.model import Literal, ProvDocument, ProvMembership
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
@@ -354,6 +355,29 @@ def test_deserialize_membership_single_element_array():
 def test_deserialize_membership_empty_entity_array_raises():
     with pytest.raises(ProvJSONLDException, match="empty"):
         ProvDocument.deserialize(content=_membership_payload([]), format="jsonld")
+
+
+def test_deserialize_membership_array_shares_id_and_attributes():
+    payload = json.dumps(
+        {
+            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@graph": [
+                {"@type": "Entity", "@id": "ex:c"},
+                {
+                    "@type": "Membership",
+                    "@id": "ex:m",
+                    "collection": "ex:c",
+                    "entity": ["ex:e1", "ex:e2"],
+                    "label": [{"@value": "members"}],
+                },
+            ],
+        }
+    )
+    doc = ProvDocument.deserialize(content=payload, format="jsonld")
+    memberships = sorted(doc.get_records(ProvMembership), key=lambda r: str(r.args[1]))
+    assert [str(r.identifier) for r in memberships] == ["ex:m", "ex:m"]
+    assert [str(r.args[1]) for r in memberships] == ["ex:e1", "ex:e2"]
+    assert all(list(r.get_attribute(PROV["label"])) == ["members"] for r in memberships)
 
 
 def _expected_primer_document() -> ProvDocument:
