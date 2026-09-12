@@ -1,5 +1,19 @@
 # History
 
+## 3.2.0 (unreleased)
+
+### PROV-N
+
+### Performance
+
+### Fixes
+
+### Tests
+
+### Documentation
+
+### Project
+
 ## 3.1.1 (2026-09-10)
 
 3.1.1 is a point release: bug fixes, hardening of the graphical export, test
