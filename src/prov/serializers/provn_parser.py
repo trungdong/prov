@@ -66,6 +66,15 @@ __all__ = ["PROFILES", "ProvNParser"]
 
 PROFILES = ("strict", "default", "lenient")
 
+
+def _default_namespace(bundle: ProvBundle) -> Namespace | None:
+    """The bundle's default namespace, falling back to its document's."""
+    default = bundle.get_default_namespace()
+    if default is None and bundle.document is not None:
+        default = bundle.document.get_default_namespace()
+    return default
+
+
 # keyword -> (record type, allowed argument counts after the identifier)
 _ELEMENTS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
     "entity": (PROV_ENTITY, (0,)),
@@ -322,7 +331,7 @@ class ProvNParser:
         self.skipped.append(f"PROV-N statement skipped: {error}")
         self._resync(start_depth)
 
-    def _looks_like_statement_start(self, token: Token) -> bool:
+    def _looks_like_statement_start(self) -> bool:
         """A NAME immediately followed by '(' opens a statement.
 
         No production puts '(' after a name inside a statement body
@@ -359,7 +368,7 @@ class ProvNParser:
                 if not prefix and local in _STRUCTURAL:
                     if self._depth <= start_depth:
                         return
-                elif self._looks_like_statement_start(token):
+                elif self._looks_like_statement_start():
                     self._depth = start_depth
                     return
             self._advance()
@@ -430,8 +439,7 @@ class ProvNParser:
             raise self._error(
                 f"'{keyword.text}' takes {allowed} arguments, got {len(args)}", keyword
             )
-        _, local = keyword.value
-        self._check_strict_required_positions(keyword, local, args)
+        self._check_strict_required_positions(keyword, args)
         formal_names = PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES
         attributes = []
         for attr, token in zip(formal_names, args, strict=False):
@@ -441,13 +449,14 @@ class ProvNParser:
         bundle.new_record(rec_type, identifier, attributes, other_attributes)
 
     def _check_strict_required_positions(
-        self, keyword: Token, local: str, args: list[Token]
+        self, keyword: Token, args: list[Token]
     ) -> None:
         """Under ``strict``, reject '-' where the grammar has a plain
         identifier (no ``OrMarker``); ``default``/``lenient`` keep accepting
         it there, matching the model's scruffy-statement policy."""
         if self.profile != "strict":
             return
+        _, local = keyword.value
         required = _STRICT_REQUIRED_LEADING.get(local, 0)
         for index, arg in enumerate(args[:required]):
             if arg.kind is TokenKind.MARKER:
@@ -535,9 +544,7 @@ class ProvNParser:
             # mis-split by valid_qualified_name()'s string-based prefix
             # lookup, so this one shape still resolves against the default
             # namespace directly.
-            default = bundle.get_default_namespace()
-            if default is None and bundle.document is not None:
-                default = bundle.document.get_default_namespace()
+            default = _default_namespace(bundle)
             if default is None:
                 raise self._error(
                     f"cannot resolve {token.text!r}: no default namespace declared",
@@ -593,9 +600,7 @@ class ProvNParser:
                 # inside an unprefixed local part would otherwise be
                 # mis-split by valid_qualified_name()'s string-based prefix
                 # lookup below.
-                default = bundle.get_default_namespace()
-                if default is None and bundle.document is not None:
-                    default = bundle.document.get_default_namespace()
+                default = _default_namespace(bundle)
                 if default is not None:
                     return default[local]
             text = f"{prefix}:{local}" if prefix else local

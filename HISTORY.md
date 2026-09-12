@@ -42,6 +42,9 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   argument as a usage error. The own-warnings CI guard runs on Python 3.14 and treats
   `PendingDeprecationWarning` as an error
   ([#441](https://github.com/trungdong/prov/issues/441))
+- PROV-XML reader warnings (`<prov:other>` skipped, unrepresentable attribute, nested
+  reference) are attributed to the caller of `deserialize()` or `prov.read()` rather than to
+  a frame inside `prov`, as the PROV-N reader's already are
 
 ## 3.2.0 (2026-09-12)
 

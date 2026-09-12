@@ -304,10 +304,7 @@ def test_prefix_with_inner_dot_is_still_accepted():
 
 
 def test_qname_literal_trailing_dot_raises():
-    # Unlike the bare form, this used to succeed silently before _PN_LOCAL
-    # excluded a bare trailing '.'; now _QNAME_FULL simply doesn't match
-    # "ex:abc." and _split_qname reports the dot itself, consistent with
-    # test_qname_literal_error_position_is_the_first_invalid_character.
+    # _QNAME_FULL rejects a bare trailing '.'; the reported position is the dot.
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("'ex:abc.'"))
     assert (ctx.value.line, ctx.value.column) == (1, 8)
