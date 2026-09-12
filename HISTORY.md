@@ -27,6 +27,10 @@
   escaped (a space, `<`, `>`, `"`, `{`, `}`, `|`, `^`, `` ` ``, `\`, or a bare `%` not followed
   by two hex digits); the local part changes on such a round trip (`a b` becomes `a%20b`), a
   documented limitation rather than a bug
+- A `Literal` given an empty language tag is now treated as having no language tag, matching a
+  `Literal` given none at all
+- PROV-N output writes an underscore-separated language tag (e.g. `en_US`) with a hyphen
+  (`en-US`), the separator the grammar and BCP 47 both use
 
 ### Tests
 

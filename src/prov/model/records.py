@@ -425,8 +425,9 @@ class Literal:
                 )
                 datatype = PROV_INTERNATIONALIZEDSTRING
         self._datatype: QualifiedName | None = datatype
-        # langtag is always a string
-        self._langtag: str | None = str(langtag) if langtag is not None else None
+        # An empty langtag is treated as no langtag at all, matching the
+        # falsy check above that skips the datatype coercion for it.
+        self._langtag: str | None = str(langtag) if langtag else None
 
     def __str__(self) -> str:
         return self.provn_representation()
@@ -504,8 +505,12 @@ class Literal:
         """Return the PROV-N representation of the literal."""
         quoted_value = _ensure_multiline_string_triple_quoted(self._value)
         if self._langtag:
-            # a language tag can only go with prov:InternationalizedString
-            return f"{quoted_value}@{self._langtag!s}"
+            # a language tag can only go with prov:InternationalizedString.
+            # PROV-N's LANGTAG ([63]) only allows hyphens between subtags, so
+            # an underscore-separated tag (e.g. "en_US") is written with a
+            # hyphen, as BCP 47 itself uses.
+            langtag = self._langtag.replace("_", "-")
+            return f"{quoted_value}@{langtag}"
         else:
             return f"{quoted_value} %% {self._datatype!s}"
 

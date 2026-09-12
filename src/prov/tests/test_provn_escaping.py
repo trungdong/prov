@@ -3,7 +3,7 @@
 
 import pytest
 
-from prov.model import ProvDocument
+from prov.model import Literal, ProvDocument
 
 METACHARS = "='(),:;[]"
 
@@ -127,6 +127,33 @@ def test_unrepresentable_char_is_percent_encoded():
     reloaded = ProvDocument.deserialize(content=provn, format="provn")
     (reloaded_entity,) = reloaded.get_records()
     assert reloaded_entity.identifier.localpart == "a%20b"
+
+
+def test_empty_langtag_literal_written_as_plain_string():
+    """An empty langtag is no langtag, not a Literal with a ``None`` datatype."""
+    document = _doc()
+    document.entity("ex:e1", {"ex:note": Literal("hi", langtag="")})
+    provn = _roundtrips(document)
+    assert '[ex:note="hi"]' in provn
+    assert "None" not in provn
+
+
+def test_langtag_underscore_written_as_hyphen():
+    """An underscore-separated langtag is not valid PROV-N LANGTAG ([63]).
+
+    Not a round trip like the other fixes here: BCP 47 tags use hyphens, so
+    writing one changes the tag's lexical form from "en_US" to "en-US",
+    which is a different value under the model's case-insensitive langtag
+    comparison, not merely a different spelling of the same one.
+    """
+    document = _doc()
+    document.entity("ex:e1", {"ex:note": Literal("hi", langtag="en_US")})
+    provn = document.get_provn()
+    assert '[ex:note="hi"@en-US]' in provn
+    reloaded = ProvDocument.deserialize(content=provn, format="provn")
+    (reloaded_entity,) = reloaded.get_records()
+    (reloaded_literal,) = reloaded_entity.get_attribute("ex:note")
+    assert reloaded_literal.langtag == "en-US"
 
 
 def test_mention_bare_keyword_no_prefix():
