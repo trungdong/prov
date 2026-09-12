@@ -10,7 +10,7 @@ import time
 import pytest
 
 from prov.serializers import provn_lexer
-from prov.serializers.provn_lexer import ProvNSyntaxError, TokenKind, tokenize
+from prov.serializers.provn_lexer import ProvNSyntaxError, Token, TokenKind, tokenize
 
 
 def kinds(text):
@@ -53,6 +53,12 @@ def values(text):
 )
 def test_token_kinds(text, expected):
     assert kinds(text) == expected
+
+
+def test_token_uses_slots():
+    # Every Token instance is thrown away almost immediately by the parser,
+    # so __dict__ per instance is pure overhead.
+    assert not hasattr(Token(TokenKind.EOF, "", None, 1, 1), "__dict__")
 
 
 def test_comments_are_skipped():

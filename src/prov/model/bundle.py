@@ -1917,7 +1917,11 @@ class ProvDocument(ProvBundle):
             if hasattr(source, "read"):
                 return serializer.deserialize(cast(io.IOBase, source), **args)
             else:
-                with open(source) as f:
+                # Binary, matching serialize(path)'s UTF-8 write: every
+                # deserializer accepts a binary stream, decoding it as
+                # UTF-8 itself, so this must not depend on the locale
+                # encoding open() would otherwise pick.
+                with open(source, "rb") as f:
                     return serializer.deserialize(f, **args)
 
         raise TypeError("Either source or content must be provided")

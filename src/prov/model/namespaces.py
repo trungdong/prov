@@ -99,9 +99,10 @@ class NamespaceManager(dict[str, Namespace]):
         """
         self._set_default(Namespace("", uri))
 
-    def _set_default(self, namespace: Namespace) -> None:
+    def _set_default(self, namespace: Namespace, register: bool = True) -> None:
         self._default = namespace
-        self[""] = namespace
+        if register:
+            self[""] = namespace
         self._resolve_cache.clear()
 
     def get_default_namespace(self) -> Namespace | None:
@@ -251,8 +252,11 @@ class NamespaceManager(dict[str, Namespace]):
         if not prefix:
             # the namespace is a default namespace
             if self._default is None:
-                # no default namespace is defined, reuse the one given
-                self._set_default(namespace)
+                # no default namespace is defined, reuse the one given;
+                # this only sets _default, it does not register the
+                # namespace under "" (an adopted default must not take
+                # part in URI compaction or ":local" resolution)
+                self._set_default(namespace, register=False)
                 return qname  # no change, return the original
             elif self._default == namespace:
                 # the same default namespace is defined

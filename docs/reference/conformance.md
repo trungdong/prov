@@ -28,7 +28,9 @@ background for PROV-DM's six components. This page is the detailed reference und
   [conformance corpus](https://github.com/trungdong/prov/tree/main/src/prov/tests/provn)
   additionally parses every example of the PROV-N and PROV-DM Recommendations and the
   PROV-N that ProvToolbox writes for the shared test corpus; the differences it found are
-  listed under "PROV-N corpus" below.
+  listed under "PROV-N corpus" below. A namespace prefix must be a valid PROV-N `PN_PREFIX`
+  (start with a letter, not end with `.`) for the PROV-N output to be readable; `prov` does
+  not validate or rename a prefix that isn't.
 
 ## Caveats that span several rows
 

@@ -3,6 +3,7 @@ ProvDocument.deserialize() with lazy format auto-detection."""
 
 import io
 import json
+import locale
 import logging
 import pathlib
 import warnings
@@ -11,6 +12,7 @@ from unittest import mock
 import pytest
 
 import prov
+from prov.model import ProvDocument
 from prov.serializers import DoNotExist
 from prov.serializers.provjson import ProvJSONSerializer
 from prov.serializers.provn import ProvNSerializer
@@ -314,3 +316,27 @@ def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips():
     with pytest.warns(ProvWarning, match="unknown statement keyword 'foo'"):
         document = prov.read(text, profile="lenient")
     assert [str(r.identifier) for r in document.get_records()] == ["ex:e2"]
+
+
+def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path):
+    # serialize(path) always writes UTF-8; deserialize(path) must read it
+    # back the same way, not through the C locale's encoding. The 'C'
+    # locale decodes as ASCII, so a pre-fix open(source) (text mode, no
+    # encoding=) fails on the non-ASCII label here.
+    document = primer_example()
+    document.entity("ex:accent", {"prov:label": "café"})
+    provn_path = tmp_path / "doc.provn"
+    json_path = tmp_path / "doc.json"
+    document.serialize(str(provn_path), format="provn")
+    document.serialize(str(json_path), format="json")
+
+    saved = locale.setlocale(locale.LC_ALL)
+    try:
+        locale.setlocale(locale.LC_ALL, "C")
+        provn_result = ProvDocument.deserialize(str(provn_path), format="provn")
+        json_result = ProvDocument.deserialize(str(json_path), format="json")
+    finally:
+        locale.setlocale(locale.LC_ALL, saved)
+
+    assert provn_result == document
+    assert json_result == document

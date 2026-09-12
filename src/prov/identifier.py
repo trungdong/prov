@@ -50,27 +50,31 @@ _PROVN_LOCAL_METACHARS = "='(),:;[]"
 # forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
 # last character; elsewhere both are ordinary PN_CHARS and stay unescaped.
 _PROVN_LOCAL_LEADING_ESCAPE = "-."
-# Characters PN_LOCAL cannot express at all, even escaped, are percent-encoded
-# ([54]'s PERCENT), which is valid PROV-N. The lexer keeps percent-encoding
-# verbatim, so this reads back as the literal text "%XX" rather than the
-# original character, a documented, deliberate exclusion (see
-# strategies.py's local_part comment).
-_PROVN_LOCAL_PERCENT_ENCODE = ' <>"{}|^`\\'
+# PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
+# (see the comment on _NCNAME_CHARS above).
+_PN_CHARS = _NCNAME_CHARS.replace(".", "")
+# The remaining characters PN_LOCAL allows unescaped ([54]'s PLX minus '%').
+_PN_CHARS_OTHER = "/@~&+*?#$!"
 _PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
+# Everything PN_LOCAL can spell as-is or via a backslash escape: PN_CHARS,
+# PN_CHARS_OTHER, the backslash-escaped metacharacters, and '-'/'.' (whose
+# escaping is positional, decided in the loop below). Any character outside
+# this set cannot be written at all, even escaped, so it is percent-encoded
+# ([54]'s PERCENT) as its UTF-8 bytes instead -- valid PROV-N, but read back
+# as the literal text "%XX" rather than the original character, a
+# documented, deliberate exclusion (see strategies.py's local_part comment).
+_PROVN_LOCAL_ALLOWED_UNESCAPED = _PN_CHARS + re.escape(
+    _PN_CHARS_OTHER + _PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE
+)
+_PROVN_LOCAL_NEEDS_PERCENT_ENCODING = re.compile(f"[^{_PROVN_LOCAL_ALLOWED_UNESCAPED}]")
 # Matches any character the escaping loop below treats specially, anywhere
-# in the local part. A bare '%' is included too, since it may need
-# %25-encoding, which the loop's hex-pair check decides. A local part
-# matching none of these needs no escaping at all, including the
-# leading/trailing '-'/'.' rule, since both characters are in this class.
+# in the local part; a local part matching none of these needs no escaping
+# at all, including the leading/trailing '-'/'.' rule and percent-encoding.
 _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     "["
-    + re.escape(
-        _PROVN_LOCAL_METACHARS
-        + _PROVN_LOCAL_LEADING_ESCAPE
-        + _PROVN_LOCAL_PERCENT_ENCODE
-        + "%"
-    )
+    + re.escape(_PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE + "%")
     + "]"
+    + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
 
 
@@ -81,16 +85,19 @@ def _provn_escape_local(localpart: str) -> str:
     last_index = len(localpart) - 1
     parts = []
     for i, char in enumerate(localpart):
-        if char in _PROVN_LOCAL_PERCENT_ENCODE:
-            parts.append(f"%{ord(char):02X}")
-        elif char == "%" and not _PROVN_HEX_PAIR.match(localpart, i + 1):
-            parts.append("%25")
+        if char == "%":
+            # An existing valid escape (e.g. "%20") is kept verbatim; a bare
+            # '%' not followed by two hex digits is not, so it is escaped
+            # itself to keep the sequence unambiguous.
+            parts.append(char if _PROVN_HEX_PAIR.match(localpart, i + 1) else "%25")
         elif (
             (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
             or (i == last_index and char == ".")
             or char in _PROVN_LOCAL_METACHARS
         ):
             parts.append(f"\\{char}")
+        elif _PROVN_LOCAL_NEEDS_PERCENT_ENCODING.match(char):
+            parts.extend(f"%{byte:02X}" for byte in char.encode("utf-8"))
         else:
             parts.append(char)
     return "".join(parts)

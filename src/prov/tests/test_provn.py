@@ -172,6 +172,31 @@ def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default():
     assert reloaded == doc
 
 
+def test_qname_literal_with_escaped_colon_resolves_via_default():
+    # Same shape as test_bare_identifier_with_escaped_colon_resolves_via_default,
+    # but for a QNAME_LITERAL attribute *value* ('a\:b') rather than an
+    # identifier position: the bare local part "a:b" must not be re-split
+    # on its escaped ':' by valid_qualified_name()'s string-based lookup.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://def/")
+    doc.add_namespace("ex", "http://ex/")
+    doc.entity("ex:e", {"ex:v": doc.get_default_namespace()["a:b"]})
+
+    reloaded = ProvDocument.deserialize(content=doc.get_provn(), format="provn")
+    assert reloaded == doc
+
+
+def test_qname_literal_with_escaped_colon_ignores_a_colliding_prefix():
+    doc = ProvDocument()
+    doc.set_default_namespace("http://def/")
+    doc.add_namespace("ex", "http://ex/")
+    doc.add_namespace("a", "http://other/")
+    doc.entity("ex:e", {"ex:v": doc.get_default_namespace()["a:b"]})
+
+    reloaded = ProvDocument.deserialize(content=doc.get_provn(), format="provn")
+    assert reloaded == doc
+
+
 def test_multiple_attributes_and_repeated_keys():
     record = only_record(parse('entity(ex:e1, [prov:type="a", prov:type="b", ex:k=1])'))
     assert record.get_attribute("prov:type") == {"a", "b"}

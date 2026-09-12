@@ -21,6 +21,11 @@
   the default output is unchanged
 - `prov-convert` gains `-i/--input-format`, so it reads PROV-N (or any other registered
   format), not only PROV-JSON
+- PROV-N output percent-encodes every local part character `PN_LOCAL` cannot express, not
+  just the earlier fixed set; a tab, a non-ASCII letter or any other codepoint outside
+  `PN_CHARS`, `PN_CHARS_OTHER` and the backslash-escaped metacharacters is now
+  percent-encoded instead of written raw, which previously produced PROV-N the parser
+  could not read back
 
 ### Performance
 
@@ -54,12 +59,16 @@
   `entity(4567)`), as `PN_LOCAL` allows; the lexer previously read it as an integer literal
   and the parser rejected it as an identifier
 - `prov.dot` warns with `ProvWarning` when a relation's endpoint is unset (it is drawn to a
-  blank node, as before) or when a relation has too few endpoints to draw, instead of
-  staying silent, matching what `prov_to_graph()` does since 3.1.1
+  blank node, as before), instead of staying silent, matching what `prov_to_graph()` does
+  since 3.1.1; the warning is attributed to the caller's own frame even for a relation
+  inside a nested bundle
 - PROV-O decoding resolves attribute keys against the namespaces declared in the RDF
   source, so a key whose local part ends in a PROV-N metacharacter (`= ' , : ; [ ]`) under
   a namespace no identifier uses now reads back; the last generation-time exclusion in the
   round-trip property test is lifted
+- `ProvDocument.deserialize()` reads a path source as UTF-8 in binary mode, matching how
+  `serialize()` writes one, instead of the text mode locale encoding, which could raise
+  `UnicodeDecodeError` or read non-ASCII content back wrongly under a non-UTF-8 locale
   ([#341](https://github.com/trungdong/prov/issues/341))
 
 ### Tests

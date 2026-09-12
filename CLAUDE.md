@@ -29,7 +29,7 @@ Uses `uv`. RDF/XML support and graphical/graph interop (`dot`, `graph`) are opti
 extras — without them many tests fail with `ModuleNotFoundError`:
 
 ```bash
-uv sync --extra rdf --extra xml --extra dot --extra graph
+uv sync --extra rdf --extra xml --extra dot --extra graph --group bench
 ```
 
 Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers

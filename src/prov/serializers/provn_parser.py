@@ -356,14 +356,22 @@ class ProvNParser:
         return is_candidate and self._peek().kind is TokenKind.LPAREN
 
     def _resync(self, start_depth: int) -> None:
-        """Skip to the next statement boundary at the statement's own depth."""
+        """Skip to the next statement boundary.
+
+        A statement missing a closing ``)``/``]`` leaves ``self._depth``
+        above ``start_depth`` forever, since ``_advance()`` only lowers it
+        on a matching close. Gating on depth would then reject every
+        statement keyword that follows, so instead this trusts
+        ``_looks_like_statement_start()`` on its own: a statement keyword
+        or structural keyword can only legally start a new statement, never
+        appear inside one, so finding one is resync enough by itself.
+        Finding it forces the depth back down to what it was where the
+        failed statement started, clearing whatever imbalance it left.
+        """
         while self._current.kind is not TokenKind.EOF:
             token = self._current
-            if (
-                self._depth <= start_depth
-                and token.kind is TokenKind.NAME
-                and self._looks_like_statement_start(token)
-            ):
+            if token.kind is TokenKind.NAME and self._looks_like_statement_start(token):
+                self._depth = start_depth
                 return
             self._advance()
 
@@ -593,6 +601,16 @@ class ProvNParser:
         if token.kind is TokenKind.QNAME_LITERAL:
             self._advance()
             prefix, local = token.value
+            if not prefix and ":" in local:
+                # Mirrors _resolve()'s bare-local branch: an escaped colon
+                # inside an unprefixed local part would otherwise be
+                # mis-split by valid_qualified_name()'s string-based prefix
+                # lookup below.
+                default = bundle.get_default_namespace()
+                if default is None and bundle.document is not None:
+                    default = bundle.document.get_default_namespace()
+                if default is not None:
+                    return default[local]
             text = f"{prefix}:{local}" if prefix else local
             qname = bundle.valid_qualified_name(text)
             # An unresolvable prefix stays an opaque literal, as it does when

@@ -28,6 +28,7 @@ except ImportError as e:  # pragma: no cover -- pydot (dot extra) absent; covere
         'install "prov[dot]" to use graphical export'
     ) from e
 
+from prov._warnings import external_stacklevel
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.identifier import QualifiedName
 from prov.model import (
@@ -470,7 +471,7 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
             f"{rec!r} has no value for {', '.join(unset)}; drawing the "
             "relation to a blank node",
             ProvWarning,
-            stacklevel=4,
+            stacklevel=external_stacklevel(),
         )
     other_attributes = [
         (attr_name, value)
@@ -480,12 +481,9 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
     add_attribute_annotation = state.show_relation_attributes and other_attributes
     add_nary_elements = len(nodes) > 2 and state.show_nary
     style = DOT_PROV_STYLE[rec.get_type()]
-    if len(nodes) < 2:  # too few elements for a relation?
-        warnings.warn(
-            f"Skipping {rec!r}: it has fewer than two element endpoints",
-            ProvWarning,
-            stacklevel=4,
-        )
+    if len(nodes) < 2:
+        # Defensive: every built-in relation yields at least two formal
+        # QNAME attributes, so this is unreachable in practice.
         return
 
     if add_nary_elements or add_attribute_annotation:

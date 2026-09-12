@@ -241,6 +241,23 @@ def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning():
     assert len(dot.get_edges()) == 1
 
 
+def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site():
+    from prov.model import ProvWarning
+
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    bundle = document.bundle("ex:b")
+    bundle.entity("ex:e1")
+    bundle.generation(entity="ex:e1", activity=None)
+    with pytest.warns(ProvWarning, match=r"Generation.*prov:activity") as record:
+        prov_to_dot(document)
+    assert len(record) == 1
+    # The extra _add_bundle frame nested bundles add must not change which
+    # frame the warning is attributed to: still this test module, not a
+    # frame inside prov.dot.
+    assert record[0].filename == __file__
+
+
 def test_complete_relation_draws_without_warning():
     import warnings
 
