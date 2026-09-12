@@ -13,6 +13,7 @@ References:
 """
 
 import typing
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from html import escape, unescape
@@ -58,6 +59,7 @@ from prov.model import (
     ProvEntity,
     ProvException,
     ProvRecord,
+    ProvWarning,
     sorted_attributes,
 )
 
@@ -458,6 +460,18 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
         strict=False,
     )
     inferred_types = list(map(INFERRED_ELEMENT_CLASS.get, attr_names))
+    unset = [
+        str(attr_name)
+        for attr_name, node in zip(attr_names[:2], nodes[:2], strict=False)
+        if node is None
+    ]
+    if unset:
+        warnings.warn(
+            f"{rec!r} has no value for {', '.join(unset)}; drawing the "
+            "relation to a blank node",
+            ProvWarning,
+            stacklevel=4,
+        )
     other_attributes = [
         (attr_name, value)
         for attr_name, value in rec.attributes
@@ -467,7 +481,12 @@ def _add_relation(state: _DotRenderState, dot: DotContainer, rec: ProvRecord) ->
     add_nary_elements = len(nodes) > 2 and state.show_nary
     style = DOT_PROV_STYLE[rec.get_type()]
     if len(nodes) < 2:  # too few elements for a relation?
-        return  # cannot draw this
+        warnings.warn(
+            f"Skipping {rec!r}: it has fewer than two element endpoints",
+            ProvWarning,
+            stacklevel=4,
+        )
+        return
 
     if add_nary_elements or add_attribute_annotation:
         formal = list(zip(attr_names, nodes, inferred_types, strict=False))

@@ -226,3 +226,29 @@ def test_quoted_label_escapes_double_quote():
 
     assert 'label="ex:e\\"1"' in dot_text
     assert len(dot.create(format="svg")) > 0
+
+
+def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning():
+    from prov.model import ProvWarning
+
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.generation(entity="ex:e1", activity=None)
+    with pytest.warns(ProvWarning, match=r"Generation.*prov:activity") as record:
+        dot = prov_to_dot(document)
+    assert sum(issubclass(w.category, ProvWarning) for w in record) == 1
+    assert len(dot.get_edges()) == 1
+
+
+def test_complete_relation_draws_without_warning():
+    import warnings
+
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e1")
+    document.activity("ex:a1")
+    document.wasGeneratedBy("ex:e1", "ex:a1")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        prov_to_dot(document)
