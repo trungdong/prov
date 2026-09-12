@@ -40,6 +40,10 @@ class NamespaceManager(dict[str, Namespace]):
         self.update(self._default_namespaces)
         self._namespaces: dict[str, Namespace] = {}
 
+        # String -> resolved QualifiedName. Cleared by every mutation that can
+        # change how a string resolves: add_namespace() and _set_default().
+        self._resolve_cache: dict[str, QualifiedName] = {}
+
         if default is not None:
             self.set_default_namespace(default)
         else:
@@ -91,8 +95,12 @@ class NamespaceManager(dict[str, Namespace]):
         Args:
             uri: The URI of the default namespace.
         """
-        self._default = Namespace("", uri)
-        self[""] = self._default
+        self._set_default(Namespace("", uri))
+
+    def _set_default(self, namespace: Namespace) -> None:
+        self._default = namespace
+        self[""] = namespace
+        self._resolve_cache.clear()
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
@@ -142,6 +150,7 @@ class NamespaceManager(dict[str, Namespace]):
             namespace = new_namespace
 
         # Only now add the namespace to the registry
+        self._resolve_cache.clear()
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
         self._uri_map[uri] = namespace
@@ -197,24 +206,30 @@ class NamespaceManager(dict[str, Namespace]):
             return None
         # Extract the URI string value if it is an identifier
         str_value = qname.uri if isinstance(qname, Identifier) else qname
+        cached = self._resolve_cache.get(str_value)
+        if cached is not None:
+            return cached
+        resolved = self._resolve_string(str_value, is_plain_str=isinstance(qname, str))
+        if resolved is None and self.parent:
+            # all attempts have failed so far
+            # now delegate this to the parent NamespaceManager
+            resolved = self.parent.valid_qualified_name(qname)
+        if resolved is not None:
+            self._resolve_cache[str_value] = resolved
+        return resolved
+
+    def _resolve_string(
+        self, str_value: str, is_plain_str: bool
+    ) -> QualifiedName | None:
         if str_value.startswith("_:"):
             # this is a blank node ID
             return None
-        elif ":" in str_value:
-            new_qname = self._resolve_prefixed_string(str_value)
-            if new_qname is not None:
-                return new_qname
-        elif self._default and isinstance(qname, str):
+        if ":" in str_value:
+            return self._resolve_prefixed_string(str_value)
+        if self._default and is_plain_str:
             # no colon in the identifier and a default namespace is defined,
             # create and return a qualified name in the default namespace
-            return self._default[qname]
-
-        if self.parent:
-            # all attempts have failed so far
-            # now delegate this to the parent NamespaceManager
-            return self.parent.valid_qualified_name(qname)
-
-        # Default to FAIL
+            return self._default[str_value]
         return None
 
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
@@ -225,8 +240,8 @@ class NamespaceManager(dict[str, Namespace]):
         if not prefix:
             # the namespace is a default namespace
             if self._default is None:
-                # no default namespace is defined, reused the one given
-                self._default = namespace
+                # no default namespace is defined, reuse the one given
+                self._set_default(namespace)
                 return qname  # no change, return the original
             elif self._default == namespace:
                 # the same default namespace is defined

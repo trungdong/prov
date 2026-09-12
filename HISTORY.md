@@ -24,6 +24,11 @@
 
 ### Performance
 
+- `NamespaceManager` caches string-to-`QualifiedName` resolutions per manager, cleared
+  whenever a namespace is added or the default namespace changes, so building or
+  deserialising a document no longer re-resolves the same identifier text for every
+  record that mentions it
+
 ### Fixes
 
 - PROV-N output escapes a leading `-` or `.` and a trailing `.` in a local part, as the
