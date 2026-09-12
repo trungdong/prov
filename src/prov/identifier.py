@@ -65,6 +65,8 @@ class Identifier:
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
     # into a subclass
 
+    __slots__ = ("_hash", "_uri")
+
     def __init__(self, uri: str):
         """Create an identifier for the given URI.
 
@@ -73,6 +75,7 @@ class Identifier:
                 already one.
         """
         self._uri: str = str(uri)  # Ensure this is a unicode string
+        self._hash = hash((self._uri, self.__class__))
 
     @property
     def uri(self) -> str:
@@ -86,7 +89,7 @@ class Identifier:
         return self.uri == other.uri if isinstance(other, Identifier) else False
 
     def __hash__(self) -> int:
-        return hash((self.uri, self.__class__))
+        return self._hash
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self._uri}>"
@@ -107,6 +110,8 @@ class QualifiedName(Identifier):
     hashing, and retrieval of individual components (namespace or local part).
     """
 
+    __slots__ = ("_localpart", "_namespace", "_str")
+
     def __init__(self, namespace: Namespace, localpart: str):
         """
         Initializes a new qualified name with the provided namespace and localpart
@@ -124,6 +129,7 @@ class QualifiedName(Identifier):
         self._str = (
             ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
         )
+        self._hash = hash(self._uri)
 
     @property
     def namespace(self) -> Namespace:
@@ -142,7 +148,7 @@ class QualifiedName(Identifier):
         return f"<{self.__class__.__name__}: {self._str}>"
 
     def __hash__(self) -> int:
-        return hash(self.uri)
+        return self._hash
 
     def provn_bare_representation(self) -> str:
         """Return the ``prefix:local`` PROV-N form used at IDENTIFIER positions.
@@ -168,6 +174,8 @@ class QualifiedName(Identifier):
 
 class Namespace:
     """PROV Namespace."""
+
+    __slots__ = ("_cache", "_prefix", "_uri")
 
     def __init__(self, prefix: str, uri: str):
         """Create a namespace with the given prefix and URI.
