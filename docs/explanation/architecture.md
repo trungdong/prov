@@ -48,12 +48,6 @@ Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implemen
 format names in insertion order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and
 {py:func}`prov.serializers.get` resolves a name to a class.
 
-PROV-N is read by a two-module parser in `prov.serializers.provn_lexer` (a tokeniser with
-line and column tracking) and `prov.serializers.provn_parser` (a recursive-descent parser,
-one function per grammar production, building records through `ProvBundle.new_record()`
-like the PROV-JSON deserializer). Three profiles, `strict`, `default` and `lenient`, decide
-how much beyond the W3C grammar the parser accepts.
-
 {py:func}`prov.read` reads a file, path or string without a `format` by trying the
 registered formats in that order until one succeeds, rewinding the stream between attempts
 where it can. The order is part of the contract, because `json` is tried first and it is
@@ -65,6 +59,50 @@ dependency (`rdf`, `xml`) are registered only if that dependency imports success
 Otherwise they are left out of the registry, so its shape depends on what is installed.
 Requesting a format that is not registered raises {py:class}`~prov.serializers.DoNotExist`,
 naming the extra to install when the format is one of the optional ones.
+
+### The PROV-N parser
+
+PROV-N is read by two pure-Python modules with no dependency, `prov.serializers.provn_lexer`
+and `prov.serializers.provn_parser`, wired into the registry by `prov.serializers.provn`.
+
+The lexer is a regex-driven scanner with an ordered token table. At each position it skips
+whitespace and comments, then tries the token classes in a fixed order and takes the first
+match. The order encodes the grammar's precedence rules. Delimited tokens (IRIs in angle
+brackets, quoted strings, quoted qualified names) come first, then `xsd:dateTime` before
+integers before qualified names, because a digit run can start any of the three and the
+Recommendation asks tokenisers to prefer the integer reading. One rule is context-sensitive.
+`@` starts a language tag only when the previous token was a string, since `@` is also a
+legal character inside a local name. The rule that a local name may contain but not end
+with `.` lives in the name regex itself, so the scanner never backtracks. The character
+classes are the same Unicode tables the PROV-XML serializer uses for NCNames, shared through
+`prov.identifier`. Every token carries its line and column.
+
+The parser is recursive descent with one token of lookahead. Every PROV-N statement begins
+with a keyword and every keyword is followed by `(`, so after one token the parser knows
+which rule it is in. Each grammar production is a method (document, declarations, bundle,
+statement, expression, attributes, literal), and the expression rule is table-driven rather
+than one method per keyword. A keyword maps to a record type and the set of legal argument
+counts; the positional arguments are read as a flat list, the count is checked, and each
+position is mapped onto the record class's `FORMAL_ATTRIBUTES` in order, with `-` markers
+omitted. Records are built through the same {py:meth}`~prov.model.ProvBundle.new_record`
+call the PROV-JSON deserializer uses, so literal typing and namespace handling are shared
+rather than reimplemented. The optional identifier before a relation's arguments, the one
+place the grammar needs a second token of lookahead, is handled by reading the first
+argument and then checking for `;`.
+
+The three profiles share one parser. The profile selects which keyword table is consulted
+(the Recommendation's keywords alone, or also the shorthand keywords and the bare
+`mentionOf` that `prov` and ProvToolbox write) and whether a required-position check rejects
+`-` where the grammar demands an identifier. The `lenient` profile adds panic-mode error
+recovery. When a statement fails, the parser records the error, skips tokens until it
+reaches a synchronisation point (a statement keyword followed by `(`, or a structural
+keyword such as `endBundle` at the statement's own bracket depth) and resumes; the skipped
+statements are reported as {py:class}`~prov.model.ProvWarning` by the serializer, attributed
+to the caller's frame.
+
+Errors are {py:class}`~prov.serializers.provn_lexer.ProvNSyntaxError` and carry the line and
+column of the token at fault. The tokens are produced eagerly, before any statement is
+parsed, so a tokenisation error is raised first in every profile.
 
 ## Extras
 
