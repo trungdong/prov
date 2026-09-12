@@ -68,7 +68,7 @@ from prov.constants import (
     PROV_USAGE,
     PROV_VALUE,
 )
-from prov.identifier import Namespace, QualifiedName, _provn_escape_local
+from prov.identifier import Namespace, QualifiedName, _provn_escape_local_and_warn
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -554,7 +554,9 @@ class ProvBundle:
             prefix = f"dn_{count}"
             count += 1
         extra_prefix = Namespace(prefix, id_namespace.uri)
-        localpart = _provn_escape_local(self._identifier.localpart)[0]
+        localpart = _provn_escape_local_and_warn(
+            self._identifier.localpart, self._identifier.uri
+        )
         return f"{prefix}:{localpart}", extra_prefix
 
     def _provn_namespace_lines(

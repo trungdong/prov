@@ -7,7 +7,14 @@ import io
 
 import pytest
 
-from prov.model import PROV_REC_CLS, Literal, ProvDocument, ProvException, ProvMention
+from prov.model import (
+    PROV_REC_CLS,
+    Literal,
+    ProvDocument,
+    ProvException,
+    ProvMention,
+    ProvWarning,
+)
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import (
     _ELEMENTS,
@@ -576,6 +583,23 @@ def test_bundle_header_prefix_avoids_a_taken_dn_prefix():
     assert "bundle dn_1:b1" in text
     assert "prefix dn_1 <http://doc.org/>" in text
     assert ProvDocument.deserialize(content=text, format="provn") == d
+
+
+def test_bundle_header_prefix_percent_encoding_warns_once():
+    # The synthesised "dn:" prefix and the percent-encoding of an
+    # unrepresentable character in the bundle's own identifier are two
+    # separate writer decisions on the same identifier; only one warning
+    # should reach the caller, via the same code path
+    # provn_bare_representation() uses.
+    d = ProvDocument()
+    d.set_default_namespace("http://doc.org/")
+    b = d.bundle("b 1")
+    b.set_default_namespace("http://bundle.org/")
+    b.entity("e1")
+    with pytest.warns(ProvWarning) as record:
+        text = d.get_provn()
+    assert "bundle dn:b%201" in text
+    assert len(record) == 1
 
 
 def test_namespace_uri_that_is_not_an_iri_cannot_be_written():

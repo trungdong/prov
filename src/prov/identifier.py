@@ -145,6 +145,29 @@ def _provn_escape_local(localpart: str) -> tuple[str, bool]:
     return "".join(parts), encoded
 
 
+def _provn_escape_local_and_warn(localpart: str, uri: str) -> str:
+    """Escape ``localpart`` for a PROV-N ``PN_LOCAL`` position, warning if that
+    changes the IRI a PROV-N reader recovers.
+
+    ``uri`` is the identifier's full URI, named in the warning so the caller
+    can find which identifier is affected. Shared by
+    :meth:`QualifiedName.provn_bare_representation` and the bundle-header
+    prefix path in :mod:`prov.model.bundle`, so both raise the same
+    :class:`~prov.model.ProvWarning` for the same reason rather than one of
+    them silently changing the IRI.
+    """
+    escaped, encoded = _provn_escape_local(localpart)
+    if encoded:
+        warnings.warn(
+            f"the local part {localpart!r} of <{uri}> contains a character PROV-N "
+            "cannot write; it is percent-encoded, which changes the IRI a PROV-N "
+            "reader recovers",
+            ProvWarning,
+            stacklevel=external_stacklevel(),
+        )
+    return escaped
+
+
 class Identifier:
     """Base class for all identifiers and also represents xsd:anyURI."""
 
@@ -299,15 +322,7 @@ class QualifiedName(Identifier):
                 "namespace with no prefix, which PROV-N cannot write; give the "
                 "namespace a prefix"
             )
-        escaped_localpart, encoded = _provn_escape_local(self._localpart)
-        if encoded:
-            warnings.warn(
-                f"the local part {self._localpart!r} of <{self._uri}> contains a "
-                "character PROV-N cannot write; it is percent-encoded, which changes "
-                "the IRI a PROV-N reader recovers",
-                ProvWarning,
-                stacklevel=external_stacklevel(),
-            )
+        escaped_localpart = _provn_escape_local_and_warn(self._localpart, self._uri)
         return (
             ":".join([self._namespace.prefix, escaped_localpart])
             if self._namespace.prefix
