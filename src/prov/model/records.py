@@ -396,7 +396,7 @@ class Literal:
     PROV-JSON/PROV-XML rules for language-tagged strings.
     """
 
-    __slots__ = ("_datatype", "_langtag", "_value")
+    __slots__ = ("__weakref__", "_datatype", "_langtag", "_value")
 
     # These fields are assign-once. They take part in equality and hashing,
     # so reassigning one after the object has been used as a set member or
@@ -446,6 +446,18 @@ class Literal:
 
     def __repr__(self) -> str:
         return f"<Literal: {self.provn_representation()}>"
+
+    def __getstate__(self) -> dict[str, Any]:
+        return {
+            "_value": self._value,
+            "_datatype": self._datatype,
+            "_langtag": self._langtag,
+        }
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        object.__setattr__(self, "_value", state["_value"])
+        object.__setattr__(self, "_datatype", state["_datatype"])
+        object.__setattr__(self, "_langtag", state["_langtag"])
 
     def __eq__(self, other: Any) -> bool:
         return (
