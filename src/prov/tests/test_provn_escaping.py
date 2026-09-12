@@ -3,9 +3,12 @@
 
 import pytest
 
-from prov.model import Literal, ProvDocument
+from prov.identifier import Namespace
+from prov.model import Literal, ProvDocument, ProvWarning
 
 METACHARS = "='(),:;[]"
+
+NS = Namespace("ex", "http://example.org/")
 
 
 def _doc():
@@ -111,6 +114,28 @@ def test_unrepresentable_chars_are_percent_encoded(local, escaped):
     reloaded = ProvDocument.deserialize(content=provn, format="provn")
     (reloaded_entity,) = reloaded.get_records()
     assert reloaded_entity.identifier.localpart == escaped
+
+
+def test_percent_encoding_warns_that_the_iri_changes():
+    with pytest.warns(ProvWarning, match="percent"):
+        assert NS["a b"].provn_bare_representation() == "ex:a%20b"
+
+
+def test_lone_surrogate_is_percent_encoded():
+    with pytest.warns(ProvWarning):
+        assert NS["e\udc80"].provn_bare_representation() == "ex:e%ED%B2%80"
+
+
+@pytest.mark.parametrize("first", ["·", "́", "‿"])
+def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first):
+    with pytest.warns(ProvWarning):
+        written = NS[first + "a"].provn_bare_representation()
+    assert written.startswith("ex:%")
+    doc = ProvDocument.deserialize(
+        content=f"document\n prefix ex <{NS.uri}>\n entity({written})\nendDocument",
+        format="provn",
+    )
+    assert len(list(doc.get_records())) == 1
 
 
 def test_empty_langtag_literal_written_as_plain_string():

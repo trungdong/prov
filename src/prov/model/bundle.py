@@ -6,6 +6,7 @@ import io
 import itertools
 import logging
 import os
+import re
 import shutil
 import tempfile
 from collections import defaultdict
@@ -67,7 +68,7 @@ from prov.constants import (
     PROV_USAGE,
     PROV_VALUE,
 )
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import Namespace, QualifiedName, _provn_escape_local
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -111,6 +112,22 @@ from prov.model.records import (
 )
 
 logger = logging.getLogger(__name__)
+
+_PROVN_IRI_FORBIDDEN = re.compile(r'[<>"{}|^`\\\x00-\x20]')
+
+
+def _check_provn_iri(namespace: Namespace) -> None:
+    """A namespace URI must be a PROV-N IRI_REF ([56]) to be declared."""
+    if _PROVN_IRI_FORBIDDEN.search(namespace.uri):
+        where = (
+            f"prefix '{namespace.prefix}'"
+            if namespace.prefix
+            else "the default namespace"
+        )
+        raise ProvException(
+            f"{where} has URI <{namespace.uri}>, which PROV-N cannot write as an IRI: "
+            'it contains a space, a control character or one of <>"{}|^`\\'
+        )
 
 
 # PROV-CONSTRAINTS (https://www.w3.org/TR/prov-constraints/) type compatibility
@@ -507,6 +524,70 @@ class ProvBundle:
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
 
+    def _provn_header_id(
+        self,
+        default_namespace: Namespace | None,
+        registered_namespaces: list[Namespace],
+    ) -> tuple[str, Namespace | None]:
+        """Return the bundle header's identifier text and, if needed, an
+        extra prefix declaration for its namespace.
+
+        A bare identifier in a namespace with no prefix would, on re-read,
+        resolve against the bundle's own default namespace (PROV-N 3.4.1)
+        rather than the namespace it was minted in. When those differ, this
+        mints a prefix for the identifier's namespace instead of writing the
+        identifier bare.
+        """
+        if self._identifier is None:
+            return "", None
+        id_namespace = self._identifier.namespace
+        if (
+            id_namespace.prefix
+            or default_namespace is None
+            or default_namespace.uri == id_namespace.uri
+        ):
+            return self._identifier.provn_bare_representation(), None
+        prefix = "dn"
+        taken = {ns.prefix for ns in registered_namespaces}
+        count = 1
+        while prefix in taken:
+            prefix = f"dn_{count}"
+            count += 1
+        extra_prefix = Namespace(prefix, id_namespace.uri)
+        localpart = _provn_escape_local(self._identifier.localpart)[0]
+        return f"{prefix}:{localpart}", extra_prefix
+
+    def _provn_namespace_lines(
+        self,
+        default_namespace: Namespace | None,
+        registered_namespaces: list[Namespace],
+        extra_prefix: Namespace | None,
+    ) -> list[str]:
+        """Return the header's ``default``/``prefix`` declaration lines.
+
+        Checks every namespace being declared is a legal PROV-N IRI first,
+        then a trailing blank line separates the declarations from the
+        assertions that follow, present only when there is at least one.
+        """
+        for namespace in (
+            ([default_namespace] if default_namespace else [])
+            + registered_namespaces
+            + ([extra_prefix] if extra_prefix else [])
+        ):
+            _check_provn_iri(namespace)
+
+        lines = [f"default <{default_namespace.uri}>"] if default_namespace else []
+        lines.extend(
+            f"prefix {namespace.prefix} <{namespace.uri}>"
+            for namespace in registered_namespaces
+        )
+        if extra_prefix is not None:
+            lines.append(f"prefix {extra_prefix.prefix} <{extra_prefix.uri}>")
+        if lines:
+            #  a blank line between the prefixes and the assertions
+            lines.append("")
+        return lines
+
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
 
@@ -521,27 +602,17 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        bundle_id = (
-            self._identifier.provn_bare_representation() if self._identifier else ""
+        default_namespace = self._namespaces.get_default_namespace()
+        registered_namespaces = list(self._namespaces.get_registered_namespaces())
+        bundle_id, extra_prefix = self._provn_header_id(
+            default_namespace, registered_namespaces
         )
         lines = ["document"] if self.is_document() else [f"bundle {bundle_id}"]
-
-        default_namespace = self._namespaces.get_default_namespace()
-        if default_namespace:
-            lines.append(f"default <{default_namespace.uri}>")
-
-        registered_namespaces = self._namespaces.get_registered_namespaces()
-        if registered_namespaces:
-            lines.extend(
-                [
-                    f"prefix {namespace.prefix} <{namespace.uri}>"
-                    for namespace in registered_namespaces
-                ]
+        lines.extend(
+            self._provn_namespace_lines(
+                default_namespace, registered_namespaces, extra_prefix
             )
-
-        if default_namespace or registered_namespaces:
-            #  a blank line between the prefixes and the assertions
-            lines.append("")
+        )
 
         #  adding all the records
         lines.extend([record.get_provn(strict=strict) for record in self._records])

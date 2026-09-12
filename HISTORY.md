@@ -67,6 +67,15 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   feed; a `bytearray` stream is decoded
 - The `lenient` PROV-N profile no longer swallows a `bundle` header or `endDocument` that
   follows a statement missing its closing bracket
+- PROV-N output names a bundle with a prefixed identifier when the bundle declares a default
+  namespace different from the one its identifier lives in, adding the prefix declaration
+  inside the bundle, so the identifier's IRI survives re-reading; a bare name was resolved
+  against the bundle's own default
+- The PROV-N writer warns with `ProvWarning` when it percent-encodes a character a local
+  part cannot express, encodes a lone surrogate instead of raising `UnicodeEncodeError`,
+  percent-encodes a leading character PN_LOCAL forbids first, raises `ProvException` for a
+  namespace URI that is not an IRI, and writes a datetime whose UTC offset is not a whole
+  number of minutes in UTC
 
 ## 3.2.0 (2026-09-12)
 

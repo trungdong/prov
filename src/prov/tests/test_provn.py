@@ -7,7 +7,7 @@ import io
 
 import pytest
 
-from prov.model import PROV_REC_CLS, Literal, ProvDocument, ProvMention
+from prov.model import PROV_REC_CLS, Literal, ProvDocument, ProvException, ProvMention
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import (
     _ELEMENTS,
@@ -546,3 +546,34 @@ def test_bytearray_stream_is_decoded():
     text = "document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument"
     doc = ProvDocument.deserialize(io.BytesIO(bytearray(text, "utf-8")), format="provn")
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
+
+
+def test_bundle_in_document_default_with_its_own_default_round_trips():
+    d = ProvDocument()
+    d.set_default_namespace("http://doc.org/")
+    b = d.bundle("b1")
+    b.set_default_namespace("http://bundle.org/")
+    b.entity("e1")
+    text = d.get_provn()
+    assert "bundle dn:b1" in text and "prefix dn <http://doc.org/>" in text
+    again = ProvDocument.deserialize(content=text, format="provn")
+    assert again == d
+    (bundle,) = again.bundles
+    assert bundle.identifier.uri == "http://doc.org/b1"
+
+
+def test_namespace_uri_that_is_not_an_iri_cannot_be_written():
+    d = ProvDocument()
+    d.add_namespace("bad", "http://example.org/a b/")
+    with pytest.raises(ProvException, match="bad"):
+        d.get_provn()
+
+
+def test_sub_minute_utc_offset_is_written_in_utc():
+    tz = datetime.timezone(datetime.timedelta(seconds=30))
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+    d.activity("ex:a1", datetime.datetime(2026, 9, 12, 10, 0, 30, tzinfo=tz))
+    text = d.get_provn()
+    assert "2026-09-12T10:00:00+00:00" in text
+    assert ProvDocument.deserialize(content=text, format="provn") == d
