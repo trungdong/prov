@@ -52,13 +52,16 @@ def _external_stacklevel() -> int:
 class ProvNSerializer(Serializer):
     """PROV-N serializer and deserializer for ProvDocument."""
 
-    def serialize(self, stream: io.IOBase, **args: Any) -> None:
+    def serialize(self, stream: io.IOBase, strict: bool = False, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-N <http://www.w3.org/TR/prov-n/>`_.
 
         Args:
             stream: Stream to write the output to. Text streams receive the
                 PROV-N text directly; other (binary) streams receive it
                 UTF-8-encoded.
+            strict: Write ``prov:mentionOf`` instead of the bare
+                ``mentionOf`` keyword so the output parses under the strict
+                PROV-N profile.
             **args: Unused; accepted for interface compatibility with
                 :meth:`Serializer.serialize`.
 
@@ -68,7 +71,7 @@ class ProvNSerializer(Serializer):
         if self.document is None:
             raise Exception("No document to serialize")
 
-        provn_content = self.document.get_provn()
+        provn_content = self.document.get_provn(strict=strict)
         stream.write(
             provn_content if _is_text_stream(stream) else provn_content.encode("utf-8")
         )

@@ -507,8 +507,15 @@ class ProvBundle:
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
 
-    def get_provn(self, _indent_level: int = 0) -> str:
-        """Return the PROV-N representation of the bundle."""
+    def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
+        """Return the PROV-N representation of the bundle.
+
+        Args:
+            _indent_level: Indentation level for nested bundles.
+            strict: Write ``prov:mentionOf`` instead of the bare
+                ``mentionOf`` keyword so the output parses under the strict
+                PROV-N profile.
+        """
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))
 
@@ -538,10 +545,13 @@ class ProvBundle:
             lines.append("")
 
         #  adding all the records
-        lines.extend([record.get_provn() for record in self._records])
+        lines.extend([record.get_provn(strict=strict) for record in self._records])
         if self.is_document():
             # Print out bundles
-            lines.extend(bundle.get_provn(_indent_level + 1) for bundle in self.bundles)
+            lines.extend(
+                bundle.get_provn(_indent_level + 1, strict=strict)
+                for bundle in self.bundles
+            )
         provn_str = newline.join(lines) + "\n"
 
         #  closing the structure

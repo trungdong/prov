@@ -16,6 +16,11 @@
   and column and resumes at the next statement
 - `prov.serializers.provn.ProvNSyntaxError` (a `ProvException`) reports the line, column
   and expectation of every syntax error
+- `get_provn(strict=True)` and `serialize(format="provn", strict=True)` write `prov:mentionOf`
+  instead of the bare `mentionOf` keyword, so the output parses under the strict profile;
+  the default output is unchanged
+- `prov-convert` gains `-i/--input-format`, so it reads PROV-N (or any other registered
+  format), not only PROV-JSON
 
 ### Performance
 

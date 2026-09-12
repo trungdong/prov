@@ -141,7 +141,7 @@ def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path):
 
 
 def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
-    # FileType('r') fails to open a nonexistent path *inside argparse*,
+    # FileType('rb') fails to open a nonexistent path *inside argparse*,
     # which calls parser.error() -> sys.exit(2); that SystemExit
     # propagates straight out of main() without being caught by the
     # `except Exception` handler.
@@ -158,7 +158,11 @@ def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
 
 def test_convert_version_exits_0(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["prov-convert", "--version"])
-    monkeypatch.setattr(sys, "stdout", io.StringIO())
+    # argparse's --version action exits before argument parsing reaches
+    # infile/outfile, but their defaults (sys.stdin.buffer/sys.stdout.buffer)
+    # are still evaluated when the arguments are added, so stdout needs a
+    # .buffer attribute here too.
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BytesIO()))
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 0
@@ -182,7 +186,7 @@ def test_convert_closes_files_even_when_conversion_fails(infile, tmp_path, monke
     outfile = tmp_path / "doc.xml"
     captured = {}
 
-    def spy_convert_file(in_stream, out_stream, output_format):
+    def spy_convert_file(in_stream, out_stream, output_format, input_format="json"):
         captured["infile"] = in_stream
         captured["outfile"] = out_stream
         raise RuntimeError("boom")
@@ -195,6 +199,57 @@ def test_convert_closes_files_even_when_conversion_fails(infile, tmp_path, monke
     assert rc == 2
     assert captured["infile"].closed
     assert captured["outfile"].closed
+
+
+@pytest.fixture
+def provn_infile(tmp_path):
+    path = tmp_path / "doc.provn"
+    primer_example().serialize(str(path), format="provn")
+    return path
+
+
+def test_convert_from_provn(provn_infile, tmp_path, monkeypatch):
+    outfile = tmp_path / "doc.json"
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prov-convert", "-i", "provn", "-f", "json", str(provn_infile), str(outfile)],
+    )
+    assert convert_main() == 0
+    assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
+
+
+def test_convert_from_xml(tmp_path, monkeypatch):
+    pytest.importorskip("lxml")
+    infile = tmp_path / "doc.xml"
+    primer_example().serialize(str(infile), format="xml")
+    outfile = tmp_path / "doc.json"
+    monkeypatch.setattr(
+        sys, "argv", ["prov-convert", "-i", "xml", str(infile), str(outfile)]
+    )
+    assert convert_main() == 0
+    assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
+
+
+def test_convert_unknown_input_format_exits_2(infile, tmp_path, monkeypatch, capsys):
+    outfile = tmp_path / "doc.json"
+    monkeypatch.setattr(
+        sys, "argv", ["prov-convert", "-i", "nope", str(infile), str(outfile)]
+    )
+    assert convert_main() == 2
+    assert "nope" in capsys.readouterr().err
+
+
+def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch):
+    outfile = tmp_path / "doc.json"
+    monkeypatch.setattr(sys, "argv", ["prov-convert", "-i", "provn", "-f", "json"])
+    monkeypatch.setattr(
+        sys, "stdin", io.TextIOWrapper(io.BytesIO(provn_infile.read_bytes()))
+    )
+    with outfile.open("wb") as out:
+        monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(out))
+        assert convert_main() == 0
+    assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
 
 
 @pytest.fixture
@@ -213,6 +268,21 @@ def test_equivalent_documents_return_0(compare_files, monkeypatch):
         sys,
         "argv",
         ["prov-compare", "-f", "json", "-F", "xml", str(json_file), str(xml_file)],
+    )
+    rc = compare_main()
+    assert rc == 0
+
+
+def test_compare_provn_to_json_returns_0(tmp_path, monkeypatch):
+    provn_file = tmp_path / "doc.provn"
+    json_file = tmp_path / "doc.json"
+    doc = primer_example()
+    doc.serialize(str(provn_file), format="provn")
+    doc.serialize(str(json_file), format="json")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prov-compare", "-f", "provn", "-F", "json", str(provn_file), str(json_file)],
     )
     rc = compare_main()
     assert rc == 0

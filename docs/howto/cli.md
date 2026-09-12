@@ -6,28 +6,25 @@ renders it as an image. `prov-compare` checks two documents for equivalence. Bot
 
 ## `prov-convert`
 
-Convert a PROV-JSON document to PROV-N, PROV-XML, PROV-O (RDF), PROV-JSONLD, or any image
-format Graphviz supports.
+Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O (RDF) and PROV-JSONLD,
+or render it as any image format Graphviz supports.
 
 ### Synopsis
 
 ```bash
-prov-convert [-h] [-f FORMAT] [-V] [infile] [outfile]
+prov-convert [-h] [-i INPUT_FORMAT] [-f FORMAT] [-V] [infile] [outfile]
 ```
 
 ### Options
 
 | Flag | Argument | Default | Meaning |
 | --- | --- | --- | --- |
+| `-i`, `--input-format` | `INPUT_FORMAT` | `json` | Input format: `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-f`, `--format` | `FORMAT` | `json` | Output format: `json`, `xml`, `rdf`, `jsonld`, `provn`, or any Graphviz output format such as `svg`, `pdf` or `png` |
 | `-V`, `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print usage and exit |
-| `infile` | | stdin | Input file, always read as PROV-JSON |
+| `infile` | | stdin | Input file, read in `--input-format` |
 | `outfile` | | stdout | Output file, written in `--format` |
-
-There is no flag for the input format. The input is always read as PROV-JSON. To convert
-from another format, load the document in Python and serialize it with
-{py:meth}`~prov.model.ProvDocument.serialize`, as the format guides show.
 
 Image formats need the `dot` extra and a local Graphviz install. See {doc}`graphics`.
 
@@ -37,6 +34,12 @@ Convert a PROV-JSON file to PROV-N:
 
 ```bash
 prov-convert -f provn document.json document.provn
+```
+
+Convert a PROV-N file to PROV-JSON:
+
+```bash
+prov-convert -i provn -f json document.provn document.json
 ```
 
 Convert a PROV-JSON file to an SVG diagram:
@@ -80,8 +83,8 @@ prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] [file1] [file2]
 
 | Flag | Argument | Default | Meaning |
 | --- | --- | --- | --- |
-| `-f`, `--format1` | `FORMAT1` | `json` | Format of `file1`: `json`, `xml`, `rdf` or `jsonld` |
-| `-F`, `--format2` | `FORMAT2` | `json` | Format of `file2`: `json`, `xml`, `rdf` or `jsonld` |
+| `-f`, `--format1` | `FORMAT1` | `json` | Format of `file1`: `json`, `xml`, `rdf`, `jsonld` or `provn` |
+| `-F`, `--format2` | `FORMAT2` | `json` | Format of `file2`: `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-V`, `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print usage and exit |
 | `file1`, `file2` | | | The two files to compare |

@@ -320,7 +320,7 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
 def test_prov_n_spec_examples_parse_strictly_and_round_trip(path):
     document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
     reloaded = ProvDocument.deserialize(
-        content=document.get_provn(), format="provn", profile="default"
+        content=document.get_provn(strict=True), format="provn", profile="strict"
     )
     assert reloaded == document
 
@@ -329,7 +329,7 @@ def test_prov_n_spec_examples_parse_strictly_and_round_trip(path):
 def test_prov_dm_spec_examples_parse_strictly_and_round_trip(path):
     document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
     reloaded = ProvDocument.deserialize(
-        content=document.get_provn(), format="provn", profile="default"
+        content=document.get_provn(strict=True), format="provn", profile="strict"
     )
     assert reloaded == document
 

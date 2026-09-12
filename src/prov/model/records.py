@@ -958,8 +958,14 @@ class ProvRecord:
     def __str__(self) -> str:
         return self.get_provn()
 
-    def get_provn(self) -> str:
-        """Return the PROV-N representation of the record."""
+    def get_provn(self, strict: bool = False) -> str:
+        """Return the PROV-N representation of the record.
+
+        Args:
+            strict: Write ``prov:mentionOf`` instead of the bare
+                ``mentionOf`` keyword so the output parses under the strict
+                PROV-N profile.
+        """
         items = []
 
         # Generating identifier
@@ -1007,11 +1013,13 @@ class ProvRecord:
             # .format(), not an f-string: the nested string literals reuse the
             # same quote character, which f-strings only allow from py3.12 (PEP 701)
             items.append("[{}]".format(", ".join(extra)))
-        prov_n = "{}({}{})".format(
-            PROV_N_MAP[self.get_type()],
-            relation_id,
-            ", ".join(items),
-        )
+        keyword = PROV_N_MAP[self.get_type()]
+        if strict and self.get_type() == PROV_MENTION:
+            # The Recommendation grammar has no Mention; PROV-Links writes it
+            # as prov:mentionOf. The default keeps the bare keyword ProvToolbox
+            # reads (#248).
+            keyword = "prov:mentionOf"
+        prov_n = "{}({}{})".format(keyword, relation_id, ", ".join(items))
         return prov_n
 
     def is_element(self) -> bool:
