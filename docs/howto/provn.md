@@ -71,7 +71,9 @@ document = pm.ProvDocument.deserialize("document.provn", format="provn", profile
 Use `strict` to check that a document conforms to the Recommendation, `default` for
 files other tools wrote, and `lenient` to salvage what a damaged file still holds. The
 lenient profile recovers from parse errors and from statements the model rejects; a
-tokenisation error, such as an unterminated string, IRI or comment, still raises.
+tokenisation error, such as an unterminated string, IRI or comment, still raises. A
+duplicate prefix declaration and a tokenisation error still raise in every profile; a
+bundle whose identifier is already taken is skipped whole under `lenient`.
 
 ## Handle syntax errors
 

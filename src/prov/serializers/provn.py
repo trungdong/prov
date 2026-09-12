@@ -65,8 +65,8 @@ class ProvNSerializer(Serializer):
             ValueError: If ``profile`` is not one of :data:`PROFILES`.
         """
         content = stream.read()
-        if isinstance(content, bytes):
-            content = content.decode("utf-8")
+        if isinstance(content, (bytes, bytearray)):
+            content = bytes(content).decode("utf-8")
         parser = ProvNParser(content, profile)
         document = parser.parse()
         # Warned here, not inside the parser, so a single stacklevel

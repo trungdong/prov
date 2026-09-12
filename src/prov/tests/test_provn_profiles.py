@@ -345,3 +345,44 @@ def test_lenient_warning_reports_the_read_call_site(tmp_path):
     prov_warnings = [w for w in caught if w.category is ProvWarning]
     assert len(prov_warnings) == 1
     assert prov_warnings[0].filename == __file__
+
+
+def test_lenient_resync_stops_at_a_bundle_header_after_an_unclosed_statement():
+    body = 'entity(ex:e, [ex:a="x"\nbundle ex:b\n  entity(ex:f)\nendBundle'
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    assert records(doc) == []
+    (bundle,) = doc.bundles
+    assert [str(r.identifier) for r in records(bundle)] == ["ex:f"]
+
+
+def test_lenient_resync_stops_at_end_document_after_an_unclosed_statement():
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse("entity(", profile="lenient")
+    assert len(caught) == 1
+    assert records(doc) == []
+
+
+def test_lenient_skips_a_duplicate_bundle_whole():
+    body = "bundle ex:b\n  entity(ex:e1)\nendBundle\nbundle ex:b\n  entity(ex:e2)\nendBundle\nentity(ex:e3)"
+    with pytest.warns(ProvWarning, match="already exists") as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    (bundle,) = doc.bundles
+    assert [str(r.identifier) for r in records(bundle)] == ["ex:e1"]
+    assert [str(r.identifier) for r in records(doc)] == ["ex:e3"]
+
+
+@pytest.mark.parametrize("profile", ["strict", "default"])
+def test_structural_keyword_shaped_data_still_parses(profile):
+    """The lookahead that stops an unclosed statement from swallowing a
+    following 'bundle'/'endDocument' as data (see
+    test_lenient_resync_stops_at_end_document_after_an_unclosed_statement)
+    only rejects a bare structural keyword not followed by ',', ')' or ';';
+    a genuine identifier or argument spelt the same way still parses."""
+    body = "default <http://example.org/>\nentity(bundle)\nused(ex:a, endBundle, -)"
+    doc = parse(body, profile=profile)
+    ids = sorted(str(r.identifier) for r in records(doc) if r.identifier is not None)
+    assert ids == ["bundle"]
+    assert len(records(doc)) == 2

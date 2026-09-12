@@ -3,6 +3,7 @@ forms, error paths and equality with documents the writer produced.
 Profile behaviour (default, lenient) is in test_provn_profiles.py."""
 
 import datetime
+import io
 
 import pytest
 
@@ -501,3 +502,47 @@ def test_writer_output_parses_to_an_equal_document(build):
     doc = build()
     reloaded = ProvNParser(doc.get_provn(), "default").parse()
     assert reloaded == doc
+
+
+def test_duplicate_prefix_in_one_scope_is_an_error():
+    with pytest.raises(ProvNSyntaxError, match="prefix 'ex' is declared twice") as ctx:
+        parse(
+            "entity(ex:e1)",
+            prefixes="prefix ex <http://a.org/>\nprefix ex <http://b.org/>\n",
+        )
+    assert (ctx.value.line, ctx.value.column) == (3, 8)
+
+
+def test_escaped_colon_literal_needs_a_default_namespace():
+    with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
+        parse(r"entity(ex:e1, [ex:k='a\:b'])")
+
+
+def test_duplicate_bundle_identifier_is_a_positioned_syntax_error():
+    with pytest.raises(ProvNSyntaxError, match="already exists") as ctx:
+        parse("bundle ex:b\nendBundle\nbundle ex:b\nendBundle")
+    assert ctx.value.line == 6
+
+
+@pytest.mark.parametrize(
+    "body",
+    ['entity(ex:e1, [123="x"])', 'entity(ex:e1, [ex:a="x" %% 123])'],
+)
+def test_all_digit_local_names_in_attribute_positions(body):
+    doc = parse(body, prefixes=PREFIXES + "default <http://d/>\n")
+    (record,) = doc.get_records()
+    assert record.attributes
+
+
+def test_leading_byte_order_mark_is_skipped():
+    doc = ProvDocument.deserialize(
+        content="﻿document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument",
+        format="provn",
+    )
+    assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
+
+
+def test_bytearray_stream_is_decoded():
+    text = "document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument"
+    doc = ProvDocument.deserialize(io.BytesIO(bytearray(text, "utf-8")), format="provn")
+    assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
