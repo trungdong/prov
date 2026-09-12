@@ -1,11 +1,8 @@
 # History
 
-## 3.2.1 (2026-09-12)
+## 3.2.1 (2026-09-13)
 
-3.2.1 is a point release that corrects what a by-eye verification of the 3.2.0 PROV-N
-parser against ProvToolbox and PLEAD documents found: the `default` profile, the
-`lenient` profile's warnings, the PROV-XML and PROV-JSONLD readers on ProvToolbox output,
-and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
+3.2.1 is a bug-fix release. No API, dependency or Python-floor changes.
 
 ### Fixes
 
@@ -159,7 +156,6 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - `ProvDocument.deserialize()` reads a path source as UTF-8 in binary mode, matching how
   `serialize()` writes one, instead of the text mode locale encoding, which could raise
   `UnicodeDecodeError` or read non-ASCII content back wrongly under a non-UTF-8 locale
-  ([#341](https://github.com/trungdong/prov/issues/341))
 
 ### Tests
 
