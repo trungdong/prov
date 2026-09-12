@@ -360,19 +360,29 @@ class ProvNParser:
 
         A statement missing a closing ``)``/``]`` leaves ``self._depth``
         above ``start_depth`` forever, since ``_advance()`` only lowers it
-        on a matching close. Gating on depth would then reject every
-        statement keyword that follows, so instead this trusts
-        ``_looks_like_statement_start()`` on its own: a statement keyword
-        or structural keyword can only legally start a new statement, never
-        appear inside one, so finding one is resync enough by itself.
-        Finding it forces the depth back down to what it was where the
-        failed statement started, clearing whatever imbalance it left.
+        on a matching close. Gating every boundary on depth would then
+        reject every statement keyword that follows, so a statement
+        keyword immediately followed by ``(`` is trusted at any depth (it
+        is never legal inside a statement body) and forces the depth back
+        down to where the failed statement started, clearing whatever
+        imbalance it left.
+
+        A bare structural keyword (``document``, ``bundle``, ...) is not
+        followed by ``(``, so it cannot be told apart this way from the
+        same word used as an ordinary attribute value (e.g.
+        ``[ex:k=bundle]``); that case is still gated on depth, since only
+        the failed statement's own nesting can tell them apart.
         """
         while self._current.kind is not TokenKind.EOF:
             token = self._current
-            if token.kind is TokenKind.NAME and self._looks_like_statement_start(token):
-                self._depth = start_depth
-                return
+            if token.kind is TokenKind.NAME:
+                prefix, local = token.value
+                if not prefix and local in _STRUCTURAL:
+                    if self._depth <= start_depth:
+                        return
+                elif self._looks_like_statement_start(token):
+                    self._depth = start_depth
+                    return
             self._advance()
 
     # -- expressions -------------------------------------------------------------

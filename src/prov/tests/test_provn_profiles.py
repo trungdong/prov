@@ -185,6 +185,19 @@ def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle():
     assert sorted(str(r.identifier) for r in records(bundle)) == ["ex:e2", "ex:e3"]
 
 
+def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value():
+    # A structural keyword (here 'bundle') used as a bare attribute value
+    # inside the failed statement's still-open '[...]' is not a resync
+    # boundary just because it matches by name -- unlike an element/relation
+    # keyword, it is never followed by '(', so it can only be told apart
+    # from a real boundary by depth.
+    body = "entity(ex:e1, [ex:k=bundle]\nentity(ex:e2)\nentity(ex:e3)"
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert len(caught) == 1
+    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
+
+
 def test_strict_and_default_do_not_warn():
     with warnings.catch_warnings():
         warnings.simplefilter("error")
