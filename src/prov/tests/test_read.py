@@ -276,3 +276,41 @@ def test_read_auto_detect_nonexistent_path_type_error_has_both_hints():
     message = str(ctx.value)
     assert "specify the format" in message
     assert "raw content" in message
+
+
+def test_read_auto_detects_provn():
+    text = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
+    document = prov.read(text)
+    assert [str(r.identifier) for r in document.get_records()] == ["ex:e1"]
+
+
+def test_read_passes_profile_through(tmp_path):
+    path = tmp_path / "doc.provn"
+    path.write_text(
+        "document\n  prefix ex <http://example.org/>\n"
+        "  mentionOf(ex:e1, ex:e0, ex:b)\nendDocument"
+    )
+    from prov.serializers.provn import ProvNSyntaxError
+
+    with pytest.raises(ProvNSyntaxError):
+        prov.read(str(path), format="provn", profile="strict")
+    assert prov.read(str(path), format="provn") is not None
+
+
+def test_read_auto_detect_forwards_kwargs_only_to_provn(document):
+    # profile= is provn-specific; json/xml/rdf/jsonld deserializers don't
+    # accept it and must not be broken by it during auto-detection.
+    json_text = document.serialize(format="json")
+    assert prov.read(json_text, profile="lenient") == document
+
+
+def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips():
+    from prov.model import ProvWarning
+
+    text = (
+        "document\n  prefix ex <http://example.org/>\n"
+        "  foo(ex:e1)\n  entity(ex:e2)\nendDocument"
+    )
+    with pytest.warns(ProvWarning, match="unknown statement keyword 'foo'"):
+        document = prov.read(text, profile="lenient")
+    assert [str(r.identifier) for r in document.get_records()] == ["ex:e2"]

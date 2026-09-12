@@ -280,16 +280,12 @@ def test_reading_and_writing_to_file_like_objects():
 
     for obj in objects:
         for format in formats:
+            buf = obj()
             try:
-                buf = obj()
                 document.serialize(destination=buf, format=format)
                 buf.seek(0, 0)
                 new_document = ProvDocument.deserialize(source=buf, format=format)
                 assert document == new_document
-            except NotImplementedError:
-                # Some serializers might not implement serialize or
-                # deserialize method
-                pass  # and this is fine in the context of this test
             finally:
                 buf.close()
 

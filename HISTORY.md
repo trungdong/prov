@@ -4,6 +4,19 @@
 
 ### PROV-N
 
+- PROV-N can now be read as well as written: `ProvDocument.deserialize(format="provn")`,
+  `prov.read()` (including auto-detection) and `prov-compare` accept PROV-N text, parsed
+  by a hand-written recursive-descent parser with no new dependency
+  ([#122](https://github.com/trungdong/prov/issues/122))
+- Three parsing profiles, selected with `profile=`: `strict` accepts the W3C grammar only;
+  `default` also accepts the bare `mentionOf` keyword and the shorthand keywords
+  (`person`, `organization`, `softwareAgent`, `collection`, `emptyCollection`, `plan`,
+  `wasRevisionOf`, `wasQuotedFrom`, `hadPrimarySource`) that `prov` and ProvToolbox write;
+  `lenient` skips any statement that fails to parse with a `ProvWarning` naming its line
+  and column and resumes at the next statement
+- `prov.serializers.provn.ProvNSyntaxError` (a `ProvException`) reports the line, column
+  and expectation of every syntax error
+
 ### Performance
 
 ### Fixes
