@@ -67,6 +67,17 @@ class AnonymousIDGenerator:
 class ProvJSONSerializer(Serializer):
     """PROV-JSON serializer for :class:`~prov.model.ProvDocument`."""
 
+    deserialize_options = frozenset(
+        {
+            "object_hook",
+            "object_pairs_hook",
+            "parse_float",
+            "parse_int",
+            "parse_constant",
+        }
+    )
+    """The :func:`json.load` options :meth:`deserialize` forwards."""
+
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSON <https://openprovenance.org/prov-json/>`_.
 

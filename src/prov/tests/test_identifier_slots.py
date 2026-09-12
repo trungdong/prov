@@ -95,6 +95,40 @@ def test_setstate_accepts_a_pre_3_2_dict_state():
     assert lit == Literal("1", XSD_INT)
 
 
+@pytest.mark.parametrize(
+    ("cls", "slots"),
+    [
+        (Identifier, {"_hash": 1, "_uri": "http://example.org/e1"}),
+        (
+            QualifiedName,
+            {
+                "_hash": 1,
+                "_uri": "http://example.org/e1",
+                "_namespace": NS,
+                "_localpart": "e1",
+                "_str": "ex:e1",
+            },
+        ),
+        (Namespace, {"_prefix": "ex", "_uri": "http://example.org/", "_cache": {}}),
+        (Literal, {"_value": "1", "_datatype": XSD_INT, "_langtag": None}),
+    ],
+    ids=lambda v: getattr(v, "__name__", ""),
+)
+def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots):
+    # 3.2.0 had __slots__ without __getstate__, so its pickles carry the
+    # (dict_state, slot_state) tuple Python builds for slotted objects.
+    obj = cls.__new__(cls)
+    obj.__setstate__((None, slots))
+    expected = {
+        Identifier: Identifier("http://example.org/e1"),
+        QualifiedName: NS["e1"],
+        Namespace: Namespace("ex", "http://example.org/"),
+        Literal: Literal("1", XSD_INT),
+    }[cls]
+    assert obj == expected
+    assert hash(obj) == hash(expected)
+
+
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
 def test_weak_references_are_supported(obj):
     assert weakref.ref(obj)() is obj

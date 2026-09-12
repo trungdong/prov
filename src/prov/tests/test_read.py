@@ -338,9 +338,18 @@ def test_declared_options_per_serializer():
 
     Registry.load_serializers()
     assert Registry.serializers["provn"].deserialize_options == frozenset({"profile"})
-    assert Registry.serializers["json"].deserialize_options == frozenset()
+    assert "parse_float" in Registry.serializers["json"].deserialize_options
+    assert "parse_float" in Registry.serializers["jsonld"].deserialize_options
     if "rdf" in Registry.serializers:
         assert "rdf_format" in Registry.serializers["rdf"].deserialize_options
+
+
+def test_read_forwards_json_load_options():
+    import decimal
+
+    text = primer_example().serialize(format="json")
+    doc = prov.read(text, format="json", parse_float=decimal.Decimal)
+    assert doc == primer_example()
 
 
 def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path):

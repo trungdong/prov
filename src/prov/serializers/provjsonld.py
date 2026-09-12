@@ -14,7 +14,7 @@ from importlib.resources import files
 from typing import Any
 
 from prov import Error
-from prov._warnings import ProvWarning, external_stacklevel
+from prov._warnings import external_stacklevel
 from prov.constants import (
     PROV_ATTR_ENTITY,
     PROV_ATTRIBUTE_LITERALS,
@@ -41,6 +41,7 @@ from prov.model import (
     ProvDocument,
     ProvElement,
     ProvRecord,
+    ProvWarning,
     QualifiedNameCandidate,
     canonical_xsd_datatype,
     first,
@@ -725,6 +726,17 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
 
 class ProvJSONLDSerializer(Serializer):
     """PROV-JSONLD serializer for :class:`~prov.model.ProvDocument`."""
+
+    deserialize_options = frozenset(
+        {
+            "object_hook",
+            "object_pairs_hook",
+            "parse_float",
+            "parse_int",
+            "parse_constant",
+        }
+    )
+    """The :func:`json.load` options :meth:`deserialize` forwards."""
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_.

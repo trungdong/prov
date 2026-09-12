@@ -2,7 +2,8 @@
 
 ## 3.2.1 (2026-09-13)
 
-3.2.1 is a bug-fix release. No API, dependency or Python-floor changes.
+3.2.1 is a bug-fix release. No dependency or Python-floor changes; one additive class
+attribute, `Serializer.deserialize_options`.
 
 ### Fixes
 
@@ -43,7 +44,7 @@
   reference) are attributed to the caller of `deserialize()` or `prov.read()` rather than to
   a frame inside `prov`, as the PROV-N reader's already are
 - `Identifier`, `QualifiedName`, `Namespace` and `Literal` pickle under every protocol,
-  load pickles written by earlier releases, and recompute their hash when loaded, so an
+  load pickles written by 3.1.1 and by 3.2.0, and recompute their hash when loaded, so an
   object unpickled in another process (a `multiprocessing` worker, a disk cache) matches
   equal objects in sets and dicts again; `weakref.ref` works on them. 3.2.0's `__slots__`
   had pickled the stored hash and broken protocols 0 and 1
@@ -70,13 +71,15 @@
   against the bundle's own default
 - The PROV-N writer warns with `ProvWarning` when it percent-encodes a character a local
   part cannot express, encodes a lone surrogate instead of raising `UnicodeEncodeError`,
-  percent-encodes a leading character PN_LOCAL forbids first, raises `ProvException` for a
-  namespace URI that is not an IRI, and writes a datetime whose UTC offset is not a whole
-  number of minutes in UTC
+  percent-encodes a leading character PN_LOCAL forbids first, and raises `ProvException` for
+  a namespace URI that is not an IRI
 - `prov.read()` forwards each deserializer the options it declares (`profile` for PROV-N;
   `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O), so auto-detection can
   read non-TriG RDF with `rdf_format`, and an option a format does not accept raises a
   `TypeError` naming the format and its options instead of a JSON or rdflib error
+- `prov.read()` forwards the `json.load` options (`object_hook`, `object_pairs_hook`,
+  `parse_float`, `parse_int`, `parse_constant`) to the PROV-JSON and PROV-JSONLD
+  deserializers, which document them
 - The PROV-O deserializer warns with `ProvWarning` when it mints a prefix for an attribute
   predicate under a namespace declared neither in the document nor in the graph; 3.2.0
   minted it silently where 3.1.1 raised
@@ -84,8 +87,8 @@
   `hadMember` records with a `ProvWarning`, since records sharing one identifier cannot be
   unified; with one member the `@id` is kept
 - `prov-convert` and `prov-compare` accept a text-only standard stream for `-`
-- Every serializer writes a datetime whose UTC offset is not a whole number of minutes in
-  UTC, since `xsd:dateTime` allows no seconds in an offset
+- Every serializer converts to UTC a datetime whose offset is not a whole number of
+  minutes, since `xsd:dateTime` allows no seconds in an offset
 
 ## 3.2.0 (2026-09-12)
 

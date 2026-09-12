@@ -4,7 +4,6 @@ import re
 import warnings
 from typing import Any, Final
 
-from prov import Error
 from prov._warnings import ProvWarning, external_stacklevel
 
 __author__ = "Trung Dong Huynh"
@@ -92,6 +91,19 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     + "]"
     + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
+
+
+def _slot_state(state: Any) -> dict[str, Any]:
+    """Normalise a pickled state to a dict.
+
+    Pickles from 3.1.1 carry the instance ``__dict__``; pickles from 3.2.0,
+    whose classes had ``__slots__`` but no ``__getstate__``, carry the
+    ``(dict_state, slot_state)`` tuple Python builds for slotted objects.
+    """
+    if isinstance(state, tuple):
+        dict_state, slot_state = state
+        return {**(dict_state or {}), **(slot_state or {})}
+    return dict(state)
 
 
 def _escape_local_char(
@@ -201,8 +213,10 @@ class Identifier:
         which :meth:`__setstate__` recomputes in the loading process."""
         return {"_uri": self._uri}
 
-    def __setstate__(self, state: dict[str, Any]) -> None:
-        # Also accepts the __dict__ state of pickles written before 3.2.0.
+    def __setstate__(self, state: Any) -> None:
+        # Also accepts the __dict__ state of 3.1.1 pickles and the
+        # (dict_state, slot_state) tuple of 3.2.0 pickles.
+        state = _slot_state(state)
         object.__setattr__(self, "_uri", state["_uri"])
         object.__setattr__(self, "_hash", self._compute_hash())
 
@@ -279,7 +293,8 @@ class QualifiedName(Identifier):
             "_str": self._str,
         }
 
-    def __setstate__(self, state: dict[str, Any]) -> None:
+    def __setstate__(self, state: Any) -> None:
+        state = _slot_state(state)
         object.__setattr__(self, "_namespace", state["_namespace"])
         object.__setattr__(self, "_localpart", state["_localpart"])
         object.__setattr__(self, "_str", state["_str"])
@@ -313,11 +328,15 @@ class QualifiedName(Identifier):
         The prefix is never escaped, as it cannot contain these characters.
 
         Raises:
-            Error: If the local part is empty and the namespace has no prefix,
-                which has no PROV-N spelling.
+            ProvException: If the local part is empty and the namespace has no
+                prefix, which has no PROV-N spelling.
         """
         if not self._localpart and not self._namespace.prefix:
-            raise Error(
+            # Imported here, not at module level, to avoid a cycle:
+            # prov.model.records imports prov.identifier.
+            from prov.model.records import ProvException
+
+            raise ProvException(
                 f"the qualified name for <{self._uri}> has an empty local part in a "
                 "namespace with no prefix, which PROV-N cannot write; give the "
                 "namespace a prefix"
@@ -432,9 +451,11 @@ class Namespace:
         """Pickle state without the interning cache, which is rebuilt lazily."""
         return {"_prefix": self._prefix, "_uri": self._uri}
 
-    def __setstate__(self, state: dict[str, Any]) -> None:
-        # Also accepts the __dict__ state of pickles written before 3.2.0,
-        # which carries the cache; it is discarded.
+    def __setstate__(self, state: Any) -> None:
+        # Also accepts the __dict__ state of 3.1.1 pickles and the
+        # (dict_state, slot_state) tuple of 3.2.0 pickles; either way any
+        # cache carried in the state is discarded and rebuilt lazily.
+        state = _slot_state(state)
         object.__setattr__(self, "_prefix", state["_prefix"])
         object.__setattr__(self, "_uri", state["_uri"])
         object.__setattr__(self, "_cache", {})
