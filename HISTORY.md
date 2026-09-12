@@ -77,6 +77,10 @@
 ### Project
 
 - A benchmark suite under `benchmarks/` with a non-blocking CI job that fails on a 20% regression against a committed baseline
+- `pre-commit run --all-files` passes on a clean checkout: the vendored W3C schemas are
+  excluded from the whitespace hooks and the Codacy configuration file ends with a newline
+- The citation tests skip from an installed wheel when either repository metadata file is
+  absent
 
 ## 3.1.1 (2026-09-10)
 
