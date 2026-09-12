@@ -23,6 +23,10 @@
 
 ### Tests
 
+- The shared round-trip suite and the Hypothesis round-trip property now cover PROV-N,
+  so every statement form, attribute datatype and qualified-name shape is written and
+  read back through the new parser
+
 ### Documentation
 
 ### Project
