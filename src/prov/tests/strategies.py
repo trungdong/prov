@@ -45,6 +45,16 @@ EX_NS = Namespace("ex", NAMESPACES["ex"])
 # separately by the hand-written cases in test_provn_escaping.py. Non-ASCII
 # deliberately lives in the string attribute *values* below (criterion 1),
 # never in identifiers.
+#
+# A space and the characters < > " { } | ^ ` \ never appear here either:
+# PROV-N's PN_LOCAL ([53]) cannot express them even escaped, so
+# provn_bare_representation() percent-encodes them, and a percent-encoded
+# local part does not round-trip to an *equal* QualifiedName (the local part
+# changes, e.g. "a b" to "a%20b") -- a documented exclusion, not a bug (see
+# the pinning test in test_provn_escaping.py). '-', '.' and '%' are excluded
+# too: PN_LOCAL forbids a bare '-'/'.' as the first character and a bare '.'
+# as the last, and a bare '%' must be followed by two hex digits, all
+# positional rules this fixed-alphabet generator cannot express.
 local_part = st.text(
     alphabet=string.ascii_lowercase + string.digits + "='(),:;[]",
     min_size=1,

@@ -1,18 +1,45 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
+import re
 from typing import Any
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
-# PROV-N metacharacters that must be backslash-escaped in the local part of a
-# qualified name (grammar production [55] PN_CHARS_ESC, #223). PN_CHARS_ESC
-# also lists '-' and '.' as escapable, but both are otherwise legal unescaped
-# there ('-' is a PN_CHARS character; '.' is legal unescaped except as the
-# final character of PN_LOCAL) so they are left untouched here -- only the
-# nine characters that are illegal unescaped anywhere in a local part are
-# escaped.
-_PROVN_LOCAL_ESCAPE = str.maketrans({c: f"\\{c}" for c in "='(),:;[]"})
+# PROV-N metacharacters that must be backslash-escaped anywhere in the local
+# part of a qualified name (grammar production [55] PN_CHARS_ESC, #223).
+_PROVN_LOCAL_METACHARS = "='(),:;[]"
+# PN_CHARS_ESC also lists '-' and '.' as escapable, but PN_LOCAL ([53]) only
+# forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
+# last character; elsewhere both are ordinary PN_CHARS and stay unescaped.
+_PROVN_LOCAL_LEADING_ESCAPE = "-."
+# Characters PN_LOCAL cannot express at all, even escaped: percent-encode
+# them ([54]'s PERCENT), which is valid PROV-N and, since the lexer keeps
+# percent-encoding verbatim, reads back as the literal text "%XX" rather than
+# the original character -- a documented, deliberate exclusion (see
+# strategies.py's local_part comment), not a round trip.
+_PROVN_LOCAL_PERCENT_ENCODE = ' <>"{}|^`\\'
+_PROVN_HEX_PAIR = re.compile(r"[0-9A-Fa-f]{2}")
+
+
+def _provn_escape_local(localpart: str) -> str:
+    """Return ``localpart`` escaped for use in a PROV-N ``PN_LOCAL`` position."""
+    last_index = len(localpart) - 1
+    parts = []
+    for i, char in enumerate(localpart):
+        if char in _PROVN_LOCAL_PERCENT_ENCODE:
+            parts.append(f"%{ord(char):02X}")
+        elif char == "%" and not _PROVN_HEX_PAIR.match(localpart, i + 1):
+            parts.append("%25")
+        elif (
+            (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
+            or (i == last_index and char == ".")
+            or char in _PROVN_LOCAL_METACHARS
+        ):
+            parts.append(f"\\{char}")
+        else:
+            parts.append(char)
+    return "".join(parts)
 
 
 class Identifier:
@@ -104,10 +131,13 @@ class QualifiedName(Identifier):
         """Return the ``prefix:local`` PROV-N form used at IDENTIFIER positions.
 
         The local part's PROV-N metacharacters (``= ' ( ) , : ; [ ]``) are
-        backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223);
-        the prefix is never escaped, as it cannot contain these characters.
+        backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223),
+        as are a leading ``-``/``.`` and a trailing ``.`` (forbidden bare by
+        [53]/[54]); characters PN_LOCAL cannot express at all are
+        percent-encoded. The prefix is never escaped, as it cannot contain
+        these characters.
         """
-        escaped_localpart = self._localpart.translate(_PROVN_LOCAL_ESCAPE)
+        escaped_localpart = _provn_escape_local(self._localpart)
         return (
             ":".join([self._namespace.prefix, escaped_localpart])
             if self._namespace.prefix

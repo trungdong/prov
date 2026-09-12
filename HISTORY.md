@@ -21,6 +21,13 @@
 
 ### Fixes
 
+- PROV-N output escapes a leading `-` or `.` and a trailing `.` in a local part, as the
+  grammar requires; other occurrences of `-` and `.` stay unescaped
+- PROV-N output percent-encodes a local part character that `PN_LOCAL` cannot express even
+  escaped (a space, `<`, `>`, `"`, `{`, `}`, `|`, `^`, `` ` ``, `\`, or a bare `%` not followed
+  by two hex digits); the local part changes on such a round trip (`a b` becomes `a%20b`), a
+  documented limitation rather than a bug
+
 ### Tests
 
 - The shared round-trip suite and the Hypothesis round-trip property now cover PROV-N,
