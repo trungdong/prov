@@ -50,7 +50,9 @@ def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     Parses two positional file arguments plus ``-f/--format1`` and
     ``-F/--format2`` (each defaulting to ``"json"``), deserializes both
     files, and compares the resulting documents for equality. Files are
-    opened after parsing; an unopenable path is a usage error (exit 2).
+    opened after parsing; ``-`` stands for standard input for at most one
+    of them and is not closed; an unopenable path is a usage error
+    (exit 2).
 
     Args:
         argv: Extra command-line arguments. If not ``None``, they are
@@ -95,8 +97,8 @@ USAGE
         parser = ArgumentParser(
             description=program_license, formatter_class=RawDescriptionHelpFormatter
         )
-        parser.add_argument("file1", help="first document")
-        parser.add_argument("file2", help="second document")
+        parser.add_argument("file1", help="first document ('-' reads standard input)")
+        parser.add_argument("file2", help="second document ('-' reads standard input)")
         parser.add_argument(
             "-f",
             "--format1",
@@ -118,15 +120,23 @@ USAGE
         )
 
         args = parser.parse_args()
+        if args.file1 == "-" and args.file2 == "-":
+            parser.error("only one of file1 and file2 may be '-' (standard input)")
         opened: list[BinaryIO] = []
         try:
+            streams: list[BinaryIO] = []
             for path in (args.file1, args.file2):
+                if path == "-":
+                    streams.append(sys.stdin.buffer)
+                    continue
                 try:
-                    opened.append(open(path, "rb"))  # noqa: SIM115 -- closed by main()
+                    stream: BinaryIO = open(path, "rb")  # noqa: SIM115 -- closed by main()
                 except OSError as exc:
                     parser.error(f"can't open '{path}': {exc}")
-            doc1 = ProvDocument.deserialize(opened[0], format=args.format1.lower())
-            doc2 = ProvDocument.deserialize(opened[1], format=args.format2.lower())
+                opened.append(stream)
+                streams.append(stream)
+            doc1 = ProvDocument.deserialize(streams[0], format=args.format1.lower())
+            doc2 = ProvDocument.deserialize(streams[1], format=args.format2.lower())
             return doc1 != doc2
         finally:
             for stream in opened:

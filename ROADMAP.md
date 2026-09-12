@@ -44,10 +44,9 @@ code changes.
 `prov` supports all non-EOL CPython versions and drops a version in the first release
 after it reaches end of life, the policy set when the 3.9 floor was dropped ahead of
 schedule in 2.3.0 (see "What changes in 3.0" below for the history). Python 3.10
-reaches EOL on 2026-10-31. 3.2.0 is targeted before that date and keeps the 3.10 floor,
-so it is the last release to support Python 3.10; the floor rises to 3.11 in 3.3.0, the
-first release after Python 3.10's EOL. If 3.2.0 slips past 2026-10-31, the floor rises in
-3.2.0 instead, under the same policy.
+reaches EOL on 2026-10-31. 3.2.0 shipped before that date and keeps the 3.10 floor,
+so the 3.2.x line is the last to support Python 3.10; the floor rises to 3.11 in 3.3.0, the
+first release after Python 3.10's EOL.
 
 ## What changes in 3.0
 

@@ -441,3 +441,22 @@ def test_compare_raises_no_pending_deprecation_warning(compare_files, monkeypatc
         warnings.simplefilter("error", PendingDeprecationWarning)
         warnings.simplefilter("error", DeprecationWarning)
         assert compare_main() == 0
+
+
+def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch):
+    json_file, xml_file = compare_files
+    stdin = io.TextIOWrapper(io.BytesIO(json_file.read_bytes()))
+    monkeypatch.setattr(sys, "stdin", stdin)
+    monkeypatch.setattr(
+        sys, "argv", ["prov-compare", "-f", "json", "-F", "xml", "-", str(xml_file)]
+    )
+    assert compare_main() == 0
+    assert not stdin.buffer.closed
+
+
+def test_compare_two_dashes_exits_2(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["prov-compare", "-", "-"])
+    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    with pytest.raises(SystemExit) as ctx:
+        compare_main()
+    assert ctx.value.code == 2

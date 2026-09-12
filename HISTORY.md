@@ -4,7 +4,7 @@
 
 3.2.1 is a point release that corrects what a by-eye verification of the 3.2.0 PROV-N
 parser against ProvToolbox and PLEAD documents found: the `default` profile, the
-lenient profile's warnings, the PROV-XML and PROV-JSONLD readers on ProvToolbox output,
+`lenient` profile's warnings, the PROV-XML and PROV-JSONLD readers on ProvToolbox output,
 and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 
 ### Fixes
@@ -37,7 +37,7 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   producer writes the words
 - `prov-convert` and `prov-compare` open their files after parsing arguments instead of
   through `argparse.FileType`, which Python 3.14 deprecates; standard input and output are
-  used only when no file is given and are no longer closed by the tool, `--version` and
+  used when no file or `-` is given and are no longer closed by the tool, `--version` and
   `--help` no longer need a binary stdout, and `prov-compare` reports a missing file
   argument as a usage error. The own-warnings CI guard runs on Python 3.14 and treats
   `PendingDeprecationWarning` as an error

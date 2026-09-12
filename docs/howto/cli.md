@@ -76,7 +76,7 @@ in any registered format.
 ### Synopsis
 
 ```bash
-prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] [file1] [file2]
+prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] file1 file2
 ```
 
 ### Options
@@ -87,7 +87,7 @@ prov-compare [-h] [-f FORMAT1] [-F FORMAT2] [-V] [file1] [file2]
 | `-F`, `--format2` | `FORMAT2` | `json` | Format of `file2`: `json`, `xml`, `rdf`, `jsonld` or `provn` |
 | `-V`, `--version` | | | Print the version and exit |
 | `-h`, `--help` | | | Print usage and exit |
-| `file1`, `file2` | | | The two files to compare |
+| `file1`, `file2` | | | The two files to compare; `-` reads one of them from standard input |
 
 ### Examples
 
