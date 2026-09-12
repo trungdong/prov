@@ -1,0 +1,19 @@
+document
+prefix ex <http://example.org/>
+entity(ex:bundle1,[prov:type = 'prov:Bundle'])
+entity(ex:bundle2,[prov:type = 'prov:Bundle'])
+bundle ex:bundle1
+prefix ex <http://example.org/>
+
+activity(ex:a1,-,-)
+entity(ex:e1)
+used(ex:use1;ex:a1,ex:e1,-)
+endBundle
+bundle ex:bundle2
+prefix ex <http://example.org/>
+
+activity(ex:e1,-,-)
+entity(ex:a1)
+used(ex:use2;ex:e1,ex:a1,-)
+endBundle
+endDocument

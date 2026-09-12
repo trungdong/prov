@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+    "abc"
+    "1" %% xsd:integer
+    "http://example.org/foo" %% xsd:anyURI
+endDocument

@@ -1,0 +1,5 @@
+document
+prefix ex <http://example.org/>
+prefix exo <http://example.org/>
+entity(ex:en_o30,[ex:tag2 = "--11-07" %% xsd:gMonthDay])
+endDocument

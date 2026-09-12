@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  agent(ag,  [ prov:type='prov:Person' ])
+  entity(pl, [ prov:type='prov:Plan' ])
+endDocument

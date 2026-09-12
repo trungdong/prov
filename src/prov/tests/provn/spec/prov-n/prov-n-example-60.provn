@@ -1,0 +1,9 @@
+document
+  default <http://example.org/1/>
+  entity(e001)                             // IRI: http://example.org/1/e001
+
+  bundle e001                              // IRI: http://example.org/2/e001
+    default <http://example.org/2/>
+    entity(e001)                           // IRI: http://example.org/2/e001
+  endBundle
+endDocument

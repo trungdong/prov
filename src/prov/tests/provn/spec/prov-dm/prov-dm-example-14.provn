@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  entity(e1, [ prov:type="email message"] )
+  activity(a1, [ prov:type="Discuss" ])
+  wasStartedBy(a1, e1, -, 2011-11-16T16:05:00)
+endDocument

@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasAssociatedWith(ex:assoc6;ex:a1,ex:ag1,ex:plan1,[prov:label = "hello", prov:label = "bye"@en, prov:label = "bonjour"@fr])
+endDocument

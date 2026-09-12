@@ -1,0 +1,11 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  entity(ex:in1, [ prov:value=3 ]) 
+  entity(ex:in2, [ prov:value=1 ]) 
+  entity(ex:out2, [ prov:value=4 ])      // ex:out2 also has value 4
+  activity(ex:add1, [ prov:type="addition" ])
+  used(ex:add1, ex:in1)
+  used(ex:add1, ex:in2)
+  wasGeneratedBy(ex:out2, ex:add1)
+endDocument

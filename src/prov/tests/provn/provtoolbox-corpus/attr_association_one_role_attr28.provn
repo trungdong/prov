@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasAssociatedWith(ex:ass_r28;ex:a1,ex:ag1,-,[prov:role = "2013" %% xsd:gYear])
+endDocument

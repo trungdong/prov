@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+    "abc" %% xsd:string
+    "abc"
+endDocument

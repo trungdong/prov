@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasInfluencedBy(ex:infl1;e2,e1,[ex:param="a"])
+    
+endDocument

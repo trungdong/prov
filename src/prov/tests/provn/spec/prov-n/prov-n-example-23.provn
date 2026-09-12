@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasEndedBy(ex:end; ex:act2, ex:trigger, ex:act3,  2011-11-16T16:00:00, [ex:param="a"])
+    
+endDocument

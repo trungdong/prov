@@ -1,0 +1,6 @@
+document
+default <http://example.org/>
+prefix ex <http://example.org/>
+prefix exo <http://example.org/>
+entity(en_o23,[tag2 = 'abcde'])
+endDocument

@@ -34,12 +34,19 @@
   (`en-US`), the separator the grammar and BCP 47 both use
 - PROV-N output escapes a carriage return in a short string as `\r` instead of writing it raw,
   which the grammar forbids
+- PROV-N input accepts a bare, unprefixed local name that starts with a digit (for example
+  `entity(4567)`), as `PN_LOCAL` allows; the lexer previously read it as an integer literal
+  and the parser rejected it as an identifier
 
 ### Tests
 
 - The shared round-trip suite and the Hypothesis round-trip property now cover PROV-N,
   so every statement form, attribute datatype and qualified-name shape is written and
   read back through the new parser
+- A PROV-N conformance corpus: every example in the PROV-N and PROV-DM Recommendations
+  parses under the strict profile and round-trips through the writer, ProvToolbox's own
+  PROV-N test documents parse, and the PROV-N that ProvToolbox writes for the shared test
+  corpus reads back equal to the PROV-JSON fixture of the same name
 
 ### Documentation
 

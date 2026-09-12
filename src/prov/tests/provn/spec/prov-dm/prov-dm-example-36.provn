@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix tr <http://example.org/tr/>
+  prefix w3 <http://example.org/w3/>
+   wasAttributedTo(tr:WD-prov-dm-20111215, w3:Consortium)
+endDocument

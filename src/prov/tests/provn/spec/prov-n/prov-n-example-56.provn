@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+    "1.01" %% xsd:float
+    "true" %% xsd:boolean
+endDocument

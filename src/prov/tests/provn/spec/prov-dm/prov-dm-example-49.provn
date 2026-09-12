@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+   entity(ex:car01, [ prov:label="Voiture 01"@fr, prov:label="Car 01"@en ])
+endDocument

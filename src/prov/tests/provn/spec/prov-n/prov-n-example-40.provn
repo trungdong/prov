@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  actedOnBehalfOf(ex:ag1, ex:ag2)
+  actedOnBehalfOf(ex:ag1, ex:ag2, ex:a)
+  actedOnBehalfOf(ex:ag1, ex:ag2, -, [prov:type="delegation"])
+  actedOnBehalfOf(ex:ag2, ex:ag3, ex:a, [prov:type="contract"])
+  actedOnBehalfOf(ex:del1; ex:ag2, ex:ag3, ex:a, [prov:type="contract"])
+endDocument

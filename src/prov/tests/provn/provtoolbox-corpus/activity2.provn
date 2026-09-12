@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+activity(ex:a2,-,-,[prov:label = "activity2"])
+endDocument

@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasInformedBy(ex:inf1;ex:a2,-)
+endDocument

@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasDerivedFrom(ex:quoteId1; ex:blockQuote,ex:blog, ex:act1, ex:g, ex:u,
+                 [ prov:type='prov:Quotation' ]) 
+   
+endDocument

@@ -1,0 +1,12 @@
+document
+  default <http://example.org/>
+  prefix alice <http://example.org/alice/>
+  prefix ex <http://example.org/ex/>
+   
+  bundle alice:bundle2
+    entity(ex:report1)
+    entity(ex:report2, [ prov:type="report", ex:version=2 ])
+    wasGeneratedBy(ex:report2, -, 2012-05-25T11:00:01)
+    wasDerivedFrom(ex:report2, ex:report1)
+  endBundle
+endDocument

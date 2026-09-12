@@ -1,0 +1,10 @@
+document
+  default <http://example.org/>
+  prefix bbc <http://example.org/bbc/>
+  entity(bbc:news/science-environment-17526723, 
+         [ prov:type="a news item for desktop"])
+  entity(bbc:news/mobile/science-environment-17526723, 
+         [ prov:type="a news item for mobile devices"])
+  alternateOf(bbc:news/science-environment-17526723, 
+              bbc:news/mobile/science-environment-17526723)
+endDocument

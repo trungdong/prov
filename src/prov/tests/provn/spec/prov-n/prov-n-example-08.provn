@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  activity(a1)
+  activity(a1, -, -)
+endDocument

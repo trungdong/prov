@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasDerivedFrom(ex:sourceId1;  ex:e1, ex:e2, ex:act, ex:g, ex:u, 
+                 [ prov:type='prov:PrimarySource' ])
+endDocument

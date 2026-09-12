@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_l36,[prov:location = "en" %% xsd:language])
+endDocument

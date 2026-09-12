@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix tr <http://example.org/tr/>
+  entity(tr:WD-prov-dm-20111215, [ prov:type="document" ])
+endDocument

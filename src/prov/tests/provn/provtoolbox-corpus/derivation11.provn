@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasDerivedFrom(ex:rev1;ex:e2, ex:e1, ex:a, ex:g, ex:u,[prov:type = 'prov:Revision'])
+endDocument

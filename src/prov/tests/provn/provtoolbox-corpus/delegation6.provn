@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+actedOnBehalfOf(ex:del6;ex:e1,ex:ag1,ex:a,[prov:label = "hello", prov:label = "bye"@en, prov:label = "bonjour"@fr])
+endDocument

@@ -1,0 +1,10 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  prefix tr <http://example.org/tr/>
+  agent(ex:Paolo, [ prov:type='prov:Person' ])
+  agent(ex:Simon, [ prov:type='prov:Person' ])
+  entity(tr:WD-prov-dm-20111215, [ prov:type='rec54:WD' ])
+  wasAttributedTo(tr:WD-prov-dm-20111215, ex:Paolo, [ prov:type="editorship" ])
+  wasAttributedTo(tr:WD-prov-dm-20111215, ex:Simon, [ prov:type="authorship" ])
+endDocument

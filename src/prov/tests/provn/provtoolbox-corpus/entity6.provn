@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:e6,[prov:label = "entity6", prov:location = "London" %% xsd:string, prov:location = "1" %% xsd:int, prov:location = "1.0" %% xsd:float, prov:location = "true" %% xsd:boolean, prov:location = 'ex:london', prov:location = "2023-04-25T21:51:13.214+01:00" %% xsd:dateTime, prov:location = "http://example.org/london" %% xsd:anyURI, prov:location = "2002" %% xsd:gYear])
+endDocument

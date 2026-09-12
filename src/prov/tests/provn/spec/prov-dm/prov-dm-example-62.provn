@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+   
+    entity(e, [prov:type='ex:Car' ])
+endDocument

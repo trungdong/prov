@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  entity(buy_one_beer_get_one_free_offer_during_happy_hour)
+  wasAttributedTo(buy_one_beer_get_one_free_offer_during_happy_hour, proprietor)
+  wasInvalidatedBy(buy_one_beer_get_one_free_offer_during_happy_hour,
+                   -,2012-03-10T18:00:00)
+endDocument

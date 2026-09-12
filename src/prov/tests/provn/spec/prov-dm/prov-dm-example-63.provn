@@ -1,0 +1,10 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+   
+    activity(ex:work)
+    entity(ex:laptop4)
+    entity(ex:desktop9)
+    used(ex:work, ex:laptop4,  [prov:role="day-to-day machine"])
+    used(ex:work, ex:desktop9, [prov:role="backup machine"])
+endDocument

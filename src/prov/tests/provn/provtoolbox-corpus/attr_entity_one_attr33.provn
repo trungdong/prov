@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:et33,[prov:type = "102220506" %% xsd:hexBinary])
+endDocument

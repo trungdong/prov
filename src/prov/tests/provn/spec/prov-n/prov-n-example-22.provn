@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasStartedBy(ex:act2, -, ex:act1, -)
+  wasStartedBy(ex:act2, -, ex:act1, 2011-11-16T16:00:00)
+  wasStartedBy(ex:act2, -, -, 2011-11-16T16:00:00)
+  wasStartedBy(ex:act2, [ex:param="a"])
+  wasStartedBy(ex:start; ex:act2, e, ex:act1, 2011-11-16T16:00:00)
+endDocument

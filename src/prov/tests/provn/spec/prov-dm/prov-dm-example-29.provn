@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  entity(ex:la-campagne-de-Russie-1812-1813, [ prov:type="map" ])
+  entity(ex:revue-d-Histoire-de-la-Pharmacie-t-XVIII, [ prov:type="journal" ])
+  wasDerivedFrom(ex:la-campagne-de-Russie-1812-1813,
+                 ex:revue-d-Histoire-de-la-Pharmacie-t-XVIII,
+                 [ prov:type='prov:PrimarySource' ])
+endDocument

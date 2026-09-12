@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix bbc <http://example.org/bbc/>
+  prefix ex <http://example.org/ex/>
+  specializationOf(ex:bbcNews2012-03-23, bbc:news/)
+endDocument

@@ -1,0 +1,13 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  bundle ex:author-view
+  
+    agent(ex:Paolo,   [ prov:type='prov:Person' ])
+    agent(ex:Simon,   [ prov:type='prov:Person' ])
+  
+  
+  ...
+  
+  endBundle
+endDocument

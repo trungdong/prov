@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:et10,[prov:type = "false" %% xsd:boolean])
+endDocument

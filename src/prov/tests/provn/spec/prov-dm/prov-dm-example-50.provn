@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+   entity(ex:MonaLisa, [ prov:location="Le Louvre, Paris", prov:type="StillImage" ])
+endDocument

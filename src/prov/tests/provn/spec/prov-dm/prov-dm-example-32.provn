@@ -1,0 +1,12 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(ex:a, [ prov:type="workflow execution" ])
+  agent(ex:ag1,  [ prov:type="operator" ])
+  agent(ex:ag2,  [ prov:type="designer" ])
+  wasAssociatedWith(ex:a, ex:ag1, -,     [ prov:role="loggedInUser", ex:how="webapp" ])
+  wasAssociatedWith(ex:a, ex:ag2, ex:wf, [ prov:role="designer", ex:context="project1" ])
+  entity(ex:wf, [ prov:type='prov:Plan' , 
+                  ex:label="Workflow 1", 
+                  prov:location="http://example.org/workflow1.bpel" %% xsd:anyURI ])
+endDocument

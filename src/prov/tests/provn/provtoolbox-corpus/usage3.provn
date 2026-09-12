@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+used(ex:use3;ex:a1,ex:e1,-,[prov:role = "somerole" %% xsd:string, prov:role = "otherRole" %% xsd:string])
+endDocument

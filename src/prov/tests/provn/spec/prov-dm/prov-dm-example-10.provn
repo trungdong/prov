@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+    wasGeneratedBy(e1, a1, 2001-10-26T21:32:52, [ ex:port="p1" ])
+    wasGeneratedBy(e2, a1, 2001-10-26T10:00:00, [ ex:port="p2" ])
+endDocument

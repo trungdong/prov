@@ -1,0 +1,5 @@
+document
+prefix ex <http://example.org/>
+wasEndedBy(ex:end1;ex:a1,ex:e1,-,2023-04-25T21:51:13.301+01:00,[ex:tag2 = "hello" %% xsd:string])
+wasEndedBy(ex:end1;ex:a1,ex:e1,-,2012-12-03T21:08:16.686Z,[ex:tag2 = "hi" %% xsd:string])
+endDocument

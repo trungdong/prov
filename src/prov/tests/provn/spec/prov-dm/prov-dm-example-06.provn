@@ -1,0 +1,12 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  prefix w3 <http://example.org/w3/>
+  bundle ex:process-view
+  
+     agent(w3:Consortium, [ prov:type='prov:Organization' ])
+  
+  ...
+  
+  endBundle
+endDocument

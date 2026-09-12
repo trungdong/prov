@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_l37,[prov:location = "normal" %% xsd:normalizedString])
+endDocument

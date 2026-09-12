@@ -1,0 +1,16 @@
+document
+  default <http://example.org/>
+  entity(buy_one_beer_get_one_free_offer_during_happy_hour)
+  wasAttributedTo(buy_one_beer_get_one_free_offer_during_happy_hour, proprietor)
+  activity(redeemOffer)
+  entity(twoBeers)
+  
+  wasAssociatedWith(redeemOffer, bob)
+  used(redeemOffer,
+       buy_one_beer_get_one_free_offer_during_happy_hour, 
+       2012-03-10T17:15:00)
+  wasInvalidatedBy(buy_one_beer_get_one_free_offer_during_happy_hour,
+                   redeemOffer,
+                   2012-03-10T17:15:00)
+  wasGeneratedBy(twoBeers,redeemOffer)
+endDocument

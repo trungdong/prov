@@ -188,6 +188,18 @@ class ProvNParser:
             raise self._error(f"expected {expected}, found {self._found()}")
         return self._advance()
 
+    def _identifier_token(self) -> Token:
+        """An identifier position also accepts a bare, all-digit local name
+        ([53] PN_LOCAL allows a leading digit); the lexer, which tokenises
+        without regard to grammar position, always reads a digit run as
+        INT, so it is re-kinded as a NAME here."""
+        if self._current.kind is TokenKind.INT:
+            token = self._advance()
+            return Token(
+                TokenKind.NAME, token.text, ("", token.text), token.line, token.column
+            )
+        return self._expect(TokenKind.NAME, "an identifier")
+
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
             "",
@@ -270,7 +282,7 @@ class ProvNParser:
 
     def _bundle(self, document: ProvDocument) -> None:
         self._advance()  # 'bundle'
-        id_token = self._expect(TokenKind.NAME, "an identifier")
+        id_token = self._identifier_token()
         namespaces, default = self._parse_declarations()
         # PROV-N 3.1.3: the bundle identifier is resolved with the bundle's
         # own declarations. Only take the bundle-based resolution path when
@@ -388,7 +400,7 @@ class ProvNParser:
         identifier: QualifiedName | str | None = None
         args: list[Token] = []
         if is_element:
-            id_token = self._expect(TokenKind.NAME, "an identifier")
+            id_token = self._identifier_token()
             identifier = self._identifier_text(id_token, bundle)
         else:
             first = self._argument()
@@ -450,6 +462,14 @@ class ProvNParser:
                 )
 
     def _argument(self) -> Token:
+        # A relation argument is always an identifier, a time or '-', never
+        # a literal, so an all-digit INT token here is a bare local name
+        # ([53] PN_LOCAL allows a leading digit; see _identifier_token()).
+        if self._current.kind is TokenKind.INT:
+            token = self._advance()
+            return Token(
+                TokenKind.NAME, token.text, ("", token.text), token.line, token.column
+            )
         if self._current.kind not in _ARGUMENT_KINDS:
             raise self._error(
                 f"expected an identifier, a time or '-', found {self._found()}"

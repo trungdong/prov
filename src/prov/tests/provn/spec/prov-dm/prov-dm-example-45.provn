@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  prefix tr <http://example.org/tr/>
+  entity(tr:WD-prov-dm-20111018)
+  entity(tr:WD-prov-dm-20111215)
+  alternateOf(tr:WD-prov-dm-20111018, tr:WD-prov-dm-20111215)
+endDocument

@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasEndedBy(ex:end3;ex:a1,-,-,-)
+endDocument

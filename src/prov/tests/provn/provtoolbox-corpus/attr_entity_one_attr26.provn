@@ -1,0 +1,5 @@
+document
+default <http://example4.org/>
+prefix ex <http://example.org/>
+entity(ex:et26,[prov:type = 'zabcde'])
+endDocument

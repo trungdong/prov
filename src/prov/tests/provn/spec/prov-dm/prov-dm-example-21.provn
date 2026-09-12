@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  entity(ex:The-Painter)
+  agent(ex:Picasso)
+  wasAttributedTo(ex:The-Painter, ex:Picasso)
+  activity(ex:crash)
+  wasInvalidatedBy(ex:The-Painter, ex:crash, 1998-09-03T01:31:00, [ ex:circumstances="plane accident" ])
+endDocument

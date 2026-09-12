@@ -1,0 +1,44 @@
+
+document
+prefix ex <http://example/>
+prefix comma <http://example/e,g,>
+prefix sparqluri <http://example/!#$&'()*+,-./:;=?@[]_~>
+          entity(ex:~+?/&#$/@_, [])
+          entity(ex:*!, [])
+
+          entity(ex:\=, [sparqluri:\==10])
+          entity(ex:\=, [sparqluri:\= =10])
+          entity(ex:\=, [sparqluri:\=a =10])
+          entity(ex:\))
+          entity(ex:?fred\=fish%20soup)
+          entity(\--)
+          entity(\-)
+          entity(\.)
+          entity(ex:!#$&\'\(\)*+\,\-.a/\:\;\=?@\[\]_~)
+          entity(ex:!#$&\'\(\)*+\,\-\./\:\;\=?@\[\]_~)
+          entity(comma:, [])
+          entity(ex:%65, [])
+
+          activity(a1)
+          entity(e1)
+          used(\-;a1,e1,-)         
+
+          used(-;a1,e1,-)         
+
+          activity(comma:, -, 2001-10-26T21:32:52, [])
+          wasGeneratedBy(-; ex:~+?/&#$/@_, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(-; comma:, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(-; ex:%65, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(-; ex:%65, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+
+          other.wasGeneratedBy (ex:%65, 2001-10-26T21:32:52)
+          other.foo (id;a,b,c,[attr=3])
+//          other.wasGeneratedBy (-; ex:%65, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+endDocument
+
+

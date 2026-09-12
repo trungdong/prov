@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix bbc <http://example.org/bbc/>
+  prefix ex <http://example.org/ex/>
+  entity(ex:bbcNews2012-04-03)
+  hadMember(ex:bbcNews2012-04-03, bbc:news/uk-17595024)
+  wasGeneratedBy  (ex:bbcNews2012-04-03, -, 2012-04-03T00:00:01)
+  wasInvalidatedBy(ex:bbcNews2012-04-03, -, 2012-04-03T23:59:59)
+endDocument

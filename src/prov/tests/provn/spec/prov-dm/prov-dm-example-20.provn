@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  entity(e1, [ prov:type="approval document" ])
+  activity(a1, [ prov:type="Editing" ])
+  wasEndedBy(a1, e1, -, -)
+endDocument

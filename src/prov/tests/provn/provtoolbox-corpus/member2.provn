@@ -1,0 +1,5 @@
+document
+prefix ex <http://example.org/>
+hadMember(ex:c,ex:e1)
+hadMember(ex:c,ex:e2)
+endDocument

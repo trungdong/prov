@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasInfluencedBy(ex:e2,ex:e1)
+  wasInfluencedBy(ex:e2,ex:e1,[ex:param="a"])
+  wasInfluencedBy(ex:infl1; ex:e2,ex:e1)
+endDocument

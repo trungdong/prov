@@ -1,0 +1,11 @@
+document
+  default <http://example.org/>
+  entity(e0)
+  entity(e1)
+  entity(e2)
+  
+  entity(c, [prov:type='prov:Collection'  ])      // c is a collection, with unknown content
+  hadMember(c, e0)
+  hadMember(c, e1)
+  hadMember(c, e2)
+endDocument

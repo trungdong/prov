@@ -1,0 +1,12 @@
+document
+  default <http://example.org/>
+  activity(a,[ prov:type="workflow" ])
+  agent(ag1, [ prov:type="programmer" ])
+  agent(ag2, [ prov:type="researcher" ])
+  agent(ag3, [ prov:type="funder" ])
+  wasAssociatedWith(a, ag1, [ prov:role="loggedInUser" ])
+  wasAssociatedWith(a, ag2)
+  wasAssociatedWith(a, ag3)
+  actedOnBehalfOf(ag1, ag2, a, [ prov:type="line-management" ])
+  actedOnBehalfOf(ag2, ag3, a, [ prov:type="contract" ])
+endDocument

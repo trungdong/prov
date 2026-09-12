@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v29,[prov:value = "---30" %% xsd:gDay])
+endDocument

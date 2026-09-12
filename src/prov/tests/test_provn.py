@@ -348,6 +348,22 @@ def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri():
     assert str(record.identifier) == "prov:e1"
 
 
+def test_bare_all_digit_local_name_is_an_identifier():
+    # [53] PN_LOCAL allows a leading digit, so an unprefixed, all-digit
+    # local name is a valid identifier, not an integer literal.
+    doc = parse("entity(4567)", prefixes="default <http://example.org/>\n")
+    record = only_record(doc)
+    assert str(record.identifier) == "4567"
+
+
+def test_bare_all_digit_local_name_as_a_relation_argument():
+    doc = parse("wasDerivedFrom(4567, e1)", prefixes="default <http://example.org/>\n")
+    record = only_record(doc)
+    subject, target = (value for _, value in record.formal_attributes[:2])
+    assert str(subject) == "4567"
+    assert str(target) == "e1"
+
+
 def test_strict_requires_an_identifier_at_the_named_position():
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")

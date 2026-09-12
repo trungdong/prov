@@ -1,0 +1,8 @@
+document
+  prefix ex <http://example.org/1/>
+  entity(ex:e001)                            // IRI: http://example.org/1/e001
+
+  bundle b
+    entity(ex:001)                           // IRI: http://example.org/1/e001
+  endBundle
+endDocument

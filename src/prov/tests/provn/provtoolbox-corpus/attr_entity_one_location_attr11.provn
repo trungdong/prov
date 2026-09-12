@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_l11,[prov:location = "10" %% xsd:byte])
+endDocument

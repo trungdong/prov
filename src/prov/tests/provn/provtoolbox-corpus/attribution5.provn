@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasAttributedTo(ex:e1, ex:ag1)
+endDocument

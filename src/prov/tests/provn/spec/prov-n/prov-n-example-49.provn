@@ -1,0 +1,11 @@
+document
+  prefix bbc <http://www.bbc.co.uk/>
+  prefix bbcNews <http://www.bbc.co.uk/news/>
+
+  entity(bbc:)                          // bbc site itself
+  entity(bbc:news/)                     // bbc news
+  entity(bbc:news/world-asia-17507976)  // a given news article
+
+  entity(bbcNews:)                      // an alternative way of referring to the bbc news site
+
+endDocument

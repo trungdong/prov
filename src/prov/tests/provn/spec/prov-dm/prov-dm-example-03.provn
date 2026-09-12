@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  used(a1, e1)
+  wasGeneratedBy(e2, a1)
+endDocument

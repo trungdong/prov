@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  agent(ex:ag4, [ prov:type='prov:Person', ex:name="David" ])
+endDocument

@@ -1,0 +1,4 @@
+document
+  default <http://example.org/>
+  activity(a1, [ prov:type="createFile" ])
+endDocument

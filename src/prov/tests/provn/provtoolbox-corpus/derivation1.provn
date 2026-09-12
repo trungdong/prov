@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasDerivedFrom(ex:der1;-, ex:e1)
+endDocument

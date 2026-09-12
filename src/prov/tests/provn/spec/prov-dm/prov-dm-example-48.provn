@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+   entity(ex:e1, [ prov:label="This is a human-readable label" ])
+endDocument

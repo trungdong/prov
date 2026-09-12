@@ -1,0 +1,5 @@
+document
+prefix rdf <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+prefix ex <http://example.org/>
+entity(ex:en_v42,[prov:value = "<ap:aaa xmlns:ap=\"http://app/\"><ap:bbb><ap:ccc/></ap:bbb></ap:aaa>" %% rdf:XMLLiteral])
+endDocument

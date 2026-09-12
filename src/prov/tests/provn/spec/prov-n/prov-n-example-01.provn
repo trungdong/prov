@@ -1,0 +1,4 @@
+document
+  default <http://example.org/>
+  entity(e1)
+endDocument

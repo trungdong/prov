@@ -1,0 +1,5 @@
+document
+prefix other <http://example4.org/>
+prefix ex <http://example.org/>
+wasAssociatedWith(ex:ass_r25;ex:a1,ex:ag1,-,[prov:role = 'other:zabcd'])
+endDocument

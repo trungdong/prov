@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  activity(a0, [ prov:type="Write" ])
+  wasGeneratedBy(e1, a0)
+  wasStartedBy(a1, e1, a0, 2011-11-16T16:05:00)
+endDocument

@@ -1,0 +1,5 @@
+document
+prefix other <http://example.org/>
+prefix ex <http://example.org/>
+entity(ex:en_v22,[prov:value = 'ex:abcd'])
+endDocument
