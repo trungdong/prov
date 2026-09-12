@@ -2,8 +2,10 @@
 
 This page maps each PROV-DM concept to `prov`'s classes and factory methods and shows how
 each serializer round-trips it. It is revised at every release. The last revision was for
-3.1.1 (2026-09-10), which changed no round-trip result. The JSON-LD column arrived with
-3.1.0's PROV-JSONLD serializer (`format="jsonld"`, {doc}`../howto/provjsonld`).
+3.2.0 (2026-09-12), which added the PROV-N round-trip column and closed the last
+generation-time exclusion in the round-trip property test ([#341](https://github.com/trungdong/prov/issues/341)).
+The JSON-LD column arrived with 3.1.0's PROV-JSONLD serializer (`format="jsonld"`,
+{doc}`../howto/provjsonld`).
 
 Every cell is checked against the current source code and the shared test suite, not
 against the specification text alone. {doc}`../explanation/prov-dm` gives the conceptual

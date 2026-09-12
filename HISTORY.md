@@ -1,6 +1,6 @@
 # History
 
-## 3.2.0 (unreleased)
+## 3.2.0 (2026-09-12)
 
 ### PROV-N
 
