@@ -40,8 +40,10 @@ class NamespaceManager(dict[str, Namespace]):
         self.update(self._default_namespaces)
         self._namespaces: dict[str, Namespace] = {}
 
-        # String -> resolved QualifiedName. Cleared by every mutation that can
-        # change how a string resolves: add_namespace() and _set_default().
+        # Plain str -> QualifiedName this manager resolved itself, never a
+        # result obtained by delegating to a parent. Cleared by every
+        # mutation that can change how a string resolves: add_namespace()
+        # and _set_default().
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
@@ -204,19 +206,33 @@ class NamespaceManager(dict[str, Namespace]):
         if not isinstance(qname, (str, Identifier)):
             # Only proceed with a string or URI value
             return None
-        # Extract the URI string value if it is an identifier
-        str_value = qname.uri if isinstance(qname, Identifier) else qname
-        cached = self._resolve_cache.get(str_value)
+
+        if not isinstance(qname, str):
+            # An Identifier resolves the same way a plain string does, except
+            # a colon-less value never falls back to the default namespace
+            # (see _resolve_string). It bypasses the cache entirely, both
+            # read and write, because the cache is keyed by string value only
+            # and would otherwise conflate the two.
+            resolved = self._resolve_string(qname.uri, is_plain_str=False)
+            if resolved is None and self.parent:
+                # all attempts have failed so far
+                # now delegate this to the parent NamespaceManager
+                resolved = self.parent.valid_qualified_name(qname)
+            return resolved
+
+        # Plain string input: served from, and written to, this manager's own cache
+        cached = self._resolve_cache.get(qname)
         if cached is not None:
             return cached
-        resolved = self._resolve_string(str_value, is_plain_str=isinstance(qname, str))
-        if resolved is None and self.parent:
-            # all attempts have failed so far
-            # now delegate this to the parent NamespaceManager
-            resolved = self.parent.valid_qualified_name(qname)
+        resolved = self._resolve_string(qname, is_plain_str=True)
         if resolved is not None:
-            self._resolve_cache[str_value] = resolved
-        return resolved
+            self._resolve_cache[qname] = resolved
+            return resolved
+        if self.parent:
+            # all attempts have failed so far; delegate to the parent, but do
+            # not cache a result this manager did not itself resolve
+            return self.parent.valid_qualified_name(qname)
+        return None
 
     def _resolve_string(
         self, str_value: str, is_plain_str: bool
