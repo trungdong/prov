@@ -35,9 +35,10 @@ uv run mypy src
 uv run ruff check src/
 uv run ruff format --check src/
 
-# prov must raise no DeprecationWarning or FutureWarning of its own (#340); the
-# ini-style filter is deliberate, the -W form silently ignores submodules
-uv run pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
+# prov must raise no DeprecationWarning, PendingDeprecationWarning or FutureWarning
+# of its own (#340, #441); the ini-style filter is deliberate, the -W form silently
+# ignores submodules
+uv run --python 3.14 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 ```
 
 Run the benchmark suite and compare it with the committed baseline; a regression

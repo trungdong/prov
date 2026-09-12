@@ -35,6 +35,13 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - PROV-N output spells `xsd:boolean` values `"true"` and `"false"` instead of `"1"` and
   `"0"`. Both are legal lexical forms and the parser reads all four, but every other
   producer writes the words
+- `prov-convert` and `prov-compare` open their files after parsing arguments instead of
+  through `argparse.FileType`, which Python 3.14 deprecates; standard input and output are
+  used only when no file is given and are no longer closed by the tool, `--version` and
+  `--help` no longer need a binary stdout, and `prov-compare` reports a missing file
+  argument as a usage error. The own-warnings CI guard runs on Python 3.14 and treats
+  `PendingDeprecationWarning` as an error
+  ([#441](https://github.com/trungdong/prov/issues/441))
 
 ## 3.2.0 (2026-09-12)
 

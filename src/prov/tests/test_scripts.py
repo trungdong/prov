@@ -18,6 +18,7 @@ import contextlib
 import io
 import shutil
 import sys
+import warnings
 
 import pytest
 
@@ -142,10 +143,9 @@ def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path):
 
 
 def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
-    # FileType('rb') fails to open a nonexistent path *inside argparse*,
-    # which calls parser.error() -> sys.exit(2); that SystemExit
-    # propagates straight out of main() without being caught by the
-    # `except Exception` handler.
+    # A path that cannot be opened is reported through parser.error(),
+    # which exits 2; that SystemExit propagates out of main() rather than
+    # being caught by the `except Exception` handler.
     missing = tmp_path / "does-not-exist.json"
     outfile = tmp_path / "doc.xml"
     monkeypatch.setattr(
@@ -157,13 +157,11 @@ def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
     assert ctx.value.code == 2
 
 
-def test_convert_version_exits_0(monkeypatch):
+def test_convert_version_exits_0_without_stdout_buffer(monkeypatch):
+    # Files are opened after parsing, so --version never needs
+    # sys.stdout.buffer; a plain StringIO stdout must do.
     monkeypatch.setattr(sys, "argv", ["prov-convert", "--version"])
-    # argparse's --version action exits before argument parsing reaches
-    # infile/outfile, but their defaults (sys.stdin.buffer/sys.stdout.buffer)
-    # are still evaluated when the arguments are added, so stdout needs a
-    # .buffer attribute here too.
-    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BytesIO()))
+    monkeypatch.setattr(sys, "stdout", io.StringIO())
     with pytest.raises(SystemExit) as ctx:
         convert_main()
     assert ctx.value.code == 0
@@ -281,6 +279,46 @@ def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch):
     assert outfile.stat().st_size > 0
 
 
+def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch):
+    # "-" (the default) means the standard streams, which belong to the
+    # caller: the tool must not close them after use.
+    stdin = io.TextIOWrapper(io.BytesIO(provn_infile.read_bytes()))
+    stdout = io.TextIOWrapper(io.BytesIO())
+    monkeypatch.setattr(sys, "argv", ["prov-convert", "-i", "provn", "-f", "json"])
+    monkeypatch.setattr(sys, "stdin", stdin)
+    monkeypatch.setattr(sys, "stdout", stdout)
+    assert convert_main() == 0
+    assert not stdin.buffer.closed
+    assert not stdout.buffer.closed
+    stdout.flush()
+    written = stdout.buffer.getvalue().decode("utf-8")
+    assert ProvDocument.deserialize(content=written, format="json") == primer_example()
+
+
+def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch):
+    outfile = tmp_path / "no-such-dir" / "doc.xml"
+    monkeypatch.setattr(
+        sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
+    )
+    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    with pytest.raises(SystemExit) as ctx:
+        convert_main()
+    assert ctx.value.code == 2
+
+
+def test_convert_raises_no_pending_deprecation_warning(infile, tmp_path, monkeypatch):
+    # argparse.FileType is deprecated from Python 3.14 (#441); the scripts
+    # must not use it on any interpreter.
+    outfile = tmp_path / "doc.xml"
+    monkeypatch.setattr(
+        sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", PendingDeprecationWarning)
+        warnings.simplefilter("error", DeprecationWarning)
+        assert convert_main() == 0
+
+
 @pytest.fixture
 def compare_files(tmp_path):
     json_file = tmp_path / "doc.json"
@@ -381,3 +419,25 @@ def test_closes_both_files_on_error(compare_files, monkeypatch):
     assert len(captured_sources) == 2
     for source in captured_sources:
         assert source.closed
+
+
+def test_compare_one_positional_exits_2(compare_files, monkeypatch):
+    json_file, _xml_file = compare_files
+    monkeypatch.setattr(sys, "argv", ["prov-compare", str(json_file)])
+    monkeypatch.setattr(sys, "stderr", io.StringIO())
+    with pytest.raises(SystemExit) as ctx:
+        compare_main()
+    assert ctx.value.code == 2
+
+
+def test_compare_raises_no_pending_deprecation_warning(compare_files, monkeypatch):
+    json_file, xml_file = compare_files
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["prov-compare", "-f", "json", "-F", "xml", str(json_file), str(xml_file)],
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", PendingDeprecationWarning)
+        warnings.simplefilter("error", DeprecationWarning)
+        assert compare_main() == 0
