@@ -17,8 +17,9 @@ modules-validation/prov-validation/src/test/resources/validate/unification/*.xml
 ```
 
 The source directory also carries a paired `.provn` file per case (consumed by
-ProvToolbox's `ValidateTest.java`); only the `.xml` files are vendored here
-because `prov` has no PROV-N parser. These cases derive from the test cases
+ProvToolbox's `ValidateTest.java`); only the `.xml` files are vendored here. At the time
+the corpus was vendored, in July 2026, `prov` had no PROV-N parser, so there was no reader
+to check the `.provn` files against. These cases derive from the test cases
 assembled by the W3C Provenance Working Group for the PROV-CONSTRAINTS
 implementation report (PROV-CONSTRAINTS is a W3C Recommendation, 2013-04-30,
 <https://www.w3.org/TR/prov-constraints/>), as implemented and maintained in

@@ -9,7 +9,7 @@
 [![Supported Python version](https://img.shields.io/pypi/pyversions/prov.svg)](https://pypi.org/project/prov/)
 
 A Python implementation of the [W3C PROV Data Model](https://www.w3.org/TR/prov-dm/), with
-import and export in PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
+import and export in PROV-N, PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
 
 - Documentation: <https://prov.readthedocs.io/>
 - Licence: MIT

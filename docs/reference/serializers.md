@@ -6,8 +6,8 @@
 registry that maps a format name (`"json"`, `"rdf"`, `"provn"`, `"xml"`, `"jsonld"`) to
 its serializer class. The how-to guides ({doc}`../howto/provjson`,
 {doc}`../howto/provxml`, {doc}`../howto/provo-rdf`, {doc}`../howto/provn`,
-{doc}`../howto/provjsonld`) show how to use each format. This page documents the interface
-and the registry only.
+{doc}`../howto/provjsonld`) show how to use each format. This page documents the interface,
+the registry and PROV-N's error type.
 
 ```{eval-rst}
 .. autoclass:: prov.serializers.Serializer

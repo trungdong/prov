@@ -86,4 +86,4 @@ upgrade guide does not cover your case.
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
 releases in order. Next is 3.3.0, which raises the Python floor to 3.11 under the support
-policy, Python 3.10 having reached end of life on 2026-10-31.
+policy, since Python 3.10's support ends on 2026-10-31.
