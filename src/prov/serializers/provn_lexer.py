@@ -9,6 +9,7 @@ context-sensitive rule is the language tag, which only follows a string.
 from __future__ import annotations
 
 import re
+import sys
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from enum import Enum
@@ -33,6 +34,9 @@ class ProvNSyntaxError(ProvException):
         self.message = message
         self.line = line
         self.column = column
+
+    def __reduce__(self) -> tuple[type[ProvNSyntaxError], tuple[str, int, int]]:
+        return type(self), (self.message, self.line, self.column)
 
 
 class TokenKind(Enum):
@@ -80,25 +84,42 @@ _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = r"\\[=',\-:;\[\]().]"
 _LOCAL_START = rf"[{_PN_CHARS_U}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
-_PN_LOCAL = rf"(?:{_LOCAL_START})(?:{_LOCAL_CONT})*"
-_PN_PREFIX = rf"[{_PN_CHARS_BASE}][{_PN_CHARS}.]*"
+# The last character of a local part can't be a bare '.' ([54]); an escaped
+# '\.' or a percent-escape are still fine, so this is _LOCAL_CONT without
+# the bare-dot alternative. Folding the end rule into the grammar (rather
+# than stripping dots off the match afterwards) keeps matching linear even
+# for a long run of trailing dots.
+_LOCAL_LAST = rf"[{_PN_CHARS}{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
+_PN_LOCAL = rf"(?:{_LOCAL_START})(?:(?:{_LOCAL_CONT})*(?:{_LOCAL_LAST}))?"
+# SPARQL's PN_PREFIX ([52]'s reference production) is PN_CHARS_BASE
+# ((PN_CHARS | '.')* PN_CHARS)? -- a prefix can't end in '.' either.
+_PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 
 # [52] allows "PN_PREFIX ':'" alone (empty local, e.g. the Recommendation's
 # own `bbc:`), so the prefixed branch's local part is optional; group 3 is
 # the bare, unprefixed local part.
 _QNAME = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))")
 _QNAME_FULL = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))\Z")
+# DIGIT is [0-9] ([55]); \d would also match other Unicode decimal digits,
+# which the grammar treats as ordinary name characters, not digits.
 _DATETIME = re.compile(
-    r"-?\d{4,}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?"
+    r"-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+    r"(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?"
 )
-_INT = re.compile(r"-?\d+")
-_IRI = re.compile(r"<([^<>\"{}|^`\\\s]*)>")
+_INT = re.compile(r"-?[0-9]+")
+# [56]'s UCHAR exclusion is [#x00-#x20], not full Unicode whitespace: \s
+# would reject non-breaking space (a legal IRI character) and admit other
+# control characters that aren't spaces.
+_IRI = re.compile(r"<([^<>\"{}|^`\\\x00-\x20]*)>")
 _LANGTAG = re.compile(r"@([A-Za-z]+(?:-[A-Za-z0-9]+)*)")
 _SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
 _QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n])*)'")
-_SKIP = re.compile(r"(?:\s+|//[^\n]*|/\*.*?\*/)+", re.S)
-_UNESCAPE_LOCAL = re.compile(r"\\(.)")
+# A '//' comment ends at CR or LF (the Recommendation's note on comments),
+# not just LF.
+_SKIP = re.compile(r"(?:\s+|//[^\n\r]*|/\*.*?\*/)+", re.S)
+_LINEBREAK = re.compile(r"\r\n|\r|\n")
+_ESCAPE_CHAR = re.compile(r"\\(.)", re.S)
 _STRING_ESCAPES = {
     "t": "\t",
     "b": "\b",
@@ -126,6 +147,9 @@ _Locate = Callable[[int], tuple[int, int]]
 
 
 def _unescape_string(raw: str, locate: _Locate, start: int) -> str:
+    if "\\" not in raw:
+        return raw
+
     def replace(match: re.Match[str]) -> str:
         char = match.group(1)
         if char not in _STRING_ESCAPES:
@@ -133,7 +157,7 @@ def _unescape_string(raw: str, locate: _Locate, start: int) -> str:
             raise ProvNSyntaxError(f"unknown string escape '\\{char}'", line, column)
         return _STRING_ESCAPES[char]
 
-    return re.sub(r"\\(.)", replace, raw, flags=re.S)
+    return _ESCAPE_CHAR.sub(replace, raw)
 
 
 def _split_qname(raw: str, locate: _Locate, start: int) -> tuple[str, str]:
@@ -143,8 +167,8 @@ def _split_qname(raw: str, locate: _Locate, start: int) -> tuple[str, str]:
         line, column = locate(start + (partial.end() if partial else 0))
         raise ProvNSyntaxError(f"invalid qualified name '{raw}'", line, column)
     if match.group(1) is not None:
-        return match.group(1), _UNESCAPE_LOCAL.sub(r"\1", match.group(2) or "")
-    return "", _UNESCAPE_LOCAL.sub(r"\1", match.group(3) or "")
+        return match.group(1), _ESCAPE_CHAR.sub(r"\1", match.group(2) or "")
+    return "", _ESCAPE_CHAR.sub(r"\1", match.group(3) or "")
 
 
 class _Lexer:
@@ -159,12 +183,23 @@ class _Lexer:
     def column(self) -> int:
         return self.pos - self.line_start + 1
 
+    def _line_after(self, chunk: str) -> tuple[int, int]:
+        """(line, line_start) reached by moving past ``chunk``, which starts
+        at ``self.pos``; a CRLF pair counts as a single line break. Shared by
+        ``advance`` (moving the lexer itself) and ``locate`` (a read-only
+        look-ahead), so the newline arithmetic lives in one place."""
+        count = 0
+        last_end = 0
+        for match in _LINEBREAK.finditer(chunk):
+            count += 1
+            last_end = match.end()
+        if count:
+            return self.line + count, self.pos + last_end
+        return self.line, self.line_start
+
     def advance(self, length: int) -> None:
         chunk = self.text[self.pos : self.pos + length]
-        newlines = chunk.count("\n")
-        if newlines:
-            self.line += newlines
-            self.line_start = self.pos + chunk.rfind("\n") + 1
+        self.line, self.line_start = self._line_after(chunk)
         self.pos += length
 
     def error(self, message: str) -> ProvNSyntaxError:
@@ -174,12 +209,8 @@ class _Lexer:
         """Line and column of the absolute ``offset``, which must be at or
         after ``self.pos``; used to report errors inside a literal's body
         rather than at the literal's opening delimiter."""
-        segment = self.text[self.pos : offset]
-        newlines = segment.count("\n")
-        if newlines:
-            line_start = self.pos + segment.rfind("\n") + 1
-            return self.line + newlines, offset - line_start + 1
-        return self.line, offset - self.line_start + 1
+        line, line_start = self._line_after(self.text[self.pos : offset])
+        return line, offset - line_start + 1
 
     def emit(self, kind: TokenKind, text: str, value: Any) -> Token:
         token = Token(kind, text, value, self.line, self.column)
@@ -251,17 +282,22 @@ class _Lexer:
         name_match = _QNAME.match(text, pos)
         if int_match and (name_match is None or name_match.end() <= int_match.end()):
             raw = int_match.group(0)
-            return self.emit(TokenKind.INT, raw, int(raw))
+            return self.emit(TokenKind.INT, raw, self._int_value(raw))
         if name_match:
             return self.name_token(name_match)
         return None
 
+    def _int_value(self, raw: str) -> int:
+        try:
+            return int(raw)
+        except ValueError as exc:
+            limit = sys.get_int_max_str_digits()
+            raise self.error(f"integer literal has more than {limit} digits") from exc
+
     def name_token(self, match: re.Match[str]) -> Token:
+        # _PN_LOCAL already excludes a bare trailing '.' ([54]), so the
+        # match never needs trimming here.
         raw = match.group(0)
-        # PN_LOCAL may contain '.' but not end with one ([54]); an escaped
-        # '\.' is a regular character, so only a bare trailing dot backs off.
-        while raw.endswith(".") and not raw.endswith("\\."):
-            raw = raw[:-1]
         value = _split_qname(raw, self.locate, self.pos)
         token = self.emit(TokenKind.NAME, raw, value)
         if self.pos < len(self.text) and self.text[self.pos] == ":":

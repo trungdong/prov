@@ -2,6 +2,10 @@
 lexical productions). Table-driven: one case per token class and one per
 boundary that a hand-written lexer gets wrong."""
 
+import copy
+import pickle
+import time
+
 import pytest
 
 from prov.serializers.provn_lexer import ProvNSyntaxError, TokenKind, tokenize
@@ -214,3 +218,109 @@ def test_qname_literal_error_position_is_the_first_invalid_character():
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("'ex:bad name'"))
     assert (ctx.value.line, ctx.value.column) == (1, 8)
+
+
+def test_huge_integer_raises_instead_of_crashing():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize("1" * 5000))
+    assert (ctx.value.line, ctx.value.column) == (1, 1)
+    assert "digits" in str(ctx.value)
+
+
+def test_provn_syntax_error_supports_pickle_and_deepcopy():
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize('"unterminated'))
+    original = ctx.value
+
+    # Round-trips a value created immediately above, not external input.
+    restored = pickle.loads(pickle.dumps(original))  # nosec B301 - nosemgrep
+    assert (restored.line, restored.column, restored.message) == (
+        original.line,
+        original.column,
+        original.message,
+    )
+    assert str(restored) == str(original)
+
+    cloned = copy.deepcopy(original)
+    assert (cloned.line, cloned.column, cloned.message) == (
+        original.line,
+        original.column,
+        original.message,
+    )
+    assert str(cloned) == str(original)
+
+
+def test_line_comment_ends_at_cr_not_just_lf():
+    text = "entity(ex:a) // note\rentity(ex:b)"
+    assert values(text) == [
+        ("", "entity"),
+        "(",
+        ("ex", "a"),
+        ")",
+        ("", "entity"),
+        "(",
+        ("ex", "b"),
+        ")",
+    ]
+
+
+def test_crlf_and_lone_cr_each_count_as_one_line_break():
+    crlf_tokens = list(tokenize("a\r\nb"))
+    assert (crlf_tokens[1].line, crlf_tokens[1].column) == (2, 1)
+    cr_tokens = list(tokenize("a\rb"))
+    assert (cr_tokens[1].line, cr_tokens[1].column) == (2, 1)
+
+
+def test_long_run_of_trailing_dots_is_fast():
+    # 200_000 dots isn't large enough to expose the old O(n^2) back-off
+    # loop within a 1s bound on typical hardware (~0.5s pre-fix); 1_000_000
+    # matches the scale the regression was originally measured at (~7-9s
+    # pre-fix) and stays well under 1s with the linear regex-based fix.
+    text = "a" + "." * 1_000_000
+    start = time.perf_counter()
+    with pytest.raises(ProvNSyntaxError):
+        list(tokenize(text))
+    assert time.perf_counter() - start < 1.0
+
+
+@pytest.mark.parametrize("text", ["ex.:abc", "a.b.:c", "ex.:"])
+def test_prefix_cannot_end_in_a_dot(text):
+    dot_column = text.index(".") + 1
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize(text))
+    assert ctx.value.column >= dot_column
+
+
+def test_prefix_with_inner_dot_is_still_accepted():
+    assert values("a.b:c") == [("a.b", "c")]
+
+
+def test_qname_literal_trailing_dot_raises():
+    # Unlike the bare form, this used to succeed silently before _PN_LOCAL
+    # excluded a bare trailing '.'; now _QNAME_FULL simply doesn't match
+    # "ex:abc." and _split_qname reports the dot itself, consistent with
+    # test_qname_literal_error_position_is_the_first_invalid_character.
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        list(tokenize("'ex:abc.'"))
+    assert (ctx.value.line, ctx.value.column) == (1, 8)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        chr(0x664) + chr(0x662),  # Arabic-Indic digits four, two
+        chr(0xFF14) + chr(0xFF12),  # fullwidth digits four, two
+    ],
+)
+def test_non_ascii_digits_are_names_not_integers(text):
+    # These are Unicode Nd but not [0-9]; the grammar's DIGIT is ASCII-only,
+    # so they are ordinary name characters, not an integer literal.
+    assert kinds(text) == [TokenKind.NAME]
+    assert values(text) == [("", text)]
+
+
+def test_iri_allows_non_breaking_space_but_rejects_control_characters():
+    nbsp = chr(0xA0)
+    assert values(f"<http://a/b{nbsp}c>") == [f"http://a/b{nbsp}c"]
+    with pytest.raises(ProvNSyntaxError, match="unterminated IRI"):
+        list(tokenize("<a\x01b>"))
