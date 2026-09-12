@@ -364,6 +364,26 @@ def test_bare_all_digit_local_name_as_a_relation_argument():
     assert str(target) == "e1"
 
 
+@pytest.mark.parametrize("profile", ["strict", "default"])
+def test_signed_digit_run_is_not_an_identifier(profile):
+    # PN_LOCAL allows a leading digit but not an unescaped '-', so a signed
+    # INT token ('-4567') must still be rejected as an identifier, not
+    # re-kinded to a bare local name the way an unsigned one is.
+    with pytest.raises(ProvNSyntaxError, match="expected an identifier"):
+        parse(
+            "entity(-4567)", profile=profile, prefixes="default <http://example.org/>\n"
+        )
+
+
+def test_signed_int_is_still_an_integer_in_an_attribute_value():
+    doc = parse(
+        "entity(e1, [prov:value=-42])", prefixes="default <http://example.org/>\n"
+    )
+    record = only_record(doc)
+    (value,) = (v for k, v in record.attributes if str(k) == "prov:value")
+    assert value == -42
+
+
 def test_strict_requires_an_identifier_at_the_named_position():
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")

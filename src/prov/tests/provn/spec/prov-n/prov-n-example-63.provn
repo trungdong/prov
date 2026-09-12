@@ -1,6 +1,5 @@
 document
   default <http://example.org/>
-  prefix dictExt <http://example.org/dictExt/>
     prefix dictExt <http://example.org/dictionaries#>
     dictExt:hadMembers(mId; d, {("k1",e1), ("k2",e2), ("k3",e3)}, []) 
 endDocument

@@ -42,8 +42,9 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
         "bundle name itself"
     ),
     "prov-n-example-63.provn": (
-        "dictExt:hadMembers(...) is an extensibility expression "
-        "(prefix:name(...)), unsupported by design"
+        "the dictionary set-of-pairs literal '{(\"k1\",e1), ...}' is "
+        "PROV-Dictionary syntax the lexer has no punctuation for, "
+        "unsupported by design"
     ),
     "prov-n-example-64.provn": (
         "dictExt:hadMembers(...) is an extensibility expression "
@@ -95,10 +96,12 @@ _REASON_DYNAMIC_TIME = (
     "the corpus build rather than the JSON fixture's fixed value"
 )
 _REASON_PALETTE_DRIFT = (
-    "ProvToolbox's shared addTypes()/addLocations() helper has gained "
-    "xsd:gMonth, xsd:yearMonthDuration and xsd:dayTimeDuration since this "
-    "fixture was captured, so this file's position in the indexed "
-    "demonstration series no longer lines up with the JSON fixture of the "
+    "ProvToolbox's shared addTypes()/addLocations() helper "
+    "(ProvFrameworkTest.java) does not cover xsd:gMonth, "
+    "xsd:yearMonthDuration or xsd:dayTimeDuration, each of which the "
+    "PROV-JSON fixture's datatype/location list carries six times, so this "
+    "file's position in the indexed demonstration series (or its combined "
+    "type/location list) no longer lines up with the JSON fixture of the "
     "same name"
 )
 _DYNAMIC_TIME_DIFFERENCES = [
@@ -277,14 +280,24 @@ EXCLUDED_PROVTOOLBOX_DOCUMENTS: dict[str, str] = {
         "several entity identifiers are bare local names ('\\--', '\\-', "
         "'\\.') with no default namespace declared anywhere in the document"
     ),
-    "container1.provn": "uses the PROV-Dictionary keyword derivedByInsertionFrom, out of scope",
+    "container1.provn": (
+        "derivedByInsertionFrom's dictionary set-of-pairs literal "
+        "'{(\"k1\", ex:e2)}' is PROV-Dictionary syntax the lexer has no "
+        "punctuation for, unsupported by design"
+    ),
     "container2.provn": (
         "'%% <http://example.org/type>' uses a bare IRI as a datatype; "
         "production [53] requires datatype to be a qualifiedName"
     ),
-    "prov-family.provn": "uses the PROV-Dictionary keyword derivedByInsertionFrom, out of scope",
+    "prov-family.provn": (
+        "derivedByInsertionFrom's dictionary set-of-pairs literal "
+        "'{('tr:prov-dm', tr2011:WD-prov-dm-20111018)}' is PROV-Dictionary "
+        "syntax the lexer has no punctuation for, unsupported by design"
+    ),
     "prov-family-graphics.provn": (
-        "uses the PROV-Dictionary keyword derivedByInsertionFrom, out of scope"
+        "derivedByInsertionFrom's dictionary set-of-pairs literal "
+        "'{('tr:prov-dm', tr2011:WD-prov-dm-20111018)}' is PROV-Dictionary "
+        "syntax the lexer has no punctuation for, unsupported by design"
     ),
 }
 

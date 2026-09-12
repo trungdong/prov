@@ -190,10 +190,14 @@ class ProvNParser:
 
     def _identifier_token(self) -> Token:
         """An identifier position also accepts a bare, all-digit local name
-        ([53] PN_LOCAL allows a leading digit); the lexer, which tokenises
-        without regard to grammar position, always reads a digit run as
-        INT, so it is re-kinded as a NAME here."""
-        if self._current.kind is TokenKind.INT:
+        ([53] PN_LOCAL allows a leading digit, but not an unescaped '-');
+        the lexer, which tokenises without regard to grammar position,
+        always reads a digit run as INT, so a positive one is re-kinded as
+        a NAME here. A signed INT ('-4567') is not a valid local name and
+        falls through to the usual NAME-expected error."""
+        if self._current.kind is TokenKind.INT and not self._current.text.startswith(
+            "-"
+        ):
             token = self._advance()
             return Token(
                 TokenKind.NAME, token.text, ("", token.text), token.line, token.column
@@ -463,9 +467,13 @@ class ProvNParser:
 
     def _argument(self) -> Token:
         # A relation argument is always an identifier, a time or '-', never
-        # a literal, so an all-digit INT token here is a bare local name
-        # ([53] PN_LOCAL allows a leading digit; see _identifier_token()).
-        if self._current.kind is TokenKind.INT:
+        # a literal, so an unsigned INT token here is a bare local name
+        # ([53] PN_LOCAL allows a leading digit but not an unescaped '-';
+        # see _identifier_token()). A signed INT ('-4567') is not a valid
+        # local name and falls through to the usual error below.
+        if self._current.kind is TokenKind.INT and not self._current.text.startswith(
+            "-"
+        ):
             token = self._advance()
             return Token(
                 TokenKind.NAME, token.text, ("", token.text), token.line, token.column

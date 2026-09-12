@@ -27,13 +27,16 @@ _BLOCK = re.compile(r'<pre class="codeexample"[^>]*>(.*?)</pre>', re.S)
 _TAG = re.compile(r"<[^>]+>")
 _PREFIX = re.compile(r"(?<![\w<:/])([A-Za-z][\w.-]*):(?=[\w%\\])")
 _STRIP_STRINGS = re.compile(r'"(?:\\.|[^"\\])*"|<[^>]*>|\'(?:\\.|[^\'\\])*\'')
+# A fragment occasionally declares its own prefix (e.g. to show a later
+# redeclaration); wrap() must not add a second, conflicting declaration for it.
+_SELF_DECLARED_PREFIX = re.compile(r"(?m)^\s*prefix\s+([A-Za-z][\w.-]*)\s+<")
 
 
 def wrap(fragment: str) -> str:
     stripped = _STRIP_STRINGS.sub("", fragment)
-    prefixes = sorted(
-        {m.group(1) for m in _PREFIX.finditer(stripped)} - {"prov", "xsd"}
-    )
+    used = {m.group(1) for m in _PREFIX.finditer(stripped)} - {"prov", "xsd"}
+    self_declared = set(_SELF_DECLARED_PREFIX.findall(fragment))
+    prefixes = sorted(used - self_declared)
     # A default namespace covers the many illustrative fragments that use a
     # bare, unprefixed identifier; PROV-N requires one to be declared before
     # such an identifier can resolve.
@@ -52,7 +55,13 @@ def main() -> None:
         target.mkdir(parents=True, exist_ok=True)
         # Fixed W3C TR URLs, fetched only when regenerating the vendored corpus.
         page = urllib.request.urlopen(url).read().decode("utf-8")  # nosec B310 # nosemgrep
-        for index, raw in enumerate(_BLOCK.findall(page), start=1):
+        blocks = _BLOCK.findall(page)
+        if not blocks:
+            raise SystemExit(
+                f"no <pre class='codeexample'> blocks found at {url}; "
+                "the page layout may have changed"
+            )
+        for index, raw in enumerate(blocks, start=1):
             text = html.unescape(_TAG.sub("", raw)).strip("\n")
             if "endDocument" not in text:
                 text = wrap(text)
@@ -61,7 +70,7 @@ def main() -> None:
             (target / f"{name}-example-{index:02d}.provn").write_text(
                 text, encoding="utf-8"
             )
-        print(name, index, "examples")
+        print(name, len(blocks), "examples")
 
 
 if __name__ == "__main__":
