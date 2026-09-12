@@ -46,8 +46,13 @@ PROV-CONSTRAINTS rules. See {doc}`unification-flattening`.
 Each serializer subclasses {py:class}`~prov.serializers.Serializer` and implements
 `serialize()` and `deserialize()`. `prov.serializers.Registry` holds them under their
 format names in insertion order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and
-{py:func}`prov.serializers.get` resolves a name to a class. PROV-N is write-only, and its
-deserializer raises `NotImplementedError`.
+{py:func}`prov.serializers.get` resolves a name to a class.
+
+PROV-N is read by a two-module parser in `prov.serializers.provn_lexer` (a tokeniser with
+line and column tracking) and `prov.serializers.provn_parser` (a recursive-descent parser,
+one function per grammar production, building records through `ProvBundle.new_record()`
+like the PROV-JSON deserializer). Three profiles, `strict`, `default` and `lenient`, decide
+how much beyond the W3C grammar the parser accepts.
 
 {py:func}`prov.read` reads a file, path or string without a `format` by trying the
 registered formats in that order until one succeeds, rewinding the stream between attempts
@@ -72,9 +77,12 @@ and `prov.dot` raise `ModuleNotFoundError` naming the extra when imported withou
 
 The test suite lives inside the package, at `src/prov/tests/`, and ships with it. Shared
 coverage runs once per target through a parametrised round-trip fixture. The targets are the
-in-memory model and the four round-trippable formats, PROV-JSON, PROV-XML, PROV-O and
-PROV-JSONLD. PROV-N is excluded because it is write-only. This exercises a new record type
-or attribute shape against every target at once, and per-format modules keep only what is
-specific to that format. `examples.py` holds the canonical example documents that several
-modules and the DOT smoke tests reuse, and a Hypothesis property test round-trips generated
-documents through those same four formats.
+in-memory model and the five round-trippable formats, PROV-JSON, PROV-XML, PROV-O,
+PROV-JSONLD and PROV-N. This exercises a new record type or attribute shape against every
+target at once, and per-format modules keep only what is specific to that format.
+`examples.py` holds the canonical example documents that several modules and the DOT smoke
+tests reuse, and a Hypothesis property test round-trips generated documents through those
+same five formats.
+
+A top-level `benchmarks/` directory, outside the package, holds a pytest-benchmark suite
+with a committed baseline that a non-blocking CI job compares against.

@@ -74,6 +74,10 @@
 
 ### Documentation
 
+- The PROV-N how-to covers reading, the three profiles, syntax errors and strict output;
+  the conformance page treats PROV-N as a round-trip format and lists the corpus findings;
+  the What's new page describes 3.2.0
+
 ### Project
 
 - A benchmark suite under `benchmarks/` with a non-blocking CI job that fails on a 20% regression against a committed baseline

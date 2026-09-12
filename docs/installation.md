@@ -8,8 +8,9 @@ python -m pip install prov
 ```
 
 This installs the core data model and the PROV-JSON, PROV-JSONLD and PROV-N serializers.
-PROV-N is write-only. Every other capability sits behind an optional extra. Using one
-without its extra raises an error that names the extra to install.
+PROV-N and PROV-JSON (and PROV-JSONLD) need no extra; both directions, reading and
+writing, work out of the box. Every other capability sits behind an optional extra. Using
+one without its extra raises an error that names the extra to install.
 
 | Extra | Enables | Installs |
 |---|---|---|

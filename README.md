@@ -17,9 +17,10 @@ import and export in PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
 
 ## Features
 
-- In-memory classes for every PROV-DM record type, printable as
+- In-memory classes for every PROV-DM record type, readable from and printable as
   [PROV-N](https://www.w3.org/TR/prov-n/).
-- Serialization to and from [PROV-JSON](https://www.w3.org/submissions/prov-json/),
+- Serialization to and from [PROV-N](https://www.w3.org/TR/prov-n/),
+  [PROV-JSON](https://www.w3.org/submissions/prov-json/),
   [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/),
   [PROV-XML](https://www.w3.org/TR/prov-xml/) and [PROV-O](https://www.w3.org/TR/prov-o/) (RDF).
 - Export to graphical formats such as PDF, PNG and SVG through Graphviz.
