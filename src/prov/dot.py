@@ -63,6 +63,7 @@ from prov.model import (
     ProvWarning,
     sorted_attributes,
 )
+from prov.model.records import _xsd_datetime_text
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -294,7 +295,7 @@ def _attach_attribute_annotation(
             escape(
                 str(value)
                 if not isinstance(value, datetime)
-                else str(value.isoformat())
+                else _xsd_datetime_text(value)
             ),
         )
         for attr, value in attributes

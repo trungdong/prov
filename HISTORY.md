@@ -83,6 +83,12 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - The PROV-O deserializer warns with `ProvWarning` when it mints a prefix for an attribute
   predicate under a namespace declared neither in the document nor in the graph; 3.2.0
   minted it silently where 3.1.1 raised
+- A PROV-JSONLD `Membership` with an `@id` and several members decodes to unidentified
+  `hadMember` records with a `ProvWarning`, since records sharing one identifier cannot be
+  unified; with one member the `@id` is kept
+- `prov-convert` and `prov-compare` accept a text-only standard stream for `-`
+- Every serializer writes a datetime whose UTC offset is not a whole number of minutes in
+  UTC, since `xsd:dateTime` allows no seconds in an offset
 
 ## 3.2.0 (2026-09-12)
 

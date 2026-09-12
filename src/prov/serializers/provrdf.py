@@ -51,6 +51,7 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
+from prov.model.records import _xsd_datetime_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
@@ -527,7 +528,7 @@ class ProvRDFSerializer(Serializer):
         elif isinstance(value, pm.Literal):
             return literal_rdf_representation(value)
         elif isinstance(value, datetime.datetime):
-            return RDFLiteral(value.isoformat(), datatype=XSD["dateTime"])
+            return RDFLiteral(_xsd_datetime_text(value), datatype=XSD["dateTime"])
         elif isinstance(value, pm.QualifiedName):
             return URIRef(value.uri)
         elif isinstance(value, pm.Identifier):

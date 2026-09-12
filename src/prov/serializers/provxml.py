@@ -20,6 +20,7 @@ from prov.model import (
     canonical_xsd_datatype,
     sorted_attributes,
 )
+from prov.model.records import _xsd_datetime_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -456,7 +457,7 @@ def _encode_attribute_value(
             subelem.attrib[_ns_xsi("type")] = "xsd:QName"
         return str(value)
     elif isinstance(value, datetime.datetime):
-        return value.isoformat()
+        return _xsd_datetime_text(value)
     else:
         return str(value)
 

@@ -21,6 +21,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
+from prov.model.records import _xsd_datetime_text
 from prov.serializers import Serializer, _is_text_stream
 
 logger = logging.getLogger(__name__)
@@ -235,7 +236,9 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
                     # TODO: QName export
                     record_json[attr_name] = str(first(values))
                 elif attr in PROV_ATTRIBUTE_LITERALS:
-                    record_json[attr_name] = first(values).isoformat()  # type: ignore[union-attr]
+                    record_json[attr_name] = _xsd_datetime_text(
+                        first(values)  # type: ignore[arg-type]
+                    )
                 else:
                     if len(values) == 1:
                         # single value
@@ -579,7 +582,7 @@ def encode_json_representation(value: Any) -> Any:
     if isinstance(value, Literal):
         return literal_json_representation(value)
     elif isinstance(value, datetime.datetime):
-        return {"$": value.isoformat(), "type": "xsd:dateTime"}
+        return {"$": _xsd_datetime_text(value), "type": "xsd:dateTime"}
     elif isinstance(value, QualifiedName):
         # TODO Manage prefix in the whole structure consistently
         # #168: the PROV-JSON submission (§3.1.2) types QualifiedName values
