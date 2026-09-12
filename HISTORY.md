@@ -76,6 +76,10 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   percent-encodes a leading character PN_LOCAL forbids first, raises `ProvException` for a
   namespace URI that is not an IRI, and writes a datetime whose UTC offset is not a whole
   number of minutes in UTC
+- `prov.read()` forwards each deserializer the options it declares (`profile` for PROV-N;
+  `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O), so auto-detection can
+  read non-TriG RDF with `rdf_format`, and an option a format does not accept raises a
+  `TypeError` naming the format and its options instead of a JSON or rdflib error
 
 ## 3.2.0 (2026-09-12)
 

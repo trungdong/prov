@@ -17,6 +17,8 @@ __all__ = ["PROFILES", "ProvNSerializer", "ProvNSyntaxError"]
 class ProvNSerializer(Serializer):
     """PROV-N serializer and deserializer for ProvDocument."""
 
+    deserialize_options = frozenset({"profile"})
+
     def serialize(self, stream: io.IOBase, strict: bool = False, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-N <http://www.w3.org/TR/prov-n/>`_.
 

@@ -126,6 +126,8 @@ The PROV-N reader and writer set the pattern for any serializer added after 3.2.
 - Section comments and method order follow the grammar, so a reader can jump to a
   production. Tests are one case per token class or production and one per boundary, named
   for the scenario they pin.
+- A serializer declares the keyword arguments its `deserialize()` accepts in
+  `deserialize_options`; `prov.read()` forwards only those.
 
 ## Extras
 

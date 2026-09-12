@@ -35,6 +35,10 @@ class Serializer(ABC):
     document = None
     """PROV document to serialise."""
 
+    deserialize_options: ClassVar[frozenset[str]] = frozenset()
+    """Keyword arguments :meth:`deserialize` accepts beyond ``stream``;
+    :func:`prov.read` forwards only these."""
+
     def __init__(self, document: ProvDocument | None = None):
         """Create a serializer bound to a document.
 

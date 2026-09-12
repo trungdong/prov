@@ -318,6 +318,31 @@ def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips():
     assert [str(r.identifier) for r in document.get_records()] == ["ex:e2"]
 
 
+def test_auto_detection_forwards_rdf_options(document):
+    text = document.serialize(format="rdf", rdf_format="xml")
+    assert prov.read(io.BytesIO(text.encode("utf-8")), rdf_format="xml") == document
+
+
+def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document):
+    text = document.serialize(format="json")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        with pytest.raises(
+            TypeError, match="'json' deserializer accepts no option 'profile'"
+        ):
+            prov.read(text, format="json", profile="strict")
+
+
+def test_declared_options_per_serializer():
+    from prov.serializers import Registry
+
+    Registry.load_serializers()
+    assert Registry.serializers["provn"].deserialize_options == frozenset({"profile"})
+    assert Registry.serializers["json"].deserialize_options == frozenset()
+    if "rdf" in Registry.serializers:
+        assert "rdf_format" in Registry.serializers["rdf"].deserialize_options
+
+
 def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path):
     # serialize(path) always writes UTF-8; deserialize(path) must read it
     # back the same way, not through the C locale's encoding. The 'C'

@@ -3,11 +3,11 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 import logging
 import os
 import warnings
-from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
     from prov.model import ProvDocument, StreamOrPath
+    from prov.serializers import Serializer
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -66,7 +66,7 @@ def _prepare_stream(
 def _detect_and_parse(
     src: StreamOrPath | None,
     content: str | bytes | None,
-    serializers: Iterable[str],
+    serializers: dict[str, type[Serializer]],
     **kwargs: Any,
 ) -> ProvDocument:
     """Try each registered format in turn, returning the first non-empty parse.
@@ -107,10 +107,14 @@ def _detect_and_parse(
                     start_pos = None
             try:
                 # kwargs are format-specific (e.g. profile= for provn); a
-                # candidate that doesn't understand them would otherwise
+                # candidate that doesn't understand an option would otherwise
                 # raise TypeError, indistinguishable here from "not this
-                # format", so only the candidate they're meant for gets them.
-                candidate_kwargs = kwargs if format == "provn" else {}
+                # format", so each candidate only gets the options it declares.
+                candidate_kwargs = {
+                    key: value
+                    for key, value in kwargs.items()
+                    if key in serializers[format].deserialize_options
+                }
                 document = ProvDocument.deserialize(
                     source=src, content=content, format=format, **candidate_kwargs
                 )
@@ -176,19 +180,20 @@ def read(
             ``"rdf"``, ``"provn"``). If ``None``, every registered format is
             tried in turn.
         **kwargs: Passed to the deserializer, for example ``profile`` for
-            PROV-N. With ``format`` given explicitly, the named deserializer
-            receives them as given. With auto-detection, only the ``provn``
-            candidate receives them, since ``json``/``rdf``/``xml``/``jsonld``
-            do not accept format-specific keyword arguments and would
-            otherwise raise a ``TypeError`` indistinguishable from "not this
-            format".
+            PROV-N or ``rdf_format`` for PROV-O. Each serializer declares
+            the options it accepts (``deserialize_options``); with
+            ``format`` given, an undeclared option raises ``TypeError``;
+            with auto-detection, every candidate receives only the options
+            it declares.
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.
 
     Raises:
-        TypeError: If ``format`` is ``None`` and no registered serializer
-            produced a non-empty document from ``source``.
+        TypeError: If ``format`` is given and names an option the
+            corresponding deserializer does not declare, or if ``format``
+            is ``None`` and no registered serializer produced a non-empty
+            document from ``source``.
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument
@@ -198,11 +203,20 @@ def read(
         Registry.load_serializers()
     if Registry.serializers is None:  # pragma: no cover -- populated above
         raise AssertionError("Registry.serializers is not populated")
-    serializers = Registry.serializers.keys()
+    serializers = Registry.serializers
 
     src, content = _resolve_source(source)
 
     if format:
+        cls = serializers.get(format.lower())
+        if cls is not None:
+            unknown = sorted(set(kwargs) - cls.deserialize_options)
+            if unknown:
+                accepted = ", ".join(sorted(cls.deserialize_options)) or "none"
+                raise TypeError(
+                    f"the {format.lower()!r} deserializer accepts no option "
+                    f"{unknown[0]!r}; it accepts: {accepted}"
+                )
         try:
             return ProvDocument.deserialize(
                 source=src, content=content, format=format.lower(), **kwargs
