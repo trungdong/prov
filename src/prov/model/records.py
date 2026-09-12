@@ -359,8 +359,8 @@ def encoding_provn_value(
     """Return the PROV-N literal representation of a Python value.
 
     Strings are quoted (triple-quoted when they span multiple lines); dates
-    and booleans are rendered with their XSD datatype suffix. Floats are
-    rendered as full-precision ``xsd:double`` (#251). Plain ints are typed by
+    are rendered with their XSD datatype suffix and booleans as ``"true"``/``"false"``
+    with theirs. Floats are rendered as full-precision ``xsd:double`` (#251). Plain ints are typed by
     magnitude: within +/-(2**31-1) they render as a bare ``INT_LITERAL`` (PROV-N
     [60] sugar for ``xsd:int``); beyond that they carry an explicit
     ``xsd:long``/``xsd:integer`` suffix (#249). Any other value is rendered
@@ -373,8 +373,9 @@ def encoding_provn_value(
     elif isinstance(value, float):
         return f'"{value!r}" %% xsd:double'
     elif isinstance(value, bool):
-        # bool is an int subtype, so :d renders "1"/"0" (not "True"/"False")
-        return f'"{value:d}" %% xsd:boolean'
+        # Before the int branch: bool is an int subtype. "true"/"false" is
+        # the lexical form every other PROV-N producer writes.
+        return f'"{"true" if value else "false"}" %% xsd:boolean'
     elif isinstance(value, int):
         datatype = canonical_xsd_datatype(value)
         if datatype == XSD_INT:

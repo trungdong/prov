@@ -130,6 +130,18 @@ def test_literal_forms(literal, expected):
         assert value == expected
 
 
+def test_writer_spells_booleans_as_words():
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1", {"ex:yes": True, "ex:no": False})
+    provn = doc.get_provn()
+    assert 'ex:yes="true" %% xsd:boolean' in provn
+    assert 'ex:no="false" %% xsd:boolean' in provn
+    assert (
+        ProvDocument.deserialize(content=provn, format="provn", profile="strict") == doc
+    )
+
+
 def test_literal_equivalence_with_json():
     body = (
         'entity(ex:e1, [ex:s="x", ex:i=1, ex:f="1.5" %% xsd:double, ex:q=\'ex:q1\','
