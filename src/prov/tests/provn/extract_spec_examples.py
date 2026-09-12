@@ -51,7 +51,7 @@ def main() -> None:
         target = here / "spec" / name
         target.mkdir(parents=True, exist_ok=True)
         # Fixed W3C TR URLs, fetched only when regenerating the vendored corpus.
-        page = urllib.request.urlopen(url).read().decode("utf-8")  # nosec B310
+        page = urllib.request.urlopen(url).read().decode("utf-8")  # nosec B310 # nosemgrep
         for index, raw in enumerate(_BLOCK.findall(page), start=1):
             text = html.unescape(_TAG.sub("", raw)).strip("\n")
             if "endDocument" not in text:
