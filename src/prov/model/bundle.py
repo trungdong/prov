@@ -1874,8 +1874,7 @@ class ProvDocument(ProvBundle):
         """Deserialize a document from a source stream/file or a string.
 
         Exactly one of ``source`` or ``content`` should be given; ``content``
-        takes precedence if both are. Note that not all formats support
-        deserialization (PROV-N is write-only).
+        takes precedence if both are.
 
         Args:
             source: A readable stream (any object with a ``read`` method) or

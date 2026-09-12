@@ -3,11 +3,10 @@ forms, error paths and equality with documents the writer produced.
 Profile behaviour (default, lenient) is in test_provn_profiles.py."""
 
 import datetime
-import warnings
 
 import pytest
 
-from prov.model import PROV_REC_CLS, Literal, ProvDocument, ProvMention, ProvWarning
+from prov.model import PROV_REC_CLS, Literal, ProvDocument, ProvMention
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import (
     _ELEMENTS,
@@ -230,12 +229,58 @@ def test_arity_table_matches_formal_attributes():
         assert max(arities) == len(PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES)
 
 
-def test_lenient_skip_warns_with_prov_warning():
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        doc = parse("foo(ex:e1)\nentity(ex:e2)", profile="lenient")
+def test_document_missing_keyword_reports_expected_document():
+    with pytest.raises(ProvNSyntaxError, match="expected 'document'"):
+        ProvNParser("entity(ex:e1)", "strict").parse()
+
+
+def test_prefix_declaration_rejects_a_qualified_name():
+    with pytest.raises(ProvNSyntaxError, match="expected a prefix"):
+        ProvNParser(
+            "document\nprefix ex:x <http://example.org/>\nendDocument", "strict"
+        ).parse()
+
+
+def test_unterminated_bundle_reports_end_of_input():
+    with pytest.raises(ProvNSyntaxError, match="expected 'endBundle'"):
+        ProvNParser(
+            f"document\n{PREFIXES}bundle ex:b\n  entity(ex:e1)", "strict"
+        ).parse()
+
+
+def test_semicolon_identifier_must_be_a_name():
+    with pytest.raises(ProvNSyntaxError, match="expected an identifier before ';'"):
+        parse("used(-; ex:a1, ex:e1, -)")
+
+
+def test_time_attribute_rejects_a_non_datetime_argument():
+    with pytest.raises(ProvNSyntaxError, match="expected a time"):
+        parse("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)")
+
+
+def test_empty_attribute_list():
+    record = only_record(parse("entity(ex:e1, [])"))
+    assert record.attributes == []
+
+
+def test_resync_stops_at_a_prefixed_mention():
+    doc = parse("foo(ex:e1)\nprov:mentionOf(ex:e2, ex:e0, ex:b)", profile="lenient")
+    (record,) = list(doc.get_records())
+    assert isinstance(record, ProvMention)
+
+
+def test_lenient_skip_is_recorded_for_the_caller_to_warn_with():
+    # ProvNParser itself only records skipped statements (on .skipped); it
+    # is ProvNSerializer.deserialize() that turns them into ProvWarning, so
+    # that the warning points at the caller of deserialize() rather than a
+    # frame inside the parser. See test_provn_profiles.py for that warning.
+    parser = ProvNParser(
+        f"document\n{PREFIXES}foo(ex:e1)\nentity(ex:e2)\nendDocument", "lenient"
+    )
+    doc = parser.parse()
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e2"]
-    assert any(w.category is ProvWarning for w in caught)
+    assert len(parser.skipped) == 1
+    assert "unknown statement keyword 'foo'" in parser.skipped[0]
 
 
 @pytest.mark.parametrize(

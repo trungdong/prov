@@ -67,6 +67,7 @@ def _detect_and_parse(
     src: StreamOrPath | None,
     content: str | bytes | None,
     serializers: Iterable[str],
+    **kwargs: Any,
 ) -> ProvDocument:
     """Try each registered format in turn, returning the first non-empty parse.
 
@@ -106,7 +107,7 @@ def _detect_and_parse(
                     start_pos = None
             try:
                 document = ProvDocument.deserialize(
-                    source=src, content=content, format=format
+                    source=src, content=content, format=format, **kwargs
                 )
             except Exception:
                 # Any failure from a candidate deserializer means "not this
@@ -140,6 +141,7 @@ def _detect_and_parse(
 def read(
     source: StreamOrPath,
     format: str | None = None,
+    **kwargs: Any,
 ) -> ProvDocument | None:
     """Read a :class:`~prov.model.ProvDocument` from a file, path, or string.
 
@@ -168,6 +170,8 @@ def read(
         format: Serialization format to use (e.g. ``"json"``, ``"xml"``,
             ``"rdf"``, ``"provn"``). If ``None``, every registered format is
             tried in turn.
+        **kwargs: Passed to the deserializer, for example ``profile`` for
+            PROV-N. With auto-detection every candidate receives them.
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.
@@ -191,7 +195,7 @@ def read(
     if format:
         try:
             return ProvDocument.deserialize(
-                source=src, content=content, format=format.lower()
+                source=src, content=content, format=format.lower(), **kwargs
             )
         except Exception:
             if content is not None:
@@ -204,4 +208,4 @@ def read(
                 )
             raise
 
-    return _detect_and_parse(src, content, serializers)
+    return _detect_and_parse(src, content, serializers, **kwargs)

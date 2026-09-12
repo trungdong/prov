@@ -27,11 +27,6 @@ def test_serialize(benchmark, document, fmt):
 @pytest.mark.parametrize("fmt", FORMATS)
 def test_deserialize(benchmark, document, fmt):
     content = serialized(document, fmt)
-    if fmt == "provn":
-        try:
-            ProvDocument.deserialize(content=content, format=fmt)
-        except NotImplementedError:
-            pytest.skip("PROV-N parser not yet available")
     benchmark(ProvDocument.deserialize, content=content, format=fmt)
 
 

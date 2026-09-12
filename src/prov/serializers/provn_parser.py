@@ -12,14 +12,19 @@ Profiles:
 - ``default``: also the de-facto extensions ``prov`` and ProvToolbox write,
   the bare ``mentionOf`` keyword and the shorthand keywords for typed
   agents, entities and derivations.
-- ``lenient``: as ``default``; a statement that fails to parse is skipped
-  with a :class:`ProvWarning` and parsing resumes at the next statement.
-  Tokenisation errors are fatal in every profile.
+- ``lenient``: as ``default``; a statement that fails to parse, including
+  one the model rejects, is skipped and parsing resumes at the next
+  statement. Tokenisation errors are fatal in every profile.
+
+Skipped-statement messages are collected on ``skipped`` rather than warned
+here, so :class:`~prov.serializers.provn.ProvNSerializer` can issue the
+:class:`~prov.model.ProvWarning` itself with a stack level that points at
+the caller of ``deserialize()``, whether the skip happened at document
+level or inside a bundle.
 """
 
 from __future__ import annotations
 
-import warnings
 from typing import Any
 
 from prov.constants import (
@@ -52,7 +57,6 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvException,
-    ProvWarning,
     parse_xsd_datetime,
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError, Token, TokenKind, tokenize
@@ -108,6 +112,11 @@ class ProvNParser:
         text: The PROV-N source.
         profile: One of :data:`PROFILES`.
 
+    Attributes:
+        skipped: Messages for the statements the ``lenient`` profile
+            skipped, in source order; empty for every other profile. Read
+            after :meth:`parse` returns.
+
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
     """
@@ -116,6 +125,7 @@ class ProvNParser:
         if profile not in PROFILES:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
         self.profile = profile
+        self.skipped: list[str] = []
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
@@ -212,13 +222,21 @@ class ProvNParser:
         start = self._current
         try:
             self._expression(bundle)
-        except ProvNSyntaxError as exc:
-            if self.profile != "lenient":
-                raise
-            warnings.warn(f"PROV-N statement skipped: {exc}", ProvWarning, stacklevel=3)
-            self._resync()
         except ProvException as exc:
-            raise ProvNSyntaxError(str(exc), start.line, start.column) from exc
+            # A model rejection (e.g. from new_record()) is not already
+            # positioned, so wrap it the same way a grammar error already
+            # is; either kind then gets the same lenient skip-or-raise.
+            error = (
+                exc
+                if isinstance(exc, ProvNSyntaxError)
+                else ProvNSyntaxError(str(exc), start.line, start.column)
+            )
+            if self.profile != "lenient":
+                if error is exc:
+                    raise
+                raise error from exc
+            self.skipped.append(f"PROV-N statement skipped: {error}")
+            self._resync()
 
     def _resync(self) -> None:
         """Skip to the next statement boundary at bracket depth zero."""
