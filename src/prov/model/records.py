@@ -78,7 +78,7 @@ from prov.constants import (
     XSD_LONG,
     XSD_STRING,
 )
-from prov.identifier import Identifier, Namespace, QualifiedName
+from prov.identifier import Identifier, Namespace, QualifiedName, _slot_state
 
 if TYPE_CHECKING:
     from prov.model.bundle import ProvBundle
@@ -463,7 +463,10 @@ class Literal:
             "_langtag": self._langtag,
         }
 
-    def __setstate__(self, state: dict[str, Any]) -> None:
+    def __setstate__(self, state: Any) -> None:
+        # Also accepts the __dict__ state of 3.1.1 pickles and the
+        # (dict_state, slot_state) tuple of 3.2.0 pickles.
+        state = _slot_state(state)
         object.__setattr__(self, "_value", state["_value"])
         object.__setattr__(self, "_datatype", state["_datatype"])
         object.__setattr__(self, "_langtag", state["_langtag"])

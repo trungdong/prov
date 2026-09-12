@@ -30,10 +30,11 @@ background for PROV-DM's six components. This page is the detailed reference und
   additionally parses every example of the PROV-N and PROV-DM Recommendations and the
   PROV-N that ProvToolbox writes for the shared test corpus; the differences it found are
   listed under "PROV-N corpus" below. A namespace prefix must be a valid PROV-N `PN_PREFIX`
-  (a `PN_PREFIX`: begin with a letter, continue with name characters or `.`, and not end with `.`) for the PROV-N output to be readable; `prov` does
-  not validate or rename a prefix that isn't. A local part containing a character PN_LOCAL
-  cannot express is percent-encoded with a `ProvWarning`; a PROV-N reader recovers the
-  percent-encoded IRI, so `a b` and `a%20b` read back as the same identifier.
+  (begin with a letter, continue with name characters or `.`, and not end with `.`) for the
+  PROV-N output to be readable; `prov` does not validate or rename a prefix that isn't. A
+  local part containing a character PN_LOCAL cannot express is percent-encoded with a
+  `ProvWarning`; a PROV-N reader recovers the percent-encoded IRI, so `a b` and `a%20b`
+  read back as the same identifier.
 
 ## Caveats that span several rows
 

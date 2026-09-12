@@ -1,7 +1,7 @@
 """``ProvWarning`` and the shared ``warnings.warn()`` stacklevel helper.
 
 Both live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
-can raise ``ProvWarning`` without importing :mod:`prov.model` and creating a
+can emit ``ProvWarning`` without importing :mod:`prov.model` and creating a
 cycle; :mod:`prov.model` re-exports both under their historic names.
 
 Attributing a warning to its caller with a fixed ``stacklevel`` only works

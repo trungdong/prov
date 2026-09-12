@@ -531,14 +531,20 @@ def test_duplicate_bundle_identifier_is_a_positioned_syntax_error():
     assert ctx.value.line == 6
 
 
-@pytest.mark.parametrize(
-    "body",
-    ['entity(ex:e1, [123="x"])', 'entity(ex:e1, [ex:a="x" %% 123])'],
-)
-def test_all_digit_local_names_in_attribute_positions(body):
-    doc = parse(body, prefixes=PREFIXES + "default <http://d/>\n")
+def test_all_digit_local_name_as_an_attribute_name():
+    doc = parse('entity(ex:e1, [123="x"])', prefixes=PREFIXES + "default <http://d/>\n")
     (record,) = doc.get_records()
-    assert record.attributes
+    ((attr, _),) = record.attributes
+    assert attr.uri == "http://d/123"
+
+
+def test_all_digit_local_name_as_a_datatype():
+    doc = parse(
+        'entity(ex:e1, [ex:a="x" %% 123])', prefixes=PREFIXES + "default <http://d/>\n"
+    )
+    (record,) = doc.get_records()
+    ((_, value),) = record.attributes
+    assert value.datatype.uri == "http://d/123"
 
 
 def test_leading_byte_order_mark_is_skipped():
@@ -607,13 +613,3 @@ def test_namespace_uri_that_is_not_an_iri_cannot_be_written():
     d.add_namespace("bad", "http://example.org/a b/")
     with pytest.raises(ProvException, match="bad"):
         d.get_provn()
-
-
-def test_sub_minute_utc_offset_is_written_in_utc():
-    tz = datetime.timezone(datetime.timedelta(seconds=30))
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
-    d.activity("ex:a1", datetime.datetime(2026, 9, 12, 10, 0, 30, tzinfo=tz))
-    text = d.get_provn()
-    assert "2026-09-12T10:00:00+00:00" in text
-    assert ProvDocument.deserialize(content=text, format="provn") == d

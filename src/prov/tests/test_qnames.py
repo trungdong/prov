@@ -8,9 +8,8 @@ not-yet-migrated xml/rdf/dot modules.
 
 import pytest
 
-from prov import Error
 from prov.identifier import Namespace, QualifiedName
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvException
 
 
 def document_with_n_bundles_having_default_namespace(n):
@@ -71,6 +70,6 @@ def test_flattening_2_bundle_with_default_namespaces(roundtrip):
 
 def test_provn_cannot_write_an_empty_local_part_without_a_prefix():
     qname = QualifiedName(Namespace("", "http://d/"), "")
-    with pytest.raises(Error, match="prefix"):
+    with pytest.raises(ProvException, match="prefix"):
         qname.provn_bare_representation()
     assert Namespace("ex", "http://e/")[""].provn_bare_representation() == "ex:"

@@ -383,7 +383,7 @@ def test_deserialize_identified_membership_array_drops_the_id_with_a_warning():
     assert [r.identifier for r in memberships] == [None, None]
     assert [str(r.args[1]) for r in memberships] == ["ex:e1", "ex:e2"]
     assert all(list(r.get_attribute(PROV["label"])) == ["members"] for r in memberships)
-    doc.unified()
+    assert doc.unified() is not None  # unification accepts the unidentified records
 
 
 def test_deserialize_identified_membership_with_one_member_keeps_the_id():
