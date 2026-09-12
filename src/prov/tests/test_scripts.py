@@ -435,6 +435,15 @@ def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch):
     assert not stdin.buffer.closed
 
 
+def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch):
+    json_file, xml_file = compare_files
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json_file.read_text()))
+    monkeypatch.setattr(
+        sys, "argv", ["prov-compare", "-f", "json", "-F", "xml", "-", str(xml_file)]
+    )
+    assert compare_main() == 0
+
+
 def test_compare_two_dashes_exits_2(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["prov-compare", "-", "-"])
     monkeypatch.setattr(sys, "stderr", io.StringIO())

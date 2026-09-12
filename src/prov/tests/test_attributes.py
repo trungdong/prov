@@ -18,10 +18,13 @@ hit a distinct RDF multi-datatype fidelity loss (``xsd:double`` precision),
 now round-trips through RDF too.
 """
 
+import datetime
+
 import pytest
 
 from prov.model import ProvDocument
 from prov.tests.attribute_values import ATTRIBUTE_VALUES, EX_NS
+from prov.tests.conftest import ROUNDTRIP_FORMATS, roundtrip_document
 
 
 @pytest.mark.parametrize(
@@ -52,3 +55,29 @@ def test_entity_with_multiple_value_attribute(roundtrip):
     attributes = [("prov:value", value) for value in ATTRIBUTE_VALUES]
     document.entity(EX_NS["emv"], attributes)
     roundtrip(document)
+
+
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_sub_minute_utc_offset_round_trips_as_utc(fmt):
+    # xsd:dateTime allows no seconds in a timezone offset (#341 scope
+    # extension): a historical LMT-style +00:00:30 offset must serialize as
+    # its UTC equivalent, not as an xsd:dateTime-illegal string. A round trip
+    # through this library's own tolerant parser reconstructs the same
+    # instant either way (aware datetimes compare by instant, not by offset),
+    # so the serialized text itself is checked too, for the illegal offset
+    # an external, strict xsd:dateTime consumer would reject.
+    odd_offset = datetime.timezone(datetime.timedelta(seconds=30))
+    document = ProvDocument()
+    document.activity(
+        EX_NS["a"],
+        startTime=datetime.datetime(2026, 9, 12, 10, 0, 30, tzinfo=odd_offset),
+    )
+    expected = ProvDocument()
+    expected.activity(
+        EX_NS["a"],
+        startTime=datetime.datetime(
+            2026, 9, 12, 10, 0, 0, tzinfo=datetime.timezone.utc
+        ),
+    )
+    assert "+00:00:30" not in document.serialize(format=fmt)
+    assert roundtrip_document(document, fmt) == expected

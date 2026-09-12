@@ -10,14 +10,17 @@ def _open_binary(
 
     ``standard_name`` is ``"stdin"`` or ``"stdout"``; its ``.buffer`` is
     resolved only when ``path`` is ``"-"``, so the other standard stream is
-    never touched. The second element says whether the caller owns the
-    returned stream and must close it; the standard streams belong to the
-    process. An unopenable path is reported through
-    :meth:`argparse.ArgumentParser.error`, which exits with status 2 like
-    argparse's own file handling did.
+    never touched. A standard stream with no ``.buffer`` (a text-only stream,
+    e.g. an ``io.StringIO`` substituted under a test harness) is returned as
+    it is, since every deserializer accepts a text stream. The second
+    element says whether the caller owns the returned stream and must close
+    it; the standard streams belong to the process. An unopenable path is
+    reported through :meth:`argparse.ArgumentParser.error`, which exits with
+    status 2 like argparse's own file handling did.
     """
     if path == "-":
-        return cast(BinaryIO, getattr(sys, standard_name).buffer), False
+        standard = getattr(sys, standard_name)
+        return cast(BinaryIO, getattr(standard, "buffer", standard)), False
     try:
         return cast(BinaryIO, open(path, mode)), True
     except OSError as exc:

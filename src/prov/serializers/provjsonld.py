@@ -8,11 +8,13 @@ compacted shape only, one JSON object per PROV-DM statement in ``@graph``.
 import datetime
 import io
 import json
+import warnings
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any
 
 from prov import Error
+from prov._warnings import ProvWarning, external_stacklevel
 from prov.constants import (
     PROV_ATTR_ENTITY,
     PROV_ATTRIBUTE_LITERALS,
@@ -44,6 +46,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
+from prov.model.records import _xsd_datetime_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Trung Dong Huynh"
@@ -185,7 +188,7 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
             return {"@value": value.value, "@language": value.langtag}
         return {"@value": value.value, "@type": str(value.datatype)}
     if isinstance(value, datetime.datetime):
-        return {"@value": value.isoformat(), "@type": "xsd:dateTime"}
+        return {"@value": _xsd_datetime_text(value), "@type": "xsd:dateTime"}
     if isinstance(value, Identifier):
         return {"@value": value.uri, "@type": "xsd:anyURI"}
     if isinstance(value, bool):
@@ -261,7 +264,7 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
         if values:
             value = first(values)
             obj[attr.localpart] = (
-                value.isoformat()  # type: ignore[union-attr]
+                _xsd_datetime_text(value)  # type: ignore[arg-type]
                 if attr in PROV_ATTRIBUTE_LITERALS
                 else str(value)
             )
@@ -619,6 +622,13 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             :func:`encode_jsonld_statement`.
         bundle: Bundle to add the decoded record to.
 
+    An identified Membership's array of members yields one record per
+    member; PROV-DM's ``hadMember`` is binary, so records sharing one
+    identifier cannot be unified. The ``"@id"`` is kept only when the array
+    has exactly one member; with more than one, every decoded record is
+    unidentified and a :class:`~prov.model.ProvWarning` names the dropped
+    ``"@id"`` and the member count.
+
     Raises:
         ProvJSONLDException: If ``item``'s ``"@type"`` is missing, is not a
             recognised PROV-JSONLD statement type (including ``"Mention"``,
@@ -648,11 +658,20 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'The "entity" array of {type_term} is empty; found {item!r}'
         )
+    member_id = rec_id
+    if rec_id is not None and len(members) > 1:
+        warnings.warn(
+            f"Membership {rec_id!r} lists {len(members)} members; PROV-DM membership "
+            "is binary, so the members are decoded as unidentified hadMember records",
+            ProvWarning,
+            stacklevel=external_stacklevel(),
+        )
+        member_id = None
     for member in members:
         entity = _decode_formal_qname(bundle, member, type_term, "entity")
         bundle.new_record(
             rec_type,
-            rec_id,
+            member_id,
             {**attributes, PROV_ATTR_ENTITY: entity},
             list(other_attributes),
         )

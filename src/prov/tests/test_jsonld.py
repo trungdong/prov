@@ -8,7 +8,7 @@ import pytest
 
 import prov
 from prov.constants import PROV
-from prov.model import Literal, ProvDocument, ProvMembership
+from prov.model import Literal, ProvDocument, ProvMembership, ProvWarning
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
@@ -357,8 +357,8 @@ def test_deserialize_membership_empty_entity_array_raises():
         ProvDocument.deserialize(content=_membership_payload([]), format="jsonld")
 
 
-def test_deserialize_membership_array_shares_id_and_attributes():
-    payload = json.dumps(
+def _identified_membership_payload(entities) -> str:
+    return json.dumps(
         {
             "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
             "@graph": [
@@ -367,17 +367,30 @@ def test_deserialize_membership_array_shares_id_and_attributes():
                     "@type": "Membership",
                     "@id": "ex:m",
                     "collection": "ex:c",
-                    "entity": ["ex:e1", "ex:e2"],
+                    "entity": entities,
                     "label": [{"@value": "members"}],
                 },
             ],
         }
     )
-    doc = ProvDocument.deserialize(content=payload, format="jsonld")
+
+
+def test_deserialize_identified_membership_array_drops_the_id_with_a_warning():
+    payload = _identified_membership_payload(["ex:e1", "ex:e2"])
+    with pytest.warns(ProvWarning, match="ex:m"):
+        doc = ProvDocument.deserialize(content=payload, format="jsonld")
     memberships = sorted(doc.get_records(ProvMembership), key=lambda r: str(r.args[1]))
-    assert [str(r.identifier) for r in memberships] == ["ex:m", "ex:m"]
+    assert [r.identifier for r in memberships] == [None, None]
     assert [str(r.args[1]) for r in memberships] == ["ex:e1", "ex:e2"]
     assert all(list(r.get_attribute(PROV["label"])) == ["members"] for r in memberships)
+    doc.unified()
+
+
+def test_deserialize_identified_membership_with_one_member_keeps_the_id():
+    payload = _identified_membership_payload(["ex:e1"])
+    doc = ProvDocument.deserialize(content=payload, format="jsonld")
+    (membership,) = doc.get_records(ProvMembership)
+    assert str(membership.identifier) == "ex:m"
 
 
 def _expected_primer_document() -> ProvDocument:
