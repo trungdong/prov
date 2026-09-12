@@ -52,6 +52,12 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   had pickled the stored hash and broken protocols 0 and 1
 - An `Identifier` hashes by its URI alone, as a `QualifiedName` already did, so two
   identifiers that compare equal always hash equal
+- `add_namespace()` clears the qualified-name resolution cache when the URI was already
+  registered under another prefix, so resolving the same text before and after the
+  call gives the same result; 3.2.0's cache had made it order-dependent
+- A URI equal to the default namespace itself is no longer compacted to a qualified name
+  with an empty local part, and the PROV-N writer raises instead of writing an empty
+  identifier for one; `prefix:` with an empty local part is still written and read
 
 ## 3.2.0 (2026-09-12)
 

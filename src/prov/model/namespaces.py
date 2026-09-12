@@ -139,6 +139,9 @@ class NamespaceManager(dict[str, Namespace]):
             existing_ns = self._uri_map[uri]
             self._rename_map[namespace] = existing_ns
             self._prefix_renamed_map[prefix] = existing_ns
+            # _prefix_renamed_map feeds _resolve_prefixed_string, so cached
+            # resolutions are stale from here.
+            self._resolve_cache.clear()
             return existing_ns
 
         if prefix in self:
@@ -297,8 +300,13 @@ class NamespaceManager(dict[str, Namespace]):
             #  check if the URI can be compacted by any of the registered namespaces
             for namespace in self.values():
                 if str_value.startswith(namespace.uri):
-                    #  create a QName with the namespace
-                    return namespace[str_value.replace(namespace.uri, "")]
+                    local = str_value[len(namespace.uri) :]
+                    if not local and not namespace.prefix:
+                        # The URI is the default namespace itself; a bare
+                        # empty local name has no PROV-N spelling, so it is
+                        # not a qualified name here.
+                        continue
+                    return namespace[local]
         return None
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:

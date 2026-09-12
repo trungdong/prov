@@ -3,6 +3,8 @@ from __future__ import annotations  # defer eval: Namespace used before it's def
 import re
 from typing import Any, Final
 
+from prov import Error
+
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
@@ -244,7 +246,17 @@ class QualifiedName(Identifier):
         [53]/[54]); characters PN_LOCAL cannot express at all are
         percent-encoded. The prefix is never escaped, as it cannot contain
         these characters.
+
+        Raises:
+            Error: If the local part is empty and the namespace has no prefix,
+                which has no PROV-N spelling.
         """
+        if not self._localpart and not self._namespace.prefix:
+            raise Error(
+                f"the qualified name for <{self._uri}> has an empty local part in a "
+                "namespace with no prefix, which PROV-N cannot write; give the "
+                "namespace a prefix"
+            )
         escaped_localpart = _provn_escape_local(self._localpart)
         return (
             ":".join([self._namespace.prefix, escaped_localpart])

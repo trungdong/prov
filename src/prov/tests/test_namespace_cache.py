@@ -90,3 +90,23 @@ def test_parent_answered_resolution_is_not_cached_in_the_child():
     assert bundle._namespaces._resolve_cache == {}
     document.set_default_namespace("http://two.org/")
     assert bundle.valid_qualified_name("e1").uri == "http://two.org/e1"
+
+
+def test_add_namespace_with_known_uri_clears_the_resolve_cache():
+    ordered = ProvDocument()
+    for prefix, uri in (("x", "a:"), ("y", "a:b"), ("a", "a:b")):
+        ordered.add_namespace(prefix, uri)
+    expected = ordered.valid_qualified_name("a:bc")
+
+    doc = ProvDocument()
+    doc.add_namespace("x", "a:")
+    doc.add_namespace("y", "a:b")
+    first = doc.valid_qualified_name("a:bc")
+    # "a" is not yet registered here, so x's namespace is the only one whose
+    # URI prefixes "a:bc"; x:bc is the correct resolution at this point.
+    assert first.uri == "a:bc"
+    # Same URI as y: registers a rename, must drop the cache.
+    doc.add_namespace("a", "a:b")
+    second = doc.valid_qualified_name("a:bc")
+    assert second == expected
+    assert second.uri == "a:bbc"
