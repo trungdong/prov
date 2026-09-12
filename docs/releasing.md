@@ -40,6 +40,14 @@ uv run ruff format --check src/
 uv run pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
 ```
 
+Run the benchmark suite and compare it with the committed baseline; a regression
+here is advisory, but a release should not ship one unexplained:
+
+```bash
+uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json -q
+uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json
+```
+
 Compare the suite's pass, skip and xfail counts against the previous run and against the
 count the release PR states; `CLAUDE.md` deliberately records no fixed number. A skip or
 xfail that is new, gone, or unexplained by the release's own changes is a regression, not a
