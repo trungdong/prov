@@ -20,6 +20,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from typing import BinaryIO
 
 from prov.model import ProvDocument
+from prov.scripts import _open_binary
 
 logger = logging.getLogger(__name__)
 
@@ -122,24 +123,19 @@ USAGE
         args = parser.parse_args()
         if args.file1 == "-" and args.file2 == "-":
             parser.error("only one of file1 and file2 may be '-' (standard input)")
-        opened: list[BinaryIO] = []
+        owned: list[BinaryIO] = []
         try:
             streams: list[BinaryIO] = []
             for path in (args.file1, args.file2):
-                if path == "-":
-                    streams.append(sys.stdin.buffer)
-                    continue
-                try:
-                    stream: BinaryIO = open(path, "rb")  # noqa: SIM115 -- closed by main()
-                except OSError as exc:
-                    parser.error(f"can't open '{path}': {exc}")
-                opened.append(stream)
+                stream, owns = _open_binary(parser, path, "rb", "stdin")
+                if owns:
+                    owned.append(stream)
                 streams.append(stream)
             doc1 = ProvDocument.deserialize(streams[0], format=args.format1.lower())
             doc2 = ProvDocument.deserialize(streams[1], format=args.format2.lower())
             return doc1 != doc2
         finally:
-            for stream in opened:
+            for stream in owned:
                 stream.close()
 
     except Exception as e:

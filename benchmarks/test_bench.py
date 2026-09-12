@@ -10,7 +10,7 @@ import pytest
 
 from prov.model import ProvDocument
 
-from .conftest import N, build_document, serialized
+from .conftest import N, build_document
 
 FORMATS = ("json", "xml", "rdf", "provn", "jsonld")
 
@@ -21,12 +21,12 @@ def test_construct(benchmark):
 
 @pytest.mark.parametrize("fmt", FORMATS)
 def test_serialize(benchmark, document, fmt):
-    benchmark(serialized, document, fmt)
+    benchmark(document.serialize, format=fmt)
 
 
 @pytest.mark.parametrize("fmt", FORMATS)
 def test_deserialize(benchmark, document, fmt):
-    content = serialized(document, fmt)
+    content = document.serialize(format=fmt)
     benchmark(ProvDocument.deserialize, content=content, format=fmt)
 
 

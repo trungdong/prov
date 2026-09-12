@@ -18,7 +18,6 @@ import contextlib
 import io
 import shutil
 import sys
-import warnings
 
 import pytest
 
@@ -207,6 +206,10 @@ def provn_infile(tmp_path):
     return path
 
 
+# argparse.FileType is deprecated from Python 3.14 (#441); the scripts must
+# not use it on any interpreter.
+@pytest.mark.filterwarnings("error::PendingDeprecationWarning")
+@pytest.mark.filterwarnings("error::DeprecationWarning")
 def test_convert_from_provn(provn_infile, tmp_path, monkeypatch):
     outfile = tmp_path / "doc.json"
     monkeypatch.setattr(
@@ -306,19 +309,6 @@ def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch):
     assert ctx.value.code == 2
 
 
-def test_convert_raises_no_pending_deprecation_warning(infile, tmp_path, monkeypatch):
-    # argparse.FileType is deprecated from Python 3.14 (#441); the scripts
-    # must not use it on any interpreter.
-    outfile = tmp_path / "doc.xml"
-    monkeypatch.setattr(
-        sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
-    )
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", PendingDeprecationWarning)
-        warnings.simplefilter("error", DeprecationWarning)
-        assert convert_main() == 0
-
-
 @pytest.fixture
 def compare_files(tmp_path):
     json_file = tmp_path / "doc.json"
@@ -329,6 +319,10 @@ def compare_files(tmp_path):
     return json_file, xml_file
 
 
+# argparse.FileType is deprecated from Python 3.14 (#441); the scripts must
+# not use it on any interpreter.
+@pytest.mark.filterwarnings("error::PendingDeprecationWarning")
+@pytest.mark.filterwarnings("error::DeprecationWarning")
 def test_equivalent_documents_return_0(compare_files, monkeypatch):
     json_file, xml_file = compare_files
     monkeypatch.setattr(
@@ -428,19 +422,6 @@ def test_compare_one_positional_exits_2(compare_files, monkeypatch):
     with pytest.raises(SystemExit) as ctx:
         compare_main()
     assert ctx.value.code == 2
-
-
-def test_compare_raises_no_pending_deprecation_warning(compare_files, monkeypatch):
-    json_file, xml_file = compare_files
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        ["prov-compare", "-f", "json", "-F", "xml", str(json_file), str(xml_file)],
-    )
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", PendingDeprecationWarning)
-        warnings.simplefilter("error", DeprecationWarning)
-        assert compare_main() == 0
 
 
 def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch):

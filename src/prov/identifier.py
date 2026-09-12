@@ -212,9 +212,6 @@ class QualifiedName(Identifier):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self._str}>"
 
-    def __hash__(self) -> int:
-        return self._hash
-
     def provn_bare_representation(self) -> str:
         """Return the ``prefix:local`` PROV-N form used at IDENTIFIER positions.
 

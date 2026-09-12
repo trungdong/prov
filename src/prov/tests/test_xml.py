@@ -925,3 +925,14 @@ def test_reference_given_as_element_text_still_decodes():
     (membership,) = document.get_records(prov.ProvMembership)
     (member,) = membership.get_attribute(PROV["entity"])
     assert str(member) == "ex:e1"
+
+
+def test_nested_reference_warning_is_attributed_to_the_caller():
+    xml_string = _membership_xml(
+        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (warning,) = [w for w in caught if issubclass(w.category, prov.ProvWarning)]
+    assert warning.filename == __file__

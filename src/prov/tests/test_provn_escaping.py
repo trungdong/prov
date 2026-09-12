@@ -75,40 +75,21 @@ def test_attribute_name_plain_unchanged():
     assert '[ex:plain_key="value"]' in document.get_provn()
 
 
-def test_leading_dash_local_part_is_escaped():
+@pytest.mark.parametrize(
+    ("local", "written"),
+    [
+        ("-abc", "\\-abc"),  # leading dash is escaped
+        (".abc", "\\.abc"),  # leading dot is escaped
+        ("abc.", "abc\\."),  # trailing dot is escaped
+        ("-", "\\-"),  # the Recommendation's own PN_LOCAL example
+        ("ab-cd.ef", "ab-cd.ef"),  # inner dash and dot stay bare
+    ],
+)
+def test_dash_and_dot_local_parts(local, written):
     document = _doc()
-    document.entity("ex:-abc")
+    document.entity(f"ex:{local}")
     provn = _roundtrips(document)
-    assert "entity(ex:\\-abc)" in provn
-
-
-def test_leading_dot_local_part_is_escaped():
-    document = _doc()
-    document.entity("ex:.abc")
-    provn = _roundtrips(document)
-    assert "entity(ex:\\.abc)" in provn
-
-
-def test_trailing_dot_local_part_is_escaped():
-    document = _doc()
-    document.entity("ex:abc.")
-    provn = _roundtrips(document)
-    assert "entity(ex:abc\\.)" in provn
-
-
-def test_bare_dash_local_part_matches_recommendation_example():
-    """The Recommendation's own PN_LOCAL example is ``entity(ex:\\-)``."""
-    document = _doc()
-    document.entity("ex:-")
-    provn = _roundtrips(document)
-    assert "entity(ex:\\-)" in provn
-
-
-def test_inner_dash_and_dot_stay_bare():
-    document = _doc()
-    document.entity("ex:ab-cd.ef")
-    provn = _roundtrips(document)
-    assert "entity(ex:ab-cd.ef)" in provn
+    assert f"entity(ex:{written})" in provn
 
 
 @pytest.mark.parametrize(
@@ -130,23 +111,6 @@ def test_unrepresentable_chars_are_percent_encoded(local, escaped):
     reloaded = ProvDocument.deserialize(content=provn, format="provn")
     (reloaded_entity,) = reloaded.get_records()
     assert reloaded_entity.identifier.localpart == escaped
-
-
-def test_unrepresentable_char_is_percent_encoded():
-    """A space cannot appear in PN_LOCAL even escaped, so it is percent-encoded.
-
-    The local part changes from "a b" to "a%20b", so the reloaded
-    QualifiedName is not equal to the original one, a documented exclusion.
-    The entity's own identity still survives the round trip; only this bare
-    local part changes.
-    """
-    document = _doc()
-    document.entity("ex:a b")
-    provn = document.get_provn()
-    assert "entity(ex:a%20b)" in provn
-    reloaded = ProvDocument.deserialize(content=provn, format="provn")
-    (reloaded_entity,) = reloaded.get_records()
-    assert reloaded_entity.identifier.localpart == "a%20b"
 
 
 def test_empty_langtag_literal_written_as_plain_string():

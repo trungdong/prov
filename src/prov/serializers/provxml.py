@@ -11,6 +11,7 @@ from lxml import etree
 
 import prov.identifier
 import prov.model
+from prov._warnings import external_stacklevel
 from prov.constants import *
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
@@ -300,7 +301,7 @@ class ProvXMLSerializer(Serializer):
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
                     UserWarning,
-                    stacklevel=2,
+                    stacklevel=external_stacklevel(),
                 )
                 continue
 
@@ -628,7 +629,7 @@ def _extract_attributes(
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored.",
                     UserWarning,
-                    stacklevel=2,
+                    stacklevel=external_stacklevel(),
                 )
 
         if not subel.attrib:
@@ -667,6 +668,9 @@ def _nested_reference(
     reference is taken, with a warning. Non-blank text is returned as the
     reference. A blank element with no reference anywhere has no value.
 
+    Returns:
+        The referenced qualified name, or the element's non-blank text.
+
     Raises:
         ProvXMLException: If ``subel`` has neither a ``prov:ref`` child nor
             text.
@@ -683,7 +687,7 @@ def _nested_reference(
             "itself; the nested reference is used. The shape is not "
             "PROV-XML schema-valid (ProvToolbox writes it for hadMember).",
             prov.model.ProvWarning,
-            stacklevel=3,
+            stacklevel=external_stacklevel(),
         )
         return xml_qname_to_QualifiedName(children[0], str(children[0].attrib[ref]))
     if subel.text is not None and subel.text.strip():

@@ -51,7 +51,3 @@ def build_document(n: int = N) -> ProvDocument:
 @pytest.fixture(scope="session")
 def document() -> ProvDocument:
     return build_document()
-
-
-def serialized(doc: ProvDocument, fmt: str) -> str:
-    return doc.serialize(format=fmt)
