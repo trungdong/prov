@@ -58,7 +58,9 @@ def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(tmp
         "sys.stdout.buffer.write(pickle.dumps(Namespace('ex', 'http://example.org/')['e1']))\n"
     )
     for seed in ("12345", "54321"):
-        produced = subprocess.run(
+        # The command is the running interpreter plus a script this test
+        # just wrote, not untrusted input.
+        produced = subprocess.run(  # nosec B603 - nosemgrep
             [sys.executable, str(script)],
             capture_output=True,
             check=True,
