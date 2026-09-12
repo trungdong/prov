@@ -104,7 +104,7 @@ document.serialize("document.provn", format="provn", strict=True)
 ## Large documents
 
 The parser tokenises the whole document before it builds any record, so peak memory
-during a parse is about 4 KiB per statement on CPython 3.12: a 100,000-statement,
+during a parse is about 4 KiB per statement on CPython 3.12. A 100,000-statement,
 7.5 MiB document peaks near 400 MiB. Throughput on a 2023 laptop is on the order of
 20,000 statements per second, and `get_provn()` writes an order of magnitude faster than
 that. Neither figure is a limit, but a document of several million statements needs
