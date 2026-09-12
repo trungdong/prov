@@ -883,3 +883,45 @@ def test_force_types_controls_xsi_type_on_non_prov_attributes(force_types):
     assert xsi_type(".//ex:count") == "xsd:int"
     assert xsi_type(".//ex:when") == "xsd:dateTime"
     assert xsi_type(".//prov:type") == "xsd:string"
+
+
+def _membership_xml(entity_element: str) -> str:
+    return f"""<document xmlns="http://www.w3.org/ns/prov#"
+        xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/">
+      <entity prov:id="ex:c"/>
+      <entity prov:id="ex:e1"/>
+      <hadMember>
+        <collection prov:ref="ex:c"/>
+        {entity_element}
+      </hadMember>
+    </document>"""
+
+
+def test_nested_reference_child_is_used_with_a_warning():
+    # ProvToolbox 2.0.4 wraps a hadMember's member in an extra <entity>
+    # element; the schema puts prov:ref on the element itself.
+    xml_string = _membership_xml(
+        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
+    )
+    with pytest.warns(prov.ProvWarning, match="nested"):
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (membership,) = document.get_records(prov.ProvMembership)
+    (member,) = membership.get_attribute(PROV["entity"])
+    assert str(member) == "ex:e1"
+
+
+def test_blank_reference_element_without_ref_raises():
+    xml_string = _membership_xml("<entity>   </entity>")
+    with pytest.raises(ProvXMLException, match="no prov:ref"):
+        prov.ProvDocument.deserialize(content=xml_string, format="xml")
+
+
+def test_reference_given_as_element_text_still_decodes():
+    xml_string = _membership_xml("<entity>ex:e1</entity>")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (membership,) = document.get_records(prov.ProvMembership)
+    (member,) = membership.get_attribute(PROV["entity"])
+    assert str(member) == "ex:e1"
