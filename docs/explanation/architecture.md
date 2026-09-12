@@ -97,7 +97,7 @@ keyword that `prov` and ProvToolbox write is accepted alongside the Recommendati
 keywords, and whether a required-position check rejects `-` where the grammar demands an
 identifier. The `lenient` profile adds panic-mode error
 recovery. When a statement fails, the parser records the error, skips tokens until it
-reaches a synchronisation point (a statement keyword followed by `(`, or a structural
+reaches a synchronisation point (any name followed by `(`, or a structural
 keyword such as `endBundle` at the statement's own bracket depth) and resumes; the skipped
 statements are reported as {py:class}`~prov.model.ProvWarning` by the serializer, attributed
 to the caller's frame.

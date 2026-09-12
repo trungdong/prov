@@ -131,6 +131,38 @@ def test_lenient_warns_once_per_bad_statement():
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
+def test_lenient_warns_for_each_of_two_adjacent_unknown_statements():
+    body = "entity(ex:e1)\nfoo(ex:e2)\nbar(ex:e3)\nentity(ex:e4)"
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert [str(w.message) for w in caught] == [
+        "PROV-N statement skipped: line 4, column 1: unknown statement keyword 'foo'",
+        "PROV-N statement skipped: line 5, column 1: unknown statement keyword 'bar'",
+    ]
+    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e4"]
+
+
+def test_lenient_warns_for_each_of_two_adjacent_extensibility_expressions():
+    # ProvToolbox's summary documents write runs of provext: statements; each
+    # must be reported, not only the first of a run.
+    body = (
+        "prefix provext <http://openprovenance.org/prov/extension#>\n"
+        "entity(ex:e1)\n"
+        "provext:hadMember(ex:c, ex:e1)\n"
+        "provext:hadMember(ex:c, ex:e2)\n"
+        "entity(ex:e2)"
+    )
+    with pytest.warns(ProvWarning) as caught:
+        doc = parse(body, profile="lenient")
+    assert [str(w.message) for w in caught] == [
+        "PROV-N statement skipped: line 5, column 1: extensibility expression "
+        "'provext:hadMember(...)' is not supported",
+        "PROV-N statement skipped: line 6, column 1: extensibility expression "
+        "'provext:hadMember(...)' is not supported",
+    ]
+    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e2"]
+
+
 def test_lenient_skips_extensibility_expression():
     with pytest.warns(ProvWarning, match="extensibility"):
         doc = parse("ex:custom(ex:e1)\nentity(ex:e2)", profile="lenient")

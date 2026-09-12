@@ -20,6 +20,10 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - Under the `strict` PROV-N profile, the error for a bare `mentionOf` says that
   `prov:mentionOf` is the strict spelling and that the `default` profile accepts the bare
   keyword
+- The `lenient` PROV-N profile warns once for every skipped statement. Consecutive
+  unparsable statements, such as a run of `provext:` extensibility expressions, were
+  skipped as one with a single `ProvWarning` naming only the first; resynchronisation
+  now stops at any name followed by `(`, not only at a keyword the parser knows
 
 ## 3.2.0 (2026-09-12)
 

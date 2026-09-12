@@ -323,15 +323,17 @@ class ProvNParser:
         self._resync(start_depth)
 
     def _looks_like_statement_start(self, token: Token) -> bool:
-        prefix, local = token.value
-        is_candidate = (
-            not prefix
-            and (local in _ELEMENTS or local in _RELATIONS or local == "mentionOf")
-        ) or (prefix, local) == ("prov", "mentionOf")
-        # A bare NAME that merely spells a keyword (e.g. an attribute name or
-        # value) is not a new statement unless it is actually followed by
-        # '(', as every real keyword use is.
-        return is_candidate and self._peek().kind is TokenKind.LPAREN
+        """A NAME immediately followed by '(' opens a statement.
+
+        No production puts '(' after a name inside a statement body
+        (arguments and attribute values are followed by ',', ']' or ')'),
+        so the pair marks a boundary whatever the name is: a keyword, an
+        unknown keyword or a prefixed extensibility expression. Testing the
+        name against the keyword tables instead would run a skip through
+        every following statement the tables do not know, reporting a run
+        of bad statements as one.
+        """
+        return self._peek().kind is TokenKind.LPAREN
 
     def _resync(self, start_depth: int) -> None:
         """Skip to the next statement boundary.
@@ -339,11 +341,10 @@ class ProvNParser:
         A statement missing a closing ``)``/``]`` leaves ``self._depth``
         above ``start_depth`` forever, since ``_advance()`` only lowers it
         on a matching close. Gating every boundary on depth would then
-        reject every statement keyword that follows, so a statement
-        keyword immediately followed by ``(`` is trusted at any depth (it
-        is never legal inside a statement body) and forces the depth back
-        down to where the failed statement started, clearing whatever
-        imbalance it left.
+        reject every statement keyword that follows, so a name immediately
+        followed by ``(`` is trusted at any depth (it is never legal inside
+        a statement body) and forces the depth back down to where the
+        failed statement started, clearing whatever imbalance it left.
 
         A bare structural keyword (``document``, ``bundle``, ...) is not
         followed by ``(``, so it cannot be told apart this way from the
