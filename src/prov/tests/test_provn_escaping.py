@@ -200,3 +200,43 @@ def test_mention_bare_keyword_no_prefix():
     # would still satisfy the positive assertion. Do not remove this as dead
     # weight.
     assert "prov:mentionOf" not in provn
+
+
+def _mention_doc():
+    document = _doc()
+    bundle = document.bundle("ex:b")
+    bundle.entity("ex:e0")
+    document.entity("ex:e1")
+    document.mention("ex:e1", "ex:e0", "ex:b")
+    return document
+
+
+def test_default_output_keeps_bare_mention_keyword():
+    assert "\n  mentionOf(ex:e1, ex:e0, ex:b)" in _mention_doc().get_provn()
+
+
+def test_strict_output_writes_prefixed_mention_keyword():
+    provn = _mention_doc().get_provn(strict=True)
+    assert "prov:mentionOf(ex:e1, ex:e0, ex:b)" in provn
+    assert "\n  mentionOf(" not in provn
+
+
+def test_strict_output_parses_under_strict_profile():
+    document = _mention_doc()
+    reloaded = ProvDocument.deserialize(
+        content=document.get_provn(strict=True), format="provn", profile="strict"
+    )
+    assert reloaded == document
+
+
+def test_serialize_strict_matches_get_provn_strict():
+    document = _mention_doc()
+    assert document.serialize(format="provn", strict=True) == document.get_provn(
+        strict=True
+    )
+
+
+def test_strict_flag_changes_nothing_without_a_mention():
+    document = _doc()
+    document.entity("ex:e1", {"ex:k": "v"})
+    assert document.get_provn(strict=True) == document.get_provn()
