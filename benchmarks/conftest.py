@@ -53,5 +53,5 @@ def document() -> ProvDocument:
     return build_document()
 
 
-def serialized(doc: ProvDocument, fmt: str) -> str | bytes:
+def serialized(doc: ProvDocument, fmt: str) -> str:
     return doc.serialize(format=fmt)
