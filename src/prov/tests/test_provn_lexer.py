@@ -4,10 +4,12 @@ boundary that a hand-written lexer gets wrong."""
 
 import copy
 import pickle
+import re
 import time
 
 import pytest
 
+from prov.serializers import provn_lexer
 from prov.serializers.provn_lexer import ProvNSyntaxError, TokenKind, tokenize
 
 
@@ -324,3 +326,31 @@ def test_iri_allows_non_breaking_space_but_rejects_control_characters():
     assert values(f"<http://a/b{nbsp}c>") == [f"http://a/b{nbsp}c"]
     with pytest.raises(ProvNSyntaxError, match="unterminated IRI"):
         list(tokenize("<a\x01b>"))
+
+
+def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges():
+    """provn_lexer's PN_CHARS_BASE/PN_CHARS_U/PN_CHARS are now derived from
+    prov.identifier's shared NCName tables rather than spelled out here; this
+    pins that derivation against the Recommendation's own literal ranges
+    ([53]-[55]) they replaced, over the full non-surrogate codepoint space."""
+    old_pn_chars_base = (
+        r"A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF"
+        r"\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF"
+        r"\uFDF0-\uFFFD\U00010000-\U000EFFFF"
+    )
+    old_pn_chars_u = old_pn_chars_base + "_"
+    old_pn_chars = old_pn_chars_u + r"\-0-9\u00B7\u0300-\u036F\u203F-\u2040"
+
+    checks = [
+        (old_pn_chars_base, provn_lexer._PN_CHARS_BASE),
+        (old_pn_chars_u, provn_lexer._PN_CHARS_U),
+        (old_pn_chars, provn_lexer._PN_CHARS),
+    ]
+    compiled = [(re.compile(f"[{old}]"), re.compile(f"[{new}]")) for old, new in checks]
+
+    for codepoint in range(0x110000):
+        if 0xD800 <= codepoint <= 0xDFFF:  # surrogates: not real characters
+            continue
+        char = chr(codepoint)
+        for old_re, new_re in compiled:
+            assert bool(old_re.match(char)) == bool(new_re.match(char)), hex(codepoint)

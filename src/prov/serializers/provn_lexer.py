@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
 
 __all__ = ["ProvNSyntaxError", "Token", "TokenKind", "tokenize"]
@@ -70,15 +71,16 @@ class Token:
     column: int
 
 
-# Character classes from the Recommendation ([53] to [55]); '.' and '-' are
-# handled in the local-part patterns because their placement rules differ.
-_PN_CHARS_BASE = (
-    r"A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u02FF\u0370-\u037D\u037F-\u1FFF"
-    r"\u200C-\u200D\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF"
-    r"\uFDF0-\uFFFD\U00010000-\U000EFFFF"
-)
-_PN_CHARS_U = _PN_CHARS_BASE + "_"
-_PN_CHARS = _PN_CHARS_U + r"\-0-9\u00B7\u0300-\u036F\u203F-\u2040"
+# Character classes from the Recommendation ([53] to [55]); '.' is handled
+# in the local-part patterns because its placement rules differ, so PN_CHARS
+# is PROV-N's share of prov.identifier's NCName tables minus '.'. PN_CHARS_U
+# (NCName's NameStartChar, '_' included) is that table unchanged; PN_CHARS_BASE
+# (SPARQL's PN_CHARS_BASE, no leading '_') strips '_' back out. Both classes'
+# equivalence to the NCName tables over the full codepoint space is pinned
+# by test_provn_lexer.py.
+_PN_CHARS_U = _NCNAME_START_CHARS
+_PN_CHARS_BASE = _PN_CHARS_U.replace("_", "")
+_PN_CHARS = _NCNAME_CHARS.replace(".", "")
 _PN_OTHERS = r"/@~&+*?#$!"
 _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = r"\\[=',\-:;\[\]().]"
@@ -296,9 +298,14 @@ class _Lexer:
 
     def name_token(self, match: re.Match[str]) -> Token:
         # _PN_LOCAL already excludes a bare trailing '.' ([54]), so the
-        # match never needs trimming here.
+        # match never needs trimming here. ``match`` is the _QNAME match
+        # that literal_or_name_token() already ran, so its groups are read
+        # directly rather than re-matching the text with _split_qname().
         raw = match.group(0)
-        value = _split_qname(raw, self.locate, self.pos)
+        if match.group(1) is not None:
+            value = (match.group(1), _ESCAPE_CHAR.sub(r"\1", match.group(2) or ""))
+        else:
+            value = ("", _ESCAPE_CHAR.sub(r"\1", match.group(3) or ""))
         token = self.emit(TokenKind.NAME, raw, value)
         if self.pos < len(self.text) and self.text[self.pos] == ":":
             raise self.error("unexpected ':' inside a qualified name")

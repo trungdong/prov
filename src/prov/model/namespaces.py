@@ -214,25 +214,20 @@ class NamespaceManager(dict[str, Namespace]):
             # read and write, because the cache is keyed by string value only
             # and would otherwise conflate the two.
             resolved = self._resolve_string(qname.uri, is_plain_str=False)
-            if resolved is None and self.parent:
-                # all attempts have failed so far
-                # now delegate this to the parent NamespaceManager
-                resolved = self.parent.valid_qualified_name(qname)
-            return resolved
+        else:
+            # Plain string input: served from, and written to, this
+            # manager's own cache.
+            resolved = self._resolve_cache.get(qname)
+            if resolved is None:
+                resolved = self._resolve_string(qname, is_plain_str=True)
+                if resolved is not None:
+                    self._resolve_cache[qname] = resolved
 
-        # Plain string input: served from, and written to, this manager's own cache
-        cached = self._resolve_cache.get(qname)
-        if cached is not None:
-            return cached
-        resolved = self._resolve_string(qname, is_plain_str=True)
-        if resolved is not None:
-            self._resolve_cache[qname] = resolved
+        if resolved is not None or not self.parent:
             return resolved
-        if self.parent:
-            # all attempts have failed so far; delegate to the parent, but do
-            # not cache a result this manager did not itself resolve
-            return self.parent.valid_qualified_name(qname)
-        return None
+        # all attempts have failed so far; delegate to the parent, but do
+        # not cache a result this manager did not itself resolve
+        return self.parent.valid_qualified_name(qname)
 
     def _resolve_string(
         self, str_value: str, is_plain_str: bool

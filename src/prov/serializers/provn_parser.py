@@ -109,23 +109,12 @@ _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 # Recommendation's grammar makes a plain identifier, not an identifierOrMarker;
 # '-' there is only ever accepted under the default/lenient extensions,
 # matching the model's scruffy-statement policy (#257).
+#
+# A relation's compact form (no ';') lists exactly its required identifiers,
+# so the smallest allowed arity is that required count.
 _STRICT_REQUIRED_LEADING: dict[str, int] = {
-    "wasGeneratedBy": 1,
-    "used": 1,
-    "wasInvalidatedBy": 1,
-    "wasStartedBy": 1,
-    "wasEndedBy": 1,
-    "wasAssociatedWith": 1,
-    "wasInformedBy": 2,
-    "wasAttributedTo": 2,
-    "wasInfluencedBy": 2,
-    "alternateOf": 2,
-    "specializationOf": 2,
-    "hadMember": 2,
-    "actedOnBehalfOf": 2,
-    "wasDerivedFrom": 2,
-    "mentionOf": 3,
-}
+    name: min(arities) for name, (_, arities) in _RELATIONS.items()
+} | {"mentionOf": min(_MENTION[1])}
 
 
 class ProvNParser:
@@ -188,21 +177,29 @@ class ProvNParser:
             raise self._error(f"expected {expected}, found {self._found()}")
         return self._advance()
 
-    def _identifier_token(self) -> Token:
-        """An identifier position also accepts a bare, all-digit local name
-        ([53] PN_LOCAL allows a leading digit, but not an unescaped '-');
-        the lexer, which tokenises without regard to grammar position,
-        always reads a digit run as INT, so a positive one is re-kinded as
-        a NAME here. A signed INT ('-4567') is not a valid local name and
-        falls through to the usual NAME-expected error."""
-        if self._current.kind is TokenKind.INT and not self._current.text.startswith(
+    def _digit_run_as_name(self) -> Token | None:
+        """Re-kind the current token from INT to NAME if it's an unsigned
+        digit run ([53] PN_LOCAL allows a leading digit, but not an
+        unescaped '-'). The lexer tokenises without regard to grammar
+        position, so it always reads a digit run as INT; a signed INT
+        ('-4567') is not a valid local name and is left alone. Returns
+        ``None``, without advancing, when the current token doesn't match."""
+        if self._current.kind is not TokenKind.INT or self._current.text.startswith(
             "-"
         ):
-            token = self._advance()
-            return Token(
-                TokenKind.NAME, token.text, ("", token.text), token.line, token.column
-            )
-        return self._expect(TokenKind.NAME, "an identifier")
+            return None
+        token = self._advance()
+        return Token(
+            TokenKind.NAME, token.text, ("", token.text), token.line, token.column
+        )
+
+    def _identifier_token(self) -> Token:
+        """An identifier position also accepts a bare, all-digit local name;
+        see :meth:`_digit_run_as_name`. Anything else falls through to the
+        usual NAME-expected error."""
+        return self._digit_run_as_name() or self._expect(
+            TokenKind.NAME, "an identifier"
+        )
 
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
@@ -467,17 +464,11 @@ class ProvNParser:
 
     def _argument(self) -> Token:
         # A relation argument is always an identifier, a time or '-', never
-        # a literal, so an unsigned INT token here is a bare local name
-        # ([53] PN_LOCAL allows a leading digit but not an unescaped '-';
-        # see _identifier_token()). A signed INT ('-4567') is not a valid
-        # local name and falls through to the usual error below.
-        if self._current.kind is TokenKind.INT and not self._current.text.startswith(
-            "-"
-        ):
-            token = self._advance()
-            return Token(
-                TokenKind.NAME, token.text, ("", token.text), token.line, token.column
-            )
+        # a literal, so an unsigned INT token here is a bare local name;
+        # see _digit_run_as_name().
+        digit_run = self._digit_run_as_name()
+        if digit_run is not None:
+            return digit_run
         if self._current.kind not in _ARGUMENT_KINDS:
             raise self._error(
                 f"expected an identifier, a time or '-', found {self._found()}"
@@ -514,6 +505,10 @@ class ProvNParser:
         namespace makes that call reconcile it onto this bundle as its OWN
         default namespace, which the plain-string path does not do.
         """
+        # Resolving here, even though the common case below discards
+        # ``resolved`` and returns plain text, validates the prefix and
+        # reports an unknown one at this token's position rather than at
+        # new_record()'s later, unpositioned resolution.
         resolved = self._resolve(token, bundle)
         prefix, local = token.value
         if not prefix and ":" in local:

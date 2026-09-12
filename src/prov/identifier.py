@@ -6,6 +6,43 @@ from typing import Any, Final
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
+# Character classes for the XML 1.0 5th-edition Name productions, minus ':'
+# (NCName). Shared by prov.serializers.provxml (PROV-XML element-tag
+# legality, #289) and prov.serializers.provn_lexer, whose PN_CHARS_BASE/
+# PN_CHARS_U/PN_CHARS ([53]-[55]) are these same ranges, bar '.', which
+# PROV-N's grammar handles positionally rather than as an ordinary name char.
+#
+# Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
+# a literal glyph) and annotated with the spec clause it implements, so a
+# mangled/look-alike codepoint (as happened once with the CJK-compatibility
+# range below, which briefly read U+8C48 instead of U+F900) is visible on
+# inspection rather than hiding in the source as an indistinguishable glyph.
+_NCNAME_START_CHARS = (
+    "\x41-\x5a"  # NameStartChar: [A-Z]
+    "\x5f"  # NameStartChar: "_"
+    "\x61-\x7a"  # NameStartChar: [a-z]
+    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
+    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
+    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
+    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
+    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
+    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
+    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
+    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
+    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
+    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
+    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
+    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
+)
+_NCNAME_CHARS = _NCNAME_START_CHARS + (
+    "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
+    "\x2e"  # NameChar: "."
+    "\x30-\x39"  # NameChar: [0-9]
+    "\xb7"  # NameChar: #xB7
+    "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
+    "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
+)
+
 # PROV-N metacharacters that must be backslash-escaped anywhere in the local
 # part of a qualified name (grammar production [55] PN_CHARS_ESC, #223).
 _PROVN_LOCAL_METACHARS = "='(),:;[]"
@@ -80,7 +117,12 @@ class Identifier:
                 already one.
         """
         self._uri = str(uri)  # Ensure this is a unicode string
-        self._hash = hash((self._uri, self.__class__))
+        self._hash = self._compute_hash()
+
+    def _compute_hash(self) -> int:
+        """Hash for this identifier, class-distinguished so identifiers with
+        the same URI but a different concrete type do not collide."""
+        return hash((self._uri, self.__class__))
 
     @property
     def uri(self) -> str:
@@ -141,7 +183,12 @@ class QualifiedName(Identifier):
         self._str = (
             ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
         )
-        self._hash = hash(self._uri)
+
+    def _compute_hash(self) -> int:
+        """Hash by URI alone. Unlike the base class, a QualifiedName never
+        needs class-distinguishing, so no different concrete type shares a
+        URI with it in practice."""
+        return hash(self._uri)
 
     @property
     def namespace(self) -> Namespace:

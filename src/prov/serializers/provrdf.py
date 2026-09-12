@@ -545,6 +545,17 @@ class ProvRDFSerializer(Serializer):
         else:
             return RDFLiteral(value)
 
+    def _resolve_predicate_key(
+        self, pred: URIRef | pm.QualifiedName, graph: Graph
+    ) -> pm.QualifiedName:
+        """Resolve a PROV-O predicate to a QualifiedName key, falling back to
+        the graph's own namespace bindings when the document doesn't know
+        it (#341)."""
+        pred_str = str(pred)
+        return self.document.valid_qualified_name(  # type: ignore[union-attr]
+            pred_str
+        ) or self._resolve_iri(pred_str, graph)
+
     def _resolve_iri(self, iri: str, graph: Graph) -> pm.QualifiedName:
         """Resolve an IRI to a QualifiedName, registering its namespace.
 
@@ -1583,9 +1594,7 @@ class ProvRDFSerializer(Serializer):
         # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
         # reconcile mechanism described here is otherwise unchanged.
         if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
-            qname_key = self.document.valid_qualified_name(  # type: ignore[union-attr]
-                str(pred_new)
-            ) or self._resolve_iri(str(pred_new), graph)
+            qname_key = self._resolve_predicate_key(pred_new, graph)
             state.formal_attributes[subj][qname_key] = obj1
             state.unique_sets[subj][qname_key].append(obj1)
             if len(state.unique_sets[subj][qname_key]) > 1:
@@ -1598,9 +1607,7 @@ class ProvRDFSerializer(Serializer):
                 # Resolve against the graph's bindings so a key under a
                 # namespace no identifier has registered yet still splits
                 # at the declared namespace, colon or not (#341).
-                key = self.document.valid_qualified_name(  # type: ignore[union-attr]
-                    str(pred_new)
-                ) or self._resolve_iri(str(pred_new), graph)
+                key = self._resolve_predicate_key(pred_new, graph)
             state.other_attributes.setdefault(subj, []).append((key, obj1))
 
     def _emit_decoded_records(
