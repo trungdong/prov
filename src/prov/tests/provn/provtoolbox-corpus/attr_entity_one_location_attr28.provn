@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_l28,[prov:location = "2013" %% xsd:gYear])
+endDocument

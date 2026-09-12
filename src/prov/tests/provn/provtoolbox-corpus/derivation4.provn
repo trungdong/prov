@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasDerivedFrom(ex:der4;ex:e2, ex:e1,[prov:label = "hello"])
+endDocument

@@ -1,0 +1,7 @@
+document
+prefix ex <http://example.org/>
+wasGeneratedBy(ex:gen1;ex:e1,ex:a1,2023-04-25T21:51:13.249+01:00,[ex:tag2 = "hello-scruff-gen2" %% xsd:string])
+wasGeneratedBy(ex:gen1;ex:e1,ex:a1,2012-12-03T21:08:16.686Z,[ex:tag2 = "hi-scruff-gen2" %% xsd:string])
+entity(ex:e1)
+activity(ex:a1,-,-)
+endDocument

@@ -1,0 +1,10 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  entity(ex:in, [ prov:value="abcd" ]) 
+  entity(ex:out, [ prov:value=4 ]) 
+  activity(ex:len, [ prov:type="string-length" ])
+  used(ex:len, ex:in)
+  wasGeneratedBy(ex:out, ex:len)
+  wasDerivedFrom(ex:out, ex:in)
+endDocument

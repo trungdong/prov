@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasStartedBy(ex:start4;-,ex:e1,ex:a2,-)
+endDocument

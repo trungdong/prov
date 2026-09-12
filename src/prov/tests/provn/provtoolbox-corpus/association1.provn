@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasAssociatedWith(ex:assoc1;ex:a1,-,-)
+endDocument

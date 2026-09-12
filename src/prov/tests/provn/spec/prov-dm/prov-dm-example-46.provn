@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  entity(c0, [ prov:type='prov:EmptyCollection' ])  // c0 is an empty collection
+  entity(c1, [ prov:type='prov:Collection'  ])      // c1 is a collection, with unknown content
+endDocument

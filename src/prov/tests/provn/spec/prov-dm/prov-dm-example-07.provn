@@ -1,0 +1,10 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  prefix w3 <http://example.org/w3/>
+  entity(ex:author-view, [ prov:type='prov:Bundle' ])
+  wasAttributedTo(ex:author-view, ex:Simon)
+  
+  entity(ex:process-view, [ prov:type='prov:Bundle' ])
+  wasAttributedTo(ex:process-view, w3:Consortium)
+endDocument

@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix bob <http://example.org/bob/>
+  prefix ex <http://example.org/ex/>
+   
+  entity(bob:bundle1, [ prov:type='prov:Bundle' ])
+  wasGeneratedBy(bob:bundle1, -, 2012-05-24T10:30:00)
+  wasAttributedTo(bob:bundle1, ex:Bob)
+endDocument

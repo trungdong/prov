@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v8,[prov:value = "10" %% xsd:decimal])
+endDocument

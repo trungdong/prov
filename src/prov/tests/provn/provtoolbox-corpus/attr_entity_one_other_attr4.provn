@@ -1,0 +1,5 @@
+document
+prefix ex <http://example.org/>
+prefix exo <http://example.org/>
+entity(ex:en_o4,[ex:tag2 = "1" %% xsd:long])
+endDocument

@@ -1,0 +1,4 @@
+document
+  default <http://example.org/>
+   wasAssociatedWith(a, ag, [ prov:role="operator" ])
+endDocument

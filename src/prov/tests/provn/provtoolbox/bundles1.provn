@@ -1,0 +1,39 @@
+
+document
+
+  prefix ex  <http://example.org/example/>
+
+  prefix alice  <http://example.org/alice/>
+  prefix bob  <http://example.org/bob/>
+
+  entity(bob:bundle1, [prov:type='prov:Bundle'])
+  wasGeneratedBy(bob:bundle1, -, 2012-05-24T10:30:00)
+  agent(ex:Bob)
+  wasAttributedTo(bob:bundle1, ex:Bob)
+
+  entity(alice:bundle2, [ prov:type='prov:Bundle' ])
+  wasGeneratedBy(alice:bundle2, -, 2012-05-25T11:15:00)
+  agent(ex:Alice)
+  wasAttributedTo(alice:bundle2, ex:Alice)
+
+  bundle bob:bundle1
+    prefix bob  <http://example.org/bob/>
+    prefix ex  <http://example.org/example/>
+    entity(ex:report1, [ prov:type="report", ex:version=1 ])
+    wasGeneratedBy(ex:report1, -, 2012-05-24T10:00:01)
+  endBundle
+
+  bundle alice:bundle2
+    prefix alice  <http://example.org/alice/>
+    prefix ex  <http://example.org/example/>
+
+    entity(ex:report1)
+    entity(ex:report2, [ prov:type="report", ex:version=2 ])
+    wasGeneratedBy(ex:report2, -, 2012-05-25T11:00:01)
+    wasDerivedFrom(ex:report2, ex:report1)
+  endBundle
+
+
+
+endDocument
+

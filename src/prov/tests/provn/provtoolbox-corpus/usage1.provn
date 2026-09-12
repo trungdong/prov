@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+used(ex:use1;-,ex:e1,-)
+endDocument

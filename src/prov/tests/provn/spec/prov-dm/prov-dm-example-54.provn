@@ -1,0 +1,4 @@
+document
+  default <http://example.org/>
+     agent(ag, [ prov:type='prov:SoftwareAgent' ])
+endDocument

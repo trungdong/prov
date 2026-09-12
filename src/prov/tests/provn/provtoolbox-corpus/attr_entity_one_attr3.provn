@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:et3,[prov:type = "1" %% xsd:int])
+endDocument

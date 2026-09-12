@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  activity(a1, [ prov:type="traffic regulations enforcing" ])
+  activity(a2, [ prov:type="fine paying" ])
+  wasInformedBy(a2, a1)
+endDocument

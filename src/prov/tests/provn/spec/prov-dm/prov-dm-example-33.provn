@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(ex:a, [ prov:type="workflow execution" ])
+  wasAssociatedWith(ex:a, -, ex:wf)
+  entity(ex:wf, [ prov:type='prov:Plan', 
+                  ex:label="Workflow 1", 
+                  ex:url="http://example.org/workflow1.bpel" %% xsd:anyURI])
+endDocument

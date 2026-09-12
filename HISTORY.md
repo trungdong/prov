@@ -21,7 +21,32 @@
 
 ### Fixes
 
+- PROV-N output escapes a leading `-` or `.` and a trailing `.` in a local part, as the
+  grammar requires; other occurrences of `-` and `.` stay unescaped
+- PROV-N output percent-encodes a local part character that `PN_LOCAL` cannot express even
+  escaped (a space, `<`, `>`, `"`, `{`, `}`, `|`, `^`, `` ` ``, `\`, or a bare `%` not followed
+  by two hex digits); the local part changes on such a round trip (`a b` becomes `a%20b`), a
+  documented limitation rather than a bug
+- PROV-N output writes a `Literal` with an empty language tag as a plain string, the same as
+  one with no language tag at all; the model and the other serializers are unaffected, so a
+  `Literal("hi", langtag="")` still writes PROV-XML's `xml:lang=""`
+- PROV-N output writes an underscore-separated language tag (e.g. `en_US`) with a hyphen
+  (`en-US`), the separator the grammar and BCP 47 both use
+- PROV-N output escapes a carriage return in a short string as `\r` instead of writing it raw,
+  which the grammar forbids
+- PROV-N input accepts a bare, unprefixed local name that starts with a digit (for example
+  `entity(4567)`), as `PN_LOCAL` allows; the lexer previously read it as an integer literal
+  and the parser rejected it as an identifier
+
 ### Tests
+
+- The shared round-trip suite and the Hypothesis round-trip property now cover PROV-N,
+  so every statement form, attribute datatype and qualified-name shape is written and
+  read back through the new parser
+- A PROV-N conformance corpus: every example in the PROV-N and PROV-DM Recommendations
+  parses under the strict profile and round-trips through the writer, ProvToolbox's own
+  PROV-N test documents parse, and the PROV-N that ProvToolbox writes for the shared test
+  corpus reads back equal to the PROV-JSON fixture of the same name
 
 ### Documentation
 

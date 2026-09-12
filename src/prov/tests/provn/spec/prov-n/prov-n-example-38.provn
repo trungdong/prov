@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+    entity(ex:pl1,   [ prov:type='prov:Plan' ])
+endDocument

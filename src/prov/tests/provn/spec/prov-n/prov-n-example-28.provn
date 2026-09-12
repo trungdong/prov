@@ -1,0 +1,14 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasDerivedFrom(e2, e1)
+  wasDerivedFrom(e2, e1, a, g2, u1)
+  wasDerivedFrom(e2, e1, -, g2, u1)
+  wasDerivedFrom(e2, e1, a, -, u1)
+  wasDerivedFrom(e2, e1, a, g2, -)
+  wasDerivedFrom(e2, e1, a, -, -)
+  wasDerivedFrom(e2, e1, -, -, u1)
+  wasDerivedFrom(e2, e1, -, -, -)
+  wasDerivedFrom(ex:d; e2, e1, a, g2, u1)
+  wasDerivedFrom(-; e2, e1, a, g2, u1)
+endDocument

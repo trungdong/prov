@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+alternateOf(ex:e1,ex:e2)
+endDocument

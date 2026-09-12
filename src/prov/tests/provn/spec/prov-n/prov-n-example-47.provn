@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+    entity(ex:col1,   [ prov:type='prov:Collection' ])
+    entity(ex:col2,   [ prov:type='prov:EmptyCollection' ])
+endDocument

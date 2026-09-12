@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+specializationOf(ex:e2,ex:e1)
+endDocument

@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(a1, 2011-11-16T16:05:00, 2011-11-16T16:06:00,
+          [ ex:host="server.example.org", prov:type='ex:edit' ])
+endDocument

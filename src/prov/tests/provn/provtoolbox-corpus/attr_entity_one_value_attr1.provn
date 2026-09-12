@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v1,[prov:value = "un lieu"@fr])
+endDocument

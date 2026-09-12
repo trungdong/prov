@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  used(ex:div01, ex:cell, [ prov:role="divisor" ])
+endDocument

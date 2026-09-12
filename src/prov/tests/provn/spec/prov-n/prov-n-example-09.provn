@@ -1,0 +1,6 @@
+document
+  default <http://example.org/>
+  wasDerivedFrom(e2, e1)
+  wasDerivedFrom(d; e2, e1)
+  wasDerivedFrom(-; e2, e1)
+endDocument

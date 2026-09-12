@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:et7,[prov:type = "1.0" %% xsd:float])
+endDocument

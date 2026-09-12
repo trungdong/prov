@@ -1,0 +1,6 @@
+document
+  default <http://example.org/0/>
+  prefix ex1 <http://example.org/1/>
+  prefix ex2 <http://example.org/2/>
+...
+endDocument

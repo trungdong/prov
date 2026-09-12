@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:e3,[prov:label = "entity3", prov:value = 'ex:avalue'])
+endDocument

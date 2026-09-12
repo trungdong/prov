@@ -1,0 +1,13 @@
+document
+  default <http://example.org/2/>
+  prefix ex <http://example.org/1/>
+
+  entity(ex:a)     //  corresponds to IRI http://example.org/1/a
+  entity(ex:a/)    //  corresponds to IRI http://example.org/1/a/
+  entity(ex:a/b)   //  corresponds to IRI http://example.org/1/a/b
+  entity(b)        //  corresponds to IRI http://example.org/2/b
+  entity(ex:1234)  //  corresponds to IRI http://example.org/1/1234
+  entity(4567)     //  corresponds to IRI http://example.org/2/4567
+  entity(c/)       //  corresponds to IRI http://example.org/2/c/
+  entity(ex:/)     //  corresponds to IRI http://example.org/1//
+endDocument

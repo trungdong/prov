@@ -347,6 +347,9 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
     if "\n" in s:
         return f'"""{s}"""'
     else:
+        # STRING_LITERAL2 ([60]) forbids a bare CR in a short string; the
+        # lexer decodes the "\r" escape, so use it rather than emit one raw.
+        s = s.replace("\r", "\\r")
         return f'"{s}"'
 
 
@@ -501,13 +504,26 @@ class Literal:
         return self._langtag is None
 
     def provn_representation(self) -> str:
-        """Return the PROV-N representation of the literal."""
+        """Return the PROV-N representation of the literal.
+
+        An empty language tag has no PROV-N spelling, so it is written as a
+        plain string, the same as a literal built with no language tag at all;
+        this is a writer-only choice and leaves the model's own ``langtag``
+        value (``""``, not ``None``) untouched.
+        """
         quoted_value = _ensure_multiline_string_triple_quoted(self._value)
         if self._langtag:
-            # a language tag can only go with prov:InternationalizedString
-            return f"{quoted_value}@{self._langtag!s}"
-        else:
-            return f"{quoted_value} %% {self._datatype!s}"
+            # a language tag can only go with prov:InternationalizedString.
+            # PROV-N's LANGTAG ([63]) only allows hyphens between subtags, so
+            # an underscore-separated tag (e.g. "en_US") is written with a
+            # hyphen, as BCP 47 itself uses.
+            langtag = self._langtag.replace("_", "-")
+            return f"{quoted_value}@{langtag}"
+        if self._langtag == "" and (
+            self._datatype is None or self._datatype == PROV_INTERNATIONALIZEDSTRING
+        ):
+            return quoted_value
+        return f"{quoted_value} %% {self._datatype!s}"
 
 
 # Depends on `Literal` and `SupportedXSDParsedTypes` above, so it cannot join

@@ -348,6 +348,42 @@ def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri():
     assert str(record.identifier) == "prov:e1"
 
 
+def test_bare_all_digit_local_name_is_an_identifier():
+    # [53] PN_LOCAL allows a leading digit, so an unprefixed, all-digit
+    # local name is a valid identifier, not an integer literal.
+    doc = parse("entity(4567)", prefixes="default <http://example.org/>\n")
+    record = only_record(doc)
+    assert str(record.identifier) == "4567"
+
+
+def test_bare_all_digit_local_name_as_a_relation_argument():
+    doc = parse("wasDerivedFrom(4567, e1)", prefixes="default <http://example.org/>\n")
+    record = only_record(doc)
+    subject, target = (value for _, value in record.formal_attributes[:2])
+    assert str(subject) == "4567"
+    assert str(target) == "e1"
+
+
+@pytest.mark.parametrize("profile", ["strict", "default"])
+def test_signed_digit_run_is_not_an_identifier(profile):
+    # PN_LOCAL allows a leading digit but not an unescaped '-', so a signed
+    # INT token ('-4567') must still be rejected as an identifier, not
+    # re-kinded to a bare local name the way an unsigned one is.
+    with pytest.raises(ProvNSyntaxError, match="expected an identifier"):
+        parse(
+            "entity(-4567)", profile=profile, prefixes="default <http://example.org/>\n"
+        )
+
+
+def test_signed_int_is_still_an_integer_in_an_attribute_value():
+    doc = parse(
+        "entity(e1, [prov:value=-42])", prefixes="default <http://example.org/>\n"
+    )
+    record = only_record(doc)
+    (value,) = (v for k, v in record.attributes if str(k) == "prov:value")
+    assert value == -42
+
+
 def test_strict_requires_an_identifier_at_the_named_position():
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")

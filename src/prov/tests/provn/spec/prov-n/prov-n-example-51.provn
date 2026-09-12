@@ -1,0 +1,11 @@
+document
+  prefix ex <http://example.org/>
+  default <http://example.org/default>
+
+  entity(ex:foo?a\=1)            // corresponds to IRI http://example.org/foo?a=1
+  entity(ex:\-)                  // corresponds to IRI http://example.org/-
+  entity(ex:?fred\=fish%20soup)  // corresponds to IRI http://example.org/?fred=fish%20soup
+
+  used(-;a1,e1,-)                // identifier not specified for usage  
+  used(\-;a1,e1,-)               // usage identifier corresponds to http://example.org/default-
+endDocument

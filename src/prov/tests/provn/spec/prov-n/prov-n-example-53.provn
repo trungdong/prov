@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+    "1234" %% xsd:integer
+    1234
+    "-1234" %% xsd:integer
+    -1234
+endDocument

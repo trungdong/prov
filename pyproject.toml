@@ -87,6 +87,11 @@ prov = ["py.typed"]
     "unification/constraints/*",
     "malformed/*",
     "schemas/*",
+    "provn/README.md",
+    "provn/spec/prov-n/*.provn",
+    "provn/spec/prov-dm/*.provn",
+    "provn/provtoolbox/*.provn",
+    "provn/provtoolbox-corpus/*.provn",
 ]
 
 [dependency-groups]

@@ -2,9 +2,8 @@
 
 The ``prov_documents`` strategy (see ``strategies.py``) generates valid PROV
 documents; this module asserts that each one survives a serialize ->
-deserialize round trip through every *deserializable* format. PROV-N is
-write-only (no parser), so it is excluded — the format axis is
-``ROUNDTRIP_FORMATS`` (json, xml, rdf, jsonld), reusing the same
+deserialize round trip through every *deserializable* format. The format axis
+is ``ROUNDTRIP_FORMATS`` (json, xml, rdf, jsonld, provn), reusing the same
 ``roundtrip_document`` helper the example-based shared tests use.
 
 Example counts and determinism are controlled by the Hypothesis profile

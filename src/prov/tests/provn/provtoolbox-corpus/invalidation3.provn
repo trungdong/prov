@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasInvalidatedBy(ex:inv3;ex:e1,ex:a1,-,[prov:role = "someRole" %% xsd:string, prov:role = "otherRole" %% xsd:string])
+endDocument

@@ -1,0 +1,8 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasInformedBy(ex:a1, ex:a2)
+  wasInformedBy(ex:a1, ex:a2, [ex:param1="a", ex:param2="b"])
+  wasInformedBy(ex:i; ex:a1, ex:a2)
+  wasInformedBy(ex:i; ex:a1, ex:a2, [ex:param1="a", ex:param2="b"])
+endDocument

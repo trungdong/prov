@@ -1,0 +1,6 @@
+document
+prefix pre_0 <http://example4.org/>
+prefix ex <http://example.org/>
+prefix exo <http://example.org/>
+entity(ex:en_o24,[ex:tag2 = 'pre_0:zabc'])
+endDocument

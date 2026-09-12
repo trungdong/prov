@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasInformedBy(ex:inf5;ex:a2,ex:a1,[prov:label = "hello", prov:label = "bye"@en, prov:label = "bonjour"@fr])
+endDocument

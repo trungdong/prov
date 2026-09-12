@@ -1,0 +1,5 @@
+document
+default <http://example.org/>
+prefix ex <http://example.org/>
+entity(en_l23,[prov:location = 'abcde'])
+endDocument

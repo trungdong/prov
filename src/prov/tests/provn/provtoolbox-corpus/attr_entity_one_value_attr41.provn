@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v41,[prov:value = "NCName" %% xsd:NCName])
+endDocument

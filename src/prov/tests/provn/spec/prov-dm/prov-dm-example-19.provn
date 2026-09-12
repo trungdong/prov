@@ -1,0 +1,12 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(ex:filling-fuel)
+  activity(ex:observing-low-fuel)
+  
+  agent(ex:driver, [ prov:type='prov:Person'  )
+  wasAssociatedWith(ex:filling-fuel, ex:driver)
+  wasAssociatedWith(ex:observing-low-fuel, ex:driver)
+  
+  wasStartedBy(ex:filling-fuel, -, ex:observing-low-fuel, -)
+endDocument

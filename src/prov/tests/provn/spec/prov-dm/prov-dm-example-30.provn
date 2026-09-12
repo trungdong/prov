@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  agent(e1, [ex:employee="1234", ex:name="Alice", prov:type='prov:Person' ])
+endDocument

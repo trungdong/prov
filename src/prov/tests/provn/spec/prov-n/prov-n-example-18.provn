@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ar3 <http://example.org/ar3/>
+  prefix ex <http://example.org/ex/>
+  used(ex:act2)
+  used(ex:act2, ar3:0111, 2011-11-16T16:00:00)
+  used(a1,e1, -, [ex:fct="load"])
+  used(ex:u1; ex:act2, ar3:0111, -)
+endDocument

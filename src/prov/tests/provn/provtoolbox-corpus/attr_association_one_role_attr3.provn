@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+wasAssociatedWith(ex:ass_r3;ex:a1,ex:ag1,-,[prov:role = "1" %% xsd:int])
+endDocument

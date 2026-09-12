@@ -1,0 +1,11 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  prefix tr <http://example.org/tr/>
+  wasInvalidatedBy(tr:WD-prov-dm-20111215, ex:edit1, -)
+  wasInvalidatedBy(tr:WD-prov-dm-20111215, ex:edit1, 2011-11-16T16:00:00)
+  wasInvalidatedBy(e2, a1, -, [ex:fct="save"])     
+  wasInvalidatedBy(e2, -, -, [ex:fct="save"])     
+  wasInvalidatedBy(ex:inv; tr:WD-prov-dm-20111215, ex:edit1, -)
+  wasInvalidatedBy(tr:WD-prov-dm-20111215, ex:edit1, -)
+endDocument

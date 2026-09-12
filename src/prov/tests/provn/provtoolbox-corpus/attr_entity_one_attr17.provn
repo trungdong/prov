@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:et17,[prov:type = "-10" %% xsd:nonPositiveInteger])
+endDocument

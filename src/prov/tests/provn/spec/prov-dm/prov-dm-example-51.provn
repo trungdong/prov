@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+   entity(ex:cell, [ prov:location="(5,5)", prov:value="10" %% xsd:integer ])
+endDocument

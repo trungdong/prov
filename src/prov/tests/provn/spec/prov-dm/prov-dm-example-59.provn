@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+   
+    'ex:value'
+endDocument

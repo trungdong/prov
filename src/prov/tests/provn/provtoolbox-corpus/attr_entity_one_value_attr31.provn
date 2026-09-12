@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v31,[prov:value = "PT12.225S" %% xsd:duration])
+endDocument

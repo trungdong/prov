@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  activity(a2, 2011-11-16T16:00:00, 2011-11-16T16:00:01)
+  activity(a1)
+endDocument

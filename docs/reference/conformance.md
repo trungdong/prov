@@ -21,6 +21,7 @@ background for PROV-DM's six components. This page is the detailed reference und
 - **PROV-N** is output only. `prov` has no PROV-N parser
   ([#122](https://github.com/trungdong/prov/issues/122), planned for 3.2.0), so there is
   nothing to round-trip. The column shows the keyword `get_provn()` emits.
+  <!-- 3.2.0: corpus exceptions -->
 
 ## Caveats that span several rows
 

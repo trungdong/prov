@@ -1,0 +1,8 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  wasDerivedFrom(ex:d; e2, e1, a, g2, u1, 
+                 [prov:type='prov:Revision', 
+                  ex:comment="a righteous derivation"])
+    
+endDocument

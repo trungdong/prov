@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:en_v39,[prov:value = "NMTOK" %% xsd:NMTOKEN])
+endDocument

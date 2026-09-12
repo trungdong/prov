@@ -1,0 +1,5 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(ex:a10, 2011-11-16T16:00:00, 2011-11-16T16:00:01, [prov:type="createFile"])
+endDocument

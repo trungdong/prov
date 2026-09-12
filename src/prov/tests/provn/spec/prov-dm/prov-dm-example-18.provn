@@ -1,0 +1,9 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+  activity(ex:foot_race)
+  entity(ex:bang)
+  wasStartedBy(ex:foot_race, ex:bang, -, 2012-03-09T08:05:08-05:00)
+  agent(ex:Bob)
+  wasAttributedTo(ex:bang, ex:Bob)
+endDocument

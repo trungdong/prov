@@ -1,0 +1,4 @@
+document
+  default <http://example.org/>
+  used(a1, e1, -)
+endDocument

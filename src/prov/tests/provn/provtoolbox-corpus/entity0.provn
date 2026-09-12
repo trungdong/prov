@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+entity(ex:e0,[prov:location = "un llieu" %% xsd:string, prov:location = "1" %% xsd:int, prov:location = "2.0" %% xsd:double, prov:location = "http://example.org/london" %% xsd:anyURI, prov:location = "2" %% xsd:long, ex:tag2 = "bonjour"@fr])
+endDocument

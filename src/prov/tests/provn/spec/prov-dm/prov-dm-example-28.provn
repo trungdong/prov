@@ -1,0 +1,15 @@
+document
+  default <http://example.org/>
+  prefix dm <http://example.org/dm/>
+  prefix ex <http://example.org/ex/>
+  prefix wp <http://example.org/wp/>
+  entity(wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop/)
+  entity(dm:bl-dagstuhl)
+  agent(ex:Luc)
+  agent(ex:Paul)
+  wasDerivedFrom(dm:bl-dagstuhl,
+                 wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop/,
+                 [ prov:type='prov:Quotation' ])
+  wasAttributedTo(dm:bl-dagstuhl, ex:Luc)
+  wasAttributedTo(wp:thoughts-from-the-dagstuhl-principles-of-provenance-workshop/, ex:Paul)
+endDocument

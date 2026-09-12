@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+actedOnBehalfOf(ex:del1;ex:e1,-,-)
+endDocument

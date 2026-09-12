@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  prefix ex <http://example.org/ex/>
+     hadMember(ex:c, ex:e1)   // ex:c contained ex:e1
+     hadMember(ex:c, ex:e2)   // ex:c contained ex:e2 
+    
+endDocument

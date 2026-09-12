@@ -1,0 +1,4 @@
+document
+prefix ex <http://example.org/>
+used(ex:use4;ex:a1,ex:e1,2023-04-25T21:51:13.295+01:00,[prov:role = "somerole" %% xsd:string])
+endDocument

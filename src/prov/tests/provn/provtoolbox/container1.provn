@@ -1,0 +1,798 @@
+
+/* Test Suite for PROV-N notation */
+
+document  // toplevel document
+prefix ex <http://example>  /* a single prefix declaration */
+
+/* component 1 */
+
+          entity(ex:e1, [ex:param="a"])
+          entity(ex:e1, [ex:param="a", prov:label="foo"])
+          entity(ex:e1, [ex:param="a", prov:label="hello"@EN])
+          entity(ex:e1, [ex:param="a", prov:label="hello2"@EN %% xsd:string]) 
+          entity(ex:e1, [ex:param="a", prov:label="bonjour"@FR])
+          entity(ex:e1, [ex:param="a", prov:label="bonjour a nouveau"@FR %% xsd:string])
+          entity(ex:e1, [ex:param="a", prov:label="hello"@EN, prov:label="bonjour"@FR])
+          entity(ex:e2, [ex:param="a"])
+          entity(ex:e3, [ex:param="a"])
+          entity(ex:e3, [ex:param="aWithTag" @ENGLISHTAG ])
+          entity(ex:e3, [ex:param="""b"""])
+          entity(ex:e3, [ex:param="""c
+                                     c
+                                     c"""])
+          entity(ex:e3, [ex:param="""une
+                                     longue
+                                     chaine de caracteres""" @fr])
+          entity(tr:WD-prov-dm-20111215)
+          entity(tr:WD-prov-dm-20111215, [ prov:type="document" ])
+          entity(tr:WD-prov-dm-20111215, [ prov:type="document", ex:version=2 ])
+
+          activity(ex:a1, [ex:param="a"])
+          activity(ex:a2, [ex:param="a"])
+
+          activity(ex:a10)
+          activity(ex:a10, -, -)
+          activity(ex:a10, -, -, [prov:type="edit"])
+          activity(ex:a10, -, 2011-11-16T16:00:00)
+          activity(ex:a10, -, 2011-11-16T16:00:00.0)
+          activity(ex:a10, -, 2011-11-16T16:00:00.1)
+          activity(ex:a10, -, 2011-11-16T16:00:00.01)
+          activity(ex:a10, -, 2011-11-16T16:00:00.012)
+          activity(ex:a10, -, 2011-11-16T16:00:00.0123)
+          activity(ex:a10, -, 2011-11-16T16:00:00.01234)
+          activity(ex:a10, -, 2011-11-16T16:00:00.012345)
+
+          activity(ex:a10, 2011-11-16T16:00:00, -)
+          activity(ex:a10, 2011-11-16T16:00:00, -, [prov:type="createFile"])
+          activity(ex:a10, 2011-11-16T16:00:00, 2011-11-16T16:00:01, [prov:type="createFile"])
+          activity(ex:a10, [prov:type="edit"])
+
+          used(ex:a1, ex:e1, -)
+          used(ex:a1, ex:e1, -, [ex:param1="a", ex:param2="b"])
+          used(ex:a1, ex:e1, 2001-10-26T21:32:52)
+          used(ex:a1, ex:e1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          used(u; ex:a1, ex:e1, -)
+          used(u; ex:a1, ex:e1, -, [ex:param1="a", ex:param2="b"])
+          used(u; ex:a1, ex:e1, 2001-10-26T21:32:52)
+          used(u; ex:a1, ex:e1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          used(-; ex:a1, ex:e1, -)
+          used(-; ex:a1, ex:e1, -, [ex:param1="a", ex:param2="b"])
+          used(-; ex:a1, ex:e1, 2001-10-26T21:32:52)
+          used(-; ex:a1, ex:e1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(ex:e1)  //note: syntactically correct, but semantically incorrect
+          wasGeneratedBy(ex:e1, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(ex:e1, ex:a1, -)
+          wasGeneratedBy(ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasGeneratedBy(ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(ex:e1, -, -)
+          wasGeneratedBy(ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(ex:e1, -, 2001-10-26T21:32:52)
+          wasGeneratedBy(ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(g1; ex:e1, ex:a1, -)
+          wasGeneratedBy(g1; ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(g1; ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasGeneratedBy(g1; ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(g1; ex:e1)
+          wasGeneratedBy(g1; ex:e1, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(g1; ex:e1, -, -)
+          wasGeneratedBy(g1; ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(g1; ex:e1, -, 2001-10-26T21:32:52)
+          wasGeneratedBy(g1; ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasGeneratedBy(-; ex:e1, ex:a1, -)
+          wasGeneratedBy(-; ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(-; ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasGeneratedBy(-; ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasGeneratedBy(-; ex:e1, -, -)
+          wasGeneratedBy(-; ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasGeneratedBy(-; ex:e1, -, 2001-10-26T21:32:52)
+          wasGeneratedBy(-; ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(ex:a1)
+          wasStartedBy(ex:a1, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(ex:a1, -, -, -)
+          wasStartedBy(ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(ex:a1, -, -, 2001-10-26T21:32:52)
+          wasStartedBy(ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(ex:a1, ex:e1, -, -)
+          wasStartedBy(ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasStartedBy(ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(s1; ex:a1, -, -, -)
+          wasStartedBy(s1; ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(s1; ex:a1, -, -, 2001-10-26T21:32:52)
+          wasStartedBy(s1; ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(s1; ex:a1, ex:e1, -, -)
+          wasStartedBy(s1; ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(s1; ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasStartedBy(s1; ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(-; ex:a1, -, -, -)
+          wasStartedBy(-; ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(-; ex:a1, -, -, 2001-10-26T21:32:52)
+          wasStartedBy(-; ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(-; ex:a1, ex:e1, -, -)
+          wasStartedBy(-; ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(-; ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasStartedBy(-; ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasStartedBy(ex:a1, -, ex:a2, -)
+          wasStartedBy(ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(ex:a1, ex:e1, ex:a2, -)
+          wasStartedBy(ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(s1; ex:a1, -, ex:a2, -)
+          wasStartedBy(s1; ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(s1; ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(s1; ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(s1; ex:a1, ex:e1, ex:a2, -)
+          wasStartedBy(s1; ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(s1; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(s1; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(-; ex:a1, -, ex:a2, -)
+          wasStartedBy(-; ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(-; ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(-; ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasStartedBy(-; ex:a1, ex:e1, ex:a2, -)
+          wasStartedBy(-; ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasStartedBy(-; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasStartedBy(-; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasEndedBy(ex:a1, -, -, -)
+          wasEndedBy(ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(ex:a1, -, -, 2001-10-26T21:32:52)
+          wasEndedBy(ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(ex:a1, ex:e1, -, -)
+          wasEndedBy(ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasEndedBy(ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(s1; ex:a1, -, -, -)
+          wasEndedBy(s1; ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(s1; ex:a1, -, -, 2001-10-26T21:32:52)
+          wasEndedBy(s1; ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(s1; ex:a1, ex:e1, -, -)
+          wasEndedBy(s1; ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(s1; ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasEndedBy(s1; ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(-; ex:a1, -, -, -)
+          wasEndedBy(-; ex:a1, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(-; ex:a1, -, -, 2001-10-26T21:32:52)
+          wasEndedBy(-; ex:a1, -, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(-; ex:a1, ex:e1, -, -)
+          wasEndedBy(-; ex:a1, ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(-; ex:a1, ex:e1, -, 2001-10-26T21:32:52)
+          wasEndedBy(-; ex:a1, ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasEndedBy(ex:a1, -, ex:a2, -)
+          wasEndedBy(ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(ex:a1, ex:e1, ex:a2, -)
+          wasEndedBy(ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(s1; ex:a1, -, ex:a2, -)
+          wasEndedBy(s1; ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(s1; ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(s1; ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(s1; ex:a1, ex:e1, ex:a2, -)
+          wasEndedBy(s1; ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(s1; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(s1; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(-; ex:a1, -, ex:a2, -)
+          wasEndedBy(-; ex:a1, -, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(-; ex:a1, -, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(-; ex:a1, -, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasEndedBy(-; ex:a1, ex:e1, ex:a2, -)
+          wasEndedBy(-; ex:a1, ex:e1, ex:a2, -, [ex:param1="a", ex:param2="b"])
+          wasEndedBy(-; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52)
+          wasEndedBy(-; ex:a1, ex:e1, ex:a2, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+
+
+          wasInvalidatedBy(ex:e1, ex:a1, -)
+          wasInvalidatedBy(ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasInvalidatedBy(ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(ex:e1, -, -)
+          wasInvalidatedBy(ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(ex:e1, -, 2001-10-26T21:32:52)
+          wasInvalidatedBy(ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasInvalidatedBy(g1; ex:e1, ex:a1, -)
+          wasInvalidatedBy(g1; ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(g1; ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasInvalidatedBy(g1; ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasInvalidatedBy(g1; ex:e1, -, -)
+          wasInvalidatedBy(g1; ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(g1; ex:e1, -, 2001-10-26T21:32:52)
+          wasInvalidatedBy(g1; ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasInvalidatedBy(-; ex:e1, ex:a1, -)
+          wasInvalidatedBy(-; ex:e1, ex:a1, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(-; ex:e1, ex:a1, 2001-10-26T21:32:52)
+          wasInvalidatedBy(-; ex:e1, ex:a1, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+          wasInvalidatedBy(-; ex:e1, -, -)
+          wasInvalidatedBy(-; ex:e1, -, -, [ex:param1="a", ex:param2="b"])
+          wasInvalidatedBy(-; ex:e1, -, 2001-10-26T21:32:52)
+          wasInvalidatedBy(-; ex:e1, -, 2001-10-26T21:32:52, [ex:param1="a", ex:param2="b"])
+
+
+          wasInformedBy(ex:a1, ex:a2)
+          wasInformedBy(ex:a1, ex:a2, [ex:param1="a", ex:param2="b"])
+          wasInformedBy(i; ex:a1, ex:a2)
+          wasInformedBy(i; ex:a1, ex:a2, [ex:param1="a", ex:param2="b"])
+          wasInformedBy(-; ex:a1, ex:a2)
+          wasInformedBy(-; ex:a1, ex:a2, [ex:param1="a", ex:param2="b"])
+
+
+/* component 2 */
+
+          agent(ex:ag1, [ex:param="a"])
+          agent(ex:ag2, [ex:param="a"])
+
+          wasAttributedTo(ex:e1, ex:ag1)
+          wasAttributedTo(ex:e1, ex:ag1, [ex:param1="a", ex:param2="b"])
+          wasAttributedTo(_a; ex:e1, ex:ag1)
+          wasAttributedTo(_a; ex:e1, ex:ag1, [ex:param1="a", ex:param2="b"])
+          wasAttributedTo(-; ex:e1, ex:ag1)
+          wasAttributedTo(-; ex:e1, ex:ag1, [ex:param1="a", ex:param2="b"])
+
+          wasAssociatedWith(ex:a1, -, ex:e1)
+          wasAssociatedWith(ex:a1, -, ex:e1, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(ex:a1, ex:ag1, -)
+          wasAssociatedWith(ex:a1, ex:ag1, -, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(ex:a1, ex:ag1, ex:e1)
+          wasAssociatedWith(ex:a1, ex:ag1, ex:e1, [ex:param1="a", ex:param2="b"])
+
+
+          wasAssociatedWith(a; ex:a1, -, ex:e1)
+          wasAssociatedWith(a; ex:a1, -, ex:e1, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(a; ex:a1, ex:ag1, -)
+          wasAssociatedWith(a; ex:a1, ex:ag1, -, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(a; ex:a1, ex:ag1, ex:e1)
+          wasAssociatedWith(a; ex:a1, ex:ag1, ex:e1, [ex:param1="a", ex:param2="b"])
+
+          wasAssociatedWith(-; ex:a1, -, ex:e1)
+          wasAssociatedWith(-; ex:a1, -, ex:e1, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(-; ex:a1, ex:ag1, -)
+          wasAssociatedWith(-; ex:a1, ex:ag1, -, [ex:param1="a", ex:param2="b"])
+          wasAssociatedWith(-; ex:a1, ex:ag1, ex:e1)
+          wasAssociatedWith(-; ex:a1, ex:ag1, ex:e1, [ex:param1="a", ex:param2="b"])
+
+          actedOnBehalfOf(ex:ag1,ex:ag2)
+          actedOnBehalfOf(ex:ag1,ex:ag2,[prov:type="delegation"])
+
+          actedOnBehalfOf(ex:ag1,ex:ag2, -)
+          actedOnBehalfOf(ex:ag1,ex:ag2, -,[prov:type="delegation"])
+          actedOnBehalfOf(ex:ag1,ex:ag2,ex:a1)
+          actedOnBehalfOf(ex:ag1,ex:ag2,ex:a1,[prov:type="delegation"])
+
+          actedOnBehalfOf(a;ex:ag1,ex:ag2, -)
+          actedOnBehalfOf(a;ex:ag1,ex:ag2, -,[prov:type="delegation"])
+          actedOnBehalfOf(a;ex:ag1,ex:ag2,ex:a1)
+          actedOnBehalfOf(a;ex:ag1,ex:ag2,ex:a1,[prov:type="delegation"])
+
+          actedOnBehalfOf(-; ex:ag1,ex:ag2, -)
+          actedOnBehalfOf(-; ex:ag1,ex:ag2, -,[prov:type="delegation"])
+          actedOnBehalfOf(-; ex:ag1,ex:ag2,ex:a1)
+          actedOnBehalfOf(-; ex:ag1,ex:ag2,ex:a1,[prov:type="delegation"])
+
+/* component 3 */
+
+          wasDerivedFrom(ex:e1, ex:e2)
+          wasDerivedFrom(ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasDerivedFrom(ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(ex:e1, ex:e2, -, -, ex:u1)
+          wasDerivedFrom(ex:e1, ex:e2, -, ex:g2, -)
+          wasDerivedFrom(ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, -, -)
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasDerivedFrom(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          wasDerivedFrom(d0; ex:e1, ex:e2)
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, ex:u1)
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, ex:g2, -)
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, -, -)
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(d0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasDerivedFrom(-; ex:e1, ex:e2)
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, -)
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, ex:u1)
+          wasDerivedFrom(-; ex:e1, ex:e2, -, ex:g2, -)
+          wasDerivedFrom(-; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, -, -)
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasDerivedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          wasRevisionOf(ex:e1, ex:e2)
+          wasRevisionOf(ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasRevisionOf(ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(ex:e1, ex:e2, -, -, ex:u1)
+          wasRevisionOf(ex:e1, ex:e2, -, ex:g2, -)
+          wasRevisionOf(ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, -, -)
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasRevisionOf(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          wasRevisionOf(r0; ex:e1, ex:e2)
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, ex:u1)
+          wasRevisionOf(r0; ex:e1, ex:e2, -, ex:g2, -)
+          wasRevisionOf(r0; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, -, -)
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasRevisionOf(-; ex:e1, ex:e2)
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, -)
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, ex:u1)
+          wasRevisionOf(-; ex:e1, ex:e2, -, ex:g2, -)
+          wasRevisionOf(-; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, -, -)
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasRevisionOf(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+
+          wasQuotedFrom(ex:e1, ex:e2)
+          wasQuotedFrom(ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasQuotedFrom(ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(ex:e1, ex:e2, -, -, ex:u1)
+          wasQuotedFrom(ex:e1, ex:e2, -, ex:g2, -)
+          wasQuotedFrom(ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, -, -)
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasQuotedFrom(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          wasQuotedFrom(r0; ex:e1, ex:e2)
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, ex:u1)
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, ex:g2, -)
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, -, -)
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasQuotedFrom(-; ex:e1, ex:e2)
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, -)
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, ex:u1)
+          wasQuotedFrom(-; ex:e1, ex:e2, -, ex:g2, -)
+          wasQuotedFrom(-; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, -, -)
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          wasQuotedFrom(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          hadPrimarySource(ex:e1, ex:e2)
+          hadPrimarySource(ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          hadPrimarySource(ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(ex:e1, ex:e2, -, -, ex:u1)
+          hadPrimarySource(ex:e1, ex:e2, -, ex:g2, -)
+          hadPrimarySource(ex:e1, ex:e2, -, ex:g2, ex:u1)
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, -, -)
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, -, ex:u1)
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, -)
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          hadPrimarySource(ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          hadPrimarySource(r0; ex:e1, ex:e2)
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, ex:u1)
+          hadPrimarySource(r0; ex:e1, ex:e2, -, ex:g2, -)
+          hadPrimarySource(r0; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, -, -)
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(r0; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          hadPrimarySource(-; ex:e1, ex:e2)
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, -)
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, ex:u1)
+          hadPrimarySource(-; ex:e1, ex:e2, -, ex:g2, -)
+          hadPrimarySource(-; ex:e1, ex:e2, -, ex:g2, ex:u1)
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, -, -)
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, -, ex:u1)
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, -)
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1)
+
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, -, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, -, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, -, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, -, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, -, ex:u1, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, -, [ex:param1="a", ex:param2="b"])
+          hadPrimarySource(-; ex:e1, ex:e2, ex:a1, ex:g2, ex:u1, [ex:param1="a", ex:param2="b"])
+
+
+          wasInfluencedBy(ex:e1, ex:e2)
+          wasInfluencedBy(ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasInfluencedBy(t; ex:e1, ex:e2)
+          wasInfluencedBy(t; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+          wasInfluencedBy(-; ex:e1, ex:e2)
+          wasInfluencedBy(-; ex:e1, ex:e2, [ex:param1="a", ex:param2="b"])
+
+/* component 5 */
+
+          alternateOf(ex:e1, ex:e2)
+          specializationOf(ex:e1, ex:e2)
+
+          mentionOf(ex:e1, ex2:e1, ex:b1 )
+
+/* component 6 */
+
+          prov:derivedByInsertionFrom(ex:e1, ex:e2, {("k1", ex:e2)})
+
+
+
+
+
+
+
+
+/* Other testing of grammar */
+
+/* Identifiers */
+
+          entity(ex:0000, [ex:param="a"])          //prefix + local name formed of digits
+          entity(ex:0001, [ex:param="a"]) 
+          entity(ex:0000abc, [ex:param="a"])       //prefix + local name starting with digits
+          entity(ex:0001abc, [ex:param="a"]) 
+          entity(ex:abc0000, [ex:param="a"])       //prefix + local name containing with digits
+          entity(ex:abc0001, [ex:param="a"]) 
+          entity(ex:abc, [ex:param="a"])           //prefix + local name without digits
+          entity(ex:abc.html, [ex:param="a"])      //prefix + local name with a dot
+          entity(ex:abc.000, [ex:param="a"])       //prefix + local name with a dot and digits
+          entity(ex:abc-000, [ex:param="a"])       //prefix + local name with a dash
+          entity(ex:abc-000, [ex:param="a"])       //prefix + local name with a dash and digits
+
+
+          entity(0000, [ex:param="a"])          //local name formed of digits
+          entity(0001, [ex:param="a"]) 
+          entity(0000abc, [ex:param="a"])       //local name starting with digits
+          entity(0001abc, [ex:param="a"]) 
+          entity(abc0000, [ex:param="a"])       //local name containing with digits
+          entity(abc0001, [ex:param="a"]) 
+          entity(abc, [ex:param="a"])           //local name without digits
+          entity(abc.html, [ex:param="a"])      //local name with a dot
+          entity(abc.000, [ex:param="a"])       //local name with a dot and digits
+
+          entity(abc-000, [ex:param="a"])       //local name with a dash
+          entity(abc-000, [ex:param="a"])       //local name with a dash and digits
+
+
+          entity(_abc_000, [ex:param="a"])       //local name with a underscore
+          entity(_abc_000, [ex:param="a"])       //local name with a underscore and digits
+
+//          entity(-abc-000, [ex:param="a"])       //INVALID
+//          entity(-abc-000, [ex:param="a"])       //INVALID
+
+          entity(ex-:abc-000, [ex:param="a"])       //prefix + local name with a dash and digits
+//          entity(-ex-:abc-000, [ex:param="a"])    // INVALID prefix + local name with a dash and digits
+//          entity(-:abc-000, [ex:param="a"])       // INVALID prefix + local name with a dash and digits
+
+          entity(ex:a----, [ex:param="a"])       
+
+
+
+//          entity(-abc-000, [ex:param="a"])       //INVALID: - is not parsed ..
+
+          entity(ex:a----, [ex:param=2])       
+          entity(ex:a----, [ex:param=22])       
+          entity(ex:a----, [ex:param=2222])       
+          entity(ex:a----, [ex:param=-2222])       
+
+/* Testing literals */
+
+          
+          entity(ex:a, [ex:param="2222"%% xsd:int])       
+          entity(ex:a, [ex:param="2222"%% xsd:long])
+          entity(ex:a, [ex:param="2222"%% xsd:short])
+          entity(ex:a, [ex:param="2222"%% xsd:integer])
+          entity(ex:a, [ex:param="2222.22"%% xsd:double])
+          entity(ex:a, [ex:param="2222.22"%% xsd:float])
+          entity(ex:a, [ex:param="2222.22"%% xsd:decimal])
+          entity(ex:a, [ex:param="true"%% xsd:boolean])
+          entity(ex:a, [ex:param="false"%% xsd:boolean])
+
+          entity(ex:a, [ex:param="-128"%% xsd:byte])
+          entity(ex:a, [ex:param="127"%% xsd:byte])
+
+          entity(ex:a, [ex:param="2222"%% xsd:unsignedInt])
+          entity(ex:a, [ex:param="2222"%% xsd:unsignedShort])
+          entity(ex:a, [ex:param="255"%% xsd:unsignedByte])
+
+          entity(ex:a, [ex:param="-777255"%% xsd:integer])
+          entity(ex:a, [ex:param="777255"%% xsd:nonNegativeInteger])
+          entity(ex:a, [ex:param="0"%% xsd:nonNegativeInteger])
+          entity(ex:a, [ex:param="-777255"%% xsd:nonPositiveInteger])
+          entity(ex:a, [ex:param="0"%% xsd:nonPositiveInteger])
+          entity(ex:a, [ex:param="0"%% xsd:positiveInteger])
+
+
+          entity(ex:a, [ex:param="http://example.com/"%% xsd:anyURI])
+
+          entity(ex:a, [ex:param="ex:foo"%% xsd:QName])
+
+
+          entity(ex:, [ex:param=-2222])       
+          entity(ex:a/b/c, [ex:param=-2222])       
+          entity(ex:a/b/c/, [ex:param=-2222])       
+//          entity(ex:a/b/c#, [ex:param=-2222])       
+//          entity(ex:a/b:c, [ex:param=-2222])       
+
+          entity(ex:user@example.com, [ex:param=-2222])       
+
+          entity(ex:a, [ex:param="ex:foo"%% xsd:QName])
+          entity(ex:a, [ex:param='ex:foobar'])
+
+/* component 5 */
+
+          prov:derivedByInsertionFrom(ex:e1, ex:e2, {("k1", ex:e2)})
+          prov:derivedByInsertionFrom(ex:e1, ex:e2, {("k1", ex:e2), ("k2", ex:e3)})
+          prov:derivedByInsertionFrom(ex:e1, ex:e2, {("k1", ex:e2)}, [ex:param="a"])
+          prov:derivedByInsertionFrom(ex:e1, ex:e2, {("k1", ex:e2), ("k2", ex:e3)}, [ex:param="a"])
+
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1"})
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1", "k2"})
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1", "k2", "222" %% xsd:int})
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1"}, [ex:param="a"])
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1", "k2"}, [ex:param="a"])
+          prov:derivedByRemovalFrom(ex:e1, ex:e2, {"k1", "k2", "222" %% xsd:int}, [ex:param="a"])
+
+
+	  prov:hadDictionaryMember(ex:e1,  ex:e2, "k2")
+
+
+
+
+/* bundles  What is the scope of ex:? Problem, with XML Convertion. Namespace declaration lost? */
+ bundle ex:b1
+   prefix ex2 <http://example2>
+
+          entity(ex2:e1, [ex2:param="a"])
+          entity(ex2:e2, [ex2:param="a"])
+          entity(ex2:e3, [ex2:param="a"])
+
+ endBundle
+
+
+/* bundles */
+ bundle ex3:b2
+          entity(ex3:e1, [ex3:param="a"])
+          entity(ex3:e2, [ex3:param="a"])
+          entity(ex3:e3, [ex3:param="a"])
+          entity(ex3:e3, // this is an entity
+                [ex3:param="a", /* with some comments*/
+                 ex3:param="b"  /* Interleaved!! */              ])
+
+ endBundle
+ 
+
+endDocument
+

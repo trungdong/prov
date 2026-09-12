@@ -1,0 +1,1202 @@
+
+
+document
+
+// A VARIANT OF THE FILE WITH ATTRIBUTES FOR VISUALIZATION
+
+
+prefix w3      <http://www.w3.org/>
+prefix tr      <http://www.w3.org/TR/>
+prefix tr2011  <http://www.w3.org/TR/2011/>
+prefix tr2012  <http://www.w3.org/TR/2012/>
+prefix tr2013  <http://www.w3.org/TR/2013/>
+prefix process <http://www.w3.org/2005/10/Process-20051014/tr#>
+prefix groups <http://www.w3.org/2005/10/Process-20051014/groups#>
+prefix email   <https://lists.w3.org/Archives/Member/w3c-archive/>
+prefix chairs  <https://lists.w3.org/Archives/Member/chairs/>
+prefix trans   <http://www.w3.org/2005/08/01-transitions#>
+prefix wbs     <https://www.w3.org/2002/09/wbs/46974/>
+prefix wbs2    <https://www.w3.org/2002/09/wbs/33280/>
+prefix user    <http://www.w3.org/2011/prov/wiki/User:>
+prefix wiki    <http://www.w3.org/2011/prov/wiki/>
+prefix foaf    <http://xmlns.com/foaf/0.1/>
+prefix occl    <http://staff.oclc.org/~dewey/>
+prefix pd      <http://www.w3.org/2001/02pd/rec54#>
+prefix meeting <http://www.w3.org/2011/prov/meeting/>
+prefix act     <http://www.w3.org/2011/prov/wiki/Activities#>
+prefix rdfs    <http://www.w3.org/2000/01/rdf-schema#>
+prefix team    <https://lists.w3.org/Archives/Team/w3t-comm/>
+
+prefix dot   <http://openprovenance.org/Toolbox/dot#>
+
+//////////////////////////////////////////////////////////////////////
+// The general W3C process
+//////////////////////////////////////////////////////////////////////
+
+entity(process:rec-advance,    [ prov:type='prov:Plan', dot:fillcolor="lightblue"  ])
+
+agent(w3:Consortium, [ prov:type='prov:Organization', dot:fillcolor="thistle3"   ])
+
+//////////////////////////////////////////////////////////////////////
+// The Working Group activity
+//////////////////////////////////////////////////////////////////////
+
+activity(act:WG,-,-, [prov:label="Provenance Working Group Activity"])
+
+wasAssociatedWith(act:WG,w3:Consortium,process:rec-advance)
+
+entity(w3:2011/01/prov-wg-charter)
+wasStartedBy(act:WG, w3:2011/01/prov-wg-charter,-,-)
+
+entity(meeting:2013-05-02#resolution_2)
+wasEndedBy(act:WG, w3:2011/01/prov-wg-charter,-,-)
+
+wasAssociatedWith(act:WG,user:Sandro,-, [prov:role='groups:TeamContact'])
+wasAssociatedWith(act:WG,user:Ivan,-, [prov:role='groups:TeamContact'])
+wasAssociatedWith(act:WG,user:Pgroth,-, [prov:role='groups:GeneralChairs'])
+wasAssociatedWith(act:WG,user:Lmoreau,-, [prov:role='groups:GeneralChairs'])
+actedOnBehalfOf(user:Ivan,w3:Consortium,act:WG)
+actedOnBehalfOf(user:Sandro,w3:Consortium,act:WG)
+
+
+//////////////////////////////////////////////////////////////////////
+// The document authors, we use their wiki url to identify them
+//////////////////////////////////////////////////////////////////////
+ 
+agent(user:Bvillazo,[foaf:name="Daniel Garijo"])
+agent(user:Ctilmes,[foaf:name="Curt Tilmes"])
+agent(user:Ctrim,[foaf:name="Craig Trim"])
+agent(user:Dcorsar,[foaf:name="David Corsar"])
+agent(user:Dmcguinn,[foaf:name="Deborah L. McGuinness"])
+agent(user:Gklyne,[foaf:name="Graham Klyne"])
+agent(user:Hdeus,[foaf:name="Helena Deus"])
+agent(user:Hhua,[foaf:name="Hook Hua"])
+agent(user:Ivan,[foaf:name="Ivan Herman"])
+agent(user:Sandro,[foaf:name="Sandro Hawke"])
+agent(user:Jcheney,[foaf:name="James Cheney"])
+agent(user:Rgolden,[foaf:name="Ryan Golden"])
+agent(user:Jmccuske,[foaf:name="James McCusker"])
+agent(user:Jmyers4,[foaf:name="Jim Myers"])
+agent(user:Jzhao,[foaf:name="Jun Zhao"])
+agent(user:Kbelhajj,[foaf:name="Khalid Belhajjame"])
+agent(user:Keckert,[foaf:name="Kai Eckert"])
+agent(user:Lmoreau,[foaf:name="Luc Moreau"])
+agent(user:Ohartig,[foaf:name="Olaf Hartig"])
+agent(user:Pgroth,[foaf:name="Paul Groth"])
+agent(user:Pmissier,[foaf:name="Paolo Missier"])
+agent(user:Rbfar,[foaf:name="Reza B'Far"])
+agent(user:Scoppens,[foaf:name="Sam Coppens"])
+agent(user:Scresswe,[foaf:name="Steve Cresswell"])
+agent(user:Smiles,[foaf:name="Simon Miles"])
+agent(user:Ssahoo2,[foaf:name="Satya Sahoo"])
+agent(user:Ssoiland,[foaf:name="Stian Soiland-Reyes"])
+agent(user:Szednik,[foaf:name="Stephan Zednik"])
+agent(user:Tdenies,[foaf:name="Tom De Nies"])
+agent(user:Thuynh,[foaf:name="Trung Dong Huynh"])
+agent(user:Tlebo,[foaf:name="Timothy Lebo"])
+agent(user:Ygil,[foaf:name="Yolanda Gil"])
+agent(user:Ysimmhan,[foaf:name="Yogesh Simmhan"])
+agent(occl:michael.htm,[foaf:name="Michael Panzer"])
+
+
+//////////////////////////////////////////////////////////////////////
+// At the beginning there was ... nothing
+//////////////////////////////////////////////////////////////////////
+
+entity(wiki:Family0, [ prov:type='prov:EmptyDictionary', dot:fillcolor="bisque2"  ])
+
+//////////////////////////////////////////////////////////////////////
+// first publication: first workin draft of prov-dm
+//////////////////////////////////////////////////////////////////////
+
+entity(chairs:2011OctDec/0004, [ prov:type='trans:transreq', dot:fillcolor="gainsboro" ]) // for prov-dm
+entity(email:2011Oct/0141,     [ prov:type='trans:pubreq',  dot:fillcolor="gold"  ])
+
+entity(tr2011:WD-prov-dm-20111018,          [ prov:type='process:RecsWD' ])
+
+
+activity(act:publ1,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ1, act:WG)
+wasGeneratedBy(tr2011:WD-prov-dm-20111018,          act:publ1, -)
+used(act:publ1,chairs:2011OctDec/0004,-)
+used(act:publ1,email:2011Oct/0141,-)
+wasAssociatedWith(act:publ1, w3:Consortium, process:rec-advance)
+
+
+entity(wiki:Family1, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+prov:derivedByInsertionFrom(wiki:Family1, wiki:Family0, {('tr:prov-dm',     tr2011:WD-prov-dm-20111018)})
+
+
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Rgolden,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111018, user:Ssahoo2,  [prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// second publication: first working draft of prov-o
+//////////////////////////////////////////////////////////////////////
+
+entity(chairs:2011OctDec/0152, [ prov:type='trans:transreq', dot:fillcolor="gainsboro"  ]) // for prov-o
+entity(email:2011Dec/0075,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2011:WD-prov-o-20111213,           [ prov:type='process:RecsWD' ])
+activity(act:publ2,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ2, act:WG)
+wasGeneratedBy(tr2011:WD-prov-o-20111213,           act:publ2, -)
+used(act:publ2,chairs:2011OctDec/0152,-)
+used(act:publ2,email:2011Dec/0075,-)
+
+wasAssociatedWith(act:publ2, w3:Consortium, process:rec-advance)
+
+
+entity(wiki:Family2, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family2, wiki:Family1, {('tr:prov-o',      tr2011:WD-prov-o-20111213)})
+
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-o-20111213, user:Szednik,  [prov:type='prov:Contributor'])
+
+
+
+//////////////////////////////////////////////////////////////////////
+// third publication: a new version of prov-dm
+//////////////////////////////////////////////////////////////////////
+
+entity(email:2011Dec/0111,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2011:WD-prov-dm-20111215,          [ prov:type='process:RecsWD' ])
+activity(act:publ3,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ3, act:WG)
+wasGeneratedBy(tr2011:WD-prov-dm-20111215,          act:publ3, -)
+
+used(act:publ3,email:2011Dec/0111,-)
+
+wasAssociatedWith(act:publ3, w3:Consortium, process:rec-advance)
+
+entity(wiki:Family3, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family3, wiki:Family2, {('tr:prov-dm',     tr2011:WD-prov-dm-20111215)})
+
+wasDerivedFrom(tr2011:WD-prov-dm-20111215,tr2011:WD-prov-dm-20111018, [prov:type='prov:Revision'])
+
+
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2011:WD-prov-dm-20111215, user:Ssahoo2,  [prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// fourth publication: prov-aq and prov-primer join the PROV family
+//////////////////////////////////////////////////////////////////////
+
+entity(chairs:2012JanMar/0000, [ prov:type='trans:transreq', dot:fillcolor="gainsboro" ]) // for prov-primer
+entity(chairs:2011OctDec/0171, [ prov:type='trans:transreq', dot:fillcolor="gainsboro" ]) // for prov-aq
+entity(email:2012Jan/0043,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+
+entity(tr2012:WD-prov-aq-20120110,          [ prov:type='pd:WD' ])
+entity(tr2012:WD-prov-primer-20120110,      [ prov:type='pd:WD' ])
+
+activity(act:publ4,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ4, act:WG)
+
+wasGeneratedBy(tr2012:WD-prov-primer-20120110,      act:publ4, -)
+wasGeneratedBy(tr2012:WD-prov-aq-20120110,          act:publ4, -)
+
+used(act:publ4,chairs:2011OctDec/0171,-)
+used(act:publ4,chairs:2012JanMar/0000,-)
+used(act:publ4,email:2012Jan/0043,-)
+
+wasAssociatedWith(act:publ4, w3:Consortium, process:rec-advance)
+
+entity(wiki:Family4, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family4, wiki:Family3, {('tr:prov-primer', tr2012:WD-prov-primer-20120110),
+                                                         ('tr:prov-aq',     tr2012:WD-prov-aq-20120110)})
+
+
+
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Gklyne,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Ohartig,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Ysimmhan,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Jmyers4,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Kbelhajj,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120110, user:Smiles,    [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120110, user:Szednik,  [prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// fifth publication: next working draft of prov-dm
+//////////////////////////////////////////////////////////////////////
+
+entity(email:2012Jan/0422,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ]) //for prov-dm wd3
+
+entity(tr2012:WD-prov-dm-20120202,          [ prov:type='process:RecsWD' ])
+
+activity(act:publ5,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ5, act:WG)
+
+wasGeneratedBy(tr2012:WD-prov-dm-20120202,          act:publ5, -)
+
+used(act:publ5,email:2012Jan/0422,-)
+
+wasAssociatedWith(act:publ5, w3:Consortium, process:rec-advance)
+
+entity(wiki:Family5, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+prov:derivedByInsertionFrom(wiki:Family5, wiki:Family4, {('tr:prov-dm',     tr2012:WD-prov-dm-20120202)})
+
+wasDerivedFrom(tr2012:WD-prov-dm-20120202,tr2011:WD-prov-dm-20111215, [prov:type='prov:Revision'])
+
+
+
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Rgolden,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120202, user:Ssahoo2,  [prov:type='prov:Contributor'])
+
+
+
+//////////////////////////////////////////////////////////////////////
+// sixth publication: 
+//   - next working drafts of prov-dm, prov-o, prov-primer, and 
+//   - first release of prov-n, prov-constraints
+//////////////////////////////////////////////////////////////////////
+
+entity(chairs:2012AprJun/0037, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // for prov-n, prov-constraitns
+
+entity(email:2012Apr/0583,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2012:WD-prov-dm-20120503,          [ prov:type='process:RecsWD' ])
+entity(tr2012:WD-prov-o-20120503,           [ prov:type='process:RecsWD' ])
+entity(tr2012:WD-prov-n-20120503,           [ prov:type='process:RecsWD' ])
+entity(tr2012:WD-prov-constraints-20120503, [ prov:type='process:RecsWD' ])
+entity(tr2012:WD-prov-primer-20120503,      [ prov:type='pd:WD' ])
+
+activity(act:publ6,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ6, act:WG)
+
+wasGeneratedBy(tr2012:WD-prov-dm-20120503,          act:publ6, -)
+wasGeneratedBy(tr2012:WD-prov-o-20120503,           act:publ6, -)
+wasGeneratedBy(tr2012:WD-prov-n-20120503,           act:publ6, -)
+wasGeneratedBy(tr2012:WD-prov-constraints-20120503, act:publ6, -)
+wasGeneratedBy(tr2012:WD-prov-primer-20120503,      act:publ6, -)
+
+used(act:publ6, email:2012Apr/0583, -)
+used(act:publ6, chairs:2012AprJun/0037, -)
+
+wasAssociatedWith(act:publ6, w3:Consortium, process:rec-advance)
+
+
+entity(wiki:Family6, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family6, wiki:Family5, {('tr:prov-dm',     tr2012:WD-prov-dm-20120503),
+                                                     	 ('tr:prov-o',      tr2012:WD-prov-o-20120503),            
+                                                     	 ('tr:prov-n',      tr2012:WD-prov-n-20120503),            
+                                                     	 ('tr:prov-primer', tr2012:WD-prov-primer-20120503),            
+                                                     	 ('tr:prov-constraints', tr2012:WD-prov-constraints-20120503)})
+
+
+wasDerivedFrom(tr2012:WD-prov-dm-20120503,          tr2012:WD-prov-dm-20120202, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-n-20120503,           tr2012:WD-prov-dm-20120202, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-constraints-20120503, tr2012:WD-prov-dm-20120202, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-primer-20120503,      tr2012:WD-prov-primer-20120110, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-o-20120503,           tr2011:WD-prov-o-20111213, [prov:type='prov:Revision'])
+
+
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Rbfar,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Ssahoo2,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120503, user:Ctilmes,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-n-20120503, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-n-20120503, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Dcorsar,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Szednik,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Jzhao,    [prov:type='prov:Contributor'])
+  
+wasAttributedTo(tr2012:WD-prov-constraints-20120503, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-constraints-20120503, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-constraints-20120503, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120503, user:Szednik,  [prov:type='prov:Contributor'])
+
+
+
+//////////////////////////////////////////////////////////////////////
+// seventh publication: 
+//   - next working draft of prov-aq
+//////////////////////////////////////////////////////////////////////
+
+
+entity(email:2012Jun/0164,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2012:WD-prov-aq-20120619,          [ prov:type='pd:WD' ])
+
+activity(act:publ7,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ7, act:WG)
+
+wasGeneratedBy(tr2012:WD-prov-aq-20120619,          act:publ7, -)
+
+used(act:publ7, email:2012Jun/0164, -)
+
+wasAssociatedWith(act:publ7, w3:Consortium, process:rec-advance)  
+
+
+entity(wiki:Family7, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family7, wiki:Family6, {('tr:prov-aq',     tr2012:WD-prov-aq-20120619)})
+
+wasDerivedFrom(tr2012:WD-prov-aq-20120619, tr2012:WD-prov-aq-20120110, [prov:type='prov:Revision'])
+
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Gklyne,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Ohartig,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Ysimmhan,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Jmyers4,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Kbelhajj,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Smiles,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-aq-20120619, user:Ssoiland,  [prov:type='prov:Contributor'])
+
+
+
+//////////////////////////////////////////////////////////////////////
+// eighth publication: 
+//   - prov-dm, prov-n, prov-o: last call
+//   - prov-primer: next working draft
+//////////////////////////////////////////////////////////////////////
+
+
+entity(email:2012Jul/0154,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2012:WD-prov-dm-20120724,          [ prov:type='pd:WD', prov:type='pd:LastCall' ])
+entity(tr2012:WD-prov-n-20120724,           [ prov:type='pd:WD', prov:type='pd:LastCall' ])
+entity(tr2012:WD-prov-o-20120724,           [ prov:type='pd:WD', prov:type='pd:LastCall' ])
+entity(tr2012:WD-prov-primer-20120724,      [ prov:type='pd:WD'  ])
+
+activity(act:publ8,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ8, act:WG)
+
+used(act:publ8,email:2012Jul/0154,-)
+
+wasAssociatedWith(act:publ8, w3:Consortium, process:rec-advance)
+
+wasGeneratedBy(tr2012:WD-prov-dm-20120724,          act:publ8, -)
+wasGeneratedBy(tr2012:WD-prov-n-20120724,           act:publ8, -)
+wasGeneratedBy(tr2012:WD-prov-o-20120724,           act:publ8, -)
+wasGeneratedBy(tr2012:WD-prov-primer-20120724,      act:publ8, -)
+
+
+entity(wiki:Family8, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family8, wiki:Family7, {('tr:prov-dm',     tr2012:WD-prov-dm-20120724),
+                                                         ('tr:prov-n',      tr2012:WD-prov-dm-20120724),
+                                                         ('tr:prov-o',      tr2012:WD-prov-o-20120724),
+                                                         ('tr:prov-primer', tr2012:WD-prov-primer-20120724)})
+
+wasDerivedFrom(tr2012:WD-prov-dm-20120724,     tr2012:WD-prov-dm-20120503, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-n-20120724,      tr2012:WD-prov-n-20120503, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-o-20120724,      tr2012:WD-prov-o-20120503, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-primer-20120724, tr2012:WD-prov-primer-20120503, [prov:type='prov:Revision'])
+
+
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Rbfar,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Scoppens, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Tlebo,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Ssahoo2,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dm-20120724, user:Ctilmes,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-n-20120724, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-n-20120724, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-n-20120724, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-n-20120724, user:Ssoiland, [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Dcorsar,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Szednik,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-o-20120503, user:Jzhao,    [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20120724, user:Szednik,  [prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// ninth publication: 
+//   - prov-constraints: last call
+//////////////////////////////////////////////////////////////////////
+
+
+
+entity(email:2012Sep/0070,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+
+entity(tr2012:WD-prov-constraints-20120911, [ prov:type='pd:WD', prov:type='pd:LastCall' ])
+
+used(act:publ9,email:2012Sep/0070,-)
+
+activity(act:publ9,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ9, act:WG)
+
+wasAssociatedWith(act:publ9, w3:Consortium, process:rec-advance)
+
+wasGeneratedBy(tr2012:WD-prov-constraints-20120911, act:publ9, -)
+
+entity(wiki:Family9, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+prov:derivedByInsertionFrom(wiki:Family9, wiki:Family8, {('tr:prov-constraints',     tr2012:WD-prov-constraints-20120911)})
+
+wasDerivedFrom(tr2012:WD-prov-constraints-20120911, tr2012:WD-prov-constraints-20120503, [prov:type='prov:Revision'])
+
+
+wasAttributedTo(tr2012:WD-prov-constraints-20120911, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-constraints-20120911, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-constraints-20120911, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-constraints-20120911, user:Tdenies,  [prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// CR publication: 
+//   - prov-dm, prov-n, prov-o, prov-constraints CR
+//   - prov-primer, next working draft
+//   - prov-xml, prov-dc, prov-links, prov-overview first public working draft
+//////////////////////////////////////////////////////////////////////
+
+
+entity(chairs:2012OctDec/0060, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // CR transition request
+entity(chairs:2012OctDec/0072, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // for prov-xml, prov-dc, prov-links, prov-overview fpwd
+entity(email:2012Dec/0041,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+entity(w3:2012/12/07-provt-minutes, [rdfs:comment="minutes for the PR transition call"])
+
+activity(act:publ10,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ10, act:WG)
+
+wasAssociatedWith(act:publ10, w3:Consortium, process:rec-advance)
+
+used(act:publ10,email:2012Dec/0041,- )
+used(act:publ10,chairs:2012OctDec/0060, -)
+used(act:publ10,chairs:2012OctDec/0072, -)
+used(act:publ10,w3:2012/12/07-provt-minutes, -)
+
+wasGeneratedBy(tr2012:CR-prov-dm-20121211,          act:publ10, -)
+wasGeneratedBy(tr2012:CR-prov-n-20121211,           act:publ10, -)
+wasGeneratedBy(tr2012:CR-prov-o-20121211,           act:publ10, -)
+wasGeneratedBy(tr2012:CR-prov-constraints-20121211, act:publ10, -)
+
+wasGeneratedBy(tr2012:WD-prov-primer-20121211,      act:publ10, -)
+wasGeneratedBy(tr2012:WD-prov-overview-20121211,    act:publ10, -)
+wasGeneratedBy(tr2012:WD-prov-xml-20121211,         act:publ10, -)
+wasGeneratedBy(tr2012:WD-prov-links-20121211,       act:publ10, -)
+wasGeneratedBy(tr2012:WD-prov-dc-20121211,          act:publ10, -)
+
+
+
+entity(wiki:Family-cr, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+
+entity(tr2012:CR-prov-dm-20121211,          [ prov:type='process:RecsCR' ])
+entity(tr2012:CR-prov-n-20121211,           [ prov:type='process:RecsCR' ])
+entity(tr2012:CR-prov-o-20121211,           [ prov:type='process:RecsCR' ])
+entity(tr2012:CR-prov-constraints-20121211, [ prov:type='process:RecsCR' ])
+
+entity(tr2012:WD-prov-primer-20121211,      [ prov:type='pd:WD' ])
+entity(tr2012:WD-prov-overview-20121211,    [ prov:type='pd:WD' ])
+entity(tr2012:WD-prov-xml-20121211,         [ prov:type='pd:WD' ])
+entity(tr2012:WD-prov-links-20121211,       [ prov:type='pd:WD' ])
+entity(tr2012:WD-prov-dc-20121211,          [ prov:type='pd:WD' ])
+
+wasDerivedFrom(tr2012:CR-prov-dm-20121211,      tr2012:WD-prov-dm-20120724, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:CR-prov-n-20121211,      tr2012:WD-prov-n-20120724, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:CR-prov-o-20121211,      tr2012:WD-prov-o-20120724, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:CR-prov-constraints-20121211,      tr2012:WD-prov-constraints-20120911, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2012:WD-prov-primer-20121211,      tr2012:WD-prov-primer-20120724, [prov:type='prov:Revision'])
+
+prov:derivedByInsertionFrom(wiki:Family-cr, 
+                            wiki:Family9, 
+                            {('tr:prov-dm',              tr2012:CR-prov-dm-20121211),
+                             ('tr:prov-o',               tr2012:CR-prov-o-20121211),            
+                             ('tr:prov-n',               tr2012:CR-prov-n-20121211),            
+                             ('tr:prov-constraints',     tr2012:CR-prov-constraints-20121211),
+                             ('tr:prov-primer',          tr2012:WD-prov-primer-20121211),
+                             ('tr:prov-overview',        tr2012:WD-prov-overview-20121211),
+                             ('tr:prov-xml',             tr2012:WD-prov-xml-20121211),
+                             ('tr:prov-links',           tr2012:WD-prov-links-20121211),
+                             ('tr:prov-dc',              tr2012:WD-prov-dc-20121211)  })
+
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Rbfar,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Scoppens, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Tlebo,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Ssahoo2,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-dm-20121211, user:Ctilmes,  [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2012:CR-prov-n-20121211, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-n-20121211, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-n-20121211, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-n-20121211, user:Ssoiland, [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Dcorsar,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Szednik,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-o-20121211, user:Jzhao,    [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:CR-prov-constraints-20121211, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-constraints-20121211, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-constraints-20121211, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:CR-prov-constraints-20121211, user:Tdenies,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-overview-20121211, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-overview-20121211, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-dc-20121211, user:Bvillazo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dc-20121211, user:Keckert,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dc-20121211, user:Smiles,      [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dc-20121211, user:Ctrim,       [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-dc-20121211, occl:michael.htm, [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-xml-20121211, user:Szednik,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-xml-20121211, user:Ctilmes,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-xml-20121211, user:Hhua,      [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-xml-20121211, user:Lmoreau,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-primer-20121211, user:Szednik,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2012:WD-prov-links-20121211, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2012:WD-prov-links-20121211, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+
+//////////////////////////////////////////////////////////////////////
+// PR publication: 
+//   - prov-dm, prov-n, prov-o, prov-constraints PR
+//   - prov-primer, prov-dc, prov-links, prov-overview, prov-xml, prov-aq: next working draft
+//   - prov-dictionary, prov-implementation, prov-sem: first public working draft
+//////////////////////////////////////////////////////////////////////
+
+
+entity(chairs:2013JanMar/0088, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // PR transition request
+entity(chairs:2013JanMar/0090, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // for prov-dictionary, prov-implementations
+entity(chairs:2013JanMar/0097, [ prov:type='trans:transreq' , dot:fillcolor="gainsboro" ]) // for prov-sem
+
+entity(w3:2013/03/08-provpr-minutes, [rdfs:comment="minutes for the PR transition call"])
+
+entity(email:2013Mar/0073,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])
+activity(act:publ11,-,-, [prov:type='prov:Publish' ])
+wasInformedBy(act:publ11, act:WG)
+
+wasAssociatedWith(act:publ11, w3:Consortium, process:rec-advance)
+
+used(act:publ11,email:2013Mar/0073,-)
+used(act:publ11,chairs:2013JanMar/0088,-)
+used(act:publ11,chairs:2013JanMar/0090,-)
+used(act:publ11,chairs:2013JanMar/0097,-)
+used(act:publ11,w3:2013/03/08-provpr-minutes, -)
+
+wasGeneratedBy(tr2013:PR-prov-dm-20130312,          act:publ11, -)
+wasGeneratedBy(tr2013:PR-prov-n-20130312,           act:publ11, -)
+wasGeneratedBy(tr2013:PR-prov-o-20130312,           act:publ11, -)
+wasGeneratedBy(tr2013:PR-prov-constraints-20130312, act:publ11, -)
+
+wasGeneratedBy(tr2013:WD-prov-primer-20130312,      act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-overview-20130312,    act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-dictionary-20130312,  act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-xml-20130312,         act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-links-20130312,       act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-aq-20130312,          act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-dc-20130312,          act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-sem-20130312,         act:publ11, -)
+wasGeneratedBy(tr2013:WD-prov-implementations-20130312, act:publ11, -)
+
+
+entity(wiki:Family-pr, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+entity(tr2013:PR-prov-dm-20130312,          [ prov:type='process:RecsPR' ])
+entity(tr2013:PR-prov-n-20130312,           [ prov:type='process:RecsPR' ])
+entity(tr2013:PR-prov-o-20130312,           [ prov:type='process:RecsPR' ])
+entity(tr2013:PR-prov-constraints-20130312, [ prov:type='process:RecsPR' ])
+
+entity(tr2013:WD-prov-primer-20130312,      [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-overview-20130312,    [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-dictionary-20130312,  [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-xml-20130312,         [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-links-20130312,       [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-aq-20130312,          [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-dc-20130312,          [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-sem-20130312,         [ prov:type='pd:WD' ])
+entity(tr2013:WD-prov-implementations-20130312, [ prov:type='pd:WD' ])
+
+
+
+wasDerivedFrom(tr2013:PR-prov-dm-20130312,          tr2012:CR-prov-dm-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:PR-prov-n-20130312,           tr2012:CR-prov-n-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:PR-prov-o-20130312,           tr2012:CR-prov-o-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:PR-prov-constraints-20130312, tr2012:CR-prov-constraints-20121211, [prov:type='prov:Revision'])
+
+wasDerivedFrom(tr2013:WD-prov-primer-20130312,      tr2012:WD-prov-primer-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:WD-prov-overview-20130312,    tr2012:WD-prov-overview-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:WD-prov-xml-20130312,         tr2012:WD-prov-xml-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:WD-prov-links-20130312,       tr2012:WD-prov-links-20121211, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:WD-prov-aq-20130312,          tr2012:WD-prov-aq-20120619, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:WD-prov-dc-20130312,          tr2012:WD-prov-dc-20121211, [prov:type='prov:Revision'])
+
+
+entity(wbs:prov-implementation-survey/results)
+entity(wbs:prov-vocabulary-usage-survey/results)
+entity(wbs:prov-vocabulary-survey/results)
+entity(wbs:prov-constraints/results)
+
+wasDerivedFrom(tr2013:WD-prov-implementations-20130312, wbs:prov-implementation-survey/results)
+wasDerivedFrom(tr2013:WD-prov-implementations-20130312, wbs:prov-vocabulary-usage-survey/results)
+wasDerivedFrom(tr2013:WD-prov-implementations-20130312, wbs:prov-vocabulary-survey/results)
+wasDerivedFrom(tr2013:WD-prov-implementations-20130312, wbs:prov-constraints/results)
+
+
+prov:derivedByInsertionFrom(wiki:Family-pr, wiki:Family-cr, {('tr:prov-dm',              tr2013:PR-prov-dm-20130312),
+                                                  	     ('tr:prov-o',               tr2013:PR-prov-o-20130312),            
+                                                  	     ('tr:prov-n',               tr2013:PR-prov-n-20130312),            
+                                                  	     ('tr:prov-constraints',     tr2013:PR-prov-constraints-20130312),
+                                                  	     ('tr:prov-primer',          tr2013:WD-prov-primer-20130312),
+                                                  	     ('tr:prov-overview',        tr2013:WD-prov-overview-20130312),
+                                                  	     ('tr:prov-dictionary',      tr2013:WD-prov-dictionary-20130312),
+                                                  	     ('tr:prov-xml',             tr2013:WD-prov-xml-20130312),
+                                                  	     ('tr:prov-links',           tr2013:WD-prov-links-20130312),
+                                                  	     ('tr:prov-aq',              tr2013:WD-prov-aq-20130312),
+                                                  	     ('tr:prov-dc',              tr2013:WD-prov-dc-20130312),
+                                                  	     ('tr:prov-sem',             tr2013:WD-prov-sem-20130312),
+                                                  	     ('tr:prov-implementations', tr2013:WD-prov-implementations-20130312) })
+
+
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Rbfar,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Scoppens, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Tlebo,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Ssahoo2,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-dm-20130312, user:Ctilmes,  [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2013:PR-prov-n-20130312, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-n-20130312, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-n-20130312, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-n-20130312, user:Ssoiland, [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Dcorsar,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Szednik,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-o-20130312, user:Jzhao,    [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:PR-prov-constraints-20130312, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-constraints-20130312, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-constraints-20130312, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:PR-prov-constraints-20130312, user:Tdenies,  [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Tdenies,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Scoppens,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Jcheney,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Ssoiland,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Pmissier,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dictionary-20130312, user:Tlebo,     [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-overview-20130312, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-overview-20130312, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-implementations-20130312, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-implementations-20130312, user:Thuynh,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-implementations-20130312, user:Szednik,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Gklyne,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Ohartig,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Ysimmhan,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Jmyers4,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Kbelhajj,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Smiles,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-aq-20130312, user:Ssoiland,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-dc-20130312, user:Bvillazo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dc-20130312, user:Keckert,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dc-20130312, user:Smiles,      [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dc-20130312, user:Ctrim,       [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-dc-20130312, occl:michael.htm, [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-xml-20130312, user:Szednik,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-xml-20130312, user:Ctilmes,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-xml-20130312, user:Hhua,      [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-xml-20130312, user:Lmoreau,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-primer-20130312, user:Szednik,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-sem-20130312, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:WD-prov-links-20130312, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:WD-prov-links-20130312, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+//////////////////////////////////////////////////////////////////////
+// REC publication: 
+//   - prov-dm, prov-n, prov-o, prov-constraints REC
+//   - prov-primer, prov-xml, prov-aq, prov-dc, prov-links, prov-overview, prov-dictionary, prov-implementation, prov-sem: NOTE
+//////////////////////////////////////////////////////////////////////
+
+
+
+entity(chairs:2013JanMar/0116, [ prov:type='process:cfr' , dot:fillcolor="gainsboro" ]) 
+
+activity(act:publ12,-,-,[prov:type='prov:Publish' ])
+wasInformedBy(act:publ12, act:WG)
+
+wasAssociatedWith(act:publ12, w3:Consortium, process:rec-advance)
+
+wasGeneratedBy(tr2013:REC-prov-dm-20130430,          act:publ12, -)
+wasGeneratedBy(tr2013:REC-prov-n-20130430,           act:publ12, -)
+wasGeneratedBy(tr2013:REC-prov-o-20130430,           act:publ12, -)
+wasGeneratedBy(tr2013:REC-prov-constraints-20130430, act:publ12, -)
+
+wasGeneratedBy(tr2013:NOTE-prov-primer-20130430,      act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-overview-20130430,    act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-dictionary-20130430,  act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-xml-20130430,         act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-links-20130430,       act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-aq-20130430,          act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-dc-20130430,          act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-sem-20130430,         act:publ12, -)
+wasGeneratedBy(tr2013:NOTE-prov-implementations-20130430, act:publ12, -)
+
+
+entity(wbs2:provpf/results)
+wasDerivedFrom(chairs:2013JanMar/0116, tr2013:PR-prov-dm-20130312)
+wasDerivedFrom(chairs:2013JanMar/0116, tr2013:PR-prov-n-20130312)
+wasDerivedFrom(chairs:2013JanMar/0116, tr2013:PR-prov-o-20130312)
+wasDerivedFrom(chairs:2013JanMar/0116, tr2013:PR-prov-constraints-20130312)
+
+
+wasDerivedFrom(wbs2:provpf/results, chairs:2013JanMar/0116)
+
+entity(team:2013Apr/0405,[rdfs:comment="the director's approval to publish recommendations"])
+
+
+
+wasDerivedFrom(team:2013Apr/0405,wbs2:provpf/results)
+
+
+entity(email:2013Apr/0507,     [ prov:type='trans:pubreq',  dot:fillcolor="gold" ])  // final publication request
+wasDerivedFrom(email:2013Apr/0507,team:2013Apr/0405)
+
+used(act:publ12,email:2013Apr/0507,-)
+used(act:publ12,team:2013Apr/0405,-)
+
+entity(wiki:Family-rec, [ prov:type='prov:Dictionary', dot:fillcolor="bisque2" ])
+
+
+entity(tr2013:REC-prov-dm-20130430,          [ prov:type='process:RecsW3C'  ])
+entity(tr2013:REC-prov-n-20130430,           [ prov:type='process:RecsW3C'  ])
+entity(tr2013:REC-prov-o-20130430,           [ prov:type='process:RecsW3C'  ])
+entity(tr2013:REC-prov-constraints-20130430, [ prov:type='process:RecsW3C'  ])
+
+entity(tr2013:NOTE-prov-primer-20130430,      [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-overview-20130430,    [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-dictionary-20130430,  [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-xml-20130430,         [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-links-20130430,       [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-aq-20130430,          [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-dc-20130430,          [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-sem-20130430,         [ prov:type='process:WGNote'  ])
+entity(tr2013:NOTE-prov-implementations-20130430, [ prov:type='process:WGNote'  ])
+
+
+wasDerivedFrom(tr2013:REC-prov-dm-20130430,          tr2013:PR-prov-dm-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:REC-prov-n-20130430,           tr2013:PR-prov-n-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:REC-prov-o-20130430,           tr2013:PR-prov-o-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:REC-prov-constraints-20130430, tr2013:PR-prov-constraints-20130312, [prov:type='prov:Revision'])
+
+wasDerivedFrom(tr2013:NOTE-prov-primer-20130430,     tr2013:WD-prov-primer-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-overview-20130430,   tr2013:WD-prov-overview-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-xml-20130430,        tr2013:WD-prov-xml-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-links-20130430,      tr2013:WD-prov-links-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-aq-20130430,         tr2013:WD-prov-aq-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-dc-20130430,         tr2013:WD-prov-dc-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-sem-20130430,        tr2013:WD-prov-sem-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-dictionary-20130430,        tr2013:WD-prov-dictionary-20130312, [prov:type='prov:Revision'])
+wasDerivedFrom(tr2013:NOTE-prov-implementations-20130430,         tr2013:WD-prov-implementations-20130312, [prov:type='prov:Revision'])
+
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Rbfar,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Scoppens, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Scresswe, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Ygil,     [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Pgroth,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Tlebo,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Jmccuske, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Smiles,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Jmyers4,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Ssahoo2,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-dm-20130430, user:Ctilmes,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:REC-prov-n-20130430, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-n-20130430, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-n-20130430, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-n-20130430, user:Ssoiland, [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:REC-prov-constraints-20130430, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-constraints-20130430, user:Lmoreau,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-constraints-20130430, user:Pmissier, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-constraints-20130430, user:Tdenies,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Ssahoo2,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Dmcguinn, [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Jcheney,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Dcorsar,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Szednik,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:REC-prov-o-20130430, user:Jzhao,    [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-sem-20130430, user:Jcheney,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Smiles,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Ygil,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Kbelhajj, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Hdeus,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Bvillazo, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Gklyne,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Pmissier, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Ssoiland, [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-primer-20130430, user:Szednik,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-xml-20130430, user:Szednik,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-xml-20130430, user:Ctilmes,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-xml-20130430, user:Hhua,      [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-xml-20130430, user:Lmoreau,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-dc-20130430, user:Bvillazo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dc-20130430, user:Keckert,     [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dc-20130430, user:Smiles,      [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dc-20130430, user:Ctrim,       [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dc-20130430, occl:michael.htm, [prov:type='prov:Contributor'])
+
+
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Gklyne,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Ohartig,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Ysimmhan,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Jmyers4,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Kbelhajj,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Smiles,    [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-aq-20130430, user:Ssoiland,  [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-implementations-20130430, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-implementations-20130430, user:Thuynh,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-implementations-20130430, user:Szednik,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-overview-20130430, user:Pgroth,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-overview-20130430, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Tdenies,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Scoppens,  [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Lmoreau,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Jcheney,   [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Ssoiland,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Pmissier,  [prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-dictionary-20130430, user:Tlebo,     [prov:type='prov:Contributor'])
+
+wasAttributedTo(tr2013:NOTE-prov-links-20130430, user:Lmoreau,   [prov:type='pd:editor', prov:type='prov:Contributor'])
+wasAttributedTo(tr2013:NOTE-prov-links-20130430, user:Tlebo,    [prov:type='pd:editor', prov:type='prov:Contributor'])
+
+prov:derivedByInsertionFrom(wiki:Family-rec,
+                            wiki:Family-pr, 
+                            {('tr:prov-dm',              tr2013:REC-prov-dm-20130430),
+                             ('tr:prov-o',               tr2013:REC-prov-o-20130430),            
+                             ('tr:prov-n',               tr2013:REC-prov-n-20130430),            
+                             ('tr:prov-constraints',     tr2013:REC-prov-constraints-20130430),
+                             ('tr:prov-primer',          tr2013:NOTE-prov-primer-20130430),
+                             ('tr:prov-overview',        tr2013:NOTE-prov-overview-20130430),
+                             ('tr:prov-dictionary',      tr2013:NOTE-prov-dictionary-20130430),
+                             ('tr:prov-xml',             tr2013:NOTE-prov-xml-20130430),
+                             ('tr:prov-links',           tr2013:NOTE-prov-links-20130430),
+                             ('tr:prov-aq',              tr2013:NOTE-prov-aq-20130430),
+                             ('tr:prov-dc',              tr2013:NOTE-prov-dc-20130430),
+                             ('tr:prov-sem',             tr2013:NOTE-prov-sem-20130430),
+                             ('tr:prov-implementations', tr2013:NOTE-prov-implementations-20130430) })
+
+
+entity(tr:prov-dm)
+entity(tr:prov-n)
+entity(tr:prov-o)
+entity(tr:prov-constraints)
+entity(tr:prov-primer)
+entity(tr:prov-aq)
+entity(tr:prov-dc)
+entity(tr:prov-overview)
+entity(tr:prov-dictionary)
+entity(tr:prov-xml)
+entity(tr:prov-implementations)
+entity(tr:prov-links)
+entity(tr:prov-sem)
+
+
+specializationOf(tr2013:REC-prov-dm-20130430, tr:prov-dm)
+specializationOf(tr2013:PR-prov-dm-20130312, tr:prov-dm)
+specializationOf(tr2012:CR-prov-dm-20121211, tr:prov-dm)
+specializationOf(tr2012:WD-prov-dm-20120724, tr:prov-dm)
+specializationOf(tr2012:WD-prov-dm-20120503, tr:prov-dm)
+specializationOf(tr2012:WD-prov-dm-20120202, tr:prov-dm)
+specializationOf(tr2011:WD-prov-dm-20111215, tr:prov-dm)
+specializationOf(tr2011:WD-prov-dm-20111018, tr:prov-dm)
+
+specializationOf(tr2013:REC-prov-n-20130430, tr:prov-n)
+specializationOf(tr2013:PR-prov-n-20130312, tr:prov-n)
+specializationOf(tr2012:CR-prov-n-20121211, tr:prov-n)
+specializationOf(tr2012:WD-prov-n-20120724, tr:prov-n)
+specializationOf(tr2012:WD-prov-n-20120503, tr:prov-n)
+
+
+specializationOf(tr2013:REC-prov-o-20130430, tr:prov-o)
+specializationOf(tr2013:PR-prov-o-20130312, tr:prov-o)
+specializationOf(tr2012:CR-prov-o-20121211, tr:prov-o)
+specializationOf(tr2012:WD-prov-o-20120724, tr:prov-o)
+specializationOf(tr2012:WD-prov-o-20120503, tr:prov-o)
+specializationOf(tr2011:WD-prov-o-20111213, tr:prov-o)
+
+specializationOf(tr2013:REC-prov-constraints-20130430, tr:prov-constraints)
+specializationOf(tr2013:PR-prov-constraints-20130312, tr:prov-constraints)
+specializationOf(tr2012:CR-prov-constraints-20121211, tr:prov-constraints)
+specializationOf(tr2012:WD-prov-constraints-20120911, tr:prov-constraints)
+specializationOf(tr2012:WD-prov-constraints-20120503, tr:prov-constraints)
+
+specializationOf(tr2013:NOTE-prov-primer-20130430, tr:prov-primer)
+specializationOf(tr2013:WD-prov-primer-20130312, tr:prov-primer)
+specializationOf(tr2012:WD-prov-primer-20121211, tr:prov-primer)
+specializationOf(tr2012:WD-prov-primer-20120724, tr:prov-primer)
+specializationOf(tr2012:WD-prov-primer-20120503, tr:prov-primer)
+specializationOf(tr2012:WD-prov-primer-20120110, tr:prov-primer)
+
+specializationOf(tr2013:NOTE-prov-aq-20130430, tr:prov-aq)
+specializationOf(tr2013:WD-prov-aq-20130312, tr:prov-aq)
+specializationOf(tr2012:WD-prov-aq-20120619, tr:prov-aq)
+specializationOf(tr2012:WD-prov-aq-20120110, tr:prov-aq)
+
+
+specializationOf(tr2013:NOTE-prov-links-20130430, tr:prov-links)
+specializationOf(tr2013:WD-prov-links-20130312, tr:prov-links)
+specializationOf(tr2012:WD-prov-links-20121211, tr:prov-links)
+
+specializationOf(tr2013:NOTE-prov-dictionary-20130430, tr:prov-dictionary)
+specializationOf(tr2013:WD-prov-dictionary-20130312, tr:prov-dictionary)
+
+specializationOf(tr2013:NOTE-prov-implementations-20130430, tr:prov-implementations)
+specializationOf(tr2013:WD-prov-implementations-20130312, tr:prov-implementations)
+
+specializationOf(tr2013:NOTE-prov-xml-20130430, tr:prov-xml)
+specializationOf(tr2013:WD-prov-xml-20130312, tr:prov-xml)
+specializationOf(tr2012:WD-prov-xml-20121211, tr:prov-xml)
+
+specializationOf(tr2013:NOTE-prov-overview-20130430, tr:prov-overview)
+specializationOf(tr2013:WD-prov-overview-20130312, tr:prov-overview)
+specializationOf(tr2012:WD-prov-overview-20121211, tr:prov-overview)
+
+specializationOf(tr2013:NOTE-prov-dc-20130430, tr:prov-dc)
+specializationOf(tr2013:WD-prov-dc-20130312, tr:prov-dc)
+specializationOf(tr2012:WD-prov-dc-20121211, tr:prov-dc)
+
+specializationOf(tr2013:NOTE-prov-sem-20130430, tr:prov-sem)
+specializationOf(tr2013:WD-prov-sem-20130312, tr:prov-sem)
+
+
+
+
+
+
+
+entity(wiki:Family)
+specializationOf(wiki:Family0,wiki:Family)
+specializationOf(wiki:Family1,wiki:Family)
+specializationOf(wiki:Family2,wiki:Family)
+specializationOf(wiki:Family3,wiki:Family)
+specializationOf(wiki:Family4,wiki:Family)
+specializationOf(wiki:Family5,wiki:Family)
+specializationOf(wiki:Family6,wiki:Family)
+specializationOf(wiki:Family7,wiki:Family)
+specializationOf(wiki:Family8,wiki:Family)
+specializationOf(wiki:Family9,wiki:Family)
+specializationOf(wiki:Family-cr,wiki:Family)
+specializationOf(wiki:Family-pr,wiki:Family)
+specializationOf(wiki:Family-rec,wiki:Family)
+
+
+// I introduce these edges for layout only, but it's really time orderign I mean here
+
+wasInformedBy(act:publ2,act:publ1, [dot:color="none"] )
+wasInformedBy(act:publ3,act:publ2, [dot:color="none"])
+wasInformedBy(act:publ4,act:publ3, [dot:color="none"])
+wasInformedBy(act:publ5,act:publ4, [dot:color="none"])
+wasInformedBy(act:publ6,act:publ5, [dot:color="none"])
+wasInformedBy(act:publ7,act:publ6, [dot:color="none"])
+wasInformedBy(act:publ8,act:publ7, [dot:color="none"])
+wasInformedBy(act:publ9,act:publ8, [dot:color="none"])
+wasInformedBy(act:publ10,act:publ9, [dot:color="none"])
+wasInformedBy(act:publ11,act:publ10, [dot:color="none"])
+wasInformedBy(act:publ12,act:publ11, [dot:color="none"])
+used(act:publ2,wiki:Family1, -, [dot:color="none"])
+used(act:publ3,wiki:Family2, -, [dot:color="none"])
+used(act:publ4,wiki:Family3, -, [dot:color="none"])
+used(act:publ5,wiki:Family4, -, [dot:color="none"])
+used(act:publ6,wiki:Family5, -, [dot:color="none"])
+used(act:publ7,wiki:Family6, -, [dot:color="none"])
+used(act:publ8,wiki:Family7, -, [dot:color="none"])
+used(act:publ9,wiki:Family8, -, [dot:color="none"])
+used(act:publ10,wiki:Family9, -, [dot:color="none"])
+used(act:publ11,wiki:Family-cr, -,  [dot:color="none"])
+used(act:publ12,wiki:Family-pr, -,  [dot:color="none"])
+
+
+
+
+endDocument
+
+
