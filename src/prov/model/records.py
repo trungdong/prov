@@ -214,6 +214,28 @@ XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedType
 _INT32_MAX = 2**31 - 1
 _INT64_MAX = 2**63 - 1
 
+# Values _auto_literal_conversion() returns unchanged when their exact type
+# matches; bool is listed so it is not treated as an int subclass.
+_PASSTHROUGH_TYPES = frozenset({int, float, bool, datetime.datetime})
+
+# Sentinel: literal_type matched none of _fast_path_literal()'s exact types,
+# so the caller falls through to the general, isinstance-based conversion.
+_NO_FAST_PATH = object()
+
+
+def _fast_path_literal(bundle: ProvBundle, literal: Any, literal_type: type) -> Any:
+    """Convert `literal` by exact type, or return `_NO_FAST_PATH`.
+
+    Covers `str`, the `_PASSTHROUGH_TYPES` and `QualifiedName`, the types
+    that dominate real documents. Subclasses of these types and everything
+    else are the caller's responsibility.
+    """
+    if literal_type is str or literal_type in _PASSTHROUGH_TYPES:
+        return literal
+    if literal_type is QualifiedName:
+        return bundle.valid_qualified_name(literal)
+    return _NO_FAST_PATH
+
 
 def canonical_xsd_datatype(value: object) -> QualifiedName | None:
     """Return the XSD datatype `prov` asserts for a plain Python value.
@@ -767,6 +789,10 @@ class ProvRecord:
     # Handling attributes
     def _auto_literal_conversion(self, literal: Any) -> Any:
         # This method normalise datatype for literals
+
+        fast = _fast_path_literal(self._bundle, literal, type(literal))
+        if fast is not _NO_FAST_PATH:
+            return fast
 
         if isinstance(literal, ProvRecord):
             # Use the QName of the record as the literal

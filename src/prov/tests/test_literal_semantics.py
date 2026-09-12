@@ -1,5 +1,6 @@
 """Literal value-space semantics (3.0): #77 decimal, #259 langtag, #89 string form."""
 
+import datetime
 import io
 
 from prov.constants import XSD_DECIMAL, XSD_INT
@@ -46,3 +47,32 @@ def test_rdf_plain_string_emitted_without_xsd_string():
     buf = io.BytesIO()
     document.serialize(buf, format="rdf", rdf_format="nt11")
     assert b"^^" not in buf.getvalue()
+
+
+def test_exact_type_fast_path_preserves_values_and_subclass_handling():
+    class MyStr(str):
+        pass
+
+    document = _doc()
+    when = datetime.datetime(2026, 1, 1)
+    entity = document.entity(
+        "ex:e1",
+        {
+            "ex:s": "s",
+            "ex:i": 1,
+            "ex:f": 1.5,
+            "ex:b": True,
+            "ex:d": when,
+            "ex:sub": MyStr("x"),
+        },
+    )
+    values = {str(k): v for k, v in entity.attributes if str(k).startswith("ex:")}
+    # exact-type checks below verify the fast path's own contract (identity
+    # of the returned type), which isinstance() cannot distinguish from a
+    # subclass match.
+    assert values["ex:s"] == "s" and type(values["ex:s"]) is str  # pylint: disable=unidiomatic-typecheck
+    assert values["ex:i"] == 1 and type(values["ex:i"]) is int  # pylint: disable=unidiomatic-typecheck
+    assert values["ex:f"] == 1.5
+    assert values["ex:b"] is True
+    assert values["ex:d"] == when
+    assert values["ex:sub"] == "x" and type(values["ex:sub"]) is str  # pylint: disable=unidiomatic-typecheck
