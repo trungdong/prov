@@ -314,11 +314,12 @@ def test_errors_name_the_problem_and_position(body, message, line):
     assert ctx.value.line == line
 
 
-def test_strict_rejects_bare_mention_and_shorthand():
-    with pytest.raises(ProvNSyntaxError, match="unknown statement keyword 'mentionOf'"):
+def test_strict_rejects_bare_mention_with_a_hint():
+    with pytest.raises(ProvNSyntaxError) as ctx:
         parse("mentionOf(ex:e1, ex:e0, ex:b)")
-    with pytest.raises(ProvNSyntaxError, match="unknown statement keyword 'person'"):
-        parse("person(ex:p)")
+    assert "unknown statement keyword 'mentionOf'" in ctx.value.message
+    assert "prov:mentionOf" in ctx.value.message
+    assert "profile='default'" in ctx.value.message
 
 
 def test_model_errors_carry_the_statement_position():

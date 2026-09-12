@@ -1,5 +1,26 @@
 # History
 
+## 3.2.1 (unreleased)
+
+3.2.1 is a point release that corrects what a by-eye verification of the 3.2.0 PROV-N
+parser against ProvToolbox and PLEAD documents found: the `default` profile, the
+lenient profile's warnings, the PROV-XML and PROV-JSONLD readers on ProvToolbox output,
+and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
+
+### Fixes
+
+- The `default` PROV-N profile no longer accepts the typed-element and derivation
+  shorthand keywords `person`, `organization`, `softwareAgent`, `collection`,
+  `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource`.
+  3.2.0 described them as keywords `prov` and ProvToolbox write; neither does, and
+  ProvToolbox's reader rejects them. `default` is now the Recommendation grammar plus the
+  bare `mentionOf` keyword, which both tools write. A shorthand keyword raises
+  `ProvNSyntaxError` under `strict` and `default` and is skipped with a `ProvWarning`
+  under `lenient`
+- Under the `strict` PROV-N profile, the error for a bare `mentionOf` says that
+  `prov:mentionOf` is the strict spelling and that the `default` profile accepts the bare
+  keyword
+
 ## 3.2.0 (2026-09-12)
 
 ### PROV-N
