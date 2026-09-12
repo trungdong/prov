@@ -24,6 +24,11 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   unparsable statements, such as a run of `provext:` extensibility expressions, were
   skipped as one with a single `ProvWarning` naming only the first; resynchronisation
   now stops at any name followed by `(`, not only at a keyword the parser knows
+- The PROV-XML deserializer no longer turns a reference element that has no `prov:ref`
+  into an identifier made of its whitespace. ProvToolbox writes a `hadMember` member as
+  `<entity><entity prov:ref="..."/></entity>`; the nested reference is now used, with a
+  `ProvWarning`, and a reference element with neither a `prov:ref` nor text raises
+  `ProvXMLException`
 
 ## 3.2.0 (2026-09-12)
 

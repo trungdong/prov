@@ -583,11 +583,14 @@ def _extract_attributes(
     Warns:
         UserWarning: For any child attribute that is none of ``prov:ref``,
             ``xsi:type``, or ``xml:lang``; such attributes are ignored.
+        ProvWarning: When a reference-valued attribute's prov:ref sits on a
+            nested child element (see ``_nested_reference``).
 
     Raises:
         ProvXMLException: If a child element carries XML attributes but
             none of them is ``prov:ref``, ``xsi:type``, or ``xml:lang``, so
-            no attribute value can be determined.
+            no attribute value can be determined, or if a reference-valued
+            attribute element carries neither a prov:ref nor text.
     """
     attributes: list[NameValuePair] = []
     _unassigned = object()
@@ -629,14 +632,17 @@ def _extract_attributes(
                 )
 
         if not subel.attrib:
-            # A plain-text attribute value (no xsi:type/xml:lang/prov:ref):
-            # lxml reports an empty element's .text as None rather than ""
-            # (e.g. <ex:k0></ex:k0>), which would otherwise make the
-            # attribute vanish entirely once None reaches record
-            # construction. Coalesce back to the empty string (#224). This
-            # does not affect optional formal attributes that are absent
-            # from the XML altogether: those never enter this loop.
-            _v = subel.text if subel.text is not None else ""
+            if _t in PROV_ATTRIBUTE_QNAMES:
+                _v = _nested_reference(subel, _t)
+            else:
+                # A plain-text attribute value (no xsi:type/xml:lang/prov:ref):
+                # lxml reports an empty element's .text as None rather than ""
+                # (e.g. <ex:k0></ex:k0>), which would otherwise make the
+                # attribute vanish entirely once None reaches record
+                # construction. Coalesce back to the empty string (#224). This
+                # does not affect optional formal attributes that are absent
+                # from the XML altogether: those never enter this loop.
+                _v = subel.text if subel.text is not None else ""
 
         if _v is _unassigned:
             raise ProvXMLException(
@@ -647,6 +653,45 @@ def _extract_attributes(
         attributes.append((_t, _v))
 
     return attributes
+
+
+def _nested_reference(
+    subel: etree._Element, attr: prov.identifier.QualifiedName
+) -> prov.identifier.QualifiedName | str:
+    """Value of a reference-valued formal attribute element with no ``prov:ref``.
+
+    PROV-XML puts the reference on the element itself
+    (``<prov:entity prov:ref="ex:e1"/>``). ProvToolbox 2.0.4 writes a
+    ``hadMember`` member inside a wrapper,
+    ``<entity><entity prov:ref="ex:e1"/></entity>``; the single child's
+    reference is taken, with a warning. Non-blank text is returned as the
+    reference. A blank element with no reference anywhere has no value.
+
+    Raises:
+        ProvXMLException: If ``subel`` has neither a ``prov:ref`` child nor
+            text.
+
+    Warns:
+        ProvWarning: When the reference is taken from a nested child.
+    """
+    ref = _ns_prov("ref")
+    children = list(subel)
+    if len(children) == 1 and ref in children[0].attrib:
+        warnings.warn(
+            f"The element '{attr}' carries its prov:ref on a nested "
+            f"<{etree.QName(children[0]).localname}> child rather than on "
+            "itself; the nested reference is used. The shape is not "
+            "PROV-XML schema-valid (ProvToolbox writes it for hadMember).",
+            prov.model.ProvWarning,
+            stacklevel=3,
+        )
+        return xml_qname_to_QualifiedName(children[0], str(children[0].attrib[ref]))
+    if subel.text is not None and subel.text.strip():
+        return subel.text
+    raise ProvXMLException(
+        f"The reference element '{attr}' has no prov:ref attribute and no "
+        "reference text."
+    )
 
 
 def xml_qname_to_QualifiedName(
