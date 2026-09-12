@@ -45,6 +45,13 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
 - PROV-XML reader warnings (`<prov:other>` skipped, unrepresentable attribute, nested
   reference) are attributed to the caller of `deserialize()` or `prov.read()` rather than to
   a frame inside `prov`, as the PROV-N reader's already are
+- `Identifier`, `QualifiedName`, `Namespace` and `Literal` pickle under every protocol,
+  load pickles written by earlier releases, and recompute their hash when loaded, so an
+  object unpickled in another process (a `multiprocessing` worker, a disk cache) matches
+  equal objects in sets and dicts again; `weakref.ref` works on them. 3.2.0's `__slots__`
+  had pickled the stored hash and broken protocols 0 and 1
+- An `Identifier` hashes by its URI alone, as a `QualifiedName` already did, so two
+  identifiers that compare equal always hash equal
 
 ## 3.2.0 (2026-09-12)
 

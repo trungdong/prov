@@ -108,7 +108,7 @@ class Identifier:
     # TODO: make Identifier an "abstract" base class and move xsd:anyURI
     # into a subclass
 
-    __slots__ = ("_hash", "_uri")
+    __slots__ = ("__weakref__", "_hash", "_uri")
 
     # This field is assign-once. The hash is computed from it at construction,
     # and a later reassignment would leave the cached hash stale. #444 tracks
@@ -126,9 +126,19 @@ class Identifier:
         self._hash = self._compute_hash()
 
     def _compute_hash(self) -> int:
-        """Hash for this identifier, class-distinguished so identifiers with
-        the same URI but a different concrete type do not collide."""
-        return hash((self._uri, self.__class__))
+        """Hash by URI alone, so equal identifiers hash equal whatever their
+        concrete class: ``__eq__`` compares URIs across Identifier subclasses."""
+        return hash(self._uri)
+
+    def __getstate__(self) -> dict[str, Any]:
+        """Pickle state: every slot except the process-specific ``_hash``,
+        which :meth:`__setstate__` recomputes in the loading process."""
+        return {"_uri": self._uri}
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        # Also accepts the __dict__ state of pickles written before 3.2.0.
+        object.__setattr__(self, "_uri", state["_uri"])
+        object.__setattr__(self, "_hash", self._compute_hash())
 
     @property
     def uri(self) -> str:
@@ -191,10 +201,23 @@ class QualifiedName(Identifier):
         )
 
     def _compute_hash(self) -> int:
-        """Hash by URI alone. Unlike the base class, a QualifiedName never
-        needs class-distinguishing, so no different concrete type shares a
-        URI with it in practice."""
+        """Hash by URI alone, as the base class does; kept explicit because
+        the string form is cached separately."""
         return hash(self._uri)
+
+    def __getstate__(self) -> dict[str, Any]:
+        return {
+            "_uri": self._uri,
+            "_namespace": self._namespace,
+            "_localpart": self._localpart,
+            "_str": self._str,
+        }
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        object.__setattr__(self, "_namespace", state["_namespace"])
+        object.__setattr__(self, "_localpart", state["_localpart"])
+        object.__setattr__(self, "_str", state["_str"])
+        Identifier.__setstate__(self, state)
 
     @property
     def namespace(self) -> Namespace:
@@ -237,7 +260,7 @@ class QualifiedName(Identifier):
 class Namespace:
     """PROV Namespace."""
 
-    __slots__ = ("_cache", "_prefix", "_uri")
+    __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
     # These fields are assign-once. They take part in equality and hashing,
     # so reassigning one after the object has been used as a set member or
@@ -327,6 +350,17 @@ class Namespace:
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self._prefix} {{{self._uri}}}>"
+
+    def __getstate__(self) -> dict[str, Any]:
+        """Pickle state without the interning cache, which is rebuilt lazily."""
+        return {"_prefix": self._prefix, "_uri": self._uri}
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        # Also accepts the __dict__ state of pickles written before 3.2.0,
+        # which carries the cache; it is discarded.
+        object.__setattr__(self, "_prefix", state["_prefix"])
+        object.__setattr__(self, "_uri", state["_uri"])
+        object.__setattr__(self, "_cache", {})
 
     def __getitem__(self, localpart: str) -> QualifiedName:
         if localpart in self._cache:
