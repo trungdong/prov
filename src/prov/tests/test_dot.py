@@ -228,6 +228,24 @@ def test_quoted_label_escapes_double_quote():
     assert len(dot.create(format="svg")) > 0
 
 
+def test_sub_minute_utc_offset_attribute_is_rendered_as_utc():
+    # xsd:dateTime allows no seconds in a timezone offset (#341 scope
+    # extension): the attribute-annotation label must show the UTC
+    # equivalent of a sub-minute offset, not the illegal offset text.
+    odd_offset = datetime.timezone(datetime.timedelta(seconds=30))
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.activity(
+        "ex:a", startTime=datetime.datetime(2026, 9, 12, 10, 0, 30, tzinfo=odd_offset)
+    )
+
+    dot = prov_to_dot(doc)
+    dot_text = dot.to_string()
+
+    assert "2026-09-12T10:00:00+00:00" in dot_text
+    assert "+00:00:30" not in dot_text
+
+
 def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning():
     from prov.model import ProvWarning
 

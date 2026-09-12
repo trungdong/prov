@@ -622,7 +622,7 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             :func:`encode_jsonld_statement`.
         bundle: Bundle to add the decoded record to.
 
-    An identified Membership's array of members yields one record per
+    Note: an identified Membership's array of members yields one record per
     member; PROV-DM's ``hadMember`` is binary, so records sharing one
     identifier cannot be unified. The ``"@id"`` is kept only when the array
     has exactly one member; with more than one, every decoded record is
