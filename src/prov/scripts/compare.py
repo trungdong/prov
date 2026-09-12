@@ -101,7 +101,7 @@ USAGE
             dest="format1",
             action="store",
             default="json",
-            help="File 1's format: json, xml, rdf or jsonld",
+            help="File 1's format: json, xml, rdf, jsonld or provn",
         )
         parser.add_argument(
             "-F",
@@ -109,7 +109,7 @@ USAGE
             dest="format2",
             action="store",
             default="json",
-            help="File 2's format: json, xml, rdf or jsonld",
+            help="File 2's format: json, xml, rdf, jsonld or provn",
         )
         parser.add_argument(
             "-V", "--version", action="version", version=program_version_message

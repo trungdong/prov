@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-convert -- Convert PROV-JSON to RDF, PROV-N, PROV-XML, or graphical formats (SVG, PDF, PNG)
+convert -- Convert a PROV document between PROV-JSON, PROV-N, PROV-XML, PROV-O, PROV-JSONLD and graphical formats
 
 @author:     Trung Dong Huynh
 
@@ -84,30 +84,41 @@ class CLIError(Exception):
         return self.msg
 
 
-def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> None:
+def convert_file(
+    infile: io.FileIO,
+    outfile: io.FileIO,
+    output_format: str,
+    input_format: str = "json",
+) -> None:
     """Read a PROV document from ``infile`` and write it to ``outfile`` in ``output_format``.
 
-    ``infile`` is always read as PROV-JSON, the default format of
-    :meth:`~prov.model.ProvDocument.deserialize`. For
-    ``output_format``, ``"provn"`` is written directly via
+    ``infile`` is read in ``input_format`` (default PROV-JSON) through
+    :meth:`~prov.model.ProvDocument.deserialize`. For ``output_format``,
+    ``"provn"`` is written directly via
     :meth:`~prov.model.ProvDocument.get_provn`, a name in
     :data:`GRAPHVIZ_SUPPORTED_FORMATS` is rendered through
     :func:`~prov.dot.prov_to_dot` and Graphviz, and any other format is
     delegated to :meth:`~prov.model.ProvDocument.serialize`.
 
     Args:
-        infile: File-like object to read the source document from.
+        infile: File-like object (opened in binary mode) to read the source
+            document from.
         outfile: File-like object (opened in binary mode) to write the
             converted output to.
         output_format: Target format name (e.g. ``"json"``, ``"xml"``,
             ``"rdf"``, ``"jsonld"``, ``"provn"``, or a Graphviz output format such as
             ``"svg"``/``"pdf"``/``"png"``).
+        input_format: Source format name, any registered serializer format.
 
     Raises:
-        CLIError: If ``output_format`` is not ``"provn"``, not a Graphviz
+        CLIError: If ``input_format`` is not a registered serializer format,
+            or if ``output_format`` is not ``"provn"``, not a Graphviz
             format, and not a registered serializer format.
     """
-    prov_doc = ProvDocument.deserialize(infile)
+    try:
+        prov_doc = ProvDocument.deserialize(infile, format=input_format)
+    except serializers.DoNotExist as e:
+        raise CLIError(f'Input format "{input_format}" is not supported.') from e
 
     # Formats not supported by prov.serializers
     if output_format == "provn":
@@ -132,9 +143,9 @@ def convert_file(infile: io.FileIO, outfile: io.FileIO, output_format: str) -> N
 def main(argv: list[str] | None = None) -> int:  # IGNORE:C0111
     """Run the ``prov-convert`` command-line tool.
 
-    Parses ``-f/--format``, an optional input file (default stdin), and an
-    optional output file (default stdout), then converts between them via
-    :func:`convert_file`.
+    Parses ``-f/--format``, ``-i/--input-format``, an optional input file
+    (default stdin), and an optional output file (default stdout), then
+    converts between them via :func:`convert_file`.
 
     Args:
         argv: Extra command-line arguments. If not ``None``, they are
@@ -178,6 +189,14 @@ USAGE
             description=program_license, formatter_class=RawDescriptionHelpFormatter
         )
         parser.add_argument(
+            "-i",
+            "--input-format",
+            dest="input_format",
+            action="store",
+            default="json",
+            help="input format: json, xml, rdf, jsonld or provn",
+        )
+        parser.add_argument(
             "-f",
             "--format",
             dest="format",
@@ -185,9 +204,11 @@ USAGE
             default="json",
             help="output format: json, xml, rdf, jsonld, provn, or a Graphviz output format (e.g. svg, pdf, png)",
         )
-        parser.add_argument("infile", nargs="?", type=FileType("r"), default=sys.stdin)
         parser.add_argument(
-            "outfile", nargs="?", type=FileType("wb"), default=sys.stdout
+            "infile", nargs="?", type=FileType("rb"), default=sys.stdin.buffer
+        )
+        parser.add_argument(
+            "outfile", nargs="?", type=FileType("wb"), default=sys.stdout.buffer
         )
         parser.add_argument(
             "-V", "--version", action="version", version=program_version_message
@@ -197,7 +218,12 @@ USAGE
         try:
             # Process arguments
             args = parser.parse_args()
-            convert_file(args.infile, args.outfile, args.format.lower())
+            convert_file(
+                args.infile,
+                args.outfile,
+                args.format.lower(),
+                args.input_format.lower(),
+            )
         finally:
             if args:
                 if args.infile:
