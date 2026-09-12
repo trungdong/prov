@@ -52,8 +52,8 @@ for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
 done
 
 uv run mypy src                  # strict, configured in pyproject.toml
-uv run ruff check src/
-uv run ruff format --check src/
+uv run ruff check src/ benchmarks/
+uv run ruff format --check src/ benchmarks/
 codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 ```
 
@@ -62,6 +62,10 @@ on Markdown files, so run the local analyser on every changed file before pushin
 is advisory as long as `uv run coverage report` stays above the 97% floor. CI also runs a
 non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning` or
 `FutureWarning` of its own (#340).
+
+Performance changes also run `uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json`
+and `uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json`; the
+CI job is non-blocking. `benchmarks/README.md` says how to refresh the baseline.
 
 ## Commits and PRs
 

@@ -14,6 +14,8 @@
 
 ### Project
 
+- A benchmark suite under `benchmarks/` with a non-blocking CI job that fails on a 20% regression against a committed baseline
+
 ## 3.1.1 (2026-09-10)
 
 3.1.1 is a point release: bug fixes, hardening of the graphical export, test

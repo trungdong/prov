@@ -85,8 +85,8 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
       - run: |
           uv sync --locked --group dev
-          uv run ruff check src/
-          uv run ruff format --check src/
+          uv run ruff check src/ benchmarks/
+          uv run ruff format --check src/ benchmarks/
 
   minimal-install:
     # Proves the registry degrades cleanly without the optional rdf/xml/dot/
@@ -134,6 +134,37 @@ jobs:
         run: |
           uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev
           uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::FutureWarning:prov'
+
+  benchmark:
+    # Non-blocking regression check. Compares this run against the committed
+    # benchmarks/baseline.json and fails on a 20% mean regression. Runner
+    # noise is why it never blocks a merge; a red run is a prompt to look.
+    # Refresh the baseline with a workflow_dispatch run, then commit the
+    # downloaded artifact (see benchmarks/README.md).
+    name: benchmark (non-blocking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Graphviz
+        uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d  # v10.0.1
+        with:
+          python-version: "3.12"
+      - name: Run the benchmarks
+        run: |
+          uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev --group bench
+          uv run --no-sync pytest benchmarks/ --benchmark-json=bench.json -q
+      - name: Compare against the baseline
+        run: uv run --no-sync python benchmarks/compare.py benchmarks/baseline.json bench.json
+      - name: Upload this run as a baseline candidate
+        # always() because a fresh baseline is exactly what's needed when the
+        # compare step above has just failed against a stale one.
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: benchmark-baseline
+          path: bench.json
 
   typecheck:
     runs-on: ubuntu-latest
