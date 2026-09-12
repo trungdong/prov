@@ -61,7 +61,7 @@ The parser accepts three dialects, selected with `profile`:
 | Profile | Accepts |
 | --- | --- |
 | `strict` | The W3C grammar only. Mention is written `prov:mentionOf`, as in the PROV-Links note. |
-| `default` | The grammar plus what `prov` and ProvToolbox write: the bare `mentionOf` keyword, and the shorthand keywords `person`, `organization`, `softwareAgent`, `collection`, `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource`, each read as the base record with the matching `prov:type`. |
+| `default` | The grammar plus the bare `mentionOf` keyword that `prov` and ProvToolbox write. The Recommendation has no Mention production; PROV-Links spells it `prov:mentionOf`. |
 | `lenient` | As `default`. A statement that fails to parse is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column, and parsing resumes at the next statement. |
 
 ```python

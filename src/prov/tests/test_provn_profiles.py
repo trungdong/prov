@@ -44,49 +44,42 @@ def test_unknown_profile_raises():
         parse("entity(ex:e1)", profile="loose")
 
 
-@pytest.mark.parametrize(
-    ("keyword", "base", "asserted"),
-    [
-        ("person", "agent", PROV["Person"]),
-        ("organization", "agent", PROV["Organization"]),
-        ("softwareAgent", "agent", PROV["SoftwareAgent"]),
-        ("collection", "entity", PROV["Collection"]),
-        ("emptyCollection", "entity", PROV["EmptyCollection"]),
-        ("plan", "entity", PROV["Plan"]),
-    ],
-)
-def test_default_shorthand_elements(keyword, base, asserted):
-    (record,) = records(parse(f"{keyword}(ex:x)"))
-    assert record.get_type() == PROV[base.capitalize()]
-    assert asserted in record.get_asserted_types()
+SHORTHAND_KEYWORDS = [
+    "person",
+    "organization",
+    "softwareAgent",
+    "collection",
+    "emptyCollection",
+    "plan",
+    "wasRevisionOf",
+    "wasQuotedFrom",
+    "hadPrimarySource",
+]
+
+
+def _shorthand_statement(keyword):
+    derivation = keyword in ("wasRevisionOf", "wasQuotedFrom", "hadPrimarySource")
+    return f"{keyword}(ex:e2, ex:e1)" if derivation else f"{keyword}(ex:x)"
+
+
+@pytest.mark.parametrize("keyword", SHORTHAND_KEYWORDS)
+@pytest.mark.parametrize("profile", ["strict", "default"])
+def test_typed_shorthand_keywords_are_unknown(keyword, profile):
+    # PROV-XML has typed elements such as <prov:person>; PROV-N has no such
+    # keywords, and neither prov nor ProvToolbox writes them.
     with pytest.raises(
         ProvNSyntaxError, match=f"unknown statement keyword '{keyword}'"
     ):
-        parse(f"{keyword}(ex:x)", profile="strict")
+        parse(_shorthand_statement(keyword), profile=profile)
 
 
-@pytest.mark.parametrize(
-    ("keyword", "asserted"),
-    [
-        ("wasRevisionOf", PROV["Revision"]),
-        ("wasQuotedFrom", PROV["Quotation"]),
-        ("hadPrimarySource", PROV["PrimarySource"]),
-    ],
-)
-def test_default_shorthand_derivations(keyword, asserted):
-    (record,) = records(parse(f"{keyword}(ex:e2, ex:e1)"))
-    assert record.get_type() == PROV["Derivation"]
-    assert asserted in record.get_asserted_types()
-    with pytest.raises(ProvNSyntaxError):
-        parse(f"{keyword}(ex:e2, ex:e1)", profile="strict")
-
-
-def test_shorthand_equals_xml_decoding():
-    doc = parse('person(ex:p, [prov:label="P"])')
-    reloaded = ProvDocument.deserialize(
-        content=doc.serialize(format="xml"), format="xml"
-    )
-    assert doc == reloaded
+@pytest.mark.parametrize("keyword", SHORTHAND_KEYWORDS)
+def test_lenient_skips_a_typed_shorthand_keyword(keyword):
+    with pytest.warns(ProvWarning, match=f"unknown statement keyword '{keyword}'"):
+        doc = parse(
+            f"{_shorthand_statement(keyword)}\nentity(ex:e9)", profile="lenient"
+        )
+    assert [str(r.identifier) for r in records(doc)] == ["ex:e9"]
 
 
 def test_strict_rejects_bare_mention_but_accepts_prefixed():

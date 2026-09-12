@@ -9,9 +9,10 @@ registration match every other format.
 Profiles:
 
 - ``strict``: the Recommendation grammar only.
-- ``default``: also the de-facto extensions ``prov`` and ProvToolbox write,
-  the bare ``mentionOf`` keyword and the shorthand keywords for typed
-  agents, entities and derivations.
+- ``default``: also the bare ``mentionOf`` keyword that ``prov`` and
+  ProvToolbox write (the Recommendation grammar has no Mention production;
+  PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker where the
+  grammar has a plain identifier (see ``_STRICT_REQUIRED_LEADING``).
 - ``lenient``: as ``default``; a statement that fails to parse, including
   one the model rejects, is skipped and parsing resumes at the next
   statement. Tokenisation errors are fatal in every profile.
@@ -28,7 +29,6 @@ from __future__ import annotations
 from typing import Any
 
 from prov.constants import (
-    PROV,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
@@ -90,18 +90,6 @@ _RELATIONS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
     "hadMember": (PROV_MEMBERSHIP, (2,)),
 }
 _MENTION: tuple[QualifiedName, tuple[int, ...]] = (PROV_MENTION, (3,))
-# default-profile shorthand keyword -> (base keyword, asserted prov:type)
-_SHORTHAND: dict[str, tuple[str, QualifiedName]] = {
-    "person": ("agent", PROV["Person"]),
-    "organization": ("agent", PROV["Organization"]),
-    "softwareAgent": ("agent", PROV["SoftwareAgent"]),
-    "collection": ("entity", PROV["Collection"]),
-    "emptyCollection": ("entity", PROV["EmptyCollection"]),
-    "plan": ("entity", PROV["Plan"]),
-    "wasRevisionOf": ("wasDerivedFrom", PROV["Revision"]),
-    "wasQuotedFrom": ("wasDerivedFrom", PROV["Quotation"]),
-    "hadPrimarySource": ("wasDerivedFrom", PROV["PrimarySource"]),
-}
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
@@ -338,12 +326,7 @@ class ProvNParser:
         prefix, local = token.value
         is_candidate = (
             not prefix
-            and (
-                local in _ELEMENTS
-                or local in _RELATIONS
-                or local in _SHORTHAND
-                or local == "mentionOf"
-            )
+            and (local in _ELEMENTS or local in _RELATIONS or local == "mentionOf")
         ) or (prefix, local) == ("prov", "mentionOf")
         # A bare NAME that merely spells a keyword (e.g. an attribute name or
         # value) is not a new statement unless it is actually followed by
@@ -382,34 +365,35 @@ class ProvNParser:
 
     # -- expressions -------------------------------------------------------------
 
-    def _classify(
-        self, token: Token
-    ) -> tuple[QualifiedName, tuple[int, ...], bool, QualifiedName | None]:
-        """Return (record type, arities, is_element, asserted type) for a keyword token."""
+    def _classify(self, token: Token) -> tuple[QualifiedName, tuple[int, ...], bool]:
+        """Return (record type, arities, is_element) for a keyword token."""
         prefix, local = token.value
         extensions = self.profile != "strict"
         if (prefix, local) == ("prov", "mentionOf") or (
             extensions and (prefix, local) == ("", "mentionOf")
         ):
-            return (*_MENTION, False, None)
+            return (*_MENTION, False)
         if prefix:
             raise self._error(
                 f"extensibility expression '{token.text}(...)' is not supported", token
             )
         if local in _ELEMENTS:
-            return (*_ELEMENTS[local], True, None)
+            return (*_ELEMENTS[local], True)
         if local in _RELATIONS:
-            return (*_RELATIONS[local], False, None)
-        if extensions and local in _SHORTHAND:
-            base, asserted = _SHORTHAND[local]
-            if base in _ELEMENTS:
-                return (*_ELEMENTS[base], True, asserted)
-            return (*_RELATIONS[base], False, asserted)
+            return (*_RELATIONS[local], False)
+        if local == "mentionOf":
+            # Only reachable under strict; default and lenient matched above.
+            raise self._error(
+                "unknown statement keyword 'mentionOf' under the strict profile: "
+                "write 'prov:mentionOf', or parse with profile='default' to accept "
+                "the bare keyword",
+                token,
+            )
         raise self._error(f"unknown statement keyword '{local}'", token)
 
     def _expression(self, bundle: ProvBundle) -> None:
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
-        rec_type, arities, is_element, asserted_type = self._classify(keyword)
+        rec_type, arities, is_element = self._classify(keyword)
         self._expect(TokenKind.LPAREN)
         identifier: QualifiedName | str | None = None
         args: list[Token] = []
@@ -453,9 +437,7 @@ class ProvNParser:
             value = self._argument_value(token, attr, bundle)
             if value is not None:
                 attributes.append((attr, value))
-        record = bundle.new_record(rec_type, identifier, attributes, other_attributes)
-        if asserted_type is not None:
-            record.add_asserted_type(asserted_type)
+        bundle.new_record(rec_type, identifier, attributes, other_attributes)
 
     def _check_strict_required_positions(
         self, keyword: Token, local: str, args: list[Token]

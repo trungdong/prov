@@ -92,10 +92,10 @@ rather than reimplemented. The optional identifier before a relation's arguments
 place the grammar needs a second token of lookahead, is handled by reading the first
 argument and then checking for `;`.
 
-The three profiles share one parser. The profile selects which keyword table is consulted
-(the Recommendation's keywords alone, or also the shorthand keywords and the bare
-`mentionOf` that `prov` and ProvToolbox write) and whether a required-position check rejects
-`-` where the grammar demands an identifier. The `lenient` profile adds panic-mode error
+The three profiles share one parser. The profile selects whether the bare `mentionOf`
+keyword that `prov` and ProvToolbox write is accepted alongside the Recommendation's
+keywords, and whether a required-position check rejects `-` where the grammar demands an
+identifier. The `lenient` profile adds panic-mode error
 recovery. When a statement fails, the parser records the error, skips tokens until it
 reaches a synchronisation point (a statement keyword followed by `(`, or a structural
 keyword such as `endBundle` at the statement's own bracket depth) and resumes; the skipped
@@ -116,9 +116,8 @@ The PROV-N reader and writer set the pattern for any serializer added after 3.2.
 - Grammar clauses are cited on the code that implements them. Each regex or table names the
   production it encodes and says where it departs from a library default such as `\s` or `\d`
   and why.
-- Tables where the grammar is tabular. Keywords, arities and shorthand mappings are data,
-  derived from the model where they can be, and a test cross-checks them against the record
-  classes.
+- Tables where the grammar is tabular. Keywords and arities are data, derived from the
+  model where they can be, and a test cross-checks them against the record classes.
 - Records are built through {py:meth}`~prov.model.ProvBundle.new_record` with the same
   arguments the PROV-JSON deserializer passes, so a serializer adds no typing or namespace
   logic of its own.
