@@ -1077,6 +1077,53 @@ def test_unregistered_namespace_iri_decodes_via_compute_qname():
     assert "http://other.example/thing" in ids
 
 
+def test_predicate_under_undeclared_namespace_warns_and_mints():
+    # A predicate under a namespace declared in neither the document nor
+    # the graph still decodes (minting a fresh prefix, as it must for a
+    # metacharacter-suffixed key under a namespace rdflib's writer never
+    # declares compactly -- #341), but now warns about it: 3.1.1 raised
+    # here, 3.2.0 minted silently, and this is neither.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+    ex:e1 a prov:Entity ; <http://other.org/p> "v" .
+    """
+    with pytest.warns(pm.ProvWarning, match="other.org/p") as record:
+        doc = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+
+    prov_warnings = [w for w in record if issubclass(w.category, pm.ProvWarning)]
+    assert len(prov_warnings) == 1
+    (entity,) = doc.get_records()
+    ((_, value),) = [
+        (k, v) for k, v in entity.attributes if k.uri == "http://other.org/p"
+    ]
+    assert value == "v"
+
+
+def test_predicate_under_graph_declared_namespace_decodes():
+    # The same predicate resolves once its namespace is declared in the
+    # graph, even though the document itself never registered it, and
+    # without a warning: only the minting step (above) warns.
+    turtle = """
+    @prefix prov: <http://www.w3.org/ns/prov#> .
+    @prefix ex: <http://example.org/> .
+    @prefix o: <http://other.org/> .
+    ex:e1 a prov:Entity ; o:p "v" .
+    """
+    with warnings.catch_warnings():
+        # Scoped to ProvWarning, not a blanket "error": rdflib's own Dataset
+        # parsing emits unrelated DeprecationWarnings on this code path.
+        warnings.simplefilter("error", pm.ProvWarning)
+        doc = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    (entity,) = doc.get_records()
+    (value,) = entity.get_attribute(doc.valid_qualified_name("o:p"))
+    assert value == "v"
+
+
 def test_unsplittable_iri_raises_clear_error():
     # An IRI with no '#' or '/' separator genuinely cannot be split into a
     # namespace and local part; the decoder must raise a clear error naming

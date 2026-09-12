@@ -80,6 +80,9 @@ and the PROV-N spelling of booleans. No API, dependency or Python-floor changes.
   `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O), so auto-detection can
   read non-TriG RDF with `rdf_format`, and an option a format does not accept raises a
   `TypeError` naming the format and its options instead of a JSON or rdflib error
+- The PROV-O deserializer warns with `ProvWarning` when it mints a prefix for an attribute
+  predicate under a namespace declared neither in the document nor in the graph; 3.2.0
+  minted it silently where 3.1.1 raised
 
 ## 3.2.0 (2026-09-12)
 
