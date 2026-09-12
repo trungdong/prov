@@ -37,17 +37,17 @@ code changes.
 | **3.0.0** *(released 2026-07-27)* | Compatibility release | The one release allowed to break compatibility (see the explicit list below). |
 | **3.1.0** *(released 2026-08-07)* | PROV-JSONLD support | A new serializer and deserializer for [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), the W3C member submission for representing PROV-DM natively in JSON-LD. Purely additive. |
 | **3.1.1** *(released 2026-09-10)* | Point release | Bug fixes and hardening from the September 2026 audit: deterministic bundle namespace declarations ([#337](https://github.com/trungdong/prov/issues/337)), link and label hardening in `prov.dot`, `ProvWarning` on dropped `prov_to_graph()` relations, quieter PROV-O decoding, faster bundle equality and namespace lookup. Tests close [#130](https://github.com/trungdong/prov/issues/130) and [#338](https://github.com/trungdong/prov/issues/338); a non-blocking CI job answers [#340](https://github.com/trungdong/prov/issues/340). Documentation and repository scaffolding: "What's new in 3", an architecture overview, code of conduct, issue and PR templates, `CITATION.cff` and the first Zenodo DOI. |
-| **3.2.0** | Two-way PROV-N | A parser for [PROV-N](https://www.w3.org/TR/prov-n/), built from the specification's grammar, making the notation readable as well as writable (today `prov` can only write PROV-N). Purely additive. |
+| **3.2.0** | Two-way PROV-N and speed | A parser for [PROV-N](https://www.w3.org/TR/prov-n/), built from the specification's grammar with no new dependency, making the notation readable as well as writable ([#122](https://github.com/trungdong/prov/issues/122)); `strict`, `default` and `lenient` parsing profiles; a strict output option for the writer; `prov-convert` reads PROV-N. A benchmark suite with a non-blocking CI regression check, and measured speed-ups to record construction and deserialisation. Follow-ups from 3.1.1: a warning when `prov.dot` draws an unset endpoint, and colon-bearing local parts round-tripping through PROV-O ([#341](https://github.com/trungdong/prov/issues/341)). Purely additive. Targeted before 2026-10-31, so it keeps the Python 3.10 floor. |
 
 ### Python version support policy
 
 `prov` supports all non-EOL CPython versions and drops a version in the first release
-after it reaches end of life — the policy set when the 3.9 floor was dropped ahead of
+after it reaches end of life, the policy set when the 3.9 floor was dropped ahead of
 schedule in 2.3.0 (see "What changes in 3.0" below for the history). Python 3.10
-reaches EOL on 2026-10-31; under this policy, the Python floor rises to 3.11 in
-whichever release ships first after that date. 3.1.0 (PROV-JSONLD) is expected within
-about a month of 3.0.0 — well before 2026-10-31 — so 3.1.0 keeps the 3.10 floor; the
-drop lands in a later release, whichever one ships next after Python 3.10's EOL.
+reaches EOL on 2026-10-31. 3.2.0 is targeted before that date and keeps the 3.10 floor,
+so it is the last release to support Python 3.10; the floor rises to 3.11 in 3.3.0, the
+first release after Python 3.10's EOL. If 3.2.0 slips past 2026-10-31, the floor rises in
+3.2.0 instead, under the same policy.
 
 ## What changes in 3.0
 
