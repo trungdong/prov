@@ -391,6 +391,10 @@ def attr2rdf(attr: QualifiedName) -> URIRef:
 class ProvRDFSerializer(Serializer):
     """PROV-O serializer for :class:`~prov.model.ProvDocument`."""
 
+    deserialize_options = frozenset(
+        {"rdf_format", "relation_mapper", "predicate_mapper"}
+    )
+
     def serialize(
         self,
         stream: io.IOBase,
