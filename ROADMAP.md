@@ -1,113 +1,53 @@
 # prov Roadmap
 
-`prov` is a mature Python implementation of the W3C PROV Data Model. This roadmap
-summarises where the library is heading: a staged programme of modernisation and
-hardening (tooling, type hints, tests, documentation, standards conformance),
-a batch of long-standing bug fixes, and new serialization capabilities.
+`prov` is a mature Python implementation of the W3C PROV Data Model. This page lists the
+releases ahead, in order rather than by date, and the policies that govern them. What
+each past release contained is in [HISTORY.md](HISTORY.md) and the
+[release notes](https://github.com/trungdong/prov/releases); the design behind each
+release is under [`planning/specs/`](planning/specs/).
 
-The full design detail lives in the
-[modernisation roadmap design](planning/specs/2026-07-03-modernisation-roadmap-design.md).
-This page is the community-facing summary. The table below shows the **order** of
-planned releases, not dates — timelines depend on available effort.
+## Next
 
-## API-stability promise for 2.x
-
-Throughout the 2.x series, `prov` keeps its public API stable:
-
-- Every documented name stays importable from its historic location. Existing code
-  that imports from `prov`, `prov.model`, `prov.serializers`, and friends continues
-  to work unchanged.
-- No behaviour-changing bug fixes land in 2.x. Where a fix would alter existing
-  output or semantics, it is documented and deferred to **3.0**, so upgrading within
-  2.x is always safe.
-
-3.0 is the single release allowed to introduce compatibility changes, and they are
-signposted in advance (see below). For most users, upgrading to 3.0 should require no
-code changes.
-
-## Planned releases
-
-| Release | Theme | Highlights |
+| Release | Theme | Contents |
 |---|---|---|
-| **2.2.0** *(released 2026-07-03)* | Tooling & bug fixes | Modernised linting/formatting and test tooling; CI refresh; release automation. Bug fixes: graphics output regression ([#164](https://github.com/trungdong/prov/issues/164)), matplotlib as an optional extra ([#166](https://github.com/trungdong/prov/issues/166)), PROV-XML default-namespace parsing ([#155](https://github.com/trungdong/prov/issues/155)). |
-| **2.3.0** *(released 2026-07-05)* | Typing & test coverage | Complete type annotations across the codebase and ship `py.typed` (PEP 561), so downstream projects get real type checking against `prov`'s API. Coverage gaps closed, including the CLI scripts and format auto-detection. Progressively stricter lint and type-check rules enforced in CI as modules are annotated. A dependency audit documents why each runtime dependency exists, aiming for the smallest possible footprint. **Python 3.9 support dropped** (originally planned for 3.0, pulled forward because security fixes in transitive dependencies are only released for Python 3.10+). One sanctioned diagnostic tweak: serializer-lookup and CLI errors now chain the original exception (`__cause__`); exception types and messages are unchanged, so this stays within the 2.x stability promise. |
-| **2.4.0** *(released 2026-07-06)* | Documentation & internals | Refreshed, reorganised documentation (tutorials, how-to guides, API reference, explanations), including guides for graphics export ([#141](https://github.com/trungdong/prov/issues/141)) and for the `prov-convert`/`prov-compare` CLI tools ([#83](https://github.com/trungdong/prov/issues/83)). Internal restructuring behind the stable public API, plus deprecation warnings signposting the 3.0 changes. **This is the deprecation-signposting release**: importing `prov.dot`/`prov.graph` now emits a `DeprecationWarning` naming the future `prov[dot]`/`prov[graph]` extras, and `unified()` emits a `FutureWarning` about the PROV-CONSTRAINTS rework below; see the new [Upgrading to 3.0](docs/upgrading-3.0.md) guide for the full list and what to do. |
-| **Conformance audit** *(completed 2026-07-11)* | Standards conformance (pre-3.0, not a release) | The pre-3.0 audit of the library against W3C PROV-DM, PROV-N, PROV-XML, PROV-JSON, PROV-O and PROV-CONSTRAINTS. Outcomes: a [conformance matrix](docs/reference/conformance.md) published in the docs and revisited at every release; schema-validation tests added (the W3C PROV-XML XSD closure and the PROV-JSON member-submission schema, both vendored); PROV-N grammar and PROV-O mapping audits; a PROV-CONSTRAINTS unification gap analysis with a 153-case test corpus (the authority for the 3.0 `unified()` rework). 20 new issues filed by the audit ([#235](https://github.com/trungdong/prov/issues/235)–[#240](https://github.com/trungdong/prov/issues/240), [#244](https://github.com/trungdong/prov/issues/244), [#246](https://github.com/trungdong/prov/issues/246), [#248](https://github.com/trungdong/prov/issues/248)–[#251](https://github.com/trungdong/prov/issues/251), [#253](https://github.com/trungdong/prov/issues/253), [#254](https://github.com/trungdong/prov/issues/254), [#256](https://github.com/trungdong/prov/issues/256)–[#261](https://github.com/trungdong/prov/issues/261)), and every finding triaged with maintainer sign-off into the 3.0.0 milestone (behaviour/output-changing fixes), a new 2.5.0 milestone (cheap, non-breaking items), or the post-3.0 `backlog` label. The PROV-CONSTRAINTS validation engine ([#62](https://github.com/trungdong/prov/issues/62)) remains out of scope (backlog). |
-| **2.5.0** *(released 2026-07-13)* | Low-risk fixes & additions | Small, non-breaking items carved out by the conformance-audit triage: record-level chaining convenience methods ([#154](https://github.com/trungdong/prov/issues/154)), the agent-subtype `prov:type` documentation fix ([#236](https://github.com/trungdong/prov/issues/236)), `prov.read()` auto-detection of PROV-XML ([#239](https://github.com/trungdong/prov/issues/239)), `serialize()` handling of non-`IOBase` file-likes ([#240](https://github.com/trungdong/prov/issues/240)), and PROV-XML deserializer error handling ([#254](https://github.com/trungdong/prov/issues/254)). All are additive or touch only already-broken paths, staying within the 2.x stability promise. |
-| **3.0.0** *(released 2026-07-27)* | Compatibility release | The one release allowed to break compatibility (see the explicit list below). |
-| **3.1.0** *(released 2026-08-07)* | PROV-JSONLD support | A new serializer and deserializer for [PROV-JSONLD](https://www.w3.org/submissions/prov-jsonld/), the W3C member submission for representing PROV-DM natively in JSON-LD. Purely additive. |
-| **3.1.1** *(released 2026-09-10)* | Point release | Bug fixes and hardening from the September 2026 audit: deterministic bundle namespace declarations ([#337](https://github.com/trungdong/prov/issues/337)), link and label hardening in `prov.dot`, `ProvWarning` on dropped `prov_to_graph()` relations, quieter PROV-O decoding, faster bundle equality and namespace lookup. Tests close [#130](https://github.com/trungdong/prov/issues/130) and [#338](https://github.com/trungdong/prov/issues/338); a non-blocking CI job answers [#340](https://github.com/trungdong/prov/issues/340). Documentation and repository scaffolding: "What's new in 3", an architecture overview, code of conduct, issue and PR templates, `CITATION.cff` and the first Zenodo DOI. |
-| **3.2.0** *(released 2026-09-12)* | Two-way PROV-N and speed | A parser for [PROV-N](https://www.w3.org/TR/prov-n/), built from the specification's grammar with no new dependency, making the notation readable as well as writable ([#122](https://github.com/trungdong/prov/issues/122)); `strict`, `default` and `lenient` parsing profiles; a strict output option for the writer; `prov-convert` reads PROV-N. A benchmark suite with a non-blocking CI regression check, and measured speed-ups to record construction and deserialisation. Follow-ups from 3.1.1: a warning when `prov.dot` draws an unset endpoint, and colon-bearing local parts round-tripping through PROV-O ([#341](https://github.com/trungdong/prov/issues/341)). Purely additive. Targeted before 2026-10-31, so it keeps the Python 3.10 floor. |
-| **3.2.1** *(released 2026-09-13)* | Point release | Corrections from a by-eye verification of the 3.2.0 PROV-N parser against ProvToolbox and PLEAD documents: the `default` profile is the Recommendation grammar plus the bare `mentionOf` keyword only; the `lenient` profile warns once per skipped statement; the PROV-XML reader resolves ProvToolbox's nested `hadMember` reference; the PROV-JSONLD reader accepts an array-valued Membership `entity`; PROV-N booleans are written `true`/`false`. The CLI scripts stop using `argparse.FileType`, deprecated in Python 3.14 ([#441](https://github.com/trungdong/prov/issues/441)). A second review wave fixes identifier pickling and hashing, the namespace resolve cache, eight PROV-N parser and five writer gaps, `prov.read()` option handling, PROV-O predicate resolution, and the identified Membership fan-out. |
-| **3.3.0** | Polish | Follow-ups deferred from 3.2.0: a runtime immutability guard for `Identifier`, `QualifiedName` and `Literal` ([#444](https://github.com/trungdong/prov/issues/444)), parent-aware namespace reconciliation so bundles stop copying the document's prefixes ([#449](https://github.com/trungdong/prov/issues/449)), and the PROV-N reader and writer refactors from the 3.2.0 review ([#450](https://github.com/trungdong/prov/issues/450)). Wrapped, readable PROV-N output ([#131](https://github.com/trungdong/prov/issues/131)). A deduplication option for relations in `unified()` ([#124](https://github.com/trungdong/prov/issues/124)). A structural `diff()` returning added, removed and changed records, which `prov-compare` reports instead of a bare yes or no. Smaller items from the 3.2.1 reviews: an O(1) parser token buffer, one shared Membership fan-out for the PROV-JSON and PROV-JSONLD readers, empty-language-tag normalisation in the model, and the `find_diff` test helper from [#336](https://github.com/trungdong/prov/issues/336) once re-measured. **Python 3.10 support dropped**, the first release after its 2026-10-31 end of life (see the policy below). Additive apart from the floor. |
+| **3.3.0** | Polish | A runtime immutability guard for `Identifier`, `QualifiedName` and `Literal` ([#444](https://github.com/trungdong/prov/issues/444)); parent-aware namespace reconciliation, so bundles stop copying the document's prefixes ([#449](https://github.com/trungdong/prov/issues/449)); PROV-N reader and writer refactors ([#450](https://github.com/trungdong/prov/issues/450)); wrapped, readable PROV-N output ([#131](https://github.com/trungdong/prov/issues/131)); a deduplication option for relations in `unified()` ([#124](https://github.com/trungdong/prov/issues/124)); a structural `diff()` that `prov-compare` reports instead of a bare yes or no; smaller items from the 3.2.1 reviews. **Python 3.10 support dropped** under the policy below. Additive apart from the floor |
+| **Later** *(not yet scheduled)* | Candidates | A serializer plugin registry via entry points; a recording-session helper and agent-subtype factories ([#260](https://github.com/trungdong/prov/issues/260), [#261](https://github.com/trungdong/prov/issues/261)); `find()` with class, type, attribute and endpoint predicates; a PROV-CONSTRAINTS validation engine ([#62](https://github.com/trungdong/prov/issues/62)); a store protocol in the core with SQL realisations outside it. Grouped into releases as each is approved |
 
-### Python version support policy
+Releases since 3.0.0 are additive. A 4.0 happens only if a breaking change accrues; none
+is queued.
 
-`prov` supports all non-EOL CPython versions and drops a version in the first release
-after it reaches end of life, the policy set when the 3.9 floor was dropped ahead of
-schedule in 2.3.0 (see "What changes in 3.0" below for the history). Python 3.10
-reaches EOL on 2026-10-31. 3.2.0 shipped before that date and keeps the 3.10 floor,
-so the 3.2.x line is the last to support Python 3.10; the floor rises to 3.11 in 3.3.0, the
-first release after Python 3.10's EOL.
+## Support policy
 
-## What changes in 3.0
+- **Python versions.** `prov` supports every CPython version that has not reached end of
+  life and drops a version in the first release after its EOL. Python 3.10 reaches EOL on
+  2026-10-31, so the 3.2.x line is the last with a 3.10 floor and 3.3.0 raises it to 3.11.
+- **2.x.** Security fixes only, on the `2.x` branch; the latest is
+  [2.5.3](https://github.com/trungdong/prov/releases/tag/2.5.3) (2026-08-08). Its public
+  API stayed stable throughout the series: every documented name importable from its
+  historic location, and no behaviour-changing bug fixes.
+- **3.0.** The one release that changed compatibility. The
+  [Upgrading to 3.0](docs/upgrading-3.0.md) guide lists every change and what to do
+  about it.
 
-3.0 batches every compatibility-affecting change into a single, clearly signposted
-release. It was preceded by a standards-conformance audit against W3C PROV-DM and its
-companion specifications (completed 2026-07-11, see the table above), whose findings
-feed into this list. The planned changes are:
+## Released
 
-- ~~**Python floor raised to 3.10**~~ *Moved into 2.3.0* (July 2026): security fixes
-  for several transitive dependencies are only published for Python 3.10+, so keeping
-  a 3.9 resolution branch pinned the lock file to versions with known CVEs. The support
-  policy going forward is to support all non-EOL CPython versions and to drop a version
-  in the next release after it reaches end of life.
-- **`rdflib` version floor raised**, shedding compatibility shims for older releases.
-- **Smaller install footprint**, informed by the 2.3.0 dependency audit:
-  the graphics/graph-interop dependencies (`pydot`, `networkx`) now live behind the
-  `dot`/`graph` optional extras, and `python-dateutil` has been dropped in favour of a
-  stdlib-based `xsd:dateTime` parser (`prov.model.parse_xsd_datetime()`) — both landed
-  in 3.0.0.dev0. `prov` now has no unconditional runtime dependencies at all, so a plain
-  `pip install prov` already pulls in only what the core data model needs.
-- **Unification reworked to follow [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/)**:
-  `unified()` used to just merge the attributes of records that share an identifier,
-  with no conflict detection; it now applies the specification's merging rules (key
-  constraints 22/23 via pairwise term unification of formal attributes) and its
-  type-compatibility rules (Constraints 53/54/55), raising the new
-  `prov.model.ProvUnificationError` where the spec disallows a merge instead of
-  silently combining records — see the
-  [unification and flattening explanation](docs/explanation/unification-flattening.md)
-  for the full write-up. Constraints keyed on something other than the record
-  identifier (24–29) remain out of scope, deferred to the opt-in validation engine,
-  [#62](https://github.com/trungdong/prov/issues/62). The
-  [gap analysis](planning/specs/2026-07-10-unification-gap-analysis.md) produced
-  by the pre-3.0 conformance audit (completed 2026-07-11) was the authority for this
-  rework, which closes umbrella issue
-  [#253](https://github.com/trungdong/prov/issues/253).
-- **Behaviour-changing bug fixes**, each individually reviewed with tests showing the
-  old and new behaviour:
-  - [#34](https://github.com/trungdong/prov/issues/34) — merging attributes with the
-    same value but different types (folded into the unification rework above).
-  - [#77](https://github.com/trungdong/prov/issues/77) — comparison of `Decimal`
-    literals.
-  - [#89](https://github.com/trungdong/prov/issues/89) — handling of literals with and
-    without an explicit datatype.
-  - [#168](https://github.com/trungdong/prov/issues/168) — `xsd:QName` typing in
-    PROV-JSON output (an interop-affecting change).
-  - Plus the further fixes surfaced by the conformance audit — now all filed and
-    assigned to the 3.0.0 milestone on GitHub (serializer conformance fixes such as
-    [#235](https://github.com/trungdong/prov/issues/235),
-    [#250](https://github.com/trungdong/prov/issues/250), and the
-    [#253](https://github.com/trungdong/prov/issues/253) `unified()` umbrella above).
+| Version | Date | Theme |
+|---|---|---|
+| [3.2.1](https://github.com/trungdong/prov/releases/tag/3.2.1) | 2026-09-13 | Point release: PROV-N parser corrections from a by-eye verification against ProvToolbox and PLEAD documents; `argparse.FileType` removed from the CLI |
+| [3.2.0](https://github.com/trungdong/prov/releases/tag/3.2.0) | 2026-09-12 | Two-way PROV-N with `strict`, `default` and `lenient` profiles ([#122](https://github.com/trungdong/prov/issues/122)); benchmark suite with a CI regression check; measured speed-ups |
+| [3.1.1](https://github.com/trungdong/prov/releases/tag/3.1.1) | 2026-09-10 | Point release: hardening from the September 2026 audit; community scaffolding; first Zenodo DOI |
+| [3.1.0](https://github.com/trungdong/prov/releases/tag/3.1.0) | 2026-08-07 | PROV-JSONLD serialisation |
+| [3.0.0](https://github.com/trungdong/prov/releases/tag/3.0.0) | 2026-07-27 | Compatibility release: `unified()` per PROV-CONSTRAINTS, no unconditional runtime dependencies, the behaviour-changing fixes from the conformance audit |
+| [2.5.1](https://github.com/trungdong/prov/releases/tag/2.5.1) | 2026-07-13 | `prov.read()` polish; Codacy fixes |
+| [2.5.0](https://github.com/trungdong/prov/releases/tag/2.5.0) | 2026-07-13 | Low-risk fixes and additions from the audit triage, including chaining methods ([#154](https://github.com/trungdong/prov/issues/154)) |
+| Conformance audit *(not a release)* | 2026-07-11 | The library checked against PROV-DM, PROV-N, PROV-XML, PROV-JSON, PROV-O and PROV-CONSTRAINTS, giving the [conformance matrix](docs/reference/conformance.md) and the 3.0.0 fix list |
+| [2.4.0](https://github.com/trungdong/prov/releases/tag/2.4.0) | 2026-07-06 | Documentation overhaul; 3.0 deprecation signposting |
+| [2.3.0](https://github.com/trungdong/prov/releases/tag/2.3.0) | 2026-07-05 | Type annotations and `py.typed`; coverage floor; **Python 3.9 dropped** |
+| [2.2.0](https://github.com/trungdong/prov/releases/tag/2.2.0) | 2026-07-03 | Tooling modernisation; release automation |
 
-The [Upgrading to 3.0](docs/upgrading-3.0.md) guide, published starting in 2.4.0, tracks
-this list in detail alongside what to do for each change. The intent is that most users
-need no code changes; the guide demonstrates the exceptions.
+Earlier releases are listed in [HISTORY.md](HISTORY.md).
 
 ## Feedback
 
-Community input is welcome, especially on the 3.0 compatibility changes and the
-priority of open issues. Please share your thoughts on the
-[roadmap tracking issue](https://github.com/trungdong/prov/issues/181),
-or browse and comment on the
-[issue tracker](https://github.com/trungdong/prov/issues).
+Comment on the [roadmap tracking issue](https://github.com/trungdong/prov/issues/181) or in
+[Discussions](https://github.com/trungdong/prov/discussions).

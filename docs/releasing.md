@@ -74,7 +74,7 @@ Five files, in one commit:
 |---|---|
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"` — the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it |
-| `ROADMAP.md` | Stamp the row: `**X.Y.Z** *(released YYYY-MM-DD)*` |
+| `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme` |
 | `docs/reference/conformance.md` | Per-release revisit — the page states it is "revisited at every release"; verify its claims still hold and update the "last revised for the X.Y.Z release (YYYY-MM-DD)" sentence |
 | `CITATION.cff` | `version: "X.Y.Z"` — `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
