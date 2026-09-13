@@ -51,5 +51,5 @@ Earlier releases are listed in [HISTORY.md](HISTORY.md).
 
 ## Feedback
 
-Comment on the [roadmap tracking issue](https://github.com/trungdong/prov/issues/181) or in
-[Discussions](https://github.com/trungdong/prov/discussions).
+Comment in [Discussions](https://github.com/trungdong/prov/discussions), or open an issue for a
+specific request.
