@@ -23,11 +23,6 @@ and one renamed type alias. Those could not be signposted by a warning, because 
 change the result of calls that already succeeded. Skim the table below for the ones that
 touch your code, or skip to [what's removed](#removed).
 
-[ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) has the
-release-by-release plan, and the
-[modernisation roadmap design](https://github.com/trungdong/prov/blob/main/planning/specs/2026-07-03-modernisation-roadmap-design.md)
-has the full rationale.
-
 ## Install the extras you need
 
 | If your code uses | Install |
