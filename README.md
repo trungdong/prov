@@ -40,7 +40,7 @@ line for projects still on 2.x, and the announcement post
 [PROV Python 3.x: a major release](https://trungdong.github.io/provpy-3.html) covers what
 changed and who uses the package.
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
-releases and the API-stability promise. Feedback is welcome on the
+releases and the support policy. Feedback is welcome on the
 [issue tracker](https://github.com/trungdong/prov/issues).
 
 ## Supported versions
