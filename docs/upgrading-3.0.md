@@ -24,9 +24,9 @@ change the result of calls that already succeeded. Skim the table below for the 
 touch your code, or skip to [what's removed](#removed).
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) has the
-release-by-release plan and the
+release-by-release plan, and the
 [modernisation roadmap design](https://github.com/trungdong/prov/blob/main/planning/specs/2026-07-03-modernisation-roadmap-design.md)
-the full rationale.
+has the full rationale.
 
 ## Install the extras you need
 
