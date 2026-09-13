@@ -36,7 +36,9 @@ Over 7,000 public repositories on GitHub
 3.0.0 completed the modernisation programme (tooling, type hints, tests, documentation and
 standards conformance) and 3.1.0 added PROV-JSONLD.
 [What's new in 3](https://prov.readthedocs.io/en/latest/whats-new-3.html) summarises the 3.x
-line for projects still on 2.x.
+line for projects still on 2.x, and the announcement post
+[PROV Python 3.x: a major release](https://trungdong.github.io/provpy-3.html) covers what
+changed and who uses the package.
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
 releases and the API-stability promise. Feedback is welcome on the
 [issue tracker](https://github.com/trungdong/prov/issues).

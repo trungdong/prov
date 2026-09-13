@@ -66,6 +66,7 @@ Documentation = "https://prov.readthedocs.io"
 Repository = "https://github.com/trungdong/prov"
 Issues = "https://github.com/trungdong/prov/issues"
 Changelog = "https://prov.readthedocs.io/en/latest/history.html"
+Discussions = "https://github.com/trungdong/prov/discussions"
 
 [build-system]
 requires = ["setuptools>=40.8.0", "wheel"]  # PEP 508 specifications.
