@@ -123,7 +123,10 @@ gh run watch <run-id> --repo trungdong/prov --exit-status
 curl -s https://test.pypi.org/pypi/prov/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
 ```
 
-Expect `publish-pypi` to be skipped in that run — that is the `if:` guard working.
+Expect `publish-pypi` to be skipped in that run — that is the `if:` guard working. A second dry
+run for the same version fails at `publish-testpypi` with `400 File already exists`, because
+TestPyPI never accepts a filename twice; judge a repeat by its `build` job, which is the part
+that matters.
 
 Then cut the release, which fires the real publish. Take the notes from the `HISTORY.md`
 section you just dated, so the release page and the changelog cannot drift:
@@ -173,6 +176,10 @@ bust the cache — `uv pip install --refresh …`, or `uv run --with prov==X.Y.Z
 for the one-liner form. A genuine upload failure looks different: the `curl` metadata query
 above returns 404 rather than the new version, and the release workflow's `publish-pypi`
 job is red. Check those two before re-running anything.
+
+Run these checks with `env -u VIRTUAL_ENV` in front of `uv`. A `VIRTUAL_ENV` inherited from
+another checkout makes `uv run --with prov==X.Y.Z --no-project` import that checkout's `prov`
+instead of the published wheel, silently, so the check passes for the wrong code.
 
 Then exercise the release's headline feature through the installed package, not the
 checkout — that is what catches package-data that was never added to
