@@ -59,8 +59,7 @@ renders through `prov.dot`, so the `plot` extra carries `pydot` and `networkx` a
 `matplotlib`. The `pydot` floor predates this project's use of it and the `networkx` floor
 is the first release with the API `prov.graph` relies on. The `matplotlib` floor is a
 defensive modern baseline, not a verified minimum. The interactive `plot()` path is not
-exercised in CI because the test environment has no display backend; it is annotated
-"defer" in `planning/test-gap-checklist.md`.
+exercised in CI because the test environment has no display backend.
 
 ## Dev dependency group
 
