@@ -148,4 +148,5 @@ tests reuse, and a Hypothesis property test round-trips generated documents thro
 same five formats.
 
 A top-level `benchmarks/` directory, outside the package, holds a pytest-benchmark suite
-with a committed baseline that a non-blocking CI job compares against.
+and `ab.py`, which times two versions of the library on one machine. A non-blocking CI job
+runs it on every change against the change's first parent.

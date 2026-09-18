@@ -41,19 +41,15 @@ uv run ruff format --check src/
 uv run --python 3.14 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 ```
 
-Run the benchmark suite and compare it with the committed baseline; a regression
-here is advisory, but a release should not ship one unexplained:
+Compare the release candidate's speed with the previous release on your own machine; a
+regression here is advisory, but a release should not ship one unexplained:
 
 ```bash
-uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json -q
-uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json
+uv run python benchmarks/ab.py <previous tag>
 ```
 
-The baseline was recorded on a CI runner, so a faster machine reads well below it on every
-row and only a positive figure means anything locally. In CI, `test_serialize[provn]` is
-the shortest benchmark at about 58 ms and reads between -32% and +26% against the baseline
-on an unchanged `main`, so it trips the 20% gate without a code change. A red benchmark job
-that names only that test, on a PR that cannot affect PROV-N output, is explained.
+The per-change CI job compares each change with its parent only, so slowdowns under its
+10% threshold can add up across a release unseen. This comparison is the check for that.
 
 Compare the suite's pass, skip and xfail counts against the previous run and against the
 count the release PR states; `CLAUDE.md` deliberately records no fixed number. A skip or

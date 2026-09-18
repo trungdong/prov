@@ -11,6 +11,7 @@ import os
 
 import pytest
 
+import prov
 from prov.model import ProvDocument
 
 N = int(os.environ.get("PROV_BENCH_N", "10000"))
@@ -51,3 +52,8 @@ def build_document(n: int = N) -> ProvDocument:
 @pytest.fixture(scope="session")
 def document() -> ProvDocument:
     return build_document()
+
+
+def pytest_benchmark_update_json(config, benchmarks, output_json):
+    """Record which ``prov`` was timed, so ``ab.py`` can check each side."""
+    output_json["prov_path"] = prov.__file__

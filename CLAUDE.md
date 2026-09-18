@@ -69,9 +69,10 @@ non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarnin
 `PendingDeprecationWarning` or `FutureWarning` of its own on the newest interpreter
 (#340, #441).
 
-Performance changes also run `uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json`
-and `uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json`; the
-CI job is non-blocking. `benchmarks/README.md` says how to refresh the baseline.
+Performance changes also run `uv run python benchmarks/ab.py main`, which times `main` and
+the working tree on the same machine and fails on a 10% slowdown. CI runs the same script
+against the first parent of `HEAD` as a non-blocking job; repeat a red result locally before
+acting on it. There is no committed baseline. `benchmarks/README.md` has the details.
 
 ## Commits and PRs
 

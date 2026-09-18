@@ -137,35 +137,30 @@ jobs:
           uv run --no-sync pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 
   benchmark:
-    # Non-blocking regression check. Compares this run against the committed
-    # benchmarks/baseline.json and fails on a 20% mean regression. Runner
-    # noise is why it never blocks a merge; a red run is a prompt to look.
-    # Refresh the baseline with a workflow_dispatch run, then commit the
-    # downloaded artifact (see benchmarks/README.md).
+    # Non-blocking regression check. benchmarks/ab.py times the first parent
+    # of HEAD and HEAD itself on this one runner, in alternating passes, and
+    # fails when a benchmark's fastest round is more than 10% slower. The
+    # first parent is the target branch's tip for a pull request's merge
+    # commit and the previous tip for a push. Runners differ in speed by up
+    # to a factor of two, so a committed baseline cannot serve (#493).
     name: benchmark (non-blocking)
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
       - name: Setup Graphviz
         uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
           python-version: "3.12"
-      - name: Run the benchmarks
+      - name: Test the comparison script
         run: |
           uv sync --locked --extra rdf --extra xml --extra dot --extra graph --group dev --group bench
-          uv run --no-sync pytest benchmarks/ --benchmark-json=bench.json -q
-      - name: Compare against the baseline
-        run: uv run --no-sync python benchmarks/compare.py benchmarks/baseline.json bench.json
-      - name: Upload this run as a baseline candidate
-        # always() because a fresh baseline is exactly what's needed when the
-        # compare step above has just failed against a stale one.
-        if: always() && github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: benchmark-baseline
-          path: bench.json
+          uv run --no-sync pytest benchmarks/test_ab.py -q
+      - name: Compare HEAD against its first parent
+        run: uv run --no-sync python benchmarks/ab.py HEAD^1
 
   typecheck:
     runs-on: ubuntu-latest
