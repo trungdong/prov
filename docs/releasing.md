@@ -49,6 +49,12 @@ uv run pytest benchmarks/ --benchmark-json=/tmp/bench.json -q
 uv run python benchmarks/compare.py benchmarks/baseline.json /tmp/bench.json
 ```
 
+The baseline was recorded on a CI runner, so a faster machine reads well below it on every
+row and only a positive figure means anything locally. In CI, `test_serialize[provn]` is
+the shortest benchmark at about 58 ms and reads between -32% and +26% against the baseline
+on an unchanged `main`, so it trips the 20% gate without a code change. A red benchmark job
+that names only that test, on a PR that cannot affect PROV-N output, is explained.
+
 Compare the suite's pass, skip and xfail counts against the previous run and against the
 count the release PR states; `CLAUDE.md` deliberately records no fixed number. A skip or
 xfail that is new, gone, or unexplained by the release's own changes is a regression, not a
@@ -74,7 +80,7 @@ Five files, in one commit:
 |---|---|
 | `src/prov/__init__.py` | `__version__ = "X.Y.Z"` — the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it |
-| `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme` |
+| `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
 | `docs/reference/conformance.md` | Per-release revisit — the page states it is "revisited at every release"; verify its claims still hold and update the "last revised for the X.Y.Z release (YYYY-MM-DD)" sentence |
 | `CITATION.cff` | `version: "X.Y.Z"` — `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
@@ -176,6 +182,16 @@ bust the cache — `uv pip install --refresh …`, or `uv run --with prov==X.Y.Z
 for the one-liner form. A genuine upload failure looks different: the `curl` metadata query
 above returns 404 rather than the new version, and the release workflow's `publish-pypi`
 job is red. Check those two before re-running anything.
+
+`--refresh` does not help in the first minute or two, when the cause is PyPI itself: the
+JSON API at `pypi.org/pypi/prov/X.Y.Z/json` serves a new version before the simple index
+that installers read. 3.2.2 failed to install with `--refresh` while the JSON API already
+listed it. Poll the index and install once it names both files:
+
+```bash
+curl -s -H 'Accept: application/vnd.pypi.simple.v1+json' https://pypi.org/simple/prov/ \
+    | python3 -c "import json,sys; print([f['filename'] for f in json.load(sys.stdin)['files'] if 'X.Y.Z' in f['filename']])"
+```
 
 Run these checks with `env -u VIRTUAL_ENV` in front of `uv`. A `VIRTUAL_ENV` inherited from
 another checkout makes `uv run --with prov==X.Y.Z --no-project` import that checkout's `prov`
