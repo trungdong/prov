@@ -587,17 +587,17 @@ AttributeValue: typing.TypeAlias = Union[
 ]
 """A value accepted for a record attribute, before coercion."""
 
-_AttributeValuePair: typing.TypeAlias = tuple[QualifiedNameCandidate, AttributeValue]
-
 # `dict` comes first so that mypy infers a dict literal against it. `Iterable`
 # is absent on purpose, because a dict is itself an iterable and that makes the
-# literal's target ambiguous to mypy (#474).
+# literal's target ambiguous to mypy (#474). Pair values are `Any` because mypy
+# joins the mixed values of a prebuilt list to `object`, which no precise type
+# accepts.
 RecordAttributesArg: typing.TypeAlias = (
     dict[QualifiedNameCandidate, AttributeValue]
     | _SupportsItems[QualifiedNameCandidate, AttributeValue]
-    | Sequence[_AttributeValuePair]
-    | AbstractSet[_AttributeValuePair]
-    | Iterator[_AttributeValuePair]
+    | Sequence[AttributePair]
+    | AbstractSet[AttributePair]
+    | Iterator[AttributePair]
 )
 
 
@@ -672,7 +672,7 @@ class ProvRecord:
             bundle: The bundle owning this PROV record.
             identifier: The (unique) identifier of the record.
             attributes: Attributes to associate with the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
         """
         self._bundle = bundle
         self._identifier = identifier
@@ -1160,7 +1160,7 @@ class ProvEntity(ProvElement):
                 :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
                 :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1183,7 +1183,7 @@ class ProvEntity(ProvElement):
                 :class:`datetime.datetime` or an ``xsd:dateTime`` string accepted by
                 :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1210,7 +1210,7 @@ class ProvEntity(ProvElement):
             usage: Optional usage record qualifying the derivation through an
                 internal usage (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1229,7 +1229,7 @@ class ProvEntity(ProvElement):
             agent: The agent (or its string identifier) involved in the
                 attribution.
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1293,7 +1293,7 @@ class ProvEntity(ProvElement):
             usage: Optional usage record qualifying the derivation
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1322,7 +1322,7 @@ class ProvEntity(ProvElement):
             usage: Optional usage record qualifying the derivation
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1351,7 +1351,7 @@ class ProvEntity(ProvElement):
             usage: Optional usage record qualifying the derivation
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1387,7 +1387,7 @@ class ProvEntity(ProvElement):
             influencer: The influencing entity, activity or agent (or its
                 string identifier).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This entity (to allow chaining).
@@ -1453,7 +1453,7 @@ class ProvActivity(ProvElement):
                 :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1469,7 +1469,7 @@ class ProvActivity(ProvElement):
         Args:
             informant: The informing activity (relationship source).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1498,7 +1498,7 @@ class ProvActivity(ProvElement):
                 :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1525,7 +1525,7 @@ class ProvActivity(ProvElement):
                 :func:`~prov.model.parse_xsd_datetime`
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1547,7 +1547,7 @@ class ProvActivity(ProvElement):
             plan: Optional entity qualifying the association through an
                 internal plan (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1566,7 +1566,7 @@ class ProvActivity(ProvElement):
             influencer: The influencing entity, activity or agent (or its
                 string identifier).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This activity (to allow chaining).
@@ -1670,7 +1670,7 @@ class ProvAgent(ProvElement):
             activity: Optional activity qualifying the delegation
                 (default: ``None``).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This agent (to allow chaining).
@@ -1691,7 +1691,7 @@ class ProvAgent(ProvElement):
             influencer: The influencing entity, activity or agent (or its
                 string identifier).
             attributes: Optional extra attributes for the record, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             This agent (to allow chaining).

@@ -778,8 +778,8 @@ class ProvBundle:
                 :data:`PROV_REC_CLS`.
             identifier: The identifier for the new record (may be ``None`` for
                 relations).
-            attributes: Formal attributes of the record, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            attributes: Formal attributes of the record, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
             other_attributes: Additional (non-formal) attributes, in the same
                 forms (default: ``None``).
 
@@ -828,7 +828,7 @@ class ProvBundle:
         Args:
             identifier: The identifier for the new entity.
             other_attributes: Optional attributes for the entity, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvEntity`.
@@ -851,7 +851,7 @@ class ProvBundle:
                 (default: ``None``).
             endTime: Optional end time, in the same forms (default: ``None``).
             other_attributes: Optional attributes for the activity, as a dict or
-                an iterable of ``(name, value)`` pairs (default: ``None``).
+                a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvActivity`.
@@ -886,8 +886,8 @@ class ProvBundle:
                 :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             identifier: Optional identifier for the generation record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new generation record.
@@ -924,8 +924,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the usage record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvUsage` record.
@@ -965,8 +965,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the start record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvStart` record.
@@ -1006,8 +1006,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the end record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvEnd` record.
@@ -1044,8 +1044,8 @@ class ProvBundle:
                 :func:`~prov.model.parse_xsd_datetime` (default: ``None``).
             identifier: Optional identifier for the invalidation record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvInvalidation` record.
@@ -1076,8 +1076,8 @@ class ProvBundle:
             informant: The informing activity (relationship source).
             identifier: Optional identifier for the communication record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvCommunication` record.
@@ -1102,8 +1102,8 @@ class ProvBundle:
 
         Args:
             identifier: The identifier for the new agent.
-            other_attributes: Optional attributes for the agent, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional attributes for the agent, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvAgent`.
@@ -1126,8 +1126,8 @@ class ProvBundle:
                 to (relationship destination).
             identifier: Optional identifier for the attribution record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvAttribution` record.
@@ -1161,8 +1161,8 @@ class ProvBundle:
                 plan (default: ``None``).
             identifier: Optional identifier for the association record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvAssociation` record.
@@ -1198,8 +1198,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the delegation record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvDelegation` record.
@@ -1232,8 +1232,8 @@ class ProvBundle:
                 destination).
             identifier: Optional identifier for the influence record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvInfluence` record.
@@ -1275,8 +1275,8 @@ class ProvBundle:
                 activity's use of the used entity (default: ``None``).
             identifier: Optional identifier for the derivation record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvDerivation` record.
@@ -1319,8 +1319,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the revision record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvDerivation` record, typed as a revision.
@@ -1364,8 +1364,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the quotation record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvDerivation` record, typed as a quotation.
@@ -1411,8 +1411,8 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier for the primary-source record
                 (default: ``None``).
-            other_attributes: Optional extra attributes, as a dict or an
-                iterable of ``(name, value)`` pairs (default: ``None``).
+            other_attributes: Optional extra attributes, as a dict or a
+                list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvDerivation` record, typed as a primary source.
@@ -1514,7 +1514,7 @@ class ProvBundle:
         Args:
             identifier: The identifier for the new collection.
             other_attributes: Optional attributes for the collection, as a dict
-                or an iterable of ``(name, value)`` pairs (default: ``None``).
+                or a list of ``(name, value)`` pairs (default: ``None``).
 
         Returns:
             The new :class:`ProvEntity`, typed as a collection.
