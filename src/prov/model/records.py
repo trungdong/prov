@@ -10,8 +10,15 @@ import os
 import re
 import typing
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Iterator, MutableSet
-from typing import IO, TYPE_CHECKING, Any, Final, Union, cast
+from collections.abc import (
+    Callable,
+    Iterable,
+    Iterator,
+    MutableSet,
+    Sequence,
+    Set as AbstractSet,
+)
+from typing import IO, TYPE_CHECKING, Any, Final, Protocol, TypeVar, Union, cast
 
 from prov import Error
 from prov.constants import (
@@ -99,9 +106,6 @@ GenerationRef: typing.TypeAlias = Union["ProvGeneration", QualifiedNameCandidate
 UsageRef: typing.TypeAlias = Union["ProvUsage", QualifiedNameCandidate]
 NameValuePair: typing.TypeAlias = tuple[QualifiedName, Any]
 AttributePair: typing.TypeAlias = tuple[QualifiedNameCandidate, Any]
-RecordAttributesArg: typing.TypeAlias = (
-    dict[QualifiedNameCandidate, Any] | Iterable[AttributePair]
-)
 DatetimeOrStr: typing.TypeAlias = datetime.datetime | str
 NSCollection: typing.TypeAlias = dict[str, str] | Iterable[Namespace]
 PathLike: typing.TypeAlias = str | bytes | os.PathLike[str]
@@ -566,6 +570,47 @@ CoercedAttributeValue: typing.TypeAlias = (
     QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
 )
 
+_K_co = TypeVar("_K_co", covariant=True)
+_V_co = TypeVar("_V_co", covariant=True)
+
+
+class _SupportsItems(Protocol[_K_co, _V_co]):
+    # `Mapping` is invariant in its key type, so `dict[QualifiedName, str]` is
+    # no `Mapping[QualifiedNameCandidate, ...]`. This protocol is covariant in
+    # both parameters.
+
+    def items(self) -> AbstractSet[tuple[_K_co, _V_co]]: ...
+
+
+AttributeValue: typing.TypeAlias = Union[
+    "ProvRecord", QualifiedName, datetime.datetime, Literal, SupportedXSDParsedTypes
+]
+"""A value accepted for a record attribute, before coercion."""
+
+_AttributeValuePair: typing.TypeAlias = tuple[QualifiedNameCandidate, AttributeValue]
+
+# `dict` comes first so that mypy infers a dict literal against it. `Iterable`
+# is absent on purpose, because a dict is itself an iterable and that makes the
+# literal's target ambiguous to mypy (#474).
+RecordAttributesArg: typing.TypeAlias = (
+    dict[QualifiedNameCandidate, AttributeValue]
+    | _SupportsItems[QualifiedNameCandidate, AttributeValue]
+    | Sequence[_AttributeValuePair]
+    | AbstractSet[_AttributeValuePair]
+    | Iterator[_AttributeValuePair]
+)
+
+
+def _attribute_pairs(attributes: RecordAttributesArg) -> Iterable[AttributePair]:
+    # `dict` is tested first because it is the common case on the
+    # record-construction hot path.
+    if isinstance(attributes, dict):
+        return attributes.items()
+    items = getattr(attributes, "items", None)
+    if callable(items):
+        return cast("Iterable[AttributePair]", items())
+    return cast("Iterable[AttributePair]", attributes)
+
 
 # Exceptions and warnings
 class ProvException(Error):
@@ -938,9 +983,10 @@ class ProvRecord:
         are skipped.
 
         Args:
-            attributes: The attributes to add, either as a dict keyed by
-                qualified-name identifiers or an iterable of ``(name, value)``
-                pairs whose names satisfy the same condition.
+            attributes: The attributes to add, as a mapping keyed by
+                qualified-name identifiers, or as a sequence, set or iterator
+                of ``(name, value)`` pairs whose names satisfy the same
+                condition.
 
         Raises:
             ProvExceptionInvalidQualifiedName: If an attribute name cannot be
@@ -950,21 +996,17 @@ class ProvRecord:
                 (non-collection) attribute.
         """
         if attributes:
-            if isinstance(attributes, dict):
-                # Converting the dictionary into a list of tuples
-                # (i.e. attribute-value pairs)
-                attributes = cast(
-                    "dict[QualifiedNameCandidate, Any]", attributes
-                ).items()
+            # Two passes follow, so a one-shot iterator is copied first.
+            pairs = list(_attribute_pairs(attributes))
 
             # Check if one of the attributes specifies that the current type
             # is a collection. In that case multiple attributes of the same
             # type are allowed.
             is_collection = any(
-                attr_name == PROV_ATTR_COLLECTION for attr_name, _ in attributes
+                attr_name == PROV_ATTR_COLLECTION for attr_name, _ in pairs
             )
 
-            for attr_name, original_value in attributes:
+            for attr_name, original_value in pairs:
                 if original_value is None:
                     continue
 
