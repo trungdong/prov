@@ -7,6 +7,7 @@ import locale
 import logging
 import pathlib
 import warnings
+from typing import NoReturn
 from unittest import mock
 
 import pytest
@@ -35,32 +36,32 @@ def _write(document, tmp_path, fmt, filename, **kwargs):
 # -- explicit format= for each serializer ---------------------------------
 
 
-def test_read_explicit_json_format(document, tmp_path):
+def test_read_explicit_json_format(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "doc.json")
     result = prov.read(str(path), format="json")
     assert result == document
 
 
-def test_read_explicit_xml_format(document, tmp_path):
+def test_read_explicit_xml_format(document, tmp_path) -> None:
     path = _write(document, tmp_path, "xml", "doc.xml")
     result = prov.read(str(path), format="xml")
     assert result == document
 
 
-def test_read_explicit_rdf_format(document, tmp_path):
+def test_read_explicit_rdf_format(document, tmp_path) -> None:
     # Default rdf_format is "trig" on both the write and read sides.
     path = _write(document, tmp_path, "rdf", "doc.rdf")
     result = prov.read(str(path), format="rdf")
     assert result == document
 
 
-def test_read_explicit_jsonld_format(document, tmp_path):
+def test_read_explicit_jsonld_format(document, tmp_path) -> None:
     path = _write(document, tmp_path, "jsonld", "doc.jsonld")
     result = prov.read(str(path), format="jsonld")
     assert result == document
 
 
-def test_read_explicit_format_is_lowercased(document, tmp_path):
+def test_read_explicit_format_is_lowercased(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "doc-upper.json")
     result = prov.read(str(path), format="JSON")
     assert result == document
@@ -69,13 +70,13 @@ def test_read_explicit_format_is_lowercased(document, tmp_path):
 # -- source can be a str path, a PathLike, or a file object ---------------
 
 
-def test_read_accepts_pathlib_path(document, tmp_path):
+def test_read_accepts_pathlib_path(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "doc-path.json")
     result = prov.read(pathlib.Path(path), format="json")
     assert result == document
 
 
-def test_read_accepts_file_object(document, tmp_path):
+def test_read_accepts_file_object(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "doc-fileobj.json")
     with open(path) as f:
         result = prov.read(f, format="json")
@@ -85,13 +86,13 @@ def test_read_accepts_file_object(document, tmp_path):
 # -- format=None auto-detection -------------------------------------------
 
 
-def test_read_auto_detects_json(document, tmp_path):
+def test_read_auto_detects_json(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "auto.json")
     result = prov.read(str(path))
     assert result == document
 
 
-def test_read_auto_detects_rdf(document, tmp_path):
+def test_read_auto_detects_rdf(document, tmp_path) -> None:
     # rdf is attempted (as trig, the default) right after json, so a
     # trig-serialized document round trips through auto-detection.
     path = _write(document, tmp_path, "rdf", "auto.rdf")
@@ -99,7 +100,7 @@ def test_read_auto_detects_rdf(document, tmp_path):
     assert result == document
 
 
-def test_read_auto_detects_xml(document, tmp_path):
+def test_read_auto_detects_xml(document, tmp_path) -> None:
     # #239: the rdf candidate raises rdflib's BadSyntax (a SyntaxError) on
     # XML input; read() must treat any candidate failure as "try the next
     # format" so the xml deserializer is reached.
@@ -108,23 +109,23 @@ def test_read_auto_detects_xml(document, tmp_path):
     assert result == document
 
 
-def test_read_auto_detects_jsonld(document, tmp_path):
+def test_read_auto_detects_jsonld(document, tmp_path) -> None:
     path = _write(document, tmp_path, "jsonld", "auto.jsonld")
     result = prov.read(str(path))
     assert result == document
 
 
-def test_read_unknown_format_propagates_do_not_exist(document, tmp_path):
+def test_read_unknown_format_propagates_do_not_exist(document, tmp_path) -> None:
     path = _write(document, tmp_path, "json", "doc-unknown-fmt.json")
     with pytest.raises(DoNotExist):
         prov.read(str(path), format="nonexistent")
 
 
-def test_read_auto_detect_swallows_any_deserializer_error():
+def test_read_auto_detect_swallows_any_deserializer_error() -> None:
     # Since #239, ANY exception from a candidate deserializer means "not
     # this format"; when every candidate fails, read() raises its own
     # TypeError rather than leaking the last candidate's error.
-    def boom(self, stream, **kwargs):
+    def boom(self, stream, **kwargs) -> NoReturn:
         raise RuntimeError("arbitrary deserializer failure")
 
     with (
@@ -141,27 +142,27 @@ def test_read_auto_detect_swallows_any_deserializer_error():
 # -- raw-content strings/bytes (not a file path) ----------------------------
 
 
-def test_read_accepts_raw_content_string_with_explicit_format(document):
+def test_read_accepts_raw_content_string_with_explicit_format(document) -> None:
     content = document.serialize(format="json")
     assert prov.read(content, format="json") == document
 
 
-def test_read_auto_detects_raw_content_string(document):
+def test_read_auto_detects_raw_content_string(document) -> None:
     content = document.serialize(format="json")
     assert prov.read(content) == document
 
 
-def test_read_accepts_raw_content_bytes_with_explicit_format(document):
+def test_read_accepts_raw_content_bytes_with_explicit_format(document) -> None:
     content = document.serialize(format="json").encode()
     assert prov.read(content, format="json") == document
 
 
-def test_read_auto_detects_raw_content_bytes(document):
+def test_read_auto_detects_raw_content_bytes(document) -> None:
     content = document.serialize(format="json").encode()
     assert prov.read(content) == document
 
 
-def test_read_accepts_bytes_file_path(document, tmp_path):
+def test_read_accepts_bytes_file_path(document, tmp_path) -> None:
     # A bytes source naming an existing file is a path, not raw content.
     path = _write(document, tmp_path, "json", "doc-bytes-path.json")
     assert prov.read(str(path).encode(), format="json") == document
@@ -170,7 +171,7 @@ def test_read_accepts_bytes_file_path(document, tmp_path):
 # -- empty / unparseable input raises TypeError -----------------------------
 
 
-def test_read_empty_file_raises_type_error(tmp_path):
+def test_read_empty_file_raises_type_error(tmp_path) -> None:
     # #239: rdflib parses empty (trig) input successfully, which used to
     # yield a silent empty document; an empty parse is not a detection.
     path = tmp_path / "empty.json"
@@ -179,12 +180,12 @@ def test_read_empty_file_raises_type_error(tmp_path):
         prov.read(str(path))
 
 
-def test_read_empty_string_raises_type_error():
+def test_read_empty_string_raises_type_error() -> None:
     with pytest.raises(TypeError):
         prov.read("")
 
 
-def test_read_garbage_content_raises_type_error():
+def test_read_garbage_content_raises_type_error() -> None:
     # A str that is not an existing file path is treated as raw content.
     with pytest.raises(TypeError):
         prov.read("no/such/file.json")
@@ -193,21 +194,21 @@ def test_read_garbage_content_raises_type_error():
 # -- Fix A: seekable streams are rewound between auto-detect attempts ------
 
 
-def test_read_auto_detects_xml_from_seekable_stringio(document):
+def test_read_auto_detects_xml_from_seekable_stringio(document) -> None:
     xml_str = document.serialize(format="xml")
     stream = io.StringIO(xml_str)
     result = prov.read(stream)
     assert result == document
 
 
-def test_read_auto_detects_xml_from_seekable_bytesio(document):
+def test_read_auto_detects_xml_from_seekable_bytesio(document) -> None:
     xml_bytes = document.serialize(format="xml").encode()
     stream = io.BytesIO(xml_bytes)
     result = prov.read(stream)
     assert result == document
 
 
-def test_read_auto_detects_json_from_seekable_stream_still_works(document):
+def test_read_auto_detects_json_from_seekable_stream_still_works(document) -> None:
     # Regression guard: json is the first candidate tried, so the rewind
     # added for other formats must not break the already-working case.
     json_str = document.serialize(format="json")
@@ -216,24 +217,26 @@ def test_read_auto_detects_json_from_seekable_stream_still_works(document):
     assert result == document
 
 
-def test_read_explicit_format_with_broken_seekable_reaches_deserializer(document):
+def test_read_explicit_format_with_broken_seekable_reaches_deserializer(
+    document,
+) -> None:
     # A stream whose seekable() raises must not crash read() before the
     # deserializer runs -- especially on the explicit-format path, which
     # never needs to rewind at all.
     class BrokenSeekable(io.StringIO):
-        def seekable(self):
+        def seekable(self) -> NoReturn:
             raise OSError("seekable() not supported here")
 
     stream = BrokenSeekable(document.serialize(format="json"))
     assert prov.read(stream, format="json") == document
 
 
-def test_read_auto_detect_with_broken_tell_degrades_to_no_rewind(document):
+def test_read_auto_detect_with_broken_tell_degrades_to_no_rewind(document) -> None:
     # seekable() -> True but tell() raising must degrade to the
     # non-seekable (first-candidate-only) behaviour, not crash; JSON is
     # the first candidate, so JSON content still auto-detects.
     class BrokenTell(io.StringIO):
-        def tell(self):
+        def tell(self) -> NoReturn:
             raise OSError("tell() not supported here")
 
     stream = BrokenTell(document.serialize(format="json"))
@@ -245,7 +248,7 @@ def test_read_auto_detect_with_broken_tell_degrades_to_no_rewind(document):
 
 def test_read_auto_detect_xml_produces_no_rdflib_term_warnings(
     document, tmp_path, caplog
-):
+) -> None:
     path = _write(document, tmp_path, "xml", "auto-quiet.xml")
     with caplog.at_level(logging.WARNING, logger="rdflib.term"):
         result = prov.read(str(path))
@@ -257,7 +260,7 @@ def test_read_auto_detect_xml_produces_no_rdflib_term_warnings(
 # -- raw content -------------------------------------------------------------
 
 
-def test_read_explicit_format_nonexistent_path_warns_raw_content_hint():
+def test_read_explicit_format_nonexistent_path_warns_raw_content_hint() -> None:
     with (
         pytest.raises(json.JSONDecodeError),
         pytest.warns(UserWarning, match="raw content"),
@@ -265,14 +268,14 @@ def test_read_explicit_format_nonexistent_path_warns_raw_content_hint():
         prov.read("no/such/file.json", format="json")
 
 
-def test_read_explicit_format_valid_raw_content_emits_no_warning(document):
+def test_read_explicit_format_valid_raw_content_emits_no_warning(document) -> None:
     content = document.serialize(format="json")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         assert prov.read(content, format="json") == document
 
 
-def test_read_auto_detect_nonexistent_path_type_error_has_both_hints():
+def test_read_auto_detect_nonexistent_path_type_error_has_both_hints() -> None:
     with pytest.raises(TypeError) as ctx:
         prov.read("no/such/file.json")
     message = str(ctx.value)
@@ -280,13 +283,13 @@ def test_read_auto_detect_nonexistent_path_type_error_has_both_hints():
     assert "raw content" in message
 
 
-def test_read_auto_detects_provn():
+def test_read_auto_detects_provn() -> None:
     text = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
     document = prov.read(text)
     assert [str(r.identifier) for r in document.get_records()] == ["ex:e1"]
 
 
-def test_read_passes_profile_through(tmp_path):
+def test_read_passes_profile_through(tmp_path) -> None:
     path = tmp_path / "doc.provn"
     path.write_text(
         "document\n  prefix ex <http://example.org/>\n"
@@ -299,14 +302,14 @@ def test_read_passes_profile_through(tmp_path):
     assert prov.read(str(path), format="provn") is not None
 
 
-def test_read_auto_detect_forwards_kwargs_only_to_provn(document):
+def test_read_auto_detect_forwards_kwargs_only_to_provn(document) -> None:
     # profile= is provn-specific; json/xml/rdf/jsonld deserializers don't
     # accept it and must not be broken by it during auto-detection.
     json_text = document.serialize(format="json")
     assert prov.read(json_text, profile="lenient") == document
 
 
-def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips():
+def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips() -> None:
     from prov.model import ProvWarning
 
     text = (
@@ -318,12 +321,12 @@ def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips():
     assert [str(r.identifier) for r in document.get_records()] == ["ex:e2"]
 
 
-def test_auto_detection_forwards_rdf_options(document):
+def test_auto_detection_forwards_rdf_options(document) -> None:
     text = document.serialize(format="rdf", rdf_format="xml")
     assert prov.read(io.BytesIO(text.encode("utf-8")), rdf_format="xml") == document
 
 
-def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document):
+def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document) -> None:
     text = document.serialize(format="json")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
@@ -333,7 +336,7 @@ def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document):
             prov.read(text, format="json", profile="strict")
 
 
-def test_declared_options_per_serializer():
+def test_declared_options_per_serializer() -> None:
     from prov.serializers import Registry
 
     Registry.load_serializers()
@@ -344,7 +347,7 @@ def test_declared_options_per_serializer():
         assert "rdf_format" in Registry.serializers["rdf"].deserialize_options
 
 
-def test_read_forwards_json_load_options():
+def test_read_forwards_json_load_options() -> None:
     import decimal
 
     text = primer_example().serialize(format="json")
@@ -352,7 +355,7 @@ def test_read_forwards_json_load_options():
     assert doc == primer_example()
 
 
-def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path):
+def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path) -> None:
     # serialize(path) always writes UTF-8; deserialize(path) must read it
     # back the same way, not through the C locale's encoding. The 'C'
     # locale decodes as ASCII, so a pre-fix open(source) (text mode, no

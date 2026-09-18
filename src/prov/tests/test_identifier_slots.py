@@ -25,28 +25,30 @@ OBJECTS = [
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_no_instance_dict(obj):
+def test_no_instance_dict(obj) -> None:
     assert not hasattr(obj, "__dict__")
     with pytest.raises(AttributeError):
         obj.undeclared = 1
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_copy_preserves_equality(obj):
+def test_copy_preserves_equality(obj) -> None:
     assert copy.copy(obj) == obj
     assert copy.deepcopy(obj) == obj
 
 
 @pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_pickle_round_trips_under_every_protocol(obj, protocol):
+def test_pickle_round_trips_under_every_protocol(obj, protocol) -> None:
     # Round-trips a value created immediately above, not external input.
     loaded = pickle.loads(pickle.dumps(obj, protocol=protocol))  # nosec B301 - nosemgrep
     assert loaded == obj
     assert hash(loaded) == hash(obj)
 
 
-def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(tmp_path):
+def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(
+    tmp_path,
+) -> None:
     # The hash is process-specific (str hashing is seeded), so a pickle must
     # not carry it. Produce the pickle under a different seed and look the
     # object up in a dict keyed by a fresh, equal qualified name. The script
@@ -73,7 +75,7 @@ def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(tmp
         assert {fresh: 1}.get(loaded) == 1
 
 
-def test_setstate_accepts_a_pre_3_2_dict_state():
+def test_setstate_accepts_a_pre_3_2_dict_state() -> None:
     # prov <= 3.1.1 pickled these classes through __dict__; that state has no
     # _hash and Namespace's carries its cache.
     ns = Namespace.__new__(Namespace)
@@ -114,7 +116,7 @@ def test_setstate_accepts_a_pre_3_2_dict_state():
     ],
     ids=lambda v: getattr(v, "__name__", ""),
 )
-def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots):
+def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots) -> None:
     # 3.2.0 had __slots__ without __getstate__, so its pickles carry the
     # (dict_state, slot_state) tuple Python builds for slotted objects.
     obj = cls.__new__(cls)
@@ -130,16 +132,16 @@ def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots):
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_weak_references_are_supported(obj):
+def test_weak_references_are_supported(obj) -> None:
     assert weakref.ref(obj)() is obj
 
 
-def test_equal_identifiers_hash_equal_across_classes():
+def test_equal_identifiers_hash_equal_across_classes() -> None:
     ident = Identifier("http://example.org/e1")
     qname = NS["e1"]
     assert ident == qname
     assert hash(ident) == hash(qname) == hash("http://example.org/e1")
 
 
-def test_namespace_cache_still_interns_qualified_names():
+def test_namespace_cache_still_interns_qualified_names() -> None:
     assert NS["e1"] is NS["e1"]

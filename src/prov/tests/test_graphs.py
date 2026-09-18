@@ -9,7 +9,7 @@ from prov.model import ProvActivity, ProvDocument, ProvEntity, ProvWarning
 from prov.tests.examples import primer_example, tests
 
 
-def test_simple_graph_conversion():
+def test_simple_graph_conversion() -> None:
     for name, doc_func in tests:
         prov_org = doc_func()
         g = prov_to_graph(prov_org)
@@ -20,7 +20,7 @@ def test_simple_graph_conversion():
         assert prov_doc == prov_org, f"Round trip graph conversion for '{name}' failed."
 
 
-def test_round_trip_against_unified_document():
+def test_round_trip_against_unified_document() -> None:
     # prov_to_graph() unifies the document internally before building
     # the graph, so a round trip should match the *unified* document,
     # not necessarily the original one record-for-record.
@@ -37,7 +37,7 @@ def document():
     return d
 
 
-def test_relation_with_missing_end_is_skipped_with_warning(document):
+def test_relation_with_missing_end_is_skipped_with_warning(document) -> None:
     # A generation record with no activity: one endpoint is None, so the
     # relation cannot become an edge. The drop is reported, not silent.
     document.generation(entity="ex:e1", activity=None)
@@ -49,7 +49,7 @@ def test_relation_with_missing_end_is_skipped_with_warning(document):
     assert sum(issubclass(w.category, ProvWarning) for w in record) == 1
 
 
-def test_relation_endpoints_get_inferred_nodes(document):
+def test_relation_endpoints_get_inferred_nodes(document) -> None:
     # Neither ex:e2 nor ex:a2 is declared as an element record; both
     # ends should be inferred with the correct PROV class via
     # INFERRED_ELEMENT_CLASS.
@@ -67,7 +67,9 @@ def test_relation_endpoints_get_inferred_nodes(document):
     assert len(g.edges()) == 1
 
 
-def test_relation_with_uninferrable_endpoint_type_is_skipped_with_warning(document):
+def test_relation_with_uninferrable_endpoint_type_is_skipped_with_warning(
+    document,
+) -> None:
     # prov:influencee/prov:influencer are the only first-two formal
     # attributes with no INFERRED_ELEMENT_CLASS entry, so an influence
     # between undeclared identifiers cannot get placeholder nodes. It is
@@ -85,7 +87,7 @@ def test_relation_with_uninferrable_endpoint_type_is_skipped_with_warning(docume
     assert edge_data["relation"].get_type().localpart == "Generation"
 
 
-def test_complete_document_emits_no_warning(document):
+def test_complete_document_emits_no_warning(document) -> None:
     document.entity("ex:e1")
     document.activity("ex:a1")
     document.wasGeneratedBy("ex:e1", "ex:a1")
@@ -98,7 +100,7 @@ def test_complete_document_emits_no_warning(document):
     assert len(g.edges()) == 2
 
 
-def test_ignores_non_record_and_bundle_less_nodes():
+def test_ignores_non_record_and_bundle_less_nodes() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     ghost_id = document.valid_qualified_name("ex:ghost")
@@ -115,7 +117,7 @@ def test_ignores_non_record_and_bundle_less_nodes():
     assert list(prov_doc.get_records()) == []
 
 
-def test_ignores_edges_without_relation_key():
+def test_ignores_edges_without_relation_key() -> None:
     g = nx.MultiDiGraph()
     g.add_node("a")
     g.add_node("b")
@@ -126,7 +128,7 @@ def test_ignores_edges_without_relation_key():
     assert list(prov_doc.get_records()) == []
 
 
-def test_ignores_edges_whose_relation_is_not_a_prov_record():
+def test_ignores_edges_whose_relation_is_not_a_prov_record() -> None:
     g = nx.MultiDiGraph()
     g.add_node("a")
     g.add_node("b")

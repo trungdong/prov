@@ -68,11 +68,11 @@ def new_document():
     return ProvDocument()
 
 
-def add_label(record):
+def add_label(record) -> None:
     record.add_attributes([("prov:label", Literal("hello"))])
 
 
-def add_labels(record):
+def add_labels(record) -> None:
     record.add_attributes(
         [
             ("prov:label", Literal("hello")),
@@ -82,7 +82,7 @@ def add_labels(record):
     )
 
 
-def add_types(record):
+def add_types(record) -> None:
     record.add_attributes(
         [
             ("prov:type", "a"),
@@ -99,7 +99,7 @@ def add_types(record):
     )
 
 
-def add_locations(record):
+def add_locations(record) -> None:
     record.add_attributes(
         [
             ("prov:Location", "Southampton"),
@@ -114,11 +114,11 @@ def add_locations(record):
     )
 
 
-def add_value(record):
+def add_value(record) -> None:
     record.add_attributes([("prov:value", EX_NS["avalue"])])
 
 
-def add_further_attributes(record):
+def add_further_attributes(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -129,7 +129,7 @@ def add_further_attributes(record):
     )
 
 
-def add_further_attributes0(record):
+def add_further_attributes0(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -148,7 +148,7 @@ def add_further_attributes0(record):
     add_further_attributes_with_qnames(record)
 
 
-def add_further_attributes_with_qnames(record):
+def add_further_attributes_with_qnames(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag"], EX2_NS["newyork"]),
@@ -161,7 +161,7 @@ def add_further_attributes_with_qnames(record):
 
 
 # ENTITIES
-def test_entity_0(roundtrip):
+def test_entity_0(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e0"])
     a.add_attributes(
@@ -176,20 +176,20 @@ def test_entity_0(roundtrip):
     roundtrip(document)
 
 
-def test_entity_1(roundtrip):
+def test_entity_1(roundtrip) -> None:
     document = new_document()
     document.entity(EX_NS["e1"])
     roundtrip(document)
 
 
-def test_entity_2(roundtrip):
+def test_entity_2(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e2"])
     a.add_attributes([(PROV_LABEL, "entity2")])
     roundtrip(document)
 
 
-def test_entity_3(roundtrip):
+def test_entity_3(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e3"])
     a.add_attributes([(PROV_LABEL, "entity3")])
@@ -197,7 +197,7 @@ def test_entity_3(roundtrip):
     roundtrip(document)
 
 
-def test_entity_4(roundtrip):
+def test_entity_4(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e4"])
     a.add_attributes([(PROV_LABEL, "entity4")])
@@ -205,7 +205,7 @@ def test_entity_4(roundtrip):
     roundtrip(document)
 
 
-def test_entity_5(roundtrip):
+def test_entity_5(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e5"])
     a.add_attributes([(PROV_LABEL, "entity5")])
@@ -213,7 +213,7 @@ def test_entity_5(roundtrip):
     roundtrip(document)
 
 
-def test_entity_6(roundtrip):
+def test_entity_6(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e6"])
     a.add_attributes([(PROV_LABEL, "entity6")])
@@ -221,7 +221,7 @@ def test_entity_6(roundtrip):
     roundtrip(document)
 
 
-def test_entity_7(roundtrip):
+def test_entity_7(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e7"])
     a.add_attributes([(PROV_LABEL, "entity7")])
@@ -231,7 +231,7 @@ def test_entity_7(roundtrip):
     roundtrip(document)
 
 
-def test_entity_8(roundtrip):
+def test_entity_8(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e8"])
     a.add_attributes([(PROV_LABEL, "entity8")])
@@ -244,7 +244,7 @@ def test_entity_8(roundtrip):
     roundtrip(document)
 
 
-def test_entity_9(roundtrip):
+def test_entity_9(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e9"])
     a.add_attributes([(PROV_LABEL, "entity9")])
@@ -255,7 +255,7 @@ def test_entity_9(roundtrip):
     roundtrip(document)
 
 
-def test_entity_10(roundtrip):
+def test_entity_10(roundtrip) -> None:
     document = new_document()
     a = document.entity(EX_NS["e10"])
     a.add_attributes([(PROV_LABEL, "entity10")])
@@ -267,20 +267,20 @@ def test_entity_10(roundtrip):
 
 
 # ACTIVITIES
-def test_activity_1(roundtrip):
+def test_activity_1(roundtrip) -> None:
     document = new_document()
     document.activity(EX_NS["a1"])
     roundtrip(document)
 
 
-def test_activity_2(roundtrip):
+def test_activity_2(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a2"])
     a.add_attributes([(PROV_LABEL, "activity2")])
     roundtrip(document)
 
 
-def test_activity_3(roundtrip):
+def test_activity_3(roundtrip) -> None:
     document = new_document()
     document.activity(
         EX_NS["a3"],
@@ -290,7 +290,7 @@ def test_activity_3(roundtrip):
     roundtrip(document)
 
 
-def test_activity_4(roundtrip):
+def test_activity_4(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a4"])
     a.add_attributes([(PROV_LABEL, "activity4")])
@@ -298,7 +298,7 @@ def test_activity_4(roundtrip):
     roundtrip(document)
 
 
-def test_activity_5(roundtrip):
+def test_activity_5(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a5"])
     a.add_attributes([(PROV_LABEL, "activity5")])
@@ -306,7 +306,7 @@ def test_activity_5(roundtrip):
     roundtrip(document)
 
 
-def test_activity_6(roundtrip):
+def test_activity_6(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a6"])
     a.add_attributes([(PROV_LABEL, "activity6")])
@@ -314,7 +314,7 @@ def test_activity_6(roundtrip):
     roundtrip(document)
 
 
-def test_activity_7(roundtrip):
+def test_activity_7(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a7"])
     a.add_attributes([(PROV_LABEL, "activity7")])
@@ -324,7 +324,7 @@ def test_activity_7(roundtrip):
     roundtrip(document)
 
 
-def test_activity_8(roundtrip):
+def test_activity_8(roundtrip) -> None:
     document = new_document()
     a = document.activity(
         EX_NS["a8"],
@@ -341,7 +341,7 @@ def test_activity_8(roundtrip):
     roundtrip(document)
 
 
-def test_activity_9(roundtrip):
+def test_activity_9(roundtrip) -> None:
     document = new_document()
     a = document.activity(EX_NS["a9"])
     a.add_attributes([(PROV_LABEL, "activity9")])
@@ -353,20 +353,20 @@ def test_activity_9(roundtrip):
 
 
 # AGENTS
-def test_agent_1(roundtrip):
+def test_agent_1(roundtrip) -> None:
     document = new_document()
     document.agent(EX_NS["ag1"])
     roundtrip(document)
 
 
-def test_agent_2(roundtrip):
+def test_agent_2(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag2"])
     a.add_attributes([(PROV_LABEL, "agent2")])
     roundtrip(document)
 
 
-def test_agent_3(roundtrip):
+def test_agent_3(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag3"])
     a.add_attributes(
@@ -378,7 +378,7 @@ def test_agent_3(roundtrip):
     roundtrip(document)
 
 
-def test_agent_4(roundtrip):
+def test_agent_4(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag4"])
     a.add_attributes(
@@ -391,7 +391,7 @@ def test_agent_4(roundtrip):
     roundtrip(document)
 
 
-def test_agent_5(roundtrip):
+def test_agent_5(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag5"])
     a.add_attributes(
@@ -405,7 +405,7 @@ def test_agent_5(roundtrip):
     roundtrip(document)
 
 
-def test_agent_6(roundtrip):
+def test_agent_6(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag6"])
     a.add_attributes([(PROV_LABEL, "agent6")])
@@ -413,7 +413,7 @@ def test_agent_6(roundtrip):
     roundtrip(document)
 
 
-def test_agent_7(roundtrip):
+def test_agent_7(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag7"])
     a.add_attributes([(PROV_LABEL, "agent7")])
@@ -422,7 +422,7 @@ def test_agent_7(roundtrip):
     roundtrip(document)
 
 
-def test_agent_8(roundtrip):
+def test_agent_8(roundtrip) -> None:
     document = new_document()
     a = document.agent(EX_NS["ag8"])
     a.add_attributes([(PROV_LABEL, "agent8")])
@@ -434,19 +434,19 @@ def test_agent_8(roundtrip):
 
 
 # GENERATIONS
-def test_generation_1(roundtrip):
+def test_generation_1(roundtrip) -> None:
     document = new_document()
     document.generation(EX_NS["e1"], identifier=EX_NS["gen1"])
     roundtrip(document)
 
 
-def test_generation_2(roundtrip):
+def test_generation_2(roundtrip) -> None:
     document = new_document()
     document.generation(EX_NS["e1"], identifier=EX_NS["gen2"], activity=EX_NS["a1"])
     roundtrip(document)
 
 
-def test_generation_3(roundtrip):
+def test_generation_3(roundtrip) -> None:
     document = new_document()
     a = document.generation(EX_NS["e1"], identifier=EX_NS["gen3"], activity=EX_NS["a1"])
     a.add_attributes(
@@ -458,7 +458,7 @@ def test_generation_3(roundtrip):
     roundtrip(document)
 
 
-def test_generation_4(roundtrip):
+def test_generation_4(roundtrip) -> None:
     document = new_document()
     document.new_record(
         PROV_GENERATION,
@@ -473,7 +473,7 @@ def test_generation_4(roundtrip):
     roundtrip(document)
 
 
-def test_generation_5(roundtrip):
+def test_generation_5(roundtrip) -> None:
     document = new_document()
     a = document.generation(
         EX_NS["e1"],
@@ -493,13 +493,13 @@ def test_generation_5(roundtrip):
     roundtrip(document)
 
 
-def test_generation_6(roundtrip):
+def test_generation_6(roundtrip) -> None:
     document = new_document()
     document.generation(EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now())
     roundtrip(document)
 
 
-def test_generation_7(roundtrip):
+def test_generation_7(roundtrip) -> None:
     document = new_document()
     a = document.generation(
         EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now()
@@ -513,26 +513,26 @@ def test_generation_7(roundtrip):
 
 
 # USAGE
-def test_usage_1(roundtrip):
+def test_usage_1(roundtrip) -> None:
     document = new_document()
     document.usage(None, entity=EX_NS["e1"], identifier=EX_NS["use1"])
     roundtrip(document)
 
 
-def test_usage_2(roundtrip):
+def test_usage_2(roundtrip) -> None:
     document = new_document()
     document.usage(EX_NS["a1"], entity=EX_NS["e1"], identifier=EX_NS["use2"])
     roundtrip(document)
 
 
-def test_usage_3(roundtrip):
+def test_usage_3(roundtrip) -> None:
     document = new_document()
     use = document.usage(EX_NS["a1"], entity=EX_NS["e1"], identifier=EX_NS["use3"])
     use.add_attributes([(PROV_ROLE, "somerole"), (PROV_ROLE, "otherRole")])
     roundtrip(document)
 
 
-def test_usage_4(roundtrip):
+def test_usage_4(roundtrip) -> None:
     document = new_document()
     use = document.usage(
         EX_NS["a1"],
@@ -544,7 +544,7 @@ def test_usage_4(roundtrip):
     roundtrip(document)
 
 
-def test_usage_5(roundtrip):
+def test_usage_5(roundtrip) -> None:
     document = new_document()
     use = document.usage(
         EX_NS["a1"],
@@ -560,13 +560,13 @@ def test_usage_5(roundtrip):
     roundtrip(document)
 
 
-def test_usage_6(roundtrip):
+def test_usage_6(roundtrip) -> None:
     document = new_document()
     document.usage(EX_NS["a1"], entity=EX_NS["e1"])
     roundtrip(document)
 
 
-def test_usage_7(roundtrip):
+def test_usage_7(roundtrip) -> None:
     document = new_document()
     use = document.usage(EX_NS["a1"], entity=EX_NS["e1"], time=datetime.datetime.now())
     use.add_attributes([(PROV_ROLE, "somerole")])
@@ -578,19 +578,19 @@ def test_usage_7(roundtrip):
 
 
 # INVALIDATIONS
-def test_invalidation_1(roundtrip):
+def test_invalidation_1(roundtrip) -> None:
     document = new_document()
     document.invalidation(EX_NS["e1"], identifier=EX_NS["inv1"])
     roundtrip(document)
 
 
-def test_invalidation_2(roundtrip):
+def test_invalidation_2(roundtrip) -> None:
     document = new_document()
     document.invalidation(EX_NS["e1"], identifier=EX_NS["inv2"], activity=EX_NS["a1"])
     roundtrip(document)
 
 
-def test_invalidation_3(roundtrip):
+def test_invalidation_3(roundtrip) -> None:
     document = new_document()
     inv = document.invalidation(
         EX_NS["e1"], identifier=EX_NS["inv3"], activity=EX_NS["a1"]
@@ -604,7 +604,7 @@ def test_invalidation_3(roundtrip):
     roundtrip(document)
 
 
-def test_invalidation_4(roundtrip):
+def test_invalidation_4(roundtrip) -> None:
     document = new_document()
     inv = document.invalidation(
         EX_NS["e1"],
@@ -620,7 +620,7 @@ def test_invalidation_4(roundtrip):
     roundtrip(document)
 
 
-def test_invalidation_5(roundtrip):
+def test_invalidation_5(roundtrip) -> None:
     document = new_document()
     inv = document.invalidation(
         EX_NS["e1"],
@@ -640,13 +640,13 @@ def test_invalidation_5(roundtrip):
     roundtrip(document)
 
 
-def test_invalidation_6(roundtrip):
+def test_invalidation_6(roundtrip) -> None:
     document = new_document()
     document.invalidation(EX_NS["e1"], activity=EX_NS["a1"])
     roundtrip(document)
 
 
-def test_invalidation_7(roundtrip):
+def test_invalidation_7(roundtrip) -> None:
     document = new_document()
     inv = document.invalidation(
         EX_NS["e1"], activity=EX_NS["a1"], time=datetime.datetime.now()
@@ -664,25 +664,25 @@ def test_invalidation_7(roundtrip):
 
 
 # STARTS
-def test_start_1(roundtrip):
+def test_start_1(roundtrip) -> None:
     document = new_document()
     document.start(None, trigger=EX_NS["e1"], identifier=EX_NS["start1"])
     roundtrip(document)
 
 
-def test_start_2(roundtrip):
+def test_start_2(roundtrip) -> None:
     document = new_document()
     document.start(EX_NS["a1"], trigger=EX_NS["e1"], identifier=EX_NS["start2"])
     roundtrip(document)
 
 
-def test_start_3(roundtrip):
+def test_start_3(roundtrip) -> None:
     document = new_document()
     document.start(EX_NS["a1"], identifier=EX_NS["start3"])
     roundtrip(document)
 
 
-def test_start_4(roundtrip):
+def test_start_4(roundtrip) -> None:
     document = new_document()
     document.start(
         None, trigger=EX_NS["e1"], identifier=EX_NS["start4"], starter=EX_NS["a2"]
@@ -690,7 +690,7 @@ def test_start_4(roundtrip):
     roundtrip(document)
 
 
-def test_start_5(roundtrip):
+def test_start_5(roundtrip) -> None:
     document = new_document()
     document.start(
         EX_NS["a1"],
@@ -701,13 +701,13 @@ def test_start_5(roundtrip):
     roundtrip(document)
 
 
-def test_start_6(roundtrip):
+def test_start_6(roundtrip) -> None:
     document = new_document()
     document.start(EX_NS["a1"], identifier=EX_NS["start6"], starter=EX_NS["a2"])
     roundtrip(document)
 
 
-def test_start_7(roundtrip):
+def test_start_7(roundtrip) -> None:
     document = new_document()
     document.start(
         EX_NS["a1"],
@@ -718,7 +718,7 @@ def test_start_7(roundtrip):
     roundtrip(document)
 
 
-def test_start_8(roundtrip):
+def test_start_8(roundtrip) -> None:
     document = new_document()
     start = document.start(
         EX_NS["a1"],
@@ -739,13 +739,13 @@ def test_start_8(roundtrip):
     roundtrip(document)
 
 
-def test_start_9(roundtrip):
+def test_start_9(roundtrip) -> None:
     document = new_document()
     document.start(EX_NS["a1"], trigger=EX_NS["e1"])
     roundtrip(document)
 
 
-def test_start_10(roundtrip):
+def test_start_10(roundtrip) -> None:
     document = new_document()
     start = document.start(
         EX_NS["a1"], starter=EX_NS["a2"], time=datetime.datetime.now()
@@ -764,31 +764,31 @@ def test_start_10(roundtrip):
 
 
 # ENDS
-def test_end_1(roundtrip):
+def test_end_1(roundtrip) -> None:
     document = new_document()
     document.end(None, trigger=EX_NS["e1"], identifier=EX_NS["end1"])
     roundtrip(document)
 
 
-def test_end_2(roundtrip):
+def test_end_2(roundtrip) -> None:
     document = new_document()
     document.end(EX_NS["a1"], trigger=EX_NS["e1"], identifier=EX_NS["end2"])
     roundtrip(document)
 
 
-def test_end_3(roundtrip):
+def test_end_3(roundtrip) -> None:
     document = new_document()
     document.end(EX_NS["a1"], identifier=EX_NS["end3"])
     roundtrip(document)
 
 
-def test_end_4(roundtrip):
+def test_end_4(roundtrip) -> None:
     document = new_document()
     document.end(None, trigger=EX_NS["e1"], identifier=EX_NS["end4"], ender=EX_NS["a2"])
     roundtrip(document)
 
 
-def test_end_5(roundtrip):
+def test_end_5(roundtrip) -> None:
     document = new_document()
     document.end(
         EX_NS["a1"],
@@ -799,13 +799,13 @@ def test_end_5(roundtrip):
     roundtrip(document)
 
 
-def test_end_6(roundtrip):
+def test_end_6(roundtrip) -> None:
     document = new_document()
     document.end(EX_NS["a1"], identifier=EX_NS["end6"], ender=EX_NS["a2"])
     roundtrip(document)
 
 
-def test_end_7(roundtrip):
+def test_end_7(roundtrip) -> None:
     document = new_document()
     document.end(
         EX_NS["a1"],
@@ -816,7 +816,7 @@ def test_end_7(roundtrip):
     roundtrip(document)
 
 
-def test_end_8(roundtrip):
+def test_end_8(roundtrip) -> None:
     document = new_document()
     end = document.end(
         EX_NS["a1"],
@@ -837,13 +837,13 @@ def test_end_8(roundtrip):
     roundtrip(document)
 
 
-def test_end_9(roundtrip):
+def test_end_9(roundtrip) -> None:
     document = new_document()
     document.end(EX_NS["a1"], trigger=EX_NS["e1"])
     roundtrip(document)
 
 
-def test_end_10(roundtrip):
+def test_end_10(roundtrip) -> None:
     document = new_document()
     end = document.end(EX_NS["a1"], ender=EX_NS["a2"], time=datetime.datetime.now())
     end.add_attributes(
@@ -860,25 +860,25 @@ def test_end_10(roundtrip):
 
 
 # DERIVATIONS
-def test_derivation_1(roundtrip):
+def test_derivation_1(roundtrip) -> None:
     document = new_document()
     document.derivation(None, usedEntity=EX_NS["e1"], identifier=EX_NS["der1"])
     roundtrip(document)
 
 
-def test_derivation_2(roundtrip):
+def test_derivation_2(roundtrip) -> None:
     document = new_document()
     document.derivation(EX_NS["e2"], usedEntity=None, identifier=EX_NS["der2"])
     roundtrip(document)
 
 
-def test_derivation_3(roundtrip):
+def test_derivation_3(roundtrip) -> None:
     document = new_document()
     document.derivation(EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der3"])
     roundtrip(document)
 
 
-def test_derivation_4(roundtrip):
+def test_derivation_4(roundtrip) -> None:
     document = new_document()
     der = document.derivation(
         EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der4"]
@@ -887,7 +887,7 @@ def test_derivation_4(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_5(roundtrip):
+def test_derivation_5(roundtrip) -> None:
     document = new_document()
     document.derivation(
         EX_NS["e2"],
@@ -898,7 +898,7 @@ def test_derivation_5(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_6(roundtrip):
+def test_derivation_6(roundtrip) -> None:
     document = new_document()
     document.derivation(
         EX_NS["e2"],
@@ -910,7 +910,7 @@ def test_derivation_6(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_7(roundtrip):
+def test_derivation_7(roundtrip) -> None:
     document = new_document()
     document.derivation(
         EX_NS["e2"],
@@ -923,7 +923,7 @@ def test_derivation_7(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_8(roundtrip):
+def test_derivation_8(roundtrip) -> None:
     document = new_document()
     der = document.derivation(
         EX_NS["e2"], usedEntity=EX_NS["e1"], identifier=EX_NS["der8"]
@@ -934,14 +934,14 @@ def test_derivation_8(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_9(roundtrip):
+def test_derivation_9(roundtrip) -> None:
     document = new_document()
     der = document.derivation(EX_NS["e2"], usedEntity=None)
     add_types(der)
     roundtrip(document)
 
 
-def test_derivation_10(roundtrip):
+def test_derivation_10(roundtrip) -> None:
     document = new_document()
     document.derivation(
         EX_NS["e2"],
@@ -953,7 +953,7 @@ def test_derivation_10(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_11(roundtrip):
+def test_derivation_11(roundtrip) -> None:
     document = new_document()
     document.revision(
         EX_NS["e2"],
@@ -966,7 +966,7 @@ def test_derivation_11(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_12(roundtrip):
+def test_derivation_12(roundtrip) -> None:
     document = new_document()
     document.quotation(
         EX_NS["e2"],
@@ -979,7 +979,7 @@ def test_derivation_12(roundtrip):
     roundtrip(document)
 
 
-def test_derivation_13(roundtrip):
+def test_derivation_13(roundtrip) -> None:
     document = new_document()
     document.primary_source(
         EX_NS["e2"],
@@ -993,25 +993,25 @@ def test_derivation_13(roundtrip):
 
 
 # ASSOCIATIONS
-def test_association_1(roundtrip):
+def test_association_1(roundtrip) -> None:
     document = new_document()
     document.association(EX_NS["a1"], identifier=EX_NS["assoc1"])
     roundtrip(document)
 
 
-def test_association_2(roundtrip):
+def test_association_2(roundtrip) -> None:
     document = new_document()
     document.association(None, agent=EX_NS["ag1"], identifier=EX_NS["assoc2"])
     roundtrip(document)
 
 
-def test_association_3(roundtrip):
+def test_association_3(roundtrip) -> None:
     document = new_document()
     document.association(EX_NS["a1"], agent=EX_NS["ag1"], identifier=EX_NS["assoc3"])
     roundtrip(document)
 
 
-def test_association_4(roundtrip):
+def test_association_4(roundtrip) -> None:
     document = new_document()
     document.association(
         EX_NS["a1"],
@@ -1022,13 +1022,13 @@ def test_association_4(roundtrip):
     roundtrip(document)
 
 
-def test_association_5(roundtrip):
+def test_association_5(roundtrip) -> None:
     document = new_document()
     document.association(EX_NS["a1"], agent=EX_NS["ag1"])
     roundtrip(document)
 
 
-def test_association_6(roundtrip):
+def test_association_6(roundtrip) -> None:
     document = new_document()
     assoc = document.association(
         EX_NS["a1"],
@@ -1040,7 +1040,7 @@ def test_association_6(roundtrip):
     roundtrip(document)
 
 
-def test_association_7(roundtrip):
+def test_association_7(roundtrip) -> None:
     document = new_document()
     assoc = document.association(
         EX_NS["a1"],
@@ -1053,7 +1053,7 @@ def test_association_7(roundtrip):
     roundtrip(document)
 
 
-def test_association_8(roundtrip):
+def test_association_8(roundtrip) -> None:
     document = new_document()
     assoc = document.association(
         EX_NS["a1"],
@@ -1070,7 +1070,7 @@ def test_association_8(roundtrip):
     roundtrip(document)
 
 
-def test_association_9(roundtrip):
+def test_association_9(roundtrip) -> None:
     document = new_document()
     assoc = document.association(
         EX_NS["a1"],
@@ -1084,7 +1084,7 @@ def test_association_9(roundtrip):
     roundtrip(document)
 
 
-def test_association_10(roundtrip):
+def test_association_10(roundtrip) -> None:
     document = new_document()
     assoc1 = document.association(
         EX_NS["a1"], agent=EX_NS["ag1"], identifier=EX_NS["assoc10a"]
@@ -1106,44 +1106,44 @@ def test_association_10(roundtrip):
 
 
 # ATTRIBUTIONS
-def test_attribution_1(roundtrip):
+def test_attribution_1(roundtrip) -> None:
     document = new_document()
     document.attribution(EX_NS["e1"], None, identifier=EX_NS["attr1"])
     roundtrip(document)
 
 
-def test_attribution_2(roundtrip):
+def test_attribution_2(roundtrip) -> None:
     document = new_document()
     document.attribution(None, EX_NS["ag1"], identifier=EX_NS["attr2"])
     roundtrip(document)
 
 
-def test_attribution_3(roundtrip):
+def test_attribution_3(roundtrip) -> None:
     document = new_document()
     document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr3"])
     roundtrip(document)
 
 
-def test_attribution_4(roundtrip):
+def test_attribution_4(roundtrip) -> None:
     document = new_document()
     document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr4"])
     roundtrip(document)
 
 
-def test_attribution_5(roundtrip):
+def test_attribution_5(roundtrip) -> None:
     document = new_document()
     document.attribution(EX_NS["e1"], EX_NS["ag1"])
     roundtrip(document)
 
 
-def test_attribution_6(roundtrip):
+def test_attribution_6(roundtrip) -> None:
     document = new_document()
     attr = document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr6"])
     add_labels(attr)
     roundtrip(document)
 
 
-def test_attribution_7(roundtrip):
+def test_attribution_7(roundtrip) -> None:
     document = new_document()
     attr = document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr7"])
     add_labels(attr)
@@ -1151,7 +1151,7 @@ def test_attribution_7(roundtrip):
     roundtrip(document)
 
 
-def test_attribution_8(roundtrip):
+def test_attribution_8(roundtrip) -> None:
     document = new_document()
     attr = document.attribution(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["attr8"])
     add_labels(attr)
@@ -1161,25 +1161,25 @@ def test_attribution_8(roundtrip):
 
 
 # DELEGATIONS
-def test_delegation_1(roundtrip):
+def test_delegation_1(roundtrip) -> None:
     document = new_document()
     document.delegation(EX_NS["e1"], None, identifier=EX_NS["dele1"])
     roundtrip(document)
 
 
-def test_delegation_2(roundtrip):
+def test_delegation_2(roundtrip) -> None:
     document = new_document()
     document.delegation(None, EX_NS["ag1"], identifier=EX_NS["dele2"])
     roundtrip(document)
 
 
-def test_delegation_3(roundtrip):
+def test_delegation_3(roundtrip) -> None:
     document = new_document()
     document.delegation(EX_NS["e1"], EX_NS["ag1"], identifier=EX_NS["dele3"])
     roundtrip(document)
 
 
-def test_delegation_4(roundtrip):
+def test_delegation_4(roundtrip) -> None:
     document = new_document()
     document.delegation(
         EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele4"]
@@ -1187,13 +1187,13 @@ def test_delegation_4(roundtrip):
     roundtrip(document)
 
 
-def test_delegation_5(roundtrip):
+def test_delegation_5(roundtrip) -> None:
     document = new_document()
     document.delegation(EX_NS["e1"], EX_NS["ag1"])
     roundtrip(document)
 
 
-def test_delegation_6(roundtrip):
+def test_delegation_6(roundtrip) -> None:
     document = new_document()
     dele = document.delegation(
         EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele6"]
@@ -1202,7 +1202,7 @@ def test_delegation_6(roundtrip):
     roundtrip(document)
 
 
-def test_delegation_7(roundtrip):
+def test_delegation_7(roundtrip) -> None:
     document = new_document()
     dele = document.delegation(
         EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele7"]
@@ -1212,7 +1212,7 @@ def test_delegation_7(roundtrip):
     roundtrip(document)
 
 
-def test_delegation_8(roundtrip):
+def test_delegation_8(roundtrip) -> None:
     document = new_document()
     dele = document.delegation(
         EX_NS["e1"], EX_NS["ag1"], activity=EX_NS["a1"], identifier=EX_NS["dele8"]
@@ -1224,38 +1224,38 @@ def test_delegation_8(roundtrip):
 
 
 # COMMUNICATIONS
-def test_communication_1(roundtrip):
+def test_communication_1(roundtrip) -> None:
     document = new_document()
     document.communication(EX_NS["a2"], None, identifier=EX_NS["inf1"])
     roundtrip(document)
 
 
-def test_communication_2(roundtrip):
+def test_communication_2(roundtrip) -> None:
     document = new_document()
     document.communication(None, EX_NS["a1"], identifier=EX_NS["inf2"])
     roundtrip(document)
 
 
-def test_communication_3(roundtrip):
+def test_communication_3(roundtrip) -> None:
     document = new_document()
     document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf3"])
     roundtrip(document)
 
 
-def test_communication_4(roundtrip):
+def test_communication_4(roundtrip) -> None:
     document = new_document()
     document.communication(EX_NS["a2"], EX_NS["a1"])
     roundtrip(document)
 
 
-def test_communication_5(roundtrip):
+def test_communication_5(roundtrip) -> None:
     document = new_document()
     inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf5"])
     add_labels(inf)
     roundtrip(document)
 
 
-def test_communication_6(roundtrip):
+def test_communication_6(roundtrip) -> None:
     document = new_document()
     inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf6"])
     add_labels(inf)
@@ -1263,7 +1263,7 @@ def test_communication_6(roundtrip):
     roundtrip(document)
 
 
-def test_communication_7(roundtrip):
+def test_communication_7(roundtrip) -> None:
     document = new_document()
     inf = document.communication(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf7"])
     add_labels(inf)
@@ -1273,38 +1273,38 @@ def test_communication_7(roundtrip):
 
 
 # INFLUENCES
-def test_influence_1(roundtrip):
+def test_influence_1(roundtrip) -> None:
     document = new_document()
     document.influence(EX_NS["a2"], None, identifier=EX_NS["inf1"])
     roundtrip(document)
 
 
-def test_influence_2(roundtrip):
+def test_influence_2(roundtrip) -> None:
     document = new_document()
     document.influence(None, EX_NS["a1"], identifier=EX_NS["inf2"])
     roundtrip(document)
 
 
-def test_influence_3(roundtrip):
+def test_influence_3(roundtrip) -> None:
     document = new_document()
     document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf3"])
     roundtrip(document)
 
 
-def test_influence_4(roundtrip):
+def test_influence_4(roundtrip) -> None:
     document = new_document()
     document.influence(EX_NS["a2"], EX_NS["a1"])
     roundtrip(document)
 
 
-def test_influence_5(roundtrip):
+def test_influence_5(roundtrip) -> None:
     document = new_document()
     inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf5"])
     add_labels(inf)
     roundtrip(document)
 
 
-def test_influence_6(roundtrip):
+def test_influence_6(roundtrip) -> None:
     document = new_document()
     inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf6"])
     add_labels(inf)
@@ -1312,7 +1312,7 @@ def test_influence_6(roundtrip):
     roundtrip(document)
 
 
-def test_influence_7(roundtrip):
+def test_influence_7(roundtrip) -> None:
     document = new_document()
     inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf7"])
     add_labels(inf)
@@ -1322,46 +1322,46 @@ def test_influence_7(roundtrip):
 
 
 # OTHERS
-def test_alternate_1(roundtrip):
+def test_alternate_1(roundtrip) -> None:
     document = new_document()
     document.alternate(EX_NS["e2"], EX_NS["e1"])
     roundtrip(document)
 
 
-def test_specialization_1(roundtrip):
+def test_specialization_1(roundtrip) -> None:
     document = new_document()
     document.specialization(EX_NS["e2"], EX_NS["e1"])
     roundtrip(document)
 
 
 @mention_fmt
-def test_mention_1(roundtrip):
+def test_mention_1(roundtrip) -> None:
     document = new_document()
     document.mention(EX_NS["e2"], EX_NS["e1"], None)
     roundtrip(document)
 
 
 @mention_fmt
-def test_mention_2(roundtrip):
+def test_mention_2(roundtrip) -> None:
     document = new_document()
     document.mention(EX_NS["e2"], EX_NS["e1"], EX_NS["b"])
     roundtrip(document)
 
 
-def test_membership_1(roundtrip):
+def test_membership_1(roundtrip) -> None:
     document = new_document()
     document.membership(EX_NS["c"], EX_NS["e1"])
     roundtrip(document)
 
 
-def test_membership_2(roundtrip):
+def test_membership_2(roundtrip) -> None:
     document = new_document()
     document.membership(EX_NS["c"], EX_NS["e1"])
     document.membership(EX_NS["c"], EX_NS["e2"])
     roundtrip(document)
 
 
-def test_membership_3(roundtrip):
+def test_membership_3(roundtrip) -> None:
     document = new_document()
     document.membership(EX_NS["c"], EX_NS["e1"])
     document.membership(EX_NS["c"], EX_NS["e2"])
@@ -1371,7 +1371,7 @@ def test_membership_3(roundtrip):
 
 # SCRUFFY
 @scruffy_fmt
-def test_scruffy_generation_1(roundtrip):
+def test_scruffy_generation_1(roundtrip) -> None:
     document = new_document()
     document.generation(
         EX_NS["e1"],
@@ -1391,7 +1391,7 @@ def test_scruffy_generation_1(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_generation_2(roundtrip):
+def test_scruffy_generation_2(roundtrip) -> None:
     document = new_document()
     gen1 = document.generation(
         EX_NS["e1"],
@@ -1413,7 +1413,7 @@ def test_scruffy_generation_2(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_invalidation_1(roundtrip):
+def test_scruffy_invalidation_1(roundtrip) -> None:
     document = new_document()
     document.invalidation(
         EX_NS["e1"],
@@ -1433,7 +1433,7 @@ def test_scruffy_invalidation_1(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_invalidation_2(roundtrip):
+def test_scruffy_invalidation_2(roundtrip) -> None:
     document = new_document()
     inv1 = document.invalidation(
         EX_NS["e1"],
@@ -1455,7 +1455,7 @@ def test_scruffy_invalidation_2(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_usage_1(roundtrip):
+def test_scruffy_usage_1(roundtrip) -> None:
     document = new_document()
     document.usage(
         EX_NS["a1"],
@@ -1475,7 +1475,7 @@ def test_scruffy_usage_1(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_usage_2(roundtrip):
+def test_scruffy_usage_2(roundtrip) -> None:
     document = new_document()
     use1 = document.usage(
         EX_NS["a1"],
@@ -1497,7 +1497,7 @@ def test_scruffy_usage_2(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_start_1(roundtrip):
+def test_scruffy_start_1(roundtrip) -> None:
     document = new_document()
     document.start(
         EX_NS["a1"],
@@ -1517,7 +1517,7 @@ def test_scruffy_start_1(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_start_2(roundtrip):
+def test_scruffy_start_2(roundtrip) -> None:
     document = new_document()
     start1 = document.start(
         EX_NS["a1"],
@@ -1539,7 +1539,7 @@ def test_scruffy_start_2(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_start_3(roundtrip):
+def test_scruffy_start_3(roundtrip) -> None:
     document = new_document()
     start1 = document.start(
         EX_NS["a1"],
@@ -1565,7 +1565,7 @@ def test_scruffy_start_3(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_start_4(roundtrip):
+def test_scruffy_start_4(roundtrip) -> None:
     document = new_document()
     start1 = document.start(
         EX_NS["a1"],
@@ -1592,7 +1592,7 @@ def test_scruffy_start_4(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_end_1(roundtrip):
+def test_scruffy_end_1(roundtrip) -> None:
     document = new_document()
     document.end(
         EX_NS["a1"],
@@ -1612,7 +1612,7 @@ def test_scruffy_end_1(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_end_2(roundtrip):
+def test_scruffy_end_2(roundtrip) -> None:
     document = new_document()
     end1 = document.end(
         EX_NS["a1"],
@@ -1634,7 +1634,7 @@ def test_scruffy_end_2(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_end_3(roundtrip):
+def test_scruffy_end_3(roundtrip) -> None:
     document = new_document()
     end1 = document.end(
         EX_NS["a1"],
@@ -1660,7 +1660,7 @@ def test_scruffy_end_3(roundtrip):
 
 
 @scruffy_fmt
-def test_scruffy_end_4(roundtrip):
+def test_scruffy_end_4(roundtrip) -> None:
     document = new_document()
     end1 = document.end(
         EX_NS["a1"],
@@ -1686,7 +1686,7 @@ def test_scruffy_end_4(roundtrip):
     roundtrip(document)
 
 
-def test_bundle_1(roundtrip):
+def test_bundle_1(roundtrip) -> None:
     document = new_document()
 
     bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1705,7 +1705,7 @@ def test_bundle_1(roundtrip):
     roundtrip(document)
 
 
-def test_bundle_2(roundtrip):
+def test_bundle_2(roundtrip) -> None:
     document = new_document()
 
     bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1724,7 +1724,7 @@ def test_bundle_2(roundtrip):
     roundtrip(document)
 
 
-def test_bundle_3(roundtrip):
+def test_bundle_3(roundtrip) -> None:
     document = new_document()
 
     bundle1 = ProvBundle(identifier=EX_NS["bundle1"])
@@ -1743,7 +1743,7 @@ def test_bundle_3(roundtrip):
     roundtrip(document)
 
 
-def test_bundle_4(roundtrip):
+def test_bundle_4(roundtrip) -> None:
     document = new_document()
 
     bundle1 = ProvBundle(identifier=EX_NS["bundle1"])

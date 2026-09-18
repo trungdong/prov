@@ -27,11 +27,11 @@ def records(doc):
     return list(doc.get_records())
 
 
-def test_profiles_constant():
+def test_profiles_constant() -> None:
     assert PROFILES == ("strict", "default", "lenient")
 
 
-def test_default_is_the_default_profile():
+def test_default_is_the_default_profile() -> None:
     doc = ProvDocument.deserialize(
         content=f"document\n{PREFIXES}mentionOf(ex:e1, ex:e0, ex:b)\nendDocument",
         format="provn",
@@ -39,7 +39,7 @@ def test_default_is_the_default_profile():
     assert isinstance(records(doc)[0], ProvMention)
 
 
-def test_unknown_profile_raises():
+def test_unknown_profile_raises() -> None:
     with pytest.raises(ValueError, match="profile"):
         parse("entity(ex:e1)", profile="loose")
 
@@ -57,14 +57,14 @@ SHORTHAND_KEYWORDS = [
 ]
 
 
-def _shorthand_statement(keyword):
+def _shorthand_statement(keyword) -> str:
     derivation = keyword in ("wasRevisionOf", "wasQuotedFrom", "hadPrimarySource")
     return f"{keyword}(ex:e2, ex:e1)" if derivation else f"{keyword}(ex:x)"
 
 
 @pytest.mark.parametrize("keyword", SHORTHAND_KEYWORDS)
 @pytest.mark.parametrize("profile", ["strict", "default"])
-def test_typed_shorthand_keywords_are_unknown(keyword, profile):
+def test_typed_shorthand_keywords_are_unknown(keyword, profile) -> None:
     # PROV-XML has typed elements such as <prov:person>; PROV-N has no such
     # keywords, and neither prov nor ProvToolbox writes them.
     with pytest.raises(
@@ -74,7 +74,7 @@ def test_typed_shorthand_keywords_are_unknown(keyword, profile):
 
 
 @pytest.mark.parametrize("keyword", SHORTHAND_KEYWORDS)
-def test_lenient_skips_a_typed_shorthand_keyword(keyword):
+def test_lenient_skips_a_typed_shorthand_keyword(keyword) -> None:
     with pytest.warns(ProvWarning, match=f"unknown statement keyword '{keyword}'"):
         doc = parse(
             f"{_shorthand_statement(keyword)}\nentity(ex:e9)", profile="lenient"
@@ -82,19 +82,19 @@ def test_lenient_skips_a_typed_shorthand_keyword(keyword):
     assert [str(r.identifier) for r in records(doc)] == ["ex:e9"]
 
 
-def test_strict_rejects_bare_mention_but_accepts_prefixed():
+def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
     with pytest.raises(ProvNSyntaxError):
         parse("mentionOf(ex:e1, ex:e0, ex:b)", profile="strict")
     (record,) = records(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)", profile="strict"))
     assert isinstance(record, ProvMention)
 
 
-def test_extensibility_rejected_in_default():
+def test_extensibility_rejected_in_default() -> None:
     with pytest.raises(ProvNSyntaxError, match="extensibility expression"):
         parse("ex:custom(ex:e1)")
 
 
-def test_lenient_skips_bad_statement_and_warns_with_position():
+def test_lenient_skips_bad_statement_and_warns_with_position() -> None:
     # document=1, prefix ex=2, entity(ex:e1)=3, so foo(ex:e2) is line 4 --
     # same convention test_provn.py's test_errors_name_the_problem_and_position
     # and test_model_errors_carry_the_statement_position pin with their own
@@ -107,7 +107,7 @@ def test_lenient_skips_bad_statement_and_warns_with_position():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e3"]
 
 
-def test_lenient_resumes_after_multiline_attribute_list():
+def test_lenient_resumes_after_multiline_attribute_list() -> None:
     body = (
         "entity(ex:e1, [\n"
         "  ex:a=1,\n"
@@ -123,7 +123,7 @@ def test_lenient_resumes_after_multiline_attribute_list():
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
-def test_lenient_warns_once_per_bad_statement():
+def test_lenient_warns_once_per_bad_statement() -> None:
     body = "foo(ex:e1)\nentity(ex:e2)\nbar(ex:e3)\nentity(ex:e4, [ex:k=])"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
@@ -131,7 +131,7 @@ def test_lenient_warns_once_per_bad_statement():
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
-def test_lenient_warns_for_each_of_two_adjacent_unknown_statements():
+def test_lenient_warns_for_each_of_two_adjacent_unknown_statements() -> None:
     body = "entity(ex:e1)\nfoo(ex:e2)\nbar(ex:e3)\nentity(ex:e4)"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
@@ -142,7 +142,7 @@ def test_lenient_warns_for_each_of_two_adjacent_unknown_statements():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e4"]
 
 
-def test_lenient_warns_for_each_of_two_adjacent_extensibility_expressions():
+def test_lenient_warns_for_each_of_two_adjacent_extensibility_expressions() -> None:
     # ProvToolbox's summary documents write runs of provext: statements; each
     # must be reported, not only the first of a run.
     body = (
@@ -163,18 +163,18 @@ def test_lenient_warns_for_each_of_two_adjacent_extensibility_expressions():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e2"]
 
 
-def test_lenient_skips_extensibility_expression():
+def test_lenient_skips_extensibility_expression() -> None:
     with pytest.warns(ProvWarning, match="extensibility"):
         doc = parse("ex:custom(ex:e1)\nentity(ex:e2)", profile="lenient")
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
-def test_lenient_still_raises_on_tokenisation_error():
+def test_lenient_still_raises_on_tokenisation_error() -> None:
     with pytest.raises(ProvNSyntaxError, match="unterminated string"):
         parse('entity(ex:e1, [ex:k="open])', profile="lenient")
 
 
-def test_lenient_returns_bundle_statements_after_a_skip():
+def test_lenient_returns_bundle_statements_after_a_skip() -> None:
     body = "bundle ex:b\n  foo(ex:x)\n  entity(ex:e1)\nendBundle"
     with pytest.warns(ProvWarning):
         doc = parse(body, profile="lenient")
@@ -182,7 +182,7 @@ def test_lenient_returns_bundle_statements_after_a_skip():
     assert [str(r.identifier) for r in records(bundle)] == ["ex:e1"]
 
 
-def test_lenient_resync_recovers_from_a_missing_close_paren():
+def test_lenient_resync_recovers_from_a_missing_close_paren() -> None:
     # entity(ex:e1 is missing its ')'; _advance() raises self._depth on '('
     # and never lowers it again, so resync must not gate on depth staying
     # at or below where the failed statement started.
@@ -193,7 +193,7 @@ def test_lenient_resync_recovers_from_a_missing_close_paren():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
 
 
-def test_lenient_resync_recovers_from_a_missing_close_bracket():
+def test_lenient_resync_recovers_from_a_missing_close_bracket() -> None:
     body = 'entity(ex:e1, [ex:a="x"\nentity(ex:e2)\nentity(ex:e3)'
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
@@ -201,7 +201,7 @@ def test_lenient_resync_recovers_from_a_missing_close_bracket():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
 
 
-def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle():
+def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle() -> None:
     body = "bundle ex:b\n  entity(ex:e1\n  entity(ex:e2)\n  entity(ex:e3)\nendBundle"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
@@ -210,7 +210,7 @@ def test_lenient_resync_recovers_from_a_missing_close_paren_in_a_bundle():
     assert sorted(str(r.identifier) for r in records(bundle)) == ["ex:e2", "ex:e3"]
 
 
-def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value():
+def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value() -> None:
     # A structural keyword (here 'bundle') used as a bare attribute value
     # inside the failed statement's still-open '[...]' is not a resync
     # boundary just because it matches by name -- unlike an element/relation
@@ -223,14 +223,14 @@ def test_lenient_resync_does_not_stop_on_a_structural_keyword_shaped_value():
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e2", "ex:e3"]
 
 
-def test_strict_and_default_do_not_warn():
+def test_strict_and_default_do_not_warn() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         parse("entity(ex:e1)", profile="strict")
         parse("entity(ex:e1)")
 
 
-def test_model_rejection_is_wrapped_and_skippable(monkeypatch):
+def test_model_rejection_is_wrapped_and_skippable(monkeypatch) -> None:
     """A statement the grammar accepts but ``new_record()`` rejects is a
     ``ProvException``, not a ``ProvNSyntaxError``; the parser must wrap it
     with the statement's position before applying the lenient skip-and-warn
@@ -258,7 +258,7 @@ def test_model_rejection_is_wrapped_and_skippable(monkeypatch):
     assert [str(r.identifier) for r in records(doc)] == ["ex:good"]
 
 
-def test_typed_literal_value_error_is_wrapped_and_skippable():
+def test_typed_literal_value_error_is_wrapped_and_skippable() -> None:
     """``parse_xsd_types()`` raises a bare ``ValueError``/``OverflowError``
     for a malformed typed literal (e.g. ``int("abc")``); the parser must
     wrap it into a ``ProvNSyntaxError`` with the statement's position, just
@@ -274,7 +274,7 @@ def test_typed_literal_value_error_is_wrapped_and_skippable():
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
-def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal():
+def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal() -> None:
     # The bad literal 'entity' inside [ex:k=entity] is itself spelt like a
     # statement keyword; resync must not treat it as a fresh statement
     # boundary just because it matches by name.
@@ -285,7 +285,7 @@ def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal():
     assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
 
 
-def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value():
+def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value() -> None:
     # Same bug, dressed as the shape examples.default_namespace_attributes's
     # writer output takes: a keyword-shaped bare name used as an attribute
     # key/value in the statement that should be recovered into, not treated
@@ -304,7 +304,7 @@ def test_lenient_resync_does_not_stop_on_a_keyword_shaped_attribute_value():
     assert record.get_type() == PROV["Usage"]
 
 
-def test_lenient_warning_reports_the_deserialize_call_site():
+def test_lenient_warning_reports_the_deserialize_call_site() -> None:
     """The warning's reported filename/line is this test module's call to
     ``ProvDocument.deserialize()``, not a frame inside the parser -- whether
     the skipped statement is at document level or inside a bundle."""
@@ -321,7 +321,7 @@ def test_lenient_warning_reports_the_deserialize_call_site():
     assert caught[0].filename == __file__
 
 
-def test_lenient_warning_reports_the_read_call_site(tmp_path):
+def test_lenient_warning_reports_the_read_call_site(tmp_path) -> None:
     """The same guarantee holds through prov.read()'s extra frame, for both
     an explicit format= and auto-detection."""
     import prov
@@ -347,7 +347,7 @@ def test_lenient_warning_reports_the_read_call_site(tmp_path):
     assert prov_warnings[0].filename == __file__
 
 
-def test_lenient_resync_stops_at_a_bundle_header_after_an_unclosed_statement():
+def test_lenient_resync_stops_at_a_bundle_header_after_an_unclosed_statement() -> None:
     body = 'entity(ex:e, [ex:a="x"\nbundle ex:b\n  entity(ex:f)\nendBundle'
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
@@ -357,14 +357,14 @@ def test_lenient_resync_stops_at_a_bundle_header_after_an_unclosed_statement():
     assert [str(r.identifier) for r in records(bundle)] == ["ex:f"]
 
 
-def test_lenient_resync_stops_at_end_document_after_an_unclosed_statement():
+def test_lenient_resync_stops_at_end_document_after_an_unclosed_statement() -> None:
     with pytest.warns(ProvWarning) as caught:
         doc = parse("entity(", profile="lenient")
     assert len(caught) == 1
     assert records(doc) == []
 
 
-def test_lenient_skips_a_duplicate_bundle_whole():
+def test_lenient_skips_a_duplicate_bundle_whole() -> None:
     body = "bundle ex:b\n  entity(ex:e1)\nendBundle\nbundle ex:b\n  entity(ex:e2)\nendBundle\nentity(ex:e3)"
     with pytest.warns(ProvWarning, match="already exists") as caught:
         doc = parse(body, profile="lenient")
@@ -375,7 +375,7 @@ def test_lenient_skips_a_duplicate_bundle_whole():
 
 
 @pytest.mark.parametrize("profile", ["strict", "default"])
-def test_structural_keyword_shaped_data_still_parses(profile):
+def test_structural_keyword_shaped_data_still_parses(profile) -> None:
     """The lookahead that stops an unclosed statement from swallowing a
     following 'bundle'/'endDocument' as data (see
     test_lenient_resync_stops_at_end_document_after_an_unclosed_statement)

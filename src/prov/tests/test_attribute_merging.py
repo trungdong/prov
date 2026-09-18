@@ -67,30 +67,30 @@ def _typed_values_by_name(record, attr_name):
 # see the "public accessors" section below)
 
 
-def test_construction_retains_python_equal_differently_typed_values(doc):
+def test_construction_retains_python_equal_differently_typed_values(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
     assert _typed_values_by_name(e, "ex:v") == {(int, 2), (float, 2.0)}
 
 
-def test_construction_retains_bool_vs_int(doc):
+def test_construction_retains_bool_vs_int(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 1), ("ex:v", True)])
     assert _typed_values_by_name(e, "ex:v") == {(int, 1), (bool, True)}
 
 
-def test_int_vs_bool_that_are_not_equal_is_not_a_regression_case(doc):
+def test_int_vs_bool_that_are_not_equal_is_not_a_regression_case(doc) -> None:
     # 2 != True, so this was never collapsed even in 2.x; both values are
     # simply retained as they always were.
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", True)])
     assert _typed_values_by_name(e, "ex:v") == {(int, 2), (bool, True)}
 
 
-def test_second_add_attributes_call_retains_both_values(doc):
+def test_second_add_attributes_call_retains_both_values(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 2)])
     e.add_attributes([("ex:v", 2.0)])
     assert _typed_values_by_name(e, "ex:v") == {(int, 2), (float, 2.0)}
 
 
-def test_unified_union_retains_both_values(doc):
+def test_unified_union_retains_both_values(doc) -> None:
     doc.entity("ex:e", [("ex:v", 2)])
     doc.entity("ex:e", [("ex:v", 2.0)])
     unified = doc.unified()
@@ -102,12 +102,12 @@ def test_unified_union_retains_both_values(doc):
 # (single-value cases: get_attribute() and `attributes` agree here)
 
 
-def test_genuine_duplicate_value_still_deduplicates(doc):
+def test_genuine_duplicate_value_still_deduplicates(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2)])
     assert list(e.get_attribute("ex:v")) == [2]
 
 
-def test_literal_decimal_value_space_dedup_unchanged(doc):
+def test_literal_decimal_value_space_dedup_unchanged(doc) -> None:
     e = doc.entity(
         "ex:e",
         [
@@ -124,7 +124,7 @@ def test_literal_decimal_value_space_dedup_unchanged(doc):
     assert retained.value == "10"
 
 
-def test_literal_langtag_case_dedup_keeps_first(doc):
+def test_literal_langtag_case_dedup_keeps_first(doc) -> None:
     e = doc.entity(
         "ex:e",
         [
@@ -143,7 +143,7 @@ def test_literal_langtag_case_dedup_keeps_first(doc):
 # --- AC: __eq__/__hash__ distinguish the retained values ---
 
 
-def test_records_with_different_retained_value_sets_are_not_equal(doc):
+def test_records_with_different_retained_value_sets_are_not_equal(doc) -> None:
     # Same identifier -- equality/hash must fall through to comparing the
     # attribute sets, since it short-circuits on differing identifiers first.
     ident = doc.entity("ex:anchor").identifier
@@ -154,7 +154,9 @@ def test_records_with_different_retained_value_sets_are_not_equal(doc):
     assert hash(e_both) != hash(e_one)
 
 
-def test_hash_distinguishes_typed_values_even_when_attributes_property_collapses(doc):
+def test_hash_distinguishes_typed_values_even_when_attributes_property_collapses(
+    doc,
+) -> None:
     # `attributes` yields plain (name, value) tuples; frozenset() of THOSE
     # would re-collapse (name, 2) and (name, 2.0) because the tuples compare
     # equal. __hash__/__eq__ must not go through that naive path.
@@ -170,7 +172,7 @@ def test_hash_distinguishes_typed_values_even_when_attributes_property_collapses
 # --- AC: record equality/hash still order-insensitive ---
 
 
-def test_equality_and_hash_are_order_insensitive(doc):
+def test_equality_and_hash_are_order_insensitive(doc) -> None:
     ident = doc.entity("ex:anchor3").identifier
     e_forward = ProvEntity(
         doc, ident, [("ex:v", 2), ("ex:v", 2.0), ("ex:w", True), ("ex:w", 1)]
@@ -186,7 +188,7 @@ def test_equality_and_hash_are_order_insensitive(doc):
 
 
 @pytest.mark.parametrize("fmt", ["json", "xml", "rdf"])
-def test_mixed_typed_attribute_round_trips(fmt):
+def test_mixed_typed_attribute_round_trips(fmt) -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
@@ -208,7 +210,7 @@ def test_mixed_typed_attribute_round_trips(fmt):
 # hashing and serialization all retain every value (characterized above).
 
 
-def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc):
+def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 2), ("ex:v", 2.0)])
     values = e.get_attribute("ex:v")
     # isinstance(), not a live-container leak check in disguise: TypedValueSet
@@ -218,14 +220,14 @@ def test_get_attribute_returns_a_plain_set_that_collapses_like_2x(doc):
     assert values == {2}  # 2.0 collapses in this copy, exactly as in 2.x
 
 
-def test_get_attribute_returns_a_copy_not_the_live_container(doc):
+def test_get_attribute_returns_a_copy_not_the_live_container(doc) -> None:
     e = doc.entity("ex:e", [("ex:v", 2)])
     values = e.get_attribute("ex:v")
     values.add(999)  # mutating the returned set must not touch storage
     assert e.get_attribute("ex:v") == {2}
 
 
-def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc):
+def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc) -> None:
     # prov:type values are always QualifiedNames, which never collapse under
     # Python equality, so unlike get_attribute()/.value this accessor's
     # plain-set copy never actually loses information in practice.
@@ -239,14 +241,14 @@ def test_get_asserted_types_returns_a_plain_set_and_is_type_preserving(doc):
     assert types == {foo, bar}
 
 
-def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc):
+def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc) -> None:
     e = doc.entity("ex:e", [("prov:value", 2), ("prov:value", 2.0)])
     values = e.value
     assert isinstance(values, set)  # not a set subclass, see note above
     assert values == {2}
 
 
-def test_add_asserted_type_mutates_live_storage_not_a_copy(doc):
+def test_add_asserted_type_mutates_live_storage_not_a_copy(doc) -> None:
     # add_asserted_type() must keep mutating the record's own storage
     # directly (self._attributes[...].add(...)) rather than a copy, since a
     # copy would have nowhere to persist the mutation to.
@@ -256,14 +258,14 @@ def test_add_asserted_type_mutates_live_storage_not_a_copy(doc):
     assert len(e.get_asserted_types()) == 2
 
 
-def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc):
+def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc) -> None:
     e = doc.entity("ex:e")
     assert e.get_asserted_types() == set()
     assert not e.get_asserted_types()
     assert e.value == set()
 
 
-def test_internal_storage_contains_and_discard_are_type_aware(doc):
+def test_internal_storage_contains_and_discard_are_type_aware(doc) -> None:
     # __contains__()/discard() are required MutableSet abstract/mixin
     # methods on the internal per-attribute container; neither is reachable
     # via any public API today (get_attribute() returns a detached plain-set
@@ -281,7 +283,7 @@ def test_internal_storage_contains_and_discard_are_type_aware(doc):
     assert _typed(container) == {(int, 2)}
 
 
-def test_activity_settime_raw_assignment_still_produces_typed_storage(doc):
+def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> None:
     # ProvActivity.set_time() assigns straight into _attributes (not through
     # an accessor); confirm it still produces the internal type-aware
     # container, not a plain set, so a later add_attributes() call on the
@@ -296,7 +298,7 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc):
 # --- Inherited issue 1: hadMember multi-value narrowing stays unobservable ---
 
 
-def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc):
+def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc) -> None:
     # ProvRecord.add_attributes() bypasses its single-value guard for every
     # attribute in a call that also includes prov:collection, so a
     # ProvMembership *can* hold two prov:entity values if constructed
@@ -330,7 +332,9 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc):
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---
 
 
-def test_unified_merge_conflicting_extra_attribute_raises_plain_provexception(doc):
+def test_unified_merge_conflicting_extra_attribute_raises_plain_provexception(
+    doc,
+) -> None:
     # Two entities sharing an identifier each assert a *different*
     # prov:startTime as a non-formal (extra) attribute: prov:startTime is
     # not a formal attribute of ProvEntity, but it IS a member of the global

@@ -31,7 +31,7 @@ DATA_PATH = os.path.join(
 )
 
 
-def remove_empty_tags(tree):
+def remove_empty_tags(tree) -> None:
     if tree.text is not None and tree.text.strip() == "":
         tree.text = None
     for elem in tree:
@@ -39,7 +39,7 @@ def remove_empty_tags(tree):
             remove_empty_tags(elem)
 
 
-def compare_xml(doc1, doc2):
+def compare_xml(doc1, doc2) -> None:
     """
     Helper function to compare two XML files. It will parse both once again
     and write them in a canonical fashion.
@@ -83,7 +83,7 @@ def compare_xml(doc1, doc2):
         raise AssertionError(msg + err_msg)
 
 
-def test_serialization_example_6():
+def test_serialization_example_6() -> None:
     """
     Test the serialization of example 6 which is a simple entity
     description.
@@ -102,7 +102,7 @@ def test_serialization_example_6():
         compare_xml(os.path.join(DATA_PATH, "example_06.xml"), actual)
 
 
-def test_serialization_example_7():
+def test_serialization_example_7() -> None:
     """
     Test the serialization of example 7 which is a basic activity.
     """
@@ -124,7 +124,7 @@ def test_serialization_example_7():
         compare_xml(os.path.join(DATA_PATH, "example_07.xml"), actual)
 
 
-def test_serialization_example_8():
+def test_serialization_example_8() -> None:
     """
     Test the serialization of example 8 which deals with generation.
     """
@@ -155,7 +155,7 @@ def test_serialization_example_8():
         compare_xml(os.path.join(DATA_PATH, "example_08.xml"), actual)
 
 
-def test_deserialization_example_6():
+def test_deserialization_example_6() -> None:
     """
     Test the deserialization of example 6 which is a simple entity
     description.
@@ -176,7 +176,7 @@ def test_deserialization_example_6():
     assert actual_doc == expected_document
 
 
-def test_deserialization_example_7():
+def test_deserialization_example_7() -> None:
     """
     Test the deserialization of example 7 which is a simple activity
     description.
@@ -202,7 +202,7 @@ def test_deserialization_example_7():
     assert actual_doc == expected_document
 
 
-def test_deserialization_example_04_and_05():
+def test_deserialization_example_04_and_05() -> None:
     """
     Example 4 and 5 have a different type specification. They use an
     xsi:type as an attribute on an entity. This can be read but if
@@ -284,7 +284,7 @@ def test_deserialization_example_04_and_05():
     assert actual_document == expected_document, "example_05"
 
 
-def test_other_elements():
+def test_other_elements() -> None:
     """
     PROV XML uses the <prov:other> element to enable the storage of non
     PROV information in a PROV XML document. It will be ignored by this
@@ -328,7 +328,7 @@ def test_other_elements():
     assert len(doc._records) == 0
 
 
-def test_nested_default_namespace():
+def test_nested_default_namespace() -> None:
     """
     Tests that a default namespace that is defined in a lower level tag is
     written to a bundle.
@@ -344,7 +344,7 @@ def test_nested_default_namespace():
     assert doc._records[0].identifier.localpart == "e001"
 
 
-def test_redefining_namespaces():
+def test_redefining_namespaces() -> None:
     """
     Test the behaviour when namespaces are redefined at the element level.
     """
@@ -363,7 +363,7 @@ def test_redefining_namespaces():
     assert new_ns.uri == "http://example.com/ns/new_ex#"
 
 
-def test_deserialization_with_prov_as_default_namespace():
+def test_deserialization_with_prov_as_default_namespace() -> None:
     # https://github.com/trungdong/prov/issues/155
     xml_string = """<document xmlns="http://www.w3.org/ns/prov#"
         xmlns:xsd="http://www.w3.org/2001/XMLSchema"
@@ -387,7 +387,7 @@ def test_deserialization_with_prov_as_default_namespace():
     assert round_tripped == document
 
 
-def test_deserialization_with_xsd_as_default_namespace():
+def test_deserialization_with_xsd_as_default_namespace() -> None:
     # An unprefixed xsi:type resolved against an XSD default namespace must
     # map to the canonical xsd namespace (with #); previously it produced a
     # corrupt datatype URI (http://www.w3.org/2001/XMLSchemaint).
@@ -410,14 +410,14 @@ def test_deserialization_with_xsd_as_default_namespace():
 # serializers/provxml.py).
 
 
-def test_serialize_without_a_document_raises():
+def test_serialize_without_a_document_raises() -> None:
     serializer = ProvXMLSerializer(document=None)
     with pytest.raises(ProvXMLException) as ctx:
         serializer.serialize(io.BytesIO())
     assert "No document to serialize" in str(ctx.value)
 
 
-def test_non_prov_top_level_element_raises():
+def test_non_prov_top_level_element_raises() -> None:
     xml_string = """<?xml version="1.0" encoding="UTF-8"?>
     <prov:document
         xmlns:prov="http://www.w3.org/ns/prov#"
@@ -433,7 +433,7 @@ def test_non_prov_top_level_element_raises():
     assert "Non PROV element discovered" in str(ctx.value)
 
 
-def test_unrepresentable_sub_element_attribute_warns_and_is_ignored():
+def test_unrepresentable_sub_element_attribute_warns_and_is_ignored() -> None:
     # An attribute on a PROV-XML sub-element other than prov:ref,
     # xsi:type, or xml:lang cannot be represented in the internal data
     # model; it is dropped with a warning rather than raising.
@@ -462,7 +462,7 @@ def test_unrepresentable_sub_element_attribute_warns_and_is_ignored():
     assert list(e1.get_attribute("ex:version")) == ["2"]
 
 
-def test_unrecognised_only_attribute_on_first_sub_element_raises():
+def test_unrecognised_only_attribute_on_first_sub_element_raises() -> None:
     # #254 mode 1: a child whose only XML attribute is unrecognised used to
     # leak a raw UnboundLocalError when it was the record's first child.
     xml_string = """<?xml version="1.0" encoding="UTF-8"?>
@@ -484,7 +484,7 @@ def test_unrecognised_only_attribute_on_first_sub_element_raises():
     assert "no representable value" in str(ctx.value)
 
 
-def test_unrecognised_only_attribute_after_sibling_raises_not_reuses_value():
+def test_unrecognised_only_attribute_after_sibling_raises_not_reuses_value() -> None:
     # #254 mode 2: with a previous sibling, the stale value used to be
     # silently reused ("world" lost, "hello" duplicated).
     xml_string = """<?xml version="1.0" encoding="UTF-8"?>
@@ -507,7 +507,7 @@ def test_unrecognised_only_attribute_after_sibling_raises_not_reuses_value():
     assert "no representable value" in str(ctx.value)
 
 
-def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises():
+def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises() -> None:
     element = etree.fromstring(
         '<root xmlns:ex="http://example.com/ns/ex#"><child/></root>'
     )
@@ -517,7 +517,7 @@ def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises():
     assert "Could not create a valid QualifiedName" in str(ctx.value)
 
 
-def test_empty_string_attribute_survives_xml_roundtrip():
+def test_empty_string_attribute_survives_xml_roundtrip() -> None:
     document = prov.ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.agent("ex:g0", {"ex:k0": ""})
@@ -533,7 +533,7 @@ def test_empty_string_attribute_survives_xml_roundtrip():
         pytest.param({"ex:lit": prov.Literal("", langtag="en")}, id="literal-langtag"),
     ],
 )
-def test_empty_string_value_shapes_survive_xml_roundtrip(attributes):
+def test_empty_string_value_shapes_survive_xml_roundtrip(attributes) -> None:
     # #224: an empty-string value must not vanish on the round trip,
     # regardless of which XML shape it takes (plain text, prov:label,
     # prov:value with an inferred xsd:string type, or a language-tagged
@@ -544,7 +544,7 @@ def test_empty_string_value_shapes_survive_xml_roundtrip(attributes):
     assert roundtrip_document(document, "xml") == document
 
 
-def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip():
+def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip() -> None:
     # Regression guard for #224: a genuinely *absent* optional formal
     # attribute (no XML element for it at all) must still deserialize as
     # None, not be coalesced into the empty string.
@@ -564,7 +564,7 @@ def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip():
     assert formal[PROV["time"]] is None
 
 
-def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip():
+def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip() -> None:
     # #289 repro: an attribute name containing characters illegal in an XML
     # NCName must not raise, and must round-trip losslessly.
     document = prov.ProvDocument()
@@ -586,14 +586,14 @@ def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip():
         pytest.param("0leadingdigit", id="leading-digit"),
     ],
 )
-def test_ncname_illegal_attribute_names_roundtrip_xml(local_part):
+def test_ncname_illegal_attribute_names_roundtrip_xml(local_part) -> None:
     document = prov.ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1", {f"ex:{local_part}": "value"})
     assert roundtrip_document(document, "xml") == document
 
 
-def test_valid_ncname_attribute_name_serializes_byte_identically():
+def test_valid_ncname_attribute_name_serializes_byte_identically() -> None:
     # Names that are already legal NCNames must not gain any _xHHHH_
     # escaping -- existing output stays byte-identical (#289).
     document = prov.ProvDocument()
@@ -606,7 +606,7 @@ def test_valid_ncname_attribute_name_serializes_byte_identically():
     assert "<ex:plainKey0>" in xml_text
 
 
-def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml():
+def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml() -> None:
     # A literal attribute name that itself already looks like an _xHHHH_
     # escape sequence must still round-trip: the write side self-escapes
     # its introducing underscore (as _x005F_) so the read side's inverse
@@ -641,7 +641,7 @@ def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml():
         pytest.param("attr\U0010ffff", id="astral-above-legal-range"),
     ],
 )
-def test_escape_unescape_ncname_localpart_is_inverse(local):
+def test_escape_unescape_ncname_localpart_is_inverse(local) -> None:
     escaped = _escape_ncname_localpart(local)
     # The pair must be an exact inverse ...
     assert _unescape_ncname_localpart(escaped) == local
@@ -719,7 +719,7 @@ def restore_default_xml_parser():
         etree.set_default_parser(original_parser)
 
 
-def _xxe_document(secret_path):
+def _xxe_document(secret_path) -> str:
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE prov:document [
   <!ENTITY xxe SYSTEM "file://{secret_path}">
@@ -761,7 +761,7 @@ _BILLION_LAUGHS_DOCUMENT = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 
-def test_external_entity_does_not_leak_file_contents(tmp_path):
+def test_external_entity_does_not_leak_file_contents(tmp_path) -> None:
     # Actual hardened behaviour observed with `_XML_PARSER`
     # (resolve_entities=False): the document deserializes without raising,
     # but the SYSTEM entity reference is left unresolved rather than
@@ -785,7 +785,7 @@ def test_external_entity_does_not_leak_file_contents(tmp_path):
     assert values == [""]
 
 
-def test_billion_laughs_does_not_expand():
+def test_billion_laughs_does_not_expand() -> None:
     # Guards against unbounded entity amplification. This is libxml2's own
     # long-standing hard-coded amplification cap doing the work, not
     # anything provxml.py configures -- kept here as a regression guard in
@@ -797,7 +797,7 @@ def test_billion_laughs_does_not_expand():
 
 def test_deserialize_ignores_tampered_default_parser(
     tmp_path, restore_default_xml_parser
-):
+) -> None:
     # The reproducible vector: provxml.py's own `etree.parse` calls pass an
     # explicit, hardened parser, so they are unaffected even when some other
     # code in the same process has repointed lxml's *global* default parser
@@ -831,7 +831,7 @@ def test_deserialize_ignores_tampered_default_parser(
 # (planning/specs/2026-07-06-test-suite-redesign.md).
 
 
-def _perform_round_trip(filename, force_types=False):
+def _perform_round_trip(filename, force_types=False) -> None:
     document = prov.ProvDocument.deserialize(source=filename, format="xml")
 
     with io.BytesIO() as new_xml:
@@ -839,7 +839,7 @@ def _perform_round_trip(filename, force_types=False):
         compare_xml(filename, new_xml)
 
 
-def test_bundle_namespace_order_follows_registration_in_xml():
+def test_bundle_namespace_order_follows_registration_in_xml() -> None:
     # #337: bundle namespaces are declared in registration order.
     document = prov.ProvDocument()
     document.set_default_namespace("http://example.org/")
@@ -859,7 +859,7 @@ FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/pro
 
 
 @pytest.mark.parametrize("force_types", [True, False])
-def test_force_types_controls_xsi_type_on_non_prov_attributes(force_types):
+def test_force_types_controls_xsi_type_on_non_prov_attributes(force_types) -> None:
     document = prov.ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity(
@@ -898,7 +898,7 @@ def _membership_xml(entity_element: str) -> str:
     </document>"""
 
 
-def test_nested_reference_child_is_used_with_a_warning():
+def test_nested_reference_child_is_used_with_a_warning() -> None:
     # ProvToolbox 2.0.4 wraps a hadMember's member in an extra <entity>
     # element; the schema puts prov:ref on the element itself.
     xml_string = _membership_xml(
@@ -911,13 +911,13 @@ def test_nested_reference_child_is_used_with_a_warning():
     assert str(member) == "ex:e1"
 
 
-def test_blank_reference_element_without_ref_raises():
+def test_blank_reference_element_without_ref_raises() -> None:
     xml_string = _membership_xml("<entity>   </entity>")
     with pytest.raises(ProvXMLException, match="no prov:ref"):
         prov.ProvDocument.deserialize(content=xml_string, format="xml")
 
 
-def test_reference_given_as_element_text_still_decodes():
+def test_reference_given_as_element_text_still_decodes() -> None:
     xml_string = _membership_xml("<entity>ex:e1</entity>")
     with warnings.catch_warnings():
         warnings.simplefilter("error")
@@ -927,7 +927,7 @@ def test_reference_given_as_element_text_still_decodes():
     assert str(member) == "ex:e1"
 
 
-def test_nested_reference_warning_is_attributed_to_the_caller():
+def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
     xml_string = _membership_xml(
         '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
     )

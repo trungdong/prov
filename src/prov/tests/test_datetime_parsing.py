@@ -57,7 +57,7 @@ UTC = datetime.timezone.utc
         ),
     ],
 )
-def test_parse_xsd_datetime_accepts(text, expected):
+def test_parse_xsd_datetime_accepts(text, expected) -> None:
     assert parse_xsd_datetime(text) == expected
 
 
@@ -73,11 +73,11 @@ def test_parse_xsd_datetime_accepts(text, expected):
         "2011-11-16T21:08:16z",  # lowercase "z" is not a valid xsd:dateTime UTC designator
     ],
 )
-def test_parse_xsd_datetime_rejects(text):
+def test_parse_xsd_datetime_rejects(text) -> None:
     assert parse_xsd_datetime(text) is None
 
 
-def test_factory_rejects_bad_time_with_prov_exception():
+def test_factory_rejects_bad_time_with_prov_exception() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     with pytest.raises(ProvException):

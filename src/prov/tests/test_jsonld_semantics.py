@@ -58,7 +58,7 @@ def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_entity_and_generation(context):
+def test_expansion_entity_and_generation(context) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -81,7 +81,7 @@ def test_expansion_entity_and_generation(context):
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_language_tagged_label(context):
+def test_expansion_language_tagged_label(context) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", (("prov:label", Literal("bonjour", langtag="fr")),))
@@ -94,7 +94,7 @@ def test_expansion_language_tagged_label(context):
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context):
+def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context) -> None:
     # Regression test: a document with a default namespace emits bare local
     # names ("e1", not "ex:e1") for its identifiers. JSON-LD's "@vocab"
     # governs bare property terms and bare "@type" values, but NOT "@id"

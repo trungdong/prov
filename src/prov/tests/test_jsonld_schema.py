@@ -88,7 +88,7 @@ def _canonicalize_embedded_context(container: dict[str, Any]) -> dict[str, Any]:
 @pytest.mark.parametrize("context", ["url", "embed"])
 def test_example_documents_validate_against_prov_jsonld_schema(
     prov_jsonld_validator, make_document, context
-):
+) -> None:
     document = make_document()
     if contains_mention(document):
         with pytest.raises(ProvJSONLDException):
@@ -103,7 +103,7 @@ def test_example_documents_validate_against_prov_jsonld_schema(
 
 def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
     prov_jsonld_validator,
-):
+) -> None:
     """A default-namespace attribute must not encode to a bare (unprefixed) key.
 
     When this test was first written, none of the canonical

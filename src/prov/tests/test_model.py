@@ -38,7 +38,7 @@ EX_URI = "http://www.example.org/"
 EX2_URI = "http://www.example2.org/"
 
 
-def test_loading_all_json():
+def test_loading_all_json() -> None:
     json_path = os.path.dirname(os.path.abspath(__file__)) + "/json/"
     fails = []
     for filename in os.listdir(json_path):
@@ -66,7 +66,7 @@ def test_loading_all_json():
             assert g1 == g2, f"Round-trip JSON encoding/decoding failed:  {filename}."
 
 
-def test_flattening():
+def test_flattening() -> None:
     for name, graph in examples.tests:
         logger.info("Testing flattening of the %s example", name)
         document = graph()
@@ -84,7 +84,7 @@ def test_flattening():
         assert n_records == len(flattened.get_records())
 
 
-def test_unifying():
+def test_unifying() -> None:
     # Exercises unified() over the hand-made fixtures in unification/: files
     # named "...-PASS-cNN.json" merge (the unified record count shrinks
     # relative to the flattened one), while "...-FAIL-cNN.json" fixtures
@@ -109,7 +109,7 @@ def test_unifying():
                 assert len(unified.get_records()) < len(flattened.get_records())
 
 
-def test_bundle_update_simple():
+def test_bundle_update_simple() -> None:
     doc = ProvDocument()
     doc.set_default_namespace(EX_URI)
 
@@ -128,7 +128,7 @@ def test_bundle_update_simple():
     assert len(b1.get_records()) == 2
 
 
-def test_document_update_simple():
+def test_document_update_simple() -> None:
     d1 = ProvDocument()
     d1.set_default_namespace(EX_URI)
     d1.entity("e")
@@ -153,7 +153,7 @@ def test_document_update_simple():
     assert len(d1.bundles) == 2
 
 
-def test_document_update_merges_bundles_with_same_identifier():
+def test_document_update_merges_bundles_with_same_identifier() -> None:
     # When both documents already have a bundle with the same identifier,
     # update() must merge the records of the other's bundle into the
     # existing one rather than raising/duplicating (model.py ~2664).
@@ -174,7 +174,7 @@ def test_document_update_merges_bundles_with_same_identifier():
     assert len(merged_bundle.get_records()) == 2
 
 
-def test_document_update_from_other_with_no_bundles():
+def test_document_update_from_other_with_no_bundles() -> None:
     # ProvDocument.update()'s bundle-merging block is only entered when
     # `other.has_bundles()`; a document with only top-level records must
     # skip it cleanly (model.py ~2629).
@@ -210,7 +210,7 @@ def _bundle_0():
     return ProvBundle(namespaces={"ex": EX2_URI})
 
 
-def test_add_bundle_simple():
+def test_add_bundle_simple() -> None:
     d1 = _document_1()
     b0 = _bundle_0()
 
@@ -230,7 +230,7 @@ def test_add_bundle_simple():
     assert len(d1.bundles) == 2
 
 
-def test_add_bundle_document():
+def test_add_bundle_document() -> None:
     d1 = _document_1()
     d2 = _document_2()
 
@@ -246,13 +246,13 @@ def test_add_bundle_document():
     assert b2 in d1.bundles
 
 
-def test_bundle_requires_an_identifier():
+def test_bundle_requires_an_identifier() -> None:
     d1 = _document_1()
     with pytest.raises(ProvException):
         d1.bundle(None)
 
 
-def test_bundle_rejects_unresolvable_identifier():
+def test_bundle_rejects_unresolvable_identifier() -> None:
     # No default namespace and an unregistered prefix: valid_qualified_name()
     # returns None, which bundle() must turn into a ProvException.
     d1 = _document_1()
@@ -260,14 +260,14 @@ def test_bundle_rejects_unresolvable_identifier():
         d1.bundle("bogus:x")
 
 
-def test_bundle_rejects_duplicate_identifier():
+def test_bundle_rejects_duplicate_identifier() -> None:
     d1 = _document_1()
     d1.bundle("ex:b1")
     with pytest.raises(ProvException):
         d1.bundle("ex:b1")
 
 
-def test_add_bundle_rejects_document_with_nested_bundles():
+def test_add_bundle_rejects_document_with_nested_bundles() -> None:
     # A ProvDocument that itself already contains bundles cannot be
     # folded into another document as a single bundle (model.py ~2664).
     d1 = _document_1()
@@ -278,13 +278,13 @@ def test_add_bundle_rejects_document_with_nested_bundles():
         d1.add_bundle(d2)
 
 
-def test_literal_provn_with_single_quotes():
+def test_literal_provn_with_single_quotes() -> None:
     literal = Literal('{"foo": "bar"}')
     string_rep = literal.provn_representation()
     assert '{\\"f' in string_rep
 
 
-def test_literal_provn_with_triple_quotes():
+def test_literal_provn_with_triple_quotes() -> None:
     literal = Literal('"""foo\\nbar"""')
     string_rep = literal.provn_representation()
     assert '\\"\\"\\"f' in string_rep
@@ -296,11 +296,11 @@ def test_literal_provn_with_triple_quotes():
 # InternationalizedString warning).
 
 
-def test_parse_xsd_datetime_returns_none_on_unparseable_input():
+def test_parse_xsd_datetime_returns_none_on_unparseable_input() -> None:
     assert parse_xsd_datetime("not a date at all!!") is None
 
 
-def test_parse_boolean_variants():
+def test_parse_boolean_variants() -> None:
     assert parse_boolean("true")
     assert parse_boolean("1")
     assert not parse_boolean("false")
@@ -308,7 +308,7 @@ def test_parse_boolean_variants():
     assert parse_boolean("neither") is None
 
 
-def test_literal_equality_and_hash():
+def test_literal_equality_and_hash() -> None:
     l1 = Literal("hello", datatype=XSD["string"])
     l2 = Literal("hello", datatype=XSD["string"])
     l3 = Literal("bye", datatype=XSD["string"])
@@ -318,12 +318,12 @@ def test_literal_equality_and_hash():
     assert hash(l1) == hash(l2)
 
 
-def test_literal_not_equal_to_non_literal():
+def test_literal_not_equal_to_non_literal() -> None:
     literal = Literal("hello")
     assert literal != "hello"
 
 
-def test_langtag_forces_internationalizedstring_datatype_with_warning(caplog):
+def test_langtag_forces_internationalizedstring_datatype_with_warning(caplog) -> None:
     with caplog.at_level("WARNING", logger="prov.model"):
         literal = Literal("bonjour", datatype=XSD["string"], langtag="fr")
     assert literal.datatype == PROV_INTERNATIONALIZEDSTRING
@@ -332,7 +332,7 @@ def test_langtag_forces_internationalizedstring_datatype_with_warning(caplog):
     )
 
 
-def test_langtag_without_datatype_defaults_to_internationalizedstring():
+def test_langtag_without_datatype_defaults_to_internationalizedstring() -> None:
     literal = Literal("bonjour", langtag="fr")
     assert literal.datatype == PROV_INTERNATIONALIZEDSTRING
 
@@ -348,7 +348,7 @@ def doc():
     return d
 
 
-def test_identifierless_record_as_qname_attribute_value_raises(doc):
+def test_identifierless_record_as_qname_attribute_value_raises(doc) -> None:
     e1 = doc.entity("ex:e1")
     a1 = doc.activity("ex:a1")
     # An anonymous (identifier-less) relation used as the value of an
@@ -360,7 +360,7 @@ def test_identifierless_record_as_qname_attribute_value_raises(doc):
         doc.attribution(e1, anonymous_usage)
 
 
-def test_identifierless_record_as_generic_attribute_value_raises(doc):
+def test_identifierless_record_as_generic_attribute_value_raises(doc) -> None:
     # Same anonymous-relation value, but through the generic (non-formal)
     # attribute path: _auto_literal_conversion() reduces a ProvRecord to
     # its identifier, which is None here, tripping the "value is None"
@@ -375,19 +375,19 @@ def test_identifierless_record_as_generic_attribute_value_raises(doc):
         e2.add_attributes({"ex:ref": anonymous_usage})
 
 
-def test_unparseable_datetime_formal_attribute_raises(doc):
+def test_unparseable_datetime_formal_attribute_raises(doc) -> None:
     activity = doc.activity("ex:a2")
     with pytest.raises(ProvException):
         activity.add_attributes({"prov:startTime": "not a date"})
 
 
-def test_conflicting_duplicate_value_raises(doc):
+def test_conflicting_duplicate_value_raises(doc) -> None:
     activity = doc.activity("ex:a3", startTime=datetime.datetime(2020, 1, 1))
     with pytest.raises(ProvException):
         activity.add_attributes({"prov:startTime": datetime.datetime(2020, 1, 2)})
 
 
-def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc):
+def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc) -> None:
     # Naive and timezone-aware datetimes for the same single-valued
     # formal attribute still compare as "different" (Python's `!=`
     # between them returns True rather than raising -- confirmed
@@ -402,13 +402,13 @@ def test_conflicting_duplicate_value_with_naive_vs_aware_datetime(doc):
         activity.add_attributes({"prov:startTime": aware_time})
 
 
-def test_record_not_equal_to_non_record(doc):
+def test_record_not_equal_to_non_record(doc) -> None:
     e1 = doc.entity("ex:e1")
     assert e1 != "not a record"
     assert e1 != object()
 
 
-def test_record_value_converted_from_provrecord_for_generic_attribute(doc):
+def test_record_value_converted_from_provrecord_for_generic_attribute(doc) -> None:
     # A ProvRecord used as the value of a *generic* (non-formal) attribute
     # is converted to a QualifiedName via its identifier
     # (_auto_literal_conversion's ProvRecord branch, model.py:415-417).
@@ -418,26 +418,26 @@ def test_record_value_converted_from_provrecord_for_generic_attribute(doc):
     assert e2.get_attribute("ex:ref") == {e1.identifier}
 
 
-def test_entity_without_identifier_raises():
+def test_entity_without_identifier_raises() -> None:
     d = ProvDocument()
     with pytest.raises(ProvElementIdentifierRequired):
         d.entity(None)
 
 
-def test_activity_without_identifier_raises():
+def test_activity_without_identifier_raises() -> None:
     d = ProvDocument()
     with pytest.raises(ProvElementIdentifierRequired):
         d.activity(None)
 
 
-def test_provelementidentifierrequired_str():
+def test_provelementidentifierrequired_str() -> None:
     assert (
         str(ProvElementIdentifierRequired())
         == "An identifier is missing. All PROV elements require a valid identifier."
     )
 
 
-def test_provexceptioninvalidqualifiedname_str():
+def test_provexceptioninvalidqualifiedname_str() -> None:
     exc = ProvExceptionInvalidQualifiedName("bogus")
     assert str(exc) == "Invalid Qualified Name: bogus"
 
@@ -446,17 +446,17 @@ def test_provexceptioninvalidqualifiedname_str():
 # (planning/test-gap-checklist.md, T13 item under model.py).
 
 
-def test_get_asserted_types_default_empty(doc):
+def test_get_asserted_types_default_empty(doc) -> None:
     e1 = doc.entity("ex:e1")
     assert e1.get_asserted_types() == set()
 
 
-def test_label_falls_back_to_identifier(doc):
+def test_label_falls_back_to_identifier(doc) -> None:
     e1 = doc.entity("ex:e1")
     assert e1.label == str(e1.identifier)
 
 
-def test_value_property_default_empty(doc):
+def test_value_property_default_empty(doc) -> None:
     e1 = doc.entity("ex:e1")
     assert e1.value == set()
 
@@ -473,7 +473,7 @@ def ns_doc():
     return d
 
 
-def test_entity_was_invalidated_by(ns_doc):
+def test_entity_was_invalidated_by(ns_doc) -> None:
     e1 = ns_doc.entity("e1")
     a1 = ns_doc.activity("a1")
     result = e1.wasInvalidatedBy(a1)
@@ -481,7 +481,7 @@ def test_entity_was_invalidated_by(ns_doc):
     assert any(r.get_type().localpart == "Invalidation" for r in ns_doc.get_records())
 
 
-def test_entity_had_member(ns_doc):
+def test_entity_had_member(ns_doc) -> None:
     collection = ns_doc.entity("collection1")
     member = ns_doc.entity("member1")
     result = collection.hadMember(member)
@@ -489,7 +489,7 @@ def test_entity_had_member(ns_doc):
     assert any(r.get_type().localpart == "Membership" for r in ns_doc.get_records())
 
 
-def test_activity_was_started_by(ns_doc):
+def test_activity_was_started_by(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     trigger = ns_doc.entity("trigger1")
     result = a1.wasStartedBy(trigger)
@@ -497,7 +497,7 @@ def test_activity_was_started_by(ns_doc):
     assert any(r.get_type().localpart == "Start" for r in ns_doc.get_records())
 
 
-def test_activity_was_ended_by(ns_doc):
+def test_activity_was_ended_by(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     trigger = ns_doc.entity("trigger1")
     result = a1.wasEndedBy(trigger)
@@ -505,7 +505,7 @@ def test_activity_was_ended_by(ns_doc):
     assert any(r.get_type().localpart == "End" for r in ns_doc.get_records())
 
 
-def test_activity_was_informed_by(ns_doc):
+def test_activity_was_informed_by(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     a2 = ns_doc.activity("a2")
     result = a1.wasInformedBy(a2)
@@ -513,7 +513,7 @@ def test_activity_was_informed_by(ns_doc):
     assert any(r.get_type().localpart == "Communication" for r in ns_doc.get_records())
 
 
-def test_activity_set_time_both(ns_doc):
+def test_activity_set_time_both(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     start = datetime.datetime(2020, 1, 1)
     end = datetime.datetime(2020, 1, 2)
@@ -522,7 +522,7 @@ def test_activity_set_time_both(ns_doc):
     assert a1.get_endTime() == end
 
 
-def test_activity_set_time_start_only(ns_doc):
+def test_activity_set_time_start_only(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     start = datetime.datetime(2020, 1, 1)
     a1.set_time(startTime=start)
@@ -530,7 +530,7 @@ def test_activity_set_time_start_only(ns_doc):
     assert a1.get_endTime() is None
 
 
-def test_activity_set_time_end_only(ns_doc):
+def test_activity_set_time_end_only(ns_doc) -> None:
     a1 = ns_doc.activity("a1")
     end = datetime.datetime(2020, 1, 2)
     a1.set_time(endTime=end)
@@ -542,12 +542,12 @@ def test_activity_set_time_end_only(ns_doc):
 # serialization (planning/test-gap-checklist.md, T13 item under model.py).
 
 
-def test_construction_without_default_namespace():
+def test_construction_without_default_namespace() -> None:
     nm = NamespaceManager()
     assert nm.get_default_namespace() is None
 
 
-def test_get_namespace_miss_and_hit():
+def test_get_namespace_miss_and_hit() -> None:
     nm = NamespaceManager()
     assert nm.get_namespace("http://example.org/") is None
     ns = Namespace("ex", "http://example.org/")
@@ -555,13 +555,13 @@ def test_get_namespace_miss_and_hit():
     assert nm.get_namespace("http://example.org/") == ns
 
 
-def test_get_namespace_finds_built_in_and_default_namespaces():
+def test_get_namespace_finds_built_in_and_default_namespaces() -> None:
     nm = NamespaceManager(default="http://default.example.org/")
     assert nm.get_namespace(PROV.uri) == PROV
     assert nm.get_namespace("http://default.example.org/") is nm.get_default_namespace()
 
 
-def test_get_namespace_after_prefix_rename_returns_renamed_namespace():
+def test_get_namespace_after_prefix_rename_returns_renamed_namespace() -> None:
     nm = NamespaceManager()
     nm.add_namespace(Namespace("ex", "http://a.example.org/"))
     renamed = nm.add_namespace(Namespace("ex", "http://b.example.org/"))
@@ -570,7 +570,7 @@ def test_get_namespace_after_prefix_rename_returns_renamed_namespace():
     assert nm.get_namespace("http://a.example.org/").prefix == "ex"
 
 
-def test_get_namespace_after_reregistering_uri_under_other_prefix():
+def test_get_namespace_after_reregistering_uri_under_other_prefix() -> None:
     nm = NamespaceManager()
     first = nm.add_namespace(Namespace("ex", "http://a.example.org/"))
     again = nm.add_namespace(Namespace("other", "http://a.example.org/"))
@@ -579,13 +579,13 @@ def test_get_namespace_after_reregistering_uri_under_other_prefix():
     assert nm.get_namespace("http://a.example.org/") is first
 
 
-def test_get_namespace_prefers_registered_over_default_for_same_uri():
+def test_get_namespace_prefers_registered_over_default_for_same_uri() -> None:
     nm = NamespaceManager(default="http://shared.example.org/")
     registered = nm.add_namespace(Namespace("sh", "http://shared.example.org/"))
     assert nm.get_namespace("http://shared.example.org/") is registered
 
 
-def test_add_namespace_reuses_renamed_namespace_from_cache():
+def test_add_namespace_reuses_renamed_namespace_from_cache() -> None:
     nm = NamespaceManager()
     nm.add_namespace(Namespace("ex", "http://a.example.org/"))
     conflicting = Namespace("ex", "http://b.example.org/")
@@ -600,13 +600,13 @@ def test_add_namespace_reuses_renamed_namespace_from_cache():
     assert second_add is first_add
 
 
-def test_valid_qualified_name_rejects_blank_node_and_bad_types():
+def test_valid_qualified_name_rejects_blank_node_and_bad_types() -> None:
     nm = NamespaceManager()
     assert nm.valid_qualified_name("_:blank1") is None
     assert nm.valid_qualified_name(12345) is None
 
 
-def test_default_namespace_uri_alone_is_not_an_empty_local_name():
+def test_default_namespace_uri_alone_is_not_an_empty_local_name() -> None:
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
     assert doc.valid_qualified_name("http://d/") is None
@@ -616,7 +616,7 @@ def test_default_namespace_uri_alone_is_not_an_empty_local_name():
     assert doc.valid_qualified_name("ex:") == ex[""]
 
 
-def test_get_anonymous_identifier_increments_and_uses_prefix():
+def test_get_anonymous_identifier_increments_and_uses_prefix() -> None:
     nm = NamespaceManager()
     first_id = nm.get_anonymous_identifier()
     second_id = nm.get_anonymous_identifier("custom")
@@ -624,7 +624,7 @@ def test_get_anonymous_identifier_increments_and_uses_prefix():
     assert str(second_id).startswith("_:custom")
 
 
-def test_get_unused_prefix_counts_up():
+def test_get_unused_prefix_counts_up() -> None:
     nm = NamespaceManager()
     nm.add_namespace(Namespace("ex", "http://a.example.org/"))
     # Force two successive conflicts on the same prefix so
@@ -635,20 +635,20 @@ def test_get_unused_prefix_counts_up():
     assert third.prefix == "ex_2"
 
 
-def test_construction_with_default_namespace():
+def test_construction_with_default_namespace() -> None:
     nm = NamespaceManager(default="http://example.org/")
     default_ns = nm.get_default_namespace()
     assert default_ns is not None
     assert default_ns.uri == "http://example.org/"
 
 
-def test_add_namespaces_with_empty_collection_is_a_no_op():
+def test_add_namespaces_with_empty_collection_is_a_no_op() -> None:
     nm = NamespaceManager()
     nm.add_namespaces([])
     assert list(nm.get_registered_namespaces()) == []
 
 
-def test_get_unused_prefix_returns_original_when_available():
+def test_get_unused_prefix_returns_original_when_available() -> None:
     # _get_unused_prefix() is only ever called internally once its
     # caller (add_namespace) has already confirmed a conflict, so this
     # "prefix is actually free" branch is otherwise unreachable; call
@@ -661,52 +661,52 @@ def test_get_unused_prefix_returns_original_when_available():
 # serialization (planning/test-gap-checklist.md, T13 item under model.py).
 
 
-def test_bundles_property_raises_on_a_plain_bundle():
+def test_bundles_property_raises_on_a_plain_bundle() -> None:
     b = ProvBundle()
     with pytest.raises(ProvException):
         list(b.bundles)
 
 
-def test_standalone_bundle_properties():
+def test_standalone_bundle_properties() -> None:
     b = ProvBundle()
     assert b.records == []
     assert b.identifier is None
     assert b.document is None
 
 
-def test_add_namespace_without_uri_raises():
+def test_add_namespace_without_uri_raises() -> None:
     b = ProvBundle()
     with pytest.raises(ProvException):
         b.add_namespace("ex")
 
 
-def test_mandatory_valid_qname_failure():
+def test_mandatory_valid_qname_failure() -> None:
     b = ProvBundle()
     with pytest.raises(ProvExceptionInvalidQualifiedName):
         b.mandatory_valid_qname(None)
 
 
-def test_eq_early_out_for_non_bundle():
+def test_eq_early_out_for_non_bundle() -> None:
     b = ProvBundle()
     assert b != "not a bundle"
     assert b != 42
 
 
-def test_default_ns_uri_present_and_absent():
+def test_default_ns_uri_present_and_absent() -> None:
     b = ProvBundle()
     assert b.default_ns_uri is None
     b.set_default_namespace("http://example.org/")
     assert b.default_ns_uri == "http://example.org/"
 
 
-def test_get_registered_namespaces():
+def test_get_registered_namespaces() -> None:
     b = ProvBundle()
     b.add_namespace("ex", "http://example.org/")
     uris = {ns.uri for ns in b.get_registered_namespaces()}
     assert "http://example.org/" in uris
 
 
-def test_has_bundles_false_for_plain_bundle():
+def test_has_bundles_false_for_plain_bundle() -> None:
     b = ProvBundle()
     assert not b.has_bundles()
 
@@ -716,7 +716,7 @@ def test_has_bundles_false_for_plain_bundle():
 # item under model.py, natural neighbours of the T12 read() tests).
 
 
-def test_serialize_to_file_path_uses_tempfile_and_move(tmp_path):
+def test_serialize_to_file_path_uses_tempfile_and_move(tmp_path) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -729,7 +729,7 @@ def test_serialize_to_file_path_uses_tempfile_and_move(tmp_path):
     assert reloaded == doc
 
 
-def test_deserialize_without_source_or_content_raises_type_error():
+def test_deserialize_without_source_or_content_raises_type_error() -> None:
     with pytest.raises(TypeError):
         ProvDocument.deserialize()
 
@@ -739,7 +739,7 @@ def test_deserialize_without_source_or_content_raises_type_error():
 # model.py).
 
 
-def test_not_equal_when_other_is_missing_a_bundle():
+def test_not_equal_when_other_is_missing_a_bundle() -> None:
     d1 = ProvDocument()
     d1.set_default_namespace("http://example.org/")
     d1.bundle("b1").entity("e1")
@@ -750,7 +750,7 @@ def test_not_equal_when_other_is_missing_a_bundle():
     assert d1 != d2
 
 
-def test_not_equal_when_matching_bundle_content_differs():
+def test_not_equal_when_matching_bundle_content_differs() -> None:
     d1 = ProvDocument()
     d1.set_default_namespace("http://example.org/")
     d1.bundle("b1").entity("e1")
@@ -766,7 +766,7 @@ def test_not_equal_when_matching_bundle_content_differs():
 # falls back to when ProvRecord.__eq__ is looser than ProvRecord.__hash__.
 
 
-def test_equal_when_same_records_added_in_different_order():
+def test_equal_when_same_records_added_in_different_order() -> None:
     d1 = ProvDocument()
     d1.set_default_namespace("http://example.org/")
     d1.entity("e1")
@@ -783,7 +783,7 @@ def test_equal_when_same_records_added_in_different_order():
     assert d2 == d1
 
 
-def test_anonymous_relation_still_equals_identified_relation():
+def test_anonymous_relation_still_equals_identified_relation() -> None:
     # ProvRecord.__eq__ skips the identifier check when *this* record has no
     # identifier, while __hash__ includes it; the two records hash
     # differently, so set equality fails and __eq__ must fall through to the
@@ -799,7 +799,7 @@ def test_anonymous_relation_still_equals_identified_relation():
     assert d1 == d2
 
 
-def test_unified_with_no_bundles():
+def test_unified_with_no_bundles() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -827,7 +827,7 @@ def plot_doc():
 @pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not available"
 )
-def test_plot_to_filename_infers_format_and_saves(plot_doc, tmp_path):
+def test_plot_to_filename_infers_format_and_saves(plot_doc, tmp_path) -> None:
     path = tmp_path / "out.png"
     plot_doc.plot(filename=str(path))
     assert path.exists()
@@ -837,13 +837,13 @@ def test_plot_to_filename_infers_format_and_saves(plot_doc, tmp_path):
 @pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not available"
 )
-def test_plot_unknown_format_raises_value_error(plot_doc, tmp_path):
+def test_plot_unknown_format_raises_value_error(plot_doc, tmp_path) -> None:
     path = tmp_path / "out.not-a-real-format"
     with pytest.raises(ValueError):
         plot_doc.plot(filename=str(path))
 
 
-def test_add_bundle_from_document_keeps_namespace_order():
+def test_add_bundle_from_document_keeps_namespace_order() -> None:
     # #337: ProvDocument.add_bundle() copies a document's namespaces into
     # the new bundle in registration order.
     source = ProvDocument()
@@ -862,7 +862,7 @@ def test_add_bundle_from_document_keeps_namespace_order():
 
 
 @pytest.mark.parametrize("values", [("foo", "bar", "baz"), ("baz", "bar", "foo")])
-def test_attribute_values_keep_insertion_order_in_provn_and_json(values):
+def test_attribute_values_keep_insertion_order_in_provn_and_json(values) -> None:
     document = ProvDocument()
     document.set_default_namespace("https://example.com/")
     document.entity("id", [(PROV_TYPE, value) for value in values])

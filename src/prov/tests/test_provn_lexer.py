@@ -51,54 +51,54 @@ def values(text):
         ),
     ],
 )
-def test_token_kinds(text, expected):
+def test_token_kinds(text, expected) -> None:
     assert kinds(text) == expected
 
 
-def test_token_uses_slots():
+def test_token_uses_slots() -> None:
     # Every Token instance is thrown away almost immediately by the parser,
     # so __dict__ per instance is pure overhead.
     assert not hasattr(Token(TokenKind.EOF, "", None, 1, 1), "__dict__")
 
 
-def test_comments_are_skipped():
+def test_comments_are_skipped() -> None:
     text = "entity // trailing\n/* block\ncomment */ agent"
     assert values(text) == [("", "entity"), ("", "agent")]
 
 
 @pytest.mark.parametrize("ch", list("='(),:;[]"))
-def test_escaped_metachar_in_local_part(ch):
+def test_escaped_metachar_in_local_part(ch) -> None:
     tokens = list(tokenize(f"ex:na\\{ch}me"))
     assert tokens[0].kind is TokenKind.NAME
     assert tokens[0].value == ("ex", f"na{ch}me")
 
 
-def test_percent_encoding_is_kept_verbatim():
+def test_percent_encoding_is_kept_verbatim() -> None:
     assert values("ex:a%20b") == [("ex", "a%20b")]
 
 
-def test_stray_dot_raises_with_position():
+def test_stray_dot_raises_with_position() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("ex:abc."))
     assert (ctx.value.line, ctx.value.column) == (1, 7)
 
 
-def test_escaped_dot_is_kept():
+def test_escaped_dot_is_kept() -> None:
     assert values(r"ex:abc\.") == [("ex", "abc.")]
 
 
-def test_inner_dot_is_part_of_the_name():
+def test_inner_dot_is_part_of_the_name() -> None:
     assert values("ex:a.b") == [("ex", "a.b")]
 
 
-def test_langtag_only_after_a_string():
+def test_langtag_only_after_a_string() -> None:
     assert kinds('"a place"@en') == [TokenKind.STRING, TokenKind.LANGTAG]
     assert values('"a place"@en')[1] == "en"
     assert kinds("ex:a@b") == [TokenKind.NAME]
     assert values("ex:a@b") == [("ex", "a@b")]
 
 
-def test_typed_literal_marker_vs_percent_in_name():
+def test_typed_literal_marker_vs_percent_in_name() -> None:
     assert kinds('"1" %% xsd:int') == [
         TokenKind.STRING,
         TokenKind.TYPED,
@@ -107,7 +107,7 @@ def test_typed_literal_marker_vs_percent_in_name():
     assert kinds("ex:%41b") == [TokenKind.NAME]
 
 
-def test_marker_vs_negative_int():
+def test_marker_vs_negative_int() -> None:
     assert kinds("-, -5, - 5") == [
         TokenKind.MARKER,
         TokenKind.COMMA,
@@ -119,21 +119,21 @@ def test_marker_vs_negative_int():
     assert values("-5")[0] == -5
 
 
-def test_string_escapes_are_decoded():
+def test_string_escapes_are_decoded() -> None:
     assert values(r'"back\\slash and \"quote\""')[0] == 'back\\slash and "quote"'
     assert values('"""a "quoted" word\nline two"""')[0] == 'a "quoted" word\nline two'
     assert values(r'"tab\there"')[0] == "tab\there"
 
 
-def test_qname_literal_with_escape():
+def test_qname_literal_with_escape() -> None:
     assert values(r"'ex:we\'ird'")[0] == ("ex", "we'ird")
 
 
-def test_bare_local_name_has_empty_prefix():
+def test_bare_local_name_has_empty_prefix() -> None:
     assert values("e1") == [("", "e1")]
 
 
-def test_line_and_column_tracking():
+def test_line_and_column_tracking() -> None:
     tokens = list(tokenize("entity(\n  ex:e1)"))
     assert (tokens[0].line, tokens[0].column) == (1, 1)
     assert (tokens[2].line, tokens[2].column) == (2, 3)
@@ -153,40 +153,40 @@ def test_line_and_column_tracking():
         ("ex:a\\zb", 1, 5),
     ],
 )
-def test_malformed_input_reports_position(text, line, column):
+def test_malformed_input_reports_position(text, line, column) -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize(text))
     assert (ctx.value.line, ctx.value.column) == (line, column)
     assert f"line {line}, column {column}" in str(ctx.value)
 
 
-def test_unicode_names_and_strings():
+def test_unicode_names_and_strings() -> None:
     assert values("ex:café") == [("ex", "café")]
     assert values('"日本語"') == ["日本語"]
 
 
-def test_escaped_colon_at_end_of_local_part():
+def test_escaped_colon_at_end_of_local_part() -> None:
     assert values(r"ex:a\:") == [("ex", "a:")]
 
 
-def test_unknown_string_escape_raises():
+def test_unknown_string_escape_raises() -> None:
     with pytest.raises(ProvNSyntaxError, match="unknown string escape") as ctx:
         list(tokenize(r'"\q"'))
     assert (ctx.value.line, ctx.value.column) == (1, 2)
 
 
-def test_invalid_qname_literal_raises():
+def test_invalid_qname_literal_raises() -> None:
     with pytest.raises(ProvNSyntaxError, match="invalid qualified name") as ctx:
         list(tokenize("'not a qname'"))
     assert (ctx.value.line, ctx.value.column) == (1, 5)
 
 
-def test_invalid_language_tag_raises():
+def test_invalid_language_tag_raises() -> None:
     with pytest.raises(ProvNSyntaxError, match="invalid language tag"):
         list(tokenize('"a"@'))
 
 
-def test_prefix_only_name_has_empty_local():
+def test_prefix_only_name_has_empty_local() -> None:
     # [52] permits "PN_PREFIX ':'" alone; the Recommendation's own example
     # (section 3.6) is entity(bbc:).
     tokens = list(tokenize("entity(bbc:)"))
@@ -198,44 +198,44 @@ def test_prefix_only_name_has_empty_local():
     ]
 
 
-def test_escaped_hyphen_in_local_part():
+def test_escaped_hyphen_in_local_part() -> None:
     # The Recommendation's own example (section 3.8) is entity(ex:\-).
     assert values(r"ex:\-") == [("ex", "-")]
 
 
-def test_unterminated_block_comment_raises_with_position():
+def test_unterminated_block_comment_raises_with_position() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("entity(ex:e1) /* open"))
     assert (ctx.value.line, ctx.value.column) == (1, 15)
     assert "unterminated comment" in str(ctx.value)
 
 
-def test_string_escape_error_position_is_inside_the_literal():
+def test_string_escape_error_position_is_inside_the_literal() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize('"abc \\q def"'))
     assert (ctx.value.line, ctx.value.column) == (1, 6)
 
 
-def test_string_escape_error_position_spans_lines_in_a_long_string():
+def test_string_escape_error_position_spans_lines_in_a_long_string() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize('"""ab\ncd \\q"""'))
     assert (ctx.value.line, ctx.value.column) == (2, 4)
 
 
-def test_qname_literal_error_position_is_the_first_invalid_character():
+def test_qname_literal_error_position_is_the_first_invalid_character() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("'ex:bad name'"))
     assert (ctx.value.line, ctx.value.column) == (1, 8)
 
 
-def test_huge_integer_raises_instead_of_crashing():
+def test_huge_integer_raises_instead_of_crashing() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("1" * 5000))
     assert (ctx.value.line, ctx.value.column) == (1, 1)
     assert "digits" in str(ctx.value)
 
 
-def test_provn_syntax_error_supports_pickle_and_deepcopy():
+def test_provn_syntax_error_supports_pickle_and_deepcopy() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize('"unterminated'))
     original = ctx.value
@@ -258,7 +258,7 @@ def test_provn_syntax_error_supports_pickle_and_deepcopy():
     assert str(cloned) == str(original)
 
 
-def test_line_comment_ends_at_cr_not_just_lf():
+def test_line_comment_ends_at_cr_not_just_lf() -> None:
     text = "entity(ex:a) // note\rentity(ex:b)"
     assert values(text) == [
         ("", "entity"),
@@ -272,14 +272,14 @@ def test_line_comment_ends_at_cr_not_just_lf():
     ]
 
 
-def test_crlf_and_lone_cr_each_count_as_one_line_break():
+def test_crlf_and_lone_cr_each_count_as_one_line_break() -> None:
     crlf_tokens = list(tokenize("a\r\nb"))
     assert (crlf_tokens[1].line, crlf_tokens[1].column) == (2, 1)
     cr_tokens = list(tokenize("a\rb"))
     assert (cr_tokens[1].line, cr_tokens[1].column) == (2, 1)
 
 
-def test_long_run_of_trailing_dots_is_fast():
+def test_long_run_of_trailing_dots_is_fast() -> None:
     # 200_000 dots isn't large enough to expose the old O(n^2) back-off
     # loop within a 1s bound on typical hardware (~0.5s pre-fix); 1_000_000
     # matches the scale the regression was originally measured at (~7-9s
@@ -292,18 +292,18 @@ def test_long_run_of_trailing_dots_is_fast():
 
 
 @pytest.mark.parametrize("text", ["ex.:abc", "a.b.:c", "ex.:"])
-def test_prefix_cannot_end_in_a_dot(text):
+def test_prefix_cannot_end_in_a_dot(text) -> None:
     dot_column = text.index(".") + 1
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize(text))
     assert ctx.value.column >= dot_column
 
 
-def test_prefix_with_inner_dot_is_still_accepted():
+def test_prefix_with_inner_dot_is_still_accepted() -> None:
     assert values("a.b:c") == [("a.b", "c")]
 
 
-def test_qname_literal_trailing_dot_raises():
+def test_qname_literal_trailing_dot_raises() -> None:
     # _QNAME_FULL rejects a bare trailing '.'; the reported position is the dot.
     with pytest.raises(ProvNSyntaxError) as ctx:
         list(tokenize("'ex:abc.'"))
@@ -317,21 +317,21 @@ def test_qname_literal_trailing_dot_raises():
         chr(0xFF14) + chr(0xFF12),  # fullwidth digits four, two
     ],
 )
-def test_non_ascii_digits_are_names_not_integers(text):
+def test_non_ascii_digits_are_names_not_integers(text) -> None:
     # These are Unicode Nd but not [0-9]; the grammar's DIGIT is ASCII-only,
     # so they are ordinary name characters, not an integer literal.
     assert kinds(text) == [TokenKind.NAME]
     assert values(text) == [("", text)]
 
 
-def test_iri_allows_non_breaking_space_but_rejects_control_characters():
+def test_iri_allows_non_breaking_space_but_rejects_control_characters() -> None:
     nbsp = chr(0xA0)
     assert values(f"<http://a/b{nbsp}c>") == [f"http://a/b{nbsp}c"]
     with pytest.raises(ProvNSyntaxError, match="unterminated IRI"):
         list(tokenize("<a\x01b>"))
 
 
-def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges():
+def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges() -> None:
     """provn_lexer's PN_CHARS_BASE/PN_CHARS_U/PN_CHARS are now derived from
     prov.identifier's shared NCName tables rather than spelled out here; this
     pins that derivation against the Recommendation's own literal ranges
@@ -360,6 +360,6 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges():
 
 
 @pytest.mark.parametrize("text", ['"a\rb"', "'a\rb'"])
-def test_carriage_return_ends_a_short_literal(text):
+def test_carriage_return_ends_a_short_literal(text) -> None:
     with pytest.raises(ProvNSyntaxError, match="unterminated"):
         list(tokenize(text))

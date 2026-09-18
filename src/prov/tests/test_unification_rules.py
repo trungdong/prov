@@ -30,7 +30,7 @@ def _doc():
     return document
 
 
-def test_spec_worked_example_merges():
+def test_spec_worked_example_merges() -> None:
     # PROV-CONSTRAINTS §6.1 worked example (Constraint 22).
     document = _doc()
     document.activity("ex:a", startTime=T1, other_attributes={"ex:x": 1})
@@ -42,7 +42,7 @@ def test_spec_worked_example_merges():
     assert len(activity.extra_attributes) == 2  # both ex:x and ex:y present
 
 
-def test_conflicting_concrete_formal_attributes_raise():
+def test_conflicting_concrete_formal_attributes_raise() -> None:
     # Constraint 22: two concrete startTimes cannot unify.
     document = _doc()
     document.activity("ex:a", startTime=T1)
@@ -53,7 +53,7 @@ def test_conflicting_concrete_formal_attributes_raise():
     assert "ex:a" in message and "startTime" in message
 
 
-def test_conflicting_relation_endpoints_raise():
+def test_conflicting_relation_endpoints_raise() -> None:
     # Constraint 23: same-id generations of different entities cannot unify.
     document = _doc()
     document.generation("ex:e1", "ex:a1", identifier="ex:gen1")
@@ -62,7 +62,7 @@ def test_conflicting_relation_endpoints_raise():
         document.unified()
 
 
-def test_absent_formal_attribute_unifies_with_concrete():
+def test_absent_formal_attribute_unifies_with_concrete() -> None:
     # Locked decision: absent == existential (the model cannot express `-`).
     document = _doc()
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
@@ -72,7 +72,7 @@ def test_absent_formal_attribute_unifies_with_concrete():
     assert len(associations) == 1
 
 
-def test_unification_is_scoped_per_bundle():
+def test_unification_is_scoped_per_bundle() -> None:
     # §7.2: bundles unify independently; nothing merges across boundaries.
     document = _doc()
     document.activity("ex:a", startTime=T1)
@@ -82,7 +82,7 @@ def test_unification_is_scoped_per_bundle():
     assert unified.has_bundles()
 
 
-def test_entity_activity_same_id_raises_either_order():
+def test_entity_activity_same_id_raises_either_order() -> None:
     # Constraint 55 (entity-activity-disjoint): the same identifier can
     # never be both an entity and an activity.
     for order in (("entity", "activity"), ("activity", "entity")):
@@ -95,7 +95,7 @@ def test_entity_activity_same_id_raises_either_order():
         assert "prov:Entity" in message and "prov:Activity" in message
 
 
-def test_object_type_and_identified_relation_sharing_id_raises():
+def test_object_type_and_identified_relation_sharing_id_raises() -> None:
     # Constraint 54: an object type (entity/activity/agent) sharing an
     # identifier with one of the eleven identified relations is impossible --
     # distinct from Constraint 55 (object-vs-object) and Constraint 53
@@ -109,7 +109,7 @@ def test_object_type_and_identified_relation_sharing_id_raises():
     assert "prov:Entity" in message and "prov:Generation" in message
 
 
-def test_agent_entity_overlap_is_permitted_and_unmerged():
+def test_agent_entity_overlap_is_permitted_and_unmerged() -> None:
     # Constraint 54 does not pair agent with entity: both statements stand.
     document = _doc()
     document.agent("ex:x")
@@ -117,7 +117,7 @@ def test_agent_entity_overlap_is_permitted_and_unmerged():
     assert len(document.unified().get_records()) == 2
 
 
-def test_distinct_relation_kinds_sharing_id_raise():
+def test_distinct_relation_kinds_sharing_id_raise() -> None:
     # Constraint 53: generation and usage are two of the nine pairwise
     # disjoint relations.
     document = _doc()
@@ -129,7 +129,7 @@ def test_distinct_relation_kinds_sharing_id_raise():
     assert "prov:Generation" in message and "prov:Usage" in message
 
 
-def test_derivation_and_influence_sharing_id_is_permitted():
+def test_derivation_and_influence_sharing_id_is_permitted() -> None:
     # PROV-CONSTRAINTS §6.4's own worked example: wasInfluencedBy is exempt
     # from Constraint 53's pairwise-disjoint set because it is a superproperty
     # meant to share an identifier with a more specific relation --
@@ -144,7 +144,7 @@ def test_derivation_and_influence_sharing_id_is_permitted():
     assert len(document.unified().get_records()) == 2
 
 
-def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope():
+def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope() -> None:
     # Constraint 54's r-set is Constraint 23's eleven *identified* relations;
     # Mention has no identifier in PROV-DM's abstract syntax and so is not
     # among them -- the specification has no opinion on an id it happens to

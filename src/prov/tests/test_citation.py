@@ -22,7 +22,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_citation_version_matches_package_version():
+def test_citation_version_matches_package_version() -> None:
     match = re.search(
         r'^version:\s*"?([^"\n]+?)"?\s*$', CITATION_FILE.read_text(), re.MULTILINE
     )
@@ -30,7 +30,7 @@ def test_citation_version_matches_package_version():
     assert match.group(1) == prov.__version__
 
 
-def test_zenodo_metadata_names_the_maintainer():
+def test_zenodo_metadata_names_the_maintainer() -> None:
     metadata = json.loads(ZENODO_FILE.read_text())
     assert metadata["license"] == "mit"
     assert metadata["creators"][0]["orcid"] == "0000-0003-4937-2473"

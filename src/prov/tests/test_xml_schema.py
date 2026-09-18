@@ -70,7 +70,7 @@ def prov_xml_schema():
     return etree.XMLSchema(etree.parse(str(SCHEMA_DIR / "prov.xsd")))
 
 
-def _validate(schema, document):
+def _validate(schema, document) -> None:
     xml_bytes = document.serialize(format="xml").encode("utf-8")
     schema.assert_(etree.parse(BytesIO(xml_bytes)))
 
@@ -82,7 +82,9 @@ def _validate(schema, document):
         for name, fn in examples.tests
     ],
 )
-def test_example_documents_validate_against_prov_xsd(prov_xml_schema, make_document):
+def test_example_documents_validate_against_prov_xsd(
+    prov_xml_schema, make_document
+) -> None:
     _validate(prov_xml_schema, make_document())
 
 
@@ -93,7 +95,7 @@ def test_example_documents_validate_against_prov_xsd(prov_xml_schema, make_docum
         for i in range(len(ATTRIBUTE_VALUES))
     ],
 )
-def test_attribute_values_validate_against_prov_xsd(prov_xml_schema, index):
+def test_attribute_values_validate_against_prov_xsd(prov_xml_schema, index) -> None:
     document = ProvDocument()
     document.entity(EX_NS["et"], {"prov:type": ATTRIBUTE_VALUES[index]})
     _validate(prov_xml_schema, document)

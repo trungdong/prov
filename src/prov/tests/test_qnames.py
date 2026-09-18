@@ -23,7 +23,7 @@ def document_with_n_bundles_having_default_namespace(n):
     return prov_doc
 
 
-def test_namespace_inheritance(roundtrip):
+def test_namespace_inheritance(roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.add_namespace("ex", "http://www.example.org/")
     bundle = prov_doc.bundle("ex:bundle")
@@ -32,7 +32,7 @@ def test_namespace_inheritance(roundtrip):
     roundtrip(prov_doc)
 
 
-def test_default_namespace_inheritance(roundtrip):
+def test_default_namespace_inheritance(roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.set_default_namespace("http://www.example.org/")
     bundle = prov_doc.bundle("bundle")
@@ -41,34 +41,34 @@ def test_default_namespace_inheritance(roundtrip):
     roundtrip(prov_doc)
 
 
-def test_flattening_1_bundle_with_default_namespace(roundtrip):
+def test_flattening_1_bundle_with_default_namespace(roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_2_bundles_with_default_namespace(roundtrip):
+def test_flattening_2_bundles_with_default_namespace(roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(2)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_3_bundles_with_default_namespace(roundtrip):
+def test_flattening_3_bundles_with_default_namespace(roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(3)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_1_bundle_with_default_namespaces(roundtrip):
+def test_flattening_1_bundle_with_default_namespaces(roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_2_bundle_with_default_namespaces(roundtrip):
+def test_flattening_2_bundle_with_default_namespaces(roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(2)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
     roundtrip(prov_doc.flattened())
 
 
-def test_provn_cannot_write_an_empty_local_part_without_a_prefix():
+def test_provn_cannot_write_an_empty_local_part_without_a_prefix() -> None:
     qname = QualifiedName(Namespace("", "http://d/"), "")
     with pytest.raises(ProvException, match="prefix"):
         qname.provn_bare_representation()

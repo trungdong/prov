@@ -29,7 +29,7 @@ def _dump(doc: ProvDocument, **kwargs) -> dict:
     return json.loads(doc.serialize(format="jsonld", **kwargs))
 
 
-def test_serialize_basic_shape():
+def test_serialize_basic_shape() -> None:
     doc = _new_doc()
     doc.entity("ex:e1")
     doc.activity("ex:a1", "2011-11-16T16:05:00", "2011-11-16T16:06:00")
@@ -48,7 +48,7 @@ def test_serialize_basic_shape():
     assert "@id" not in gen  # anonymous relation: no @id emitted
 
 
-def test_serialize_special_and_extra_attributes():
+def test_serialize_special_and_extra_attributes() -> None:
     doc = _new_doc()
     doc.entity(
         "ex:e1",
@@ -66,7 +66,7 @@ def test_serialize_special_and_extra_attributes():
     assert stmt["ex:note"] == [{"@value": "plain"}]
 
 
-def test_serialize_bundle_nesting():
+def test_serialize_bundle_nesting() -> None:
     doc = _new_doc()
     bundle = doc.bundle("ex:b1")
     bundle.entity("ex:e2")
@@ -77,7 +77,7 @@ def test_serialize_bundle_nesting():
     assert bundle_obj["@graph"][0]["@id"] == "ex:e2"
 
 
-def test_serialize_default_namespace_as_vocab():
+def test_serialize_default_namespace_as_vocab() -> None:
     doc = ProvDocument()
     doc.set_default_namespace(EX_URI)
     doc.entity("e1")
@@ -93,7 +93,7 @@ def test_serialize_default_namespace_as_vocab():
     assert container["@context"][0]["@base"] == EX_URI
 
 
-def test_serialize_no_default_namespace_omits_base():
+def test_serialize_no_default_namespace_omits_base() -> None:
     doc = _new_doc()
     doc.entity("ex:e1")
     container = _dump(doc)
@@ -101,7 +101,7 @@ def test_serialize_no_default_namespace_omits_base():
     assert "@vocab" not in container["@context"][0]
 
 
-def test_serialize_default_namespace_attribute_uses_absolute_iri_key():
+def test_serialize_default_namespace_attribute_uses_absolute_iri_key() -> None:
     # A non-formal attribute in the default namespace has no prefix, so its
     # bare local part ("mine") would be indistinguishable from a JSON-LD
     # term the context itself defines and is schema-invalid regardless
@@ -115,7 +115,7 @@ def test_serialize_default_namespace_attribute_uses_absolute_iri_key():
     assert "mine" not in stmt
 
 
-def test_serialize_default_namespace_attribute_colliding_with_reserved_term():
+def test_serialize_default_namespace_attribute_colliding_with_reserved_term() -> None:
     # "type" is one of the 5 special (bare) terms the context defines; a
     # default-namespace attribute that happens to be called "type" must not
     # collide with it.
@@ -127,7 +127,9 @@ def test_serialize_default_namespace_attribute_colliding_with_reserved_term():
     assert "type" not in stmt
 
 
-def test_serialize_default_namespace_attribute_colliding_with_formal_attribute():
+def test_serialize_default_namespace_attribute_colliding_with_formal_attribute() -> (
+    None
+):
     # Regression for a formal attribute being silently overwritten: Usage's
     # formal "entity" attribute is written first, then a non-formal
     # default-namespace attribute also called "entity" must not clobber it.
@@ -141,7 +143,7 @@ def test_serialize_default_namespace_attribute_colliding_with_formal_attribute()
     assert stmt[EX_URI + "entity"] == [{"@value": "collides"}]
 
 
-def test_serialize_context_embed():
+def test_serialize_context_embed() -> None:
     doc = _new_doc()
     doc.entity("ex:e1")
     container = _dump(doc, context="embed")
@@ -150,21 +152,21 @@ def test_serialize_context_embed():
     assert "Entity" in embedded  # the vendored context object, not the URL
 
 
-def test_serialize_context_bad_option():
+def test_serialize_context_bad_option() -> None:
     doc = _new_doc()
     doc.entity("ex:e1")
     with pytest.raises(ValueError, match="context"):
         doc.serialize(format="jsonld", context="nonsense")
 
 
-def test_serialize_mention_raises():
+def test_serialize_mention_raises() -> None:
     doc = _new_doc()
     doc.mention("ex:e2", "ex:e1", "ex:b")
     with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
         doc.serialize(format="jsonld")
 
 
-def test_serialize_without_a_document_raises():
+def test_serialize_without_a_document_raises() -> None:
     serializer = ProvJSONLDSerializer(document=None)
     with pytest.raises(ProvJSONLDException) as ctx:
         serializer.serialize(io.BytesIO())
@@ -177,7 +179,7 @@ def _roundtrip(doc: ProvDocument) -> ProvDocument:
     )
 
 
-def test_deserialize_accepts_provtoolbox_prefixed_terms():
+def test_deserialize_accepts_provtoolbox_prefixed_terms() -> None:
     text = json.dumps(
         {
             "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
@@ -199,7 +201,7 @@ def test_deserialize_accepts_provtoolbox_prefixed_terms():
     assert doc == expected
 
 
-def test_deserialize_mixed_context_registers_namespace_prefixes():
+def test_deserialize_mixed_context_registers_namespace_prefixes() -> None:
     # A third-party context object can carry plain prefix strings alongside
     # one inline term definition (a dict value) without being the vendored
     # submission context (see _is_embedded_submission_context): every
@@ -224,7 +226,7 @@ def test_deserialize_mixed_context_registers_namespace_prefixes():
     }
 
 
-def test_deserialize_context_with_version_registers_namespace_prefixes():
+def test_deserialize_context_with_version_registers_namespace_prefixes() -> None:
     # "@version": 1.1 is a normal, common JSON-LD 1.1 context marker, not
     # unique to the vendored embedded submission context -- a namespace map
     # that happens to declare it must not be misclassified as that context
@@ -247,7 +249,9 @@ def test_deserialize_context_with_version_registers_namespace_prefixes():
     }
 
 
-def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixes():
+def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixes() -> (
+    None
+):
     # A single object-valued term whose key happens to collide with one of
     # PROV-DM's own record-type local names ("Entity") is not, by itself,
     # evidence that the whole object is the embedded submission context
@@ -271,7 +275,7 @@ def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixe
     }
 
 
-def test_roundtrip_context_embed_registers_no_extra_namespaces():
+def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
     # The embedded submission context (context="embed") must still be
     # recognised as a whole and skipped -- not treated as a namespace map --
     # or its own prov/xsd/rdfs/rdf prefix strings would get registered on
@@ -311,7 +315,7 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces():
         ({"@context": [], "@graph": [{"@type": ["Entity"]}]}, "@type"),
     ],
 )
-def test_deserialize_malformed(payload, match):
+def test_deserialize_malformed(payload, match) -> None:
     with pytest.raises(ProvJSONLDException, match=match):
         ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
 
@@ -328,7 +332,7 @@ def _membership_payload(entities) -> str:
     )
 
 
-def test_deserialize_membership_entity_array_gives_one_record_per_member():
+def test_deserialize_membership_entity_array_gives_one_record_per_member() -> None:
     # Submission 4.18: "a single entity or an array of them"; PROV-DM's
     # hadMember is binary, so the array fans out.
     doc = ProvDocument.deserialize(
@@ -341,7 +345,7 @@ def test_deserialize_membership_entity_array_gives_one_record_per_member():
     assert doc == expected
 
 
-def test_deserialize_membership_single_element_array():
+def test_deserialize_membership_single_element_array() -> None:
     # ProvToolbox writes the array form even for one member.
     doc = ProvDocument.deserialize(
         content=_membership_payload(["ex:e1"]), format="jsonld"
@@ -352,7 +356,7 @@ def test_deserialize_membership_single_element_array():
     assert doc == expected
 
 
-def test_deserialize_membership_empty_entity_array_raises():
+def test_deserialize_membership_empty_entity_array_raises() -> None:
     with pytest.raises(ProvJSONLDException, match="empty"):
         ProvDocument.deserialize(content=_membership_payload([]), format="jsonld")
 
@@ -375,7 +379,7 @@ def _identified_membership_payload(entities) -> str:
     )
 
 
-def test_deserialize_identified_membership_array_drops_the_id_with_a_warning():
+def test_deserialize_identified_membership_array_drops_the_id_with_a_warning() -> None:
     payload = _identified_membership_payload(["ex:e1", "ex:e2"])
     with pytest.warns(ProvWarning, match="ex:m"):
         doc = ProvDocument.deserialize(content=payload, format="jsonld")
@@ -386,7 +390,7 @@ def test_deserialize_identified_membership_array_drops_the_id_with_a_warning():
     assert doc.unified() is not None  # unification accepts the unidentified records
 
 
-def test_deserialize_identified_membership_with_one_member_keeps_the_id():
+def test_deserialize_identified_membership_with_one_member_keeps_the_id() -> None:
     payload = _identified_membership_payload(["ex:e1"])
     doc = ProvDocument.deserialize(content=payload, format="jsonld")
     (membership,) = doc.get_records(ProvMembership)
@@ -421,7 +425,7 @@ def _expected_primer_document() -> ProvDocument:
     return doc
 
 
-def test_interop_submission_example():
+def test_interop_submission_example() -> None:
     doc = prov.read(FIXTURE_DIR / "submission-example-3.jsonld", format="jsonld")
     assert doc == _expected_primer_document()
     assert _roundtrip(doc) == doc
@@ -461,7 +465,7 @@ def _expected_provtoolbox_primer_document() -> ProvDocument:
     return doc
 
 
-def test_interop_provtoolbox_mini_primer():
+def test_interop_provtoolbox_mini_primer() -> None:
     doc = prov.read(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld", format="jsonld")
     assert doc == _expected_provtoolbox_primer_document()
     assert _roundtrip(doc) == doc
