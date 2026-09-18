@@ -1,7 +1,7 @@
 """Benchmarks for the operations the 3.2.0 performance track measures.
 
-Run with ``uv run pytest benchmarks/ --benchmark-json=<file>`` and compare
-against ``benchmarks/baseline.json`` with ``benchmarks/compare.py``.
+Run with ``uv run pytest benchmarks/test_bench.py``; compare two versions of
+the library with ``benchmarks/ab.py``.
 """
 
 from __future__ import annotations

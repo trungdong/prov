@@ -5,6 +5,7 @@ engines:
   bandit:
     exclude_paths:
       - "src/prov/tests/**"
+      - "benchmarks/test_*.py"
   markdownlint:
     exclude_paths:
       - "planning/**"

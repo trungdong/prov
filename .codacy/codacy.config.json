@@ -1775,7 +1775,8 @@
       "useLocalConfigurationFile": true,
       "patterns": [],
       "exclude": [
-        "src/prov/tests/**"
+        "src/prov/tests/**",
+        "benchmarks/test_*.py"
       ]
     },
     {
