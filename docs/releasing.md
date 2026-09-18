@@ -45,7 +45,7 @@ Compare the release candidate's speed with the previous release on your own mach
 regression here is advisory, but a release should not ship one unexplained:
 
 ```bash
-uv run python benchmarks/ab.py <previous tag>
+uv run python benchmarks/ab.py <previous tag> --python 3.12
 ```
 
 The per-change CI job compares each change with its parent only, so slowdowns under its

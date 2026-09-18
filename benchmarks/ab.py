@@ -1,13 +1,21 @@
 """Measure a base ref and the working tree on one machine and compare them.
 
-Usage: ``python benchmarks/ab.py BASE_REF [--passes 2] [--threshold 0.10]``
+Usage: ``python benchmarks/ab.py BASE_REF [--passes 2] [--threshold 0.10]
+[--python 3.12]``
 
 The base ref is checked out into a temporary git worktree with its own
 locked environment, so a dependency change counts as part of the change
 measured. Both sides run this checkout's ``test_bench.py``, in alternating
-passes, and the fastest round per benchmark represents each side. Exits 1
-if any benchmark is slower on the working tree by more than the threshold.
-Benchmarks that ran on one side only are reported and ignored.
+passes, and the fastest round per benchmark represents each side. A result
+over the threshold earns one more pass per side, after which the median of
+each side's per-pass minimums decides, so one odd pass cannot fail the
+run. Exits 1 if any benchmark is still slower on the working tree by more
+than the threshold. Benchmarks that ran on one side only are reported and
+ignored.
+
+Both sides must run on the same interpreter. The working tree's environment
+keeps the interpreter of the last ``uv run --python``, so ``--python`` pins
+both sides when that differs from the default the base gets.
 
 ``--from-json BASE HEAD`` compares two saved pytest-benchmark runs instead.
 """
@@ -16,10 +24,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import subprocess  # nosec B404
 import sys
 import tempfile
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -73,6 +82,12 @@ def fastest(passes: list[dict[str, float]]) -> dict[str, float]:
     return {n: min(p[n] for p in passes if n in p) for n in names}
 
 
+def typical(passes: list[dict[str, float]]) -> dict[str, float]:
+    """Median across passes of each benchmark's per-pass minimum."""
+    names = {name for readings in passes for name in readings}
+    return {n: statistics.median(p[n] for p in passes if n in p) for n in names}
+
+
 def compare(
     base: dict[str, float], head: dict[str, float], threshold: float
 ) -> list[Row]:
@@ -82,6 +97,26 @@ def compare(
     ]
 
 
+def judge(
+    readings: dict[str, list[dict[str, float]]],
+    threshold: float,
+    another_pass: Callable[[], None],
+) -> tuple[list[Row], str]:
+    """Compare the sides, confirming a regression before reporting it.
+
+    A process now and then runs a benchmark in a faster mode, by 20% for
+    ``test_equality`` on a CI runner. The fastest round then belongs to that
+    one pass and misstates its side. ``another_pass`` adds a reading to each
+    side, and the median of the per-pass minimums outvotes the odd pass.
+    """
+    rows = compare(fastest(readings["base"]), fastest(readings["head"]), threshold)
+    if not any(row.regressed for row in rows):
+        return rows, "min"
+    another_pass()
+    rows = compare(typical(readings["base"]), typical(readings["head"]), threshold)
+    return rows, "median"
+
+
 def check_measured_tree(run: Path, tree: Path) -> None:
     """Exit unless the run imported ``prov`` from ``tree``."""
     measured = Path(json.loads(run.read_text())["prov_path"]).resolve()
@@ -89,11 +124,27 @@ def check_measured_tree(run: Path, tree: Path) -> None:
         sys.exit(f"{run.name} measured {measured}, expected a path under {tree}")
 
 
-def report(rows: list[Row]) -> int:
+def check_same_interpreter(base_run: Path, head_run: Path) -> None:
+    """Exit unless both runs used the same Python implementation and version."""
+
+    def interpreter(run: Path) -> str:
+        info = json.loads(run.read_text())["machine_info"]
+        return f"{info['python_implementation']} {info['python_version']}"
+
+    base, head = interpreter(base_run), interpreter(head_run)
+    if base != head:
+        sys.exit(
+            f"the base ran on {base} and the working tree on {head}; "
+            "pin both sides with --python"
+        )
+
+
+def report(rows: list[Row], statistic: str = "min") -> int:
     def seconds(value: float | None) -> str:
         return f"{'-':>10}" if value is None else f"{value:10.4f}"
 
-    print(f"{'benchmark':60} {'base min':>10} {'head min':>10} {'change':>8}")
+    base, head = f"base {statistic}", f"head {statistic}"
+    print(f"{'benchmark':60} {base:>10} {head:>10} {'change':>8}")
     for row in rows:
         if row.change is None:
             note = "  only in " + ("base" if row.head is None else "head")
@@ -119,10 +170,11 @@ def worktree(ref: str) -> Generator[Path]:
             subprocess.run(remove, check=False)  # nosec B603 - nosemgrep
 
 
-def run_suite(tree: Path, output: Path) -> bool:
+def run_suite(tree: Path, output: Path, python: str | None) -> bool:
     """Time the suite against ``tree``'s source and environment."""
     pytest = ("pytest", str(SUITE), *PYTEST_OPTIONS, f"--benchmark-json={output}")
-    command = (*UV_RUN, "--project", str(tree), *pytest)
+    pin = ("--python", python) if python else ()
+    command = (*UV_RUN, *pin, "--project", str(tree), *pytest)
     done = subprocess.run(command, cwd=HEAD_TREE, check=False)  # nosec B603 - nosemgrep
     if not output.exists() or not output.read_text().strip():
         sys.exit(f"pytest wrote no benchmark results for {tree}")
@@ -130,20 +182,29 @@ def run_suite(tree: Path, output: Path) -> bool:
     return done.returncode == 0
 
 
-def measure(base_ref: str, passes: int) -> tuple[dict[str, float], dict[str, float]]:
+def measure(
+    base_ref: str, passes: int, threshold: float, python: str | None
+) -> tuple[list[Row], str]:
     readings: dict[str, list[dict[str, float]]] = {"base": [], "head": []}
     with worktree(base_ref) as base_tree:
-        for number in range(1, passes + 1):
+
+        def run_pass(label: str) -> None:
+            outputs = {}
             for side, tree in (("base", base_tree), ("head", HEAD_TREE)):
-                print(f"\n== pass {number} of {passes}: {side} ==", flush=True)
-                output = base_tree.parent / f"{side}-{number}.json"
-                passed = run_suite(tree, output)
+                print(f"\n== {label}: {side} ==", flush=True)
+                output = base_tree.parent / f"{side}-{len(readings[side]) + 1}.json"
+                outputs[side] = output
+                passed = run_suite(tree, output, python)
 
                 # A benchmark of a new feature cannot pass on the base.
                 if not passed and side == "head":
                     sys.exit("the benchmark suite failed on the working tree")
                 readings[side].append(load_minimums(output))
-    return fastest(readings["base"]), fastest(readings["head"])
+            check_same_interpreter(outputs["base"], outputs["head"])
+
+        for number in range(1, passes + 1):
+            run_pass(f"pass {number} of {passes}")
+        return judge(readings, threshold, lambda: run_pass("confirmation pass"))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -152,15 +213,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--from-json", nargs=2, type=Path, metavar=("BASE", "HEAD"))
     parser.add_argument("--passes", type=int, default=2)
     parser.add_argument("--threshold", type=float, default=0.10)
+    parser.add_argument("--python", help="interpreter for both sides, as uv names it")
     args = parser.parse_args(argv)
 
     if args.from_json:
         base, head = (load_minimums(path) for path in args.from_json)
-    elif args.base_ref:
-        base, head = measure(args.base_ref, args.passes)
-    else:
+        return report(compare(base, head, args.threshold))
+    if not args.base_ref:
         parser.error("give a base ref or --from-json")
-    return report(compare(base, head, args.threshold))
+    rows, statistic = measure(args.base_ref, args.passes, args.threshold, args.python)
+    return report(rows, statistic)
 
 
 if __name__ == "__main__":

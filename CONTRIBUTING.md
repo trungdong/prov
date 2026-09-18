@@ -103,8 +103,8 @@ a volunteer-driven project.
    checks at the bottom of the pull request run the full matrix.
 4. The `benchmark` check times your change and the target branch on one CI runner. It is
    advisory and never blocks a merge. If it is red, or if your change is meant to alter
-   speed, run `uv run python benchmarks/ab.py main` and put its table in the pull request.
-   `benchmarks/README.md` describes the script.
+   speed, run `uv run python benchmarks/ab.py main --python 3.12` and put its table in the
+   pull request. `benchmarks/README.md` describes the script.
 
 ## Licensing
 
