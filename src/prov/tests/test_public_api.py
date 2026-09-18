@@ -304,7 +304,7 @@ PROV_MODEL_DIR_SNAPSHOT = [
 ]
 
 
-def test_prov_model_namespace_snapshot():
+def test_prov_model_namespace_snapshot() -> None:
     actual = sorted(
         name
         for name in dir(prov.model)
@@ -319,7 +319,7 @@ def test_prov_model_namespace_snapshot():
     )
 
 
-def test_names_importable():
+def test_names_importable() -> None:
     missing = []
     for module_name, names in PUBLIC_API.items():
         requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
@@ -332,13 +332,13 @@ def test_names_importable():
     assert missing == [], f"Public API names missing: {missing}"
 
 
-def test_serializer_registry_formats():
+def test_serializer_registry_formats() -> None:
     for fmt in ("json", "xml", "rdf", "provn", "jsonld"):
         # get() raises DoNotExist for unknown formats
         assert issubclass(prov.serializers.get(fmt), prov.serializers.Serializer)
 
 
-def test_round_trip_each_format():
+def test_round_trip_each_format() -> None:
     document = primer_example()
     # PROV-N serialize and deserialize must both succeed.
     for fmt in ("json", "xml", "rdf", "jsonld", "provn"):

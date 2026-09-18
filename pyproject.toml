@@ -208,7 +208,6 @@ module = [
     "prov.tests.test_attribute_merging",
     "prov.tests.test_attributes",
     "prov.tests.test_chaining",
-    "prov.tests.test_citation",
     "prov.tests.test_cli_smoke",
     "prov.tests.test_conformance_dm",
     "prov.tests.test_datetime_parsing",

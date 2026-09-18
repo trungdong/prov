@@ -145,7 +145,7 @@ def _cases():
         yield pytest.param(xml_path, expected, id=xml_path.stem, marks=marks)
 
 
-def test_corpus_inventory():
+def test_corpus_inventory() -> None:
     # Guard against the vendored corpus being truncated or renamed: 153 files,
     # and the behaviour sets above must keep referring to real fail-cases.
     files = {p.name for p in CORPUS.glob("*.xml")}
@@ -156,7 +156,7 @@ def test_corpus_inventory():
 
 
 @pytest.mark.parametrize("xml_path, expected", list(_cases()))
-def test_unified_corpus_characterization(xml_path, expected):
+def test_unified_corpus_characterization(xml_path, expected) -> None:
     with open(xml_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if expected == "success":
@@ -225,7 +225,7 @@ def _w3c_cases():
         yield pytest.param(provx_path, id=provx_path.stem)
 
 
-def test_w3c_corpus_inventory():
+def test_w3c_corpus_inventory() -> None:
     # Guard against the vendored W3C corpus being truncated, renamed or
     # silently joining the ProvToolbox corpus's *.xml glob above.
     files = {p.name for p in CORPUS.glob("type-*.provx")}
@@ -239,7 +239,7 @@ def test_w3c_corpus_inventory():
 
 
 @pytest.mark.parametrize("provx_path", list(_w3c_cases()))
-def test_w3c_type_compatibility_characterization(provx_path):
+def test_w3c_type_compatibility_characterization(provx_path) -> None:
     with open(provx_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if provx_path.name in W3C_RAISES:
@@ -258,7 +258,7 @@ def test_w3c_type_compatibility_characterization(provx_path):
 # --- Hand-written per-rule gap examples (see the gap-analysis doc, section 3)
 
 
-def test_conflicting_start_times_fail_to_unify():
+def test_conflicting_start_times_fail_to_unify() -> None:
     # PROV-CONSTRAINTS Constraint 22 (key-object): two activity records with
     # the same id and different startTime values do not unify; the spec
     # requires the merge (and thus normalization) to FAIL. unified() rejects
@@ -276,7 +276,7 @@ def test_conflicting_start_times_fail_to_unify():
     assert repr(datetime.datetime(2012, 1, 1, 0, 0)) in message
 
 
-def test_placeholder_vs_concrete_plan_merges():
+def test_placeholder_vs_concrete_plan_merges() -> None:
     # PROV-CONSTRAINTS §4: the placeholder - is a constant; it unifies only
     # with itself or an existential variable, never with a concrete value.
     # Corpus analogue association-fail4: wasAssociatedWith(assoc1; a1, ag1,
@@ -294,7 +294,7 @@ def test_placeholder_vs_concrete_plan_merges():
     assert records[0].get_provn() == "wasAssociatedWith(assoc1; a1, ag1, pl1)"
 
 
-def test_entity_and_activity_sharing_an_id_raises():
+def test_entity_and_activity_sharing_an_id_raises() -> None:
     # PROV-CONSTRAINTS Constraint 55 (entity-activity-disjoint) makes an
     # entity and an activity with the same identifier INVALID (with
     # Constraint 50, typing). unified() now rejects the group instead of
@@ -309,7 +309,7 @@ def test_entity_and_activity_sharing_an_id_raises():
         doc.unified()
 
 
-def test_uniqueness_constraints_on_other_keys_are_out_of_scope():
+def test_uniqueness_constraints_on_other_keys_are_out_of_scope() -> None:
     # PROV-CONSTRAINTS Constraint 24 (unique-generation): two generations of
     # the same (entity, activity) pair must have equal identifiers — two
     # *different* constant identifiers cannot unify, so this instance is
@@ -327,7 +327,7 @@ def test_uniqueness_constraints_on_other_keys_are_out_of_scope():
     assert len(unified.get_records()) == 4  # nothing merged, nothing rejected
 
 
-def test_compatible_partial_information_merges_like_the_spec_example():
+def test_compatible_partial_information_merges_like_the_spec_example() -> None:
     # PROV-CONSTRAINTS §6.1's worked example — activity(a, t1, _t, [ex:a=1]) +
     # activity(a, _t, t2, [ex:b=2]) merge into activity(a, t1, t2, [ex:a=1,
     # ex:b=2]) — because absent formal attributes unify with concrete ones and
@@ -349,7 +349,7 @@ def test_compatible_partial_information_merges_like_the_spec_example():
 # --- Bundle scoping (PROV-CONSTRAINTS section 7.2)
 
 
-def test_document_unified_scopes_unification_per_bundle():
+def test_document_unified_scopes_unification_per_bundle() -> None:
     # PROV-CONSTRAINTS 7.2: each bundle is normalized independently; nothing
     # merges across bundle boundaries. ProvDocument.unified() conforms: the
     # top level and each sub-bundle are unified independently of the document
@@ -379,7 +379,7 @@ def test_document_unified_scopes_unification_per_bundle():
     assert {str(label) for label in b2_record.get_attribute("prov:label")} == {"in b2"}
 
 
-def test_flattened_unified_merges_across_bundle_boundaries():
+def test_flattened_unified_merges_across_bundle_boundaries() -> None:
     # The flattened().unified() idiom (as test_unifying in test_model.py uses)
     # merges same-id records ACROSS bundles — no PROV-CONSTRAINTS rule
     # licenses that (7.2 scopes constraints per bundle). Characterized here as

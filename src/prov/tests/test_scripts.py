@@ -18,6 +18,7 @@ import contextlib
 import io
 import shutil
 import sys
+from typing import NoReturn
 
 import pytest
 
@@ -39,7 +40,7 @@ def infile(tmp_path):
     return path
 
 
-def test_convert_to_xml(infile, tmp_path, monkeypatch):
+def test_convert_to_xml(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.xml"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
@@ -49,7 +50,7 @@ def test_convert_to_xml(infile, tmp_path, monkeypatch):
     assert outfile.stat().st_size > 0
 
 
-def test_convert_format_is_case_insensitive(infile, tmp_path, monkeypatch):
+def test_convert_format_is_case_insensitive(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.xml"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "XML", str(infile), str(outfile)]
@@ -59,7 +60,7 @@ def test_convert_format_is_case_insensitive(infile, tmp_path, monkeypatch):
     assert outfile.stat().st_size > 0
 
 
-def test_convert_explicit_argv_extends_sys_argv(infile, tmp_path, monkeypatch):
+def test_convert_explicit_argv_extends_sys_argv(infile, tmp_path, monkeypatch) -> None:
     # Pin the documented quirk: main(argv) *extends* sys.argv rather than
     # replacing it, and argparse then reads the combined sys.argv. A
     # future "fix" that silently changes this to replacement should trip
@@ -73,7 +74,7 @@ def test_convert_explicit_argv_extends_sys_argv(infile, tmp_path, monkeypatch):
     assert outfile.stat().st_size > 0
 
 
-def test_convert_to_provn(infile, tmp_path, monkeypatch):
+def test_convert_to_provn(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.provn"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "provn", str(infile), str(outfile)]
@@ -91,7 +92,7 @@ def test_convert_to_provn(infile, tmp_path, monkeypatch):
 @pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
 )
-def test_convert_to_dot(infile, tmp_path, monkeypatch):
+def test_convert_to_dot(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.dot"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "dot", str(infile), str(outfile)]
@@ -104,7 +105,7 @@ def test_convert_to_dot(infile, tmp_path, monkeypatch):
 @pytest.mark.skipif(
     not shutil.which("dot"), reason="graphviz 'dot' binary not installed"
 )
-def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch):
+def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.svg"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "svg", str(infile), str(outfile)]
@@ -116,7 +117,7 @@ def test_convert_to_rendered_graphviz_format(infile, tmp_path, monkeypatch):
 
 def test_convert_unsupported_format_returns_2_and_writes_stderr(
     infile, tmp_path, monkeypatch
-):
+) -> None:
     outfile = tmp_path / "doc.bogus"
     stderr = io.StringIO()
     monkeypatch.setattr(
@@ -128,7 +129,7 @@ def test_convert_unsupported_format_returns_2_and_writes_stderr(
     assert 'E: Output format "bogus" is not supported.' in stderr.getvalue()
 
 
-def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path):
+def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path) -> None:
     # Exercise convert_file() directly for the CLIError branch and its
     # __str__ (the "E: ..." prefix).
     assert "bogus" not in GRAPHVIZ_SUPPORTED_FORMATS
@@ -141,7 +142,7 @@ def test_convert_file_raises_cli_error_for_unsupported_format(infile, tmp_path):
     assert str(ctx.value) == 'E: Output format "bogus" is not supported.'
 
 
-def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
+def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch) -> None:
     # A path that cannot be opened is reported through parser.error(),
     # which exits 2; that SystemExit propagates out of main() rather than
     # being caught by the `except Exception` handler.
@@ -156,7 +157,7 @@ def test_convert_missing_input_file_exits_2(infile, tmp_path, monkeypatch):
     assert ctx.value.code == 2
 
 
-def test_convert_version_exits_0_without_stdout_buffer(monkeypatch):
+def test_convert_version_exits_0_without_stdout_buffer(monkeypatch) -> None:
     # Files are opened after parsing, so --version never needs
     # sys.stdout.buffer; a plain StringIO stdout must do.
     monkeypatch.setattr(sys, "argv", ["prov-convert", "--version"])
@@ -166,10 +167,10 @@ def test_convert_version_exits_0_without_stdout_buffer(monkeypatch):
     assert ctx.value.code == 0
 
 
-def test_convert_returns_0_on_keyboard_interrupt(infile, tmp_path, monkeypatch):
+def test_convert_returns_0_on_keyboard_interrupt(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.xml"
 
-    def raise_keyboard_interrupt(*args, **kwargs):
+    def raise_keyboard_interrupt(*args, **kwargs) -> NoReturn:
         raise KeyboardInterrupt
 
     monkeypatch.setattr("prov.scripts.convert.convert_file", raise_keyboard_interrupt)
@@ -180,11 +181,15 @@ def test_convert_returns_0_on_keyboard_interrupt(infile, tmp_path, monkeypatch):
     assert rc == 0
 
 
-def test_convert_closes_files_even_when_conversion_fails(infile, tmp_path, monkeypatch):
+def test_convert_closes_files_even_when_conversion_fails(
+    infile, tmp_path, monkeypatch
+) -> None:
     outfile = tmp_path / "doc.xml"
     captured = {}
 
-    def spy_convert_file(in_stream, out_stream, output_format, input_format="json"):
+    def spy_convert_file(
+        in_stream, out_stream, output_format, input_format="json"
+    ) -> NoReturn:
         captured["infile"] = in_stream
         captured["outfile"] = out_stream
         raise RuntimeError("boom")
@@ -210,7 +215,7 @@ def provn_infile(tmp_path):
 # not use it on any interpreter.
 @pytest.mark.filterwarnings("error::PendingDeprecationWarning")
 @pytest.mark.filterwarnings("error::DeprecationWarning")
-def test_convert_from_provn(provn_infile, tmp_path, monkeypatch):
+def test_convert_from_provn(provn_infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.json"
     monkeypatch.setattr(
         sys,
@@ -221,7 +226,7 @@ def test_convert_from_provn(provn_infile, tmp_path, monkeypatch):
     assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
 
 
-def test_convert_from_xml(tmp_path, monkeypatch):
+def test_convert_from_xml(tmp_path, monkeypatch) -> None:
     pytest.importorskip("lxml")
     infile = tmp_path / "doc.xml"
     primer_example().serialize(str(infile), format="xml")
@@ -233,7 +238,9 @@ def test_convert_from_xml(tmp_path, monkeypatch):
     assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
 
 
-def test_convert_unknown_input_format_exits_2(infile, tmp_path, monkeypatch, capsys):
+def test_convert_unknown_input_format_exits_2(
+    infile, tmp_path, monkeypatch, capsys
+) -> None:
     outfile = tmp_path / "doc.json"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-i", "nope", str(infile), str(outfile)]
@@ -242,7 +249,7 @@ def test_convert_unknown_input_format_exits_2(infile, tmp_path, monkeypatch, cap
     assert "nope" in capsys.readouterr().err
 
 
-def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch):
+def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "doc.json"
     monkeypatch.setattr(sys, "argv", ["prov-convert", "-i", "provn", "-f", "json"])
     monkeypatch.setattr(
@@ -254,7 +261,7 @@ def test_convert_reads_provn_from_stdin(provn_infile, tmp_path, monkeypatch):
     assert ProvDocument.deserialize(str(outfile), format="json") == primer_example()
 
 
-def test_convert_help_under_redirected_stdout(monkeypatch):
+def test_convert_help_under_redirected_stdout(monkeypatch) -> None:
     # --help formats usage to sys.stdout; the old sys.stdout.buffer default
     # broke when stdout was something without a .buffer attribute (e.g.
     # contextlib.redirect_stdout(io.StringIO())).
@@ -266,7 +273,7 @@ def test_convert_help_under_redirected_stdout(monkeypatch):
     assert buf.getvalue().startswith("usage:")
 
 
-def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch):
+def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch) -> None:
     # Both files given explicitly, so sys.stdin is never touched; this must
     # succeed even when sys.stdin is None (e.g. under some process
     # supervisors).
@@ -282,7 +289,7 @@ def test_convert_works_with_stdin_set_to_none(infile, tmp_path, monkeypatch):
     assert outfile.stat().st_size > 0
 
 
-def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch):
+def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch) -> None:
     # "-" (the default) means the standard streams, which belong to the
     # caller: the tool must not close them after use.
     stdin = io.TextIOWrapper(io.BytesIO(provn_infile.read_bytes()))
@@ -298,7 +305,7 @@ def test_convert_leaves_standard_streams_open(provn_infile, monkeypatch):
     assert ProvDocument.deserialize(content=written, format="json") == primer_example()
 
 
-def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch):
+def test_convert_unwritable_output_path_exits_2(infile, tmp_path, monkeypatch) -> None:
     outfile = tmp_path / "no-such-dir" / "doc.xml"
     monkeypatch.setattr(
         sys, "argv", ["prov-convert", "-f", "xml", str(infile), str(outfile)]
@@ -323,7 +330,7 @@ def compare_files(tmp_path):
 # not use it on any interpreter.
 @pytest.mark.filterwarnings("error::PendingDeprecationWarning")
 @pytest.mark.filterwarnings("error::DeprecationWarning")
-def test_equivalent_documents_return_0(compare_files, monkeypatch):
+def test_equivalent_documents_return_0(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     monkeypatch.setattr(
         sys,
@@ -334,7 +341,7 @@ def test_equivalent_documents_return_0(compare_files, monkeypatch):
     assert rc == 0
 
 
-def test_compare_provn_to_json_returns_0(tmp_path, monkeypatch):
+def test_compare_provn_to_json_returns_0(tmp_path, monkeypatch) -> None:
     provn_file = tmp_path / "doc.provn"
     json_file = tmp_path / "doc.json"
     doc = primer_example()
@@ -349,7 +356,7 @@ def test_compare_provn_to_json_returns_0(tmp_path, monkeypatch):
     assert rc == 0
 
 
-def test_different_documents_return_1(compare_files, tmp_path, monkeypatch):
+def test_different_documents_return_1(compare_files, tmp_path, monkeypatch) -> None:
     json_file, _xml_file = compare_files
     other_file = tmp_path / "other.json"
     w3c_publication_1().serialize(str(other_file), format="json")
@@ -358,7 +365,7 @@ def test_different_documents_return_1(compare_files, tmp_path, monkeypatch):
     assert rc == 1
 
 
-def test_bad_format_returns_2_and_writes_stderr(compare_files, monkeypatch):
+def test_bad_format_returns_2_and_writes_stderr(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     stderr = io.StringIO()
     monkeypatch.setattr(
@@ -375,7 +382,7 @@ def test_bad_format_returns_2_and_writes_stderr(compare_files, monkeypatch):
     assert 'No serializer available for the format "bogus"' in stderr.getvalue()
 
 
-def test_missing_file_exits_2(compare_files, tmp_path, monkeypatch):
+def test_missing_file_exits_2(compare_files, tmp_path, monkeypatch) -> None:
     json_file, _xml_file = compare_files
     missing = tmp_path / "does-not-exist.json"
     monkeypatch.setattr(sys, "argv", ["prov-compare", str(missing), str(json_file)])
@@ -385,7 +392,7 @@ def test_missing_file_exits_2(compare_files, tmp_path, monkeypatch):
     assert ctx.value.code == 2
 
 
-def test_version_exits_0(monkeypatch):
+def test_version_exits_0(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["prov-compare", "--version"])
     monkeypatch.setattr(sys, "stdout", io.StringIO())
     with pytest.raises(SystemExit) as ctx:
@@ -393,7 +400,7 @@ def test_version_exits_0(monkeypatch):
     assert ctx.value.code == 0
 
 
-def test_closes_both_files_on_error(compare_files, monkeypatch):
+def test_closes_both_files_on_error(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     captured_sources = []
     original_deserialize = ProvDocument.deserialize
@@ -415,7 +422,7 @@ def test_closes_both_files_on_error(compare_files, monkeypatch):
         assert source.closed
 
 
-def test_compare_one_positional_exits_2(compare_files, monkeypatch):
+def test_compare_one_positional_exits_2(compare_files, monkeypatch) -> None:
     json_file, _xml_file = compare_files
     monkeypatch.setattr(sys, "argv", ["prov-compare", str(json_file)])
     monkeypatch.setattr(sys, "stderr", io.StringIO())
@@ -424,7 +431,7 @@ def test_compare_one_positional_exits_2(compare_files, monkeypatch):
     assert ctx.value.code == 2
 
 
-def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch):
+def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     stdin = io.TextIOWrapper(io.BytesIO(json_file.read_bytes()))
     monkeypatch.setattr(sys, "stdin", stdin)
@@ -435,7 +442,7 @@ def test_compare_reads_one_file_from_stdin_for_dash(compare_files, monkeypatch):
     assert not stdin.buffer.closed
 
 
-def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch):
+def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch) -> None:
     json_file, xml_file = compare_files
     monkeypatch.setattr(sys, "stdin", io.StringIO(json_file.read_text()))
     monkeypatch.setattr(
@@ -444,7 +451,7 @@ def test_compare_reads_a_text_only_stdin_for_dash(compare_files, monkeypatch):
     assert compare_main() == 0
 
 
-def test_compare_two_dashes_exits_2(monkeypatch):
+def test_compare_two_dashes_exits_2(monkeypatch) -> None:
     monkeypatch.setattr(sys, "argv", ["prov-compare", "-", "-"])
     monkeypatch.setattr(sys, "stderr", io.StringIO())
     with pytest.raises(SystemExit) as ctx:

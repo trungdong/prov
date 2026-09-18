@@ -15,7 +15,7 @@ def _doc():
     return document
 
 
-def test_entity_wasRevisionOf():
+def test_entity_wasRevisionOf() -> None:
     document = _doc()
     e2 = document.entity("ex:e2")
     assert e2.wasRevisionOf("ex:e1") is e2
@@ -25,7 +25,7 @@ def test_entity_wasRevisionOf():
     assert document == expected
 
 
-def test_entity_wasQuotedFrom():
+def test_entity_wasQuotedFrom() -> None:
     document = _doc()
     e2 = document.entity("ex:e2")
     assert e2.wasQuotedFrom("ex:e1") is e2
@@ -35,7 +35,7 @@ def test_entity_wasQuotedFrom():
     assert document == expected
 
 
-def test_entity_hadPrimarySource():
+def test_entity_hadPrimarySource() -> None:
     document = _doc()
     e2 = document.entity("ex:e2")
     assert e2.hadPrimarySource("ex:e1") is e2
@@ -45,7 +45,7 @@ def test_entity_hadPrimarySource():
     assert document == expected
 
 
-def test_entity_mentionOf():
+def test_entity_mentionOf() -> None:
     document = _doc()
     e2 = document.entity("ex:e2")
     assert e2.mentionOf("ex:e1", "ex:b") is e2
@@ -55,7 +55,7 @@ def test_entity_mentionOf():
     assert document == expected
 
 
-def test_entity_wasInfluencedBy():
+def test_entity_wasInfluencedBy() -> None:
     document = _doc()
     e2 = document.entity("ex:e2")
     assert e2.wasInfluencedBy("ex:e1") is e2
@@ -65,7 +65,7 @@ def test_entity_wasInfluencedBy():
     assert document == expected
 
 
-def test_activity_wasInfluencedBy():
+def test_activity_wasInfluencedBy() -> None:
     document = _doc()
     a2 = document.activity("ex:a2")
     assert a2.wasInfluencedBy("ex:a1") is a2
@@ -75,7 +75,7 @@ def test_activity_wasInfluencedBy():
     assert document == expected
 
 
-def test_agent_wasInfluencedBy():
+def test_agent_wasInfluencedBy() -> None:
     document = _doc()
     ag2 = document.agent("ex:ag2")
     assert ag2.wasInfluencedBy("ex:ag1") is ag2

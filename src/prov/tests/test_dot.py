@@ -20,7 +20,7 @@ MIN_SVG_SIZE = 850
 @pytest.mark.parametrize(
     "build", [pytest.param(fn, id=name) for name, fn in examples.tests]
 )
-def test_svg_render(build):
+def test_svg_render(build) -> None:
     """One-way output SVG with prov.dot to exercise its code.
 
     Very naive check of the returned SVG content as we have no way to check
@@ -39,7 +39,7 @@ def test_svg_render(build):
 # usable by external callers.
 
 
-def test_value_with_uri_becomes_a_link():
+def test_value_with_uri_becomes_a_link() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     e1 = doc.entity("ex:e1")
@@ -48,7 +48,7 @@ def test_value_with_uri_becomes_a_link():
     assert "http://example.org/e1" in result
 
 
-def test_plain_value_returned_as_str():
+def test_plain_value_returned_as_str() -> None:
     assert htlm_link_if_uri("just a string") == "just a string"
 
 
@@ -56,7 +56,7 @@ def test_plain_value_returned_as_str():
 # checklist.md, T13 item under dot.py).
 
 
-def test_invalid_direction_falls_back_to_bt():
+def test_invalid_direction_falls_back_to_bt() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -65,7 +65,7 @@ def test_invalid_direction_falls_back_to_bt():
     assert dot.get_rankdir() == "BT"
 
 
-def test_valid_direction_is_preserved():
+def test_valid_direction_is_preserved() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -74,7 +74,7 @@ def test_valid_direction_is_preserved():
     assert dot.get_rankdir() == "LR"
 
 
-def test_use_labels_with_explicit_label_differing_from_identifier():
+def test_use_labels_with_explicit_label_differing_from_identifier() -> None:
     """Covers the use_labels=True node-rendering branch (docs/test-gap-
     checklist.md, T13 item under dot.py). The label==identifier branch
     (dot.py:281-282) is unreachable via any real record: ProvRecord.label
@@ -90,7 +90,7 @@ def test_use_labels_with_explicit_label_differing_from_identifier():
     assert b"My Entity" in svg_content
 
 
-def test_show_element_attributes_false_skips_annotation():
+def test_show_element_attributes_false_skips_annotation() -> None:
     """Covers prov_to_dot(show_element_attributes=False) (docs/test-gap-
     checklist.md, T13 item under dot.py); every other test in this module
     leaves it at its True default."""
@@ -103,7 +103,7 @@ def test_show_element_attributes_false_skips_annotation():
     assert b"value" not in svg_content
 
 
-def test_unresolvable_unification_falls_back_to_original_bundle():
+def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     """Covers prov_to_dot()'s ``except ProvException`` fallback when
     ``bundle.unified()`` raises ``ProvUnificationError`` because two relations
     share an identifier but disagree on a formal attribute (the "scruffy"
@@ -147,7 +147,7 @@ def _node_with_label_fragment(dot, fragment):
     return matches[0]
 
 
-def _assert_javascript_links_dropped(doc):
+def _assert_javascript_links_dropped(doc) -> None:
     """``ex:safe`` keeps its links; the ``js:`` node and annotation get none."""
     dot = prov_to_dot(doc)
 
@@ -161,7 +161,7 @@ def _assert_javascript_links_dropped(doc):
     assert 'href=" javascript' not in annotation.get_label()
 
 
-def test_javascript_scheme_identifier_gets_no_url_or_href():
+def test_javascript_scheme_identifier_gets_no_url_or_href() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.add_namespace("js", "javascript:")
@@ -178,7 +178,7 @@ def test_javascript_scheme_identifier_gets_no_url_or_href():
     ["javascript&#58;", "javascript&#x3A;", "javascript&colon;", " javascript:"],
     ids=["decimal-ref", "hex-ref", "named-ref", "leading-space"],
 )
-def test_encoded_or_padded_javascript_scheme_gets_no_url_or_href(namespace_uri):
+def test_encoded_or_padded_javascript_scheme_gets_no_url_or_href(namespace_uri) -> None:
     # Graphviz passes character references through to SVG, where the consumer
     # decodes them, so the scheme check must run on the decoded form.
     doc = ProvDocument()
@@ -191,7 +191,7 @@ def test_encoded_or_padded_javascript_scheme_gets_no_url_or_href(namespace_uri):
     _assert_javascript_links_dropped(doc)
 
 
-def test_bundle_with_javascript_identifier_gets_no_url():
+def test_bundle_with_javascript_identifier_gets_no_url() -> None:
     doc = ProvDocument()
     doc.add_namespace("js", "javascript:")
     bundle = doc.bundle("js:bundle")
@@ -203,7 +203,7 @@ def test_bundle_with_javascript_identifier_gets_no_url():
     assert cluster.get("URL") is None
 
 
-def test_html_label_special_characters_are_escaped():
+def test_html_label_special_characters_are_escaped() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", other_attributes={"prov:label": 'A<b> & "c"'})
@@ -216,7 +216,7 @@ def test_html_label_special_characters_are_escaped():
     assert len(dot.create(format="svg")) > 0
 
 
-def test_quoted_label_escapes_double_quote():
+def test_quoted_label_escapes_double_quote() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity('ex:e"1')
@@ -228,7 +228,7 @@ def test_quoted_label_escapes_double_quote():
     assert len(dot.create(format="svg")) > 0
 
 
-def test_sub_minute_utc_offset_attribute_is_rendered_as_utc():
+def test_sub_minute_utc_offset_attribute_is_rendered_as_utc() -> None:
     # xsd:dateTime allows no seconds in a timezone offset (#341 scope
     # extension): the attribute-annotation label must show the UTC
     # equivalent of a sub-minute offset, not the illegal offset text.
@@ -246,7 +246,7 @@ def test_sub_minute_utc_offset_attribute_is_rendered_as_utc():
     assert "+00:00:30" not in dot_text
 
 
-def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning():
+def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning() -> None:
     from prov.model import ProvWarning
 
     document = ProvDocument()
@@ -259,7 +259,7 @@ def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning():
     assert len(dot.get_edges()) == 1
 
 
-def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site():
+def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site() -> None:
     from prov.model import ProvWarning
 
     document = ProvDocument()
@@ -276,7 +276,7 @@ def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site():
     assert record[0].filename == __file__
 
 
-def test_complete_relation_draws_without_warning():
+def test_complete_relation_draws_without_warning() -> None:
     import warnings
 
     document = ProvDocument()

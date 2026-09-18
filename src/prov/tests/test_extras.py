@@ -31,11 +31,11 @@ EX2_NS = Namespace("ex2", "http://example2.org/")
 EX_OTHER_NS = Namespace("other", "http://exceptions.example.org/")
 
 
-def add_label(record):
+def add_label(record) -> None:
     record.add_attributes([("prov:label", Literal("hello"))])
 
 
-def add_labels(record):
+def add_labels(record) -> None:
     record.add_attributes(
         [
             ("prov:label", Literal("hello")),
@@ -45,7 +45,7 @@ def add_labels(record):
     )
 
 
-def add_types(record):
+def add_types(record) -> None:
     record.add_attributes(
         [
             ("prov:type", "a"),
@@ -62,7 +62,7 @@ def add_types(record):
     )
 
 
-def add_locations(record):
+def add_locations(record) -> None:
     record.add_attributes(
         [
             ("prov:Location", "Southampton"),
@@ -77,11 +77,11 @@ def add_locations(record):
     )
 
 
-def add_value(record):
+def add_value(record) -> None:
     record.add_attributes([("prov:value", EX_NS["avalue"])])
 
 
-def add_further_attributes(record):
+def add_further_attributes(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -92,7 +92,7 @@ def add_further_attributes(record):
     )
 
 
-def add_further_attributes0(record):
+def add_further_attributes0(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag1"], "hello"),
@@ -111,7 +111,7 @@ def add_further_attributes0(record):
     add_further_attributes_with_qnames(record)
 
 
-def add_further_attributes_with_qnames(record):
+def add_further_attributes_with_qnames(record) -> None:
     record.add_attributes(
         [
             (EX_NS["tag"], EX2_NS["newyork"]),
@@ -120,7 +120,7 @@ def add_further_attributes_with_qnames(record):
     )
 
 
-def test_dot():
+def test_dot() -> None:
     # This is naive, since we can't programatically check the output is
     # correct
     pytest.importorskip("pydot", reason="prov.dot requires the dot extra")
@@ -144,7 +144,7 @@ def test_dot():
     prov_to_dot(document)
 
 
-def test_extra_attributes():
+def test_extra_attributes() -> None:
     document = ProvDocument()
 
     inf = document.influence(EX_NS["a2"], EX_NS["a1"], identifier=EX_NS["inf7"])
@@ -157,7 +157,7 @@ def test_extra_attributes():
     )
 
 
-def test_serialize_to_path(tmp_path):
+def test_serialize_to_path(tmp_path) -> None:
     document = ProvDocument()
     path = tmp_path / "output.json"
     document.serialize(str(path))
@@ -166,10 +166,10 @@ def test_serialize_to_path(tmp_path):
     document.serialize("http://netloc/outputmyprov/submit.php")
 
 
-def test_bundle_no_id():
+def test_bundle_no_id() -> None:
     document = ProvDocument()
 
-    def test():
+    def test() -> None:
         bundle = ProvBundle()
         document.add_bundle(bundle)
 
@@ -177,7 +177,7 @@ def test_bundle_no_id():
         test()
 
 
-def test_use_set_time_helpers():
+def test_use_set_time_helpers() -> None:
     dt = datetime.datetime.now()
     document1 = ProvDocument()
     document1.activity(EX_NS["a8"], startTime=dt, endTime=dt)
@@ -191,16 +191,16 @@ def test_use_set_time_helpers():
     assert a.get_endTime() == dt
 
 
-def test_bundle_add_garbage():
+def test_bundle_add_garbage() -> None:
     document = ProvDocument()
 
-    def test1():
+    def test1() -> None:
         document.add_bundle(document.entity(EX_NS["entity_trying_to_be_a_bundle"]))
 
     with pytest.raises(ProvException):
         test1()
 
-    def test2():
+    def test2() -> None:
         bundle = ProvBundle()
         document.add_bundle(bundle)
 
@@ -208,17 +208,17 @@ def test_bundle_add_garbage():
         test2()
 
 
-def test_bundle_equality_garbage():
+def test_bundle_equality_garbage() -> None:
     document = ProvBundle()
     assert document != 1
 
 
-def test_bundle_is_bundle():
+def test_bundle_is_bundle() -> None:
     document = ProvBundle()
     assert document.is_bundle()
 
 
-def test_bundle_get_record_by_id():
+def test_bundle_get_record_by_id() -> None:
     document = ProvDocument()
     assert len(document.get_record("nonexistentid")) == 0
 
@@ -226,7 +226,7 @@ def test_bundle_get_record_by_id():
     assert record == document.get_record(EX_NS["e1"])[0]
 
 
-def test_bundle_get_records():
+def test_bundle_get_records() -> None:
     document = ProvDocument()
 
     document.entity(identifier=EX_NS["e1"])
@@ -235,10 +235,10 @@ def test_bundle_get_records():
     assert len(document.get_records()) == 2
 
 
-def test_bundle_name_clash():
+def test_bundle_name_clash() -> None:
     document = ProvDocument()
 
-    def test1():
+    def test1() -> None:
         document.bundle(EX_NS["indistinct"])
         document.bundle(EX_NS["indistinct"])
 
@@ -247,7 +247,7 @@ def test_bundle_name_clash():
 
     document = ProvDocument()
 
-    def test2():
+    def test2() -> None:
         document.bundle(EX_NS["indistinct"])
         bundle = ProvBundle(identifier=EX_NS["indistinct"])
         document.add_bundle(bundle)
@@ -256,7 +256,7 @@ def test_bundle_name_clash():
         test2()
 
 
-def test_document_helper_methods():
+def test_document_helper_methods() -> None:
     document = ProvDocument()
     assert not document.is_bundle()
     assert not document.has_bundles()
@@ -265,7 +265,7 @@ def test_document_helper_methods():
     assert str(document) == "<ProvDocument>"
 
 
-def test_reading_and_writing_to_file_like_objects():
+def test_reading_and_writing_to_file_like_objects() -> None:
     """
     Tests reading and writing to and from file like objects.
     """
@@ -290,20 +290,20 @@ def test_reading_and_writing_to_file_like_objects():
                 buf.close()
 
 
-def test_primer_alternate():
+def test_primer_alternate() -> None:
     g1 = primer_example()
     g2 = primer_example_alternate()
     assert g1 == g2
 
 
-def test_get_serializer_for_unknown_format_chains_key_error():
+def test_get_serializer_for_unknown_format_chains_key_error() -> None:
     with pytest.raises(DoNotExist) as ctx:
         get_serializer("no-such-format")
     assert isinstance(ctx.value.__cause__, KeyError)
     assert "no-such-format" in str(ctx.value)
 
 
-def test_get_serializer_returns_class_for_each_known_format():
+def test_get_serializer_returns_class_for_each_known_format() -> None:
     assert get_serializer("json") is ProvJSONSerializer
     assert get_serializer("rdf") is ProvRDFSerializer
     assert get_serializer("provn") is ProvNSerializer
@@ -311,7 +311,7 @@ def test_get_serializer_returns_class_for_each_known_format():
     assert get_serializer("jsonld") is ProvJSONLDSerializer
 
 
-def test_get_serializer_lazily_populates_registry():
+def test_get_serializer_lazily_populates_registry() -> None:
     original = Registry.serializers
     Registry.serializers = None
     try:
@@ -329,7 +329,7 @@ def test_get_serializer_lazily_populates_registry():
         Registry.serializers = original
 
 
-def test_read_lazily_populates_registry():
+def test_read_lazily_populates_registry() -> None:
     import prov
 
     # Build the serialized content BEFORE resetting the registry, so the
@@ -360,7 +360,7 @@ def test_read_lazily_populates_registry():
         Registry.serializers = original
 
 
-def test_plot_without_matplotlib_raises_helpful_error():
+def test_plot_without_matplotlib_raises_helpful_error() -> None:
     # plot()'s interactive path renders through prov.dot before it ever gets
     # to the matplotlib check, so this test's premise (pydot present,
     # matplotlib absent) needs pydot importable -- without it, prov.dot's own
@@ -391,7 +391,7 @@ def test_plot_without_matplotlib_raises_helpful_error():
         builtins.__import__ = real_import
 
 
-def test_serialize_without_a_document_raises():
+def test_serialize_without_a_document_raises() -> None:
     """Covers ProvNSerializer.serialize()'s "no document" guard
     (planning/test-gap-checklist.md, T13 item under serializers/provn.py)."""
     serializer = ProvNSerializer(document=None)

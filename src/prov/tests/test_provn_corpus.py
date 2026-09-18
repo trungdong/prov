@@ -321,7 +321,7 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
     + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
-def test_spec_examples_parse_strictly_and_round_trip(path):
+def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
     document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
     reloaded = ProvDocument.deserialize(
         content=document.get_provn(strict=True), format="provn", profile="strict"
@@ -330,13 +330,13 @@ def test_spec_examples_parse_strictly_and_round_trip(path):
 
 
 @pytest.mark.parametrize("path", _param("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))
-def test_provtoolbox_documents_parse(path):
+def test_provtoolbox_documents_parse(path) -> None:
     document = ProvDocument.deserialize(str(path), format="provn")
     assert document.get_records() or document.has_bundles()
 
 
 @pytest.mark.parametrize("path", _param("provtoolbox-corpus", KNOWN_DIFFERENCES))
-def test_provtoolbox_corpus_equals_json_fixture(path):
+def test_provtoolbox_corpus_equals_json_fixture(path) -> None:
     expected = ProvDocument.deserialize(
         str(JSON_FIXTURES / f"{path.stem}.json"), format="json"
     )
@@ -344,7 +344,7 @@ def test_provtoolbox_corpus_equals_json_fixture(path):
     assert document == expected
 
 
-def test_every_json_fixture_has_a_counterpart_or_is_listed():
+def test_every_json_fixture_has_a_counterpart_or_is_listed() -> None:
     readme = (CORPUS / "README.md").read_text()
     have = {p.stem for p in _files("provtoolbox-corpus")}
     for path in sorted(JSON_FIXTURES.glob("*.json")):

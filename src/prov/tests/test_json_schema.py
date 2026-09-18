@@ -34,7 +34,7 @@ def prov_json_validator():
 )
 def test_example_documents_validate_against_prov_json_schema(
     prov_json_validator, make_document
-):
+) -> None:
     container = json.loads(make_document().serialize(format="json"))
     errors = sorted(prov_json_validator.iter_errors(container), key=str)
     assert not errors, "\n".join(str(e) for e in errors)

@@ -35,14 +35,14 @@ def _doc():
 # --- Filed defects (strict xfails) -------------------------------------------
 
 
-def test_xsd_long_literal_datatype_preserved():
+def test_xsd_long_literal_datatype_preserved() -> None:
     document = _doc()
     entity = document.entity("ex:e1", {"ex:attr": Literal("42", XSD_LONG)})
     ((_, value),) = entity.extra_attributes
     assert value == Literal("42", XSD_LONG)  # #235 (fixed in 3.0)
 
 
-def test_qualified_name_literal_roundtrip_equality():
+def test_qualified_name_literal_roundtrip_equality() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:a": Literal("ex:v", PROV_QUALIFIEDNAME)})
     content = document.serialize(format="json")
@@ -50,7 +50,7 @@ def test_qualified_name_literal_roundtrip_equality():
     assert reloaded == document  # #238 (fixed in 3.0)
 
 
-def test_qualified_name_literal_resolves_at_assertion():
+def test_qualified_name_literal_resolves_at_assertion() -> None:
     # #238: a prov:QUALIFIED_NAME-typed Literal is resolved to a real
     # QualifiedName at assertion time, using the record's bundle namespaces.
     document = _doc()
@@ -59,7 +59,7 @@ def test_qualified_name_literal_resolves_at_assertion():
     assert value == document.valid_qualified_name("ex:v")
 
 
-def test_xsd_qname_literal_stays_opaque_at_assertion():
+def test_xsd_qname_literal_stays_opaque_at_assertion() -> None:
     # By contrast, an xsd:QName-typed Literal is left opaque on the model
     # side: only the PROV-JSON codec treats xsd:QName as a QualifiedName
     # value (#168); resolving it here too would be a needless widening of
@@ -70,21 +70,21 @@ def test_xsd_qname_literal_stays_opaque_at_assertion():
     assert value == Literal("ex:v", XSD_QNAME)
 
 
-def test_factory_time_parse_error_raises_prov_exception():
+def test_factory_time_parse_error_raises_prov_exception() -> None:
     # #237 (fixed in 3.0): raw dateutil ParserError no longer leaks
     document = _doc()
     with pytest.raises(ProvException):
         document.activity("ex:a1", startTime="not a date")
 
 
-def test_factory_time_accepts_hour24_datetime():
+def test_factory_time_accepts_hour24_datetime() -> None:
     # #237 (fixed in 3.0): xsd:dateTime end-of-day form is valid
     document = _doc()
     activity = document.activity("ex:a1", startTime="2011-11-16T24:00:00")
     assert activity.get_startTime() == datetime.datetime(2011, 11, 17, 0, 0)
 
 
-def test_read_autodetects_prov_xml(tmp_path):
+def test_read_autodetects_prov_xml(tmp_path) -> None:
     document = _doc()
     document.entity("ex:e1")
     path = tmp_path / "doc.xml"
@@ -92,7 +92,7 @@ def test_read_autodetects_prov_xml(tmp_path):
     assert prov.read(str(path)) == document
 
 
-def test_serialize_writes_to_named_temporary_file(tmp_path, monkeypatch):
+def test_serialize_writes_to_named_temporary_file(tmp_path, monkeypatch) -> None:
     # #240 regression: non-io.IOBase writables (e.g. NamedTemporaryFile's
     # _TemporaryFileWrapper proxy) must be treated as streams, not paths.
     monkeypatch.chdir(tmp_path)  # any junk repr-named file would land here
@@ -108,7 +108,7 @@ def test_serialize_writes_to_named_temporary_file(tmp_path, monkeypatch):
     assert junk == []
 
 
-def test_deserialize_reads_from_named_temporary_file(tmp_path):
+def test_deserialize_reads_from_named_temporary_file(tmp_path) -> None:
     # #240 (read side): deserialize() had the same isinstance(…, IOBase)
     # test; any object with read() must be accepted as a stream.
     document = _doc()
@@ -120,7 +120,7 @@ def test_deserialize_reads_from_named_temporary_file(tmp_path):
         assert ProvDocument.deserialize(stream, format="json") == document
 
 
-def test_serialize_xml_to_text_mode_named_temporary_file(tmp_path):
+def test_serialize_xml_to_text_mode_named_temporary_file(tmp_path) -> None:
     # #240 as originally filed: text-mode NamedTemporaryFile + format="xml".
     # Beyond the stream-vs-path routing in serialize(), the serializers'
     # text/binary detection (isinstance(stream, io.TextIOBase)) also had to
@@ -140,7 +140,7 @@ def test_serialize_xml_to_text_mode_named_temporary_file(tmp_path):
 # (step 31 triage). No issues filed.
 
 
-def test_multiple_prov_value_attributes_accepted():
+def test_multiple_prov_value_attributes_accepted() -> None:
     # 3.0 triage (findings §2.8): PROV-DM §5.7.2.5 allows prov:value at most once
     document = _doc()
     entity = document.entity("ex:e1", {PROV_VALUE: 1})
@@ -148,14 +148,14 @@ def test_multiple_prov_value_attributes_accepted():
     assert entity.value == {1, 2}
 
 
-def test_non_string_prov_label_accepted():
+def test_non_string_prov_label_accepted() -> None:
     # 3.0 triage (findings §2.8): PROV-DM §5.7.2.1 requires prov:label be a string
     document = _doc()
     entity = document.entity("ex:e1", {"prov:label": 42})
     assert entity.label == "42"
 
 
-def test_mandatory_formal_attribute_none_silently_dropped():
+def test_mandatory_formal_attribute_none_silently_dropped() -> None:
     # 3.0 triage (findings §2.8): PROV-DM §5.1.3 requires a generated entity;
     # None values are skipped, producing wasGeneratedBy(-, -, -)
     document = _doc()
@@ -163,7 +163,7 @@ def test_mandatory_formal_attribute_none_silently_dropped():
     assert record.get_provn() == "wasGeneratedBy(-, -, -)"
 
 
-def test_at_least_one_of_rule_not_enforced():
+def test_at_least_one_of_rule_not_enforced() -> None:
     # 3.0 triage (findings §2.8): PROV-DM §5.1.3 — at least one of id, activity,
     # time, attributes MUST be present alongside the entity
     document = _doc()

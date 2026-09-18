@@ -99,7 +99,7 @@ def find_diff(g_rdf, g0_rdf):
     return graphs_equal, in_both, in_first2, in_second2
 
 
-def test_decoding_unicode_value():
+def test_decoding_unicode_value() -> None:
     unicode_char = "\u2019"
     rdf_content = f"""
 @prefix ex: <http://www.example.org/> .
@@ -119,27 +119,27 @@ def test_decoding_unicode_value():
     assert unicode_char in e1.get_attribute("prov:label")
 
 
-def test_serialize_without_a_document_raises():
+def test_serialize_without_a_document_raises() -> None:
     serializer = ProvRDFSerializer(document=None)
     with pytest.raises(ProvRDFException) as ctx:
         serializer.serialize(BytesIO())
     assert "No document to serialize" in str(ctx.value)
 
 
-def test_literal_rdf_representation_langtag():
+def test_literal_rdf_representation_langtag() -> None:
     literal = pm.Literal("bonjour", langtag="fr")
     rdf_literal = literal_rdf_representation(literal)
     assert str(rdf_literal) == "bonjour"
     assert rdf_literal.language == "fr"
 
 
-def test_literal_rdf_representation_base64binary():
+def test_literal_rdf_representation_base64binary() -> None:
     literal = pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
     rdf_literal = literal_rdf_representation(literal)
     assert str(rdf_literal) == "aGVsbG8="
 
 
-def test_base64binary_survives_rdf_roundtrip():
+def test_base64binary_survives_rdf_roundtrip() -> None:
     # #288: a document with a base64Binary-typed attribute round-trips through
     # RDF equal.
     document = ProvDocument()
@@ -151,7 +151,7 @@ def test_base64binary_survives_rdf_roundtrip():
     assert roundtrip_document(document, "rdf") == document
 
 
-def test_base64binary_decodes_to_lexical_text():
+def test_base64binary_decodes_to_lexical_text() -> None:
     # #288 repro: third-party-authored RDF, decode only. rdflib coerces
     # xsd:base64Binary literals to bytes in .value, and decode_rdf_representation
     # must return the base64 text, not a bytes repr.
@@ -169,7 +169,7 @@ ex:e1 a prov:Entity ; ex:blob "aGVsbG8="^^xsd:base64Binary .
     assert value == pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])
 
 
-def test_literal_rdf_representation_double_full_precision():
+def test_literal_rdf_representation_double_full_precision() -> None:
     # #225: an explicitly xsd:double-typed Literal is always collapsed to a
     # plain float before it reaches a record's stored attributes (see
     # _auto_literal_conversion), so encode_rdf_representation's plain-float
@@ -186,12 +186,12 @@ def test_literal_rdf_representation_double_full_precision():
     assert float(str(rdf_literal)) == value
 
 
-def test_literal_rdf_representation_without_datatype_raises():
+def test_literal_rdf_representation_without_datatype_raises() -> None:
     with pytest.raises(ValueError):
         literal_rdf_representation(pm.Literal("no datatype, no langtag"))
 
 
-def test_out_of_int32_plain_int_emits_xsd_long_ntriples():
+def test_out_of_int32_plain_int_emits_xsd_long_ntriples() -> None:
     # #256: a plain out-of-int32 int must not be ill-typed as xsd:int.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
@@ -201,7 +201,7 @@ def test_out_of_int32_plain_int_emits_xsd_long_ntriples():
     assert "http://www.w3.org/2001/XMLSchema#int>" not in nt
 
 
-def test_decode_xsd_qname_gyear_gyearmonth_round_trip():
+def test_decode_xsd_qname_gyear_gyearmonth_round_trip() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity(
@@ -222,7 +222,7 @@ def test_decode_xsd_qname_gyear_gyearmonth_round_trip():
     assert {lit.value for lit in e1.get_attribute("ex:qname")} == {"ex:e1"}
 
 
-def test_long_prefix_survives_turtle_serialization():
+def test_long_prefix_survives_turtle_serialization() -> None:
     # #96 repro (distilled): a namespace prefix with a long, unusual local
     # name must keep its own `@prefix` declaration in turtle output rather
     # than falling back to an rdflib-minted `ns1:` -- this already works as
@@ -238,7 +238,7 @@ def test_long_prefix_survives_turtle_serialization():
     assert "ns1:" not in turtle
 
 
-def test_bundle_local_namespace_prefix_survives_trig_serialization():
+def test_bundle_local_namespace_prefix_survives_trig_serialization() -> None:
     # #96: a namespace registered only on a bundle (not the document) must
     # still be bound into the Dataset's namespace manager, so TriG output
     # uses its declared prefix instead of an rdflib-minted `ns1:`.
@@ -254,7 +254,7 @@ def test_bundle_local_namespace_prefix_survives_trig_serialization():
     assert "ns1:" not in trig
 
 
-def test_bundle_local_prefix_collision_keeps_document_level_binding():
+def test_bundle_local_prefix_collision_keeps_document_level_binding() -> None:
     # #96: when a bundle-local prefix collides with a document-level one
     # (same prefix string, different namespace URI), the document-level
     # binding must keep the prefix -- copying bundle namespaces into the
@@ -276,7 +276,7 @@ def test_bundle_local_prefix_collision_keeps_document_level_binding():
     assert "@prefix coll1: <http://bundlelocal.example/> ." in trig
 
 
-def test_default_namespace_survives_turtle_serialization():
+def test_default_namespace_survives_turtle_serialization() -> None:
     # #96: a document's default namespace (set via set_default_namespace())
     # must be bound as the empty prefix, so its terms render as `:local`
     # rather than a full IRI in turtle output.
@@ -290,7 +290,7 @@ def test_default_namespace_survives_turtle_serialization():
     assert ":e1" in turtle
 
 
-def test_encode_container_reuses_a_provided_container():
+def test_encode_container_reuses_a_provided_container() -> None:
     # encode_container()'s `container` parameter defaults to None
     # everywhere it is called internally; passing one explicitly (as an
     # external caller might) must reuse it rather than creating a new
@@ -312,7 +312,7 @@ def test_encode_container_reuses_a_provided_container():
     assert len(list(container.triples((None, None, None)))) > 0
 
 
-def test_decode_document_without_contexts_uses_plain_graph_path():
+def test_decode_document_without_contexts_uses_plain_graph_path() -> None:
     # decode_document()'s `hasattr(content, "graphs")` branch is False
     # for a plain rdflib Graph (as opposed to a Dataset), which
     # every other test in this module parses into.
@@ -333,7 +333,7 @@ def test_decode_document_without_contexts_uses_plain_graph_path():
     assert len(document.get_records()) == 1
 
 
-def test_decode_document_bundle_iri_without_registered_namespace():
+def test_decode_document_bundle_iri_without_registered_namespace() -> None:
     # rdflib >= 7 no longer carries bundle-graph prefix bindings into
     # TriG output, so a re-parsed document may name a bundle context by
     # an IRI matching no registered namespace; decode_document() must
@@ -359,7 +359,7 @@ def test_decode_document_bundle_iri_without_registered_namespace():
     assert len(bundles[0].get_records()) == 1
 
 
-def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
+def test_decode_multi_valued_qualified_relation_produces_cartesian_product() -> None:
     # A hand-authored (non-2.x-encoder-produced) PROV-O document may
     # legally repeat a formal-attribute predicate on the same qualified-
     # relation bnode; decode_container()'s walk() helper must expand
@@ -394,7 +394,7 @@ def test_decode_multi_valued_qualified_relation_produces_cartesian_product():
     assert {str(qn) for qn in used_entities} == {"ex:e1", "ex:e2"}
 
 
-def test_decode_scruffy_qualified_generation_raises_documented_limitation():
+def test_decode_scruffy_qualified_generation_raises_documented_limitation() -> None:
     # #217, closed as a permanent PROV-O representational limitation (see
     # docs/reference/conformance.md): PROV-O reifies a relation as a single
     # qualified node named by its own identifier, so two prov:atTime values
@@ -436,7 +436,9 @@ def test_decode_scruffy_qualified_generation_raises_documented_limitation():
         ("invalidation", ("ex:e1", "ex:a1")),
     ],
 )
-def test_decode_scruffy_relations_raise_documented_limitation(factory_name, args):
+def test_decode_scruffy_relations_raise_documented_limitation(
+    factory_name, args
+) -> None:
     # #217: all five relation families with a qualified PROV-O form --
     # generation/usage/start/end/invalidation -- share the same permanent
     # representational limitation (docs/reference/conformance.md), and the
@@ -465,7 +467,7 @@ def test_decode_scruffy_relations_raise_documented_limitation(factory_name, args
     assert isinstance(ctx.value.__cause__, ProvException)
 
 
-def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy():
+def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     # Regression: the #217 catch in _emit_decoded_records() must only
     # relabel the specific duplicate-formal-attribute failure above, not
     # every ProvException raised while building a record. This document has
@@ -495,7 +497,7 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy():
     assert message.startswith("Invalid Qualified Name:")
 
 
-def test_alternate_triple_follows_dm_argument_order():
+def test_alternate_triple_follows_dm_argument_order() -> None:
     # #258: PROV-O maps alternateOf(alt1, alt2) to alt1 prov:alternateOf
     # alt2 (subject = first argument), matching the PROV-DM argument order.
     document = ProvDocument()
@@ -508,7 +510,7 @@ def test_alternate_triple_follows_dm_argument_order():
     assert triples.index("alt1>") < triples.index("alt2>")
 
 
-def test_alternate_triple_round_trips():
+def test_alternate_triple_round_trips() -> None:
     # #258: encode and decode must agree, so a document with alternate()
     # survives an RDF round trip. (This test is symmetric, so it cannot
     # detect a transposition that affects both encode and decode equally.)
@@ -518,7 +520,7 @@ def test_alternate_triple_round_trips():
     assert roundtrip_document(document, "rdf") == document
 
 
-def test_decode_qualified_start_started_at_time_lands_in_formal_time():
+def test_decode_qualified_start_started_at_time_lands_in_formal_time() -> None:
     # #299: some PROV-O producers put the time on a qualified prov:Start
     # node using the binary prov:startedAtTime predicate (which prov's own
     # encoder never emits for a qualified node -- it always uses
@@ -548,7 +550,7 @@ def test_decode_qualified_start_started_at_time_lands_in_formal_time():
     assert "prov:startTime" not in extra_names
 
 
-def test_decode_qualified_end_ended_at_time_lands_in_formal_time():
+def test_decode_qualified_end_ended_at_time_lands_in_formal_time() -> None:
     # #299, End's half of the fix above.
     turtle = """
     @prefix ex: <http://example.org/> .
@@ -572,7 +574,9 @@ def test_decode_qualified_end_ended_at_time_lands_in_formal_time():
     assert "prov:endTime" not in extra_names
 
 
-def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_limitation():
+def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_limitation() -> (
+    None
+):
     # #217 guard: the #299 rewrite must not resurrect the rejected
     # permutation-decode option. Two prov:startedAtTime values on the same
     # identified qualified prov:Start node are just as irreconcilable as two
@@ -601,7 +605,7 @@ def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_
     assert isinstance(ctx.value.__cause__, ProvException)
 
 
-def test_decode_qualified_start_at_time_still_lands_in_formal_time():
+def test_decode_qualified_start_at_time_still_lands_in_formal_time() -> None:
     # Regression: prov's own qualified-node spelling (prov:atTime, built via
     # the model API's start(..., time=...)) must keep decoding onto the
     # formal prov:time slot exactly as before the #299 rewrite.
@@ -627,7 +631,7 @@ def test_decode_qualified_start_at_time_still_lands_in_formal_time():
     assert time_values == {datetime.datetime(2020, 1, 1, 0, 0, 0)}
 
 
-def test_decode_alternate_triple_follows_dm_argument_order():
+def test_decode_alternate_triple_follows_dm_argument_order() -> None:
     # #258: RDF authored by other tools with `a1 prov:alternateOf a2` must
     # decode as alternate(a1, a2), not alternate(a2, a1).
     turtle = """
@@ -648,7 +652,7 @@ def test_decode_alternate_triple_follows_dm_argument_order():
     ]
 
 
-def test_json_to_ttl_match():
+def test_json_to_ttl_match() -> None:
     json_files = sorted(glob(os.path.join(os.path.dirname(__file__), "json", "*.json")))
 
     # invalid round trip files
@@ -729,7 +733,7 @@ def test_json_to_ttl_match():
     assert not errors
 
 
-def test_float_precision_survives_rdf_roundtrip():
+def test_float_precision_survives_rdf_roundtrip() -> None:
     # 0.1 narrowed to float32 -> 0.10000000149011612; RDF now emits this at
     # full repr() precision, so it reloads as the exact same value (#225).
     value = struct.unpack("f", struct.pack("f", 0.1))[0]
@@ -739,7 +743,7 @@ def test_float_precision_survives_rdf_roundtrip():
     assert roundtrip_document(document, "rdf") == document
 
 
-def test_qualified_delegation_pair_survives_rdf_roundtrip():
+def test_qualified_delegation_pair_survives_rdf_roundtrip() -> None:
     # #226: two qualified delegations sharing the same delegate and
     # qualifying activity but differing in responsible used to collapse
     # through RDF -- one lost its responsible, because the qualifiedDelegation
@@ -781,7 +785,7 @@ def test_qualified_delegation_pair_survives_rdf_roundtrip():
     ],
     ids=["communication", "attribution", "delegation", "influence"],
 )
-def test_anonymous_qualified_node_carries_influencer(build, influencer_uri):
+def test_anonymous_qualified_node_carries_influencer(build, influencer_uri) -> None:
     # #250: an anonymous qualified Communication/Attribution/Delegation/
     # Influence node must carry its influencer property directly (PROV-O
     # section 3.1's qualification tables), not just imply it via the
@@ -795,7 +799,9 @@ def test_anonymous_qualified_node_carries_influencer(build, influencer_uri):
     assert influencer_uri.encode() in output
 
 
-def test_anonymous_attributions_to_different_agents_each_carry_their_own_agent():
+def test_anonymous_attributions_to_different_agents_each_carry_their_own_agent() -> (
+    None
+):
     # #250's ambiguity repro: two anonymous, qualified (extra-attributed)
     # attributions of the same entity to *different* agents must yield two
     # distinct prov:Attribution blank nodes, each carrying its own
@@ -831,7 +837,7 @@ def test_anonymous_attributions_to_different_agents_each_carry_their_own_agent()
     assert nodes_with_ag1 != nodes_with_ag2
 
 
-def test_legacy_qualified_delegation_without_influencer_still_parses():
+def test_legacy_qualified_delegation_without_influencer_still_parses() -> None:
     # Documents produced by prov <=2.x (pre-#250) never asserted an
     # influencer property directly on an anonymous qualification node --
     # only the binary triple and (for delegation) prov:hadActivity. Such
@@ -894,7 +900,7 @@ def test_legacy_qualified_delegation_without_influencer_still_parses():
     ],
     ids=["communication", "attribution", "influence", "delegation"],
 )
-def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build):
+def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build) -> None:
     # #303: an anonymous (unidentified) Communication/Attribution/Influence
     # relation carrying extra attributes used to decode into TWO records --
     # one from the shorthand binary triple, one reconstructed from the
@@ -934,7 +940,7 @@ def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build):
     ],
     ids=["communication", "attribution", "influence", "delegation"],
 )
-def test_identified_qualified_relation_with_extra_attributes_round_trips(build):
+def test_identified_qualified_relation_with_extra_attributes_round_trips(build) -> None:
     # Regression guard: identified relations were never affected by #303 --
     # the identifier alone is enough to reconcile the binary triple and the
     # qualified node onto one record -- and must keep round-tripping cleanly.
@@ -957,7 +963,9 @@ def test_identified_qualified_relation_with_extra_attributes_round_trips(build):
     ],
     ids=["communication", "attribution", "influence", "delegation"],
 )
-def test_anonymous_qualified_relation_without_extra_attributes_round_trips(build):
+def test_anonymous_qualified_relation_without_extra_attributes_round_trips(
+    build,
+) -> None:
     # Regression guard: without extra attributes, an anonymous relation of
     # these families is only ever emitted as the plain binary triple (no
     # prov:qualified* node at all), so #303 never applied to this shape --
@@ -971,7 +979,7 @@ def test_anonymous_qualified_relation_without_extra_attributes_round_trips(build
     assert roundtripped == document
 
 
-def test_find_diff_detects_single_triple_difference():
+def test_find_diff_detects_single_triple_difference() -> None:
     # #304: find_diff must report a mismatch for graphs differing by a single
     # triple. The [1:] slices that removed a leading blank line from nt
     # serialization were too aggressive: after sorted(), when the difference
@@ -1031,7 +1039,7 @@ _TRAILING_METACHARS = ["=", "'", ",", ":", ";", "[", "]"]
 
 
 @pytest.mark.parametrize("ch", _TRAILING_METACHARS)
-def test_trailing_metacharacter_qname_round_trips(ch):
+def test_trailing_metacharacter_qname_round_trips(ch) -> None:
     # #294: a qualified name whose local part ends in a PROV-N metacharacter
     # serializes fine but used to raise on decode. It must round-trip, even as
     # a single record whose namespace rdflib omits from the output prefixes.
@@ -1049,7 +1057,7 @@ def test_trailing_metacharacter_qname_round_trips(ch):
 
 
 @pytest.mark.parametrize("ch", _TRAILING_METACHARS)
-def test_inner_and_leading_metacharacter_qname_round_trips(ch):
+def test_inner_and_leading_metacharacter_qname_round_trips(ch) -> None:
     # Regression guard: metacharacters in inner and leading positions already
     # round-tripped and must keep doing so once trailing is fixed.
     doc = ProvDocument()
@@ -1064,7 +1072,7 @@ def test_inner_and_leading_metacharacter_qname_round_trips(ch):
     assert leading.uri in uris
 
 
-def test_unregistered_namespace_iri_decodes_via_compute_qname():
+def test_unregistered_namespace_iri_decodes_via_compute_qname() -> None:
     # An ordinary IRI under no registered namespace must still decode via the
     # compute_qname minting fallback (reading RDF authored by other tools).
     turtle = """
@@ -1077,7 +1085,7 @@ def test_unregistered_namespace_iri_decodes_via_compute_qname():
     assert "http://other.example/thing" in ids
 
 
-def test_predicate_under_undeclared_namespace_warns_and_mints():
+def test_predicate_under_undeclared_namespace_warns_and_mints() -> None:
     # A predicate under a namespace declared in neither the document nor
     # the graph still decodes (minting a fresh prefix, as it must for a
     # metacharacter-suffixed key under a namespace rdflib's writer never
@@ -1102,7 +1110,7 @@ def test_predicate_under_undeclared_namespace_warns_and_mints():
     assert value == "v"
 
 
-def test_predicate_under_graph_declared_namespace_decodes():
+def test_predicate_under_graph_declared_namespace_decodes() -> None:
     # The same predicate resolves once its namespace is declared in the
     # graph, even though the document itself never registered it, and
     # without a warning: only the minting step (above) warns.
@@ -1124,7 +1132,7 @@ def test_predicate_under_graph_declared_namespace_decodes():
     assert value == "v"
 
 
-def test_unsplittable_iri_raises_clear_error():
+def test_unsplittable_iri_raises_clear_error() -> None:
     # An IRI with no '#' or '/' separator genuinely cannot be split into a
     # namespace and local part; the decoder must raise a clear error naming
     # the IRI rather than letting an obscure rdflib error escape.
@@ -1135,7 +1143,7 @@ def test_unsplittable_iri_raises_clear_error():
     assert "urn:no-separator;" in str(ctx.value)
 
 
-def test_trailing_metacharacter_encode_output_unchanged():
+def test_trailing_metacharacter_encode_output_unchanged() -> None:
     # #294 is a decode-side-only fix: the encoded graph must be byte-identical
     # in content to what master produced. Compare by graph isomorphism (rdflib
     # mints random bnodes, so raw-text diff is meaningless).
@@ -1176,7 +1184,9 @@ def _decode_via_container(turtle: str) -> ProvDocument:
     return doc
 
 
-def test_resolve_iri_reuses_namespace_bound_in_graph_for_metacharacter_local_part():
+def test_resolve_iri_reuses_namespace_bound_in_graph_for_metacharacter_local_part() -> (
+    None
+):
     # Step 1 of _resolve_iri(): an IRI under a namespace bound in the graph
     # (but not on the document) must resolve against that namespace and reuse
     # its declared prefix, rather than falling through to compute_qname's
@@ -1197,7 +1207,7 @@ def test_resolve_iri_reuses_namespace_bound_in_graph_for_metacharacter_local_par
     assert identifier.localpart == "thing;"
 
 
-def test_resolve_iri_picks_longest_matching_bound_namespace():
+def test_resolve_iri_picks_longest_matching_bound_namespace() -> None:
     # Step 1 must pick the *longest* bound namespace that prefixes the IRI,
     # not merely the first one found: with "http://example.org/" and
     # "http://example.org/sub/" both bound, an IRI under the longer namespace
@@ -1218,7 +1228,7 @@ def test_resolve_iri_picks_longest_matching_bound_namespace():
     assert identifier.localpart == "thing"
 
 
-def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself():
+def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself() -> None:
     # The `iri != uri` guard: an IRI that exactly equals a bound namespace
     # URI must not match against *that* namespace (which would produce a
     # degenerate empty local part) even though it is also bound in the
@@ -1240,7 +1250,7 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself():
     assert identifier.localpart == "thing"
 
 
-def test_bundle_namespace_order_follows_registration_in_rdf():
+def test_bundle_namespace_order_follows_registration_in_rdf() -> None:
     # #337: bundle namespaces are bound on the bundle graph in registration
     # order. rdflib sorts prefixes when it serializes, so the bound order on
     # the graph is the observable.
@@ -1265,7 +1275,7 @@ def test_bundle_namespace_order_follows_registration_in_rdf():
 NOT_CONVERTED = "The following attributes were not converted"
 
 
-def test_clean_round_trip_emits_no_not_converted_warning():
+def test_clean_round_trip_emits_no_not_converted_warning() -> None:
     document = ProvDocument()
     document.set_default_namespace("http://example.org/")
     document.entity("e1", other_attributes={"prov:label": "an entity"})
@@ -1283,7 +1293,7 @@ def test_clean_round_trip_emits_no_not_converted_warning():
     assert reloaded == document
 
 
-def test_unmapped_subject_still_warns_and_is_named():
+def test_unmapped_subject_still_warns_and_is_named() -> None:
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix ex: <http://example.org/> .
@@ -1315,7 +1325,7 @@ def test_unmapped_subject_still_warns_and_is_named():
     ],
     ids=["key-colon-unshared-ns", "key-equals-unshared-ns", "issue-341-falsifier"],
 )
-def test_metachar_attribute_keys_round_trip_through_provo(build):
+def test_metachar_attribute_keys_round_trip_through_provo(build) -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.add_namespace("ex2", "http://example2.org/")

@@ -31,26 +31,26 @@ from prov.tests.conftest import ROUNDTRIP_FORMATS, roundtrip_document
     "value",
     [pytest.param(v, id=f"attr-{i}") for i, v in enumerate(ATTRIBUTE_VALUES) if i != 8],
 )
-def test_entity_with_one_type_attribute(roundtrip, value):
+def test_entity_with_one_type_attribute(roundtrip, value) -> None:
     document = ProvDocument()
     document.entity(EX_NS["et"], {"prov:type": value})
     roundtrip(document)
 
 
-def test_entity_with_one_type_attribute_decimal(roundtrip):
+def test_entity_with_one_type_attribute_decimal(roundtrip) -> None:
     document = ProvDocument()
     document.entity(EX_NS["et"], {"prov:type": ATTRIBUTE_VALUES[8]})
     roundtrip(document)
 
 
-def test_entity_with_multiple_attribute(roundtrip):
+def test_entity_with_multiple_attribute(roundtrip) -> None:
     document = ProvDocument()
     attributes = [(EX_NS[f"v_{i}"], value) for i, value in enumerate(ATTRIBUTE_VALUES)]
     document.entity(EX_NS["emov"], attributes)
     roundtrip(document)
 
 
-def test_entity_with_multiple_value_attribute(roundtrip):
+def test_entity_with_multiple_value_attribute(roundtrip) -> None:
     document = ProvDocument()
     attributes = [("prov:value", value) for value in ATTRIBUTE_VALUES]
     document.entity(EX_NS["emv"], attributes)
@@ -58,7 +58,7 @@ def test_entity_with_multiple_value_attribute(roundtrip):
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
-def test_sub_minute_utc_offset_round_trips_as_utc(fmt):
+def test_sub_minute_utc_offset_round_trips_as_utc(fmt) -> None:
     # xsd:dateTime allows no seconds in a timezone offset (#341 scope
     # extension): a historical LMT-style +00:00:30 offset must serialize as
     # its UTC equivalent, not as an xsd:dateTime-illegal string. A round trip

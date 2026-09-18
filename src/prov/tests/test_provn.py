@@ -37,12 +37,12 @@ def only_record(doc):
     return records[0]
 
 
-def test_empty_document():
+def test_empty_document() -> None:
     doc = ProvNParser("document endDocument", "strict").parse()
     assert list(doc.get_records()) == []
 
 
-def test_prefix_and_default_declarations():
+def test_prefix_and_default_declarations() -> None:
     doc = parse(
         "entity(e1)\nentity(ex:e2)", prefixes="default <http://d.org/>\n" + PREFIXES
     )
@@ -84,7 +84,7 @@ def test_prefix_and_default_declarations():
         ("prov:mentionOf(ex:e1, ex:e0, ex:b)", "prov:mentionOf", 3),
     ],
 )
-def test_every_expression_form(text, keyword, n_formal):
+def test_every_expression_form(text, keyword, n_formal) -> None:
     record = only_record(parse(text))
     assert len([v for _, v in record.formal_attributes if v is not None]) == n_formal
     assert text.split("(")[0] == keyword
@@ -95,18 +95,18 @@ def test_every_expression_form(text, keyword, n_formal):
     assert record.get_type() == expected_type
 
 
-def test_relation_identifier_is_kept():
+def test_relation_identifier_is_kept() -> None:
     record = only_record(parse("wasGeneratedBy(ex:g1; ex:e1, ex:a1, -)"))
     assert str(record.identifier) == "ex:g1"
 
 
-def test_formal_time_is_a_datetime():
+def test_formal_time_is_a_datetime() -> None:
     record = only_record(parse("used(ex:a1, ex:e1, 2011-11-16T16:05:00Z)"))
     (time,) = [v for k, v in record.formal_attributes if str(k) == "prov:time"]
     assert time == datetime.datetime(2011, 11, 16, 16, 5, tzinfo=datetime.timezone.utc)
 
 
-def test_mention_maps_to_prov_mention():
+def test_mention_maps_to_prov_mention() -> None:
     record = only_record(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)"))
     assert isinstance(record, ProvMention)
 
@@ -129,7 +129,7 @@ def test_mention_maps_to_prov_mention():
         ),
     ],
 )
-def test_literal_forms(literal, expected):
+def test_literal_forms(literal, expected) -> None:
     record = only_record(parse(f"entity(ex:e1, [ex:v={literal}])"))
     (value,) = record.get_attribute("ex:v")
     if expected == "QNAME":
@@ -138,7 +138,7 @@ def test_literal_forms(literal, expected):
         assert value == expected
 
 
-def test_writer_spells_booleans_as_words():
+def test_writer_spells_booleans_as_words() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", {"ex:yes": True, "ex:no": False})
@@ -150,7 +150,7 @@ def test_writer_spells_booleans_as_words():
     )
 
 
-def test_literal_equivalence_with_json():
+def test_literal_equivalence_with_json() -> None:
     body = (
         'entity(ex:e1, [ex:s="x", ex:i=1, ex:f="1.5" %% xsd:double, ex:q=\'ex:q1\','
         ' ex:l="un lieu"@fr, ex:t="2019-03-27T12:52:02" %% xsd:dateTime])'
@@ -162,7 +162,7 @@ def test_literal_equivalence_with_json():
     assert doc == reloaded
 
 
-def test_bare_identifier_with_escaped_colon_resolves_via_default():
+def test_bare_identifier_with_escaped_colon_resolves_via_default() -> None:
     # A bare (unprefixed) identifier whose local part contains an escaped
     # ':' can't be turned back into 'prefix:local' text without looking
     # like a (wrong) prefixed name, so it must stay resolved rather than
@@ -173,7 +173,7 @@ def test_bare_identifier_with_escaped_colon_resolves_via_default():
     assert record.identifier.uri == "http://d.org/a:b"
 
 
-def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default():
+def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> None:
     # Accepted, documented limitation: a bare local part with an escaped
     # ':' can't go through the string-based resolution path (it would be
     # mis-split at the colon), so it resolves eagerly against the document's
@@ -192,7 +192,7 @@ def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default():
     assert reloaded == doc
 
 
-def test_qname_literal_with_escaped_colon_resolves_via_default():
+def test_qname_literal_with_escaped_colon_resolves_via_default() -> None:
     # Same shape as test_bare_identifier_with_escaped_colon_resolves_via_default,
     # but for a QNAME_LITERAL attribute *value* ('a\:b') rather than an
     # identifier position: the bare local part "a:b" must not be re-split
@@ -206,7 +206,7 @@ def test_qname_literal_with_escaped_colon_resolves_via_default():
     assert reloaded == doc
 
 
-def test_qname_literal_with_escaped_colon_ignores_a_colliding_prefix():
+def test_qname_literal_with_escaped_colon_ignores_a_colliding_prefix() -> None:
     doc = ProvDocument()
     doc.set_default_namespace("http://def/")
     doc.add_namespace("ex", "http://ex/")
@@ -217,12 +217,12 @@ def test_qname_literal_with_escaped_colon_ignores_a_colliding_prefix():
     assert reloaded == doc
 
 
-def test_multiple_attributes_and_repeated_keys():
+def test_multiple_attributes_and_repeated_keys() -> None:
     record = only_record(parse('entity(ex:e1, [prov:type="a", prov:type="b", ex:k=1])'))
     assert record.get_attribute("prov:type") == {"a", "b"}
 
 
-def test_bundle_with_own_prefixes():
+def test_bundle_with_own_prefixes() -> None:
     body = "bundle ex:b1\n  prefix bob <http://bob.org/>\n  entity(bob:e1)\nendBundle"
     doc = parse(body)
     (bundle,) = doc.bundles
@@ -235,7 +235,7 @@ def test_bundle_with_own_prefixes():
     assert "ex" not in {ns.prefix for ns in bundle.get_registered_namespaces()}
 
 
-def test_bundle_bare_name_uses_document_default():
+def test_bundle_bare_name_uses_document_default() -> None:
     doc = parse(
         "bundle ex:b1\n  entity(e1)\nendBundle",
         prefixes="default <http://d.org/>\n" + PREFIXES,
@@ -244,7 +244,7 @@ def test_bundle_bare_name_uses_document_default():
     assert only_record(bundle).identifier.uri == "http://d.org/e1"
 
 
-def test_bundle_identifier_resolves_against_its_own_prefix():
+def test_bundle_identifier_resolves_against_its_own_prefix() -> None:
     # PROV-N 3.1.3: the bundle identifier is interpreted with the bundle's
     # own declarations, not just the document's -- bx is only declared
     # inside the bundle.
@@ -256,7 +256,7 @@ def test_bundle_identifier_resolves_against_its_own_prefix():
     assert "bx" not in {ns.prefix for ns in doc.get_registered_namespaces()}
 
 
-def test_bundle_local_prefix_json_round_trip():
+def test_bundle_local_prefix_json_round_trip() -> None:
     import json
 
     source = ProvDocument.deserialize(
@@ -278,7 +278,7 @@ def test_bundle_local_prefix_json_round_trip():
     assert "bx" not in {ns.prefix for ns in reloaded.get_registered_namespaces()}
 
 
-def test_bundle_without_own_default_gains_none_on_reparse():
+def test_bundle_without_own_default_gains_none_on_reparse() -> None:
     # A bare name inside a bundle resolves against the document's default
     # namespace (via NamespaceManager's parent delegation) without that
     # delegation being cached as the bundle's own default.
@@ -292,12 +292,12 @@ def test_bundle_without_own_default_gains_none_on_reparse():
     assert "default " not in inside_bundle
 
 
-def test_bundle_bare_name_with_no_default_anywhere_still_raises():
+def test_bundle_bare_name_with_no_default_anywhere_still_raises() -> None:
     with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
         parse("bundle ex:b1\n  entity(e1)\nendBundle")
 
 
-def test_comments_anywhere():
+def test_comments_anywhere() -> None:
     doc = parse("entity(ex:e1) // trailing\n/* block */ entity(ex:e2)")
     assert len(list(doc.get_records())) == 2
 
@@ -322,7 +322,7 @@ def test_comments_anywhere():
         ("entity(ex:e1) endDocument entity(ex:e2)", "after 'endDocument'", 4),
     ],
 )
-def test_errors_name_the_problem_and_position(body, message, line):
+def test_errors_name_the_problem_and_position(body, message, line) -> None:
     if line is None:
         text = f"document\n{PREFIXES}{body}"  # no endDocument
         with pytest.raises(ProvNSyntaxError, match=message):
@@ -334,7 +334,7 @@ def test_errors_name_the_problem_and_position(body, message, line):
     assert ctx.value.line == line
 
 
-def test_strict_rejects_bare_mention_with_a_hint():
+def test_strict_rejects_bare_mention_with_a_hint() -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         parse("mentionOf(ex:e1, ex:e0, ex:b)")
     assert "unknown statement keyword 'mentionOf'" in ctx.value.message
@@ -342,7 +342,7 @@ def test_strict_rejects_bare_mention_with_a_hint():
     assert "profile='default'" in ctx.value.message
 
 
-def test_model_errors_carry_the_statement_position():
+def test_model_errors_carry_the_statement_position() -> None:
     # A membership whose collection identifier resolves but the record
     # constructor rejects (an element with no identifier cannot happen via
     # the grammar; a relation to a bundle-typed value can), so exercise the
@@ -352,29 +352,29 @@ def test_model_errors_carry_the_statement_position():
     assert ctx.value.line == 4
 
 
-def test_unknown_profile_rejected():
+def test_unknown_profile_rejected() -> None:
     with pytest.raises(ValueError, match="profile"):
         ProvNParser("document endDocument", "loose")
 
 
-def test_arity_table_matches_formal_attributes():
+def test_arity_table_matches_formal_attributes() -> None:
     for rec_type, arities in [*_ELEMENTS.values(), *_RELATIONS.values(), _MENTION]:
         assert max(arities) == len(PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES)
 
 
-def test_document_missing_keyword_reports_expected_document():
+def test_document_missing_keyword_reports_expected_document() -> None:
     with pytest.raises(ProvNSyntaxError, match="expected 'document'"):
         ProvNParser("entity(ex:e1)", "strict").parse()
 
 
-def test_prefix_declaration_rejects_a_qualified_name():
+def test_prefix_declaration_rejects_a_qualified_name() -> None:
     with pytest.raises(ProvNSyntaxError, match="expected a prefix"):
         ProvNParser(
             "document\nprefix ex:x <http://example.org/>\nendDocument", "strict"
         ).parse()
 
 
-def test_prefix_declaration_rejects_redeclaring_a_reserved_prefix():
+def test_prefix_declaration_rejects_redeclaring_a_reserved_prefix() -> None:
     with pytest.raises(ProvNSyntaxError, match="reserved") as ctx:
         ProvNParser(
             "document\nprefix xsi <http://example.org/other#>\nendDocument", "strict"
@@ -382,7 +382,7 @@ def test_prefix_declaration_rejects_redeclaring_a_reserved_prefix():
     assert ctx.value.line == 2
 
 
-def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri():
+def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri() -> None:
     from prov.constants import PROV
 
     record = only_record(
@@ -394,7 +394,7 @@ def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri():
     assert str(record.identifier) == "prov:e1"
 
 
-def test_bare_all_digit_local_name_is_an_identifier():
+def test_bare_all_digit_local_name_is_an_identifier() -> None:
     # [53] PN_LOCAL allows a leading digit, so an unprefixed, all-digit
     # local name is a valid identifier, not an integer literal.
     doc = parse("entity(4567)", prefixes="default <http://example.org/>\n")
@@ -402,7 +402,7 @@ def test_bare_all_digit_local_name_is_an_identifier():
     assert str(record.identifier) == "4567"
 
 
-def test_bare_all_digit_local_name_as_a_relation_argument():
+def test_bare_all_digit_local_name_as_a_relation_argument() -> None:
     doc = parse("wasDerivedFrom(4567, e1)", prefixes="default <http://example.org/>\n")
     record = only_record(doc)
     subject, target = (value for _, value in record.formal_attributes[:2])
@@ -411,7 +411,7 @@ def test_bare_all_digit_local_name_as_a_relation_argument():
 
 
 @pytest.mark.parametrize("profile", ["strict", "default"])
-def test_signed_digit_run_is_not_an_identifier(profile):
+def test_signed_digit_run_is_not_an_identifier(profile) -> None:
     # PN_LOCAL allows a leading digit but not an unescaped '-', so a signed
     # INT token ('-4567') must still be rejected as an identifier, not
     # re-kinded to a bare local name the way an unsigned one is.
@@ -421,7 +421,7 @@ def test_signed_digit_run_is_not_an_identifier(profile):
         )
 
 
-def test_signed_int_is_still_an_integer_in_an_attribute_value():
+def test_signed_int_is_still_an_integer_in_an_attribute_value() -> None:
     doc = parse(
         "entity(e1, [prov:value=-42])", prefixes="default <http://example.org/>\n"
     )
@@ -430,7 +430,7 @@ def test_signed_int_is_still_an_integer_in_an_attribute_value():
     assert value == -42
 
 
-def test_strict_requires_an_identifier_at_the_named_position():
+def test_strict_requires_an_identifier_at_the_named_position() -> None:
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")
     # default keeps the model's own scruffy-statement policy (#257): both
@@ -439,47 +439,47 @@ def test_strict_requires_an_identifier_at_the_named_position():
     assert all(value is None for _, value in record.formal_attributes)
 
 
-def test_strict_still_accepts_wasderivedfrom_with_trailing_markers():
+def test_strict_still_accepts_wasderivedfrom_with_trailing_markers() -> None:
     record = only_record(parse("wasDerivedFrom(ex:e2, ex:e1, -, -, -)"))
     assert record.get_type() == _RELATIONS["wasDerivedFrom"][0]
 
 
-def test_unterminated_bundle_reports_end_of_input():
+def test_unterminated_bundle_reports_end_of_input() -> None:
     with pytest.raises(ProvNSyntaxError, match="expected 'endBundle'"):
         ProvNParser(
             f"document\n{PREFIXES}bundle ex:b\n  entity(ex:e1)", "strict"
         ).parse()
 
 
-def test_semicolon_marker_leaves_identifier_unset():
+def test_semicolon_marker_leaves_identifier_unset() -> None:
     # Grammar [10]/[11]: identifierOrMarker ';' -- the Recommendation's own
     # example is used(-; ex:a1, ex:e1, -).
     record = only_record(parse("used(-; ex:a1, ex:e1, -)"))
     assert record.identifier is None
 
 
-def test_semicolon_identifier_must_be_a_name_or_marker():
+def test_semicolon_identifier_must_be_a_name_or_marker() -> None:
     with pytest.raises(ProvNSyntaxError, match="expected an identifier before ';'"):
         parse("used(2011-11-16T16:05:00; ex:a1, ex:e1, -)")
 
 
-def test_time_attribute_rejects_a_non_datetime_argument():
+def test_time_attribute_rejects_a_non_datetime_argument() -> None:
     with pytest.raises(ProvNSyntaxError, match="expected a time"):
         parse("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)")
 
 
-def test_empty_attribute_list():
+def test_empty_attribute_list() -> None:
     record = only_record(parse("entity(ex:e1, [])"))
     assert record.attributes == []
 
 
-def test_resync_stops_at_a_prefixed_mention():
+def test_resync_stops_at_a_prefixed_mention() -> None:
     doc = parse("foo(ex:e1)\nprov:mentionOf(ex:e2, ex:e0, ex:b)", profile="lenient")
     (record,) = list(doc.get_records())
     assert isinstance(record, ProvMention)
 
 
-def test_lenient_skip_is_recorded_for_the_caller_to_warn_with():
+def test_lenient_skip_is_recorded_for_the_caller_to_warn_with() -> None:
     # ProvNParser itself only records skipped statements (on .skipped); it
     # is ProvNSerializer.deserialize() that turns them into ProvWarning, so
     # that the warning points at the caller of deserialize() rather than a
@@ -505,13 +505,13 @@ def test_lenient_skip_is_recorded_for_the_caller_to_warn_with():
         examples.default_namespace_attributes,
     ],
 )
-def test_writer_output_parses_to_an_equal_document(build):
+def test_writer_output_parses_to_an_equal_document(build) -> None:
     doc = build()
     reloaded = ProvNParser(doc.get_provn(), "default").parse()
     assert reloaded == doc
 
 
-def test_duplicate_prefix_in_one_scope_is_an_error():
+def test_duplicate_prefix_in_one_scope_is_an_error() -> None:
     with pytest.raises(ProvNSyntaxError, match="prefix 'ex' is declared twice") as ctx:
         parse(
             "entity(ex:e1)",
@@ -520,25 +520,25 @@ def test_duplicate_prefix_in_one_scope_is_an_error():
     assert (ctx.value.line, ctx.value.column) == (3, 8)
 
 
-def test_escaped_colon_literal_needs_a_default_namespace():
+def test_escaped_colon_literal_needs_a_default_namespace() -> None:
     with pytest.raises(ProvNSyntaxError, match="no default namespace declared"):
         parse(r"entity(ex:e1, [ex:k='a\:b'])")
 
 
-def test_duplicate_bundle_identifier_is_a_positioned_syntax_error():
+def test_duplicate_bundle_identifier_is_a_positioned_syntax_error() -> None:
     with pytest.raises(ProvNSyntaxError, match="already exists") as ctx:
         parse("bundle ex:b\nendBundle\nbundle ex:b\nendBundle")
     assert ctx.value.line == 6
 
 
-def test_all_digit_local_name_as_an_attribute_name():
+def test_all_digit_local_name_as_an_attribute_name() -> None:
     doc = parse('entity(ex:e1, [123="x"])', prefixes=PREFIXES + "default <http://d/>\n")
     (record,) = doc.get_records()
     ((attr, _),) = record.attributes
     assert attr.uri == "http://d/123"
 
 
-def test_all_digit_local_name_as_a_datatype():
+def test_all_digit_local_name_as_a_datatype() -> None:
     doc = parse(
         'entity(ex:e1, [ex:a="x" %% 123])', prefixes=PREFIXES + "default <http://d/>\n"
     )
@@ -547,7 +547,7 @@ def test_all_digit_local_name_as_a_datatype():
     assert value.datatype.uri == "http://d/123"
 
 
-def test_leading_byte_order_mark_is_skipped():
+def test_leading_byte_order_mark_is_skipped() -> None:
     doc = ProvDocument.deserialize(
         content="﻿document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument",
         format="provn",
@@ -555,13 +555,13 @@ def test_leading_byte_order_mark_is_skipped():
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
 
 
-def test_bytearray_stream_is_decoded():
+def test_bytearray_stream_is_decoded() -> None:
     text = "document\n prefix ex <http://example.org/>\n entity(ex:e1)\nendDocument"
     doc = ProvDocument.deserialize(io.BytesIO(bytearray(text, "utf-8")), format="provn")
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
 
 
-def test_bundle_in_document_default_with_its_own_default_round_trips():
+def test_bundle_in_document_default_with_its_own_default_round_trips() -> None:
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
     b = d.bundle("b1")
@@ -575,7 +575,7 @@ def test_bundle_in_document_default_with_its_own_default_round_trips():
     assert bundle.identifier.uri == "http://doc.org/b1"
 
 
-def test_bundle_header_prefix_avoids_a_taken_dn_prefix():
+def test_bundle_header_prefix_avoids_a_taken_dn_prefix() -> None:
     # When the bundle already declares its own "dn" prefix for something
     # else, the header's minted prefix falls back to "dn_1" instead of
     # colliding with it.
@@ -591,7 +591,7 @@ def test_bundle_header_prefix_avoids_a_taken_dn_prefix():
     assert ProvDocument.deserialize(content=text, format="provn") == d
 
 
-def test_bundle_header_prefix_percent_encoding_warns_once():
+def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
     # The synthesised "dn:" prefix and the percent-encoding of an
     # unrepresentable character in the bundle's own identifier are two
     # separate writer decisions on the same identifier; only one warning
@@ -608,7 +608,7 @@ def test_bundle_header_prefix_percent_encoding_warns_once():
     assert len(record) == 1
 
 
-def test_namespace_uri_that_is_not_an_iri_cannot_be_written():
+def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:
     d = ProvDocument()
     d.add_namespace("bad", "http://example.org/a b/")
     with pytest.raises(ProvException, match="bad"):

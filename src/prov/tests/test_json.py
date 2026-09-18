@@ -14,7 +14,7 @@ from prov.model import PROV_QUALIFIEDNAME, Literal, ProvDocument, ProvMembership
 from prov.serializers.provjson import ProvJSONEncoder, ProvJSONException
 
 
-def test_decoding_unicode_value():
+def test_decoding_unicode_value() -> None:
     unicode_char = "\u2019"
     json_content = f"""{{
     "prefix": {{
@@ -32,7 +32,7 @@ def test_decoding_unicode_value():
     assert unicode_char in e1.get_attribute("prov:label")
 
 
-def test_multi_valued_prov_attribute_raises():
+def test_multi_valued_prov_attribute_raises() -> None:
     # PROV attributes (e.g. usage's prov:entity) must be single-valued;
     # a JSON list of more than one value is rejected (docs/test-gap-
     # checklist.md, T13 item under serializers/provjson.py).
@@ -49,7 +49,7 @@ def test_multi_valued_prov_attribute_raises():
         ProvDocument.deserialize(content=json_content, format="json")
 
 
-def test_encoder_default_fallback_for_non_document():
+def test_encoder_default_fallback_for_non_document() -> None:
     # Pins the isolated method's contract: for anything other than a
     # ProvDocument, default() falls back to the base encoder. In the
     # real serialize() path json.dump() only ever hands default() the
@@ -59,7 +59,7 @@ def test_encoder_default_fallback_for_non_document():
     assert encoder.default("plain string") == '"plain string"'
 
 
-def test_attribute_touched_but_never_set_is_omitted_from_json():
+def test_attribute_touched_but_never_set_is_omitted_from_json() -> None:
     # Accessing .label/.value auto-vivifies an empty set entry in the
     # record's attribute dict (a plain defaultdict); the encoder must
     # skip empty attribute value sets rather than emitting them.
@@ -73,7 +73,7 @@ def test_attribute_touched_but_never_set_is_omitted_from_json():
     assert "prov:label" not in json_str
 
 
-def test_third_record_with_same_identifier_appends_to_existing_list():
+def test_third_record_with_same_identifier_appends_to_existing_list() -> None:
     # The first duplicate-identifier record turns the container entry
     # into a singleton list; a third (or later) record with the same
     # identifier must append directly to that list without re-wrapping
@@ -90,7 +90,7 @@ def test_third_record_with_same_identifier_appends_to_existing_list():
     assert len(reloaded.get_record("ex:a1")) == 3
 
 
-def test_qualified_name_encodes_as_xsd_qname():
+def test_qualified_name_encodes_as_xsd_qname() -> None:
     # #168: the submission's examples type QualifiedName values as xsd:QName.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
@@ -99,7 +99,7 @@ def test_qualified_name_encodes_as_xsd_qname():
     assert container["entity"]["ex:e1"]["ex:a"] == {"$": "ex:v", "type": "xsd:QName"}
 
 
-def test_legacy_prov_qualified_name_type_still_decodes():
+def test_legacy_prov_qualified_name_type_still_decodes() -> None:
     # 2.x emitted prov:QUALIFIED_NAME; documents in the wild must keep parsing.
     content = (
         '{"prefix": {"ex": "http://example.org/"},'
@@ -112,7 +112,7 @@ def test_legacy_prov_qualified_name_type_still_decodes():
     assert document == expected
 
 
-def test_had_member_multi_entity_hack_survives_attribute_order():
+def test_had_member_multi_entity_hack_survives_attribute_order() -> None:
     # #275 regression: the multi-entity `hadMember` hack (a JSON list of
     # more than one `prov:entity` value on a single membership record)
     # must produce one membership relation per entity regardless of
@@ -139,7 +139,7 @@ def test_had_member_multi_entity_hack_survives_attribute_order():
     assert {str(e) for e in entities} == {"ex:e1", "ex:e2"}
 
 
-def test_unresolvable_qualified_name_literal_stays_opaque():
+def test_unresolvable_qualified_name_literal_stays_opaque() -> None:
     # A prov:QUALIFIED_NAME literal whose prefix has no in-scope namespace
     # cannot be resolved to a QualifiedName; it must stay an opaque Literal
     # rather than crash or silently guess a namespace (#238, #257 lock).

@@ -25,26 +25,26 @@ def _roundtrips(document):
 
 
 @pytest.mark.parametrize("ch", list(METACHARS))
-def test_metachar_local_parts_are_escaped(ch):
+def test_metachar_local_parts_are_escaped(ch) -> None:
     document = _doc()
     document.entity(f"ex:na{ch}me")
     provn = document.get_provn()
     assert f"ex:na\\{ch}me" in provn
 
 
-def test_issue_repro_escaped_end_to_end():
+def test_issue_repro_escaped_end_to_end() -> None:
     document = _doc()
     document.entity("ex:weird'name)x,y")
     assert "entity(ex:weird\\'name\\)x\\,y)" in document.get_provn()
 
 
-def test_plain_local_parts_unchanged():
+def test_plain_local_parts_unchanged() -> None:
     document = _doc()
     document.entity("ex:plain-name_1.x")
     assert "entity(ex:plain-name_1.x)" in document.get_provn()
 
 
-def test_string_literal_backslash_escaped_before_quotes():
+def test_string_literal_backslash_escaped_before_quotes() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:note": 'back\\slash and "quote"'})
     provn = document.get_provn()
@@ -52,27 +52,27 @@ def test_string_literal_backslash_escaped_before_quotes():
     assert '\\\\slash and \\"quote\\"' in provn
 
 
-def test_bundle_identifier_metachar_is_escaped():
+def test_bundle_identifier_metachar_is_escaped() -> None:
     document = _doc()
     bundle = document.bundle("ex:weird'bundle")
     bundle.entity("ex:e1")
     assert "bundle ex:weird\\'bundle" in document.get_provn()
 
 
-def test_bundle_identifier_plain_unchanged():
+def test_bundle_identifier_plain_unchanged() -> None:
     document = _doc()
     bundle = document.bundle("ex:plain-bundle")
     bundle.entity("ex:e1")
     assert "bundle ex:plain-bundle" in document.get_provn()
 
 
-def test_attribute_name_metachar_is_escaped():
+def test_attribute_name_metachar_is_escaped() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:weird'key": "value"})
     assert '[ex:weird\\\'key="value"]' in document.get_provn()
 
 
-def test_attribute_name_plain_unchanged():
+def test_attribute_name_plain_unchanged() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:plain_key": "value"})
     assert '[ex:plain_key="value"]' in document.get_provn()
@@ -88,7 +88,7 @@ def test_attribute_name_plain_unchanged():
         ("ab-cd.ef", "ab-cd.ef"),  # inner dash and dot stay bare
     ],
 )
-def test_dash_and_dot_local_parts(local, written):
+def test_dash_and_dot_local_parts(local, written) -> None:
     document = _doc()
     document.entity(f"ex:{local}")
     provn = _roundtrips(document)
@@ -104,7 +104,7 @@ def test_dash_and_dot_local_parts(local, written):
         ("a b", "a%20b"),  # space, already covered but kept for symmetry
     ],
 )
-def test_unrepresentable_chars_are_percent_encoded(local, escaped):
+def test_unrepresentable_chars_are_percent_encoded(local, escaped) -> None:
     document = _doc()
     document.entity(f"ex:{local}")
     provn = document.get_provn()
@@ -116,18 +116,18 @@ def test_unrepresentable_chars_are_percent_encoded(local, escaped):
     assert reloaded_entity.identifier.localpart == escaped
 
 
-def test_percent_encoding_warns_that_the_iri_changes():
+def test_percent_encoding_warns_that_the_iri_changes() -> None:
     with pytest.warns(ProvWarning, match="percent"):
         assert NS["a b"].provn_bare_representation() == "ex:a%20b"
 
 
-def test_lone_surrogate_is_percent_encoded():
+def test_lone_surrogate_is_percent_encoded() -> None:
     with pytest.warns(ProvWarning):
         assert NS["e\udc80"].provn_bare_representation() == "ex:e%ED%B2%80"
 
 
 @pytest.mark.parametrize("first", ["·", "́", "‿"])
-def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first):
+def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first) -> None:
     with pytest.warns(ProvWarning):
         written = NS[first + "a"].provn_bare_representation()
     assert written.startswith("ex:%")
@@ -138,7 +138,7 @@ def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first):
     assert len(list(doc.get_records())) == 1
 
 
-def test_empty_langtag_literal_written_as_plain_string():
+def test_empty_langtag_literal_written_as_plain_string() -> None:
     """An empty langtag has no PROV-N spelling, so the writer treats it as none.
 
     The model itself is unaffected. The ``Literal``'s own ``langtag`` stays
@@ -155,7 +155,7 @@ def test_empty_langtag_literal_written_as_plain_string():
     assert "None" not in provn
 
 
-def test_langtag_underscore_written_as_hyphen():
+def test_langtag_underscore_written_as_hyphen() -> None:
     """An underscore-separated langtag is not valid PROV-N LANGTAG ([63]).
 
     BCP 47 tags use hyphens, so writing one changes the tag's lexical form
@@ -173,14 +173,14 @@ def test_langtag_underscore_written_as_hyphen():
     assert reloaded_literal.langtag == "en-US"
 
 
-def test_short_string_carriage_return_is_escaped():
+def test_short_string_carriage_return_is_escaped() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:note": "a\rb"})
     provn = _roundtrips(document)
     assert '[ex:note="a\\rb"]' in provn
 
 
-def test_crlf_string_stays_triple_quoted():
+def test_crlf_string_stays_triple_quoted() -> None:
     """A CRLF value still takes the triple-quoted path, CR unaffected by the escape fix."""
     document = _doc()
     document.entity("ex:e1", {"ex:note": "a\r\nb"})
@@ -188,7 +188,7 @@ def test_crlf_string_stays_triple_quoted():
     assert '[ex:note="""a\r\nb"""]' in provn
 
 
-def test_mention_bare_keyword_no_prefix():
+def test_mention_bare_keyword_no_prefix() -> None:
     """PROV-N Mention emits bare mentionOf(...) without prov: prefix (decision 2026-07-20).
 
     The PROV-Links specification grammar requires prov:mentionOf, but the bare keyword has
@@ -221,17 +221,17 @@ def _mention_doc():
     return document
 
 
-def test_default_output_keeps_bare_mention_keyword():
+def test_default_output_keeps_bare_mention_keyword() -> None:
     assert "\n  mentionOf(ex:e1, ex:e0, ex:b)" in _mention_doc().get_provn()
 
 
-def test_strict_output_writes_prefixed_mention_keyword():
+def test_strict_output_writes_prefixed_mention_keyword() -> None:
     provn = _mention_doc().get_provn(strict=True)
     assert "prov:mentionOf(ex:e1, ex:e0, ex:b)" in provn
     assert "\n  mentionOf(" not in provn
 
 
-def test_strict_output_parses_under_strict_profile():
+def test_strict_output_parses_under_strict_profile() -> None:
     document = _mention_doc()
     reloaded = ProvDocument.deserialize(
         content=document.get_provn(strict=True), format="provn", profile="strict"
@@ -239,14 +239,14 @@ def test_strict_output_parses_under_strict_profile():
     assert reloaded == document
 
 
-def test_serialize_strict_matches_get_provn_strict():
+def test_serialize_strict_matches_get_provn_strict() -> None:
     document = _mention_doc()
     assert document.serialize(format="provn", strict=True) == document.get_provn(
         strict=True
     )
 
 
-def test_strict_flag_changes_nothing_without_a_mention():
+def test_strict_flag_changes_nothing_without_a_mention() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:k": "v"})
     assert document.get_provn(strict=True) == document.get_provn()

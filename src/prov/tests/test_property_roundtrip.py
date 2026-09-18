@@ -20,7 +20,7 @@ from .strategies import prov_documents
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 @given(doc=prov_documents())
-def test_generated_document_roundtrips(doc, fmt):
+def test_generated_document_roundtrips(doc, fmt) -> None:
     """A generated document equals itself after a serialize/deserialize cycle."""
     # PROV-JSONLD defines no Mention term (documented limitation, see
     # docs/reference/conformance.md) — mention-bearing documents only apply

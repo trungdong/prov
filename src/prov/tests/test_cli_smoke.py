@@ -23,17 +23,17 @@ def _console_script(name):
     return candidate if os.path.exists(candidate) else shutil.which(name)
 
 
-def test_entry_point_functions_exist():
+def test_entry_point_functions_exist() -> None:
     assert callable(convert_main)
     assert callable(compare_main)
 
 
-def test_console_scripts_installed():
+def test_console_scripts_installed() -> None:
     for script in ("prov-convert", "prov-compare"):
         assert _console_script(script) is not None, f"{script} not installed"
 
 
-def test_prov_convert_and_compare_end_to_end(tmp_path):
+def test_prov_convert_and_compare_end_to_end(tmp_path) -> None:
     infile = tmp_path / "doc.json"
     outfile = tmp_path / "doc.xml"
     primer_example().serialize(str(infile), format="json")
@@ -71,7 +71,7 @@ def test_prov_convert_and_compare_end_to_end(tmp_path):
     assert result.returncode == 0, result.stderr
 
 
-def test_prov_convert_jsonld_output_format(tmp_path):
+def test_prov_convert_jsonld_output_format(tmp_path) -> None:
     infile = tmp_path / "doc.json"
     outfile = tmp_path / "doc.jsonld"
     primer_example().serialize(str(infile), format="json")

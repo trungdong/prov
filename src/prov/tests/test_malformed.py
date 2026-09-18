@@ -109,7 +109,7 @@ MALFORMED = Path(__file__).parent / "malformed"
         pytest.param("not_turtle.ttl", "rdf", BadSyntax, id="rdf-not-turtle"),
     ],
 )
-def test_malformed_file_raises(filename, fmt, expected_exc):
+def test_malformed_file_raises(filename, fmt, expected_exc) -> None:
     with (MALFORMED / filename).open() as f, pytest.raises(expected_exc):
         ProvDocument.deserialize(f, format=fmt)
 
@@ -119,7 +119,7 @@ def test_malformed_file_raises(filename, fmt, expected_exc):
 # -- of current behaviour worth locking in, rather than an exception. ------
 
 
-def test_rdf_foreign_vocabulary_parses_but_yields_empty_document():
+def test_rdf_foreign_vocabulary_parses_but_yields_empty_document() -> None:
     """Well-formed Turtle with no PROV vocabulary at all.
 
     rdflib has no opinion on vocabulary, so it parses cleanly; none of the
@@ -134,7 +134,7 @@ def test_rdf_foreign_vocabulary_parses_but_yields_empty_document():
     assert list(doc.get_records()) == []
 
 
-def test_rdf_empty_file_parses_to_empty_document():
+def test_rdf_empty_file_parses_to_empty_document() -> None:
     """An empty file is vacuously valid Turtle/TriG.
 
     rdflib parses it to an empty graph and no exception is raised.
@@ -148,7 +148,7 @@ def test_rdf_empty_file_parses_to_empty_document():
 # -- prov.read() and unknown-format cases: don't fit the file parametrize --
 
 
-def test_xml_childless_foreign_root_parses_to_empty_document():
+def test_xml_childless_foreign_root_parses_to_empty_document() -> None:
     """A well-formed, *childless* foreign root element yields an empty document.
 
     Note the asymmetry with the ``wrong_root.xml`` parametrize case above: a
@@ -164,7 +164,7 @@ def test_xml_childless_foreign_root_parses_to_empty_document():
     assert list(doc.get_records()) == []
 
 
-def test_read_on_unparseable_content_raises_type_error(tmp_path):
+def test_read_on_unparseable_content_raises_type_error(tmp_path) -> None:
     """``prov.read()`` on content none of the auto-detected deserializers accept.
 
     With ``format=None``, ``read()`` tries each registered format in turn
@@ -183,7 +183,7 @@ def test_read_on_unparseable_content_raises_type_error(tmp_path):
         prov.read(str(path))
 
 
-def test_deserialize_unknown_format_raises_do_not_exist():
+def test_deserialize_unknown_format_raises_do_not_exist() -> None:
     """``ProvDocument.deserialize(..., format="nope")`` -- unknown format.
 
     ``serializers.get()`` looks the format up in the ``Registry`` and raises

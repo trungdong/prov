@@ -16,7 +16,7 @@ from prov.tests import examples
 from .conftest import contains_mention
 
 
-def test_all_examples(roundtrip, fmt):
+def test_all_examples(roundtrip, fmt) -> None:
     for _name, build in examples.tests:
         document = build()
         # PROV-JSONLD defines no Mention term (permanent, documented
