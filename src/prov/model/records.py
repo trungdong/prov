@@ -587,14 +587,12 @@ AttributeValue: typing.TypeAlias = Union[
 ]
 """A value accepted for a record attribute, before coercion."""
 
-# `dict` comes first so that mypy infers a dict literal against it. `Iterable`
-# is absent on purpose, because a dict is itself an iterable and that makes the
-# literal's target ambiguous to mypy (#474). Pair values are `Any` because mypy
-# joins the mixed values of a prebuilt list to `object`, which no precise type
-# accepts.
+# `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
+# member makes a dict literal's target ambiguous to mypy and breaks its
+# inference (#474). Pair values are `Any` because mypy joins the mixed values
+# of a prebuilt list to `object`, which no precise type accepts.
 RecordAttributesArg: typing.TypeAlias = (
-    dict[QualifiedNameCandidate, AttributeValue]
-    | _SupportsItems[QualifiedNameCandidate, AttributeValue]
+    _SupportsItems[QualifiedNameCandidate, AttributeValue]
     | Sequence[AttributePair]
     | AbstractSet[AttributePair]
     | Iterator[AttributePair]
