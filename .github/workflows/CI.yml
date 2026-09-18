@@ -139,7 +139,9 @@ jobs:
   benchmark:
     # Non-blocking regression check. benchmarks/ab.py times the first parent
     # of HEAD and HEAD itself on this one runner, in alternating passes, and
-    # fails when a benchmark's fastest round is more than 10% slower. The
+    # fails when a benchmark is more than 10% slower. A result over that
+    # threshold earns a confirmation pass first, because one pass in ten or
+    # so runs test_equality about 20% faster than the rest. The
     # first parent is the target branch's tip for a pull request's merge
     # commit and the previous tip for a push. Runners differ in speed by up
     # to a factor of two, so a committed baseline cannot serve (#493).
