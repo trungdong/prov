@@ -1,5 +1,26 @@
 # History
 
+## 3.2.2 (unreleased)
+
+3.2.2 is a bug-fix release. No dependency or Python-floor changes; one additive type
+alias, `prov.model.AttributeValue`.
+
+### Fixes
+
+- Attribute arguments type-check for callers under `mypy --strict` and pyright without a
+  `cast` (#474). `RecordAttributesArg` rejected `dict[QualifiedName, str]` and similar
+  dicts because `dict` is invariant in its key type, and its `Iterable` alternative stopped
+  mypy inferring an inline dict literal. The alias is now covariant in its key type and
+  names the accepted values as `AttributeValue`: `str`, `int`, `float`, `bool`,
+  `datetime`, `Identifier`, `QualifiedName`, `Literal` and `ProvRecord`. A variable
+  annotated as `Iterable[tuple[...]]` is no longer accepted by mypy; annotate it as a
+  `Sequence`, a `Set` or an `Iterator`, or pass the object directly
+- `ProvRecord.add_attributes` accepts a generator. It iterated its argument twice, so a
+  generator was consumed by the first pass and the record silently gained no attributes.
+  The bundle factory methods were unaffected
+- A mapping that is not a `dict`, such as `types.MappingProxyType`, is read through its
+  `items()` wherever attributes are accepted. It was iterated as bare keys and failed
+
 ## 3.2.1 (2026-09-13)
 
 3.2.1 is a bug-fix release. No dependency or Python-floor changes; one additive class

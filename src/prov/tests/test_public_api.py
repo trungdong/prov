@@ -140,6 +140,7 @@ PROV_MODEL_DIR_SNAPSHOT = [
     "AgentRef",
     "Any",
     "AttributePair",
+    "AttributeValue",
     "Callable",
     "DATATYPE_PARSERS",
     "DEFAULT_NAMESPACES",

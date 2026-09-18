@@ -45,6 +45,7 @@ from prov.model.records import (
     ActivityRef as ActivityRef,
     AgentRef as AgentRef,
     AttributePair as AttributePair,
+    AttributeValue as AttributeValue,
     DatetimeOrStr as DatetimeOrStr,
     EntityRef as EntityRef,
     GenerationRef as GenerationRef,

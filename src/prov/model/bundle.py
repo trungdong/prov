@@ -108,6 +108,7 @@ from prov.model.records import (
     RecordAttributesArg,
     StreamOrPath,
     UsageRef,
+    _attribute_pairs,
     _ensure_datetime,
 )
 
@@ -787,19 +788,9 @@ class ProvBundle:
         """
         attr_list: list[AttributePair] = []
         if attributes:
-            if isinstance(attributes, dict):
-                attr_list.extend(
-                    cast("dict[QualifiedNameCandidate, Any]", attributes).items()
-                )
-            else:
-                # expecting a list of attributes here
-                attr_list.extend(attributes)
+            attr_list.extend(_attribute_pairs(attributes))
         if other_attributes:
-            attr_list.extend(
-                cast("dict[QualifiedNameCandidate, Any]", other_attributes).items()
-                if isinstance(other_attributes, dict)
-                else other_attributes
-            )
+            attr_list.extend(_attribute_pairs(other_attributes))
         record_identifier = (
             self.valid_qualified_name(identifier) if identifier else None
         )
