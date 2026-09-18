@@ -51,11 +51,16 @@ for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
 done
 
-uv run mypy src                  # strict, configured in pyproject.toml
+uv run mypy src                  # strict, library and tests; configured in pyproject.toml
 uv run ruff check src/ benchmarks/
 uv run ruff format --check src/ benchmarks/
 codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 ```
+
+mypy checks the tests under the same strict configuration as the library. Test modules that
+do not pass yet are listed in the `[[tool.mypy.overrides]]` block in `pyproject.toml` with
+`ignore_errors = true`. The list only shrinks: a PR that makes a module pass deletes its
+name, a new test module never joins the list, and the block goes when the list is empty.
 
 Codacy's Cloud gate blocks a PR on a single finding of any severity, including markdownlint
 on Markdown files, so run the local analyser on every changed file before pushing. Coveralls
