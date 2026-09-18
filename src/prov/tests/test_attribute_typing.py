@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 import types
+from collections.abc import Iterable
 
 from prov.model import (
     PROV,
@@ -88,6 +89,24 @@ def test_pair_collections_are_accepted() -> None:
     assert _attribute_names(from_record) == {"prov:label", "ex:n"}
 
 
+def test_prebuilt_pair_list_with_mixed_values_is_accepted() -> None:
+    document = _document()
+    pairs = [("ex:a", 1), ("ex:b", "x")]
+
+    entity = document.entity("ex:e", pairs)
+
+    assert _attribute_names(entity) == {"ex:a", "ex:b"}
+
+
+def test_factory_method_accepts_a_generator() -> None:
+    document = _document()
+    source = [("ex:a", 1), ("ex:b", "x")]
+
+    entity = document.entity("ex:e", (pair for pair in source))
+
+    assert _attribute_names(entity) == {"ex:a", "ex:b"}
+
+
 def test_add_attributes_consumes_a_generator_once() -> None:
     document = _document()
     entity = document.entity("ex:a")
@@ -108,3 +127,25 @@ def test_values_without_a_prov_form_are_rejected_statically() -> None:
     entity = document.entity("ex:a", untyped)  # type: ignore[arg-type]
 
     assert _attribute_names(entity) == {"prov:label"}
+
+
+def test_add_attributes_reads_a_non_dict_mapping_through_items() -> None:
+    document = _document()
+    entity = document.entity("ex:a")
+    read_only = types.MappingProxyType({PROV_LABEL: "x"})
+
+    entity.add_attributes(read_only)
+
+    assert entity.get_attribute(PROV_LABEL) == {"x"}
+
+
+def test_iterable_typed_argument_is_rejected_statically() -> None:
+    # `Iterable` in the alias would bring back the literal-inference failure of #474.
+    document = _document()
+
+    def pairs() -> Iterable[tuple[str, str]]:
+        return [("ex:a", "x")]
+
+    entity = document.entity("ex:e", pairs())  # type: ignore[arg-type]
+
+    assert _attribute_names(entity) == {"ex:a"}

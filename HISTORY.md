@@ -11,15 +11,17 @@ alias, `prov.model.AttributeValue`.
   `cast` (#474). `RecordAttributesArg` rejected `dict[QualifiedName, str]` and similar
   dicts because `dict` is invariant in its key type, and its `Iterable` alternative stopped
   mypy inferring an inline dict literal. The alias is now covariant in its key type and
-  names the accepted values as `AttributeValue`: `str`, `int`, `float`, `bool`,
+  names the values a dict may hold as `AttributeValue`: `str`, `int`, `float`, `bool`,
   `datetime`, `Identifier`, `QualifiedName`, `Literal`, `ProvRecord`, and `None`, which
-  is skipped. Two kinds of call that type-checked under 3.2.1 are now reported by type
-  checkers, with no change at runtime. A value whose static type is `Iterable[...]` or
+  is skipped. The values in a list, tuple, set or iterator of pairs stay `Any`, as in
+  3.2.1. One kind of call that type-checked under 3.2.1 is now reported by type checkers,
+  with no change at runtime. A value whose static type is `Iterable[...]` or
   `Collection[...]`, whether a variable, a parameter or a function's return, is no longer
   accepted; type it as a `Sequence`, a `Set` or an `Iterator`, or wrap it in `list()`.
-  The values in a list of pairs were typed `Any` and are now checked against
-  `AttributeValue`, so a `Decimal`, `date` or `bytes` value is reported; wrap it in a
-  `Literal` with its XSD datatype, or type the value as `Any`
+  One case still needs an annotation under mypy. A dict that is built before the call
+  and holds values of more than one type, such as `{"ex:a": 1, "ex:b": "x"}`, is
+  inferred as `dict[str, object]` and reported; annotate the variable as
+  `dict[str, AttributeValue]`. Pyright infers the union of the value types and accepts it
 - `ProvRecord.add_attributes` accepts a generator. It iterated its argument twice, so a
   generator was consumed by the first pass and the record silently gained no attributes.
   The bundle factory methods were unaffected
