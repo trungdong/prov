@@ -8,6 +8,10 @@
   (#345). The misspelling remains importable as an alias for the correct
   name, so existing annotations keep resolving; `master` renames it outright
   for 3.0.
+- Documentation: `SECURITY.md` and `README.md` state that the 2.x line now
+  receives security fixes only. 2.5.3 was the last release to carry bug fixes
+  back-ported from 3.x, and the 2.6.0 release those files promised will not
+  follow.
 
 ## 2.5.3 (2026-08-08)
 

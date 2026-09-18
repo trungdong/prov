@@ -38,7 +38,7 @@ Feedback is welcome on the [issue tracker](https://github.com/trungdong/prov/iss
 ## Supported versions
 
 The latest 3.x release receives all fixes. This 2.x line receives security
-fixes, plus bug fixes back-ported from 3.x up to and including 2.6.0, after
-which it reverts to security fixes only; 1.x and earlier no longer receive
-fixes. See [SECURITY.md](https://github.com/trungdong/prov/blob/2.x/SECURITY.md)
+fixes only; 2.5.3 was the last release to carry bug fixes back-ported from
+3.x. 1.x and earlier no longer receive fixes. See
+[SECURITY.md](https://github.com/trungdong/prov/blob/2.x/SECURITY.md)
 for the full support table and how to report a vulnerability.
