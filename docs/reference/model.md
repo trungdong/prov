@@ -131,6 +131,16 @@ classes.
    :show-inheritance:
 ```
 
+## Type aliases
+
+{py:data}`~prov.model.AttributeValue` is the type of the values a dict of attributes may
+hold. {doc}`../howto/typing` shows how to use it when a type checker reports a call.
+
+```{eval-rst}
+.. autodata:: prov.model.AttributeValue
+   :no-value:
+```
+
 ## Exceptions
 
 ```{eval-rst}

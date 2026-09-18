@@ -21,7 +21,7 @@ alias, `prov.model.AttributeValue`.
   One case still needs an annotation under mypy. A dict that is built before the call
   and holds values of more than one type, such as `{"ex:a": 1, "ex:b": "x"}`, is
   inferred as `dict[str, object]` and reported; annotate the variable as
-  `dict[str, AttributeValue]`. Pyright infers the union of the value types and accepts it
+  `dict[str, AttributeValue]`. Pyright accepts the call without the annotation
 - `ProvRecord.add_attributes` accepts a generator. It iterated its argument twice, so a
   generator was consumed by the first pass and the record silently gained no attributes.
   The bundle factory methods were unaffected
