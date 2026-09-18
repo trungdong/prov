@@ -138,6 +138,19 @@ def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first) -> N
     assert len(list(doc.get_records())) == 1
 
 
+def test_fast_path_skips_only_local_parts_written_unchanged() -> None:
+    from prov.identifier import _PROVN_LOCAL_NOT_PLAIN, _provn_escape_local
+
+    # Every BMP character, lone surrogates included, and one astral character,
+    # in the three positions the escaping rules tell apart.
+    chars = [chr(cp) for cp in (*range(0x10000), 0x1F600)]
+    local_parts = [lp for ch in chars for lp in (ch + "a", "a" + ch + "a", "a" + ch)]
+    skipped = [lp for lp in local_parts if not _PROVN_LOCAL_NOT_PLAIN.search(lp)]
+
+    assert 0 < len(skipped) < len(local_parts)
+    assert [lp for lp in skipped if _provn_escape_local(lp) != (lp, False)] == []
+
+
 def test_empty_langtag_literal_written_as_plain_string() -> None:
     """An empty langtag has no PROV-N spelling, so the writer treats it as none.
 

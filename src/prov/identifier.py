@@ -92,6 +92,12 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
 
+# One search settles the common case in provn_bare_representation(): a local
+# part this does not match is written as it stands, with no warning.
+_PROVN_LOCAL_NOT_PLAIN = re.compile(
+    f"^{_PN_LOCAL_BAD_START.pattern}|{_PROVN_LOCAL_NEEDS_ESCAPE.pattern}"
+)
+
 
 def _slot_state(state: Any) -> dict[str, Any]:
     """Normalise a pickled state to a dict.
@@ -341,12 +347,11 @@ class QualifiedName(Identifier):
                 "namespace with no prefix, which PROV-N cannot write; give the "
                 "namespace a prefix"
             )
-        escaped_localpart = _provn_escape_local_and_warn(self._localpart, self._uri)
-        return (
-            ":".join([self._namespace.prefix, escaped_localpart])
-            if self._namespace.prefix
-            else escaped_localpart
-        )
+        localpart = self._localpart
+        if _PROVN_LOCAL_NOT_PLAIN.search(localpart):
+            localpart = _provn_escape_local_and_warn(localpart, self._uri)
+        prefix = self._namespace.prefix
+        return f"{prefix}:{localpart}" if prefix else localpart
 
     def provn_representation(self) -> str:
         """Return the PROV-N representation of this qualified name as a quoted string."""
