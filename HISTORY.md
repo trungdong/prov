@@ -12,9 +12,14 @@ alias, `prov.model.AttributeValue`.
   dicts because `dict` is invariant in its key type, and its `Iterable` alternative stopped
   mypy inferring an inline dict literal. The alias is now covariant in its key type and
   names the accepted values as `AttributeValue`: `str`, `int`, `float`, `bool`,
-  `datetime`, `Identifier`, `QualifiedName`, `Literal` and `ProvRecord`. A variable
-  annotated as `Iterable[tuple[...]]` is no longer accepted by mypy; annotate it as a
-  `Sequence`, a `Set` or an `Iterator`, or pass the object directly
+  `datetime`, `Identifier`, `QualifiedName`, `Literal`, `ProvRecord`, and `None`, which
+  is skipped. Two kinds of call that type-checked under 3.2.1 are now reported by type
+  checkers, with no change at runtime. A value whose static type is `Iterable[...]` or
+  `Collection[...]`, whether a variable, a parameter or a function's return, is no longer
+  accepted; type it as a `Sequence`, a `Set` or an `Iterator`, or wrap it in `list()`.
+  The values in a list of pairs were typed `Any` and are now checked against
+  `AttributeValue`, so a `Decimal`, `date` or `bytes` value is reported; wrap it in a
+  `Literal` with its XSD datatype, or type the value as `Any`
 - `ProvRecord.add_attributes` accepts a generator. It iterated its argument twice, so a
   generator was consumed by the first pass and the record silently gained no attributes.
   The bundle factory methods were unaffected
