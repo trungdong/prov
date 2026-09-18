@@ -197,4 +197,52 @@ exclude_lines = [
 [tool.mypy]
 python_version = "3.10"
 strict = true
-exclude = ["^src/prov/tests/"]
+
+# Test modules that do not yet pass strict mypy. The list only shrinks. A PR
+# that makes a module pass deletes its name, and a new test module never joins.
+[[tool.mypy.overrides]]
+module = [
+    "prov.tests.conftest",
+    "prov.tests.examples",
+    "prov.tests.strategies",
+    "prov.tests.test_attribute_merging",
+    "prov.tests.test_attributes",
+    "prov.tests.test_chaining",
+    "prov.tests.test_citation",
+    "prov.tests.test_cli_smoke",
+    "prov.tests.test_conformance_dm",
+    "prov.tests.test_datetime_parsing",
+    "prov.tests.test_dot",
+    "prov.tests.test_examples",
+    "prov.tests.test_extras",
+    "prov.tests.test_graphs",
+    "prov.tests.test_identifier",
+    "prov.tests.test_identifier_slots",
+    "prov.tests.test_json",
+    "prov.tests.test_json_schema",
+    "prov.tests.test_jsonld",
+    "prov.tests.test_jsonld_schema",
+    "prov.tests.test_jsonld_semantics",
+    "prov.tests.test_literal_semantics",
+    "prov.tests.test_malformed",
+    "prov.tests.test_model",
+    "prov.tests.test_namespace_cache",
+    "prov.tests.test_numeric_typing",
+    "prov.tests.test_property_roundtrip",
+    "prov.tests.test_provn",
+    "prov.tests.test_provn_corpus",
+    "prov.tests.test_provn_escaping",
+    "prov.tests.test_provn_lexer",
+    "prov.tests.test_provn_profiles",
+    "prov.tests.test_public_api",
+    "prov.tests.test_qnames",
+    "prov.tests.test_rdf",
+    "prov.tests.test_read",
+    "prov.tests.test_scripts",
+    "prov.tests.test_statements",
+    "prov.tests.test_unification_constraints",
+    "prov.tests.test_unification_rules",
+    "prov.tests.test_xml",
+    "prov.tests.test_xml_schema",
+]
+ignore_errors = true
