@@ -23,6 +23,7 @@ and the explanation section covers the concepts behind it.
    howto/graphics
    howto/cli
    howto/networkx
+   howto/typing
 
 .. toctree::
    :maxdepth: 1

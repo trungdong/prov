@@ -70,6 +70,20 @@ a volunteer-driven project.
 
    The first run downloads any interpreter you do not already have cached.
 
+   Then run the static checks, which CI also runs:
+
+   ```bash
+   uv run mypy src
+   uv run ruff check src/ benchmarks/
+   uv run ruff format --check src/ benchmarks/
+   ```
+
+   mypy checks the tests under the same strict settings as the library, so a new test
+   module needs type annotations, including `-> None` on each test function. Older test
+   modules that do not pass yet are listed under `[[tool.mypy.overrides]]` in
+   `pyproject.toml`. Do not add a module to that list. If your change makes a listed module
+   pass, delete its name.
+
 7. Commit and push your branch:
 
    ```bash
