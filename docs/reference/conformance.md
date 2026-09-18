@@ -2,7 +2,7 @@
 
 `prov` implements the W3C [PROV Data Model](https://www.w3.org/TR/prov-dm/) and five
 serialisations of it: PROV-JSON, PROV-XML, PROV-O (RDF), PROV-JSONLD and PROV-N. This page
-states what the current release conforms to; it was revised for 3.2.1.
+states what the current release conforms to; it was revised for 3.2.2.
 
 The component tables answer two questions: is a PROV-DM concept implemented and how is it
 written, and does each format preserve it on a round trip. Every cell that is not a plain

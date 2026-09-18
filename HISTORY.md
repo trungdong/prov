@@ -1,6 +1,6 @@
 # History
 
-## 3.2.2 (unreleased)
+## 3.2.2 (2026-09-18)
 
 3.2.2 is a bug-fix release. No dependency or Python-floor changes; one additive type
 alias, `prov.model.AttributeValue`.
