@@ -35,6 +35,7 @@ is queued.
 
 | Version | Date | Theme |
 |---|---|---|
+| [3.2.2](https://github.com/trungdong/prov/releases/tag/3.2.2) | 2026-09-18 | Point release: attribute arguments type-check for callers under strict mypy and pyright ([#474](https://github.com/trungdong/prov/issues/474)); `add_attributes` accepts a generator; non-`dict` mappings are read through `items()` |
 | [3.2.1](https://github.com/trungdong/prov/releases/tag/3.2.1) | 2026-09-13 | Point release: PROV-N parser corrections from a by-eye verification against ProvToolbox and PLEAD documents; `argparse.FileType` removed from the CLI |
 | [3.2.0](https://github.com/trungdong/prov/releases/tag/3.2.0) | 2026-09-12 | Two-way PROV-N with `strict`, `default` and `lenient` profiles ([#122](https://github.com/trungdong/prov/issues/122)); benchmark suite with a CI regression check; measured speed-ups |
 | [3.1.1](https://github.com/trungdong/prov/releases/tag/3.1.1) | 2026-09-10 | Point release: hardening from the September 2026 audit; community scaffolding; first Zenodo DOI |
