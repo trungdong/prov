@@ -88,7 +88,7 @@ dev = [
     "pre-commit>=4.6.2",
     "pytest>=8.4.2",
     "pytest-cov>=7.1.0",
-    "ruff>=0.16.7",
+    "ruff>=0.16.8",
     "types-networkx>=3.6.1.20260911",
     "types-python-dateutil>=2.9.0.20260807",
 ]
