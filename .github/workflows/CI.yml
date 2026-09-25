@@ -24,6 +24,14 @@ jobs:
       - uses: actions/checkout@v7
       - name: Setup Graphviz
         uses: ts-graphviz/setup-graphviz@b1de5da23ed0a6d14e0aeee8ed52fdd87af2363c  # v2
+      - name: Install lxml build dependencies
+        # lxml ships no PyPy wheel the runner's standalone interpreter
+        # recognises as compatible (its manylinux tag detection doesn't
+        # match what uv's python-build-standalone PyPy reports), so uv
+        # falls back to building lxml from source here. That needs
+        # libxml2/libxslt headers the runner image doesn't ship with.
+        if: matrix.python-version == 'pypy3.11'
+        run: sudo apt-get update && sudo apt-get install -y libxml2-dev libxslt1-dev
       - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4  # v10.1.0
         with:
           python-version: ${{ matrix.python-version }}
