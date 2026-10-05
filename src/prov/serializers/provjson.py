@@ -113,11 +113,41 @@ class ProvJSONSerializer(Serializer):
 
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
+
+        Raises:
+            ProvJSONException: If a JSON object repeats a member name.
         """
         if not _is_text_stream(stream):
             buf = io.StringIO(stream.read().decode("utf-8"))
             stream = buf
-        return cast(ProvDocument, json.load(stream, cls=ProvJSONDecoder, **args))
+        object_hook = args.pop("object_hook", None)
+        object_pairs_hook = args.pop("object_pairs_hook", None)
+
+        def checked_object_pairs_hook(pairs: list[tuple[str, Any]]) -> Any:
+            keys: set[str] = set()
+            for key, _ in pairs:
+                if key in keys:
+                    raise ProvJSONException(
+                        f"Duplicate key {key!r} in PROV-JSON object"
+                    )
+                keys.add(key)
+
+            if object_pairs_hook is not None:
+                return object_pairs_hook(pairs)
+            obj = dict(pairs)
+            if object_hook is not None:
+                return object_hook(obj)
+            return obj
+
+        return cast(
+            ProvDocument,
+            json.load(
+                stream,
+                cls=ProvJSONDecoder,
+                object_pairs_hook=checked_object_pairs_hook,
+                **args,
+            ),
+        )
 
 
 class ProvJSONEncoder(json.JSONEncoder):

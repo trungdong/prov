@@ -149,3 +149,83 @@ def test_unresolvable_qualified_name_literal_stays_opaque() -> None:
     content = document.serialize(format="json")
     reloaded = ProvDocument.deserialize(content=content, format="json")
     assert reloaded == document
+
+
+@pytest.mark.parametrize(
+    ("json_content", "duplicate_key"),
+    [
+        (
+            '{"prefix": {"ex": "http://a.org/", "ex": "http://b.org/"}}',
+            "ex",
+        ),
+        (
+            '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {}, "ex:e": {}}}',
+            "ex:e",
+        ),
+        (
+            '{"prefix": {"ex": "http://example.org/"}, "entity": {}, "entity": {}}',
+            "entity",
+        ),
+        (
+            '{"prefix": {"ex": "http://example.org/"}, "bundle": {"ex:b": {}, "ex:b": {}}}',
+            "ex:b",
+        ),
+        (
+            '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:a": "1", "ex:a": "2"}}}',
+            "ex:a",
+        ),
+        (
+            '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:a": {"$": "1", "type": "xsd:int", "type": "xsd:long"}}}}',
+            "type",
+        ),
+    ],
+)
+def test_duplicate_object_keys_raise(json_content: str, duplicate_key: str) -> None:
+    with pytest.raises(ProvJSONException) as exc_info:
+        ProvDocument.deserialize(content=json_content, format="json")
+
+    assert f"Duplicate key {duplicate_key!r}" in str(exc_info.value)
+
+
+def test_custom_object_pairs_hook_is_preserved() -> None:
+    calls: list[list[tuple[str, object]]] = []
+
+    def object_pairs_hook(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        calls.append(pairs)
+        return dict(pairs)
+
+    content = '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {}}}'
+    ProvDocument.deserialize(
+        content=content, format="json", object_pairs_hook=object_pairs_hook
+    )
+
+    assert calls
+
+
+def test_custom_object_hook_is_preserved() -> None:
+    calls: list[dict[str, object]] = []
+
+    def object_hook(value: dict[str, object]) -> dict[str, object]:
+        calls.append(value)
+        return value
+
+    content = '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {}}}'
+    ProvDocument.deserialize(content=content, format="json", object_hook=object_hook)
+
+    assert calls
+
+
+def test_duplicate_detection_precedes_custom_object_pairs_hook() -> None:
+    calls: list[list[tuple[str, object]]] = []
+
+    def object_pairs_hook(pairs: list[tuple[str, object]]) -> dict[str, object]:
+        calls.append(pairs)
+        return dict(pairs)
+
+    content = '{"prefix": {"ex": "http://a.org/", "ex": "http://b.org/"}}'
+    with pytest.raises(ProvJSONException, match="Duplicate key"):
+        ProvDocument.deserialize(
+            content=content, format="json", object_pairs_hook=object_pairs_hook
+        )
+
+    assert calls == []
