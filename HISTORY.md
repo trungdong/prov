@@ -1,5 +1,11 @@
 # History
 
+## Unreleased
+
+### Project
+
+- Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and PyPy 3.11. No code changes were needed (#542)
+
 ## 3.2.2 (2026-09-18)
 
 3.2.2 is a bug-fix release. No dependency or Python-floor changes; one additive type
