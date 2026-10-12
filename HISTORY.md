@@ -1,5 +1,11 @@
 # History
 
+## Unreleased
+
+### Fixes
+
+- PROV-JSON deserialization rejects duplicate object keys instead of silently dropping earlier values (#532)
+
 ## 3.2.2 (2026-09-18)
 
 3.2.2 is a bug-fix release. No dependency or Python-floor changes; one additive type
