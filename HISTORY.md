@@ -12,6 +12,8 @@
   receives security fixes only. 2.5.3 was the last release to carry bug fixes
   back-ported from 3.x, and the 2.6.0 release those files promised will not
   follow.
+- Python 3.15 is supported and tested in CI, so 2.x covers CPython 3.10 to
+  3.15 and PyPy 3.11. No code changes were needed (#542).
 
 ## 2.5.3 (2026-08-08)
 
