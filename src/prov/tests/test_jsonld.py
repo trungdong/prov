@@ -13,6 +13,7 @@ from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
     ProvJSONLDSerializer,
+    encode_jsonld_container,
 )
 
 EX_URI = "http://example.org/"
@@ -158,6 +159,20 @@ def test_deserialize_qualified_name_value(value, context) -> None:
     )
     (record,) = doc.get_records()
     assert record.get_attribute("ex:ref") == {doc.valid_qualified_name("ex:e2")}
+
+
+def test_deserialize_bare_string_under_uncoerced_term_is_plain_string() -> None:
+    # As documented in conformance.md: without a "@type": "@id" definition
+    # the bare string is a plain literal to JSON-LD, and prov reads it so.
+    doc = ProvDocument.deserialize(content=_value_payload("ex:e2"), format="jsonld")
+    (record,) = doc.get_records()
+    assert record.get_attribute("ex:ref") == {"ex:e2"}
+
+
+def test_encode_jsonld_container_matches_document_graph() -> None:
+    doc = _new_doc()
+    doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:e2")),))
+    assert encode_jsonld_container(doc) == _dump(doc)["@graph"]
 
 
 def test_deserialize_coerced_term_keeps_value_objects_literal() -> None:
