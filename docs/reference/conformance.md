@@ -197,7 +197,8 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   has it, while the term's other values stay literals
   ([#545](https://github.com/trungdong/prov/issues/545)). The submission's JSON Schema allows
   only string values in a context object, so such a document does not validate against it;
-  the statements themselves still do. ProvToolbox reads the bare string as a qualified name.
+  the statements themselves still do. The gap is raised with the submission in
+  [openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7). ProvToolbox reads the bare string as a qualified name.
   `prov` 3.2.2 and earlier ignore the term definition and read the value as a plain string.
   Under `label`, and under `value` on an entity, a qualified name stays an `xsd:QName` value
   object, because a namespace object cannot redefine those submission terms.
