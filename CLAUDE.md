@@ -78,7 +78,7 @@ uv run coverage run -m pytest
 uv run coverage report -m
 
 # Local multi-version testing (all supported interpreters, matches CI.yml's matrix)
-for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
+for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml pytest || break
 done
 ```

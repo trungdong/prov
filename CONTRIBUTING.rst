@@ -86,7 +86,7 @@ Ready to contribute? Here's how to set up `prov` for local development.
 
 6. When you're done making changes, check that your changes pass the tests, including testing other supported Python versions via uv::
 
-    $ for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do uv run --python $py --extra rdf --extra xml pytest || break; done
+    $ for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do uv run --python $py --extra rdf --extra xml pytest || break; done
 
    The first run downloads any interpreter you don't already have cached, so
    expect some network traffic.
