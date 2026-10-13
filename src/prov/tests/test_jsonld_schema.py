@@ -30,7 +30,10 @@ import pytest
 jsonschema = pytest.importorskip("jsonschema")
 
 from prov.model import ProvDocument  # noqa: E402
-from prov.serializers.provjsonld import ProvJSONLDException  # noqa: E402
+from prov.serializers.provjsonld import (  # noqa: E402
+    ProvJSONLDException,
+    _is_embedded_submission_context,
+)
 from prov.tests import examples  # noqa: E402
 
 from .conftest import contains_mention  # noqa: E402
@@ -74,10 +77,42 @@ def _canonicalize_embedded_context(container: dict[str, Any]) -> dict[str, Any]:
     """
     container["@context"] = [
         CANONICAL_CONTEXT_URL
-        if isinstance(item, dict) and any(isinstance(v, dict) for v in item.values())
+        if isinstance(item, dict) and _is_embedded_submission_context(item)
         else item
         for item in container["@context"]
     ]
+    return container
+
+
+def _strip_term_coercions(container: dict[str, Any]) -> dict[str, Any]:
+    """Drop the ``{"@type": "@id"}`` term definitions from the namespace map.
+
+    The encoder types every attribute term that holds a qualified name
+    ``@id`` in the leading namespace object (#545), which the schema's
+    ``Context`` production, allowing string values only, rejects. This is
+    the one place the output departs from the schema, so removing those
+    entries must leave a valid document.
+
+    Args:
+        container: A decoded PROV-JSONLD document object.
+
+    Returns:
+        ``container`` with every dict-valued entry of its namespace maps,
+        the top-level one and each bundle's, removed.
+    """
+
+    def strip(context: list[Any]) -> list[Any]:
+        return [
+            {k: v for k, v in item.items() if not isinstance(v, dict)}
+            if isinstance(item, dict)
+            else item
+            for item in context
+        ]
+
+    container["@context"] = strip(container["@context"])
+    for stmt in container["@graph"]:
+        if stmt.get("@type") == "Bundle":
+            stmt["@context"] = strip(stmt["@context"])
     return container
 
 
@@ -121,4 +156,28 @@ def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
     document.entity("e1", {"mine": "x", "type": "y"})
     container = json.loads(document.serialize(format="jsonld"))
     errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
+    assert not errors, "\n".join(str(e) for e in errors)
+
+
+def test_qualified_name_values_depart_from_schema_only_in_the_context(
+    prov_jsonld_validator,
+) -> None:
+    """A qualified-name attribute value is schema-valid apart from its coercion.
+
+    None of the canonical ``examples.tests`` documents holds a qualified name
+    under an ordinary attribute, so the parametrized test above never sees
+    the ``{"@type": "@id"}`` term definitions the encoder adds for one
+    (#545). This test pins both halves: the schema rejects the document as
+    written, and only because of those context entries.
+    """
+    document = ProvDocument()
+    document.add_namespace("ex", EX_URI)
+    document.entity("ex:e1", {"ex:ref": document.valid_qualified_name("ex:e2")})
+    bundle = document.bundle("ex:b1")
+    bundle.entity("ex:e3", {"ex:ref": document.valid_qualified_name("ex:e4")})
+    container = json.loads(document.serialize(format="jsonld"))
+    assert not prov_jsonld_validator.is_valid(container)
+    errors = sorted(
+        prov_jsonld_validator.iter_errors(_strip_term_coercions(container)), key=str
+    )
     assert not errors, "\n".join(str(e) for e in errors)

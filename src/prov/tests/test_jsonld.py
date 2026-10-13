@@ -66,69 +66,153 @@ def test_serialize_special_and_extra_attributes() -> None:
     assert stmt["ex:note"] == [{"@value": "plain"}]
 
 
-def test_serialize_qualified_name_value_as_node_reference() -> None:
-    # #545: under an ordinary attribute, a qualified name is a node reference,
-    # so a JSON-LD processor reads it as the IRI it names, as PROV-O does,
-    # not as an "ex:shed"^^xsd:QName literal.
+def test_serialize_qualified_name_value_as_coerced_bare_string() -> None:
+    # #545: a qualified name under an ordinary attribute is the submission's
+    # bare string, and the namespace object types that term "@id", so a
+    # JSON-LD processor reads the IRI, as PROV-O has it. The term's plain
+    # string value stays a value object, which coercion leaves a literal.
     doc = _new_doc()
     doc.agent(
         "ex:arthur",
         (
             ("prov:type", doc.valid_qualified_name("prov:Person")),
-            ("ex:pastProject", doc.valid_qualified_name("ex:shed")),
-            ("ex:currentProject", "ex:shed"),
+            ("ex:project", doc.valid_qualified_name("ex:shed")),
+            ("ex:project", "ex:shed"),
+            ("ex:note", "plain"),
         ),
     )
-    (stmt,) = _dump(doc)["@graph"]
+    container = _dump(doc)
+    assert container["@context"][0] == {"ex": EX_URI, "ex:project": {"@type": "@id"}}
+    (stmt,) = container["@graph"]
     assert stmt["type"] == ["prov:Person"]
-    assert stmt["ex:pastProject"] == [{"@id": "ex:shed"}]
-    assert stmt["ex:currentProject"] == [{"@value": "ex:shed"}]
+    assert sorted(stmt["ex:project"], key=str) == ["ex:shed", {"@value": "ex:shed"}]
+    assert stmt["ex:note"] == [{"@value": "plain"}]
 
 
-def test_roundtrip_qualified_name_value_as_node_reference() -> None:
+def test_serialize_qualified_name_label_keeps_xsd_qname() -> None:
+    # The submission context defines the bare "label" term, which a namespace
+    # object cannot retype, so its qualified names stay typed value objects.
     doc = _new_doc()
-    doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:e2")),))
+    doc.entity("ex:e1", (("prov:label", doc.valid_qualified_name("ex:x")),))
+    container = _dump(doc)
+    assert container["@context"][0] == {"ex": EX_URI}
+    (stmt,) = container["@graph"]
+    assert stmt["label"] == [{"@value": "ex:x", "@type": "xsd:QName"}]
+
+
+def test_serialize_bundle_coerces_its_own_terms() -> None:
+    doc = _new_doc()
+    doc.entity("ex:e1", (("ex:top", doc.valid_qualified_name("ex:e2")),))
+    bundle = doc.bundle("ex:b1")
+    bundle.entity("ex:e3", (("ex:inner", doc.valid_qualified_name("ex:e4")),))
+    container = _dump(doc)
+    assert container["@context"][0] == {"ex": EX_URI, "ex:top": {"@type": "@id"}}
+    (bundle_obj,) = [s for s in container["@graph"] if s["@type"] == "Bundle"]
+    assert bundle_obj["@context"] == [{"ex": EX_URI, "ex:inner": {"@type": "@id"}}]
+
+
+def test_roundtrip_qualified_name_values() -> None:
+    doc = _new_doc()
+    doc.entity(
+        "ex:e1",
+        (
+            ("ex:ref", doc.valid_qualified_name("ex:e2")),
+            ("ex:ref", "ex:e2"),
+            ("prov:label", doc.valid_qualified_name("ex:x")),
+        ),
+    )
+    bundle = doc.bundle("ex:b1")
+    bundle.entity("ex:e3", (("ex:ref", doc.valid_qualified_name("ex:e4")),))
     roundtripped = ProvDocument.deserialize(
         content=doc.serialize(format="jsonld"), format="jsonld"
     )
     assert roundtripped == doc
 
 
-def _value_payload(value) -> str:
+def _value_payload(value, context: dict | None = None) -> str:
     return json.dumps(
         {
-            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@context": [{"ex": EX_URI, **(context or {})}, JSONLD_CONTEXT_URL],
             "@graph": [{"@type": "Entity", "@id": "ex:e1", "ex:ref": [value]}],
         }
     )
 
 
+COERCED_REF = {"ex:ref": {"@type": "@id"}}
+
+
 @pytest.mark.parametrize(
-    "value",
+    "value, context",
     [
-        pytest.param({"@id": "ex:e2"}, id="node-reference"),
-        pytest.param({"@value": "ex:e2", "@type": "xsd:QName"}, id="xsd-qname"),
+        pytest.param("ex:e2", COERCED_REF, id="coerced-bare-string"),
+        pytest.param({"@id": "ex:e2"}, None, id="node-reference"),
+        pytest.param({"@value": "ex:e2", "@type": "xsd:QName"}, None, id="xsd-qname"),
     ],
 )
-def test_deserialize_qualified_name_value(value) -> None:
+def test_deserialize_qualified_name_value(value, context) -> None:
     # The xsd:QName-typed form is what prov wrote before #545 and what other
-    # implementations may still write, so it keeps decoding to a qualified name.
-    doc = ProvDocument.deserialize(content=_value_payload(value), format="jsonld")
+    # implementations may still write, and a node reference is the other
+    # JSON-LD spelling of an IRI, so both keep decoding to a qualified name.
+    doc = ProvDocument.deserialize(
+        content=_value_payload(value, context), format="jsonld"
+    )
     (record,) = doc.get_records()
     assert record.get_attribute("ex:ref") == {doc.valid_qualified_name("ex:e2")}
 
 
-def test_deserialize_node_reference_with_unknown_prefix_kept_as_literal() -> None:
+def test_deserialize_coerced_term_keeps_value_objects_literal() -> None:
     doc = ProvDocument.deserialize(
-        content=_value_payload({"@id": "nope:e2"}), format="jsonld"
+        content=_value_payload({"@value": "ex:e2"}, COERCED_REF), format="jsonld"
+    )
+    (record,) = doc.get_records()
+    assert record.get_attribute("ex:ref") == {"ex:e2"}
+
+
+def test_deserialize_bundle_inherits_coerced_terms() -> None:
+    payload = {
+        "@context": [{"ex": EX_URI, **COERCED_REF}, JSONLD_CONTEXT_URL],
+        "@graph": [
+            {
+                "@type": "Bundle",
+                "@id": "ex:b1",
+                "@context": [],
+                "@graph": [{"@type": "Entity", "@id": "ex:e1", "ex:ref": ["ex:e2"]}],
+            }
+        ],
+    }
+    doc = ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
+    (bundle,) = doc.bundles
+    (record,) = bundle.get_records()
+    assert record.get_attribute("ex:ref") == {doc.valid_qualified_name("ex:e2")}
+
+
+@pytest.mark.parametrize(
+    "value, context",
+    [
+        pytest.param("nope:e2", COERCED_REF, id="coerced-bare-string"),
+        pytest.param({"@id": "nope:e2"}, None, id="node-reference"),
+    ],
+)
+def test_deserialize_qualified_name_with_unknown_prefix_kept_as_literal(
+    value, context
+) -> None:
+    doc = ProvDocument.deserialize(
+        content=_value_payload(value, context), format="jsonld"
     )
     (record,) = doc.get_records()
     assert record.get_attribute("ex:ref") == {Literal("nope:e2", XSD_QNAME)}
 
 
-def test_deserialize_node_reference_with_non_string_id_raises() -> None:
-    with pytest.raises(ProvJSONLDException, match="must be a string"):
-        ProvDocument.deserialize(content=_value_payload({"@id": 42}), format="jsonld")
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param({"@id": 42}, id="non-string"),
+        pytest.param({"@id": "ex:e2", "ex:name": [{"@value": "x"}]}, id="node-object"),
+    ],
+)
+def test_deserialize_malformed_node_reference_raises(value) -> None:
+    with pytest.raises(ProvJSONLDException, match="node reference"):
+        ProvDocument.deserialize(content=_value_payload(value), format="jsonld")
 
 
 def test_serialize_bundle_nesting() -> None:

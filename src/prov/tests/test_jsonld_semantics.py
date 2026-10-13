@@ -133,9 +133,10 @@ def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context) -> N
 def test_expansion_types_and_qualified_name_values_match_prov_o(context) -> None:
     # #545: the extra prov:type rides the "type" term, which the submission
     # context maps to rdf:type. pyld keeps it apart from "@type" in the node
-    # map, but both become rdf:type triples, as in PROV-O. A
-    # qualified-name value of an ordinary attribute expands to the IRI it
-    # names, as in PROV-O, not to an xsd:QName literal.
+    # map, but both become rdf:type triples, as in PROV-O. A qualified-name
+    # value of an ordinary attribute is a bare string under a term the
+    # namespace object types "@id", so it expands to the IRI it names, as in
+    # PROV-O, while a plain string beside it stays a literal.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.add_namespace("foaf", FOAF_NS)
@@ -144,6 +145,7 @@ def test_expansion_types_and_qualified_name_values_match_prov_o(context) -> None
         (
             ("prov:type", doc.valid_qualified_name("prov:Person")),
             ("foaf:pastProject", doc.valid_qualified_name("ex:shed")),
+            ("foaf:pastProject", "ex:shed"),
         ),
     )
 
@@ -151,12 +153,16 @@ def test_expansion_types_and_qualified_name_values_match_prov_o(context) -> None
 
     assert arthur["@type"] == [f"{PROV_NS}Agent"]
     assert arthur[RDF_TYPE] == [{"@id": f"{PROV_NS}Person"}]
-    assert arthur[f"{FOAF_NS}pastProject"] == [{"@id": "http://example.org/shed"}]
+    assert sorted(arthur[f"{FOAF_NS}pastProject"], key=str) == [
+        {"@id": "http://example.org/shed"},
+        {"@value": "ex:shed"},
+    ]
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
 def test_expansion_default_namespace_qualified_name_value(context) -> None:
-    # A bare node reference resolves against "@base", the default namespace.
+    # The attribute's term is an absolute IRI (see _encode_attribute_term),
+    # and its bare value resolves against "@base", the default namespace.
     doc = ProvDocument()
     doc.set_default_namespace("http://example.org/")
     doc.entity("e1", (("ref", doc.valid_qualified_name("e2")),))

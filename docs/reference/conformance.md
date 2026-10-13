@@ -191,12 +191,20 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   also carries an `@id`, the resulting records are left unidentified with a `ProvWarning`,
   because records sharing one identifier cannot be unified. If the array has exactly one
   member, the `@id` is kept.
-- A qualified name held by an ordinary attribute is written as a node reference,
-  `{"@id": "ex:shed"}`, so a JSON-LD processor reads it as the IRI it names, as PROV-O does
-  ([#545](https://github.com/trungdong/prov/issues/545)). The submission's JSON Schema has
-  no node reference in its `ArrayOfValues`, so such a document does not validate against
-  it. The decoder still reads the `xsd:QName`-typed value objects that earlier releases
-  wrote.
+- A qualified name held by an ordinary attribute is written as the submission's bare string,
+  and the leading namespace object types that attribute's term `@id`, as in
+  `"foaf:pastProject": {"@type": "@id"}`, so a JSON-LD processor reads the IRI, as PROV-O
+  has it, while the term's other values stay literals
+  ([#545](https://github.com/trungdong/prov/issues/545)). The submission's JSON Schema allows
+  only string values in a context object, so such a document does not validate against it;
+  the statements themselves still do. ProvToolbox reads the bare string as a qualified name.
+  `prov` 3.2.2 and earlier ignore the term definition and read the value as a plain string.
+  Under `label`, and under `value` on an entity, a qualified name stays an `xsd:QName` value
+  object, because a namespace object cannot redefine those submission terms.
+- The decoder reads a qualified name in any of these spellings: a bare string under a term
+  typed `@id`, a node reference `{"@id": "ex:shed"}`, or an `xsd:QName` or
+  `prov:QUALIFIED_NAME` value object, which `prov` wrote before. A bare string under a term
+  not typed `@id` is read as a plain string.
 
 ### PROV-O
 

@@ -4,7 +4,7 @@
 
 ### Fixes
 
-- PROV-JSONLD writes a qualified name held by an ordinary attribute, such as `foaf:pastProject` with the value `ex:shed`, as a node reference, `{"@id": "ex:shed"}`. It was written as an `xsd:QName`-typed string, so a JSON-LD processor read a literal where PROV-O has the IRI. Documents written by earlier releases still read back unchanged. `prov:type` values were already correct: the submission's `type` term maps to `rdf:type` (#545)
+- PROV-JSONLD output now gives the same RDF graph as PROV-O for a qualified name held by an ordinary attribute, such as `foaf:pastProject` with the value `ex:shed`. It was written as an `xsd:QName`-typed string, which a JSON-LD processor reads as a literal. It is now the submission's bare string, and the context types that attribute `@id`. Such a document no longer validates against the submission's JSON Schema, which allows only strings in a context object. `prov` 3.2.2 and earlier read the new output with the value as a plain string; the reader accepts the old form, the new one and node references. `prov:type` values were already correct, since the submission's `type` term is `rdf:type` (#545)
 
 ### Project
 
