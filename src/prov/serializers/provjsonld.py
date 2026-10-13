@@ -9,6 +9,7 @@ import datetime
 import io
 import json
 import warnings
+from collections.abc import Iterable
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any
@@ -130,19 +131,23 @@ def load_vendored_context() -> dict[str, Any]:
     return result
 
 
-def _encode_namespaces(bundle: ProvBundle) -> dict[str, Any]:
+def _encode_namespaces(
+    bundle: ProvBundle, coerced_terms: Iterable[str] = ()
+) -> dict[str, Any]:
     """Encode a bundle's registered namespaces as a JSON-LD context object.
 
     Args:
         bundle: Bundle (or document) whose namespaces are encoded.
+        coerced_terms: Attribute terms that hold a qualified name in
+            ``bundle``'s own records, as collected by
+            :func:`_encode_container`.
 
     Returns:
         A dict mapping each registered prefix to its namespace URI, plus
         ``"@vocab"`` and ``"@base"`` entries (both set to the same URI) if
         ``bundle`` has a default namespace, plus one ``{"@type": "@id"}``
-        term definition per attribute term that holds a qualified name in
-        ``bundle``'s own records (see :func:`_coerced_terms`). Empty if
-        ``bundle`` has none of these.
+        term definition per entry of ``coerced_terms``. Empty if there is
+        none of these.
 
         Both keys are needed: JSON-LD's ``@vocab`` governs bare property
         terms and bare ``@type`` values, but NOT ``@id`` values or the
@@ -159,43 +164,9 @@ def _encode_namespaces(bundle: ProvBundle) -> dict[str, Any]:
         ns_map["@vocab"] = default_ns.uri
         ns_map["@base"] = default_ns.uri
     result: dict[str, Any] = dict(ns_map)
-    for term in _coerced_terms(bundle):
+    for term in coerced_terms:
         result[term] = {"@type": "@id"}
     return result
-
-
-def _coerced_terms(bundle: ProvBundle) -> list[str]:
-    """Return the attribute terms a bundle's context must coerce to ``@id``.
-
-    The submission writes a qualified-name value as a bare string, which a
-    JSON-LD processor reads as a plain literal unless the term is typed
-    ``@id`` in the context. Its own context does that for ``type``, ``role``
-    and ``location`` only, so every other term that holds a qualified name in
-    one of ``bundle``'s own records gets a ``{"@type": "@id"}`` definition in
-    the namespace object; the term's other values stay value objects, which
-    coercion leaves as literals (#545). The bare special terms the submission
-    context defines (``label``, ``value``) cannot be redefined there, so a
-    qualified name under one of them keeps its ``xsd:QName`` value object
-    (see :func:`encode_jsonld_value`).
-
-    Args:
-        bundle: Bundle (or document) whose own records are scanned.
-
-    Returns:
-        The terms, in first-use order, as :func:`_encode_attribute_term`
-        emits them.
-    """
-    terms: dict[str, None] = {}
-    for record in bundle._records:
-        rec_type = record.get_type()
-        for attr, values in record._attributes.items():
-            if attr in record.FORMAL_ATTRIBUTES:
-                continue
-            if any(isinstance(v, QualifiedName) for v in values):
-                term = _encode_attribute_term(attr, rec_type)
-                if term not in SPECIAL_TERM_ATTRS:
-                    terms[term] = None
-    return list(terms)
 
 
 def encode_jsonld_value(value: Any, term: str) -> Any:
@@ -220,7 +191,7 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
         string is an IRI to a JSON-LD processor only under a term typed
         ``@id``: the submission context types ``type``, ``role`` and
         ``location``, and :func:`_encode_namespaces` types every other term
-        that holds a qualified name (#545). The two bare special terms it
+        that holds a qualified name (#545, see :func:`_encode_statement`). The two bare special terms it
         cannot type, ``label`` and ``value``, keep an ``xsd:QName`` value
         object.
     """
@@ -280,6 +251,10 @@ def _encode_attribute_term(attr: QualifiedName, rec_type: QualifiedName) -> str:
 def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
     """Encode one PROV record as its submission §4 statement object.
 
+    A qualified-name value is a bare string, which is read as a qualified
+    name only under a term the context types ``@id``; see
+    :func:`encode_jsonld_document`, which writes those term definitions.
+
     Args:
         record: Record to encode.
 
@@ -321,6 +296,42 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
     return obj
 
 
+def _encode_statement(
+    record: ProvRecord, coerced_terms: dict[str, None]
+) -> dict[str, Any]:
+    """Encode ``record`` and note the terms its context must type ``@id``.
+
+    The submission writes a qualified-name value as a bare string, which a
+    JSON-LD processor reads as a plain literal unless the term is typed
+    ``@id`` in the context. Its own context does that for ``type``, ``role``
+    and ``location`` only, so every other term that holds a qualified name
+    needs a ``{"@type": "@id"}`` definition in the namespace object; the
+    term's other values stay value objects, which coercion leaves as
+    literals (#545). The bare special terms the submission context defines
+    (``label``, ``value``) cannot be redefined there, so a qualified name
+    under one of them keeps its ``xsd:QName`` value object (see
+    :func:`encode_jsonld_value`). The terms are found in the encoded
+    statement, where only a qualified name becomes a bare string, so that
+    encoding stays one pass over the records.
+
+    Args:
+        record: Record to encode.
+        coerced_terms: Insertion-ordered set the record's terms are added to.
+
+    Returns:
+        The statement object, as :func:`encode_jsonld_statement` returns it.
+    """
+    obj = encode_jsonld_statement(record)
+    for term, value in obj.items():
+        if (
+            isinstance(value, list)
+            and term not in SPECIAL_TERM_ATTRS
+            and any(isinstance(v, str) for v in value)
+        ):
+            coerced_terms[term] = None
+    return obj
+
+
 def encode_jsonld_container(bundle: ProvBundle) -> list[dict[str, Any]]:
     """Encode a bundle's (or document's own) records as a ``@graph`` array.
 
@@ -333,6 +344,22 @@ def encode_jsonld_container(bundle: ProvBundle) -> list[dict[str, Any]]:
         per record.
     """
     return [encode_jsonld_statement(record) for record in bundle._records]
+
+
+def _encode_container(bundle: ProvBundle) -> tuple[list[dict[str, Any]], list[str]]:
+    """Encode a bundle's own records and collect the terms to type ``@id``.
+
+    Args:
+        bundle: Bundle (or document) whose own records are encoded.
+
+    Returns:
+        The ``@graph`` array, as :func:`encode_jsonld_container` returns it,
+        and the attribute terms holding a qualified name, in first-use order
+        (see :func:`_encode_statement`).
+    """
+    coerced_terms: dict[str, None] = {}
+    graph = [_encode_statement(record, coerced_terms) for record in bundle._records]
+    return graph, list(coerced_terms)
 
 
 def encode_jsonld_document(document: ProvDocument, context: str) -> dict[str, Any]:
@@ -352,16 +379,17 @@ def encode_jsonld_document(document: ProvDocument, context: str) -> dict[str, An
     context_tail: Any = (
         JSONLD_CONTEXT_URL if context == "url" else load_vendored_context()
     )
-    ns_map = _encode_namespaces(document)
-    graph = encode_jsonld_container(document)
+    graph, coerced_terms = _encode_container(document)
+    ns_map = _encode_namespaces(document, coerced_terms)
     for bundle in document.bundles:
-        bundle_ns = _encode_namespaces(bundle)
+        bundle_graph, bundle_terms = _encode_container(bundle)
+        bundle_ns = _encode_namespaces(bundle, bundle_terms)
         graph.append(
             {
                 "@type": "Bundle",
                 "@id": str(bundle.identifier),
                 "@context": [bundle_ns] if bundle_ns else [],
-                "@graph": encode_jsonld_container(bundle),
+                "@graph": bundle_graph,
             }
         )
     context_list: list[Any] = [ns_map] if ns_map else []
