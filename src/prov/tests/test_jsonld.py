@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 import prov
-from prov.constants import PROV
+from prov.constants import PROV, XSD_QNAME
 from prov.model import Literal, ProvDocument, ProvMembership, ProvWarning
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
@@ -64,6 +64,71 @@ def test_serialize_special_and_extra_attributes() -> None:
     assert stmt["label"] == [{"@value": "hello"}]
     assert stmt["ex:price"] == [{"@value": "42", "@type": "xsd:int"}]
     assert stmt["ex:note"] == [{"@value": "plain"}]
+
+
+def test_serialize_qualified_name_value_as_node_reference() -> None:
+    # #545: under an ordinary attribute, a qualified name is a node reference,
+    # so a JSON-LD processor reads it as the IRI it names, as PROV-O does,
+    # not as an "ex:shed"^^xsd:QName literal.
+    doc = _new_doc()
+    doc.agent(
+        "ex:arthur",
+        (
+            ("prov:type", doc.valid_qualified_name("prov:Person")),
+            ("ex:pastProject", doc.valid_qualified_name("ex:shed")),
+            ("ex:currentProject", "ex:shed"),
+        ),
+    )
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt["type"] == ["prov:Person"]
+    assert stmt["ex:pastProject"] == [{"@id": "ex:shed"}]
+    assert stmt["ex:currentProject"] == [{"@value": "ex:shed"}]
+
+
+def test_roundtrip_qualified_name_value_as_node_reference() -> None:
+    doc = _new_doc()
+    doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:e2")),))
+    roundtripped = ProvDocument.deserialize(
+        content=doc.serialize(format="jsonld"), format="jsonld"
+    )
+    assert roundtripped == doc
+
+
+def _value_payload(value) -> str:
+    return json.dumps(
+        {
+            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1", "ex:ref": [value]}],
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param({"@id": "ex:e2"}, id="node-reference"),
+        pytest.param({"@value": "ex:e2", "@type": "xsd:QName"}, id="xsd-qname"),
+    ],
+)
+def test_deserialize_qualified_name_value(value) -> None:
+    # The xsd:QName-typed form is what prov wrote before #545 and what other
+    # implementations may still write, so it keeps decoding to a qualified name.
+    doc = ProvDocument.deserialize(content=_value_payload(value), format="jsonld")
+    (record,) = doc.get_records()
+    assert record.get_attribute("ex:ref") == {doc.valid_qualified_name("ex:e2")}
+
+
+def test_deserialize_node_reference_with_unknown_prefix_kept_as_literal() -> None:
+    doc = ProvDocument.deserialize(
+        content=_value_payload({"@id": "nope:e2"}), format="jsonld"
+    )
+    (record,) = doc.get_records()
+    assert record.get_attribute("ex:ref") == {Literal("nope:e2", XSD_QNAME)}
+
+
+def test_deserialize_node_reference_with_non_string_id_raises() -> None:
+    with pytest.raises(ProvJSONLDException, match="must be a string"):
+        ProvDocument.deserialize(content=_value_payload({"@id": 42}), format="jsonld")
 
 
 def test_serialize_bundle_nesting() -> None:

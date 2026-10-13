@@ -177,13 +177,17 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
             as a typed value object.
 
     Returns:
-        A bare qualified-name string for ``@id``-typed terms, or a
-        ``{"@value": ..., "@type"/"@language": ...}`` value object.
+        A bare qualified-name string for ``@id``-typed terms, a
+        ``{"@id": ...}`` node reference for a qualified name under any other
+        term, or a ``{"@value": ..., "@type"/"@language": ...}`` value object.
+        The node reference makes a JSON-LD processor read the value as the
+        IRI it names, as PROV-O does, rather than as an ``xsd:QName``-typed
+        literal (#545).
     """
     if isinstance(value, QualifiedName):
         if term in ID_TYPED_TERMS:
             return str(value)  # @id-typed term: bare qualified-name string
-        return {"@value": str(value), "@type": str(XSD_QNAME)}
+        return {"@id": str(value)}
     if isinstance(value, Literal):
         if value.langtag:
             return {"@value": value.value, "@language": value.langtag}
@@ -435,15 +439,16 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
     """Decode one member of a non-formal attribute's value array.
 
     Mirrors :func:`~prov.serializers.provjson.decode_json_representation`'s
-    #168/#238 behaviour: an ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value
-    (or an ``@id``-typed term's bare string) whose prefix has no in-scope
-    namespace is kept as an opaque :class:`~prov.model.Literal` rather than
-    dropped.
+    #168/#238 behaviour: a ``{"@id": ...}`` node reference, an
+    ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value (written by ``prov``
+    before #545, and by other implementations) or an ``@id``-typed term's
+    bare string whose prefix has no in-scope namespace is kept as an opaque
+    :class:`~prov.model.Literal` rather than dropped.
 
     Args:
         value: The raw JSON-LD value: a bare string (for
-            :data:`ID_TYPED_TERMS`) or a ``{"@value": ..., ...}`` value
-            object.
+            :data:`ID_TYPED_TERMS`), a ``{"@id": ...}`` node reference or a
+            ``{"@value": ..., ...}`` value object.
         bundle: Bundle used to resolve any qualified-name value.
         term: The unprefixed JSON-LD term ``value`` was read from (e.g.
             ``"type"``, ``"ex:price"``), used to decide how a bare string is
@@ -451,15 +456,15 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
 
     Returns:
         The resolved :class:`~prov.identifier.QualifiedName` for an
-        ``@id``-typed term or an ``xsd:QName``/``prov:QUALIFIED_NAME``-typed
-        value object, an :class:`~prov.identifier.Identifier` for an
+        ``@id``-typed term, a node reference or an
+        ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value object, an :class:`~prov.identifier.Identifier` for an
         ``xsd:anyURI``-typed value object, a language-tagged or datatyped
         :class:`~prov.model.Literal`, or the plain decoded text.
 
     Raises:
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
-            object, or if a value object is missing its required
-            ``"@value"`` key.
+            object, if a node reference's ``"@id"`` is not a string, or if a
+            value object is missing its required ``"@value"`` key.
     """
     if isinstance(value, str):
         if term in ID_TYPED_TERMS:
@@ -467,6 +472,14 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
             return resolved if resolved is not None else Literal(value, XSD_QNAME)
         return value
     value = _expect_object(value, f"A value of {term!r}")
+    if "@id" in value:
+        ref = value["@id"]
+        if not isinstance(ref, str):
+            raise ProvJSONLDException(
+                f'The "@id" of a value of {term!r} must be a string; found {value!r}'
+            )
+        resolved = bundle.valid_qualified_name(ref)
+        return resolved if resolved is not None else Literal(ref, XSD_QNAME)
     try:
         text = value["@value"]
     except KeyError as exc:

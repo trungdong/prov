@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- PROV-JSONLD writes a qualified name held by an ordinary attribute, such as `foaf:pastProject` with the value `ex:shed`, as a node reference, `{"@id": "ex:shed"}`. It was written as an `xsd:QName`-typed string, so a JSON-LD processor read a literal where PROV-O has the IRI. Documents written by earlier releases still read back unchanged. `prov:type` values were already correct: the submission's `type` term maps to `rdf:type` (#545)
+
 ### Project
 
 - Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and PyPy 3.11. No code changes were needed (#542)

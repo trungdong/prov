@@ -20,6 +20,8 @@ from prov.serializers.provjsonld import load_vendored_context
 
 PROV_NS = "http://www.w3.org/ns/prov#"
 RDFS_LABEL = "http://www.w3.org/2000/01/rdf-schema#label"
+FOAF_NS = "http://xmlns.com/foaf/0.1/"
+RDF_TYPE = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime"
 
 #: Both ``serialize(format="jsonld", ...)`` context modes; see module docstring.
@@ -125,3 +127,40 @@ def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context) -> N
     # base it would neither match "http://example.org/e1" here nor land on
     # this node once flattened.
     assert f"{PROV_NS}qualifiedGeneration" in e1
+
+
+@pytest.mark.parametrize("context", CONTEXT_MODES)
+def test_expansion_types_and_qualified_name_values_match_prov_o(context) -> None:
+    # #545: the extra prov:type rides the "type" term, which the submission
+    # context maps to rdf:type. pyld keeps it apart from "@type" in the node
+    # map, but both become rdf:type triples, as in PROV-O. A
+    # qualified-name value of an ordinary attribute expands to the IRI it
+    # names, as in PROV-O, not to an xsd:QName literal.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.add_namespace("foaf", FOAF_NS)
+    doc.agent(
+        "ex:arthur",
+        (
+            ("prov:type", doc.valid_qualified_name("prov:Person")),
+            ("foaf:pastProject", doc.valid_qualified_name("ex:shed")),
+        ),
+    )
+
+    arthur = _flatten(doc, context)["http://example.org/arthur"]
+
+    assert arthur["@type"] == [f"{PROV_NS}Agent"]
+    assert arthur[RDF_TYPE] == [{"@id": f"{PROV_NS}Person"}]
+    assert arthur[f"{FOAF_NS}pastProject"] == [{"@id": "http://example.org/shed"}]
+
+
+@pytest.mark.parametrize("context", CONTEXT_MODES)
+def test_expansion_default_namespace_qualified_name_value(context) -> None:
+    # A bare node reference resolves against "@base", the default namespace.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://example.org/")
+    doc.entity("e1", (("ref", doc.valid_qualified_name("e2")),))
+
+    e1 = _flatten(doc, context)["http://example.org/e1"]
+
+    assert e1["http://example.org/ref"] == [{"@id": "http://example.org/e2"}]

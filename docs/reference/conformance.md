@@ -191,6 +191,12 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   also carries an `@id`, the resulting records are left unidentified with a `ProvWarning`,
   because records sharing one identifier cannot be unified. If the array has exactly one
   member, the `@id` is kept.
+- A qualified name held by an ordinary attribute is written as a node reference,
+  `{"@id": "ex:shed"}`, so a JSON-LD processor reads it as the IRI it names, as PROV-O does
+  ([#545](https://github.com/trungdong/prov/issues/545)). The submission's JSON Schema has
+  no node reference in its `ArrayOfValues`, so such a document does not validate against
+  it. The decoder still reads the `xsd:QName`-typed value objects that earlier releases
+  wrote.
 
 ### PROV-O
 
