@@ -798,6 +798,14 @@ def test_writer_omits_xsi_when_no_record_uses_it() -> None:
     assert "prefix xsi" not in doc.get_provn()
 
 
+def test_writer_omits_xsi_for_a_string_value_that_only_looks_like_an_xsi_name() -> None:
+    doc = _xsi_document()
+    doc.entity("ex:e", {"ex:p": "xsi:not-a-name"})
+    text = doc.get_provn()
+    assert "xsi:not-a-name" in text
+    assert "prefix xsi" not in text
+
+
 def test_writer_declares_xsi_in_the_bundle_that_uses_it() -> None:
     doc = _xsi_document()
     doc.entity("ex:e")

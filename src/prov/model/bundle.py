@@ -625,8 +625,15 @@ class ProvBundle:
         # otherwise, start the bundle
         default_namespace = self._namespaces.get_default_namespace()
         registered_namespaces = list(self._namespaces.get_registered_namespaces())
-        # PROV-N predeclares only prov and xsd.
-        if self._uses_xsi() and all(ns.prefix != "xsi" for ns in registered_namespaces):
+        record_lines = [record.get_provn(strict=strict) for record in self._records]
+        # PROV-N predeclares only prov and xsd. The writer spells every xsi
+        # name as "xsi:...", so the substring scan skips the record walk for
+        # documents without one; _uses_xsi() then rules out string values.
+        if (
+            any("xsi:" in line for line in record_lines)
+            and self._uses_xsi()
+            and all(ns.uri != XSI.uri for ns in registered_namespaces)
+        ):
             registered_namespaces.append(XSI)
         bundle_id, extra_prefix = self._provn_header_id(
             default_namespace, registered_namespaces
@@ -639,7 +646,7 @@ class ProvBundle:
         )
 
         #  adding all the records
-        lines.extend([record.get_provn(strict=strict) for record in self._records])
+        lines.extend(record_lines)
         if self.is_document():
             # Print out bundles
             lines.extend(
