@@ -389,7 +389,10 @@ class ProvNParser:
         self, target: ProvBundle, namespaces: list[Namespace], default: str | None
     ) -> None:
         for namespace in namespaces:
-            target.add_namespace(namespace)
+            # The model may register the namespace under a different prefix, so
+            # resolve names through what it returns to keep parsed values
+            # writable.
+            self._scope[namespace.prefix] = target.add_namespace(namespace)
         if default is not None:
             target.set_default_namespace(default)
 

@@ -407,6 +407,45 @@ def test_xsi_is_an_ordinary_prefix(profile) -> None:
     assert messages == []
 
 
+XSI_ROUND_TRIP_RECORD = "entity(xsi:e, [ex:t=\"1\" %% xsi:t, xsi:k='xsi:v'])"
+
+
+def _datatype_uri(doc):
+    (record,) = [r for r in doc.get_records() if r.identifier is not None]
+    attributes = {name.uri: value for name, value in record.extra_attributes}
+    return attributes["http://example.org/t"].datatype.uri
+
+
+@pytest.mark.parametrize("target", ["provn", "json"])
+def test_declared_xsi_round_trips_through_the_writers(target) -> None:
+    doc = ProvNParser(
+        OTHER_XSI + XSI_ROUND_TRIP_RECORD + "\nendDocument", "strict"
+    ).parse()
+    assert _datatype_uri(doc) == "http://other/t"
+    content = doc.serialize(format=target)
+    reloaded = ProvDocument.deserialize(content=content, format=target)
+    assert reloaded == doc
+    assert _datatype_uri(reloaded) == "http://other/t"
+
+
+@pytest.mark.parametrize("target", ["provn", "json"])
+def test_declared_xsi_round_trips_through_the_writers_at_bundle_scope(target) -> None:
+    doc = ProvNParser(
+        "document\nprefix ex <http://example.org/>\nbundle ex:b\n"
+        "prefix xsi <http://other/>\n"
+        + XSI_ROUND_TRIP_RECORD
+        + "\nendBundle\nendDocument",
+        "strict",
+    ).parse()
+    (bundle,) = doc.bundles
+    assert _datatype_uri(bundle) == "http://other/t"
+    content = doc.serialize(format=target)
+    reloaded = ProvDocument.deserialize(content=content, format=target)
+    assert reloaded == doc
+    (reloaded_bundle,) = reloaded.bundles
+    assert _datatype_uri(reloaded_bundle) == "http://other/t"
+
+
 def test_xsi_is_an_ordinary_prefix_at_bundle_scope() -> None:
     doc, messages = parse_with_warnings(
         "document\nprefix ex <http://example.org/>\nbundle ex:b\n"
