@@ -2,6 +2,7 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 
 import logging
 import os
+import sys
 import warnings
 from typing import IO, TYPE_CHECKING, Any, cast
 
@@ -71,12 +72,28 @@ def _reemit(caught: list[warnings.WarningMessage]) -> None:
     (see :func:`prov._warnings.external_stacklevel`), so the caller's
     filters apply to each warning once, as on the explicit-format path.
     """
+    if not caught:
+        return
+
+    # ``warn_explicit`` derives the module from the file path unless told
+    # otherwise, which would let a ``module=`` filter match a directory name
+    # (a checkout under ``.../prov/``). Recover the dotted name that
+    # ``warn`` would have recorded, falling back to the bare file name.
+    module_names = {
+        module.__file__: name
+        for name, module in list(sys.modules.items())
+        if getattr(module, "__file__", None)
+    }
     for record in caught:
+        module_name = module_names.get(record.filename)
+        if module_name is None:
+            module_name = os.path.splitext(os.path.basename(record.filename))[0]
         warnings.warn_explicit(
             record.message,
             record.category,
             record.filename,
             record.lineno,
+            module=module_name,
             source=record.source,
         )
 

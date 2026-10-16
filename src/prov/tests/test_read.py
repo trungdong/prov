@@ -473,3 +473,45 @@ def test_read_auto_detect_ignores_a_failed_candidates_warning_under_an_error_fil
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         document = prov.read(_PROVN)
     assert _identifiers(document) == ["ex:e1"]
+
+
+def _third_party_warns(filename: str):
+    def deserialize(self, stream, **kwargs) -> ProvDocument:
+        document = _provn_deserialize(self, stream, **kwargs)
+        warnings.warn_explicit(
+            "third party", DeprecationWarning, filename, 1, module="thirdparty.x"
+        )
+        return document
+
+    return deserialize
+
+
+def test_read_auto_detect_reemits_under_the_callers_module_name() -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        warnings.catch_warnings(),
+    ):
+        warnings.filterwarnings(
+            "error", category=ProvFutureRejectionWarning, module=__name__
+        )
+        with pytest.raises(ProvFutureRejectionWarning, match="probe"):
+            prov.read(_PROVN)
+
+
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "/tmp/prov/site-packages/thirdparty/x.py",
+        "prov-env/site-packages/thirdparty/x.py",
+    ],
+)
+def test_read_auto_detect_does_not_match_a_third_party_warning_to_prov(
+    filename,
+) -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _third_party_warns(filename)),
+        warnings.catch_warnings(),
+    ):
+        warnings.filterwarnings("error", category=DeprecationWarning, module="prov")
+        document = prov.read(_PROVN)
+    assert _identifiers(document) == ["ex:e1"]
