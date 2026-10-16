@@ -8,7 +8,7 @@ import warnings
 
 import pytest
 
-from prov.constants import XSI
+from prov.constants import PROV, XSD, XSI
 from prov.model import (
     PROV_REC_CLS,
     Literal,
@@ -768,3 +768,118 @@ def test_writer_declares_xsi_in_the_bundle_that_uses_it() -> None:
     assert text.count(XSI_LINE) == 1
     assert text.index(XSI_LINE) > text.index("bundle ex:b")
     assert _reads_back_without_future_warnings(text) == doc
+
+
+STRICT_CLAUSE = ". prov 3.3.0 will reject this under the strict profile"
+
+
+@pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
+@pytest.mark.parametrize("declaration", ["prefix z <>", "default <>"])
+def test_empty_namespace_iri_is_a_syntax_error(profile, declaration) -> None:
+    with pytest.raises(
+        ProvNSyntaxError, match="a namespace IRI cannot be empty"
+    ) as ctx:
+        ProvNParser(f"document\n{declaration}\nendDocument", profile).parse()
+    assert (ctx.value.line, ctx.value.column) == (2, declaration.index("<") + 1)
+
+
+@pytest.mark.parametrize("declaration", ["prefix z <>", "default <>"])
+def test_empty_namespace_iri_in_a_bundle_is_a_syntax_error(declaration) -> None:
+    with pytest.raises(
+        ProvNSyntaxError, match="a namespace IRI cannot be empty"
+    ) as ctx:
+        ProvNParser(
+            "document\nprefix ex <http://example.org/>\nbundle ex:b\n"
+            f"{declaration}\nendBundle\nendDocument",
+            "lenient",
+        ).parse()
+    assert ctx.value.line == 4
+
+
+def test_repeated_default_warns_and_the_last_one_wins() -> None:
+    doc, messages = parse_with_warnings(
+        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument"
+    )
+    assert only_record(doc).identifier.uri == "http://b/e"
+    assert messages == [
+        "line 3, column 1: 'default' is declared twice in this scope; the last one"
+        " is used. prov 3.3.0 will reject this"
+    ]
+
+
+def test_single_default_does_not_warn() -> None:
+    _, messages = parse_with_warnings(
+        "document\ndefault <http://a/>\nentity(e)\nendDocument"
+    )
+    assert messages == []
+
+
+@pytest.mark.parametrize("name", ["_", "a/b", "1a"])
+def test_prefix_name_that_is_not_a_pn_prefix_warns(name) -> None:
+    doc, messages = parse_with_warnings(
+        f"document\nprefix {name} <http://x/>\nprefix ex <http://example.org/>\n"
+        "entity(ex:e)\nendDocument"
+    )
+    assert only_record(doc).identifier.uri == "http://example.org/e"
+    assert messages == [
+        f"line 2, column 8: '{name}' is not a PROV-N prefix name, so no qualified"
+        " name can use it. prov 3.3.0 will reject this"
+    ]
+
+
+@pytest.mark.parametrize("name", ["ex", "a.b", "a_b", "a-1"])
+def test_pn_prefix_names_do_not_warn(name) -> None:
+    _, messages = parse_with_warnings(
+        f"document\nprefix {name} <http://x/>\nendDocument"
+    )
+    assert messages == []
+
+
+def test_strict_default_after_prefix_warns() -> None:
+    _, messages = parse_with_warnings(
+        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\nendDocument",
+        "strict",
+    )
+    assert messages == [
+        "line 3, column 1: 'default' follows a 'prefix' declaration, which the"
+        " strict profile does not allow" + STRICT_CLAUSE
+    ]
+
+
+@pytest.mark.parametrize("profile", ["default", "lenient"])
+def test_default_after_prefix_warns_only_under_strict(profile) -> None:
+    _, messages = parse_with_warnings(
+        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\nendDocument",
+        profile,
+    )
+    assert messages == []
+
+
+def test_strict_default_before_prefix_does_not_warn() -> None:
+    _, messages = parse_with_warnings(
+        "document\ndefault <http://d/>\nprefix ex <http://example.org/>\nendDocument",
+        "strict",
+    )
+    assert messages == []
+
+
+@pytest.mark.parametrize("prefix, namespace", [("prov", PROV), ("xsd", XSD)])
+def test_strict_declaring_a_predeclared_prefix_warns(prefix, namespace) -> None:
+    _, messages = parse_with_warnings(
+        f"document\nprefix {prefix} <{namespace.uri}>\nendDocument", "strict"
+    )
+    assert messages == [
+        f"line 2, column 8: prefix '{prefix}' is predeclared, and the strict"
+        " profile does not allow declaring it" + STRICT_CLAUSE
+    ]
+
+
+@pytest.mark.parametrize("profile", ["default", "lenient"])
+@pytest.mark.parametrize("prefix, namespace", [("prov", PROV), ("xsd", XSD)])
+def test_declaring_a_predeclared_prefix_warns_only_under_strict(
+    profile, prefix, namespace
+) -> None:
+    _, messages = parse_with_warnings(
+        f"document\nprefix {prefix} <{namespace.uri}>\nendDocument", profile
+    )
+    assert messages == []

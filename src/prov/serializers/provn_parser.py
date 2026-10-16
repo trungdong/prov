@@ -26,6 +26,7 @@ level or inside a bundle.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from prov._warnings import future_rejection_message
@@ -63,7 +64,13 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.serializers.provn_lexer import ProvNSyntaxError, Token, TokenKind, tokenize
+from prov.serializers.provn_lexer import (
+    _PN_PREFIX,
+    ProvNSyntaxError,
+    Token,
+    TokenKind,
+    tokenize,
+)
 
 __all__ = ["PROFILES", "ProvNParser"]
 
@@ -118,6 +125,8 @@ _STRICT_REQUIRED_LEADING: dict[str, int] = {
 
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
+
+_PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 
 
 class ProvNParser:
@@ -305,12 +314,35 @@ class ProvNParser:
                         f"prefix '{local}' is declared twice in this scope", name
                     )
                 iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
+                if not iri.value:
+                    raise self._error("a namespace IRI cannot be empty", iri)
                 self._check_reserved_prefix(local, iri.value, name)
+                if not _PN_PREFIX_NAME.fullmatch(local):
+                    self._future(
+                        f"'{local}' is not a PROV-N prefix name, so no qualified"
+                        " name can use it",
+                        name,
+                    )
                 namespaces.append(Namespace(local, iri.value))
                 seen.add(local)
             elif self._at_keyword("default"):
-                self._advance()
+                keyword = self._advance()
                 iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
+                if not iri.value:
+                    raise self._error("a namespace IRI cannot be empty", iri)
+                if default is not None:
+                    self._future(
+                        "'default' is declared twice in this scope; the last one"
+                        " is used",
+                        keyword,
+                    )
+                if namespaces and self.profile == "strict":
+                    self._future(
+                        "'default' follows a 'prefix' declaration, which the"
+                        " strict profile does not allow",
+                        keyword,
+                        "reject this under the strict profile",
+                    )
                 default = iri.value
             else:
                 return namespaces, default
@@ -322,6 +354,13 @@ class ProvNParser:
                 f"prefix '{prefix}' is reserved for <{reserved.uri}> and cannot"
                 " be redeclared",
                 token,
+            )
+        if reserved is not None and self.profile == "strict":
+            self._future(
+                f"prefix '{prefix}' is predeclared, and the strict profile does"
+                " not allow declaring it",
+                token,
+                "reject this under the strict profile",
             )
 
     def _future(self, detail: str, token: Token, outcome: str = "reject this") -> None:
