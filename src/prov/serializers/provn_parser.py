@@ -28,7 +28,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from prov._warnings import future_rejection_message
 from prov.constants import (
+    PROV,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
@@ -49,10 +51,11 @@ from prov.constants import (
     PROV_SPECIALIZATION,
     PROV_START,
     PROV_USAGE,
+    XSD,
+    XSI,
 )
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
-    DEFAULT_NAMESPACES,
     PROV_REC_CLS,
     Literal,
     ProvBundle,
@@ -113,6 +116,9 @@ _STRICT_REQUIRED_LEADING: dict[str, int] = {
     name: min(arities) for name, (_, arities) in _RELATIONS.items()
 } | {"mentionOf": min(_MENTION[1])}
 
+# PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
+_RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
+
 
 class ProvNParser:
     """Parse one PROV-N document.
@@ -140,6 +146,9 @@ class ProvNParser:
         self.profile = profile
         self.skipped: list[str] = []
         self.warnings: list[str] = []
+        # Namespaces declared in the scope being parsed, by prefix: the
+        # document's, overlaid with the current bundle's.
+        self._scope: dict[str, Namespace] = {}
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
@@ -259,6 +268,7 @@ class ProvNParser:
         document = ProvDocument()
         self._expect_keyword("document")
         namespaces, default = self._declarations()
+        self._scope = {namespace.prefix: namespace for namespace in namespaces}
         self._apply_declarations(document, namespaces, default)
         while not self._at_keyword("endDocument"):
             if self._current.kind is TokenKind.EOF:
@@ -306,13 +316,34 @@ class ProvNParser:
                 return namespaces, default
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:
-        builtin = DEFAULT_NAMESPACES.get(prefix)
-        if builtin is not None and builtin.uri != uri:
+        reserved = _RESERVED_PREFIXES.get(prefix)
+        if reserved is not None and reserved.uri != uri:
             raise self._error(
-                f"prefix '{prefix}' is reserved for <{builtin.uri}> and cannot"
+                f"prefix '{prefix}' is reserved for <{reserved.uri}> and cannot"
                 " be redeclared",
                 token,
             )
+
+    def _future(self, detail: str, token: Token, outcome: str = "reject this") -> None:
+        """Record a message for input that 3.3.0 rejects or reads differently."""
+        self.warnings.append(
+            future_rejection_message(
+                f"line {token.line}, column {token.column}: {detail}", outcome
+            )
+        )
+
+    def _xsi_name(self, token: Token) -> QualifiedName | None:
+        """Resolve an ``xsi:`` name against this scope's own declaration.
+
+        Returns ``None``, after recording a 3.3.0 message, when no
+        declaration is in scope, so the caller falls back to the built-in
+        namespace.
+        """
+        declared = self._scope.get("xsi")
+        if declared is not None:
+            return declared[token.value[1]]
+        self._future(f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>", token)
+        return None
 
     def _apply_declarations(
         self, target: ProvBundle, namespaces: list[Namespace], default: str | None
@@ -336,36 +367,44 @@ class ProvNParser:
         # resolve against the document directly, exactly as a bundle with no
         # declarations of its own would, so a document-level prefix used for
         # the identifier is not redundantly copied onto the bundle too.
-        prefix, _ = id_token.value
+        outer_scope = self._scope
+        self._scope = {
+            **outer_scope,
+            **{namespace.prefix: namespace for namespace in namespaces},
+        }
         try:
-            if (prefix and prefix in {ns.prefix for ns in namespaces}) or (
-                not prefix and default is not None
-            ):
-                bundle = ProvBundle(document=document)
-                self._apply_declarations(bundle, namespaces, default)
-                identifier = self._resolve(id_token, bundle)
-                document.add_bundle(bundle, identifier)
-            else:
-                identifier = self._resolve(id_token, document)
-                bundle = document.bundle(identifier)
-                self._apply_declarations(bundle, namespaces, default)
-        except ProvNSyntaxError:
-            raise
-        except ProvException as exc:
-            error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
-            if self.profile != "lenient":
-                raise error from exc
-            error.__cause__ = exc
-            self.skipped.append(f"PROV-N bundle skipped: {error}")
-            self._skip_bundle_body()
-            return
-        while not self._at_keyword("endBundle"):
-            if self._current.kind is TokenKind.EOF:
-                raise self._error("expected 'endBundle', found end of input")
-            if self._at_keyword("bundle"):
-                raise self._error("a bundle cannot contain a bundle")
-            self._statement(bundle)
-        self._advance()
+            prefix, _ = id_token.value
+            try:
+                if (prefix and prefix in {ns.prefix for ns in namespaces}) or (
+                    not prefix and default is not None
+                ):
+                    bundle = ProvBundle(document=document)
+                    self._apply_declarations(bundle, namespaces, default)
+                    identifier = self._resolve(id_token, bundle)
+                    document.add_bundle(bundle, identifier)
+                else:
+                    identifier = self._resolve(id_token, document)
+                    bundle = document.bundle(identifier)
+                    self._apply_declarations(bundle, namespaces, default)
+            except ProvNSyntaxError:
+                raise
+            except ProvException as exc:
+                error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
+                if self.profile != "lenient":
+                    raise error from exc
+                error.__cause__ = exc
+                self.skipped.append(f"PROV-N bundle skipped: {error}")
+                self._skip_bundle_body()
+                return
+            while not self._at_keyword("endBundle"):
+                if self._current.kind is TokenKind.EOF:
+                    raise self._error("expected 'endBundle', found end of input")
+                if self._at_keyword("bundle"):
+                    raise self._error("a bundle cannot contain a bundle")
+                self._statement(bundle)
+            self._advance()
+        finally:
+            self._scope = outer_scope
 
     def _skip_bundle_body(self) -> None:
         """Consume everything up to and including the next 'endBundle'."""
@@ -584,6 +623,9 @@ class ProvNParser:
         # new_record()'s later, unpositioned resolution.
         resolved = self._resolve(token, bundle)
         prefix, local = token.value
+        if prefix == "xsi" and "xsi" in self._scope:
+            # new_record() would resolve the text against the built-in xsi.
+            return resolved
         if not prefix and ":" in local:
             # An escaped colon in a bare local part can't be turned back
             # into text without looking like a (wrong) prefixed name, so
@@ -601,6 +643,10 @@ class ProvNParser:
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
         prefix, local = token.value
         if prefix:
+            if prefix == "xsi":
+                declared = self._xsi_name(token)
+                if declared is not None:
+                    return declared
             qname = bundle.valid_qualified_name(f"{prefix}:{local}")
             if qname is None:
                 raise self._error(
@@ -667,6 +713,10 @@ class ProvNParser:
         if token.kind is TokenKind.QNAME_LITERAL:
             self._advance()
             prefix, local = token.value
+            if prefix == "xsi":
+                declared = self._xsi_name(token)
+                if declared is not None:
+                    return declared
             if not prefix and ":" in local:
                 # Mirrors _resolve()'s bare-local branch: an escaped colon
                 # inside an unprefixed local part would otherwise be
