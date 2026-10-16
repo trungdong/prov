@@ -63,6 +63,24 @@ def _prepare_stream(
     return stream, start_pos
 
 
+def _reemit(caught: list[warnings.WarningMessage]) -> None:
+    """Re-emit warnings recorded while the chosen candidate parsed.
+
+    ``warn_explicit`` keeps each warning's category and recorded location.
+    For ``prov``'s own warnings that location is already the caller's line
+    (see :func:`prov._warnings.external_stacklevel`), so the caller's
+    filters apply to each warning once, as on the explicit-format path.
+    """
+    for record in caught:
+        warnings.warn_explicit(
+            record.message,
+            record.category,
+            record.filename,
+            record.lineno,
+            source=record.source,
+        )
+
+
 def _detect_and_parse(
     src: StreamOrPath | None,
     content: str | bytes | None,
@@ -105,24 +123,34 @@ def _detect_and_parse(
                     # A seek that fails mid-loop degrades to no-rewind for
                     # the remaining attempts rather than aborting detection.
                     start_pos = None
-            try:
-                # kwargs are format-specific (e.g. profile= for provn); a
-                # candidate that doesn't understand an option would otherwise
-                # raise TypeError, indistinguishable here from "not this
-                # format", so each candidate only gets the options it declares.
-                candidate_kwargs = {
-                    key: value
-                    for key, value in kwargs.items()
-                    if key in serializers[format].deserialize_options
-                }
-                document = ProvDocument.deserialize(
-                    source=src, content=content, format=format, **candidate_kwargs
-                )
-            except Exception:
-                # Any failure from a candidate deserializer means "not this
-                # format" -- move on to the next candidate.
-                continue
+            # Each candidate's warnings are recorded, not shown: a candidate
+            # that fails or parses to an empty document is "not this format",
+            # so its warnings are noise, and under an ``error`` filter a
+            # warning raised inside the candidate would be swallowed below as
+            # a parse failure. "always" records a repeat from the same line,
+            # which the warning registry would otherwise hide on a later read.
+            with warnings.catch_warnings(record=True) as caught:
+                warnings.simplefilter("always")
+                try:
+                    # kwargs are format-specific (e.g. profile= for provn); a
+                    # candidate that doesn't understand an option would
+                    # otherwise raise TypeError, indistinguishable here from
+                    # "not this format", so each candidate only gets the
+                    # options it declares.
+                    candidate_kwargs = {
+                        key: value
+                        for key, value in kwargs.items()
+                        if key in serializers[format].deserialize_options
+                    }
+                    document = ProvDocument.deserialize(
+                        source=src, content=content, format=format, **candidate_kwargs
+                    )
+                except Exception:
+                    # Any failure from a candidate deserializer means "not
+                    # this format" -- move on to the next candidate.
+                    continue
             if document.get_records() or document.has_bundles():
+                _reemit(caught)
                 return document
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
@@ -167,6 +195,12 @@ def read(
     or not). Auto-detection swallows all deserializer errors; pass
     ``format`` explicitly to get the actual traceback from the matching
     deserializer.
+    Warnings from a candidate that fails or produces an empty document are
+    dropped; the chosen candidate's warnings are re-emitted with their own
+    category and location, so an ``error`` filter raises them from here.
+    Recording them uses :func:`warnings.catch_warnings`, which changes
+    process-global state, so concurrent auto-detecting calls in threads can
+    lose or misplace each other's warnings.
 
     A seekable stream ``source`` (e.g. an open file object, ``io.StringIO``,
     ``io.BytesIO``) is rewound to its starting position before each

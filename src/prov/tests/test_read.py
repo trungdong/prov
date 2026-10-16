@@ -13,7 +13,8 @@ from unittest import mock
 import pytest
 
 import prov
-from prov.model import ProvDocument
+from prov._warnings import future_rejection_message
+from prov.model import ProvDocument, ProvFutureRejectionWarning
 from prov.serializers import DoNotExist
 from prov.serializers.provjson import ProvJSONSerializer
 from prov.serializers.provn import ProvNSerializer
@@ -377,3 +378,98 @@ def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path) -> None:
 
     assert provn_result == document
     assert json_result == document
+
+
+# -- warnings during auto-detection ----------------------------------------
+
+_PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
+_PROBE = future_rejection_message("probe")
+_provn_deserialize = ProvNSerializer.deserialize
+
+
+def _warns_then_fails(self, stream, **kwargs) -> NoReturn:
+    warnings.warn("from a failed candidate", ProvFutureRejectionWarning, stacklevel=1)
+    raise ValueError("not this format")
+
+
+def _warns_then_returns_empty(self, stream, **kwargs) -> ProvDocument:
+    warnings.warn("from an empty candidate", ProvFutureRejectionWarning, stacklevel=1)
+    return ProvDocument()
+
+
+def _provn_warns(self, stream, **kwargs) -> ProvDocument:
+    document = _provn_deserialize(self, stream, **kwargs)
+    warnings.warn(_PROBE, ProvFutureRejectionWarning, stacklevel=1)
+    return document
+
+
+def _identifiers(document: ProvDocument) -> list[str]:
+    return [str(record.identifier) for record in document.get_records()]
+
+
+def test_read_auto_detect_drops_a_failed_candidates_warnings() -> None:
+    with (
+        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_fails),
+        warnings.catch_warnings(record=True) as caught,
+    ):
+        warnings.simplefilter("always")
+        document = prov.read(_PROVN)
+    assert _identifiers(document) == ["ex:e1"]
+    assert [str(w.message) for w in caught] == []
+
+
+def test_read_auto_detect_drops_an_empty_candidates_warnings() -> None:
+    with (
+        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_returns_empty),
+        warnings.catch_warnings(record=True) as caught,
+    ):
+        warnings.simplefilter("always")
+        document = prov.read(_PROVN)
+    assert _identifiers(document) == ["ex:e1"]
+    assert [str(w.message) for w in caught] == []
+
+
+def test_read_auto_detect_reemits_the_winners_warnings_once() -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        warnings.catch_warnings(record=True) as caught,
+    ):
+        warnings.simplefilter("always")
+        prov.read(_PROVN)
+    assert [(w.category, str(w.message)) for w in caught] == [
+        (ProvFutureRejectionWarning, _PROBE)
+    ]
+    assert caught[0].filename == __file__
+
+
+def test_read_auto_detect_reemits_on_every_read() -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        warnings.catch_warnings(record=True) as caught,
+    ):
+        warnings.simplefilter("default")
+        prov.read(_PROVN)
+        prov.read(_PROVN)
+    assert [str(w.message) for w in caught] == [_PROBE, _PROBE]
+
+
+def test_read_auto_detect_raises_the_winners_warning_under_an_error_filter() -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        warnings.catch_warnings(),
+    ):
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        with pytest.raises(ProvFutureRejectionWarning, match="probe"):
+            prov.read(_PROVN)
+
+
+def test_read_auto_detect_ignores_a_failed_candidates_warning_under_an_error_filter() -> (
+    None
+):
+    with (
+        mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_fails),
+        warnings.catch_warnings(),
+    ):
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        document = prov.read(_PROVN)
+    assert _identifiers(document) == ["ex:e1"]
