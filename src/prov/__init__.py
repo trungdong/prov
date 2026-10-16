@@ -2,8 +2,6 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 
 import logging
 import os
-import sys
-import types
 import warnings
 from typing import IO, TYPE_CHECKING, Any, cast
 
@@ -65,43 +63,6 @@ def _prepare_stream(
     return stream, start_pos
 
 
-def _reemit(caught: list[warnings.WarningMessage]) -> None:
-    """Re-emit warnings recorded while the chosen candidate parsed.
-
-    ``warn_explicit`` keeps each warning's category and recorded location.
-    For ``prov``'s own warnings that location is already the caller's line
-    (see :func:`prov._warnings.external_stacklevel`), so the caller's
-    filters apply to each warning once, as on the explicit-format path.
-    """
-    if not caught:
-        return
-
-    # ``warn_explicit`` derives the module from the file path unless told
-    # otherwise, which would let a ``module=`` filter match a directory name
-    # (a checkout under ``.../prov/``). Recover the dotted name that
-    # ``warn`` would have recorded, falling back to the bare file name.
-    # ``__file__`` is read from the module dict, never by attribute access,
-    # because that would execute modules registered through a lazy loader.
-    module_names: dict[str, str] = {}
-    for name, module in list(sys.modules.items()):
-        if isinstance(module, types.ModuleType):
-            file = object.__getattribute__(module, "__dict__").get("__file__")
-            if file:
-                module_names[file] = name
-    for record in caught:
-        module_name = module_names.get(record.filename)
-        if module_name is None:
-            module_name = os.path.splitext(os.path.basename(record.filename))[0]
-        warnings.warn_explicit(
-            record.message,
-            record.category,
-            record.filename,
-            record.lineno,
-            module=module_name,
-            source=record.source,
-        )
-
-
 def _detect_and_parse(
     src: StreamOrPath | None,
     content: str | bytes | None,
@@ -115,6 +76,7 @@ def _detect_and_parse(
             document from ``src``/``content``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
+    from prov._warnings import collect_warnings, external_stacklevel
     from prov.model import ProvDocument
 
     stream, start_pos = _prepare_stream(src)
@@ -144,14 +106,12 @@ def _detect_and_parse(
                     # A seek that fails mid-loop degrades to no-rewind for
                     # the remaining attempts rather than aborting detection.
                     start_pos = None
-            # Each candidate's warnings are recorded, not shown: a candidate
-            # that fails or parses to an empty document is "not this format",
-            # so its warnings are noise, and under an ``error`` filter a
-            # warning raised inside the candidate would be swallowed below as
-            # a parse failure. "always" records a repeat from the same line,
-            # which the warning registry would otherwise hide on a later read.
-            with warnings.catch_warnings(record=True) as caught:
-                warnings.simplefilter("always")
+            # prov's warnings from each candidate are collected, not shown: a
+            # candidate that fails or parses to an empty document is "not this
+            # format", so its warnings are noise, and under an ``error`` filter
+            # a warning raised inside the candidate would be swallowed below as
+            # a parse failure.
+            with collect_warnings() as collected:
                 try:
                     # kwargs are format-specific (e.g. profile= for provn); a
                     # candidate that doesn't understand an option would
@@ -171,7 +131,9 @@ def _detect_and_parse(
                     # this format" -- move on to the next candidate.
                     continue
             if document.get_records() or document.has_bundles():
-                _reemit(caught)
+                stacklevel = external_stacklevel()
+                for message, category in collected:
+                    warnings.warn(message, category, stacklevel=stacklevel)
                 return document
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
@@ -216,15 +178,10 @@ def read(
     or not). Auto-detection swallows all deserializer errors; pass
     ``format`` explicitly to get the actual traceback from the matching
     deserializer.
-    Warnings from a candidate that fails or produces an empty document are
-    dropped; the chosen candidate's warnings are re-emitted with their own
-    category and location, so an ``error`` filter raises them from here.
-    Recording them uses :func:`warnings.catch_warnings`, which changes
-    process-global state, so concurrent auto-detecting calls in threads can
-    lose or misplace each other's warnings.
-    Each attempt also resets Python's record of warnings already shown, so a
-    warning that the default filter shows once per location can appear again
-    after an auto-detecting read.
+    ``prov``'s own warnings from a candidate that fails or produces an empty
+    document are dropped. Those of the chosen candidate are emitted at the
+    caller's line, so an ``error`` filter raises them from here. Warnings from
+    other libraries are emitted where they occur.
 
     A seekable stream ``source`` (e.g. an open file object, ``io.StringIO``,
     ``io.BytesIO``) is rewound to its starting position before each

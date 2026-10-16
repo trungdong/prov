@@ -18,11 +18,9 @@
   raised `ProvJSONLDException` for the missing `"@value"`. A node reference with a key
   other than `@id` now raises `ProvJSONLDException`; one that also had an `"@value"` was
   read as that value, and its `"@id"` was dropped
-- `prov.read()` without a format no longer shows the warnings of a format it tried and
-  set aside, and under an `error` filter it raises a warning from the format it chose
-  instead of moving on to the next format. Recording each attempt's warnings resets
-  Python's record of warnings already shown, so a warning shown once per location can
-  appear again after such a read
+- `prov.read()` without a format no longer shows `prov`'s warnings from a format it tried
+  and set aside, and under an `error` filter it raises a warning from the format it chose
+  instead of moving on to the next format
 
 ### Project
 

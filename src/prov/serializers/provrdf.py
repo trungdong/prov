@@ -5,7 +5,6 @@ import datetime
 import io
 import re
 import typing
-import warnings
 from collections import OrderedDict
 from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
@@ -17,7 +16,7 @@ from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
 from prov import Error
-from prov._warnings import external_stacklevel
+from prov._warnings import warn
 from prov.constants import (
     PROV,
     PROV_ALTERNATE,
@@ -589,12 +588,10 @@ class ProvRDFSerializer(Serializer):
         ) or self._resolve_iri_via_graph(pred_str, graph)
         if qname is None:
             qname = self._resolve_iri(pred_str, graph)
-            warnings.warn(
+            warn(
                 f"The predicate {pred_str!r} is under a namespace declared "
                 f"neither in the document nor in the graph; prefix "
-                f"{qname.namespace.prefix!r} was minted for it.",
-                pm.ProvWarning,
-                stacklevel=external_stacklevel(),
+                f"{qname.namespace.prefix!r} was minted for it."
             )
         return qname
 
@@ -1414,11 +1411,10 @@ class ProvRDFSerializer(Serializer):
         # Entries are created only when an attribute is gathered and are
         # removed as records consume them, so whatever remains is unconverted.
         if state.other_attributes:
-            warnings.warn(
+            warn(
                 "The following attributes were not converted: "
                 + str(state.other_attributes),
                 UserWarning,
-                stacklevel=2,
             )
 
     def _decode_type_triples(

@@ -1,13 +1,11 @@
 """Exercises prov.read(), the documented convenience entry point that wraps
 ProvDocument.deserialize() with lazy format auto-detection."""
 
-import importlib.util
 import io
 import json
 import locale
 import logging
 import pathlib
-import sys
 import warnings
 from typing import NoReturn
 from unittest import mock
@@ -15,8 +13,8 @@ from unittest import mock
 import pytest
 
 import prov
-from prov._warnings import future_rejection_message
-from prov.model import ProvDocument, ProvFutureRejectionWarning
+from prov._warnings import future_rejection_message, warn as prov_warn
+from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
 from prov.serializers import DoNotExist
 from prov.serializers.provjson import ProvJSONSerializer
 from prov.serializers.provn import ProvNSerializer
@@ -313,8 +311,6 @@ def test_read_auto_detect_forwards_kwargs_only_to_provn(document) -> None:
 
 
 def test_read_auto_detect_provn_with_kwargs_still_warns_and_skips() -> None:
-    from prov.model import ProvWarning
-
     text = (
         "document\n  prefix ex <http://example.org/>\n"
         "  foo(ex:e1)\n  entity(ex:e2)\nendDocument"
@@ -390,23 +386,31 @@ _provn_deserialize = ProvNSerializer.deserialize
 
 
 def _warns_then_fails(self, stream, **kwargs) -> NoReturn:
-    warnings.warn("from a failed candidate", ProvFutureRejectionWarning, stacklevel=1)
+    prov_warn("from a failed candidate", ProvFutureRejectionWarning)
     raise ValueError("not this format")
 
 
 def _warns_then_returns_empty(self, stream, **kwargs) -> ProvDocument:
-    warnings.warn("from an empty candidate", ProvFutureRejectionWarning, stacklevel=1)
+    prov_warn("from an empty candidate", ProvFutureRejectionWarning)
     return ProvDocument()
 
 
 def _provn_warns(self, stream, **kwargs) -> ProvDocument:
     document = _provn_deserialize(self, stream, **kwargs)
-    warnings.warn(_PROBE, ProvFutureRejectionWarning, stacklevel=1)
+    prov_warn(_PROBE, ProvFutureRejectionWarning)
     return document
 
 
 def _identifiers(document: ProvDocument) -> list[str]:
     return [str(record.identifier) for record in document.get_records()]
+
+
+def _prov_messages(caught) -> list[str]:
+    return [str(w.message) for w in caught if issubclass(w.category, ProvWarning)]
+
+
+def _warn_unrelated() -> None:
+    warnings.warn("unrelated", UserWarning, stacklevel=1)
 
 
 def test_read_auto_detect_drops_a_failed_candidates_warnings() -> None:
@@ -417,7 +421,7 @@ def test_read_auto_detect_drops_a_failed_candidates_warnings() -> None:
         warnings.simplefilter("always")
         document = prov.read(_PROVN)
     assert _identifiers(document) == ["ex:e1"]
-    assert [str(w.message) for w in caught] == []
+    assert _prov_messages(caught) == []
 
 
 def test_read_auto_detect_drops_an_empty_candidates_warnings() -> None:
@@ -428,54 +432,34 @@ def test_read_auto_detect_drops_an_empty_candidates_warnings() -> None:
         warnings.simplefilter("always")
         document = prov.read(_PROVN)
     assert _identifiers(document) == ["ex:e1"]
-    assert [str(w.message) for w in caught] == []
+    assert _prov_messages(caught) == []
 
 
-def test_read_auto_detect_reemits_the_winners_warnings_once() -> None:
+def test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller() -> None:
     with (
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
         warnings.catch_warnings(record=True) as caught,
     ):
         warnings.simplefilter("always")
         prov.read(_PROVN)
-    assert [(w.category, str(w.message)) for w in caught] == [
-        (ProvFutureRejectionWarning, _PROBE)
-    ]
-    assert caught[0].filename == __file__
+    future = [w for w in caught if issubclass(w.category, ProvFutureRejectionWarning)]
+    assert [str(w.message) for w in future] == [_PROBE]
+    assert future[0].filename == __file__
 
 
-def test_read_auto_detect_reemits_on_every_read() -> None:
+def test_read_auto_detect_keeps_the_once_per_location_record() -> None:
     with (
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
         warnings.catch_warnings(record=True) as caught,
     ):
         warnings.simplefilter("default")
-        prov.read(_PROVN)
-        prov.read(_PROVN)
-    assert [str(w.message) for w in caught] == [_PROBE, _PROBE]
-
-
-def test_read_auto_detect_warning_re_emit_does_not_import_lazy_modules(
-    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    ran: list[str] = []
-    path = tmp_path / "lazy_probe_module.py"
-    path.write_text("import builtins\nbuiltins._lazy_probe_ran.append('body')\n")
-    spec = importlib.util.spec_from_file_location("lazy_probe_module", path)
-    assert spec is not None and spec.loader is not None
-    spec.loader = importlib.util.LazyLoader(spec.loader)
-    module = importlib.util.module_from_spec(spec)
-    monkeypatch.setattr("builtins._lazy_probe_ran", ran, raising=False)
-    monkeypatch.setitem(sys.modules, "lazy_probe_module", module)
-    spec.loader.exec_module(module)
-    assert ran == []
-    with (
-        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
-        warnings.catch_warnings(record=True),
-    ):
-        warnings.simplefilter("always")
-        prov.read(_PROVN)
-    assert ran == []
+        _warn_unrelated()
+        for _ in range(2):
+            prov.read(_PROVN)
+        _warn_unrelated()
+    messages = [str(w.message) for w in caught]
+    assert messages.count("unrelated") == 1
+    assert messages.count(_PROBE) == 1
 
 
 def test_read_auto_detect_raises_the_winners_warning_under_an_error_filter() -> None:
@@ -500,18 +484,7 @@ def test_read_auto_detect_ignores_a_failed_candidates_warning_under_an_error_fil
     assert _identifiers(document) == ["ex:e1"]
 
 
-def _third_party_warns(filename: str):
-    def deserialize(self, stream, **kwargs) -> ProvDocument:
-        document = _provn_deserialize(self, stream, **kwargs)
-        warnings.warn_explicit(
-            "third party", DeprecationWarning, filename, 1, module="thirdparty.x"
-        )
-        return document
-
-    return deserialize
-
-
-def test_read_auto_detect_reemits_under_the_callers_module_name() -> None:
+def test_read_auto_detect_emits_under_the_callers_module_name() -> None:
     with (
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
         warnings.catch_warnings(),
@@ -521,22 +494,3 @@ def test_read_auto_detect_reemits_under_the_callers_module_name() -> None:
         )
         with pytest.raises(ProvFutureRejectionWarning, match="probe"):
             prov.read(_PROVN)
-
-
-@pytest.mark.parametrize(
-    "filename",
-    [
-        "/tmp/prov/site-packages/thirdparty/x.py",
-        "prov-env/site-packages/thirdparty/x.py",
-    ],
-)
-def test_read_auto_detect_does_not_match_a_third_party_warning_to_prov(
-    filename,
-) -> None:
-    with (
-        mock.patch.object(ProvNSerializer, "deserialize", _third_party_warns(filename)),
-        warnings.catch_warnings(),
-    ):
-        warnings.filterwarnings("error", category=DeprecationWarning, module="prov")
-        document = prov.read(_PROVN)
-    assert _identifiers(document) == ["ex:e1"]
