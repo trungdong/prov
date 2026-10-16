@@ -125,6 +125,10 @@ class ProvNParser:
         skipped: Messages for the statements the ``lenient`` profile
             skipped, in source order; empty for every other profile. Read
             after :meth:`parse` returns.
+        warnings: Messages for input that ``prov`` 3.3.0 rejects or reads
+            differently, in source order, each built by
+            :func:`prov._warnings.future_rejection_message`. Read after
+            :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
@@ -135,6 +139,7 @@ class ProvNParser:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
         self.profile = profile
         self.skipped: list[str] = []
+        self.warnings: list[str] = []
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0

@@ -6,7 +6,7 @@ import warnings
 from typing import Any
 
 from prov._warnings import external_stacklevel
-from prov.model import ProvDocument, ProvWarning
+from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import PROFILES, ProvNParser
@@ -72,13 +72,17 @@ class ProvNSerializer(Serializer):
         parser = ProvNParser(content, profile)
         document = parser.parse()
         # Warned here, not inside the parser, so a single stacklevel
-        # attributes every skip -- document-level or inside a bundle alike
-        # -- to the caller of ProvDocument.deserialize(). The level is
-        # computed dynamically (see external_stacklevel()) since the
+        # attributes every skip and message -- document-level or inside a
+        # bundle alike -- to the caller of ProvDocument.deserialize(). The
+        # level is computed dynamically (see external_stacklevel()) since the
         # caller may be ProvDocument.deserialize() directly or reach here
         # via prov.read(), each adding a different number of frames.
-        if parser.skipped:
+        if parser.skipped or parser.warnings:
             stacklevel = external_stacklevel()
             for message in parser.skipped:
                 warnings.warn(message, ProvWarning, stacklevel=stacklevel)
+            for message in parser.warnings:
+                warnings.warn(
+                    message, ProvFutureRejectionWarning, stacklevel=stacklevel
+                )
         return document
