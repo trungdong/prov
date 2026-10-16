@@ -24,6 +24,7 @@ and the explanation section covers the concepts behind it.
    howto/cli
    howto/networkx
    howto/typing
+   howto/prepare-for-3-3
 
 .. toctree::
    :maxdepth: 1

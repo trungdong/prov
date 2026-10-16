@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Warnings ahead of 3.3.0
+
+- New `prov.model.ProvFutureRejectionWarning`, a subclass of `ProvWarning`. `prov`
+  emits it for input that 3.3.0 rejects or reads differently, and still reads that
+  input as before. "Prepare for prov 3.3.0" in the how-to guides shows how to turn it
+  into an error to check a corpus
+
 ### Fixes
 
 - The PROV-JSONLD reader accepts a qualified name written as a node reference,
@@ -11,6 +18,9 @@
   raised `ProvJSONLDException` for the missing `"@value"`. A node reference with a key
   other than `@id` now raises `ProvJSONLDException`; one that also had an `"@value"` was
   read as that value, and its `"@id"` was dropped
+- `prov.read()` without a format no longer shows the warnings of a format it tried and
+  set aside, and under an `error` filter it raises a warning from the format it chose
+  instead of moving on to the next format
 
 ### Project
 
