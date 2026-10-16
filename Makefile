@@ -34,7 +34,7 @@ test:
 	uv run pytest
 
 test-all:
-	for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do \
+	for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do \
 		uv run --python $$py --extra rdf --extra xml --extra dot --extra graph pytest || exit 1; \
 	done
 

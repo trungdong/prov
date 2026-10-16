@@ -1,6 +1,6 @@
 # History
 
-## 3.2.3 (unreleased)
+## Unreleased
 
 ### Fixes
 
@@ -11,6 +11,10 @@
   raised `ProvJSONLDException` for the missing `"@value"`. A node reference with a key
   other than `@id` now raises `ProvJSONLDException`; one that also had an `"@value"` was
   read as that value, and its `"@id"` was dropped
+
+### Project
+
+- Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and PyPy 3.11. No code changes were needed (#542)
 
 ## 3.2.2 (2026-09-18)
 

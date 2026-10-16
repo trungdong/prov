@@ -27,7 +27,7 @@ four of the steps below change.
 
 ```bash
 # Full interpreter matrix, matching the CI matrix
-for py in 3.10 3.11 3.12 3.13 3.14 pypy3.11; do
+for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest -q || break
 done
 
@@ -38,7 +38,7 @@ uv run ruff format --check src/
 # prov must raise no DeprecationWarning, PendingDeprecationWarning or FutureWarning
 # of its own (#340, #441); the ini-style filter is deliberate, the -W form silently
 # ignores submodules
-uv run --python 3.14 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
+uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q -o $'filterwarnings=\nerror::DeprecationWarning:prov\nerror::PendingDeprecationWarning:prov\nerror::FutureWarning:prov'
 ```
 
 Compare the release candidate's speed with the previous release on your own machine; a
