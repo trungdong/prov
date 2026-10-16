@@ -13,7 +13,7 @@ from unittest import mock
 import pytest
 
 import prov
-from prov._warnings import future_rejection_message, warn as prov_warn
+from prov._warnings import collect_warnings, future_rejection_message, warn as prov_warn
 from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
 from prov.serializers import DoNotExist
 from prov.serializers.provjson import ProvJSONSerializer
@@ -494,3 +494,12 @@ def test_read_auto_detect_emits_under_the_callers_module_name() -> None:
         )
         with pytest.raises(ProvFutureRejectionWarning, match="probe"):
             prov.read(_PROVN)
+
+
+def test_read_auto_detect_inside_a_collection_adds_to_it() -> None:
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        collect_warnings() as collected,
+    ):
+        prov.read(_PROVN)
+    assert collected == [(_PROBE, ProvFutureRejectionWarning)]

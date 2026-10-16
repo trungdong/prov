@@ -1,9 +1,9 @@
-"""``ProvWarning``, its 3.3.0 subclass and the shared stacklevel helper.
+"""``ProvWarning``, its 3.3.0 subclass and the helpers that emit them.
 
 All live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
 can emit them without importing :mod:`prov.model` and creating a cycle;
 :mod:`prov.model` re-exports both warning classes under their public names.
-The module also holds the :func:`warn` helper every reader and writer uses.
+The module also holds the :func:`warn` helper every serializer uses.
 
 Attributing a warning to its caller with a fixed ``stacklevel`` only works
 when every call path between the ``warn()`` site and the external caller

@@ -76,7 +76,7 @@ def _detect_and_parse(
             document from ``src``/``content``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
-    from prov._warnings import collect_warnings, external_stacklevel
+    from prov._warnings import collect_warnings, warn
     from prov.model import ProvDocument
 
     stream, start_pos = _prepare_stream(src)
@@ -131,9 +131,8 @@ def _detect_and_parse(
                     # this format" -- move on to the next candidate.
                     continue
             if document.get_records() or document.has_bundles():
-                stacklevel = external_stacklevel()
                 for message, category in collected:
-                    warnings.warn(message, category, stacklevel=stacklevel)
+                    warn(message, category)
                 return document
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
@@ -178,6 +177,7 @@ def read(
     or not). Auto-detection swallows all deserializer errors; pass
     ``format`` explicitly to get the actual traceback from the matching
     deserializer.
+
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the
     caller's line, so an ``error`` filter raises them from here. Warnings from
