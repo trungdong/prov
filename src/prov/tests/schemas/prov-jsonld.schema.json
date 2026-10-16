@@ -9,6 +9,7 @@
 			"$id": "#/definitions/QualifiedName",
 			"type": "string",
 			"title": "The QualifiedName Schema",
+			"$comment": "A qualified name is expected to follow the PROV-N syntax of QUALIFIED_NAME (https://www.w3.org/TR/prov-n/#prod-QUALIFIED_NAME); this schema does not enforce it: the pattern only separates an optional prefix.",
 			"default": "",
 			"pattern": "(^[A-Za-z0-9_]+:)?(.*)$"
 		},
@@ -54,14 +55,37 @@
 			},
 			"additionalProperties": false
 		},
+		"node_reference": {
+			"type": "object",
+			"required": [ "@id" ],
+			"properties": {
+				"@id": { "$ref": "#/definitions/QualifiedName" }
+			},
+			"additionalProperties": false
+		},
 		"ArrayOfValues": {
 			"$id": "#/definitions/ArrayOfValues",
+			"description": "Values under a key the context coerces to @id (type, location, role): a bare string is a qualified name.",
 			"type": "array",
 			"items": {
 				"anyOf": [
 					{ "$ref": "#/definitions/QualifiedName" },
 					{ "$ref": "#/definitions/typed_value" },
-					{ "$ref": "#/definitions/lang_string" }
+					{ "$ref": "#/definitions/lang_string" },
+					{ "$ref": "#/definitions/node_reference" }
+				]
+			}
+		},
+		"ArrayOfStringValues": {
+			"$id": "#/definitions/ArrayOfStringValues",
+			"description": "Values under a key the context does not coerce to @id (extension properties, value): a bare string is a string; a qualified name is written {\"@id\": ...}.",
+			"type": "array",
+			"items": {
+				"anyOf": [
+					{ "type": "string" },
+					{ "$ref": "#/definitions/typed_value" },
+					{ "$ref": "#/definitions/lang_string" },
+					{ "$ref": "#/definitions/node_reference" }
 				]
 			}
 		},
@@ -120,15 +144,15 @@
 			"type": "object",
 			"required": [ "@type", "@id" ],
 			"properties": {
-				"@type":      { "pattern": "Entity" },
+				"@type":      { "pattern": "^Entity$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"type":       { "$ref": "#/definitions/ArrayOfValues"},
-				"value":      { "$ref": "#/definitions/ArrayOfValues"},
+				"value":      { "$ref": "#/definitions/ArrayOfStringValues"},
 				"location":   { "$ref": "#/definitions/ArrayOfValues" },
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -136,14 +160,14 @@
 			"type": "object",
 			"required": [ "@type", "@id" ],
 			"properties": {
-				"@type":      { "pattern": "Agent" },
+				"@type":      { "pattern": "^Agent$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"type":       { "$ref": "#/definitions/ArrayOfValues"},
 				"location":   { "$ref": "#/definitions/ArrayOfValues" },
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -151,7 +175,7 @@
 			"type": "object",
 			"required": [ "@type", "@id" ],
 			"properties": {
-				"@type":      { "pattern": "Activity" },
+				"@type":      { "pattern": "^Activity$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"startTime":  { "$ref": "#/definitions/DateTime" },
 				"endTime":    { "$ref": "#/definitions/DateTime" },
@@ -160,7 +184,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -168,7 +192,7 @@
 			"type": "object",
 			"required": [ "@type" ],
 			"properties": {
-				"@type":      { "pattern": "Usage" },
+				"@type":      { "pattern": "^Usage$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"entity":     { "$ref": "#/definitions/QualifiedName"},
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
@@ -179,7 +203,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -187,7 +211,7 @@
 			"type": "object",
 			"required": [ "@type" ],
 			"properties": {
-				"@type":      { "pattern": "Generation" },
+				"@type":      { "pattern": "^Generation$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"entity":     { "$ref": "#/definitions/QualifiedName"},
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
@@ -198,7 +222,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -206,7 +230,7 @@
 			"type": "object",
 			"required": [ "@type" ],
 			"properties": {
-				"@type":      { "pattern": "Invalidation" },
+				"@type":      { "pattern": "^Invalidation$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"entity":     { "$ref": "#/definitions/QualifiedName"},
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
@@ -217,7 +241,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -227,7 +251,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Start" },
+				"@type":      { "pattern": "^Start$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
 				"starter":    { "$ref": "#/definitions/QualifiedName"},
@@ -239,7 +263,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -249,7 +273,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "End" },
+				"@type":      { "pattern": "^End$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
 				"ender" :     { "$ref": "#/definitions/QualifiedName"},
@@ -261,7 +285,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -271,7 +295,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Attribution" },
+				"@type":      { "pattern": "^Attribution$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"entity":     { "$ref": "#/definitions/QualifiedName" },
 				"agent" :     { "$ref": "#/definitions/QualifiedName"},
@@ -279,7 +303,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -289,7 +313,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Association" },
+				"@type":      { "pattern": "^Association$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"activity":   { "$ref": "#/definitions/QualifiedName" },
 				"agent" :     { "$ref": "#/definitions/QualifiedName"},
@@ -299,7 +323,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -309,7 +333,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Delegation" },
+				"@type":      { "pattern": "^Delegation$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"delegate":   { "$ref": "#/definitions/QualifiedName" },
 				"responsible":{ "$ref": "#/definitions/QualifiedName" },
@@ -318,7 +342,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -328,7 +352,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":           { "pattern": "Derivation" },
+				"@type":           { "pattern": "^Derivation$" },
 				"@id":             { "$ref": "#/definitions/QualifiedName" },
 				"activity":        { "$ref": "#/definitions/QualifiedName" },
 				"generation":      { "$ref": "#/definitions/QualifiedName" },
@@ -339,7 +363,7 @@
 				"label":           { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -349,7 +373,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Alternate" },
+				"@type":      { "pattern": "^Alternate$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"alternate1": { "$ref": "#/definitions/QualifiedName" },
 				"alternate2": { "$ref": "#/definitions/QualifiedName" },
@@ -357,7 +381,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -367,7 +391,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":           { "pattern": "Specialization" },
+				"@type":           { "pattern": "^Specialization$" },
 				"@id":             { "$ref": "#/definitions/QualifiedName" },
 				"generalEntity":   { "$ref": "#/definitions/QualifiedName" },
 				"specificEntity":  { "$ref": "#/definitions/QualifiedName" },
@@ -375,7 +399,7 @@
 				"label":           { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -385,7 +409,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":       { "pattern": "Membership" },
+				"@type":       { "pattern": "^Membership$" },
 				"@id":         { "$ref": "#/definitions/QualifiedName" },
 				"entity":      { "$ref": "#/definitions/QualifiedName+" },
 				"collection":  { "$ref": "#/definitions/QualifiedName" },
@@ -393,7 +417,7 @@
 				"label":       { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -403,7 +427,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":       { "pattern": "Influence" },
+				"@type":       { "pattern": "^Influence$" },
 				"@id":         { "$ref": "#/definitions/QualifiedName" },
 				"influencer":  { "$ref": "#/definitions/QualifiedName" },
 				"influencee":  { "$ref": "#/definitions/QualifiedName" },
@@ -411,7 +435,7 @@
 				"label":       { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -421,7 +445,7 @@
 				"@type"
 			],
 			"properties": {
-				"@type":      { "pattern": "Communication" },
+				"@type":      { "pattern": "^Communication$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"informant":  { "$ref": "#/definitions/QualifiedName" },
 				"informed":   { "$ref": "#/definitions/QualifiedName" },
@@ -429,7 +453,7 @@
 				"label":      { "$ref": "#/definitions/ArrayOfLabelValues"}
 			},
 			"patternProperties": {
-				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfValues" }
+				"^[A-Za-z0-9_]+:(.*)$": { "$ref": "#/definitions/ArrayOfStringValues" }
 			},
 			"additionalProperties": false
 		},
@@ -439,7 +463,7 @@
 				"@type", "@id", "@graph", "@context"
 			],
 			"properties": {
-				"@type":      { "pattern": "Bundle" },
+				"@type":      { "pattern": "^Bundle$" },
 				"@id":        { "$ref": "#/definitions/QualifiedName" },
 				"@context":   { "$ref": "#/definitions/Context" },
 				"@graph":     {
@@ -455,7 +479,7 @@
 				"@context", "@graph"
 			],
 			"properties": {
-				"@type":       { "pattern": "Document" },
+				"@type":       { "pattern": "^Document$" },
 				"@context":    { "$ref": "#/definitions/Context" },
 				"@graph":      {
 					"type": "array",

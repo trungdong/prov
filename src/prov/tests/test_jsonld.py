@@ -8,7 +8,14 @@ import pytest
 
 import prov
 from prov.constants import PROV
-from prov.model import Literal, ProvDocument, ProvMembership, ProvWarning
+from prov.model import (
+    Identifier,
+    Literal,
+    Namespace,
+    ProvDocument,
+    ProvMembership,
+    ProvWarning,
+)
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
@@ -469,3 +476,97 @@ def test_interop_provtoolbox_mini_primer() -> None:
     doc = prov.read(FIXTURE_DIR / "provtoolbox-mini-primer.jsonld", format="jsonld")
     assert doc == _expected_provtoolbox_primer_document()
     assert _roundtrip(doc) == doc
+
+
+FOAF_URI = "http://xmlns.com/foaf/0.1/"
+
+
+def _arthur_document(past_project) -> ProvDocument:
+    """Build the document the ProvToolbox ``prov-jsonld-7`` fixtures decode to."""
+    doc = _new_doc()
+    doc.add_namespace("foaf", FOAF_URI)
+    doc.entity("ex:shed")
+    doc.agent("ex:arthur", (("foaf:pastProject", past_project),))
+    return doc
+
+
+def test_interop_provtoolbox_node_reference_is_a_qualified_name() -> None:
+    doc = prov.read(FIXTURE_DIR / "provtoolbox-node-reference.jsonld", format="jsonld")
+    assert doc == _arthur_document(Namespace("ex", EX_URI)["shed"])
+
+
+def test_interop_provtoolbox_bare_string_under_extension_key_is_a_string() -> None:
+    doc = prov.read(FIXTURE_DIR / "provtoolbox-string.jsonld", format="jsonld")
+    assert doc == _arthur_document("ex:shed")
+
+
+def test_interop_provtoolbox_string_with_colon() -> None:
+    doc = prov.read(
+        FIXTURE_DIR / "provtoolbox-string-with-colon.jsonld", format="jsonld"
+    )
+    expected = _new_doc()
+    expected.activity("ex:meeting", other_attributes={"ex:note": "Meeting at 10:30"})
+    assert doc == expected
+
+
+def _entity_with(key: str, values: list) -> str:
+    return json.dumps(
+        {
+            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "ex:e1", key: values}],
+        }
+    )
+
+
+@pytest.mark.parametrize("key", ["type", "prov:type", "value", "ex:ref"])
+def test_deserialize_node_reference_under_any_key(key) -> None:
+    doc = ProvDocument.deserialize(
+        content=_entity_with(key, [{"@id": "ex:thing"}]), format="jsonld"
+    )
+    (entity,) = doc.get_records()
+    (value,) = [v for _, v in entity.extra_attributes]
+    assert value == doc.valid_qualified_name("ex:thing")
+
+
+def test_deserialize_node_reference_with_absolute_iri() -> None:
+    doc = ProvDocument.deserialize(
+        content=_entity_with("ex:ref", [{"@id": EX_URI + "thing"}]), format="jsonld"
+    )
+    (entity,) = doc.get_records()
+    (value,) = [v for _, v in entity.extra_attributes]
+    assert value == doc.valid_qualified_name("ex:thing")
+
+
+@pytest.mark.parametrize("iri", ["http://other.org/x", "nope:thing"])
+def test_deserialize_node_reference_outside_every_namespace_is_an_identifier(
+    iri,
+) -> None:
+    doc = ProvDocument.deserialize(
+        content=_entity_with("ex:ref", [{"@id": iri}]), format="jsonld"
+    )
+    (entity,) = doc.get_records()
+    (value,) = [v for _, v in entity.extra_attributes]
+    assert value == Identifier(iri)
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [{"@value": "x"}, {"@type": "xsd:string"}, {"@language": "en"}, {"ex:p": "x"}],
+)
+def test_deserialize_node_reference_with_other_keys_raises(extra) -> None:
+    payload = _entity_with("ex:ref", [{"@id": "ex:thing", **extra}])
+    with pytest.raises(ProvJSONLDException, match="@id"):
+        ProvDocument.deserialize(content=payload, format="jsonld")
+
+
+@pytest.mark.parametrize("node_id", [42, ""])
+def test_deserialize_node_reference_with_bad_id_raises(node_id) -> None:
+    payload = _entity_with("ex:ref", [{"@id": node_id}])
+    with pytest.raises(ProvJSONLDException, match="@id"):
+        ProvDocument.deserialize(content=payload, format="jsonld")
+
+
+def test_deserialize_value_object_without_value_raises() -> None:
+    payload = _entity_with("ex:ref", [{"@type": "xsd:string"}])
+    with pytest.raises(ProvJSONLDException, match="@value"):
+        ProvDocument.deserialize(content=payload, format="jsonld")

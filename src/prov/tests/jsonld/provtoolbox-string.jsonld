@@ -1,0 +1,10 @@
+{
+  "@context": [
+    { "ex": "http://example.org/", "foaf": "http://xmlns.com/foaf/0.1/" },
+    "https://openprovenance.org/prov-jsonld/context.jsonld"
+  ],
+  "@graph": [
+    { "@type": "Entity", "@id": "ex:shed" },
+    { "@type": "Agent", "@id": "ex:arthur", "foaf:pastProject": [ "ex:shed" ] }
+  ]
+}

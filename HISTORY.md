@@ -1,5 +1,17 @@
 # History
 
+## 3.2.3 (unreleased)
+
+### Fixes
+
+- The PROV-JSONLD reader accepts a qualified name written as a node reference,
+  `{"@id": "ex:shed"}`, under any attribute (#545). The 2026-10-14 revision of the
+  PROV-JSONLD schema adds this form, and ProvToolbox 2.2.5 writes it for a qualified name
+  under any attribute other than `prov:type`, `prov:location` and `prov:role`. The reader
+  raised `ProvJSONLDException` for the missing `"@value"`. A node reference with a key
+  other than `@id` now raises `ProvJSONLDException`; one that also had an `"@value"` was
+  read as that value, and its `"@id"` was dropped
+
 ## 3.2.2 (2026-09-18)
 
 3.2.2 is a bug-fix release. No dependency or Python-floor changes; one additive type
