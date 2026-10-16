@@ -191,6 +191,15 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   also carries an `@id`, the resulting records are left unidentified with a `ProvWarning`,
   because records sharing one identifier cannot be unified. If the array has exactly one
   member, the `@id` is kept.
+- Attribute values follow the 2026-10-14 revision of the PROV-JSONLD schema
+  ([openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7)). A node
+  reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
+  string is a qualified name under `type`, `location` and `role`, which the context coerces
+  to `@id`, and a string under any other attribute. A node reference whose IRI no declared
+  namespace compacts becomes an `Identifier`. A node reference with a key other than `@id`,
+  or with an empty `@id`, raises `ProvJSONLDException`. An `xsd:QName` or `prov:QUALIFIED_NAME` value object,
+  the form `prov` writes for a qualified name under any other attribute, is also read as a
+  qualified name, although a JSON-LD processor reads it as a typed literal.
 
 ### PROV-O
 

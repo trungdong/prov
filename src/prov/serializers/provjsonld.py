@@ -431,35 +431,67 @@ def _strip_prov_prefix(term: str) -> str:
     return term[5:] if term.startswith("prov:") else term
 
 
+def _decode_node_reference(value: dict[str, Any], term: str) -> str:
+    """Return the ``"@id"`` text of a ``{"@id": ...}`` node reference.
+
+    Schema 2026-10-14 ``node_reference`` (openprov/prov-jsonld#7): an object
+    whose only key is ``"@id"``, holding a qualified name.
+
+    Args:
+        value: The node reference.
+        term: The JSON-LD term ``value`` was read from, used in the exception
+            message.
+
+    Returns:
+        The ``"@id"`` string, still unresolved.
+
+    Raises:
+        ProvJSONLDException: If ``value`` has keys other than ``"@id"`` or
+            its ``"@id"`` is not a non-empty string.
+    """
+    text = value["@id"]
+    if len(value) != 1 or not isinstance(text, str) or not text:
+        raise ProvJSONLDException(
+            f"A node reference for {term!r} must be an object whose only key is "
+            f'"@id", holding a non-empty string; found {value!r}'
+        )
+    return text
+
+
 def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
     """Decode one member of a non-formal attribute's value array.
 
     Mirrors :func:`~prov.serializers.provjson.decode_json_representation`'s
-    #168/#238 behaviour: an ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value
-    (or an ``@id``-typed term's bare string) whose prefix has no in-scope
+    #168/#238 behaviour: a qualified-name value whose prefix has no in-scope
     namespace is kept as an opaque :class:`~prov.model.Literal` rather than
-    dropped.
+    dropped. A node reference is the exception: a JSON-LD processor reads
+    its ``"@id"`` as an IRI, so one no namespace compacts is kept as an
+    :class:`~prov.identifier.Identifier`.
 
     Args:
-        value: The raw JSON-LD value: a bare string (for
-            :data:`ID_TYPED_TERMS`) or a ``{"@value": ..., ...}`` value
-            object.
+        value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
+            reference or a ``{"@value": ..., ...}`` value object.
         bundle: Bundle used to resolve any qualified-name value.
         term: The unprefixed JSON-LD term ``value`` was read from (e.g.
             ``"type"``, ``"ex:price"``), used to decide how a bare string is
             interpreted.
 
     Returns:
-        The resolved :class:`~prov.identifier.QualifiedName` for an
-        ``@id``-typed term or an ``xsd:QName``/``prov:QUALIFIED_NAME``-typed
-        value object, an :class:`~prov.identifier.Identifier` for an
-        ``xsd:anyURI``-typed value object, a language-tagged or datatyped
-        :class:`~prov.model.Literal`, or the plain decoded text.
+        The resolved :class:`~prov.identifier.QualifiedName` for a bare
+        string under an ``@id``-typed term (see :data:`ID_TYPED_TERMS`), a
+        node reference under any term, or an
+        ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value object; an
+        :class:`~prov.identifier.Identifier` for an ``xsd:anyURI``-typed
+        value object or a node reference no namespace compacts; a
+        language-tagged or datatyped
+        :class:`~prov.model.Literal`; or the plain decoded text, which is
+        what a bare string under any other term is.
 
     Raises:
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
-            object, or if a value object is missing its required
-            ``"@value"`` key.
+            object, if a node reference has keys other than ``"@id"`` or an
+            empty ``"@id"``, or
+            if a value object is missing its required ``"@value"`` key.
     """
     if isinstance(value, str):
         if term in ID_TYPED_TERMS:
@@ -467,6 +499,10 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
             return resolved if resolved is not None else Literal(value, XSD_QNAME)
         return value
     value = _expect_object(value, f"A value of {term!r}")
+    if "@id" in value:
+        text = _decode_node_reference(value, term)
+        resolved = bundle.valid_qualified_name(text)
+        return resolved if resolved is not None else Identifier(text)
     try:
         text = value["@value"]
     except KeyError as exc:

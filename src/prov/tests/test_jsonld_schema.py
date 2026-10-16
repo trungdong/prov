@@ -38,6 +38,7 @@ from .conftest import contains_mention  # noqa: E402
 EX_URI = "http://example.org/"
 
 SCHEMA_PATH = Path(__file__).parent / "schemas" / "prov-jsonld.schema.json"
+FIXTURE_DIR = Path(__file__).parent / "jsonld"
 
 #: The canonical context URL substituted for an embedded context object
 #: before schema validation (see module docstring).
@@ -120,5 +121,28 @@ def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
     document.set_default_namespace(EX_URI)
     document.entity("e1", {"mine": "x", "type": "y"})
     container = json.loads(document.serialize(format="jsonld"))
+    errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
+    assert not errors, "\n".join(str(e) for e in errors)
+
+
+@pytest.mark.parametrize(
+    "fixture",
+    [
+        "submission-example-3.jsonld",
+        "provtoolbox-node-reference.jsonld",
+        "provtoolbox-string.jsonld",
+        "provtoolbox-string-with-colon.jsonld",
+    ],
+)
+def test_interop_fixtures_validate_against_prov_jsonld_schema(
+    prov_jsonld_validator, fixture
+) -> None:
+    """The vendored fixtures in the submission's dialect satisfy the vendored schema.
+
+    ``provtoolbox-mini-primer.jsonld`` is left out: it predates the
+    submission and spells statement types ``"prov:Entity"``, which the
+    schema's anchored ``@type`` patterns reject.
+    """
+    container = json.loads((FIXTURE_DIR / fixture).read_text())
     errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
     assert not errors, "\n".join(str(e) for e in errors)
