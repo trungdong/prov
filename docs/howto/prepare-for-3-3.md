@@ -12,10 +12,10 @@ documents and code.
 A filter on the subclass stops at the first affected input and leaves the other
 `ProvWarning`s alone, such as the statements the `lenient` PROV-N profile skips.
 
-From the command line:
+When running pytest:
 
 ```bash
-python -W error::prov.model.ProvFutureRejectionWarning your_script.py
+pytest -W error::prov.model.ProvFutureRejectionWarning
 ```
 
 In a pytest configuration:
@@ -34,6 +34,8 @@ from prov.model import ProvFutureRejectionWarning
 
 warnings.simplefilter("error", ProvFutureRejectionWarning)
 ```
+
+Python's own `-W` option and the `PYTHONWARNINGS` environment variable cannot name this class, because Python reads them before it can import `prov`. Use pytest's option, a pytest configuration or a filter in code instead.
 
 `prov` 3.3.0 keeps the class, so these filters keep working after the upgrade.
 

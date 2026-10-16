@@ -24,8 +24,8 @@ class ProvFutureRejectionWarning(ProvWarning):
     """Input that ``prov`` 3.2.x reads but 3.3.0 rejects or reads differently.
 
     ``prov`` still reads the input as before. Turn this class into an error,
-    for example with ``-W error::prov.model.ProvFutureRejectionWarning``, to
-    find every such input without failing on any other :class:`ProvWarning`.
+    for example with ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
+    to find every such input without failing on any other :class:`ProvWarning`.
     """
 
 
@@ -38,7 +38,7 @@ def future_rejection_message(detail: str, outcome: str = "reject this") -> str:
         outcome: What 3.3.0 does instead, completing ``"prov 3.3.0 will"``.
 
     Returns:
-        For example ``"line 3, column 1: ... . prov 3.3.0 will reject this"``.
+        For example ``"<detail>. prov 3.3.0 will reject this"``.
     """
     return f"{detail}. prov 3.3.0 will {outcome}"
 
