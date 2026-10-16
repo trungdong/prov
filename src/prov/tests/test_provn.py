@@ -4,6 +4,7 @@ Profile behaviour (default, lenient) is in test_provn_profiles.py."""
 
 import datetime
 import io
+import warnings
 
 import pytest
 
@@ -721,3 +722,49 @@ def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:
     d.add_namespace("bad", "http://example.org/a b/")
     with pytest.raises(ProvException, match="bad"):
         d.get_provn()
+
+
+XSI_LINE = f"prefix xsi <{XSI.uri}>"
+
+
+def _xsi_document():
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    return doc
+
+
+def _reads_back_without_future_warnings(text):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        return ProvDocument.deserialize(content=text, format="provn")
+
+
+def test_writer_declares_xsi_when_a_record_uses_it() -> None:
+    doc = _xsi_document()
+    doc.entity("ex:e", {XSI["type"]: "ex:T"})
+    text = doc.get_provn()
+    assert XSI_LINE in text
+    assert _reads_back_without_future_warnings(text) == doc
+
+
+def test_writer_declares_xsi_for_an_xsi_datatype() -> None:
+    doc = _xsi_document()
+    doc.entity("ex:e", {"ex:p": Literal("v", XSI["t"])})
+    assert XSI_LINE in doc.get_provn()
+
+
+def test_writer_omits_xsi_when_no_record_uses_it() -> None:
+    doc = _xsi_document()
+    doc.entity("ex:e")
+    assert "prefix xsi" not in doc.get_provn()
+
+
+def test_writer_declares_xsi_in_the_bundle_that_uses_it() -> None:
+    doc = _xsi_document()
+    doc.entity("ex:e")
+    bundle = doc.bundle("ex:b")
+    bundle.entity("ex:f", {XSI["type"]: "ex:T"})
+    text = doc.get_provn()
+    assert text.count(XSI_LINE) == 1
+    assert text.index(XSI_LINE) > text.index("bundle ex:b")
+    assert _reads_back_without_future_warnings(text) == doc

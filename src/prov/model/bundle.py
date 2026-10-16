@@ -67,6 +67,7 @@ from prov.constants import (
     PROV_TYPE,
     PROV_USAGE,
     PROV_VALUE,
+    XSI,
 )
 from prov.identifier import Namespace, QualifiedName, _provn_escape_local_and_warn
 from prov.model.namespaces import NamespaceManager
@@ -79,6 +80,7 @@ from prov.model.records import (
     EntityRef,
     GenerationRef,
     InfluencerRef,
+    Literal,
     NameValuePair,
     NSCollection,
     OptionalID,
@@ -560,6 +562,22 @@ class ProvBundle:
         )
         return f"{prefix}:{localpart}", extra_prefix
 
+    def _uses_xsi(self) -> bool:
+        """Whether a record in this bundle, not its sub-bundles, names an ``xsi:`` term."""
+
+        def in_xsi(value: object) -> bool:
+            return isinstance(value, QualifiedName) and value.namespace.uri == XSI.uri
+
+        for record in self._records:
+            if in_xsi(record.identifier):
+                return True
+            for name, value in record.attributes:
+                if in_xsi(name) or in_xsi(value):
+                    return True
+                if isinstance(value, Literal) and in_xsi(value.datatype):
+                    return True
+        return False
+
     def _provn_namespace_lines(
         self,
         default_namespace: Namespace | None,
@@ -607,6 +625,9 @@ class ProvBundle:
         # otherwise, start the bundle
         default_namespace = self._namespaces.get_default_namespace()
         registered_namespaces = list(self._namespaces.get_registered_namespaces())
+        # PROV-N predeclares only prov and xsd.
+        if self._uses_xsi() and all(ns.prefix != "xsi" for ns in registered_namespaces):
+            registered_namespaces.append(XSI)
         bundle_id, extra_prefix = self._provn_header_id(
             default_namespace, registered_namespaces
         )
