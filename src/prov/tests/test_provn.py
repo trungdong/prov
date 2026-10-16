@@ -449,6 +449,39 @@ def test_undeclared_xsi_warning_reaches_the_caller() -> None:
         )
 
 
+def test_xsi_qualified_name_literal_resolves_against_the_declared_scope() -> None:
+    doc, messages = parse_with_warnings(
+        OTHER_XSI + 'entity(ex:e, [ex:p="xsi:v" %% prov:QUALIFIED_NAME])\nendDocument'
+    )
+    ((_, value),) = only_record(doc).extra_attributes
+    assert value.uri == "http://other/v"
+    assert messages == []
+
+
+def test_undeclared_xsi_qualified_name_literal_warns_and_keeps_the_builtin() -> None:
+    doc, messages = parse_with_warnings(
+        "document\nprefix ex <http://example.org/>\n"
+        'entity(ex:e, [ex:p="xsi:v" %% prov:QUALIFIED_NAME])\nendDocument'
+    )
+    ((_, value),) = only_record(doc).extra_attributes
+    assert value.uri == XSI.uri + "v"
+    assert len(messages) == 1
+    assert messages[0].endswith(
+        f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>."
+        " prov 3.3.0 will reject this"
+    )
+
+
+def test_xsi_bundle_identifier_resolves_against_the_declared_scope() -> None:
+    doc, messages = parse_with_warnings(
+        "document\nprefix ex <http://example.org/>\nprefix xsi <http://other/>\n"
+        "bundle xsi:b\nentity(ex:e)\nendBundle\nendDocument"
+    )
+    (bundle,) = doc.bundles
+    assert bundle.identifier.uri == "http://other/b"
+    assert messages == []
+
+
 def test_xsi_declared_at_its_standard_iri_does_not_warn() -> None:
     _, messages = parse_with_warnings(
         f"document\nprefix ex <http://example.org/>\nprefix xsi <{XSI.uri}>\n"

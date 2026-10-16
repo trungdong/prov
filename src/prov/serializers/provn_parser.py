@@ -332,16 +332,17 @@ class ProvNParser:
             )
         )
 
-    def _xsi_name(self, token: Token) -> QualifiedName | None:
+    def _xsi_name(self, token: Token, local: str | None = None) -> QualifiedName | None:
         """Resolve an ``xsi:`` name against this scope's own declaration.
 
-        Returns ``None``, after recording a 3.3.0 message, when no
-        declaration is in scope, so the caller falls back to the built-in
-        namespace.
+        The local part comes from ``token`` unless ``local`` is given, as
+        for a name held in a string literal. Returns ``None``, after
+        recording a 3.3.0 message at ``token``, when no declaration is in
+        scope, so the caller falls back to the built-in namespace.
         """
         declared = self._scope.get("xsi")
         if declared is not None:
-            return declared[token.value[1]]
+            return declared[token.value[1] if local is None else local]
         self._future(f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>", token)
         return None
 
@@ -706,6 +707,11 @@ class ProvNParser:
                     TokenKind.NAME, "a datatype"
                 )
                 datatype = self._resolve(datatype_token, bundle)
+                if datatype == PROV_QUALIFIEDNAME and token.value.startswith("xsi:"):
+                    # The model would look the text up in its own prefix map.
+                    declared = self._xsi_name(token, token.value.partition(":")[2])
+                    if declared is not None:
+                        return declared
                 return Literal(token.value, datatype)
             return token.value
         if token.kind is TokenKind.INT:
