@@ -1,11 +1,13 @@
 """Exercises prov.read(), the documented convenience entry point that wraps
 ProvDocument.deserialize() with lazy format auto-detection."""
 
+import importlib.util
 import io
 import json
 import locale
 import logging
 import pathlib
+import sys
 import warnings
 from typing import NoReturn
 from unittest import mock
@@ -451,6 +453,29 @@ def test_read_auto_detect_reemits_on_every_read() -> None:
         prov.read(_PROVN)
         prov.read(_PROVN)
     assert [str(w.message) for w in caught] == [_PROBE, _PROBE]
+
+
+def test_read_auto_detect_warning_re_emit_does_not_import_lazy_modules(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ran: list[str] = []
+    path = tmp_path / "lazy_probe_module.py"
+    path.write_text("import builtins\nbuiltins._lazy_probe_ran.append('body')\n")
+    spec = importlib.util.spec_from_file_location("lazy_probe_module", path)
+    assert spec is not None and spec.loader is not None
+    spec.loader = importlib.util.LazyLoader(spec.loader)
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setattr("builtins._lazy_probe_ran", ran, raising=False)
+    monkeypatch.setitem(sys.modules, "lazy_probe_module", module)
+    spec.loader.exec_module(module)
+    assert ran == []
+    with (
+        mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
+        warnings.catch_warnings(record=True),
+    ):
+        warnings.simplefilter("always")
+        prov.read(_PROVN)
+    assert ran == []
 
 
 def test_read_auto_detect_raises_the_winners_warning_under_an_error_filter() -> None:

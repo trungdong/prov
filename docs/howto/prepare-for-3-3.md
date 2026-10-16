@@ -35,7 +35,9 @@ from prov.model import ProvFutureRejectionWarning
 warnings.simplefilter("error", ProvFutureRejectionWarning)
 ```
 
-Python's own `-W` option and the `PYTHONWARNINGS` environment variable cannot name this class, because Python reads them before it can import `prov`. Use pytest's option, a pytest configuration or a filter in code instead.
+Python's own `-W` option and the `PYTHONWARNINGS` environment variable cannot
+name this class, because Python reads them before it can import `prov`. Use
+pytest's option, a pytest configuration or a filter in code instead.
 
 `prov` 3.3.0 keeps the class, so these filters keep working after the upgrade.
 

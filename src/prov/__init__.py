@@ -3,6 +3,7 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 import logging
 import os
 import sys
+import types
 import warnings
 from typing import IO, TYPE_CHECKING, Any, cast
 
@@ -79,11 +80,14 @@ def _reemit(caught: list[warnings.WarningMessage]) -> None:
     # otherwise, which would let a ``module=`` filter match a directory name
     # (a checkout under ``.../prov/``). Recover the dotted name that
     # ``warn`` would have recorded, falling back to the bare file name.
-    module_names = {
-        module.__file__: name
-        for name, module in list(sys.modules.items())
-        if getattr(module, "__file__", None)
-    }
+    # ``__file__`` is read from the module dict, never by attribute access,
+    # because that would execute modules registered through a lazy loader.
+    module_names: dict[str, str] = {}
+    for name, module in list(sys.modules.items()):
+        if isinstance(module, types.ModuleType):
+            file = object.__getattribute__(module, "__dict__").get("__file__")
+            if file:
+                module_names[file] = name
     for record in caught:
         module_name = module_names.get(record.filename)
         if module_name is None:
@@ -162,7 +166,7 @@ def _detect_and_parse(
                     document = ProvDocument.deserialize(
                         source=src, content=content, format=format, **candidate_kwargs
                     )
-                except Exception:
+                except Exception:  # nosec B112 - nosemgrep
                     # Any failure from a candidate deserializer means "not
                     # this format" -- move on to the next candidate.
                     continue
@@ -218,6 +222,9 @@ def read(
     Recording them uses :func:`warnings.catch_warnings`, which changes
     process-global state, so concurrent auto-detecting calls in threads can
     lose or misplace each other's warnings.
+    Each attempt also resets Python's record of warnings already shown, so a
+    warning that the default filter shows once per location can appear again
+    after an auto-detecting read.
 
     A seekable stream ``source`` (e.g. an open file object, ``io.StringIO``,
     ``io.BytesIO``) is rewound to its starting position before each
