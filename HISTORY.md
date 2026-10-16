@@ -10,7 +10,7 @@
   into an error to check a corpus
 - A second `default` declaration in one PROV-N declaration block (#508). `prov` still
   uses the last one
-- A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <...>`
+- A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <…>`
   (#511). No qualified name can use such a prefix
 - An `xsi:` name in PROV-N with no `prefix xsi` declaration in scope (#510). Files written
   by `prov` 3.2.2 or earlier lack the declaration; reading and writing them again with
@@ -31,12 +31,13 @@
   and set aside, and under an `error` filter it raises a warning from the format it chose
   instead of moving on to the next format
 - The PROV-N reader treats `xsi` as an ordinary prefix, as PROV-N reserves only `prov`
-  and `xsd` (#510). `prefix xsi <http://example.org/>` raised "prefix 'xsi' is reserved",
-  and an `xsi:` name now resolves against the document's own declaration. The PROV-N
+  and `xsd` (#510). `prefix xsi <http://example.org/>` raised "prefix 'xsi' is reserved".
+  An `xsi:` name now resolves against the document's own declaration. The PROV-N
   writer declares `prefix xsi` whenever it writes an `xsi:` name
 - An empty namespace IRI in PROV-N, `prefix z <>` or `default <>`, raises
   `ProvNSyntaxError` at the IRI under every profile (#512). It raised a bare `ValueError`
-  with no position
+  with no position. Code that catches `ValueError` around such a document no longer
+  catches it, since `ProvNSyntaxError` is not a `ValueError` subclass
 
 ### Project
 
