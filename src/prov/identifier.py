@@ -1,10 +1,9 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-import warnings
 from typing import Any, Final
 
-from prov._warnings import ProvWarning, external_stacklevel
+from prov._warnings import warn
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -176,12 +175,10 @@ def _provn_escape_local_and_warn(localpart: str, uri: str) -> str:
     """
     escaped, encoded = _provn_escape_local(localpart)
     if encoded:
-        warnings.warn(
+        warn(
             f"the local part {localpart!r} of <{uri}> contains a character PROV-N "
             "cannot write; it is percent-encoded, which changes the IRI a PROV-N "
-            "reader recovers",
-            ProvWarning,
-            stacklevel=external_stacklevel(),
+            "reader recovers"
         )
     return escaped
 

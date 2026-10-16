@@ -76,6 +76,7 @@ def _detect_and_parse(
             document from ``src``/``content``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
+    from prov._warnings import collect_warnings, warn
     from prov.model import ProvDocument
 
     stream, start_pos = _prepare_stream(src)
@@ -105,24 +106,33 @@ def _detect_and_parse(
                     # A seek that fails mid-loop degrades to no-rewind for
                     # the remaining attempts rather than aborting detection.
                     start_pos = None
-            try:
-                # kwargs are format-specific (e.g. profile= for provn); a
-                # candidate that doesn't understand an option would otherwise
-                # raise TypeError, indistinguishable here from "not this
-                # format", so each candidate only gets the options it declares.
-                candidate_kwargs = {
-                    key: value
-                    for key, value in kwargs.items()
-                    if key in serializers[format].deserialize_options
-                }
-                document = ProvDocument.deserialize(
-                    source=src, content=content, format=format, **candidate_kwargs
-                )
-            except Exception:
-                # Any failure from a candidate deserializer means "not this
-                # format" -- move on to the next candidate.
-                continue
+            # prov's warnings from each candidate are collected, not shown: a
+            # candidate that fails or parses to an empty document is "not this
+            # format", so its warnings are noise, and under an ``error`` filter
+            # a warning raised inside the candidate would be swallowed below as
+            # a parse failure.
+            with collect_warnings() as collected:
+                try:
+                    # kwargs are format-specific (e.g. profile= for provn); a
+                    # candidate that doesn't understand an option would
+                    # otherwise raise TypeError, indistinguishable here from
+                    # "not this format", so each candidate only gets the
+                    # options it declares.
+                    candidate_kwargs = {
+                        key: value
+                        for key, value in kwargs.items()
+                        if key in serializers[format].deserialize_options
+                    }
+                    document = ProvDocument.deserialize(
+                        source=src, content=content, format=format, **candidate_kwargs
+                    )
+                except Exception:  # nosec B112 - nosemgrep
+                    # Any failure from a candidate deserializer means "not
+                    # this format" -- move on to the next candidate.
+                    continue
             if document.get_records() or document.has_bundles():
+                for message, category in collected:
+                    warn(message, category)
                 return document
             # A parse producing a completely empty document (e.g. rdflib
             # accepts empty input, or the xml deserializer walking a
@@ -167,6 +177,11 @@ def read(
     or not). Auto-detection swallows all deserializer errors; pass
     ``format`` explicitly to get the actual traceback from the matching
     deserializer.
+
+    ``prov``'s own warnings from a candidate that fails or produces an empty
+    document are dropped. Those of the chosen candidate are emitted at the
+    caller's line, so an ``error`` filter raises them from here. Warnings from
+    other libraries are emitted where they occur.
 
     A seekable stream ``source`` (e.g. an open file object, ``io.StringIO``,
     ``io.BytesIO``) is rewound to its starting position before each

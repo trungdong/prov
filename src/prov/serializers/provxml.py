@@ -4,14 +4,13 @@ import datetime
 import io
 import logging
 import re
-import warnings
 from typing import Any
 
 from lxml import etree
 
 import prov.identifier
 import prov.model
-from prov._warnings import external_stacklevel
+from prov._warnings import warn
 from prov.constants import *
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
@@ -298,11 +297,10 @@ class ProvXMLSerializer(Serializer):
                 )
             # Ignore the <prov:other> element storing non-PROV information.
             if qname.localname == "other":
-                warnings.warn(
+                warn(
                     "Document contains non-PROV information in "
                     "<prov:other>. It will be ignored in this package.",
                     UserWarning,
-                    stacklevel=external_stacklevel(),
                 )
                 continue
 
@@ -625,12 +623,11 @@ def _extract_attributes(
                     subel.text if subel.text is not None else "", langtag=value_str
                 )
             else:
-                warnings.warn(
+                warn(
                     f"The element '{_t}' contains an attribute {key!s}='{value!s}' "
                     "which is not representable in the prov module's "
                     "internal data model and will thus be ignored.",
                     UserWarning,
-                    stacklevel=external_stacklevel(),
                 )
 
         if not subel.attrib:
@@ -682,13 +679,11 @@ def _nested_reference(
     ref = _ns_prov("ref")
     children = list(subel)
     if len(children) == 1 and ref in children[0].attrib:
-        warnings.warn(
+        warn(
             f"The element '{attr}' carries its prov:ref on a nested "
             f"<{etree.QName(children[0]).localname}> child rather than on "
             "itself; the nested reference is used. The shape is not "
-            "PROV-XML schema-valid (ProvToolbox writes it for hadMember).",
-            prov.model.ProvWarning,
-            stacklevel=external_stacklevel(),
+            "PROV-XML schema-valid (ProvToolbox writes it for hadMember)."
         )
         return xml_qname_to_QualifiedName(children[0], str(children[0].attrib[ref]))
     if subel.text is not None and subel.text.strip():

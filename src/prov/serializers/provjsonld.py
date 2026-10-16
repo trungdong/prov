@@ -8,13 +8,12 @@ compacted shape only, one JSON object per PROV-DM statement in ``@graph``.
 import datetime
 import io
 import json
-import warnings
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any
 
 from prov import Error
-from prov._warnings import external_stacklevel
+from prov._warnings import warn
 from prov.constants import (
     PROV_ATTR_ENTITY,
     PROV_ATTRIBUTE_LITERALS,
@@ -41,7 +40,6 @@ from prov.model import (
     ProvDocument,
     ProvElement,
     ProvRecord,
-    ProvWarning,
     QualifiedNameCandidate,
     canonical_xsd_datatype,
     first,
@@ -697,11 +695,9 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         )
     member_id = rec_id
     if rec_id is not None and len(members) > 1:
-        warnings.warn(
+        warn(
             f"Membership {rec_id!r} lists {len(members)} members; PROV-DM membership "
-            "is binary, so the members are decoded as unidentified hadMember records",
-            ProvWarning,
-            stacklevel=external_stacklevel(),
+            "is binary, so the members are decoded as unidentified hadMember records"
         )
         member_id = None
     for member in members:
