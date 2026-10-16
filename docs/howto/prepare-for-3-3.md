@@ -47,3 +47,16 @@ Each message ends with what 3.3.0 does instead, such as
 "prov 3.3.0 will reject this". A message from a reader starts with the position
 of the input: the line and column in PROV-N, or the record identifier and
 attribute name in PROV-JSON.
+
+## PROV-N declarations
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `'default' is declared twice in this scope` | `default <http://a/>` followed by `default <http://b/>` | One `default` declaration. `prov` 3.2 uses the last one. |
+| `'…' is not a PROV-N prefix name` | `prefix _ <http://x/>`, `prefix a/b <http://x/>` | A prefix that starts with a letter, such as `prefix ab <http://x/>`. |
+| `prefix 'xsi' is not declared` | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
+| `'default' follows a 'prefix' declaration` (strict profile) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
+| `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
+
+`prov` 3.2.2 and earlier wrote `xsi:` names without a `prefix xsi` line. Reading
+such a file and writing it again with `prov` 3.2.3 adds the declaration.
