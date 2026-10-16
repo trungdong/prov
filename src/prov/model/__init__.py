@@ -22,7 +22,10 @@ from typing import Any as Any, Union as Union
 from urllib.parse import urlparse as urlparse
 
 from prov import Error as Error, serializers as serializers
-from prov._warnings import ProvWarning as ProvWarning
+from prov._warnings import (
+    ProvFutureRejectionWarning as ProvFutureRejectionWarning,
+    ProvWarning as ProvWarning,
+)
 from prov.constants import *
 from prov.identifier import (
     Identifier as Identifier,

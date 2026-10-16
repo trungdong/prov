@@ -1,8 +1,8 @@
-"""``ProvWarning`` and the shared ``warnings.warn()`` stacklevel helper.
+"""``ProvWarning``, its 3.3.0 subclass and the shared stacklevel helper.
 
-Both live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
-can emit ``ProvWarning`` without importing :mod:`prov.model` and creating a
-cycle; :mod:`prov.model` re-exports both under their historic names.
+All live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
+can emit them without importing :mod:`prov.model` and creating a cycle;
+:mod:`prov.model` re-exports both warning classes under their public names.
 
 Attributing a warning to its caller with a fixed ``stacklevel`` only works
 when every call path between the ``warn()`` site and the external caller
@@ -18,6 +18,29 @@ from types import FrameType
 
 class ProvWarning(Warning):
     """Base class for PROV model warnings."""
+
+
+class ProvFutureRejectionWarning(ProvWarning):
+    """Input that ``prov`` 3.2.x reads but 3.3.0 rejects or reads differently.
+
+    ``prov`` still reads the input as before. Turn this class into an error,
+    for example with ``-W error::prov.model.ProvFutureRejectionWarning``, to
+    find every such input without failing on any other :class:`ProvWarning`.
+    """
+
+
+def future_rejection_message(detail: str, outcome: str = "reject this") -> str:
+    """Return ``detail`` followed by the clause every 3.3.0 warning ends with.
+
+    Args:
+        detail: What was found, starting with its position where the
+            format has one.
+        outcome: What 3.3.0 does instead, completing ``"prov 3.3.0 will"``.
+
+    Returns:
+        For example ``"line 3, column 1: ... . prov 3.3.0 will reject this"``.
+    """
+    return f"{detail}. prov 3.3.0 will {outcome}"
 
 
 def external_stacklevel(skip: int = 1) -> int:

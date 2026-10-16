@@ -56,6 +56,7 @@ PUBLIC_API = {
         # exceptions
         "ProvException",
         "ProvWarning",
+        "ProvFutureRejectionWarning",
         "ProvExceptionInvalidQualifiedName",
         "ProvElementIdentifierRequired",
         "ProvUnificationError",
@@ -238,6 +239,7 @@ PROV_MODEL_DIR_SNAPSHOT = [
     "ProvEntity",
     "ProvException",
     "ProvExceptionInvalidQualifiedName",
+    "ProvFutureRejectionWarning",
     "ProvGeneration",
     "ProvInfluence",
     "ProvInvalidation",
