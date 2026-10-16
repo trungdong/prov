@@ -326,7 +326,8 @@ def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
     with warnings.catch_warnings():
         # prov-n-example-51 declares 'default' after 'prefix', which the strict
         # profile rejects from 3.3.0 (#519).
-        warnings.simplefilter("ignore", ProvFutureRejectionWarning)
+        if path.name == "prov-n-example-51.provn":
+            warnings.simplefilter("ignore", ProvFutureRejectionWarning)
         document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
     reloaded = ProvDocument.deserialize(
         content=document.get_provn(strict=True), format="provn", profile="strict"

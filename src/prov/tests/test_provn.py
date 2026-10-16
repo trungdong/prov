@@ -930,3 +930,47 @@ def test_declaring_a_predeclared_prefix_warns_only_under_strict(
         f"document\nprefix {prefix} <{namespace.uri}>\nendDocument", profile
     )
     assert messages == []
+
+
+def _read_warning(text, match, profile="default"):
+    with pytest.warns(ProvFutureRejectionWarning, match=match) as caught:
+        doc = ProvDocument.deserialize(content=text, format="provn", profile=profile)
+    assert len(caught) == 1
+    return doc
+
+
+def test_repeated_default_warning_reaches_the_caller() -> None:
+    doc = _read_warning(
+        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument",
+        "'default' is declared twice in this scope",
+    )
+    assert only_record(doc).identifier.uri == "http://b/e"
+
+
+def test_non_pn_prefix_warning_reaches_the_caller() -> None:
+    doc = _read_warning(
+        "document\nprefix 1a <http://x/>\nprefix ex <http://example.org/>\n"
+        "entity(ex:e)\nendDocument",
+        "'1a' is not a PROV-N prefix name",
+    )
+    assert only_record(doc).identifier.uri == "http://example.org/e"
+
+
+def test_strict_default_after_prefix_warning_reaches_the_caller() -> None:
+    doc = _read_warning(
+        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\n"
+        "entity(e)\nendDocument",
+        "'default' follows a 'prefix' declaration",
+        "strict",
+    )
+    assert only_record(doc).identifier.uri == "http://d/e"
+
+
+def test_strict_predeclared_prefix_warning_reaches_the_caller() -> None:
+    doc = _read_warning(
+        f"document\nprefix prov <{PROV.uri}>\nprefix ex <http://example.org/>\n"
+        "entity(ex:e)\nendDocument",
+        "prefix 'prov' is predeclared",
+        "strict",
+    )
+    assert only_record(doc).identifier.uri == "http://example.org/e"
