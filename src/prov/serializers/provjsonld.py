@@ -8,6 +8,7 @@ compacted shape only, one JSON object per PROV-DM statement in ``@graph``.
 import datetime
 import io
 import json
+from collections.abc import Callable
 from functools import lru_cache
 from importlib.resources import files
 from typing import Any
@@ -47,6 +48,7 @@ from prov.model import (
 )
 from prov.model.records import _xsd_datetime_text
 from prov.serializers import Serializer, _is_text_stream
+from prov.serializers.provjson import _JSONPrefixMap
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -128,36 +130,20 @@ def load_vendored_context() -> dict[str, Any]:
     return result
 
 
-def _encode_namespaces(bundle: ProvBundle) -> dict[str, str]:
-    """Encode a bundle's registered namespaces as a JSON-LD context object.
-
-    Args:
-        bundle: Bundle (or document) whose namespaces are encoded.
-
-    Returns:
-        A dict mapping each registered prefix to its namespace URI, plus
-        ``"@vocab"`` and ``"@base"`` entries (both set to the same URI) if
-        ``bundle`` has a default namespace. Empty if ``bundle`` has neither
-        registered nor a default namespace.
-
-        Both keys are needed: JSON-LD's ``@vocab`` governs bare property
-        terms and bare ``@type`` values, but NOT ``@id`` values or the
-        values of terms coerced ``"@type": "@id"`` (every identifier-valued
-        term in the submission's context, e.g. ``entity``, ``activity``,
-        ``role``) -- those resolve against ``@base`` instead. Without an
-        explicit ``@base``, a JSON-LD processor resolves them against ITS
-        OWN document base, not this library's default namespace. See
-        :func:`_decode_context` for the matching decode-side handling.
-    """
-    ns_map = {ns.prefix: ns.uri for ns in bundle.get_registered_namespaces()}
-    default_ns = bundle.get_default_namespace()
-    if default_ns is not None:
-        ns_map["@vocab"] = default_ns.uri
-        ns_map["@base"] = default_ns.uri
-    return ns_map
+#: The context keys that hold the default namespace. JSON-LD needs both because
+#: ``@vocab`` governs bare property terms and bare ``@type`` values, but not
+#: ``@id`` values or the values of terms coerced ``"@type": "@id"`` (every
+#: identifier-valued term in the submission's context, e.g. ``entity``,
+#: ``activity``, ``role``), which resolve against ``@base``. Without an explicit
+#: ``@base``, a JSON-LD processor resolves them against its own document base,
+#: not this library's default namespace. :func:`_decode_context` reads
+#: ``@vocab`` only.
+_JSONLD_DEFAULT_KEYS = ("@vocab", "@base")
 
 
-def encode_jsonld_value(value: Any, term: str) -> Any:
+def encode_jsonld_value(
+    value: Any, term: str, qname_text: Callable[[object], str] = str
+) -> Any:
     """Encode one non-formal attribute value as a JSON-LD array member.
 
     Args:
@@ -173,6 +159,9 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
             :class:`~prov.identifier.QualifiedName` value is emitted as a
             bare string (``@id``-typed terms, see :data:`ID_TYPED_TERMS`) or
             as a typed value object.
+        qname_text: Writes a qualified name (the value or a literal's
+            datatype); the container's ``_JSONPrefixMap.qname_text`` in
+            :func:`encode_jsonld_container`.
 
     Returns:
         A bare qualified-name string for ``@id``-typed terms, or a
@@ -180,12 +169,12 @@ def encode_jsonld_value(value: Any, term: str) -> Any:
     """
     if isinstance(value, QualifiedName):
         if term in ID_TYPED_TERMS:
-            return str(value)  # @id-typed term: bare qualified-name string
-        return {"@value": str(value), "@type": str(XSD_QNAME)}
+            return qname_text(value)  # @id-typed term: bare qualified-name string
+        return {"@value": qname_text(value), "@type": str(XSD_QNAME)}
     if isinstance(value, Literal):
         if value.langtag:
             return {"@value": value.value, "@language": value.langtag}
-        return {"@value": value.value, "@type": str(value.datatype)}
+        return {"@value": value.value, "@type": qname_text(value.datatype)}
     if isinstance(value, datetime.datetime):
         return {"@value": _xsd_datetime_text(value), "@type": "xsd:dateTime"}
     if isinstance(value, Identifier):
@@ -231,11 +220,14 @@ def _encode_attribute_term(attr: QualifiedName, rec_type: QualifiedName) -> str:
     return term
 
 
-def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
+def encode_jsonld_statement(
+    record: ProvRecord, qname_text: Callable[[object], str] = str
+) -> dict[str, Any]:
     """Encode one PROV record as its submission §4 statement object.
 
     Args:
         record: Record to encode.
+        qname_text: Writes a qualified name; see :func:`encode_jsonld_value`.
 
     Returns:
         The statement object: ``"@type"`` (the record type's local part),
@@ -257,7 +249,7 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
         )
     obj: dict[str, Any] = {"@type": rec_type.localpart}
     if record.identifier is not None:
-        obj["@id"] = str(record.identifier)
+        obj["@id"] = qname_text(record.identifier)
     for attr in record.FORMAL_ATTRIBUTES:
         values = record._attributes.get(attr)
         if values:
@@ -265,28 +257,33 @@ def encode_jsonld_statement(record: ProvRecord) -> dict[str, Any]:
             obj[attr.localpart] = (
                 _xsd_datetime_text(value)  # type: ignore[arg-type]
                 if attr in PROV_ATTRIBUTE_LITERALS
-                else str(value)
+                else qname_text(value)
             )
     for attr, values in record._attributes.items():
         if attr in record.FORMAL_ATTRIBUTES or not values:
             continue
         term = _encode_attribute_term(attr, rec_type)
-        obj[term] = [encode_jsonld_value(v, term) for v in values]
+        obj[term] = [encode_jsonld_value(v, term, qname_text) for v in values]
     return obj
 
 
-def encode_jsonld_container(bundle: ProvBundle) -> list[dict[str, Any]]:
+def encode_jsonld_container(
+    bundle: ProvBundle, prefix_map: _JSONPrefixMap | None = None
+) -> list[dict[str, Any]]:
     """Encode a bundle's (or document's own) records as a ``@graph`` array.
 
     Args:
         bundle: Bundle (or document, treated as its top-level bundle) whose
             own records (not its named bundles) are encoded.
+        prefix_map: The container's prefix map, which declares any prefix the
+            records need. Without one, each name is written as ``str(name)``.
 
     Returns:
         A list with one statement object (see :func:`encode_jsonld_statement`)
         per record.
     """
-    return [encode_jsonld_statement(record) for record in bundle._records]
+    qname_text = prefix_map.qname_text if prefix_map is not None else str
+    return [encode_jsonld_statement(record, qname_text) for record in bundle._records]
 
 
 def encode_jsonld_document(document: ProvDocument, context: str) -> dict[str, Any]:
@@ -306,18 +303,22 @@ def encode_jsonld_document(document: ProvDocument, context: str) -> dict[str, An
     context_tail: Any = (
         JSONLD_CONTEXT_URL if context == "url" else load_vendored_context()
     )
-    ns_map = _encode_namespaces(document)
-    graph = encode_jsonld_container(document)
+    prefix_map = _JSONPrefixMap(document, _JSONLD_DEFAULT_KEYS)
+    graph = encode_jsonld_container(document, prefix_map)
     for bundle in document.bundles:
-        bundle_ns = _encode_namespaces(bundle)
+        bundle_map = _JSONPrefixMap(bundle, _JSONLD_DEFAULT_KEYS, prefix_map)
+        # a reader resolves the bundle identifier in the bundle's own scope
+        bundle_id = bundle_map.qname_text(bundle.identifier)
+        bundle_graph = encode_jsonld_container(bundle, bundle_map)
         graph.append(
             {
                 "@type": "Bundle",
-                "@id": str(bundle.identifier),
-                "@context": [bundle_ns] if bundle_ns else [],
-                "@graph": encode_jsonld_container(bundle),
+                "@id": bundle_id,
+                "@context": [bundle_map.prefixes] if bundle_map.prefixes else [],
+                "@graph": bundle_graph,
             }
         )
+    ns_map = prefix_map.prefixes
     context_list: list[Any] = [ns_map] if ns_map else []
     context_list.append(context_tail)
     return {"@context": context_list, "@graph": graph}
@@ -393,10 +394,10 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     third-party inline term definitions this library does not model -- are
     ignored individually rather than causing the whole object to be
     skipped. Every other JSON-LD keyword key (``@base``, ``@version``, ...)
-    is likewise ignored: ``@base`` is written by :func:`_encode_namespaces`
-    as a duplicate of ``@vocab`` (needed for real JSON-LD processors, see
-    that function's docstring) and carries no information this library
-    doesn't already get from ``@vocab``.
+    is likewise ignored: ``@base`` is written as a duplicate of ``@vocab``
+    (needed for real JSON-LD processors, see :data:`_JSONLD_DEFAULT_KEYS`)
+    and carries no information this library doesn't already get from
+    ``@vocab``.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor

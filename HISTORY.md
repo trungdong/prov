@@ -50,6 +50,13 @@
   strings and IRIs, as PROV-N section 6 allows (#521). `"caf\u00E9"` raised
   "unknown string escape '\u'". An escape that is not a Unicode scalar value, or that
   encodes a character an IRI cannot contain, raises `ProvNSyntaxError` at the escape
+- The PROV-JSON and PROV-JSONLD writers give a default-namespace name whose local part
+  contains `:`, such as PROV-N's `a\:b`, a prefix bound to the default namespace IRI
+  (#517). They wrote it as `a:b`, which reads back as the name `b` under the prefix `a`.
+  When no prefix is bound to that IRI, the writer declares one
+- The PROV-JSON writer renames a prefix called `default` to `default_1`, or the next free
+  suffix (#518). PROV-JSON keeps the `default` key for the default namespace, so the
+  prefix read back as the default namespace and the names that used it did not resolve
 
 ### Project
 
