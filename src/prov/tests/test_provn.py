@@ -991,3 +991,14 @@ def test_strict_predeclared_prefix_warning_reaches_the_caller() -> None:
         "strict",
     )
     assert only_record(doc).identifier.uri == "http://example.org/e"
+
+
+def test_code_point_escapes_read_in_strings_and_iris() -> None:
+    text = (
+        "document\nprefix ex <http://example.org/caf\\u00E9/>\n"
+        'entity(ex:e, [ex:k="caf\\u00E9"])\nendDocument\n'
+    )
+    document = ProvDocument.deserialize(content=text, format="provn")
+    (record,) = document.get_records()
+    assert record.identifier.uri == "http://example.org/café/e"
+    assert record.get_attribute("ex:k") == {"café"}

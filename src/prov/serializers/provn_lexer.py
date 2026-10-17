@@ -112,8 +112,11 @@ _DATETIME = re.compile(
 _INT = re.compile(r"-?[0-9]+")
 # [56]'s UCHAR exclusion is [#x00-#x20], not full Unicode whitespace: \s
 # would reject non-breaking space (a legal IRI character) and admit other
-# control characters that aren't spaces.
-_IRI = re.compile(r"<([^<>\"{}|^`\\\x00-\x20]*)>")
+# control characters that aren't spaces. A backslash starts an escape
+# (PROV-N section 6), which _unescape decodes.
+_IRI_EXCLUDED = r'<>"{}|^`\\\x00-\x20'
+_IRI = re.compile(rf"<((?:[^{_IRI_EXCLUDED}]|\\[^\x00-\x20])*)>")
+_IRI_FORBIDDEN = re.compile(rf"[{_IRI_EXCLUDED}]")
 _LANGTAG = re.compile(r"@([A-Za-z]+(?:-[A-Za-z0-9]+)*)")
 _SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n\r])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
@@ -134,6 +137,11 @@ _STRING_ESCAPES = {
     "\\": "\\",
 }
 
+# ECHAR ([59]) and PROV-N section 6's code point escapes, \uXXXX and
+# \UXXXXXXXX; HEX takes either case, as in SPARQL.
+_ESCAPE = re.compile(r"\\(?:u([0-9A-Fa-f]{4})|U([0-9A-Fa-f]{8})|(.))", re.S)
+_HEX_DIGITS = {"u": "four", "U": "eight"}
+
 _PUNCTUATION = {
     "(": TokenKind.LPAREN,
     ")": TokenKind.RPAREN,
@@ -149,18 +157,44 @@ _PUNCTUATION = {
 _Locate = Callable[[int], tuple[int, int]]
 
 
-def _unescape_string(raw: str, locate: _Locate, start: int) -> str:
+def _unescape(raw: str, locate: _Locate, start: int, kind: str) -> str:
+    """Decode the escapes in the body of a string or, for ``kind="IRI"``, an IRI.
+
+    Escapes are decoded per token, so an escaped '"' cannot end a string.
+    An IRI takes only the code point escapes, and they cannot encode a
+    character [56] excludes.
+    """
     if "\\" not in raw:
         return raw
 
-    def replace(match: re.Match[str]) -> str:
-        char = match.group(1)
-        if char not in _STRING_ESCAPES:
-            line, column = locate(start + match.start())
-            raise ProvNSyntaxError(f"unknown string escape '\\{char}'", line, column)
-        return _STRING_ESCAPES[char]
+    def fail(message: str, match: re.Match[str]) -> ProvNSyntaxError:
+        line, column = locate(start + match.start())
+        return ProvNSyntaxError(message, line, column)
 
-    return _ESCAPE_CHAR.sub(replace, raw)
+    def replace(match: re.Match[str]) -> str:
+        four, eight, char = match.groups()
+        if char is not None:
+            if char in _HEX_DIGITS:
+                raise fail(
+                    f"escape '\\{char}' needs {_HEX_DIGITS[char]} hex digits", match
+                )
+            if kind == "IRI" or char not in _STRING_ESCAPES:
+                raise fail(f"unknown {kind} escape '\\{char}'", match)
+            return _STRING_ESCAPES[char]
+        code = int(four or eight, 16)
+        if 0xD800 <= code <= 0xDFFF or code > 0x10FFFF:
+            raise fail(
+                f"escape '{match.group(0)}' is not a Unicode scalar value", match
+            )
+        decoded = chr(code)
+        if kind == "IRI" and _IRI_FORBIDDEN.match(decoded):
+            raise fail(
+                f"escape '{match.group(0)}' encodes a character an IRI cannot contain",
+                match,
+            )
+        return decoded
+
+    return _ESCAPE.sub(replace, raw)
 
 
 def _qname_value(match: re.Match[str]) -> tuple[str, str]:
@@ -266,7 +300,8 @@ class _Lexer:
         match = _IRI.match(self.text, self.pos)
         if match is None:
             raise self.error("unterminated IRI")
-        return self.emit(TokenKind.IRI, match.group(0), match.group(1))
+        value = _unescape(match.group(1), self.locate, match.start(1), "IRI")
+        return self.emit(TokenKind.IRI, match.group(0), value)
 
     def qname_literal_token(self) -> Token:
         match = _QNAME_LITERAL.match(self.text, self.pos)
@@ -323,7 +358,7 @@ class _Lexer:
             match = _SHORT_STRING.match(text, pos)
             if match is None:
                 raise self.error("unterminated string")
-        value = _unescape_string(match.group(1), self.locate, match.start(1))
+        value = _unescape(match.group(1), self.locate, match.start(1), "string")
         return self.emit(TokenKind.STRING, match.group(0), value)
 
 

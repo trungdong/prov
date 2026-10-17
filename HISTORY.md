@@ -38,6 +38,10 @@
   `ProvNSyntaxError` at the IRI under every profile (#512). It raised a bare `ValueError`
   with no position. Code that catches `ValueError` around such a document no longer
   catches it, since `ProvNSyntaxError` is not a `ValueError` subclass
+- The PROV-N reader decodes the code point escapes `\uXXXX` and `\UXXXXXXXX` in
+  strings and IRIs, as PROV-N section 6 allows (#521). `"caf\u00E9"` raised
+  "unknown string escape '\u'". An escape that is not a Unicode scalar value, or that
+  encodes a character an IRI cannot contain, raises `ProvNSyntaxError` at the escape
 
 ### Project
 

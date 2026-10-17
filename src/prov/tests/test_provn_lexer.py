@@ -363,3 +363,48 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges() -> Non
 def test_carriage_return_ends_a_short_literal(text) -> None:
     with pytest.raises(ProvNSyntaxError, match="unterminated"):
         list(tokenize(text))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (r'"caf\u00E9"', "café"),
+        (r'"caf\u00e9"', "café"),
+        (r'"\U0001F600"', "\U0001f600"),
+        (r'"""caf\u00E9\nline"""', "café\nline"),
+        (r'"a\u0022b"', 'a"b'),
+        (r'"\\u00E9"', "\\u00E9"),
+        (r"<http://example.org/caf\u00E9>", "http://example.org/café"),
+        (r"<http://example.org/\U0001F600>", "http://example.org/\U0001f600"),
+    ],
+)
+def test_code_point_escapes_are_decoded(text, expected) -> None:
+    assert values(text) == [expected]
+
+
+@pytest.mark.parametrize(
+    ("text", "message", "column"),
+    [
+        (r'"ab\u00G9"', r"escape '\u' needs four hex digits", 4),
+        (r'"ab\U0001F60"', r"escape '\U' needs eight hex digits", 4),
+        (r'"ab\uD800"', r"escape '\uD800' is not a Unicode scalar value", 4),
+        (r'"ab\U00110000"', r"escape '\U00110000' is not a Unicode scalar value", 4),
+        (r"<http://a/\u00G9>", r"escape '\u' needs four hex digits", 11),
+        (r"<http://a/\q>", r"unknown IRI escape '\q'", 11),
+        (r"<http://a/\n>", r"unknown IRI escape '\n'", 11),
+        (
+            r"<http://a/\u0020>",
+            r"escape '\u0020' encodes a character an IRI cannot contain",
+            11,
+        ),
+        (
+            r"<http://a/\u003E>",
+            r"escape '\u003E' encodes a character an IRI cannot contain",
+            11,
+        ),
+    ],
+)
+def test_bad_code_point_escape_raises_at_the_escape(text, message, column) -> None:
+    with pytest.raises(ProvNSyntaxError, match=re.escape(message)) as ctx:
+        list(tokenize(text))
+    assert (ctx.value.line, ctx.value.column) == (1, column)
