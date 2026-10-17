@@ -95,6 +95,6 @@ warning.
 
 The first warning covers every time of a statement: the time of a relation, an
 activity's start and end times, and `prov:time` given as an attribute, from any
-format or from code. An `xsd:dateTime` value of any other attribute is not a time
-of the statement, so 3.3.0 does not reject it. It reads the value as a `Literal`
-with its text, not as a `datetime`.
+format or from code. An `xsd:dateTime` value of any other attribute is not a
+time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
+`Literal` with its text, not as a `datetime`.

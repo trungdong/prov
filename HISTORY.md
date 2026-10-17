@@ -73,14 +73,14 @@
 - A typed literal whose text is outside its datatype's lexical space, such as
   `"abc" %% xsd:int`, stays a `Literal` with its text and datatype, as
   `"maybe" %% xsd:boolean` already did (#522). An ill-formed `xsd:int`, `xsd:long`,
-  `xsd:integer` or `xsd:double` made every reader, and the model given such a `Literal`
-  in code, raise `ValueError`; the PROV-N reader reported it as a syntax error, and its
-  `lenient` profile skipped the statement. The PROV-O reader also raised `ValueError` for
-  an ill-formed `xsd:dateTime`, `xsd:gYear` or `xsd:gYearMonth`
+  `xsd:integer` or `xsd:double` raised `ValueError` from every reader and from the model.
+  The PROV-N reader reported it as a syntax error, and its `lenient` profile skipped the
+  statement. The PROV-O reader also raised `ValueError` for an ill-formed `xsd:dateTime`,
+  `xsd:gYear` or `xsd:gYearMonth`
 - `prov:time`, `prov:startTime` and `prov:endTime` accept a `Literal` typed
   `xsd:dateTime`, so PROV-N's `[prov:time="2012-01-01T00:00:00" %% xsd:dateTime]` reads
   (#515). It raised "Invalid value for attribute prov:time", and so did the model given
-  the same `Literal` in code. A text outside the `xsd:dateTime` lexical space still raises
+  the same `Literal` in code. Text outside the `xsd:dateTime` lexical space still raises
 
 ### Project
 

@@ -713,8 +713,8 @@ class ProvRDFSerializer(Serializer):
 
         Returns:
             A :class:`datetime.datetime` for a well-formed ``xsd:dateTime``
-            literal, a :class:`~prov.model.Literal` for other typed/tagged
-            literals, a
+            literal with an offset within ±14:00, a
+            :class:`~prov.model.Literal` for other typed/tagged literals, a
             resolved (or newly minted) :class:`~prov.identifier.QualifiedName`
             for ``URIRef`` values, or ``literal`` unchanged otherwise.
         """
@@ -790,8 +790,9 @@ class ProvRDFSerializer(Serializer):
             return pm.Literal(literal, datatype=XSD_QNAME)
         if datatype == XSD["dateTime"]:
             parsed = pm.parse_xsd_datetime(str(literal))
-            # The model keeps an ill-formed literal and warns about an
-            # offset beyond ±14:00, so both go to it as a Literal.
+            # An ill-formed literal, or one whose offset is beyond ±14:00,
+            # goes to the model as a Literal. The model keeps the first and
+            # warns about the second.
             if parsed is None or _offset_beyond_xsd_bound(parsed):
                 return pm.Literal(str(literal), pm.XSD_DATETIME)
             return parsed

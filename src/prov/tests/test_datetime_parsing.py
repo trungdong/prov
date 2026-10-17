@@ -130,6 +130,19 @@ def test_time_attribute_rejects_any_other_literal(value) -> None:
         _document().activity("ex:a1", startTime=value)
 
 
+def test_prov_o_time_outside_the_lexical_space_raises() -> None:
+    turtle = (
+        "@prefix ex: <http://example.org/> .\n"
+        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+        'ex:a1 a prov:Activity ; prov:startedAtTime "2012-13-01T00:00:00"^^xsd:dateTime .\n'
+    )
+    with pytest.raises(
+        ProvException, match="Invalid value for attribute prov:startTime"
+    ):
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+
 _BEYOND = "has a timezone offset beyond ±14:00"
 
 
@@ -138,6 +151,7 @@ _BEYOND = "has a timezone offset beyond ±14:00"
     [
         "2012-01-01T00:00:00+15:00",
         "2012-01-01T00:00:00-14:01",
+        "2012-01-01T00:00:00+14:00:30",
         datetime.datetime(
             2012,
             1,
@@ -183,6 +197,21 @@ def test_typed_datetime_value_beyond_the_offset_bound_warns() -> None:
         entity = _document().entity("ex:e1", {"ex:t": value})
     assert len(caught) == 1
     assert entity.get_attribute("ex:t") == {parse_xsd_datetime(value.value)}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2011-11-16T16:05:33+14:00",
+        "2011-11-16T16:05:33-14:00",
+        "2011-11-16T16:05:33Z",
+        "2011-11-16T16:05:33",
+    ],
+)
+def test_typed_datetime_value_within_the_offset_bound_does_not_warn(text) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _document().entity("ex:e1", {"ex:t": Literal(text, XSD_DATETIME)})
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
