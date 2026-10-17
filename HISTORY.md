@@ -16,10 +16,15 @@
   by `prov` 3.2.2 or earlier lack the declaration; reading and writing them again with
   3.2.3 adds it
 - Under the `strict` PROV-N profile, a `default` declaration after a `prefix` declaration,
-  and a `prefix prov` or `prefix xsd` declaration (#519)
+  a `prefix prov` or `prefix xsd` declaration, a statement after a bundle, and an
+  identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`
+  (#519)
 - Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a
   no-break space (#509). `prov` still skips it. PROV-N counts U+1680 as a name
   character, so 3.3.0 reads it as part of a name
+- A PROV-N attribute named after one of the statement's own arguments, such as
+  `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523).
+  `prov` still reads it as that argument
 
 ### Fixes
 

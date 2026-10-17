@@ -71,3 +71,17 @@ such a file and writing it again with `prov` 3.2.3 adds the declaration.
 The same warning names any other Unicode whitespace character between tokens,
 such as U+000C (form feed) or U+2028 (line separator). Whitespace inside a
 string, an IRI or a comment does not warn.
+
+## PROV-N statements
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |
+| `a statement follows a bundle` (strict profile) | `entity(ex:f)` after `endBundle` | Every statement before the first bundle. |
+| `'hadMember' has an identifier` (strict profile) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
+| `'specializationOf' has an attribute block` (strict profile) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
+
+The identifier and attribute-block warnings name whichever of `alternateOf`,
+`specializationOf` and `hadMember` carries one. The `default` and `lenient`
+profiles accept the three strict-profile constructs in this table without a
+warning.
