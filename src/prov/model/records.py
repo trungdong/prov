@@ -360,12 +360,13 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
 
 def _xsd_double_text(value: float) -> str:
     """The xsd:double lexical form of a float: INF, -INF and NaN for the
-    non-finite values (XSD 1.1 Part 2, numericalSpecialRep), repr() otherwise."""
+    non-finite values (XSD 1.1 Part 2, numericalSpecialRep), float's repr()
+    otherwise."""
     if math.isnan(value):
         return "NaN"
     if math.isinf(value):
         return "INF" if value > 0 else "-INF"
-    return repr(value)
+    return float.__repr__(value)
 
 
 def _xsd_datetime_text(value: datetime.datetime) -> str:

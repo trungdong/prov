@@ -114,3 +114,18 @@ def test_non_finite_floats_are_written_in_xsd_spelling(fmt) -> None:
     for spelling in ("INF", "-INF", "NaN"):
         assert _SPELLING[fmt].format(spelling) in text
     assert re.search(r"\b(?:inf|nan)\b", text) is None
+
+
+class _ReprFloat(float):
+    def __repr__(self) -> str:
+        return "_ReprFloat()"
+
+
+@pytest.mark.parametrize("fmt", list(_SPELLING))
+def test_float_subclass_is_written_as_the_float_it_holds(fmt) -> None:
+    document = ProvDocument()
+    document.add_namespace(EX_NS)
+    document.entity("ex:e", {"ex:p": _ReprFloat(1.5)})
+    text = document.serialize(format=fmt)
+    assert "_ReprFloat" not in text
+    assert "1.5" in text

@@ -50,19 +50,22 @@
   strings and IRIs, as PROV-N section 6 allows (#521). `"caf\u00E9"` raised
   "unknown string escape '\u'". An escape that is not a Unicode scalar value, or that
   encodes a character an IRI cannot contain, raises `ProvNSyntaxError` at the escape
-- The PROV-JSON and PROV-JSONLD writers give a default-namespace name whose local part
-  contains `:`, such as PROV-N's `a\:b`, a prefix bound to the default namespace IRI
-  (#517). They wrote it as `a:b`, which reads back as the name `b` under the prefix `a`.
-  When no prefix is bound to that IRI, the writer declares one
+- The PROV-JSON and PROV-JSONLD writers write a default-namespace name whose local part
+  contains `:`, such as PROV-N's `a\:b`, through a prefix bound to the default namespace
+  IRI (#517). They wrote it as `a:b`, which reads back as the name `b` under the prefix
+  `a`. When no prefix is bound to that IRI, the writer declares `dn`, or `dn_1` or the
+  next free suffix if `dn` is taken
 - The PROV-JSON writer renames a prefix called `default` to `default_1`, or the next free
-  suffix (#518). PROV-JSON keeps the `default` key for the default namespace, so the
+  suffix (#518). PROV-JSON uses the `default` key for the default namespace, so the
   prefix read back as the default namespace and the names that used it did not resolve
-- The PROV-N, PROV-JSON, PROV-JSONLD and PROV-XML writers spell the non-finite doubles
-  `INF`, `-INF` and `NaN`, the `xsd:double` lexical forms (#550). They wrote Python's
-  `inf`, `-inf` and `nan`, which are outside the lexical space. The PROV-O writer
-  already wrote the XSD forms, and every reader accepts both
-- The PROV-N writer escapes `"` and `\` in an `xsd:anyURI` value, as it does in a string
-  (#526). Such a value produced PROV-N that the reader rejected
+- Every writer spells the non-finite doubles `INF`, `-INF` and `NaN`, the `xsd:double`
+  lexical forms (#550). The PROV-N, PROV-JSON, PROV-JSONLD and PROV-XML writers wrote
+  Python's `inf`, `-inf` and `nan`, which are outside the lexical space, and the PROV-O
+  writer did the same in RDF/XML, N-Triples and N-Quads. Every reader accepts both. A
+  float subclass, such as `numpy.float64`, is written as the plain float it holds
+- The PROV-N writer escapes an `xsd:anyURI` value as it does a string (#526). A value
+  containing `"`, `\`, a carriage return or a line feed produced PROV-N that the reader
+  rejected
 
 ### Project
 

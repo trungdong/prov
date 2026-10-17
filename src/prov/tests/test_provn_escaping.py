@@ -278,3 +278,10 @@ def test_any_uri_value_with_quote_and_backslash_round_trips() -> None:
     document = _doc()
     document.entity("ex:e", {"ex:v": Identifier('http://example.org/a"b\\c')})
     assert '"http://example.org/a\\"b\\\\c" %% xsd:anyURI' in _roundtrips(document)
+
+
+@pytest.mark.parametrize("uri", ["http://example.org/a\nb", "http://example.org/a\rb"])
+def test_any_uri_value_with_a_line_break_round_trips(uri) -> None:
+    document = _doc()
+    document.entity("ex:e", {"ex:v": Identifier(uri)})
+    _roundtrips(document)

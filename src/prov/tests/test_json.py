@@ -7,11 +7,24 @@ only the genuinely JSON-specific cases.
 """
 
 import json
+from collections.abc import Iterator
 
 import pytest
 
-from prov.model import PROV_QUALIFIEDNAME, Literal, ProvDocument, ProvMembership
-from prov.serializers.provjson import ProvJSONEncoder, ProvJSONException
+from prov.model import (
+    PROV_QUALIFIEDNAME,
+    Literal,
+    ProvBundle,
+    ProvDocument,
+    ProvMembership,
+)
+from prov.serializers.provjson import (
+    ProvJSONEncoder,
+    ProvJSONException,
+    _JSONPrefixMap,
+)
+from prov.serializers.provjsonld import _JSONLD_DEFAULT_KEYS
+from prov.tests import examples
 
 
 def test_decoding_unicode_value() -> None:
@@ -149,3 +162,46 @@ def test_unresolvable_qualified_name_literal_stays_opaque() -> None:
     content = document.serialize(format="json")
     reloaded = ProvDocument.deserialize(content=content, format="json")
     assert reloaded == document
+
+
+def _qualified_names(bundle: ProvBundle) -> Iterator[object]:
+    """Every value a JSON writer passes through the prefix map for ``bundle``."""
+    if bundle.identifier is not None:
+        yield bundle.identifier
+    for record in bundle.get_records():
+        yield record.identifier
+        for attr, value in record.attributes:
+            yield attr
+            yield value
+            if isinstance(value, Literal):
+                yield value.datatype
+
+
+@pytest.mark.parametrize(
+    "default_keys", [("default",), _JSONLD_DEFAULT_KEYS], ids=["json", "jsonld"]
+)
+@pytest.mark.parametrize(
+    "make_doc",
+    [make_doc for _, make_doc in examples.tests],
+    ids=[name for name, _ in examples.tests],
+)
+def test_prefix_map_leaves_other_documents_unchanged(make_doc, default_keys) -> None:
+    # The JSON writers' output differs from 3.2.2's only through the prefix
+    # map: if it declares the namespaces as 3.2.2 did and writes every name as
+    # str(name), the output is byte for byte the same.
+    prov_doc = make_doc()
+    document_map = _JSONPrefixMap(prov_doc, default_keys)
+    maps = [(prov_doc, document_map)] + [
+        (bundle, _JSONPrefixMap(bundle, default_keys, document_map))
+        for bundle in prov_doc.bundles
+    ]
+    for bundle, prefix_map in maps:
+        names = list(_qualified_names(bundle))
+        assert [prefix_map.qname_text(name) for name in names] == [
+            str(name) for name in names
+        ]
+        before = {ns.prefix: ns.uri for ns in bundle.get_registered_namespaces()}
+        default = bundle.get_default_namespace()
+        if default is not None:
+            before.update(dict.fromkeys(default_keys, default.uri))
+        assert list(prefix_map.prefixes.items()) == list(before.items())

@@ -50,7 +50,7 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
@@ -544,8 +544,12 @@ class ProvRDFSerializer(Serializer):
             # the full-precision lexical form always applies here: a datatype
             # that skips rdflib's precision-losing bare-double abbreviation
             # (#225) on output.
+            # normalize=False: rdflib would otherwise rewrite the lexical
+            # form to Python's str() ('inf', 'nan').
             return _FullPrecisionDoubleLiteral(
-                repr(value), datatype=LITERAL_XSDTYPE_MAP[type(value)]
+                _xsd_double_text(value),
+                datatype=LITERAL_XSDTYPE_MAP[type(value)],
+                normalize=False,
             )
         else:
             return RDFLiteral(value)
