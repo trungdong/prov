@@ -228,9 +228,9 @@ def test_every_reader_warns_about_an_offset_beyond_the_bound(fmt) -> None:
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         read = ProvDocument.deserialize(content=text, format=fmt)
 
-    messages = sorted(
-        str(w.message) for w in caught if w.category is ProvFutureRejectionWarning
-    )
+    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
+    assert {w.filename for w in future} == {__file__}
+    messages = sorted(str(w.message) for w in future)
     assert messages == [
         f'ex:t "2011-11-16T16:05:33+15:00" %% xsd:dateTime {_BEYOND}.'
         " prov 3.3.0 will keep it as a Literal",
