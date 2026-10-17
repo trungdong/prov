@@ -786,6 +786,14 @@ def test_writer_declares_xsi_when_a_record_uses_it() -> None:
     assert _reads_back_without_future_warnings(text) == doc
 
 
+def test_writer_declares_xsi_for_an_xsi_identifier() -> None:
+    doc = _xsi_document()
+    doc.entity(XSI["e"])
+    text = doc.get_provn()
+    assert XSI_LINE in text
+    assert _reads_back_without_future_warnings(text) == doc
+
+
 def test_writer_declares_xsi_for_an_xsi_datatype() -> None:
     doc = _xsi_document()
     doc.entity("ex:e", {"ex:p": Literal("v", XSI["t"])})
