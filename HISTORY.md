@@ -61,6 +61,8 @@
   `INF`, `-INF` and `NaN`, the `xsd:double` lexical forms (#550). They wrote Python's
   `inf`, `-inf` and `nan`, which are outside the lexical space. The PROV-O writer
   already wrote the XSD forms, and every reader accepts both
+- The PROV-N writer escapes `"` and `\` in an `xsd:anyURI` value, as it does in a string
+  (#526). Such a value produced PROV-N that the reader rejected
 
 ### Project
 

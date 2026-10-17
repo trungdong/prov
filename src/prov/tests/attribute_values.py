@@ -68,4 +68,5 @@ ATTRIBUTE_VALUES = [
     Literal("aGVsbG8=", XSD["base64Binary"]),
     float("inf"),
     float("-inf"),
+    Identifier('http://example.org/a"b\\c'),
 ]

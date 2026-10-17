@@ -242,7 +242,10 @@ class Identifier:
 
     def provn_representation(self) -> str:
         """Return the PROV-N representation of this identifier as an xsd:anyURI literal."""
-        return f'"{self._uri}" %% xsd:anyURI'
+        # Imported here because prov.model imports this module.
+        from prov.model.records import _ensure_multiline_string_triple_quoted
+
+        return f"{_ensure_multiline_string_triple_quoted(self._uri)} %% xsd:anyURI"
 
 
 class QualifiedName(Identifier):
