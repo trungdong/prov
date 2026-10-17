@@ -24,7 +24,7 @@ import re
 
 import pytest
 
-from prov.model import ProvDocument
+from prov.model import XSD_BOOLEAN, Literal, ProvDocument
 from prov.tests.attribute_values import ATTRIBUTE_VALUES, EX_NS
 from prov.tests.conftest import ROUNDTRIP_FORMATS, roundtrip_document
 
@@ -129,3 +129,26 @@ def test_float_subclass_is_written_as_the_float_it_holds(fmt) -> None:
     text = document.serialize(format=fmt)
     assert "_ReprFloat" not in text
     assert "1.5" in text
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        pytest.param(
+            fmt,
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="#575: rdflib rewrites an ill-formed xsd:boolean as false",
+            ),
+        )
+        if fmt == "rdf"
+        else fmt
+        for fmt in ROUNDTRIP_FORMATS
+    ],
+)
+def test_ill_formed_boolean_stays_a_literal(fmt) -> None:
+    # Outside ATTRIBUTE_VALUES, whose whole-corpus round trips would fail
+    # through RDF on this one value.
+    document = ProvDocument()
+    document.entity(EX_NS["et"], {"prov:type": Literal("maybe", XSD_BOOLEAN)})
+    assert roundtrip_document(document, fmt) == document

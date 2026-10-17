@@ -1,10 +1,20 @@
 """Unit tests for the stdlib-based xsd:dateTime parser (3.0 dateutil drop, #237)."""
 
 import datetime
+import warnings
 
 import pytest
 
-from prov.model import ProvDocument, ProvException, parse_xsd_datetime
+from prov.model import (
+    XSD_DATETIME,
+    XSD_STRING,
+    Literal,
+    ProvDocument,
+    ProvException,
+    ProvFutureRejectionWarning,
+    parse_xsd_datetime,
+)
+from prov.tests.conftest import ROUNDTRIP_FORMATS
 
 UTC = datetime.timezone.utc
 
@@ -82,3 +92,149 @@ def test_factory_rejects_bad_time_with_prov_exception() -> None:
     document.add_namespace("ex", "http://example.org/")
     with pytest.raises(ProvException):
         document.activity("ex:a1", startTime="not a date")
+
+
+def _document() -> ProvDocument:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    return document
+
+
+def test_time_attributes_accept_a_typed_datetime_literal() -> None:
+    document = _document()
+    activity = document.activity(
+        "ex:a1",
+        startTime=Literal("2012-01-01T00:00:00", XSD_DATETIME),
+        endTime=Literal("2012-01-02T00:00:00Z", XSD_DATETIME),
+    )
+    generation = document.wasGeneratedBy(
+        "ex:e1", "ex:a1", time=Literal("2012-01-01T00:00:00", XSD_DATETIME)
+    )
+    assert activity.get_startTime() == datetime.datetime(2012, 1, 1)
+    assert activity.get_endTime() == datetime.datetime(2012, 1, 2, tzinfo=UTC)
+    assert generation.get_attribute("prov:time") == {datetime.datetime(2012, 1, 1)}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        Literal("2012-13-01T00:00:00", XSD_DATETIME),
+        Literal("2012-01-01T00:00:00", XSD_STRING),
+        Literal("2012-01-01T00:00:00", langtag="en"),
+    ],
+)
+def test_time_attribute_rejects_any_other_literal(value) -> None:
+    with pytest.raises(
+        ProvException, match="Invalid value for attribute prov:startTime"
+    ):
+        _document().activity("ex:a1", startTime=value)
+
+
+def test_prov_o_time_outside_the_lexical_space_raises() -> None:
+    turtle = (
+        "@prefix ex: <http://example.org/> .\n"
+        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
+        'ex:a1 a prov:Activity ; prov:startedAtTime "2012-13-01T00:00:00"^^xsd:dateTime .\n'
+    )
+    with pytest.raises(
+        ProvException, match="Invalid value for attribute prov:startTime"
+    ):
+        ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+
+_BEYOND = "has a timezone offset beyond ±14:00"
+
+
+@pytest.mark.parametrize(
+    "time",
+    [
+        "2012-01-01T00:00:00+15:00",
+        "2012-01-01T00:00:00-14:01",
+        "2012-01-01T00:00:00+14:00:30",
+        datetime.datetime(
+            2012,
+            1,
+            1,
+            tzinfo=datetime.timezone(datetime.timedelta(hours=14, minutes=30)),
+        ),
+        Literal("2012-01-01T00:00:00+15:00", XSD_DATETIME),
+    ],
+)
+def test_time_beyond_the_offset_bound_warns(time) -> None:
+    with pytest.warns(
+        ProvFutureRejectionWarning,
+        match=rf"^prov:startTime \S+ {_BEYOND}\. prov 3\.3\.0 will reject this$",
+    ) as caught:
+        activity = _document().activity("ex:a1", startTime=time)
+    assert len(caught) == 1
+    offset = activity.get_startTime().utcoffset()
+    assert abs(offset) > datetime.timedelta(hours=14)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2012-01-01T00:00:00+14:00",
+        "2012-01-01T00:00:00-14:00",
+        "2012-01-01T00:00:00Z",
+        "2012-01-01T00:00:00",
+    ],
+)
+def test_time_within_the_offset_bound_does_not_warn(text) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _document().activity("ex:a1", startTime=text)
+
+
+def test_typed_datetime_value_beyond_the_offset_bound_warns() -> None:
+    value = Literal("2011-11-16T16:05:33+15:00", XSD_DATETIME)
+    with pytest.warns(
+        ProvFutureRejectionWarning,
+        match=r'^ex:t "2011-11-16T16:05:33\+15:00" %% xsd:dateTime'
+        rf" {_BEYOND}\. prov 3\.3\.0 will keep it as a Literal$",
+    ) as caught:
+        entity = _document().entity("ex:e1", {"ex:t": value})
+    assert len(caught) == 1
+    assert entity.get_attribute("ex:t") == {parse_xsd_datetime(value.value)}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "2011-11-16T16:05:33+14:00",
+        "2011-11-16T16:05:33-14:00",
+        "2011-11-16T16:05:33Z",
+        "2011-11-16T16:05:33",
+    ],
+)
+def test_typed_datetime_value_within_the_offset_bound_does_not_warn(text) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        _document().entity("ex:e1", {"ex:t": Literal(text, XSD_DATETIME)})
+
+
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_every_reader_warns_about_an_offset_beyond_the_bound(fmt) -> None:
+    document = _document()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ProvFutureRejectionWarning)
+        document.activity("ex:a1", startTime="2012-01-01T00:00:00+15:00")
+        document.entity(
+            "ex:e1", {"ex:t": Literal("2011-11-16T16:05:33+15:00", XSD_DATETIME)}
+        )
+    text = document.serialize(format=fmt)
+
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        read = ProvDocument.deserialize(content=text, format=fmt)
+
+    messages = sorted(
+        str(w.message) for w in caught if w.category is ProvFutureRejectionWarning
+    )
+    assert messages == [
+        f'ex:t "2011-11-16T16:05:33+15:00" %% xsd:dateTime {_BEYOND}.'
+        " prov 3.3.0 will keep it as a Literal",
+        f"prov:startTime 2012-01-01T00:00:00+15:00 {_BEYOND}."
+        " prov 3.3.0 will reject this",
+    ]
+    assert read == document

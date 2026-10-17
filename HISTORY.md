@@ -25,6 +25,10 @@
 - A PROV-N attribute named after one of the statement's own arguments, such as
   `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523).
   `prov` still reads it as that argument
+- A time whose timezone offset is beyond ±14:00, the `xsd:dateTime` bound, such as
+  `2012-01-01T00:00:00+15:00`, from any reader or from code (#513). An `xsd:dateTime`
+  attribute value with such an offset still reads as a `datetime`; 3.3.0 keeps it as a
+  `Literal`
 
 ### Fixes
 
@@ -66,6 +70,17 @@
 - The PROV-N writer escapes an `xsd:anyURI` value as it does a string (#526). A value
   containing `"`, `\`, a carriage return or a line feed produced PROV-N that the reader
   rejected
+- A typed literal whose text is outside its datatype's lexical space, such as
+  `"abc" %% xsd:int`, stays a `Literal` with its text and datatype, as
+  `"maybe" %% xsd:boolean` already did (#522). An ill-formed `xsd:int`, `xsd:long`,
+  `xsd:integer` or `xsd:double` raised `ValueError` from every reader and from the model.
+  The PROV-N reader reported it as a syntax error, and its `lenient` profile skipped the
+  statement. The PROV-O reader also raised `ValueError` for an ill-formed `xsd:dateTime`,
+  `xsd:gYear` or `xsd:gYearMonth`
+- `prov:time`, `prov:startTime` and `prov:endTime` accept a `Literal` typed
+  `xsd:dateTime`, so PROV-N's `[prov:time="2012-01-01T00:00:00" %% xsd:dateTime]` reads
+  (#515). It raised "Invalid value for attribute prov:time", and so did the model given
+  the same `Literal` in code. Text outside the `xsd:dateTime` lexical space still raises
 
 ### Project
 

@@ -22,6 +22,11 @@ from collections.abc import (
 from typing import IO, TYPE_CHECKING, Any, Final, Protocol, TypeVar, Union, cast
 
 from prov import Error
+from prov._warnings import (
+    ProvFutureRejectionWarning,
+    future_rejection_message,
+    warn,
+)
 from prov.constants import (
     PROV_ACTIVITY,
     PROV_AGENT,
@@ -376,6 +381,15 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
     if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
         value = value.astimezone(datetime.timezone.utc)
     return value.isoformat()
+
+
+_XSD_MAX_OFFSET = datetime.timedelta(hours=14)
+
+
+def _offset_beyond_xsd_bound(value: datetime.datetime) -> bool:
+    """Whether ``value``'s timezone offset lies outside xsd:dateTime's ±14:00."""
+    offset = value.utcoffset()
+    return offset is not None and abs(offset) > _XSD_MAX_OFFSET
 
 
 def encoding_provn_value(
@@ -876,7 +890,12 @@ class ProvRecord:
             if literal.datatype:
                 # try to convert a generic Literal object to Python standard type
                 # to match the JSON decoding's literal conversion
-                value = parse_xsd_types(literal.value, literal.datatype)
+                # #522: a lexical form outside the datatype's lexical space
+                # keeps the Literal.
+                try:
+                    value = parse_xsd_types(literal.value, literal.datatype)
+                except (ValueError, OverflowError):
+                    return literal
                 # #235: only collapse the integer family when it is lossless,
                 # i.e. the asserted datatype is the one `prov` would itself
                 # infer for the parsed value. Otherwise, keep the Literal so
@@ -923,19 +942,44 @@ class ProvRecord:
                 qname = original_value
             value = self._bundle.mandatory_valid_qname(qname)
         elif attr in PROV_ATTRIBUTE_LITERALS:
-            # Expecting a datetime object or a string that can be parsed as a datetime
+            # Expecting a datetime, or a string or xsd:dateTime Literal that parses as one
             if isinstance(original_value, str):
                 value = parse_xsd_datetime(original_value)
+            elif (
+                isinstance(original_value, Literal)
+                and original_value.datatype == XSD_DATETIME
+            ):
+                value = parse_xsd_datetime(original_value.value)
             else:
                 value = original_value
             if not isinstance(value, datetime.datetime):
                 raise ProvException(
                     f"Invalid value for attribute {attr}: {original_value}. "
-                    f"Expected a datetime object or a string that can be parsed"
-                    f" as a datetime."
+                    f"Expected a datetime, or a string or xsd:dateTime Literal"
+                    f" that parses as one."
+                )
+            if _offset_beyond_xsd_bound(value):
+                warn(
+                    future_rejection_message(
+                        f"{attr} {value.isoformat()} has a timezone"
+                        f" offset beyond ±14:00"
+                    ),
+                    ProvFutureRejectionWarning,
                 )
         else:
             value = self._auto_literal_conversion(original_value)
+            if (
+                isinstance(value, datetime.datetime)
+                and isinstance(original_value, Literal)
+                and _offset_beyond_xsd_bound(value)
+            ):
+                warn(
+                    future_rejection_message(
+                        f"{attr} {original_value} has a timezone offset beyond ±14:00",
+                        "keep it as a Literal",
+                    ),
+                    ProvFutureRejectionWarning,
+                )
 
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")

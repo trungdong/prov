@@ -7,6 +7,8 @@ import pytest
 
 from prov.constants import PROV
 from prov.model import (
+    XSD_INT,
+    Literal,
     ProvBundle,
     ProvDocument,
     ProvException,
@@ -258,20 +260,16 @@ def test_model_rejection_is_wrapped_and_skippable(monkeypatch) -> None:
     assert [str(r.identifier) for r in records(doc)] == ["ex:good"]
 
 
-def test_typed_literal_value_error_is_wrapped_and_skippable() -> None:
-    """``parse_xsd_types()`` raises a bare ``ValueError``/``OverflowError``
-    for a malformed typed literal (e.g. ``int("abc")``); the parser must
-    wrap it into a ``ProvNSyntaxError`` with the statement's position, just
-    like a ``ProvException`` from ``new_record()``."""
+@pytest.mark.parametrize("profile", PROFILES)
+def test_ill_formed_typed_literal_keeps_its_statement(profile) -> None:
     body = 'entity(ex:e1, [ex:v="abc" %% xsd:int])\nentity(ex:e2)'
 
-    with pytest.raises(ProvNSyntaxError) as ctx:
-        parse(body, profile="default")
-    assert ctx.value.line == 3
-
-    with pytest.warns(ProvWarning):
-        doc = parse(body, profile="lenient")
-    assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        doc = parse(body, profile=profile)
+    (e1, e2) = records(doc)
+    assert [str(r.identifier) for r in (e1, e2)] == ["ex:e1", "ex:e2"]
+    assert e1.get_attribute("ex:v") == {Literal("abc", XSD_INT)}
 
 
 def test_lenient_resync_does_not_stop_on_a_keyword_shaped_literal() -> None:
