@@ -22,6 +22,7 @@ from prov.serializers.provjson import (
     ProvJSONEncoder,
     ProvJSONException,
     _JSONPrefixMap,
+    encode_json_container,
 )
 from prov.serializers.provjsonld import _JSONLD_DEFAULT_KEYS
 from prov.tests import examples
@@ -205,3 +206,15 @@ def test_prefix_map_leaves_other_documents_unchanged(make_doc, default_keys) -> 
         if default is not None:
             before.update(dict.fromkeys(default_keys, default.uri))
         assert list(prefix_map.prefixes.items()) == list(before.items())
+
+
+def test_encode_json_container_builds_its_own_prefix_map() -> None:
+    document = ProvDocument()
+    document.set_default_namespace("http://d.example/")
+    document.entity(document.get_default_namespace()["a:b"])
+    container = encode_json_container(document)
+    assert container["prefix"] == {
+        "default": "http://d.example/",
+        "dn": "http://d.example/",
+    }
+    assert "dn:a:b" in container["entity"]
