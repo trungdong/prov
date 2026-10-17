@@ -926,9 +926,14 @@ class ProvRecord:
                 qname = original_value
             value = self._bundle.mandatory_valid_qname(qname)
         elif attr in PROV_ATTRIBUTE_LITERALS:
-            # Expecting a datetime object or a string that can be parsed as a datetime
+            # Expecting a datetime, or a string or xsd:dateTime Literal to parse as one
             if isinstance(original_value, str):
                 value = parse_xsd_datetime(original_value)
+            elif (
+                isinstance(original_value, Literal)
+                and original_value.datatype == XSD_DATETIME
+            ):
+                value = parse_xsd_datetime(original_value.value)
             else:
                 value = original_value
             if not isinstance(value, datetime.datetime):

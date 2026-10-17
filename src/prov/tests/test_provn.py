@@ -616,6 +616,19 @@ def test_time_attribute_rejects_a_non_datetime_argument() -> None:
         parse("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)")
 
 
+@pytest.mark.parametrize(
+    "statement",
+    [
+        'entity(ex:e1, [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
+        "wasGeneratedBy(ex:e1, ex:a1, -,"
+        ' [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
+    ],
+)
+def test_time_attribute_accepts_a_typed_datetime_literal(statement) -> None:
+    record = only_record(parse(statement))
+    assert record.get_attribute("prov:time") == {datetime.datetime(2012, 1, 1)}
+
+
 def test_empty_attribute_list() -> None:
     record = only_record(parse("entity(ex:e1, [])"))
     assert record.attributes == []

@@ -4,7 +4,14 @@ import datetime
 
 import pytest
 
-from prov.model import ProvDocument, ProvException, parse_xsd_datetime
+from prov.model import (
+    XSD_DATETIME,
+    XSD_STRING,
+    Literal,
+    ProvDocument,
+    ProvException,
+    parse_xsd_datetime,
+)
 
 UTC = datetime.timezone.utc
 
@@ -82,3 +89,39 @@ def test_factory_rejects_bad_time_with_prov_exception() -> None:
     document.add_namespace("ex", "http://example.org/")
     with pytest.raises(ProvException):
         document.activity("ex:a1", startTime="not a date")
+
+
+def _document() -> ProvDocument:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    return document
+
+
+def test_time_attributes_accept_a_typed_datetime_literal() -> None:
+    document = _document()
+    activity = document.activity(
+        "ex:a1",
+        startTime=Literal("2012-01-01T00:00:00", XSD_DATETIME),
+        endTime=Literal("2012-01-02T00:00:00Z", XSD_DATETIME),
+    )
+    generation = document.wasGeneratedBy(
+        "ex:e1", "ex:a1", time=Literal("2012-01-01T00:00:00", XSD_DATETIME)
+    )
+    assert activity.get_startTime() == datetime.datetime(2012, 1, 1)
+    assert activity.get_endTime() == datetime.datetime(2012, 1, 2, tzinfo=UTC)
+    assert generation.get_attribute("prov:time") == {datetime.datetime(2012, 1, 1)}
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        Literal("2012-13-01T00:00:00", XSD_DATETIME),
+        Literal("2012-01-01T00:00:00", XSD_STRING),
+        Literal("2012-01-01T00:00:00", langtag="en"),
+    ],
+)
+def test_time_attribute_rejects_any_other_literal(value) -> None:
+    with pytest.raises(
+        ProvException, match="Invalid value for attribute prov:startTime"
+    ):
+        _document().activity("ex:a1", startTime=value)

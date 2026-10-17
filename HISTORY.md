@@ -73,6 +73,10 @@
   in code, raise `ValueError`; the PROV-N reader reported it as a syntax error, and its
   `lenient` profile skipped the statement. The PROV-O reader also raised `ValueError` for
   an ill-formed `xsd:dateTime`, `xsd:gYear` or `xsd:gYearMonth`
+- `prov:time`, `prov:startTime` and `prov:endTime` accept a `Literal` typed
+  `xsd:dateTime`, so PROV-N's `[prov:time="2012-01-01T00:00:00" %% xsd:dateTime]` reads
+  (#515). It raised "Invalid value for attribute prov:time", and so did the model given
+  the same `Literal` in code. A text outside the `xsd:dateTime` lexical space still raises
 
 ### Project
 
