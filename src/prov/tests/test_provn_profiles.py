@@ -381,8 +381,11 @@ def test_structural_keyword_shaped_data_still_parses(profile) -> None:
     test_lenient_resync_stops_at_end_document_after_an_unclosed_statement)
     only rejects a bare structural keyword not followed by ',', ')' or ';';
     a genuine identifier or argument spelt the same way still parses."""
-    body = "default <http://example.org/>\nentity(bundle)\nused(ex:a, endBundle, -)"
-    doc = parse(body, profile=profile)
+    text = (
+        f"document\ndefault <http://example.org/>\n{PREFIXES}"
+        "entity(bundle)\nused(ex:a, endBundle, -)\nendDocument"
+    )
+    doc = ProvDocument.deserialize(content=text, format="provn", profile=profile)
     ids = sorted(str(r.identifier) for r in records(doc) if r.identifier is not None)
     assert ids == ["bundle"]
     assert len(records(doc)) == 2
