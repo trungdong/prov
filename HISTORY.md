@@ -17,6 +17,9 @@
   3.2.3 adds it
 - Under the `strict` PROV-N profile, a `default` declaration after a `prefix` declaration,
   and a `prefix prov` or `prefix xsd` declaration (#519)
+- Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a
+  no-break space (#509). `prov` still skips it. PROV-N counts U+1680 as a name
+  character, so 3.3.0 reads it as part of a name
 
 ### Fixes
 

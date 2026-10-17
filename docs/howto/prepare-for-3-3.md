@@ -60,3 +60,14 @@ attribute name in PROV-JSON.
 
 `prov` 3.2.2 and earlier wrote `xsi:` names without a `prefix xsi` line. Reading
 such a file and writing it again with `prov` 3.2.3 adds the declaration.
+
+## PROV-N whitespace
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `U+00A0 is not PROV-N whitespace` | `entity(ex:e)` followed by a no-break space | A space, tab, CR or LF. |
+| `U+1680 is not PROV-N whitespace` | `entity(` followed by U+1680 and `ex:e)` | A space, tab, CR or LF. 3.3.0 reads U+1680 as part of a name. |
+
+The same warning names any other Unicode whitespace character between tokens,
+such as U+000C (form feed) or U+2028 (line separator). Whitespace inside a
+string, an IRI or a comment does not warn.

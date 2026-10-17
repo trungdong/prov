@@ -408,3 +408,74 @@ def test_bad_code_point_escape_raises_at_the_escape(text, message, column) -> No
     with pytest.raises(ProvNSyntaxError, match=re.escape(message)) as ctx:
         list(tokenize(text))
     assert (ctx.value.line, ctx.value.column) == (1, column)
+
+
+def lexer_warnings(text):
+    collected: list[str] = []
+    list(tokenize(text, collected))
+    return collected
+
+
+# Unicode whitespace that WS (SPARQL [93]) excludes, U+1680 apart: it is also
+# a name character, so it has its own test.
+NON_WS_SPACES = [
+    "\x0b",
+    "\x0c",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x1f",
+    "\x85",
+    "\xa0",
+    *[chr(code) for code in range(0x2000, 0x200B)],
+    "\u2028",
+    "\u2029",
+    "\u202f",
+    "\u205f",
+    "\u3000",
+]
+
+
+def test_non_ws_spaces_are_every_unicode_space_but_the_four_ws_characters() -> None:
+    spaces = {chr(code) for code in range(0x110000) if chr(code).isspace()}
+    assert spaces - set(" \t\r\n") == {*NON_WS_SPACES, "\u1680"}
+
+
+@pytest.mark.parametrize("ch", NON_WS_SPACES)
+def test_non_ws_space_between_tokens_is_skipped_and_warned(ch) -> None:
+    text = f"entity(ex:e){ch}endDocument"
+    assert values(text) == values("entity(ex:e) endDocument")
+    assert lexer_warnings(text) == [
+        f"line 1, column 13: U+{ord(ch):04X} is not PROV-N whitespace."
+        " prov 3.3.0 will reject this"
+    ]
+
+
+def test_ogham_space_mark_warns_that_it_becomes_a_name_character() -> None:
+    text = "entity(\u1680ex:e)"
+    assert values(text) == values("entity(ex:e)")
+    assert lexer_warnings(text) == [
+        "line 1, column 8: U+1680 is not PROV-N whitespace."
+        " prov 3.3.0 will read it as a name character"
+    ]
+
+
+def test_a_run_of_one_character_warns_once() -> None:
+    assert lexer_warnings("entity(ex:e)\xa0\xa0\xa0\u2028endDocument") == [
+        "line 1, column 13: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 1, column 16: U+2028 is not PROV-N whitespace. prov 3.3.0 will reject this",
+    ]
+
+
+def test_non_ws_space_between_ws_and_comments_is_skipped() -> None:
+    text = "entity(ex:e) \xa0// note\n\xa0endDocument"
+    assert values(text) == values("entity(ex:e) endDocument")
+    assert lexer_warnings(text) == [
+        "line 1, column 14: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 2, column 1: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+    ]
+
+
+def test_ws_and_spaces_inside_comments_strings_and_iris_do_not_warn() -> None:
+    text = 'entity(ex:e,\t[ex:a="\xa0"])\r\n// \xa0\n/* \u3000 */ <http://a/\xa0>'
+    assert lexer_warnings(text) == []
