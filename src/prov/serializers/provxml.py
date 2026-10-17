@@ -19,7 +19,7 @@ from prov.model import (
     canonical_xsd_datatype,
     sorted_attributes,
 )
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -456,6 +456,8 @@ def _encode_attribute_value(
         return str(value)
     elif isinstance(value, datetime.datetime):
         return _xsd_datetime_text(value)
+    elif isinstance(value, float):
+        return _xsd_double_text(value)
     else:
         return str(value)
 

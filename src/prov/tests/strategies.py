@@ -84,11 +84,10 @@ attr_values = st.one_of(
     st.integers(min_value=-(2**31), max_value=2**31 - 1),
     st.booleans(),
     # Floats. RDF now emits xsd:double values at full repr() precision (#225),
-    # matching JSON/XML, so any finite float round-trips cleanly. NaN and
-    # infinity are excluded deliberately: they are not equal to themselves
-    # (NaN) or require format-specific INF/NaN lexical handling we don't
-    # exercise here, not because of a round-trip bug.
-    st.floats(allow_nan=False, allow_infinity=False),
+    # matching JSON/XML, and every writer spells the infinities INF and -INF
+    # (#550), so any float but NaN round-trips cleanly. NaN is excluded
+    # because it is not equal to itself, so a round trip cannot compare it.
+    st.floats(allow_nan=False),
     # Timezone-aware UTC datetimes; PROV serialises these as xsd:dateTime.
     st.datetimes(min_value=datetime(1900, 1, 1), max_value=datetime(2100, 1, 1)).map(
         lambda dt: dt.replace(tzinfo=timezone.utc)

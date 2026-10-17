@@ -5,6 +5,7 @@ import io
 import json
 import logging
 from collections import defaultdict
+from collections.abc import Callable
 from typing import Any, cast
 
 from prov import Error
@@ -21,7 +22,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 
 logger = logging.getLogger(__name__)
@@ -184,6 +185,111 @@ def valid_qualified_name(
     return qualified_name
 
 
+class _JSONPrefixMap:
+    """The prefix map of one PROV-JSON or PROV-JSONLD container, and the text
+    of each qualified name written against it.
+
+    A reader splits a name at its first ``:``, so two kinds of name are
+    written with a prefix other than their own.
+
+    * a name in the default namespace whose local part contains ``:`` (#517)
+      takes a prefix in scope bound to the namespace IRI, and one is declared
+      in :attr:`prefixes` if none exists;
+    * a name whose prefix is one of ``default_keys``, the keys that hold the
+      default namespace (#518), takes a generated prefix.
+
+    The prefix declared for the default namespace is ``dn``, the name
+    :class:`~prov.model.NamespaceManager` gives a second default namespace. A
+    generated prefix that is already in scope, including in ``parent``, takes
+    the next free suffix (``default_1``, ``dn_1``, ...), as in
+    :class:`~prov.model.NamespaceManager`'s renaming. Every other name is
+    written as ``str(name)``.
+    """
+
+    def __init__(
+        self,
+        bundle: ProvBundle,
+        default_keys: tuple[str, ...] = ("default",),
+        parent: "_JSONPrefixMap | None" = None,
+    ) -> None:
+        """Build the prefix map for ``bundle``'s container.
+
+        Args:
+            bundle: Bundle (or document) whose namespaces are written.
+            default_keys: The keys that hold the default namespace, ``default``
+                in PROV-JSON and ``@vocab`` and ``@base`` in PROV-JSONLD. A
+                registered prefix with one of these names is renamed.
+            parent: The enclosing document's map, whose prefixes are in scope
+                in a bundle.
+        """
+        self.prefixes: dict[str, str] = {}
+        """Prefix (or default key) -> namespace IRI, in writing order."""
+        self._namespaces = bundle._namespaces
+        self._default_keys = default_keys
+        self._parent = parent
+        self._chosen: dict[Namespace, str] = {}
+        for namespace in self._namespaces.get_registered_namespaces():
+            prefix = namespace.prefix
+            if prefix in default_keys:
+                prefix = self._chosen[namespace] = self._unused_prefix(prefix)
+            self.prefixes[prefix] = namespace.uri
+        default = self._namespaces.get_default_namespace()
+        if default is not None:
+            for key in default_keys:
+                self.prefixes[key] = default.uri
+
+    def qname_text(self, name: object) -> str:
+        """Return the text that writes ``name``; ``str(name)`` for anything
+        but a :class:`~prov.identifier.QualifiedName` that needs a prefix."""
+        if isinstance(name, QualifiedName):
+            # read the slots directly, as this runs for every name written
+            prefix = name._namespace._prefix
+            if prefix in self._default_keys or (not prefix and ":" in name._localpart):
+                return f"{self._prefix_for(name.namespace)}:{name.localpart}"
+            return name._str
+        return str(name)
+
+    def _prefix_for(self, namespace: Namespace) -> str:
+        prefix = self._find(namespace)
+        if prefix is None:
+            prefix = self._chosen[namespace] = self._unused_prefix(
+                namespace.prefix or "dn"
+            )
+            self.prefixes[prefix] = namespace.uri
+        return prefix
+
+    def _find(self, namespace: Namespace) -> str | None:
+        """Return a prefix in scope here that is bound to ``namespace``'s IRI."""
+        if namespace in self._chosen:
+            return self._chosen[namespace]
+        for prefix, uri in self.prefixes.items():
+            if uri == namespace.uri and prefix not in self._default_keys:
+                self._chosen[namespace] = prefix
+                return prefix
+        if self._parent is not None:
+            inherited = self._parent._find(namespace)
+            # a prefix declared here shadows the parent's
+            if inherited is not None and inherited not in self.prefixes:
+                self._chosen[namespace] = inherited
+                return inherited
+        return None
+
+    def _taken(self, prefix: str) -> bool:
+        return (
+            prefix in self.prefixes
+            or prefix in self._namespaces
+            or (self._parent is not None and self._parent._taken(prefix))
+        )
+
+    def _unused_prefix(self, base: str) -> str:
+        if not self._taken(base) and base not in self._default_keys:
+            return base
+        count = 1
+        while self._taken(f"{base}_{count}"):
+            count += 1
+        return f"{base}_{count}"
+
+
 def encode_json_document(document: ProvDocument) -> ProvJSONDict:
     """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
 
@@ -195,15 +301,20 @@ def encode_json_document(document: ProvDocument) -> ProvJSONDict:
         bundle's own encoded container nested under ``container["bundle"]``
         keyed by the bundle's identifier string.
     """
-    container = encode_json_container(document)
+    prefix_map = _JSONPrefixMap(document)
+    container = encode_json_container(document, prefix_map)
     for bundle in document.bundles:
         #  encoding the sub-bundle
-        bundle_json = encode_json_container(bundle)
-        container["bundle"][str(bundle.identifier)] = bundle_json
+        bundle_map = _JSONPrefixMap(bundle, parent=prefix_map)
+        # a reader resolves the bundle identifier in the bundle's own scope
+        bundle_id = bundle_map.qname_text(bundle.identifier)
+        container["bundle"][bundle_id] = encode_json_container(bundle, bundle_map)
     return container
 
 
-def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
+def encode_json_container(
+    bundle: ProvBundle, prefix_map: _JSONPrefixMap | None = None
+) -> ProvJSONDict:
     """Encode a single bundle's namespaces and records to a PROV-JSON container dict.
 
     Does not recurse into ``bundle``'s own named bundles; see
@@ -212,20 +323,20 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
     Args:
         bundle: Bundle (or document, treated as its top-level bundle) to
             encode.
+        prefix_map: The container's prefix map; built from ``bundle`` if not
+            given.
 
     Returns:
         A dict with an optional ``"prefix"`` entry for registered namespaces
         and one entry per PROV-N record-type keyword, each mapping record
         identifiers (real or anonymous) to their encoded attributes.
     """
+    if prefix_map is None:
+        prefix_map = _JSONPrefixMap(bundle)
+    qname_text = prefix_map.qname_text
     container: dict[str, dict[str, Any]] = defaultdict(dict)
-    prefixes: dict[str, str] = {}
-    for namespace in bundle._namespaces.get_registered_namespaces():
-        prefixes[namespace.prefix] = namespace.uri
-    if bundle._namespaces._default:
-        prefixes["default"] = bundle._namespaces._default.uri
-    if prefixes:
-        container["prefix"] = prefixes
+    # filled as names are written; removed below if still empty
+    container["prefix"] = prefix_map.prefixes
 
     id_generator = AnonymousIDGenerator()
 
@@ -235,17 +346,17 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
     for record in bundle._records:
         rec_type = record.get_type()
         rec_label = PROV_N_MAP[rec_type]
-        identifier = str(real_or_anon_id(record))
+        identifier = qname_text(real_or_anon_id(record))
 
         record_json: dict[str, Any] = {}
         if record._attributes:
             for attr, values in record._attributes.items():
                 if not values:
                     continue
-                attr_name = str(attr)
+                attr_name = qname_text(attr)
                 if attr in PROV_ATTRIBUTE_QNAMES:
                     # TODO: QName export
-                    record_json[attr_name] = str(first(values))
+                    record_json[attr_name] = qname_text(first(values))
                 elif attr in PROV_ATTRIBUTE_LITERALS:
                     record_json[attr_name] = _xsd_datetime_text(
                         first(values)  # type: ignore[arg-type]
@@ -254,12 +365,13 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
                     if len(values) == 1:
                         # single value
                         record_json[attr_name] = encode_json_representation(
-                            first(values)
+                            first(values), qname_text
                         )
                     else:
                         # multiple values
                         record_json[attr_name] = [
-                            encode_json_representation(value) for value in values
+                            encode_json_representation(value, qname_text)
+                            for value in values
                         ]
         # Check if the container already has the id of the record
         if identifier not in container[rec_label]:
@@ -275,6 +387,8 @@ def encode_json_container(bundle: ProvBundle) -> ProvJSONDict:
             # now append the new record to the list
             container[rec_label][identifier].append(record_json)
 
+    if not prefix_map.prefixes:
+        del container["prefix"]
     return container
 
 
@@ -574,7 +688,9 @@ def _decode_formal_attribute(
     return value, membership_extra_members
 
 
-def encode_json_representation(value: Any) -> Any:
+def encode_json_representation(
+    value: Any, qname_text: Callable[[object], str] = str
+) -> Any:
     """Encode a single non-formal attribute value to its PROV-JSON representation.
 
     Args:
@@ -584,6 +700,9 @@ def encode_json_representation(value: Any) -> Any:
             :class:`~prov.identifier.Identifier`, a plain ``int``/``float``
             (typed by :func:`~prov.model.canonical_xsd_datatype`), or a
             plain JSON-native value.
+        qname_text: Writes a qualified name (the value or a literal's
+            datatype); the container's ``_JSONPrefixMap.qname_text`` in
+            :func:`encode_json_container`.
 
     Returns:
         A ``{"$": ..., "type": ...}`` (optionally ``"lang"``) dict for typed
@@ -591,22 +710,21 @@ def encode_json_representation(value: Any) -> Any:
         JSON-representable (e.g. plain ``str``/``bool``).
     """
     if isinstance(value, Literal):
-        return literal_json_representation(value)
+        return literal_json_representation(value, qname_text)
     elif isinstance(value, datetime.datetime):
         return {"$": _xsd_datetime_text(value), "type": "xsd:dateTime"}
     elif isinstance(value, QualifiedName):
-        # TODO Manage prefix in the whole structure consistently
         # #168: the PROV-JSON submission (§3.1.2) types QualifiedName values
         # as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0 choice)
         # remains accepted on input for backward compatibility.
-        return {"$": str(value), "type": str(XSD_QNAME)}
+        return {"$": qname_text(value), "type": str(XSD_QNAME)}
     elif isinstance(value, Identifier):
         return {"$": value.uri, "type": "xsd:anyURI"}
     elif (datatype := canonical_xsd_datatype(value)) is not None:
         # int/float: the submission's typedLiteral schema requires a string
         # "$" (#246); the datatype is magnitude-aware for ints (#244/#256).
         return {
-            "$": repr(value) if isinstance(value, float) else str(value),
+            "$": _xsd_double_text(value) if isinstance(value, float) else str(value),
             "type": str(datatype),
         }
     else:
@@ -674,11 +792,14 @@ def decode_json_representation(
         return literal
 
 
-def literal_json_representation(literal: Literal) -> dict[str, str]:
+def literal_json_representation(
+    literal: Literal, qname_text: Callable[[object], str] = str
+) -> dict[str, str]:
     """Encode a :class:`~prov.model.Literal` to its PROV-JSON dict representation.
 
     Args:
         literal: Literal to encode.
+        qname_text: Writes the datatype; see :func:`encode_json_representation`.
 
     Returns:
         ``{"$": value, "lang": langtag}`` if the literal has a language tag,
@@ -689,4 +810,4 @@ def literal_json_representation(literal: Literal) -> dict[str, str]:
     if langtag:
         return {"$": value, "lang": langtag}
     else:
-        return {"$": value, "type": str(datatype)}
+        return {"$": value, "type": qname_text(datatype)}

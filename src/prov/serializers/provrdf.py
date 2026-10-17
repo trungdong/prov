@@ -50,7 +50,7 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
@@ -123,7 +123,9 @@ class _FullPrecisionDoubleLiteral(RDFLiteral):
     Python's default ``%e`` precision (~7 significant digits) -- discarding
     precision regardless of the literal's actual stored lexical form (#225).
     Forcing the non-abbreviated ``_literal_n3`` path keeps our full-precision
-    lexical (``repr(value)``) intact in every RDF output format.
+    lexical (``_xsd_double_text(value)``, the XSD form with ``INF``, ``-INF`` and
+    ``NaN`` for non-finite values and float's repr otherwise) intact in every RDF
+    output format.
     """
 
     def _literal_n3(self, use_plain: bool = False, qname_callback: Any = None) -> str:
@@ -544,8 +546,13 @@ class ProvRDFSerializer(Serializer):
             # the full-precision lexical form always applies here: a datatype
             # that skips rdflib's precision-losing bare-double abbreviation
             # (#225) on output.
+
+            # normalize=False: rdflib would otherwise rewrite the lexical
+            # form to Python's str() ('inf', 'nan').
             return _FullPrecisionDoubleLiteral(
-                repr(value), datatype=LITERAL_XSDTYPE_MAP[type(value)]
+                _xsd_double_text(value),
+                datatype=LITERAL_XSDTYPE_MAP[type(value)],
+                normalize=False,
             )
         else:
             return RDFLiteral(value)

@@ -8,7 +8,9 @@ only the genuinely RDF-specific cases.
 
 import datetime
 import logging
+import math
 import os
+import re
 import struct
 import warnings
 from glob import glob
@@ -1332,3 +1334,26 @@ def test_metachar_attribute_keys_round_trip_through_provo(build) -> None:
     build(document)
     content = document.serialize(format="rdf")
     assert ProvDocument.deserialize(content=content, format="rdf") == document
+
+
+@pytest.mark.parametrize("rdf_format", ["xml", "nt", "nquads"])
+def test_non_finite_doubles_are_written_in_xsd_spelling(rdf_format) -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity(
+        "ex:e",
+        {"ex:p": float("inf"), "ex:n": float("-inf"), "ex:q": float("nan")},
+    )
+    text = document.serialize(format="rdf", rdf_format=rdf_format)
+    quote = ">{}<" if rdf_format == "xml" else '"{}"'
+    for spelling in ("INF", "-INF", "NaN"):
+        assert quote.format(spelling) in text
+    assert re.search(r"\b(?:inf|nan)\b", text) is None
+    reloaded = ProvDocument.deserialize(
+        content=text, format="rdf", rdf_format=rdf_format
+    )
+    (record,) = reloaded.get_records(pm.ProvEntity)
+    values = {attr.localpart: value for attr, value in record.attributes}
+    assert math.isinf(values["p"]) and values["p"] > 0
+    assert math.isinf(values["n"]) and values["n"] < 0
+    assert math.isnan(values["q"])

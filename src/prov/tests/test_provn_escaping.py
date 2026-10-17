@@ -3,7 +3,7 @@
 
 import pytest
 
-from prov.identifier import Namespace
+from prov.identifier import Identifier, Namespace
 from prov.model import Literal, ProvDocument, ProvWarning
 
 METACHARS = "='(),:;[]"
@@ -272,3 +272,16 @@ def test_code_point_escapes_round_trip() -> None:
     )
     document = ProvDocument.deserialize(content=text, format="provn")
     assert '"café \U0001f600"' in _roundtrips(document)
+
+
+def test_any_uri_value_with_quote_and_backslash_round_trips() -> None:
+    document = _doc()
+    document.entity("ex:e", {"ex:v": Identifier('http://example.org/a"b\\c')})
+    assert '"http://example.org/a\\"b\\\\c" %% xsd:anyURI' in _roundtrips(document)
+
+
+@pytest.mark.parametrize("uri", ["http://example.org/a\nb", "http://example.org/a\rb"])
+def test_any_uri_value_with_a_line_break_round_trips(uri) -> None:
+    document = _doc()
+    document.entity("ex:e", {"ex:v": Identifier(uri)})
+    _roundtrips(document)
