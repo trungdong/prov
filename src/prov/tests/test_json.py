@@ -508,8 +508,8 @@ def test_had_member_array_without_a_collection_reads() -> None:
 
 def test_had_member_members_resolve_alike() -> None:
     # Every member resolves as the first one does. A later member with an
-    # undeclared prefix raised ProvExceptionInvalidQualifiedName.
-    def members(entities: list[str]) -> list[set[Any]]:
+    # undeclared prefix, or a null, raised ProvExceptionInvalidQualifiedName.
+    def members(entities: list[str | None]) -> list[set[Any]]:
         document = _read_quietly(
             _json(
                 {
@@ -522,6 +522,7 @@ def test_had_member_members_resolve_alike() -> None:
         return [r.get_attribute("prov:entity") for r in document.get_records()]
 
     assert members(["foo:e1", "ex:e2"]) == members(["ex:e2", "foo:e1"])[::-1]
+    assert members([None, "ex:e2"]) == members(["ex:e2", None])[::-1]
 
 
 @pytest.mark.parametrize(

@@ -96,8 +96,8 @@ The records' remaining ("extra") attributes are unioned onto the merged record. 
 held in a set, so identical values are deduplicated while distinct values all accumulate.
 Records with a unique identifier, and records with no identifier at all, pass through
 untouched. So do `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records,
-even when several share an identifier. PROV-DM gives these four relations no identifier,
-so the specification has nothing to merge them on.
+even when several share an identifier. PROV-DM and PROV-Links give these four relations no
+identifier, so the specifications have nothing to merge them on.
 
 `unified()` is the only place in `prov` that can raise over a same-identifier conflict.
 Building or asserting records with `bundle.entity(...)`, `bundle.activity(...)` and the

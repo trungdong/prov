@@ -195,7 +195,7 @@ _IDENTIFIED_RELATIONS = frozenset(
 )
 # Constraint 53's nine pairwise-disjoint relations -- see the comment above.
 _PAIRWISE_DISJOINT_RELATIONS = _IDENTIFIED_RELATIONS - {PROV_DERIVATION, PROV_INFLUENCE}
-# The relations PROV-DM gives no identifier, which unified() never merges.
+# Relations PROV-DM and PROV-Links give no identifier; unified() never merges them.
 _KEYLESS_RELATIONS = frozenset(
     {PROV_ALTERNATE, PROV_SPECIALIZATION, PROV_MENTION, PROV_MEMBERSHIP}
 )
@@ -749,8 +749,8 @@ class ProvBundle:
         — while their remaining attributes are unioned. Records with a unique
         identifier, or no identifier, pass through unchanged. So do
         ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
-        records, even when several share an identifier, since PROV-DM gives
-        these relations no identifier to merge on.
+        records, even when several share an identifier, since PROV-DM and
+        PROV-Links give these relations no identifier to merge on.
 
         This is not the specification's full normalization: the uniqueness
         constraints keyed on something other than the record identifier
