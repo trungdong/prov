@@ -4,6 +4,7 @@ import pytest
 
 nx = pytest.importorskip("networkx", reason="prov.graph requires the graph extra")
 
+from prov.constants import PROV_ATTR_COLLECTION, PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.graph import graph_to_prov, prov_to_graph
 from prov.model import ProvActivity, ProvDocument, ProvEntity, ProvWarning
 from prov.tests.examples import primer_example, tests
@@ -137,3 +138,14 @@ def test_ignores_edges_whose_relation_is_not_a_prov_record() -> None:
     prov_doc = graph_to_prov(g)
 
     assert list(prov_doc.get_records()) == []
+
+
+def test_equal_memberships_sharing_an_identifier_give_two_edges(document) -> None:
+    # unified() leaves hadMember out of the merge by identifier (#530), so two
+    # equal memberships with one identifier stay two edges.
+    document.entity("ex:c")
+    document.entity("ex:e")
+    attributes = {PROV_ATTR_COLLECTION: "ex:c", PROV_ATTR_ENTITY: "ex:e"}
+    for _ in range(2):
+        document.new_record(PROV_MEMBERSHIP, "ex:m", attributes)
+    assert prov_to_graph(document).number_of_edges() == 2

@@ -2,6 +2,7 @@
 
 import io
 import json
+import warnings
 from pathlib import Path
 
 import pytest
@@ -368,6 +369,13 @@ def test_deserialize_membership_empty_entity_array_raises() -> None:
         ProvDocument.deserialize(content=_membership_payload([]), format="jsonld")
 
 
+def test_deserialize_membership_member_that_does_not_resolve_raises() -> None:
+    with pytest.raises(ProvJSONLDException, match="'foo:e2'"):
+        ProvDocument.deserialize(
+            content=_membership_payload(["ex:e1", "foo:e2"]), format="jsonld"
+        )
+
+
 def _identified_membership_payload(entities) -> str:
     return json.dumps(
         {
@@ -386,15 +394,18 @@ def _identified_membership_payload(entities) -> str:
     )
 
 
-def test_deserialize_identified_membership_array_drops_the_id_with_a_warning() -> None:
+def test_deserialize_identified_membership_array_gives_every_member_the_id() -> None:
+    # Submission section 4.18 lets a Membership carry an @id and an array of
+    # members; every record of the fan-out keeps the @id and the attributes.
     payload = _identified_membership_payload(["ex:e1", "ex:e2"])
-    with pytest.warns(ProvWarning, match="ex:m"):
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
         doc = ProvDocument.deserialize(content=payload, format="jsonld")
     memberships = sorted(doc.get_records(ProvMembership), key=lambda r: str(r.args[1]))
-    assert [r.identifier for r in memberships] == [None, None]
+    assert [str(r.identifier) for r in memberships] == ["ex:m", "ex:m"]
     assert [str(r.args[1]) for r in memberships] == ["ex:e1", "ex:e2"]
     assert all(list(r.get_attribute(PROV["label"])) == ["members"] for r in memberships)
-    assert doc.unified() is not None  # unification accepts the unidentified records
+    assert len(list(doc.unified().get_records(ProvMembership))) == 2
 
 
 def test_deserialize_identified_membership_with_one_member_keeps_the_id() -> None:

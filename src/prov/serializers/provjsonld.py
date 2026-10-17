@@ -14,7 +14,6 @@ from importlib.resources import files
 from typing import Any
 
 from prov import Error
-from prov._warnings import warn
 from prov.constants import (
     PROV_ATTR_ENTITY,
     PROV_ATTRIBUTE_LITERALS,
@@ -48,7 +47,7 @@ from prov.model import (
 )
 from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
-from prov.serializers.provjson import _JSONPrefixMap
+from prov.serializers.provjson import _add_memberships, _JSONPrefixMap
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -660,12 +659,9 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             :func:`encode_jsonld_statement`.
         bundle: Bundle to add the decoded record to.
 
-    Note: an identified Membership's array of members yields one record per
-    member; PROV-DM's ``hadMember`` is binary, so records sharing one
-    identifier cannot be unified. The ``"@id"`` is kept only when the array
-    has exactly one member; with more than one, every decoded record is
-    unidentified and a :class:`~prov.model.ProvWarning` names the dropped
-    ``"@id"`` and the member count.
+    Note: a Membership's array of members yields one record per member, each
+    with the statement's ``"@id"`` and attributes, since PROV-DM's
+    ``hadMember`` is binary.
 
     Raises:
         ProvJSONLDException: If ``item``'s ``"@type"`` is missing, is not a
@@ -696,21 +692,10 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'The "entity" array of {type_term} is empty; found {item!r}'
         )
-    member_id = rec_id
-    if rec_id is not None and len(members) > 1:
-        warn(
-            f"Membership {rec_id!r} lists {len(members)} members; PROV-DM membership "
-            "is binary, so the members are decoded as unidentified hadMember records"
-        )
-        member_id = None
-    for member in members:
-        entity = _decode_formal_qname(bundle, member, type_term, "entity")
-        bundle.new_record(
-            rec_type,
-            member_id,
-            {**attributes, PROV_ATTR_ENTITY: entity},
-            list(other_attributes),
-        )
+    resolved = [
+        _decode_formal_qname(bundle, member, type_term, "entity") for member in members
+    ]
+    _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:

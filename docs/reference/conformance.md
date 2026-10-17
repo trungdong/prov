@@ -186,11 +186,8 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   no expansion, no remote contexts.
 - ProvToolbox's `prov:`-prefixed spellings of the type and special terms are accepted.
 - An array-valued `entity` on a `Membership` statement, which the submission (section 4.18)
-  allows and ProvToolbox always writes, decodes to one `hadMember` per member; an empty
-  array raises `ProvJSONLDException`. If the array has several members and the statement
-  also carries an `@id`, the resulting records are left unidentified with a `ProvWarning`,
-  because records sharing one identifier cannot be unified. If the array has exactly one
-  member, the `@id` is kept.
+  allows and ProvToolbox always writes, decodes to one `hadMember` per member, each with
+  the statement's `@id` and attributes; an empty array raises `ProvJSONLDException`.
 - Attribute values follow the 2026-10-14 revision of the PROV-JSONLD schema
   ([openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7)). A node
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare

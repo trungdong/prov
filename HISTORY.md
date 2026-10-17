@@ -104,6 +104,25 @@
 - A PROV-JSON formal attribute written as an empty array, such as `"prov:entity": []`,
   raises `ProvJSONException` naming the record and the attribute. It raised a bare
   `IndexError`
+- `unified()` leaves `alternateOf`, `specializationOf`, `mentionOf` and `hadMember`
+  records out of the merge by identifier, since PROV-DM and PROV-Links give these
+  relations no identifier (#530). Two such records that shared an identifier and
+  differed raised `ProvUnificationError`; they now pass through unchanged. Two equal
+  ones were merged into one record and now stay two, until `unified()` removes
+  duplicates in 3.3.0 (#548). `prov_to_graph()` and `prov_to_dot()` call `unified()`,
+  so they draw such records as separate edges. On a document that failed to unify only
+  because of such records, `prov_to_graph()` no longer raises and `prov_to_dot()` no
+  longer falls back to the bundle as asserted
+- The PROV-JSON reader gives every record of a `hadMember` whose `prov:entity` is an
+  array the membership's identifier and attributes (#530). Only the first record had
+  them, so the same collection read differently depending on which member came first.
+  A membership with several members and no `prov:collection` reads; it raised
+  `KeyError`. Every member resolves as the first one does, so a later member that does
+  not resolve, such as one with an undeclared prefix or a null, reads as a membership
+  with no entity instead of raising `ProvExceptionInvalidQualifiedName`
+- The PROV-JSONLD reader keeps the `@id` of a `Membership` with several members on every
+  record it reads, as it already did for one member (#530). 3.2.1 dropped the `@id`
+  with a `ProvWarning`, because `unified()` raised on records sharing it
 
 ### Project
 
