@@ -57,6 +57,10 @@
 - The PROV-JSON writer renames a prefix called `default` to `default_1`, or the next free
   suffix (#518). PROV-JSON keeps the `default` key for the default namespace, so the
   prefix read back as the default namespace and the names that used it did not resolve
+- The PROV-N, PROV-JSON, PROV-JSONLD and PROV-XML writers spell the non-finite doubles
+  `INF`, `-INF` and `NaN`, the `xsd:double` lexical forms (#550). They wrote Python's
+  `inf`, `-inf` and `nan`, which are outside the lexical space. The PROV-O writer
+  already wrote the XSD forms, and every reader accepts both
 
 ### Project
 

@@ -22,7 +22,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 
 logger = logging.getLogger(__name__)
@@ -724,7 +724,7 @@ def encode_json_representation(
         # int/float: the submission's typedLiteral schema requires a string
         # "$" (#246); the datatype is magnitude-aware for ints (#244/#256).
         return {
-            "$": repr(value) if isinstance(value, float) else str(value),
+            "$": _xsd_double_text(value) if isinstance(value, float) else str(value),
             "type": str(datatype),
         }
     else:

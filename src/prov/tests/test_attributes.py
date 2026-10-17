@@ -19,6 +19,8 @@ now round-trips through RDF too.
 """
 
 import datetime
+import math
+import re
 
 import pytest
 
@@ -81,3 +83,34 @@ def test_sub_minute_utc_offset_round_trips_as_utc(fmt) -> None:
     )
     assert "+00:00:30" not in document.serialize(format=fmt)
     assert roundtrip_document(document, fmt) == expected
+
+
+def _non_finite_document() -> ProvDocument:
+    document = ProvDocument()
+    document.add_namespace(EX_NS)
+    document.entity(
+        "ex:e",
+        {"ex:p": float("inf"), "ex:n": float("-inf"), "ex:q": float("nan")},
+    )
+    return document
+
+
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+def test_nan_round_trips(fmt) -> None:
+    # NaN is not equal to itself, so it stays out of ATTRIBUTE_VALUES, whose
+    # round trips compare whole documents with ==.
+    (record,) = roundtrip_document(_non_finite_document(), fmt).get_records()
+    (value,) = record.get_attribute("ex:q")
+    assert isinstance(value, float)
+    assert math.isnan(value)
+
+
+_SPELLING = {"provn": '"{}"', "json": '"{}"', "jsonld": '"{}"', "xml": ">{}<"}
+
+
+@pytest.mark.parametrize("fmt", list(_SPELLING))
+def test_non_finite_floats_are_written_in_xsd_spelling(fmt) -> None:
+    text = _non_finite_document().serialize(format=fmt)
+    for spelling in ("INF", "-INF", "NaN"):
+        assert _SPELLING[fmt].format(spelling) in text
+    assert re.search(r"\b(?:inf|nan)\b", text) is None

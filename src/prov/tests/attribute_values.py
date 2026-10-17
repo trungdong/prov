@@ -66,4 +66,6 @@ ATTRIBUTE_VALUES = [
     datetime.datetime.now(),
     Literal(datetime.datetime.now().isoformat(), XSD_DATETIME),
     Literal("aGVsbG8=", XSD["base64Binary"]),
+    float("inf"),
+    float("-inf"),
 ]

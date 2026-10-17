@@ -46,7 +46,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import _xsd_datetime_text
+from prov.model.records import _xsd_datetime_text, _xsd_double_text
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers.provjson import _JSONPrefixMap
 
@@ -186,7 +186,9 @@ def encode_jsonld_value(
     datatype = canonical_xsd_datatype(value)
     if datatype is not None:  # int / float, magnitude-aware (#244/#256)
         return {
-            "@value": repr(value) if isinstance(value, float) else str(value),
+            "@value": _xsd_double_text(value)
+            if isinstance(value, float)
+            else str(value),
             "@type": str(datatype),
         }
     return {"@value": str(value)}

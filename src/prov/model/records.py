@@ -6,6 +6,7 @@ import datetime
 import decimal
 import io
 import logging
+import math
 import os
 import re
 import typing
@@ -357,6 +358,16 @@ def _ensure_multiline_string_triple_quoted(value: str) -> str:
         return f'"{s}"'
 
 
+def _xsd_double_text(value: float) -> str:
+    """The xsd:double lexical form of a float: INF, -INF and NaN for the
+    non-finite values (XSD 1.1 Part 2, numericalSpecialRep), repr() otherwise."""
+    if math.isnan(value):
+        return "NaN"
+    if math.isinf(value):
+        return "INF" if value > 0 else "-INF"
+    return repr(value)
+
+
 def _xsd_datetime_text(value: datetime.datetime) -> str:
     """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
     whole number of minutes (historical LMT offsets) is normalised to UTC."""
@@ -384,7 +395,7 @@ def encoding_provn_value(
     elif isinstance(value, datetime.datetime):
         return f'"{_xsd_datetime_text(value)}" %% xsd:dateTime'
     elif isinstance(value, float):
-        return f'"{value!r}" %% xsd:double'
+        return f'"{_xsd_double_text(value)}" %% xsd:double'
     elif isinstance(value, bool):
         # Before the int branch: bool is an int subtype. "true"/"false" is
         # the lexical form every other PROV-N producer writes.
