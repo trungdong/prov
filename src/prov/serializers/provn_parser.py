@@ -481,9 +481,8 @@ class ProvNParser:
         except ProvNSyntaxError as error:
             self._skip_or_raise(error, start_depth)
         except (ProvException, ValueError, OverflowError) as exc:
-            # A model rejection (e.g. from new_record()) or a bad typed
-            # literal (e.g. int("abc") inside parse_xsd_types()) is reported
-            # as a positioned syntax error and, under lenient, skipped.
+            # A model rejection (e.g. from new_record()) is reported as a
+            # positioned syntax error and, under lenient, skipped.
             wrapped = ProvNSyntaxError(str(exc), start.line, start.column)
             wrapped.__cause__ = exc
             self._skip_or_raise(wrapped, start_depth)

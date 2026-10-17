@@ -876,7 +876,10 @@ class ProvRecord:
             if literal.datatype:
                 # try to convert a generic Literal object to Python standard type
                 # to match the JSON decoding's literal conversion
-                value = parse_xsd_types(literal.value, literal.datatype)
+                try:
+                    value = parse_xsd_types(literal.value, literal.datatype)
+                except (ValueError, OverflowError):
+                    return literal
                 # #235: only collapse the integer family when it is lossless,
                 # i.e. the asserted datatype is the one `prov` would itself
                 # infer for the parsed value. Otherwise, keep the Literal so

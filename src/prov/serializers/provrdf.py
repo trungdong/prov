@@ -708,8 +708,9 @@ class ProvRDFSerializer(Serializer):
                 a namespace for unresolved ``URIRef`` values.
 
         Returns:
-            A :class:`datetime.datetime` for ``xsd:dateTime`` literals, a
-            :class:`~prov.model.Literal` for other typed/tagged literals, a
+            A :class:`datetime.datetime` for a well-formed ``xsd:dateTime``
+            literal, a :class:`~prov.model.Literal` for other typed/tagged
+            literals, a
             resolved (or newly minted) :class:`~prov.identifier.QualifiedName`
             for ``URIRef`` values, or ``literal`` unchanged otherwise.
         """
@@ -773,12 +774,9 @@ class ProvRDFSerializer(Serializer):
             literal: RDF literal term to decode.
 
         Returns:
-            A :class:`datetime.datetime` for ``xsd:dateTime`` literals, or a
-            :class:`~prov.model.Literal` for any other typed/tagged literal.
-
-        Raises:
-            ValueError: If an ``xsd:dateTime``, ``xsd:gYear``, or
-                ``xsd:gYearMonth`` literal's lexical form cannot be parsed.
+            A :class:`datetime.datetime` for a well-formed ``xsd:dateTime``
+            literal, or a :class:`~prov.model.Literal` for any other
+            typed/tagged literal, ill-formed ones included.
         """
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
@@ -788,12 +786,12 @@ class ProvRDFSerializer(Serializer):
         if datatype == XSD["dateTime"]:
             parsed = pm.parse_xsd_datetime(str(literal))
             if parsed is None:
-                raise ValueError(f"Invalid xsd:dateTime literal: {literal}")
+                return pm.Literal(str(literal), pm.XSD_DATETIME)
             return parsed
         if datatype == XSD["gYear"]:
             year_match = _XSD_GYEAR_RE.match(str(literal))
             if year_match is None:
-                raise ValueError(f"Invalid xsd:gYear literal: {literal}")
+                return pm.Literal(str(literal), self.valid_identifier(datatype))
             return pm.Literal(
                 int(year_match.group(1)),
                 datatype=self.valid_identifier(datatype),
@@ -801,7 +799,7 @@ class ProvRDFSerializer(Serializer):
         if datatype == XSD["gYearMonth"]:
             ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
             if ym_match is None:
-                raise ValueError(f"Invalid xsd:gYearMonth literal: {literal}")
+                return pm.Literal(str(literal), self.valid_identifier(datatype))
             return pm.Literal(
                 f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
                 datatype=self.valid_identifier(datatype),

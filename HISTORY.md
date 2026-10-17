@@ -66,6 +66,13 @@
 - The PROV-N writer escapes an `xsd:anyURI` value as it does a string (#526). A value
   containing `"`, `\`, a carriage return or a line feed produced PROV-N that the reader
   rejected
+- A typed literal whose text is outside its datatype's lexical space, such as
+  `"abc" %% xsd:int`, stays a `Literal` with its text and datatype, as
+  `"maybe" %% xsd:boolean` already did (#522). An ill-formed `xsd:int`, `xsd:long`,
+  `xsd:integer` or `xsd:double` made every reader, and the model given such a `Literal`
+  in code, raise `ValueError`; the PROV-N reader reported it as a syntax error, and its
+  `lenient` profile skipped the statement. The PROV-O reader also raised `ValueError` for
+  an ill-formed `xsd:dateTime`, `xsd:gYear` or `xsd:gYearMonth`
 
 ### Project
 

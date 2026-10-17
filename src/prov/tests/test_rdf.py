@@ -224,6 +224,21 @@ def test_decode_xsd_qname_gyear_gyearmonth_round_trip() -> None:
     assert {lit.value for lit in e1.get_attribute("ex:qname")} == {"ex:e1"}
 
 
+@pytest.mark.parametrize(
+    ("datatype", "text"),
+    [("gYear", "20x0"), ("gYearMonth", "2020-5")],
+)
+def test_ill_formed_gyear_and_gyearmonth_stay_literals(datatype, text) -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1", {"ex:v": pm.Literal(text, datatype=pm.XSD[datatype])})
+
+    ttl = doc.serialize(format="rdf", rdf_format="turtle")
+    reloaded = ProvDocument.deserialize(content=ttl, format="rdf", rdf_format="turtle")
+
+    assert reloaded == doc
+
+
 def test_long_prefix_survives_turtle_serialization() -> None:
     # #96 repro (distilled): a namespace prefix with a long, unusual local
     # name must keep its own `@prefix` declaration in turtle output rather

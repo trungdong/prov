@@ -59,9 +59,18 @@ _EXAMPLE_MARKS = {
     "W3C Publication 1": QNAME_LOCAL_PART_SKIP,
 }
 
+# An ill-formed typed literal keeps its datatype, so PROV-XML writes it as an
+# xsi:type the schema then checks the text against.
+ILL_FORMED_LITERAL_SKIP = pytest.mark.skip(
+    reason="the value is outside its datatype's lexical space by design"
+)
+
 _ATTRIBUTE_VALUE_MARKS = {
     1: LANG_TAG_ON_NON_LABEL_SKIP,  # Literal("un lieu", langtag="fr")
     2: LANG_TAG_ON_NON_LABEL_SKIP,  # Literal("a place", langtag="en")
+    32: ILL_FORMED_LITERAL_SKIP,  # Literal("abc", XSD_INT)
+    33: ILL_FORMED_LITERAL_SKIP,  # Literal("abc", XSD_DOUBLE)
+    34: ILL_FORMED_LITERAL_SKIP,  # Literal("2012-13-01T00:00:00", XSD_DATETIME)
 }
 
 

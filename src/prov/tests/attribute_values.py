@@ -69,4 +69,7 @@ ATTRIBUTE_VALUES = [
     float("inf"),
     float("-inf"),
     Identifier('http://example.org/a"b\\c'),
+    Literal("abc", XSD_INT),
+    Literal("abc", XSD_DOUBLE),
+    Literal("2012-13-01T00:00:00", XSD_DATETIME),
 ]
