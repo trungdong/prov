@@ -1075,7 +1075,9 @@ def test_attribute_named_after_a_formal_warns_and_reads_as_that_formal(
         f" of '{keyword}', which PROV-N gives only by position."
         " prov 3.3.0 will reject this"
     ]
-    assert doc == read_statement(positional, profile)[0]
+    positional_doc, positional_messages = read_statement(positional, profile)
+    assert positional_messages == []
+    assert doc == positional_doc
 
 
 def test_conflicting_formal_attribute_is_skipped_without_a_warning() -> None:
@@ -1092,6 +1094,19 @@ def test_conflicting_formal_attribute_is_skipped_without_a_warning() -> None:
 def test_reserved_attribute_that_is_not_a_formal_does_not_warn() -> None:
     _, messages = read_statement("wasGeneratedBy(ex:e, ex:a, -, [prov:role='ex:r'])")
     assert messages == []
+
+
+def test_formal_attribute_is_matched_by_name_not_spelling() -> None:
+    _, messages = parse_with_warnings(
+        "document\nprefix ex <http://example.org/>\n"
+        "prefix p <http://www.w3.org/ns/prov#>\n"
+        "wasGeneratedBy(ex:e, -, -, [p:activity='ex:a'])\nendDocument"
+    )
+    assert messages == [
+        "line 4, column 29: 'p:activity' names the 'activity' argument of"
+        " 'wasGeneratedBy', which PROV-N gives only by position."
+        " prov 3.3.0 will reject this"
+    ]
 
 
 def test_formal_attribute_warning_reaches_the_caller() -> None:
@@ -1166,18 +1181,23 @@ def test_strict_identifier_and_attributes_on_a_bare_relation_warn_twice() -> Non
 
 
 @pytest.mark.parametrize("profile", ["default", "lenient"])
-@pytest.mark.parametrize(("statement", "what", "marker"), BARE_RELATION_CASES)
-def test_bare_relation_warns_only_under_strict(
-    profile, statement, what, marker
-) -> None:
+@pytest.mark.parametrize("statement", [case[0] for case in BARE_RELATION_CASES])
+def test_bare_relation_warns_only_under_strict(profile, statement) -> None:
     _, messages = read_statement(statement, profile)
     assert messages == []
 
 
-def test_strict_identifier_and_attributes_on_other_relations_do_not_warn() -> None:
-    _, messages = read_statement(
-        'wasDerivedFrom(ex:d; ex:e2, ex:e1, [ex:k="x"])', "strict"
-    )
+@pytest.mark.parametrize(
+    "statement",
+    [
+        'wasDerivedFrom(ex:d; ex:e2, ex:e1, [ex:k="x"])',
+        "prov:mentionOf(ex:m; ex:e2, ex:e1, ex:b)",
+    ],
+)
+def test_strict_identifier_and_attributes_on_other_relations_do_not_warn(
+    statement,
+) -> None:
+    _, messages = read_statement(statement, "strict")
     assert messages == []
 
 
@@ -1189,6 +1209,10 @@ def test_strict_identifier_and_attributes_on_other_relations_do_not_warn() -> No
             "a statement follows a bundle",
         ),
         ("hadMember(ex:m; ex:c, ex:e)", "'hadMember' has an identifier"),
+        (
+            'specializationOf(ex:e2, ex:e1, [ex:k="x"])',
+            "'specializationOf' has an attribute block",
+        ),
     ],
 )
 def test_strict_statement_warning_reaches_the_caller(body, match) -> None:

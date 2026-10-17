@@ -342,10 +342,10 @@ def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
                 document = ProvDocument.deserialize(
                     str(path), format="provn", profile="strict"
                 )
-    reloaded = ProvDocument.deserialize(
-        content=document.get_provn(strict=True), format="provn", profile="strict"
-    )
-    assert reloaded == document
+        reloaded = ProvDocument.deserialize(
+            content=document.get_provn(strict=True), format="provn", profile="strict"
+        )
+        assert reloaded == document
 
 
 @pytest.mark.parametrize("path", _param("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))

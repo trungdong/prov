@@ -81,5 +81,7 @@ string, an IRI or a comment does not warn.
 | `'hadMember' has an identifier` (strict profile) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
 | `'specializationOf' has an attribute block` (strict profile) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
 
-`alternateOf` takes neither an identifier nor an attribute block either. The
-`default` and `lenient` profiles accept all three constructs without a warning.
+The identifier and attribute-block warnings name whichever of `alternateOf`,
+`specializationOf` and `hadMember` carries one. The `default` and `lenient`
+profiles accept the three strict-profile constructs in this table without a
+warning.
