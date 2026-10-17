@@ -216,7 +216,6 @@ module = [
     "prov.tests.test_examples",
     "prov.tests.test_extras",
     "prov.tests.test_graphs",
-    "prov.tests.test_identifier",
     "prov.tests.test_identifier_slots",
     "prov.tests.test_json",
     "prov.tests.test_json_schema",

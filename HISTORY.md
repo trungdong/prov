@@ -32,6 +32,10 @@
 - A language tag that does not have the form of a BCP 47 tag, such as `en_US`, or an
   empty one, from any reader or from code (#472). `prov` still keeps the tag as given,
   and the PROV-N writer still writes `en_US` as `en-US`
+- A qualified name whose local part PROV-N cannot write without changing the IRI, such
+  as `ex:a b`, `ex:a"b` or `ex:50%`, from any reader or from code (#524). `prov` still
+  keeps the name as given, and the PROV-N writer still percent-encodes the character.
+  The writer now also warns when it writes a `%` that starts no escape as `%25`
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that

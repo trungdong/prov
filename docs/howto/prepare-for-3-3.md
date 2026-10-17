@@ -46,8 +46,9 @@ pytest's option, a pytest configuration or a filter in code instead.
 Each message ends with what 3.3.0 does instead, such as
 "prov 3.3.0 will reject this". A message from a reader starts with the position
 of the input: the line and column in PROV-N, or the record identifier and
-attribute name in PROV-JSON. A message about a language tag comes from the
-model, wherever the value was read or built, so it names the value instead.
+attribute name in PROV-JSON. A message about a language tag or a local part
+comes from the model, wherever the value was read or built, so it names the
+value instead.
 
 ## PROV-N declarations
 
@@ -111,6 +112,21 @@ time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 number of groups of letters and digits that each start with a hyphen. `prov`
 does not look the tag up in the BCP 47 registry. The PROV-N reader already
 rejects these tags.
+
+## Local parts
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
+
+A local part cannot hold a space, a control character, a character such as `"`
+or `|` that is neither a name character nor one of `/@~&+*?#$!`, or a `%` that
+two hexadecimal digits do not follow. Nor can it start with U+00B7 (middle dot)
+or a combining mark. The PROV-N writer percent-encodes such a character, so a
+PROV-N reader recovers a different IRI.
+
+The warning fires when the name is first built. `unified()`, `flattened()` and
+copies of the document reuse the name and do not warn again.
 
 ## PROV-JSON
 

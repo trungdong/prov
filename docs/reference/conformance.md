@@ -130,7 +130,9 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   an escape is therefore unescaped.
 - **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, is
   percent-encoded with a `ProvWarning`, and the identifier reads back as the encoded IRI, so
-  `ex:a b` becomes `ex:a%20b`. PROV-O rejects an IRI containing a space. A namespace prefix
+  `ex:a b` becomes `ex:a%20b`. A `%` that starts no escape is written as `%25`, with the
+  same warning. From 3.2.3 such a name also warns when it is built, and 3.3.0 rejects it
+  ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
   `.`); `prov` does not validate or rename one that is not.
 - **C5. Empty language tag.** `Literal("hi", langtag="")` survives PROV-XML only, as
