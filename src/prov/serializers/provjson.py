@@ -644,7 +644,7 @@ def _decode_record_instance(
         )
         if attr in PROV_ATTRIBUTES:
             value, extra_members = _decode_formal_attribute(
-                rec_type, attr, values, bundle
+                rec_type, rec_id, attr_name, attr, values, bundle
             )
             attributes[attr] = value
             if extra_members is not None:
@@ -670,6 +670,8 @@ def _decode_record_instance(
 
 def _decode_formal_attribute(
     rec_type: QualifiedName,
+    rec_id: str,
+    attr_name: str,
     attr: QualifiedName,
     values: Any,
     bundle: ProvBundle,
@@ -678,6 +680,8 @@ def _decode_formal_attribute(
 
     Args:
         rec_type: The enclosing record's PROV-N record type.
+        rec_id: The enclosing record's identifier string, for messages.
+        attr_name: The attribute's PROV-JSON key, for messages.
         attr: The formal attribute being decoded.
         values: The raw value(s) read from the PROV-JSON element, either a
             single value or a JSON array.
@@ -690,15 +694,23 @@ def _decode_formal_attribute(
         relations (``None`` otherwise).
 
     Raises:
-        ProvJSONException: If ``values`` is a JSON array with more than one
-            value, other than the documented ``hadMember`` hack.
+        ProvJSONException: If ``values`` is an empty JSON array, or a JSON
+            array with more than one value other than the documented
+            ``hadMember`` hack; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     membership_extra_members = None
     if isinstance(values, list):
+        if not values:
+            raise ProvJSONException(
+                f"{_position(rec_id, attr_name)}the value is an empty array"
+            )
+        is_members = rec_type == PROV_MEMBERSHIP and attr == PROV_ATTR_ENTITY
         # only one value is allowed
         if len(values) > 1:
             # unless it is the membership hack
-            if rec_type == PROV_MEMBERSHIP and attr == PROV_ATTR_ENTITY:
+            if is_members:
                 # This is a membership relation with multiple entities
                 # HACK: create multiple membership relations, one for each
                 # entity
@@ -716,15 +728,52 @@ def _decode_formal_attribute(
                 logger.error(error_msg)
                 raise ProvJSONException(error_msg)
         else:
+            if not is_members:
+                _warn_rejection("the value is written as an array", rec_id, attr_name)
             value = values[0]
     else:
         value = values
-    value = (
-        valid_qualified_name(bundle, value)
-        if attr in PROV_ATTRIBUTE_QNAMES
-        else parse_xsd_datetime(value)
+    if attr in PROV_ATTRIBUTE_QNAMES:
+        return valid_qualified_name(bundle, value), membership_extra_members
+    return _decode_time(rec_id, attr_name, value, bundle), membership_extra_members
+
+
+def _decode_time(rec_id: str, attr_name: str, value: Any, bundle: ProvBundle) -> Any:
+    """Decode the value of ``prov:time``, ``prov:startTime`` or ``prov:endTime``.
+
+    Args:
+        rec_id: The enclosing record's identifier string, for messages.
+        attr_name: The attribute's PROV-JSON key, for messages.
+        value: A string, or a value object typed ``xsd:dateTime``.
+        bundle: Bundle used to resolve the value object's ``"type"``.
+
+    Returns:
+        The parsed :class:`~datetime.datetime`, or ``None`` for a string
+        that is not an ``xsd:dateTime``, which is dropped with a warning.
+
+    Raises:
+        ProvJSONException: If ``value`` is neither a string nor a value
+            object typed ``xsd:dateTime`` whose ``"$"`` is one.
+    """
+    if isinstance(value, str):
+        parsed = parse_xsd_datetime(value)
+        if parsed is None:
+            _warn_rejection(
+                f"{value!r} is not an xsd:dateTime and is dropped", rec_id, attr_name
+            )
+        return parsed
+    if (
+        isinstance(value, dict)
+        and value.keys() == {"$", "type"}
+        and isinstance(value["$"], str)
+        and isinstance(value["type"], str)
+        and valid_qualified_name(bundle, value["type"]) == XSD_DATETIME
+        and (parsed := parse_xsd_datetime(value["$"])) is not None
+    ):
+        return parsed
+    raise ProvJSONException(
+        f"{_position(rec_id, attr_name)}expected an xsd:dateTime, found {value!r}"
     )
-    return value, membership_extra_members
 
 
 def _position(rec_id: str | None, attr_name: str | None) -> str:

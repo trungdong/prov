@@ -31,6 +31,12 @@
   `Literal`
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
+- A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
+  is not an `xsd:dateTime`, such as `"not-a-time"` or the date `"2011-11-16"` (#555).
+  `prov` still drops the time
+- A PROV-JSON formal attribute written as a one-element array, such as
+  `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
+  `hadMember` are an array by design and do not warn
 
 ### Fixes
 
@@ -83,6 +89,14 @@
   `xsd:dateTime`, so PROV-N's `[prov:time="2012-01-01T00:00:00" %% xsd:dateTime]` reads
   (#515). It raised "Invalid value for attribute prov:time", and so did the model given
   the same `Literal` in code. Text outside the `xsd:dateTime` lexical space still raises
+- The PROV-JSON reader accepts `prov:time`, `prov:startTime` and `prov:endTime` written
+  as a value object, `{"$": "2012-01-01T00:00:00", "type": "xsd:dateTime"}` (#554). It
+  raised `AttributeError`. A value object with another datatype or an ill-formed text,
+  and a time that is neither a string nor a value object, raise `ProvJSONException`
+  naming the record and the attribute
+- A PROV-JSON formal attribute written as an empty array, such as `"prov:entity": []`,
+  raises `ProvJSONException` naming the record and the attribute. It raised a bare
+  `IndexError`
 
 ### Project
 

@@ -104,6 +104,14 @@ time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 | Warning | Example | Write instead |
 |---|---|---|
 | `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For several values, an array, `"ex:k": ["a", "b"]`. |
+| `'…' is not an xsd:dateTime and is dropped` | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
+| `the value is written as an array` | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
 
 The repeated-key warning names only the key, because Python's JSON parser
 reports no position for it.
+
+Every other message starts with the record identifier and the attribute name,
+as in `record 'ex:g', attribute 'prov:entity': the value is written as an array`.
+A formal attribute is one of the record's arguments in PROV-N, such as
+`prov:entity` or `prov:time`. The members of `hadMember` are an array by design
+and do not warn.

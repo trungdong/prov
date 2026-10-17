@@ -6,7 +6,9 @@ pytest-native ``fmt`` matrix (see ``conftest.py`` and the ``test_statements``/
 only the genuinely JSON-specific cases.
 """
 
+import datetime
 import json
+import re
 import warnings
 from collections.abc import Iterator
 from typing import Any
@@ -362,3 +364,130 @@ def test_model_warning_from_a_json_read_names_the_caller() -> None:
             " beyond ±14:00"
         )
     ]
+
+
+_TIMES = [
+    pytest.param(
+        "wasGeneratedBy", {"prov:entity": "ex:e"}, "prov:time", id="generation"
+    ),
+    pytest.param("used", {"prov:activity": "ex:a"}, "prov:time", id="usage"),
+    pytest.param(
+        "wasInvalidatedBy", {"prov:entity": "ex:e"}, "prov:time", id="invalidation"
+    ),
+    pytest.param("wasStartedBy", {"prov:activity": "ex:a"}, "prov:time", id="start"),
+    pytest.param("wasEndedBy", {"prov:activity": "ex:a"}, "prov:time", id="end"),
+    pytest.param("activity", {}, "prov:startTime", id="startTime"),
+    pytest.param("activity", {}, "prov:endTime", id="endTime"),
+]
+
+
+@pytest.mark.parametrize(("section", "attributes", "time_attr"), _TIMES)
+def test_time_reads_from_a_datetime_value_object(
+    section: str, attributes: dict[str, str], time_attr: str
+) -> None:
+    def text(time: object) -> str:
+        return _json({section: {"ex:r": {**attributes, time_attr: time}}})
+
+    document = _read_quietly(text(_DATETIME_OBJECT))
+    assert document == _read_quietly(text(_TIME))
+    (record,) = document.get_records()
+    assert datetime.datetime(2012, 1, 1) in {value for _, value in record.attributes}
+
+
+@pytest.mark.parametrize(
+    "time",
+    [
+        pytest.param({"$": "not-a-time", "type": "xsd:dateTime"}, id="ill-formed"),
+        pytest.param({"$": _TIME, "type": "xsd:string"}, id="other-datatype"),
+        pytest.param({"$": _TIME, "type": "foo:dateTime"}, id="unresolved-datatype"),
+        pytest.param({"$": _TIME}, id="no-datatype"),
+        pytest.param({"$": _TIME, "type": "xsd:dateTime", "lang": "en"}, id="lang"),
+        pytest.param({"$": 2012, "type": "xsd:dateTime"}, id="number"),
+        pytest.param({"$": _TIME, "type": 5}, id="number-datatype"),
+        pytest.param(None, id="null"),
+        pytest.param(5, id="bare-number"),
+    ],
+)
+def test_time_that_is_not_an_xsd_datetime_raises(time: object) -> None:
+    text = _json({"activity": {"ex:a": {"prov:startTime": time}}})
+    expected = (
+        "record 'ex:a', attribute 'prov:startTime': expected an xsd:dateTime,"
+        f" found {time!r}"
+    )
+    with pytest.raises(ProvJSONException, match=re.escape(expected)):
+        ProvDocument.deserialize(content=text, format="json")
+
+
+@pytest.mark.parametrize("time", ["not-a-time", "2011-11-16"])
+@pytest.mark.parametrize(("section", "attributes", "time_attr"), _TIMES)
+def test_bare_time_that_is_not_an_xsd_datetime_warns(
+    section: str, attributes: dict[str, str], time_attr: str, time: str
+) -> None:
+    document, messages = _read_warning(
+        _json({section: {"ex:r": {**attributes, time_attr: time}}})
+    )
+    assert messages == [
+        _rejected(
+            f"record 'ex:r', attribute {time_attr!r}: {time!r} is not an"
+            " xsd:dateTime and is dropped"
+        )
+    ]
+    assert document == _read_quietly(_json({section: {"ex:r": attributes}}))
+
+
+@pytest.mark.parametrize(
+    ("section", "attributes", "attr", "value"),
+    [
+        pytest.param("wasGeneratedBy", {}, "prov:entity", "ex:e", id="qualified-name"),
+        pytest.param("activity", {}, "prov:startTime", _TIME, id="time"),
+        pytest.param(
+            "activity", {}, "prov:startTime", _DATETIME_OBJECT, id="time-value-object"
+        ),
+        pytest.param(
+            "hadMember",
+            {"prov:entity": "ex:e"},
+            "prov:collection",
+            "ex:c",
+            id="collection",
+        ),
+    ],
+)
+def test_formal_attribute_written_as_an_array_warns(
+    section: str, attributes: dict[str, str], attr: str, value: object
+) -> None:
+    document, messages = _read_warning(
+        _json({section: {"ex:r": {**attributes, attr: [value]}}})
+    )
+    assert messages == [
+        _rejected(
+            f"record 'ex:r', attribute {attr!r}: the value is written as an array"
+        )
+    ]
+    assert document == _read_quietly(
+        _json({section: {"ex:r": {**attributes, attr: value}}})
+    )
+
+
+def test_had_member_entity_written_as_an_array_does_not_warn() -> None:
+    def text(entity: object) -> str:
+        return _json(
+            {"hadMember": {"ex:r": {"prov:collection": "ex:c", "prov:entity": entity}}}
+        )
+
+    assert _read_quietly(text(["ex:e"])) == _read_quietly(text("ex:e"))
+
+
+@pytest.mark.parametrize(
+    ("section", "attributes"),
+    [
+        pytest.param("wasGeneratedBy", {}, id="generation"),
+        pytest.param("hadMember", {"prov:collection": "ex:c"}, id="membership"),
+    ],
+)
+def test_formal_attribute_written_as_an_empty_array_raises(
+    section: str, attributes: dict[str, str]
+) -> None:
+    text = _json({section: {"ex:r": {**attributes, "prov:entity": []}}})
+    expected = "record 'ex:r', attribute 'prov:entity': the value is an empty array"
+    with pytest.raises(ProvJSONException, match=re.escape(expected)):
+        ProvDocument.deserialize(content=text, format="json")
