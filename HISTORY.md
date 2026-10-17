@@ -104,6 +104,14 @@
 - A PROV-JSON formal attribute written as an empty array, such as `"prov:entity": []`,
   raises `ProvJSONException` naming the record and the attribute. It raised a bare
   `IndexError`
+- `unified()` leaves `alternateOf`, `specializationOf`, `mentionOf` and `hadMember`
+  records out of the merge by identifier, since PROV-DM gives these relations no
+  identifier (#530). Two such records that shared an identifier and differed raised
+  `ProvUnificationError`; they now pass through unchanged. Two equal ones were merged
+  into one record and now stay two, until `unified()` removes duplicates in 3.3.0
+  (#548). `prov_to_graph()` and `prov_to_dot()` call `unified()`, so they draw such
+  records as separate edges, and on a document that failed to unify `prov_to_graph()`
+  no longer raises and `prov_to_dot()` no longer falls back to the bundle as asserted
 
 ### Project
 

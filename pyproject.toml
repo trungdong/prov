@@ -241,7 +241,6 @@ module = [
     "prov.tests.test_scripts",
     "prov.tests.test_statements",
     "prov.tests.test_unification_constraints",
-    "prov.tests.test_unification_rules",
     "prov.tests.test_xml",
     "prov.tests.test_xml_schema",
 ]

@@ -9,6 +9,7 @@ to the #62 validation engine.
 """
 
 import datetime
+import json
 
 import pytest
 
@@ -18,13 +19,19 @@ from prov.constants import (
     PROV_ATTR_SPECIFIC_ENTITY,
     PROV_MENTION,
 )
-from prov.model import ProvDocument, ProvUnificationError
+from prov.model import (
+    ProvActivity,
+    ProvDocument,
+    ProvEntity,
+    ProvMembership,
+    ProvUnificationError,
+)
 
 T1 = datetime.datetime(2011, 11, 16, 16, 0, 0)
 T2 = datetime.datetime(2011, 11, 16, 18, 0, 0)
 
 
-def _doc():
+def _doc() -> ProvDocument:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     return document
@@ -37,6 +44,7 @@ def test_spec_worked_example_merges() -> None:
     document.activity("ex:a", endTime=T2, other_attributes={"ex:y": 2})
     unified = document.unified()
     (activity,) = unified.get_records()
+    assert isinstance(activity, ProvActivity)
     assert activity.get_startTime() == T1
     assert activity.get_endTime() == T2
     assert len(activity.extra_attributes) == 2  # both ex:x and ex:y present
@@ -114,7 +122,7 @@ def test_agent_entity_overlap_is_permitted_and_unmerged() -> None:
     document = _doc()
     document.agent("ex:x")
     document.entity("ex:x")
-    assert len(document.unified().get_records()) == 2
+    assert len(list(document.unified().get_records())) == 2
 
 
 def test_distinct_relation_kinds_sharing_id_raise() -> None:
@@ -141,7 +149,7 @@ def test_derivation_and_influence_sharing_id_is_permitted() -> None:
     document = _doc()
     document.derivation("ex:e2", "ex:e1", identifier="ex:r1")
     document.influence("ex:e2", "ex:e1", identifier="ex:r1")
-    assert len(document.unified().get_records()) == 2
+    assert len(list(document.unified().get_records())) == 2
 
 
 def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope() -> None:
@@ -163,4 +171,69 @@ def test_keyless_relation_sharing_id_with_object_type_is_out_of_scope() -> None:
         },
     )
     unified = document.unified()  # must NOT raise
-    assert len(unified.get_records()) == 2
+    assert len(list(unified.get_records())) == 2
+
+
+def _provn(*statements: str) -> ProvDocument:
+    lines = ("document", "prefix ex <http://example.org/>", *statements, "endDocument")
+    return ProvDocument.deserialize(content="\n".join(lines), format="provn")
+
+
+_KEYLESS_STATEMENTS = {
+    "hadMember": ("hadMember(ex:m; ex:c, ex:e1)", "hadMember(ex:m; ex:c, ex:e2)"),
+    "alternateOf": ("alternateOf(ex:m; ex:a, ex:b1)", "alternateOf(ex:m; ex:a, ex:b2)"),
+    "specializationOf": (
+        "specializationOf(ex:m; ex:a, ex:b1)",
+        "specializationOf(ex:m; ex:a, ex:b2)",
+    ),
+    "mentionOf": (
+        "mentionOf(ex:m; ex:a, ex:b, ex:bun1)",
+        "mentionOf(ex:m; ex:a, ex:b, ex:bun2)",
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "statements", _KEYLESS_STATEMENTS.values(), ids=_KEYLESS_STATEMENTS.keys()
+)
+def test_keyless_relations_sharing_an_identifier_are_not_merged(
+    statements: tuple[str, str],
+) -> None:
+    # PROV-DM gives alternateOf, specializationOf, mentionOf and hadMember no
+    # identifier (PROV-N productions 24 to 26, PROV-Links for mentionOf), so
+    # unified() has nothing to merge them on and keeps them as asserted (#530).
+    document = _provn(*statements)
+    assert list(document.unified().get_records()) == list(document.get_records())
+
+
+def test_equal_keyless_relations_sharing_an_identifier_stay_two() -> None:
+    # Two equal memberships with one identifier stay two records until
+    # unified() deduplicates (#548).
+    document = _provn("hadMember(ex:m; ex:c, ex:e)", "hadMember(ex:m; ex:c, ex:e)")
+    assert len(list(document.unified().get_records())) == 2
+
+
+def test_records_sharing_an_identifier_with_a_keyless_relation_still_merge() -> None:
+    document = _provn(
+        "entity(ex:m, [ex:k=1])",
+        "entity(ex:m, [ex:k=2])",
+        "hadMember(ex:m; ex:c, ex:e)",
+    )
+    unified = document.unified()
+    (entity,) = unified.get_records(ProvEntity)
+    assert entity.get_attribute("ex:k") == {1, 2}
+    assert len(list(unified.get_records(ProvMembership))) == 1
+
+
+def test_json_had_member_array_with_an_identifier_unifies() -> None:
+    # The PROV-JSON membership of #530, an identifier with two members.
+    content = json.dumps(
+        {
+            "prefix": {"ex": "http://example.org/"},
+            "hadMember": {
+                "ex:m": {"prov:collection": "ex:c", "prov:entity": ["ex:e1", "ex:e2"]}
+            },
+        }
+    )
+    document = ProvDocument.deserialize(content=content, format="json")
+    assert len(list(document.unified().get_records(ProvMembership))) == 2

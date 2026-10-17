@@ -95,7 +95,9 @@ constraints of the W3C specification. Position by position:
 The records' remaining ("extra") attributes are unioned onto the merged record. They are
 held in a set, so identical values are deduplicated while distinct values all accumulate.
 Records with a unique identifier, and records with no identifier at all, pass through
-untouched.
+untouched. So do `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records,
+even when several share an identifier. PROV-DM gives these four relations no identifier,
+so the specification has nothing to merge them on.
 
 `unified()` is the only place in `prov` that can raise over a same-identifier conflict.
 Building or asserting records with `bundle.entity(...)`, `bundle.activity(...)` and the
@@ -123,8 +125,8 @@ scoping matters.
 Four limits apply:
 
 - **Only identifiers drive merging.** Two records merge if and only if they carry the same
-  qualified-name identifier. Most PROV relations are asserted without an identifier, so
-  relations are almost never unified.
+  qualified-name identifier and neither is one of the four relations above. Most PROV
+  relations are asserted without an identifier, so relations are almost never unified.
 - **Records of incompatible types raise; spec-permitted overlaps stay separate.** Term
   unification applies within a group of records that share both an identifier and a base
   record type. Across types sharing one identifier, `unified()` consults the
