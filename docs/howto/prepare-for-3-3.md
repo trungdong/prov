@@ -46,7 +46,8 @@ pytest's option, a pytest configuration or a filter in code instead.
 Each message ends with what 3.3.0 does instead, such as
 "prov 3.3.0 will reject this". A message from a reader starts with the position
 of the input: the line and column in PROV-N, or the record identifier and
-attribute name in PROV-JSON.
+attribute name in PROV-JSON. A message about a language tag comes from the
+model, wherever the value was read or built, so it names the value instead.
 
 ## PROV-N declarations
 
@@ -98,6 +99,18 @@ activity's start and end times, and `prov:time` given as an attribute, from any
 format or from code. An `xsd:dateTime` value of any other attribute is not a
 time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 `Literal` with its text, not as a `datetime`.
+
+## Language tags
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `the language tag 'en_US' of 'hi' is not a BCP 47 tag` | `Literal("hi", langtag="en_US")`, or `{"$": "hi", "lang": "en_US"}` in PROV-JSON | A BCP 47 tag, such as `en-US`. |
+| `the language tag of 'hi' is empty` | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
+
+`prov` checks only the form of the tag. A tag is letters, followed by any
+number of groups of letters and digits that each start with a hyphen. `prov`
+does not look the tag up in the BCP 47 registry. The PROV-N reader already
+rejects these tags.
 
 ## PROV-JSON
 

@@ -29,6 +29,9 @@
   `2012-01-01T00:00:00+15:00`, from any reader or from code (#513). An `xsd:dateTime`
   attribute value with such an offset still reads as a `datetime`; 3.3.0 keeps it as a
   `Literal`
+- A language tag that does not have the form of a BCP 47 tag, such as `en_US`, or an
+  empty one, from any reader or from code (#472). `prov` still keeps the tag as given,
+  and the PROV-N writer still writes `en_US` as `en-US`
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that

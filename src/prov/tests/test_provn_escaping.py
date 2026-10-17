@@ -4,7 +4,7 @@
 import pytest
 
 from prov.identifier import Identifier, Namespace
-from prov.model import Literal, ProvDocument, ProvWarning
+from prov.model import Literal, ProvDocument, ProvFutureRejectionWarning, ProvWarning
 
 METACHARS = "='(),:;[]"
 
@@ -159,7 +159,8 @@ def test_empty_langtag_literal_written_as_plain_string() -> None:
     the JSON/XML/RDF/JSON-LD codecs still keep the empty tag, e.g. PROV-XML's
     ``xml:lang=""``, which this task leaves untouched.
     """
-    literal = Literal("hi", langtag="")
+    with pytest.warns(ProvFutureRejectionWarning, match="empty"):
+        literal = Literal("hi", langtag="")
     assert literal.langtag == ""
     document = _doc()
     document.entity("ex:e1", {"ex:note": literal})
@@ -177,7 +178,9 @@ def test_langtag_underscore_written_as_hyphen() -> None:
     other fixes here.
     """
     document = _doc()
-    document.entity("ex:e1", {"ex:note": Literal("hi", langtag="en_US")})
+    with pytest.warns(ProvFutureRejectionWarning, match="en_US"):
+        literal = Literal("hi", langtag="en_US")
+    document.entity("ex:e1", {"ex:note": literal})
     provn = document.get_provn()
     assert '[ex:note="hi"@en-US]' in provn
     reloaded = ProvDocument.deserialize(content=provn, format="provn")

@@ -223,7 +223,6 @@ module = [
     "prov.tests.test_jsonld",
     "prov.tests.test_jsonld_schema",
     "prov.tests.test_jsonld_semantics",
-    "prov.tests.test_literal_semantics",
     "prov.tests.test_malformed",
     "prov.tests.test_model",
     "prov.tests.test_namespace_cache",

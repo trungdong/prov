@@ -425,6 +425,20 @@ def encoding_provn_value(
         return str(value)
 
 
+# PROV-N's LANGTAG ([63]) without the "@"; every BCP 47 tag matches it.
+_LANGTAG = re.compile(r"[a-zA-Z]+(-[a-zA-Z0-9]+)*")
+
+
+def _warn_language_tag(langtag: str, value: str) -> None:
+    """Warn that 3.3.0 rejects ``langtag``, which does not match ``_LANGTAG``."""
+    detail = (
+        f"the language tag {langtag!r} of {value!r} is not a BCP 47 tag"
+        if langtag
+        else f"the language tag of {value!r} is empty"
+    )
+    warn(future_rejection_message(detail), ProvFutureRejectionWarning)
+
+
 class Literal:
     """A typed (and optionally language-tagged) PROV literal value.
 
@@ -458,8 +472,13 @@ class Literal:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
+                An empty tag, or one not shaped like a BCP 47 tag such as
+                ``"en_US"``, emits a
+                :class:`~prov.model.ProvFutureRejectionWarning`.
         """
         self._value = str(value)  # value is always a string
+        if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
+            _warn_language_tag(str(langtag), self._value)
         if langtag:
             if datatype is None:
                 logger.debug(
