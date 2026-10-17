@@ -632,7 +632,10 @@ class ProvBundle:
         if (
             any("xsi:" in line for line in record_lines)
             and self._uses_xsi()
-            and all(ns.uri != XSI.uri for ns in registered_namespaces)
+            and not any(
+                ns.prefix == XSI.prefix and ns.uri == XSI.uri
+                for ns in registered_namespaces
+            )
         ):
             registered_namespaces.append(XSI)
         bundle_id, extra_prefix = self._provn_header_id(

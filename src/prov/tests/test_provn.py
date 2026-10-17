@@ -792,6 +792,15 @@ def test_writer_declares_xsi_for_an_xsi_datatype() -> None:
     assert XSI_LINE in doc.get_provn()
 
 
+def test_writer_declares_xsi_when_another_prefix_holds_its_iri() -> None:
+    doc = _xsi_document()
+    doc.add_namespace("foo", XSI.uri)
+    doc.entity("ex:e", {XSI["type"]: "ex:T"})
+    text = doc.get_provn()
+    assert XSI_LINE in text
+    assert _reads_back_without_future_warnings(text) == doc
+
+
 def test_writer_omits_xsi_when_no_record_uses_it() -> None:
     doc = _xsi_document()
     doc.entity("ex:e")
