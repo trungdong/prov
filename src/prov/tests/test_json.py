@@ -480,6 +480,50 @@ def test_had_member_entity_written_as_an_array_does_not_warn() -> None:
     assert _read_quietly(text(["ex:e"])) == _read_quietly(text("ex:e"))
 
 
+def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> None:
+    # #530: each record of the fan-out carries the membership's identifier and
+    # attributes, as if every member were written as a membership of its own.
+    def membership(entity: object) -> dict[str, object]:
+        return {"prov:collection": "ex:c", "prov:entity": entity, "ex:k": "v"}
+
+    fanned_out = _read_quietly(
+        _json({"hadMember": {"ex:m": membership(["ex:e1", "ex:e2"])}})
+    )
+    one_each = _read_quietly(
+        _json({"hadMember": {"ex:m": [membership("ex:e1"), membership("ex:e2")]}})
+    )
+    assert fanned_out == one_each
+    assert [str(r.identifier) for r in fanned_out.get_records()] == ["ex:m", "ex:m"]
+
+
+def test_had_member_array_without_a_collection_reads() -> None:
+    # The fan-out took the collection from the first record and raised
+    # KeyError when the membership had none.
+    document = _read_quietly(
+        _json({"hadMember": {"ex:m": {"prov:entity": ["ex:e1", "ex:e2"]}}})
+    )
+    members = [r.get_attribute("prov:entity") for r in document.get_records()]
+    assert [{str(e) for e in m} for m in members] == [{"ex:e1"}, {"ex:e2"}]
+
+
+def test_had_member_members_resolve_alike() -> None:
+    # Every member resolves as the first one does. A later member with an
+    # undeclared prefix raised ProvExceptionInvalidQualifiedName.
+    def members(entities: list[str]) -> list[set[Any]]:
+        document = _read_quietly(
+            _json(
+                {
+                    "hadMember": {
+                        "ex:m": {"prov:collection": "ex:c", "prov:entity": entities}
+                    }
+                }
+            )
+        )
+        return [r.get_attribute("prov:entity") for r in document.get_records()]
+
+    assert members(["foo:e1", "ex:e2"]) == members(["ex:e2", "foo:e1"])[::-1]
+
+
 @pytest.mark.parametrize(
     ("section", "attributes"),
     [

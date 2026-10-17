@@ -112,6 +112,12 @@
   (#548). `prov_to_graph()` and `prov_to_dot()` call `unified()`, so they draw such
   records as separate edges, and on a document that failed to unify `prov_to_graph()`
   no longer raises and `prov_to_dot()` no longer falls back to the bundle as asserted
+- The PROV-JSON reader gives every record of a `hadMember` whose `prov:entity` is an
+  array the membership's identifier and attributes (#530). Only the first record had
+  them, so the same collection read differently depending on which member came first.
+  A membership with several members and no `prov:collection` reads; it raised
+  `KeyError`. Every member resolves as the first one does, so a later member with an
+  undeclared prefix no longer raises `ProvExceptionInvalidQualifiedName`
 
 ### Project
 

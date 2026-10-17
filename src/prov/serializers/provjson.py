@@ -5,7 +5,7 @@ import io
 import json
 import logging
 from collections import Counter, defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from prov import Error
@@ -15,6 +15,7 @@ from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
     AttributePair,
     Literal,
+    OptionalID,
     ProvBundle,
     ProvDocument,
     ProvRecord,
@@ -544,11 +545,10 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             attribute's typed-literal representation is missing its required
             ``"$"`` key (see :func:`decode_json_representation`); if a
             formal (QualifiedName- or literal-valued) attribute has more
-            than one value, other than the documented multi-entity
-            ``hadMember`` (membership) hack; if a formal attribute is
-            written as an empty JSON array; or if a time attribute's value
-            is neither a string nor an ``xsd:dateTime`` value object with a
-            well-formed ``"$"``.
+            than one value, other than the members of ``hadMember``; if a
+            formal attribute is written as an empty JSON array; or if a time
+            attribute's value is neither a string nor an ``xsd:dateTime``
+            value object with a well-formed ``"$"``.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -599,10 +599,10 @@ def _decode_record_group(
             JSON object or a list of JSON objects; if a non-formal
             attribute's typed-literal representation is missing its required
             ``"$"`` key; if a formal attribute has more than one value,
-            other than the documented multi-entity ``hadMember``
-            (membership) hack; if a formal attribute is written as an empty
-            JSON array; or if a time attribute's value is neither a string
-            nor an ``xsd:dateTime`` value object with a well-formed ``"$"``
+            other than the members of ``hadMember``; if a formal attribute is
+            written as an empty JSON array; or if a time attribute's value is
+            neither a string nor an ``xsd:dateTime`` value object with a
+            well-formed ``"$"``
             (all raised further down the call chain, by
             :func:`_decode_record_instance` / :func:`_decode_formal_attribute`).
     """
@@ -633,22 +633,21 @@ def _decode_record_instance(
         rec_id: The record's identifier string.
         element: The instance's raw attribute dict, as produced by
             :func:`_json_record_elements`.
-        bundle: Bundle to add the decoded record (and, for the multi-entity
-            ``hadMember`` hack, any extra membership relations) to.
+        bundle: Bundle to add the decoded record, or one ``hadMember``
+            record per member, to.
 
     Raises:
         ProvJSONException: If a non-formal attribute's typed-literal
             representation is missing its required ``"$"`` key; if a
             formal attribute has more than one value, other than the
-            documented multi-entity ``hadMember`` (membership) hack; if a
-            formal attribute is written as an empty JSON array; or if a
-            time attribute's value is neither a string nor an
-            ``xsd:dateTime`` value object with a well-formed ``"$"``.
+            members of ``hadMember``; if a formal attribute is written as an
+            empty JSON array; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
-    # this is for the multiple-entity membership hack to come
-    membership_extra_members = None
+    members: list[QualifiedName | None] | None = None
     for attr_name, values in element.items():
         attr: QualifiedName = (
             PROV_ATTRIBUTES_ID_MAP[attr_name]
@@ -656,12 +655,12 @@ def _decode_record_instance(
             else bundle.mandatory_valid_qname(attr_name)
         )
         if attr in PROV_ATTRIBUTES:
-            value, extra_members = _decode_formal_attribute(
-                rec_type, rec_id, attr_name, attr, values, bundle
-            )
-            attributes[attr] = value
-            if extra_members is not None:
-                membership_extra_members = extra_members
+            if attr == PROV_ATTR_ENTITY and rec_type == PROV_MEMBERSHIP:
+                members = _decode_members(rec_id, attr_name, values, bundle)
+            else:
+                attributes[attr] = _decode_formal_attribute(
+                    rec_id, attr_name, attr, values, bundle
+                )
         else:
             for value in values if isinstance(values, list) else [values]:
                 if value is None:
@@ -672,82 +671,117 @@ def _decode_record_instance(
                 other_attributes.append(
                     (attr, decode_json_representation(value, bundle, attr_name, rec_id))
                 )
-    bundle.new_record(rec_type, rec_id, attributes, other_attributes)
-    # HACK: creating extra (unidentified) membership relations
-    if membership_extra_members:
-        collection = attributes[PROV_ATTR_COLLECTION]
-        for member in membership_extra_members:
-            bundle.membership(collection, bundle.mandatory_valid_qname(member))
+    if members is None:
+        bundle.new_record(rec_type, rec_id, attributes, other_attributes)
+    else:
+        _add_memberships(bundle, rec_id, attributes, other_attributes, members)
+
+
+def _add_memberships(
+    bundle: ProvBundle,
+    identifier: OptionalID,
+    attributes: dict[QualifiedNameCandidate, Any],
+    other_attributes: list[AttributePair],
+    members: Sequence[QualifiedName | None],
+) -> None:
+    """Add one ``hadMember`` record per member to ``bundle``.
+
+    PROV-DM's ``hadMember`` is binary, so a membership listing several members
+    becomes one record per member. Each record carries the identifier and the
+    attributes of the membership. The PROV-JSON and PROV-JSONLD readers share
+    this fan-out.
+
+    Args:
+        bundle: Bundle to add the records to.
+        identifier: The membership's identifier, or ``None``.
+        attributes: The membership's formal attributes other than
+            ``prov:entity``.
+        other_attributes: The membership's other attributes.
+        members: The resolved members, one record each.
+    """
+    for member in members:
+        bundle.new_record(
+            PROV_MEMBERSHIP,
+            identifier,
+            {**attributes, PROV_ATTR_ENTITY: member},
+            other_attributes,
+        )
+
+
+def _decode_members(
+    rec_id: str, attr_name: str, values: Any, bundle: ProvBundle
+) -> list[QualifiedName | None]:
+    """Decode the ``prov:entity`` of a ``hadMember``, a single value or an array.
+
+    Args:
+        rec_id: The enclosing record's identifier string, for messages.
+        attr_name: The attribute's PROV-JSON key, for messages.
+        values: The raw value or JSON array of values.
+        bundle: Bundle used to resolve the members' qualified names.
+
+    Returns:
+        The resolved members, in the order written.
+
+    Raises:
+        ProvJSONException: If ``values`` is an empty JSON array.
+    """
+    if not isinstance(values, list):
+        return [valid_qualified_name(bundle, values)]
+    if not values:
+        raise ProvJSONException(
+            f"{_position(rec_id, attr_name)}the value is an empty array"
+        )
+    return [valid_qualified_name(bundle, value) for value in values]
 
 
 def _decode_formal_attribute(
-    rec_type: QualifiedName,
     rec_id: str,
     attr_name: str,
     attr: QualifiedName,
     values: Any,
     bundle: ProvBundle,
-) -> tuple[Any, list[Any] | None]:
-    """Decode one formal (:data:`~prov.constants.PROV_ATTRIBUTES`) attribute's value(s).
+) -> Any:
+    """Decode the value of a formal (:data:`~prov.constants.PROV_ATTRIBUTES`) attribute.
+
+    The members of ``hadMember`` go to :func:`_decode_members` instead.
 
     Args:
-        rec_type: The enclosing record's PROV-N record type.
         rec_id: The enclosing record's identifier string, for messages.
         attr_name: The attribute's PROV-JSON key, for messages.
         attr: The formal attribute being decoded.
-        values: The raw value(s) read from the PROV-JSON element, either a
+        values: The raw value read from the PROV-JSON element, either a
             single value or a JSON array.
         bundle: Bundle used to resolve any QualifiedName value.
 
     Returns:
-        A tuple of the decoded attribute value and, only for the
-        multi-entity ``hadMember`` (membership) hack, the list of extra
-        entity values still to be turned into their own membership
-        relations (``None`` otherwise).
+        The decoded attribute value.
 
     Raises:
-        ProvJSONException: If ``values`` is an empty JSON array, or a JSON
-            array with more than one value other than the documented
-            ``hadMember`` hack; or if a time attribute's value is neither a
-            string nor an ``xsd:dateTime`` value object with a well-formed
-            ``"$"``.
+        ProvJSONException: If ``values`` is an empty JSON array or a JSON
+            array with more than one value; or if a time attribute's value is
+            neither a string nor an ``xsd:dateTime`` value object with a
+            well-formed ``"$"``.
     """
-    membership_extra_members = None
     if isinstance(values, list):
         if not values:
             raise ProvJSONException(
                 f"{_position(rec_id, attr_name)}the value is an empty array"
             )
-        is_members = rec_type == PROV_MEMBERSHIP and attr == PROV_ATTR_ENTITY
         # only one value is allowed
         if len(values) > 1:
-            # unless it is the membership hack
-            if is_members:
-                # This is a membership relation with multiple entities
-                # HACK: create multiple membership relations, one for each
-                # entity
-
-                # Store all the extra entities
-                membership_extra_members = values[1:]
-                # Create the first membership relation as normal for the
-                # first entity
-                value = values[0]
-            else:
-                error_msg = (
-                    "The prov package does not support PROV"
-                    " attributes having multiple values."
-                )
-                logger.error(error_msg)
-                raise ProvJSONException(error_msg)
-        else:
-            if not is_members:
-                _warn_rejection("the value is written as an array", rec_id, attr_name)
-            value = values[0]
+            error_msg = (
+                "The prov package does not support PROV"
+                " attributes having multiple values."
+            )
+            logger.error(error_msg)
+            raise ProvJSONException(error_msg)
+        _warn_rejection("the value is written as an array", rec_id, attr_name)
+        value = values[0]
     else:
         value = values
     if attr in PROV_ATTRIBUTE_QNAMES:
-        return valid_qualified_name(bundle, value), membership_extra_members
-    return _decode_time(rec_id, attr_name, value, bundle), membership_extra_members
+        return valid_qualified_name(bundle, value)
+    return _decode_time(rec_id, attr_name, value, bundle)
 
 
 def _decode_time(
