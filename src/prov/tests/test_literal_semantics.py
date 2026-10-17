@@ -70,7 +70,7 @@ def test_language_tag_not_shaped_like_bcp47_warns(tag: str) -> None:
 
 
 def test_empty_language_tag_warns() -> None:
-    # D4: 3.3.0 rejects an empty tag too.
+    # #472: 3.3.0 rejects an empty tag too.
     with pytest.warns(
         ProvFutureRejectionWarning,
         match=re.escape(

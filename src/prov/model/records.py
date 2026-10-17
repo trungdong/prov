@@ -472,8 +472,8 @@ class Literal:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
-                An empty tag, or one not shaped like a BCP 47 tag such as
-                ``"en_US"``, emits a
+                An empty tag, or a tag such as ``"en_US"`` that is not shaped like a
+                BCP 47 tag, emits a
                 :class:`~prov.model.ProvFutureRejectionWarning`.
         """
         self._value = str(value)  # value is always a string

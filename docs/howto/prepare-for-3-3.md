@@ -128,7 +128,8 @@ a PROV-N reader recovers a different IRI. The characters `= ' ( ) , : ; [ ]`
 are written with a backslash instead, and do not warn.
 
 The warning fires when the name is first built. `unified()`, `flattened()` and
-copies of the document reuse the name and do not warn again.
+copies of the document reuse the name and do not warn again. The XML reader
+builds each occurrence of a name afresh, so it warns once for each.
 
 ## PROV-JSON
 

@@ -156,6 +156,28 @@ def test_copies_of_a_name_do_not_warn_again(
     assert copied == document
 
 
+@pytest.mark.parametrize(
+    "target_default", [EX, "http://other.org/"], ids=["same-default", "other-default"]
+)
+def test_default_namespace_name_does_not_warn_again_on_update(
+    target_default: str,
+) -> None:
+    # The two default-namespace branches of the bundle's reconciliation: the
+    # same default namespace, and another one, which renames this one to dn.
+    document = ProvDocument()
+    document.set_default_namespace(EX)
+    with pytest.warns(ProvFutureRejectionWarning, match=_message("a b")):
+        document.entity("a b")
+    other = ProvDocument()
+    other.set_default_namespace(target_default)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        other.update(document)
+    (record,) = other.get_records()
+    assert record.identifier is not None
+    assert record.identifier.uri == EX + "a b"
+
+
 @pytest.mark.parametrize("fmt", ["json", "xml", "jsonld"])
 def test_local_part_warns_when_read(fmt: str) -> None:
     # The readers build the name, so the model's warning reaches their caller.
