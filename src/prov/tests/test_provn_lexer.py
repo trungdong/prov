@@ -363,3 +363,129 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges() -> Non
 def test_carriage_return_ends_a_short_literal(text) -> None:
     with pytest.raises(ProvNSyntaxError, match="unterminated"):
         list(tokenize(text))
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (r'"caf\u00E9"', "café"),
+        (r'"caf\u00e9"', "café"),
+        (r'"\U0001F600"', "\U0001f600"),
+        (r'"""caf\u00E9\nline"""', "café\nline"),
+        (r'"a\u0022b"', 'a"b'),
+        (r'"\\u00E9"', "\\u00E9"),
+        (r"<http://example.org/caf\u00E9>", "http://example.org/café"),
+        (r"<http://example.org/\U0001F600>", "http://example.org/\U0001f600"),
+    ],
+)
+def test_code_point_escapes_are_decoded(text, expected) -> None:
+    assert values(text) == [expected]
+
+
+@pytest.mark.parametrize(
+    ("text", "message", "column"),
+    [
+        (r'"ab\u00G9"', r"escape '\u' needs four hex digits", 4),
+        (r'"ab\U0001F60"', r"escape '\U' needs eight hex digits", 4),
+        (r'"ab\uD800"', r"escape '\uD800' is not a Unicode scalar value", 4),
+        (r'"ab\U00110000"', r"escape '\U00110000' is not a Unicode scalar value", 4),
+        (r"<http://a/\u00G9>", r"escape '\u' needs four hex digits", 11),
+        (r"<http://a/\q>", r"unknown IRI escape '\q'", 11),
+        (r"<http://a/\n>", r"unknown IRI escape '\n'", 11),
+        (r"<http://a/\\>", r"unknown IRI escape '\\'", 11),
+        (r"<http://a/\|>", r"unknown IRI escape '\|'", 11),
+        (
+            r"<http://a/\u0020>",
+            r"escape '\u0020' encodes a character an IRI cannot contain",
+            11,
+        ),
+        (
+            r"<http://a/\u003E>",
+            r"escape '\u003E' encodes a character an IRI cannot contain",
+            11,
+        ),
+    ],
+)
+def test_bad_code_point_escape_raises_at_the_escape(text, message, column) -> None:
+    with pytest.raises(ProvNSyntaxError, match=re.escape(message)) as ctx:
+        list(tokenize(text))
+    assert (ctx.value.line, ctx.value.column) == (1, column)
+
+
+def test_bad_code_point_escape_position_on_a_later_line_of_a_long_string() -> None:
+    with pytest.raises(
+        ProvNSyntaxError, match=re.escape(r"escape '\u' needs four hex digits")
+    ) as ctx:
+        list(tokenize('"""ab\ncd \\u12"""'))
+    assert (ctx.value.line, ctx.value.column) == (2, 4)
+
+
+def lexer_warnings(text):
+    collected: list[str] = []
+    list(tokenize(text, collected))
+    return collected
+
+
+# Unicode whitespace that WS (SPARQL [93]) excludes, U+1680 apart: it is also
+# a name character, so it has its own test.
+NON_WS_SPACES = [
+    "\x0b",
+    "\x0c",
+    "\x1c",
+    "\x1d",
+    "\x1e",
+    "\x1f",
+    "\x85",
+    "\xa0",
+    *[chr(code) for code in range(0x2000, 0x200B)],
+    "\u2028",
+    "\u2029",
+    "\u202f",
+    "\u205f",
+    "\u3000",
+]
+
+
+def test_non_ws_spaces_are_every_unicode_space_but_the_four_ws_characters() -> None:
+    spaces = {chr(code) for code in range(0x110000) if chr(code).isspace()}
+    assert spaces - set(" \t\r\n") == {*NON_WS_SPACES, "\u1680"}
+
+
+@pytest.mark.parametrize("ch", NON_WS_SPACES)
+def test_non_ws_space_between_tokens_is_skipped_and_warned(ch) -> None:
+    text = f"entity(ex:e){ch}endDocument"
+    assert values(text) == values("entity(ex:e) endDocument")
+    assert lexer_warnings(text) == [
+        f"line 1, column 13: U+{ord(ch):04X} is not PROV-N whitespace."
+        " prov 3.3.0 will reject this"
+    ]
+
+
+def test_ogham_space_mark_warns_that_it_becomes_a_name_character() -> None:
+    text = "entity(\u1680ex:e)"
+    assert values(text) == values("entity(ex:e)")
+    assert lexer_warnings(text) == [
+        "line 1, column 8: U+1680 is not PROV-N whitespace."
+        " prov 3.3.0 will read it as a name character"
+    ]
+
+
+def test_a_run_of_one_character_warns_once() -> None:
+    assert lexer_warnings("entity(ex:e)\xa0\xa0\xa0\u2028endDocument") == [
+        "line 1, column 13: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 1, column 16: U+2028 is not PROV-N whitespace. prov 3.3.0 will reject this",
+    ]
+
+
+def test_non_ws_space_between_ws_and_comments_is_skipped() -> None:
+    text = "entity(ex:e) \xa0// note\n\xa0endDocument"
+    assert values(text) == values("entity(ex:e) endDocument")
+    assert lexer_warnings(text) == [
+        "line 1, column 14: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 2, column 1: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+    ]
+
+
+def test_ws_and_spaces_inside_comments_strings_and_iris_do_not_warn() -> None:
+    text = 'entity(ex:e,\t[ex:a="\xa0"])\r\n// \xa0\n/* \u3000 */ <http://a/\xa0>'
+    assert lexer_warnings(text) == []

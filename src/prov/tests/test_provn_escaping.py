@@ -263,3 +263,12 @@ def test_strict_flag_changes_nothing_without_a_mention() -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:k": "v"})
     assert document.get_provn(strict=True) == document.get_provn()
+
+
+def test_code_point_escapes_round_trip() -> None:
+    text = (
+        "document\nprefix ex <http://example.org/>\n"
+        'entity(ex:e, [ex:k="caf\\u00E9 \\U0001F600"])\nendDocument\n'
+    )
+    document = ProvDocument.deserialize(content=text, format="provn")
+    assert '"café \U0001f600"' in _roundtrips(document)

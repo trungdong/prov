@@ -17,6 +17,9 @@
   3.2.3 adds it
 - Under the `strict` PROV-N profile, a `default` declaration after a `prefix` declaration,
   and a `prefix prov` or `prefix xsd` declaration (#519)
+- Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a
+  no-break space (#509). `prov` still skips it. PROV-N counts U+1680 as a name
+  character, so 3.3.0 reads it as part of a name
 
 ### Fixes
 
@@ -38,6 +41,10 @@
   `ProvNSyntaxError` at the IRI under every profile (#512). It raised a bare `ValueError`
   with no position. Code that catches `ValueError` around such a document no longer
   catches it, since `ProvNSyntaxError` is not a `ValueError` subclass
+- The PROV-N reader decodes the code point escapes `\uXXXX` and `\UXXXXXXXX` in
+  strings and IRIs, as PROV-N section 6 allows (#521). `"caf\u00E9"` raised
+  "unknown string escape '\u'". An escape that is not a Unicode scalar value, or that
+  encodes a character an IRI cannot contain, raises `ProvNSyntaxError` at the escape
 
 ### Project
 

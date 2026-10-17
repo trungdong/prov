@@ -141,9 +141,10 @@ class ProvNParser:
             skipped, in source order; empty for every other profile. Read
             after :meth:`parse` returns.
         warnings: Messages for input that ``prov`` 3.3.0 rejects or reads
-            differently, in source order, each built by
-            :func:`prov._warnings.future_rejection_message`. Read after
-            :meth:`parse` returns.
+            differently, each built by
+            :func:`prov._warnings.future_rejection_message`. The lexer's
+            messages come first, then the parser's, each in source order.
+            Read after :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
@@ -271,7 +272,7 @@ class ProvNParser:
 
     def parse(self) -> ProvDocument:
         """Parse the whole input and return the document."""
-        self._tokens = list(tokenize(self._text))
+        self._tokens = list(tokenize(self._text, self.warnings))
         self._pos = 0
         self._depth = 0
         document = ProvDocument()

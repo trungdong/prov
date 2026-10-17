@@ -991,3 +991,44 @@ def test_strict_predeclared_prefix_warning_reaches_the_caller() -> None:
         "strict",
     )
     assert only_record(doc).identifier.uri == "http://example.org/e"
+
+
+def test_code_point_escapes_read_in_strings_and_iris() -> None:
+    text = (
+        "document\nprefix ex <http://example.org/caf\\u00E9/>\n"
+        'entity(ex:e, [ex:k="caf\\u00E9"])\nendDocument\n'
+    )
+    document = ProvDocument.deserialize(content=text, format="provn")
+    (record,) = document.get_records()
+    assert record.identifier.uri == "http://example.org/café/e"
+    assert record.get_attribute("ex:k") == {"café"}
+
+
+@pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
+def test_non_ws_space_warns_and_reads_as_before(profile) -> None:
+    text = "document\nprefix ex <http://example.org/>\nentity(ex:e)\xa0\nendDocument\n"
+    document = _read_warning(
+        text,
+        (
+            r"^line 3, column 13: U\+00A0 is not PROV-N whitespace\."
+            r" prov 3\.3\.0 will reject this$"
+        ),
+        profile,
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        assert document == ProvDocument.deserialize(
+            content=text.replace("\xa0", " "), format="provn", profile=profile
+        )
+
+
+def test_lexer_warnings_come_before_parser_warnings() -> None:
+    text = (
+        "document\ndefault <http://a/>\ndefault <http://b/>\n"
+        "entity(e)\xa0\nendDocument\n"
+    )
+    parser = ProvNParser(text)
+    parser.parse()
+    assert len(parser.warnings) == 2
+    assert "U+00A0 is not PROV-N whitespace" in parser.warnings[0]
+    assert "'default' is declared twice" in parser.warnings[1]
