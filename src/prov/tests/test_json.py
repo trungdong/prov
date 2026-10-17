@@ -593,6 +593,25 @@ def test_value_object_number_parsed_as_a_decimal_warns() -> None:
     )
 
 
+def test_value_object_keys_a_caller_hook_makes_non_strings_warn() -> None:
+    def hook(pairs: list[tuple[str, Any]]) -> dict[Any, Any]:
+        return {int(k) if k.isdigit() else k: v for k, v in pairs}
+
+    text = _json({"entity": {"ex:e": {"ex:k": {"$": "1", "2": "x", "a": "y"}}}})
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        document = prov.read(io.StringIO(text), format="json", object_pairs_hook=hook)
+    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
+    assert [str(w.message) for w in future] == [
+        _rejected(
+            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2"
+        ),
+        _rejected(
+            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 'a'"
+        ),
+    ]
+    assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": "1"}}}))
+
+
 @pytest.mark.parametrize(
     "value",
     [

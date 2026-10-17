@@ -111,6 +111,9 @@ class ProvJSONSerializer(Serializer):
         """Deserialize a `PROV-JSON <https://openprovenance.org/prov-json/>`_
         stream into a :class:`~prov.model.ProvDocument`.
 
+        A key repeated in a JSON object warns with
+        :class:`~prov.model.ProvFutureRejectionWarning`; the last value is used.
+
         Args:
             stream: Input data; binary streams are decoded as UTF-8 first.
             **args: Extra keyword arguments passed through to
@@ -118,9 +121,6 @@ class ProvJSONSerializer(Serializer):
 
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
-
-        A key repeated in a JSON object warns with
-        :class:`~prov.model.ProvFutureRejectionWarning`; the last value is used.
         """
         if not _is_text_stream(stream):
             buf = io.StringIO(stream.read().decode("utf-8"))
@@ -181,7 +181,11 @@ class ProvJSONEncoder(json.JSONEncoder):
 
 
 class ProvJSONDecoder(json.JSONDecoder):
-    """``json.JSONDecoder`` that decodes PROV-JSON into a :class:`~prov.model.ProvDocument`."""
+    """``json.JSONDecoder`` that decodes PROV-JSON into a :class:`~prov.model.ProvDocument`.
+
+    Used directly with :func:`json.loads`, it does not warn about repeated keys;
+    :meth:`ProvJSONSerializer.deserialize` does.
+    """
 
     def decode(self, s: str, *args: Any, **kwargs: Any) -> Any:
         """Parse a PROV-JSON string into a new :class:`~prov.model.ProvDocument`.
@@ -538,10 +542,13 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             record identifiers to content; if a record's content is not a
             JSON object or a list of JSON objects; if a non-formal
             attribute's typed-literal representation is missing its required
-            ``"$"`` key (see :func:`decode_json_representation`); or if a
+            ``"$"`` key (see :func:`decode_json_representation`); if a
             formal (QualifiedName- or literal-valued) attribute has more
             than one value, other than the documented multi-entity
-            ``hadMember`` (membership) hack.
+            ``hadMember`` (membership) hack; if a formal attribute is
+            written as an empty JSON array; or if a time attribute's value
+            is neither a string nor an ``xsd:dateTime`` value object with a
+            well-formed ``"$"``.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -591,9 +598,12 @@ def _decode_record_group(
             record identifiers to content; if a record's content is not a
             JSON object or a list of JSON objects; if a non-formal
             attribute's typed-literal representation is missing its required
-            ``"$"`` key; or if a formal attribute has more than one value,
+            ``"$"`` key; if a formal attribute has more than one value,
             other than the documented multi-entity ``hadMember``
-            (membership) hack (both raised further down the call chain, by
+            (membership) hack; if a formal attribute is written as an empty
+            JSON array; or if a time attribute's value is neither a string
+            nor an ``xsd:dateTime`` value object with a well-formed ``"$"``
+            (all raised further down the call chain, by
             :func:`_decode_record_instance` / :func:`_decode_formal_attribute`).
     """
     try:
@@ -628,9 +638,12 @@ def _decode_record_instance(
 
     Raises:
         ProvJSONException: If a non-formal attribute's typed-literal
-            representation is missing its required ``"$"`` key; or if a
+            representation is missing its required ``"$"`` key; if a
             formal attribute has more than one value, other than the
-            documented multi-entity ``hadMember`` (membership) hack.
+            documented multi-entity ``hadMember`` (membership) hack; if a
+            formal attribute is written as an empty JSON array; or if a
+            time attribute's value is neither a string nor an
+            ``xsd:dateTime`` value object with a well-formed ``"$"``.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
@@ -737,7 +750,9 @@ def _decode_formal_attribute(
     return _decode_time(rec_id, attr_name, value, bundle), membership_extra_members
 
 
-def _decode_time(rec_id: str, attr_name: str, value: Any, bundle: ProvBundle) -> Any:
+def _decode_time(
+    rec_id: str, attr_name: str, value: Any, bundle: ProvBundle
+) -> datetime.datetime | None:
     """Decode the value of ``prov:time``, ``prov:startTime`` or ``prov:endTime``.
 
     Args:
@@ -790,7 +805,7 @@ def _json_text(value: Any) -> str:
     """Return ``value`` as JSON text, or ``str(value)`` if JSON cannot encode it."""
     try:
         return json.dumps(value)
-    except TypeError:
+    except (TypeError, ValueError):
         return str(value)
 
 
@@ -855,6 +870,11 @@ def decode_json_representation(
 ) -> Any:
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
+    A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
+    a ``"$"`` that is not a string, or a ``"type"`` that does not resolve
+    warns with :class:`~prov.model.ProvFutureRejectionWarning` and is read as
+    before.
+
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
             complex/typed representation) or a plain JSON-native value.
@@ -875,11 +895,6 @@ def decode_json_representation(
         unchanged if it was not a dict (conversion of plain Python types
         happens later, when the value is added to a record).
 
-    A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
-    a ``"$"`` that is not a string, or a ``"type"`` that does not resolve
-    warns with :class:`~prov.model.ProvFutureRejectionWarning` and is read as
-    before.
-
     Raises:
         ProvJSONException: If ``literal`` is a dict (the complex/typed
             representation) missing its required ``"$"`` (value) key.
@@ -894,7 +909,7 @@ def decode_json_representation(
                 f"The typed-literal representation for {where} is missing "
                 f'its required "$" (value) key; found {literal!r}'
             ) from exc
-        for key in sorted(literal.keys() - {"$", "type", "lang"}):
+        for key in sorted(literal.keys() - {"$", "type", "lang"}, key=str):
             _warn_rejection(
                 f"the value object has the unknown key {key!r}", rec_id, attr_name
             )

@@ -98,9 +98,9 @@
   the same `Literal` in code. Text outside the `xsd:dateTime` lexical space still raises
 - The PROV-JSON reader accepts `prov:time`, `prov:startTime` and `prov:endTime` written
   as a value object, `{"$": "2012-01-01T00:00:00", "type": "xsd:dateTime"}` (#554). It
-  raised `AttributeError`. A value object with another datatype or an ill-formed text,
-  and a time that is neither a string nor a value object, raise `ProvJSONException`
-  naming the record and the attribute
+  raised `AttributeError`. Any other value object, such as one with another datatype or
+  an ill-formed text, and a time that is neither a string nor a value object, raise
+  `ProvJSONException` naming the record and the attribute
 - A PROV-JSON formal attribute written as an empty array, such as `"prov:entity": []`,
   raises `ProvJSONException` naming the record and the attribute. It raised a bare
   `IndexError`

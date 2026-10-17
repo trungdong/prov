@@ -103,7 +103,7 @@ time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 
 | Warning | Example | Write instead |
 |---|---|---|
-| `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For several values, an array, `"ex:k": ["a", "b"]`. |
+| `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For an attribute with several values, an array, `"ex:k": ["a", "b"]`. |
 | `'…' is not an xsd:dateTime and is dropped` | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
 | `the value is written as an array` | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
 | `the value is null and is dropped` | `"ex:k": null` | No attribute. |
