@@ -118,6 +118,9 @@
   A membership with several members and no `prov:collection` reads; it raised
   `KeyError`. Every member resolves as the first one does, so a later member with an
   undeclared prefix no longer raises `ProvExceptionInvalidQualifiedName`
+- The PROV-JSONLD reader keeps the `@id` of a `Membership` with several members on every
+  record it reads, as it already did for one member. 3.2.1 dropped the `@id` with a
+  `ProvWarning`, because `unified()` raised on records sharing it
 
 ### Project
 
