@@ -87,6 +87,13 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-dm-example-63.provn": "used gives only the activity and entity without the paired time",
 }
 
+# Recommendation examples that the strict profile reads with a 3.3.0 warning
+# (#519). The examples are not normative, so the grammar wins.
+STRICT_WARNING_EXAMPLES: dict[str, str] = {
+    "prov-n-example-51.provn": "'default' follows a 'prefix' declaration",
+    "prov-dm-example-42.provn": "a statement follows a bundle",
+}
+
 # ProvToolbox-written documents that legitimately differ from our JSON
 # fixture, because ProvToolbox's own test-data generator has moved on since
 # the fixture was captured. Each entry is documented on
@@ -323,12 +330,18 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
 def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
+    expected = STRICT_WARNING_EXAMPLES.get(path.name)
     with warnings.catch_warnings():
-        # prov-n-example-51 declares 'default' after 'prefix', which the strict
-        # profile rejects from 3.3.0 (#519).
-        if path.name == "prov-n-example-51.provn":
-            warnings.simplefilter("ignore", ProvFutureRejectionWarning)
-        document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        if expected is None:
+            document = ProvDocument.deserialize(
+                str(path), format="provn", profile="strict"
+            )
+        else:
+            with pytest.warns(ProvFutureRejectionWarning, match=expected):
+                document = ProvDocument.deserialize(
+                    str(path), format="provn", profile="strict"
+                )
     reloaded = ProvDocument.deserialize(
         content=document.get_provn(strict=True), format="provn", profile="strict"
     )

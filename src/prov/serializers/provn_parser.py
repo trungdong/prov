@@ -123,6 +123,10 @@ _STRICT_REQUIRED_LEADING: dict[str, int] = {
     name: min(arities) for name, (_, arities) in _RELATIONS.items()
 } | {"mentionOf": min(_MENTION[1])}
 
+# Productions 24 to 26 give these relations neither an identifier nor an
+# attribute block.
+_BARE_RELATIONS = frozenset({"alternateOf", "specializationOf", "hadMember"})
+
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
 
@@ -280,12 +284,23 @@ class ProvNParser:
         namespaces, default = self._declarations()
         self._scope = {namespace.prefix: namespace for namespace in namespaces}
         self._apply_declarations(document, namespaces, default)
+        after_bundle = False
         while not self._at_keyword("endDocument"):
             if self._current.kind is TokenKind.EOF:
                 raise self._error("expected 'endDocument', found end of input")
             if self._at_keyword("bundle"):
                 self._bundle(document)
+                after_bundle = True
             else:
+                # Production 1 puts every expression before the first bundle.
+                if after_bundle and self.profile == "strict":
+                    self._future(
+                        "a statement follows a bundle, which the strict profile"
+                        " does not allow",
+                        self._current,
+                        "reject this under the strict profile",
+                    )
+                after_bundle = False
                 self._statement(document)
         self._advance()
         if self._current.kind is not TokenKind.EOF:
@@ -564,6 +579,7 @@ class ProvNParser:
         else:
             first = self._argument()
             if self._current.kind is TokenKind.SEMICOLON:
+                self._check_strict_bare_relation(keyword, first, "an identifier")
                 if first.kind is TokenKind.MARKER:
                     identifier = None
                 elif first.kind is TokenKind.NAME:
@@ -579,6 +595,9 @@ class ProvNParser:
         while separator is TokenKind.COMMA:
             self._advance()
             if self._current.kind is TokenKind.LBRACKET:
+                self._check_strict_bare_relation(
+                    keyword, self._current, "an attribute block"
+                )
                 attribute_block = self._attributes(bundle)
                 break
             args.append(self._argument())
@@ -600,6 +619,18 @@ class ProvNParser:
         other_attributes = [(name, value) for name, value, _ in attribute_block]
         bundle.new_record(rec_type, identifier, attributes, other_attributes)
         self._check_formal_attributes(keyword, formal_names, attribute_block)
+
+    def _check_strict_bare_relation(
+        self, keyword: Token, token: Token, what: str
+    ) -> None:
+        """Under ``strict``, record a 3.3.0 message for an identifier or an
+        attribute block on a relation whose production has neither."""
+        if self.profile == "strict" and keyword.value[1] in _BARE_RELATIONS:
+            self._future(
+                f"'{keyword.text}' has {what}, which the strict profile does not allow",
+                token,
+                "reject this under the strict profile",
+            )
 
     def _check_formal_attributes(
         self,

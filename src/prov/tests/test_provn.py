@@ -1101,3 +1101,97 @@ def test_formal_attribute_warning_reaches_the_caller() -> None:
         "'prov:activity' names the 'activity' argument of 'wasGeneratedBy'",
     )
     assert doc == read_statement("wasGeneratedBy(ex:e, ex:a, -)")[0]
+
+
+AFTER_BUNDLE = "a statement follows a bundle, which the strict profile does not allow"
+
+
+def test_strict_statement_after_a_bundle_warns_once_per_run() -> None:
+    _, messages = read_statement(
+        "bundle ex:b\nentity(ex:e)\nendBundle\nentity(ex:f)\nentity(ex:g)\n"
+        "bundle ex:c\nentity(ex:e)\nendBundle\nentity(ex:h)",
+        "strict",
+    )
+    assert messages == [
+        f"line 6, column 1: {AFTER_BUNDLE}" + STRICT_CLAUSE,
+        f"line 11, column 1: {AFTER_BUNDLE}" + STRICT_CLAUSE,
+    ]
+
+
+def test_strict_statement_before_a_bundle_does_not_warn() -> None:
+    _, messages = read_statement(
+        "entity(ex:f)\nbundle ex:b\nentity(ex:e)\nendBundle", "strict"
+    )
+    assert messages == []
+
+
+@pytest.mark.parametrize("profile", ["default", "lenient"])
+def test_statement_after_a_bundle_warns_only_under_strict(profile) -> None:
+    _, messages = read_statement(
+        "bundle ex:b\nentity(ex:e)\nendBundle\nentity(ex:f)", profile
+    )
+    assert messages == []
+
+
+BARE_RELATION_CASES = [
+    ("hadMember(ex:m; ex:c, ex:e)", "an identifier", "ex:m"),
+    ("hadMember(-; ex:c, ex:e)", "an identifier", "-"),
+    ("alternateOf(ex:a; ex:e2, ex:e1)", "an identifier", "ex:a"),
+    ('specializationOf(ex:e2, ex:e1, [ex:k="x"])', "an attribute block", "["),
+    ("alternateOf(ex:e2, ex:e1, [])", "an attribute block", "["),
+]
+
+
+@pytest.mark.parametrize(("statement", "what", "marker"), BARE_RELATION_CASES)
+def test_strict_identifier_or_attributes_on_a_bare_relation_warns(
+    statement, what, marker
+) -> None:
+    keyword = statement.split("(")[0]
+    column = statement.index(marker) + 1
+    _, messages = read_statement(statement, "strict")
+    assert messages == [
+        f"line 3, column {column}: '{keyword}' has {what}, which the strict"
+        " profile does not allow" + STRICT_CLAUSE
+    ]
+
+
+def test_strict_identifier_and_attributes_on_a_bare_relation_warn_twice() -> None:
+    _, messages = read_statement('hadMember(ex:m; ex:c, ex:e, [ex:k="x"])', "strict")
+    assert messages == [
+        "line 3, column 11: 'hadMember' has an identifier, which the strict"
+        " profile does not allow" + STRICT_CLAUSE,
+        "line 3, column 29: 'hadMember' has an attribute block, which the strict"
+        " profile does not allow" + STRICT_CLAUSE,
+    ]
+
+
+@pytest.mark.parametrize("profile", ["default", "lenient"])
+@pytest.mark.parametrize(("statement", "what", "marker"), BARE_RELATION_CASES)
+def test_bare_relation_warns_only_under_strict(
+    profile, statement, what, marker
+) -> None:
+    _, messages = read_statement(statement, profile)
+    assert messages == []
+
+
+def test_strict_identifier_and_attributes_on_other_relations_do_not_warn() -> None:
+    _, messages = read_statement(
+        'wasDerivedFrom(ex:d; ex:e2, ex:e1, [ex:k="x"])', "strict"
+    )
+    assert messages == []
+
+
+@pytest.mark.parametrize(
+    ("body", "match"),
+    [
+        (
+            "bundle ex:b\nentity(ex:e)\nendBundle\nentity(ex:f)",
+            "a statement follows a bundle",
+        ),
+        ("hadMember(ex:m; ex:c, ex:e)", "'hadMember' has an identifier"),
+    ],
+)
+def test_strict_statement_warning_reaches_the_caller(body, match) -> None:
+    text = f"{STATEMENT_PREFIX}{body}\nendDocument"
+    doc = _read_warning(text, match, "strict")
+    assert doc == ProvDocument.deserialize(content=text, format="provn")

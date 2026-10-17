@@ -77,3 +77,9 @@ string, an IRI or a comment does not warn.
 | Warning | Example | Write instead |
 |---|---|---|
 | `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |
+| `a statement follows a bundle` (strict profile) | `entity(ex:f)` after `endBundle` | Every statement before the first bundle. |
+| `'hadMember' has an identifier` (strict profile) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
+| `'specializationOf' has an attribute block` (strict profile) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
+
+`alternateOf` takes neither an identifier nor an attribute block either. The
+`default` and `lenient` profiles accept all three constructs without a warning.
