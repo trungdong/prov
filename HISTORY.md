@@ -37,6 +37,13 @@
 - A PROV-JSON formal attribute written as a one-element array, such as
   `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
   `hadMember` are an array by design and do not warn
+- A null PROV-JSON attribute value, alone or in an array (#528). `prov` still drops it
+- A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
+  not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
+  `$` as a string, so `{"$": null}` reads as the string `"None"`
+- A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
+  `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
+  string, or as a language-tagged string when it has a `lang`
 
 ### Fixes
 

@@ -650,15 +650,14 @@ def _decode_record_instance(
             if extra_members is not None:
                 membership_extra_members = extra_members
         else:
-            if isinstance(values, list):
-                other_attributes.extend(
-                    (attr, decode_json_representation(value, bundle, attr_name))
-                    for value in values
-                )
-            else:
-                # single value
+            for value in values if isinstance(values, list) else [values]:
+                if value is None:
+                    # The model drops a None value.
+                    _warn_rejection(
+                        "the value is null and is dropped", rec_id, attr_name
+                    )
                 other_attributes.append(
-                    (attr, decode_json_representation(values, bundle, attr_name))
+                    (attr, decode_json_representation(value, bundle, attr_name, rec_id))
                 )
     bundle.new_record(rec_type, rec_id, attributes, other_attributes)
     # HACK: creating extra (unidentified) membership relations
@@ -841,7 +840,10 @@ def encode_json_representation(
 
 
 def decode_json_representation(
-    literal: Any, bundle: ProvBundle, attr_name: str | None = None
+    literal: Any,
+    bundle: ProvBundle,
+    attr_name: str | None = None,
+    rec_id: str | None = None,
 ) -> Any:
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
@@ -851,8 +853,10 @@ def decode_json_representation(
         bundle: Bundle used to resolve any ``"type"``/value that is a
             qualified name.
         attr_name: The PROV-JSON attribute key ``literal`` was read from, if
-            known. Used only to name the attribute in the exception message
-            below; omit for a generic message.
+            known. Used only to name the attribute in messages; omit for a
+            generic message.
+        rec_id: The identifier of the record ``literal`` was read from, if
+            known. Used only to name the record in warning messages.
 
     Returns:
         An :class:`~prov.identifier.Identifier` for ``xsd:anyURI`` values, a
@@ -862,6 +866,11 @@ def decode_json_representation(
         :class:`~prov.model.Literal` for other typed values, or ``literal``
         unchanged if it was not a dict (conversion of plain Python types
         happens later, when the value is added to a record).
+
+    A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
+    a ``"$"`` that is not a string, or a ``"type"`` that does not resolve
+    warns with :class:`~prov.model.ProvFutureRejectionWarning` and is read as
+    before.
 
     Raises:
         ProvJSONException: If ``literal`` is a dict (the complex/typed
@@ -877,8 +886,24 @@ def decode_json_representation(
                 f"The typed-literal representation for {where} is missing "
                 f'its required "$" (value) key; found {literal!r}'
             ) from exc
+        for key in sorted(literal.keys() - {"$", "type", "lang"}):
+            _warn_rejection(
+                f"the value object has the unknown key {key!r}", rec_id, attr_name
+            )
+        if not isinstance(value, str):
+            _warn_rejection(
+                f'the value object\'s "$" is {json.dumps(value)}, not a string',
+                rec_id,
+                attr_name,
+            )
         datatype_str: str | None = literal.get("type", None)
         datatype = valid_qualified_name(bundle, datatype_str)
+        if datatype_str is not None and datatype is None:
+            _warn_rejection(
+                f"the datatype {datatype_str!r} does not resolve and is dropped",
+                rec_id,
+                attr_name,
+            )
         langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:
             return Identifier(value)

@@ -106,6 +106,10 @@ time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 | `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For several values, an array, `"ex:k": ["a", "b"]`. |
 | `'…' is not an xsd:dateTime and is dropped` | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
 | `the value is written as an array` | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
+| `the value is null and is dropped` | `"ex:k": null` | No attribute. |
+| `the value object has the unknown key '…'` | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
+| `the value object's "$" is …, not a string` | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
+| `the datatype '…' does not resolve and is dropped` | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
 
 The repeated-key warning names only the key, because Python's JSON parser
 reports no position for it.

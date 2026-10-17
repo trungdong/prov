@@ -29,6 +29,7 @@ from prov.serializers.provjson import (
     ProvJSONEncoder,
     ProvJSONException,
     _JSONPrefixMap,
+    decode_json_representation,
     encode_json_container,
 )
 from prov.serializers.provjsonld import _JSONLD_DEFAULT_KEYS
@@ -491,3 +492,105 @@ def test_formal_attribute_written_as_an_empty_array_raises(
     expected = "record 'ex:r', attribute 'prov:entity': the value is an empty array"
     with pytest.raises(ProvJSONException, match=re.escape(expected)):
         ProvDocument.deserialize(content=text, format="json")
+
+
+@pytest.mark.parametrize(
+    ("value", "same_as"),
+    [
+        pytest.param(None, {}, id="alone"),
+        pytest.param([None, "x"], {"ex:k": "x"}, id="in-an-array"),
+    ],
+)
+def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> None:
+    document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
+    assert messages == [
+        _rejected("record 'ex:e', attribute 'ex:k': the value is null and is dropped")
+    ]
+    assert document == _read_quietly(_json({"entity": {"ex:e": same_as}}))
+
+
+@pytest.mark.parametrize(
+    ("value", "details", "same_as"),
+    [
+        pytest.param(
+            {"$": "1", "datatype": "xsd:int"},
+            ["the value object has the unknown key 'datatype'"],
+            "1",
+            id="unknown-key",
+        ),
+        pytest.param(
+            {"$": "1", "b": "x", "a": "x"},
+            [
+                "the value object has the unknown key 'a'",
+                "the value object has the unknown key 'b'",
+            ],
+            "1",
+            id="unknown-keys",
+        ),
+        pytest.param(
+            {"$": 1}, ['the value object\'s "$" is 1, not a string'], "1", id="number"
+        ),
+        pytest.param(
+            {"$": 1, "type": "xsd:int"},
+            ['the value object\'s "$" is 1, not a string'],
+            {"$": "1", "type": "xsd:int"},
+            id="typed-number",
+        ),
+        pytest.param(
+            {"$": True},
+            ['the value object\'s "$" is true, not a string'],
+            "True",
+            id="boolean",
+        ),
+        pytest.param(
+            {"$": None},
+            ['the value object\'s "$" is null, not a string'],
+            "None",
+            id="null",
+        ),
+        pytest.param(
+            {"$": "1", "type": "foo:int"},
+            ["the datatype 'foo:int' does not resolve and is dropped"],
+            "1",
+            id="undeclared-datatype",
+        ),
+        pytest.param(
+            {"$": "1", "type": "foo:int", "lang": "en"},
+            ["the datatype 'foo:int' does not resolve and is dropped"],
+            {"$": "1", "lang": "en"},
+            id="undeclared-datatype-with-lang",
+        ),
+    ],
+)
+def test_value_object_that_3_3_0_rejects_warns(
+    value: dict[str, object], details: list[str], same_as: object
+) -> None:
+    document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
+    assert messages == [
+        _rejected(f"record 'ex:e', attribute 'ex:k': {detail}") for detail in details
+    ]
+    assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param("1", id="string"),
+        pytest.param({"$": "1"}, id="untyped"),
+        pytest.param({"$": "1", "type": "xsd:int"}, id="typed"),
+        pytest.param({"$": "1", "lang": "en"}, id="tagged"),
+        pytest.param({"$": "ex:v", "type": "xsd:QName"}, id="qualified-name"),
+        pytest.param({"$": "http://example.org/", "type": "xsd:anyURI"}, id="uri"),
+        pytest.param(["1", {"$": "2", "type": "xsd:int"}], id="array"),
+    ],
+)
+def test_well_formed_attribute_value_does_not_warn(value: object) -> None:
+    _read_quietly(_json({"entity": {"ex:e": {"ex:k": value}}}))
+
+
+def test_value_object_warning_without_a_position() -> None:
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        decode_json_representation({"$": "1", "x": "y"}, ProvDocument())
+    assert [str(w.message) for w in caught] == [
+        _rejected("the value object has the unknown key 'x'")
+    ]
