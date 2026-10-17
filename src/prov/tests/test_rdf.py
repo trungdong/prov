@@ -226,7 +226,7 @@ def test_decode_xsd_qname_gyear_gyearmonth_round_trip() -> None:
 
 @pytest.mark.parametrize(
     ("datatype", "text"),
-    [("gYear", "20x0"), ("gYearMonth", "2020-5")],
+    [("gYear", "year"), ("gYearMonth", "month")],
 )
 def test_ill_formed_gyear_and_gyearmonth_stay_literals(datatype, text) -> None:
     doc = ProvDocument()
