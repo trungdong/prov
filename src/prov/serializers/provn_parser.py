@@ -142,9 +142,9 @@ class ProvNParser:
             after :meth:`parse` returns.
         warnings: Messages for input that ``prov`` 3.3.0 rejects or reads
             differently, each built by
-            :func:`prov._warnings.future_rejection_message`: the lexer's
-            first, then the parser's, each in source order. Read after
-            :meth:`parse` returns.
+            :func:`prov._warnings.future_rejection_message`. The lexer's
+            messages come first, then the parser's, each in source order.
+            Read after :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.

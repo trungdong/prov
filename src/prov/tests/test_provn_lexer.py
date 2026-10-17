@@ -392,6 +392,8 @@ def test_code_point_escapes_are_decoded(text, expected) -> None:
         (r"<http://a/\u00G9>", r"escape '\u' needs four hex digits", 11),
         (r"<http://a/\q>", r"unknown IRI escape '\q'", 11),
         (r"<http://a/\n>", r"unknown IRI escape '\n'", 11),
+        (r"<http://a/\\>", r"unknown IRI escape '\\'", 11),
+        (r"<http://a/\|>", r"unknown IRI escape '\|'", 11),
         (
             r"<http://a/\u0020>",
             r"escape '\u0020' encodes a character an IRI cannot contain",
@@ -408,6 +410,14 @@ def test_bad_code_point_escape_raises_at_the_escape(text, message, column) -> No
     with pytest.raises(ProvNSyntaxError, match=re.escape(message)) as ctx:
         list(tokenize(text))
     assert (ctx.value.line, ctx.value.column) == (1, column)
+
+
+def test_bad_code_point_escape_position_on_a_later_line_of_a_long_string() -> None:
+    with pytest.raises(
+        ProvNSyntaxError, match=re.escape(r"escape '\u' needs four hex digits")
+    ) as ctx:
+        list(tokenize('"""ab\ncd \\u12"""'))
+    assert (ctx.value.line, ctx.value.column) == (2, 4)
 
 
 def lexer_warnings(text):

@@ -284,8 +284,8 @@ class _Lexer:
     def skip_other_space(self) -> None:
         """Skip a run of one whitespace character that WS excludes.
 
-        3.2 skips it as a separator, as before, and records a 3.3.0 message
-        at the run's first character.
+        The run is skipped as a separator, and a 3.3.0 message is recorded
+        at its first character.
         """
         text, pos = self.text, self.pos
         char = text[pos]
