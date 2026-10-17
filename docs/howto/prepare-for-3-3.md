@@ -119,11 +119,13 @@ rejects these tags.
 |---|---|---|
 | `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
 
-A local part cannot hold a space, a control character, a character such as `"`
-or `|` that is neither a name character nor one of `/@~&+*?#$!`, or a `%` that
-two hexadecimal digits do not follow. Nor can it start with U+00B7 (middle dot)
-or a combining mark. The PROV-N writer percent-encodes such a character, so a
-PROV-N reader recovers a different IRI.
+A local part cannot hold a space, a control character or another character
+that PROV-N can write only by percent-encoding it, such as `"` or `|`. Nor can
+it hold a `%` that two hexadecimal digits do not follow, or start with U+00B7
+(middle dot), U+203F (undertie), U+2040 (character tie) or a combining mark
+from U+0300 to U+036F. The PROV-N writer percent-encodes such a character, so
+a PROV-N reader recovers a different IRI. The characters `= ' ( ) , : ; [ ]`
+are written with a backslash instead, and do not warn.
 
 The warning fires when the name is first built. `unified()`, `flattened()` and
 copies of the document reuse the name and do not warn again.
