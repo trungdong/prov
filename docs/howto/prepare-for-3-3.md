@@ -71,3 +71,9 @@ such a file and writing it again with `prov` 3.2.3 adds the declaration.
 The same warning names any other Unicode whitespace character between tokens,
 such as U+000C (form feed) or U+2028 (line separator). Whitespace inside a
 string, an IRI or a comment does not warn.
+
+## PROV-N statements
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |

@@ -574,12 +574,12 @@ class ProvNParser:
                 args.append(self._argument())
             else:
                 args.append(first)
-        other_attributes: list[tuple[QualifiedName, Any]] = []
+        attribute_block: list[tuple[QualifiedName, Any, Token]] = []
         separator = self._current.kind
         while separator is TokenKind.COMMA:
             self._advance()
             if self._current.kind is TokenKind.LBRACKET:
-                other_attributes = self._attributes(bundle)
+                attribute_block = self._attributes(bundle)
                 break
             args.append(self._argument())
             separator = self._current.kind
@@ -597,7 +597,25 @@ class ProvNParser:
             value = self._argument_value(token, attr, bundle)
             if value is not None:
                 attributes.append((attr, value))
+        other_attributes = [(name, value) for name, value, _ in attribute_block]
         bundle.new_record(rec_type, identifier, attributes, other_attributes)
+        self._check_formal_attributes(keyword, formal_names, attribute_block)
+
+    def _check_formal_attributes(
+        self,
+        keyword: Token,
+        formal_names: tuple[QualifiedName, ...],
+        attribute_block: list[tuple[QualifiedName, Any, Token]],
+    ) -> None:
+        """Record a 3.3.0 message for each attribute named after one of the
+        statement's own arguments; new_record() reads it as that argument."""
+        for name, _, token in attribute_block:
+            if name in formal_names:
+                self._future(
+                    f"'{token.text}' names the '{name.localpart}' argument of"
+                    f" '{keyword.text}', which PROV-N gives only by position",
+                    token,
+                )
 
     def _check_strict_required_positions(
         self, keyword: Token, args: list[Token]
@@ -719,9 +737,10 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
-    def _attributes(self, bundle: ProvBundle) -> list[tuple[QualifiedName, Any]]:
+    def _attributes(self, bundle: ProvBundle) -> list[tuple[QualifiedName, Any, Token]]:
+        """Parse an attribute block into (name, value, name token) triples."""
         self._expect(TokenKind.LBRACKET)
-        pairs: list[tuple[QualifiedName, Any]] = []
+        pairs: list[tuple[QualifiedName, Any, Token]] = []
         if self._current.kind is TokenKind.RBRACKET:
             self._advance()
             return pairs
@@ -731,7 +750,7 @@ class ProvNParser:
             )
             attr = self._resolve(name, bundle)
             self._expect(TokenKind.EQUALS)
-            pairs.append((attr, self._literal(bundle)))
+            pairs.append((attr, self._literal(bundle), name))
             if self._current.kind is TokenKind.COMMA:
                 self._advance()
                 continue

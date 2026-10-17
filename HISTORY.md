@@ -20,6 +20,9 @@
 - Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a
   no-break space (#509). `prov` still skips it. PROV-N counts U+1680 as a name
   character, so 3.3.0 reads it as part of a name
+- A PROV-N attribute named after one of the statement's own arguments, such as
+  `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523).
+  `prov` still reads it as that argument
 
 ### Fixes
 

@@ -1032,3 +1032,72 @@ def test_lexer_warnings_come_before_parser_warnings() -> None:
     assert len(parser.warnings) == 2
     assert "U+00A0 is not PROV-N whitespace" in parser.warnings[0]
     assert "'default' is declared twice" in parser.warnings[1]
+
+
+STATEMENT_PREFIX = "document\nprefix ex <http://example.org/>\n"
+
+
+def read_statement(statement, profile="default"):
+    return parse_with_warnings(f"{STATEMENT_PREFIX}{statement}\nendDocument", profile)
+
+
+@pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
+@pytest.mark.parametrize(
+    ("statement", "positional", "formal", "keyword"),
+    [
+        (
+            "wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])",
+            "wasGeneratedBy(ex:e, ex:a, -)",
+            "activity",
+            "wasGeneratedBy",
+        ),
+        (
+            "wasGeneratedBy(ex:e, ex:a, -, [prov:activity='ex:a'])",
+            "wasGeneratedBy(ex:e, ex:a, -)",
+            "activity",
+            "wasGeneratedBy",
+        ),
+        (
+            'activity(ex:a, -, -, [prov:startTime="2011-11-16T16:05:00"])',
+            "activity(ex:a, 2011-11-16T16:05:00, -)",
+            "startTime",
+            "activity",
+        ),
+    ],
+)
+def test_attribute_named_after_a_formal_warns_and_reads_as_that_formal(
+    profile, statement, positional, formal, keyword
+) -> None:
+    doc, messages = read_statement(statement, profile)
+    column = statement.index("[prov:") + 2
+    assert messages == [
+        f"line 3, column {column}: 'prov:{formal}' names the '{formal}' argument"
+        f" of '{keyword}', which PROV-N gives only by position."
+        " prov 3.3.0 will reject this"
+    ]
+    assert doc == read_statement(positional, profile)[0]
+
+
+def test_conflicting_formal_attribute_is_skipped_without_a_warning() -> None:
+    parser = ProvNParser(
+        f"{STATEMENT_PREFIX}wasGeneratedBy(ex:e, ex:a, -, [prov:activity='ex:b'])\n"
+        "entity(ex:z)\nendDocument",
+        "lenient",
+    )
+    parser.parse()
+    assert parser.warnings == []
+    assert len(parser.skipped) == 1
+
+
+def test_reserved_attribute_that_is_not_a_formal_does_not_warn() -> None:
+    _, messages = read_statement("wasGeneratedBy(ex:e, ex:a, -, [prov:role='ex:r'])")
+    assert messages == []
+
+
+def test_formal_attribute_warning_reaches_the_caller() -> None:
+    doc = _read_warning(
+        f"{STATEMENT_PREFIX}wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])\n"
+        "endDocument",
+        "'prov:activity' names the 'activity' argument of 'wasGeneratedBy'",
+    )
+    assert doc == read_statement("wasGeneratedBy(ex:e, ex:a, -)")[0]
