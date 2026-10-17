@@ -7,6 +7,8 @@ only the genuinely JSON-specific cases.
 """
 
 import datetime
+import decimal
+import io
 import json
 import re
 import warnings
@@ -570,6 +572,25 @@ def test_value_object_that_3_3_0_rejects_warns(
         _rejected(f"record 'ex:e', attribute 'ex:k': {detail}") for detail in details
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
+
+
+def test_value_object_number_parsed_as_a_decimal_warns() -> None:
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        document = prov.read(
+            io.StringIO(_json({"entity": {"ex:e": {"ex:k": {"$": 1.5}}}})),
+            format="json",
+            parse_float=decimal.Decimal,
+        )
+    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
+    assert [str(w.message) for w in future] == [
+        _rejected(
+            "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string"
+        )
+    ]
+    assert [w.filename for w in future] == [__file__]
+    assert document == _read_quietly(
+        _json({"entity": {"ex:e": {"ex:k": {"$": "1.5"}}}})
+    )
 
 
 @pytest.mark.parametrize(

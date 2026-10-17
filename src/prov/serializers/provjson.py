@@ -786,6 +786,14 @@ def _position(rec_id: str | None, attr_name: str | None) -> str:
     return ", ".join(parts) + ": " if parts else ""
 
 
+def _json_text(value: Any) -> str:
+    """Return ``value`` as JSON text, or ``str(value)`` if JSON cannot encode it."""
+    try:
+        return json.dumps(value)
+    except TypeError:
+        return str(value)
+
+
 def _warn_rejection(
     detail: str, rec_id: str | None = None, attr_name: str | None = None
 ) -> None:
@@ -892,7 +900,7 @@ def decode_json_representation(
             )
         if not isinstance(value, str):
             _warn_rejection(
-                f'the value object\'s "$" is {json.dumps(value)}, not a string',
+                f'the value object\'s "$" is {_json_text(value)}, not a string',
                 rec_id,
                 attr_name,
             )
