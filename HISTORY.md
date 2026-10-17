@@ -25,6 +25,10 @@
 - A PROV-N attribute named after one of the statement's own arguments, such as
   `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523).
   `prov` still reads it as that argument
+- A time whose timezone offset is beyond ±14:00, the `xsd:dateTime` bound, such as
+  `2012-01-01T00:00:00+15:00`, from any reader or from code (#513). An `xsd:dateTime`
+  attribute value with such an offset still reads as a `datetime`; 3.3.0 keeps it as a
+  `Literal`
 
 ### Fixes
 

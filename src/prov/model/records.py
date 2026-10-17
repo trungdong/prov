@@ -22,6 +22,11 @@ from collections.abc import (
 from typing import IO, TYPE_CHECKING, Any, Final, Protocol, TypeVar, Union, cast
 
 from prov import Error
+from prov._warnings import (
+    ProvFutureRejectionWarning,
+    future_rejection_message,
+    warn,
+)
 from prov.constants import (
     PROV_ACTIVITY,
     PROV_AGENT,
@@ -376,6 +381,15 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
     if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
         value = value.astimezone(datetime.timezone.utc)
     return value.isoformat()
+
+
+_XSD_MAX_OFFSET = datetime.timedelta(hours=14)
+
+
+def _offset_beyond_xsd_bound(value: datetime.datetime) -> bool:
+    """Whether ``value``'s timezone offset lies outside xsd:dateTime's ±14:00."""
+    offset = value.utcoffset()
+    return offset is not None and abs(offset) > _XSD_MAX_OFFSET
 
 
 def encoding_provn_value(
@@ -942,8 +956,28 @@ class ProvRecord:
                     f"Expected a datetime object or a string that can be parsed"
                     f" as a datetime."
                 )
+            if _offset_beyond_xsd_bound(value):
+                warn(
+                    future_rejection_message(
+                        f"{attr} {_xsd_datetime_text(value)} has a timezone"
+                        f" offset beyond ±14:00"
+                    ),
+                    ProvFutureRejectionWarning,
+                )
         else:
             value = self._auto_literal_conversion(original_value)
+            if (
+                isinstance(value, datetime.datetime)
+                and isinstance(original_value, Literal)
+                and _offset_beyond_xsd_bound(value)
+            ):
+                warn(
+                    future_rejection_message(
+                        f"{attr} {original_value} has a timezone offset beyond ±14:00",
+                        "keep it as a Literal",
+                    ),
+                    ProvFutureRejectionWarning,
+                )
 
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")

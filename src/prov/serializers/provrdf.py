@@ -50,7 +50,11 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.model.records import _xsd_datetime_text, _xsd_double_text
+from prov.model.records import (
+    _offset_beyond_xsd_bound,
+    _xsd_datetime_text,
+    _xsd_double_text,
+)
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
@@ -775,8 +779,9 @@ class ProvRDFSerializer(Serializer):
 
         Returns:
             A :class:`datetime.datetime` for a well-formed ``xsd:dateTime``
-            literal, or a :class:`~prov.model.Literal` for any other
-            typed/tagged literal, ill-formed ones included.
+            literal with an offset within ±14:00, or a
+            :class:`~prov.model.Literal` for any other typed/tagged literal,
+            ill-formed ones included.
         """
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
@@ -785,7 +790,9 @@ class ProvRDFSerializer(Serializer):
             return pm.Literal(literal, datatype=XSD_QNAME)
         if datatype == XSD["dateTime"]:
             parsed = pm.parse_xsd_datetime(str(literal))
-            if parsed is None:
+            # The model keeps an ill-formed literal and warns about an
+            # offset beyond ±14:00, so both go to it as a Literal.
+            if parsed is None or _offset_beyond_xsd_bound(parsed):
                 return pm.Literal(str(literal), pm.XSD_DATETIME)
             return parsed
         if datatype == XSD["gYear"]:

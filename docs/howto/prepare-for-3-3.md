@@ -85,3 +85,16 @@ The identifier and attribute-block warnings name whichever of `alternateOf`,
 `specializationOf` and `hadMember` carries one. The `default` and `lenient`
 profiles accept the three strict-profile constructs in this table without a
 warning.
+
+## Times
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `… has a timezone offset beyond ±14:00. prov 3.3.0 will reject this` | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)` | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
+| `… has a timezone offset beyond ±14:00. prov 3.3.0 will keep it as a Literal` | `[ex:t="2011-11-16T16:05:33+15:00" %% xsd:dateTime]` | The same instant with an offset from -14:00 to +14:00, such as `"2011-11-16T15:05:33+14:00" %% xsd:dateTime`. |
+
+The first warning covers every time of a statement: the time of a relation, an
+activity's start and end times, and `prov:time` given as an attribute, from any
+format or from code. An `xsd:dateTime` value of any other attribute is not a time
+of the statement, so 3.3.0 does not reject it. It reads the value as a `Literal`
+with its text, not as a `datetime`.
