@@ -7,18 +7,23 @@ only the genuinely JSON-specific cases.
 """
 
 import json
+import warnings
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 
+import prov
 from prov.model import (
     PROV_QUALIFIEDNAME,
     Literal,
     ProvBundle,
     ProvDocument,
+    ProvFutureRejectionWarning,
     ProvMembership,
 )
 from prov.serializers.provjson import (
+    ProvJSONDecoder,
     ProvJSONEncoder,
     ProvJSONException,
     _JSONPrefixMap,
@@ -218,3 +223,142 @@ def test_encode_json_container_builds_its_own_prefix_map() -> None:
         "dn": "http://d.example/",
     }
     assert "dn:a:b" in container["entity"]
+
+
+# The 3.2.3 reader warnings. Each one names an input 3.3.0 rejects, and the
+# document still reads as it did before 3.2.3.
+
+_TIME = "2012-01-01T00:00:00"
+_DATETIME_OBJECT = {"$": _TIME, "type": "xsd:dateTime"}
+
+
+def _json(sections: dict[str, Any]) -> str:
+    """A PROV-JSON document declaring ``ex`` and holding ``sections``."""
+    return json.dumps({"prefix": {"ex": "http://example.org/"}, **sections})
+
+
+def _read_quietly(text: str) -> ProvDocument:
+    """Read ``text``, failing on any ProvFutureRejectionWarning."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        return ProvDocument.deserialize(content=text, format="json")
+
+
+def _read_warning(text: str) -> tuple[ProvDocument, list[str]]:
+    """Read ``text``; return the document and its ProvFutureRejectionWarning
+    messages, each of which must name this file as the caller."""
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        document = ProvDocument.deserialize(content=text, format="json")
+    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
+    assert [w.filename for w in future] == [__file__] * len(future)
+    return document, [str(w.message) for w in future]
+
+
+def _rejected(detail: str) -> str:
+    return f"{detail}. prov 3.3.0 will reject this"
+
+
+_PREFIX = '"prefix": {"ex": "http://example.org/"}'
+
+
+@pytest.mark.parametrize(
+    ("repeated", "single", "key"),
+    [
+        pytest.param(
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}',
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "b"}}}}}}',
+            "ex:k",
+            id="attribute",
+        ),
+        pytest.param(
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a"}}, "ex:e": {{}}}}}}',
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}}}',
+            "ex:e",
+            id="record",
+        ),
+        pytest.param(
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}, "entity": {{"ex:f": {{}}}}}}',
+            f'{{{_PREFIX}, "entity": {{"ex:f": {{}}}}}}',
+            "entity",
+            id="section",
+        ),
+        pytest.param(
+            '{"prefix": {"ex": "http://other.org/", "ex": "http://example.org/"},'
+            ' "entity": {"ex:e": {}}}',
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}}}',
+            "ex",
+            id="prefix",
+        ),
+        pytest.param(
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": {{"$": "a", "$": "b"}}}}}}}}',
+            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": {{"$": "b"}}}}}}}}',
+            "$",
+            id="value-object",
+        ),
+    ],
+)
+def test_repeated_key_warns(repeated: str, single: str, key: str) -> None:
+    document, messages = _read_warning(repeated)
+    assert messages == [
+        _rejected(
+            f"the key {key!r} is repeated in a JSON object; the last value is used"
+        )
+    ]
+    assert document == _read_quietly(single)
+
+
+def test_repeated_key_warns_once_per_object() -> None:
+    _, messages = _read_warning(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b", "ex:k": "c"}},'
+        ' "ex:f": {"ex:k": "a", "ex:k": "b"}}}'
+    )
+    message = _rejected(
+        "the key 'ex:k' is repeated in a JSON object; the last value is used"
+    )
+    assert messages == [message, message]
+
+
+def test_caller_object_hook_still_sees_every_object() -> None:
+    seen: list[dict[str, Any]] = []
+
+    def object_hook(obj: dict[str, Any]) -> dict[str, Any]:
+        seen.append(obj)
+        return obj
+
+    text = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
+    with pytest.warns(ProvFutureRejectionWarning, match="'ex:k' is repeated"):
+        document = prov.read(text, format="json", object_hook=object_hook)
+    assert {"ex:k": "b"} in seen
+    assert document == _read_quietly(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "b"}}}}}}'
+    )
+
+
+def test_caller_object_pairs_hook_still_sees_every_pair() -> None:
+    seen: list[list[tuple[str, Any]]] = []
+
+    def object_pairs_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        seen.append(pairs)
+        return dict(pairs)
+
+    text = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
+    with pytest.warns(ProvFutureRejectionWarning, match="'ex:k' is repeated"):
+        prov.read(text, format="json", object_pairs_hook=object_pairs_hook)
+    assert [("ex:k", "a"), ("ex:k", "b")] in seen
+
+
+def test_json_decoder_decodes_a_document() -> None:
+    text = _json({"entity": {"ex:e": {"ex:k": "a"}}})
+    assert json.loads(text, cls=ProvJSONDecoder) == _read_quietly(text)
+
+
+def test_model_warning_from_a_json_read_names_the_caller() -> None:
+    _, messages = _read_warning(
+        _json({"activity": {"ex:a": {"prov:startTime": "2012-01-01T00:00:00+15:00"}}})
+    )
+    assert messages == [
+        _rejected(
+            "prov:startTime 2012-01-01T00:00:00+15:00 has a timezone offset"
+            " beyond ±14:00"
+        )
+    ]

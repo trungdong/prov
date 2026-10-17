@@ -4,11 +4,12 @@ import datetime
 import io
 import json
 import logging
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from prov import Error
+from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
@@ -77,7 +78,10 @@ class ProvJSONSerializer(Serializer):
             "parse_constant",
         }
     )
-    """The :func:`json.load` options :meth:`deserialize` forwards."""
+    """The :func:`json.load` options :meth:`deserialize` forwards.
+
+    ``object_hook`` and ``object_pairs_hook`` receive each object after the
+    check for repeated keys."""
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSON <https://openprovenance.org/prov-json/>`_.
@@ -114,11 +118,46 @@ class ProvJSONSerializer(Serializer):
 
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
+
+        A key repeated in a JSON object warns with
+        :class:`~prov.model.ProvFutureRejectionWarning`; the last value is used.
         """
         if not _is_text_stream(stream):
             buf = io.StringIO(stream.read().decode("utf-8"))
             stream = buf
-        return cast(ProvDocument, json.load(stream, cls=ProvJSONDecoder, **args))
+        repeated: list[str] = []
+        hook = _repeated_key_hook(
+            repeated, args.pop("object_hook", None), args.pop("object_pairs_hook", None)
+        )
+        container = json.load(stream, object_pairs_hook=hook, **args)
+        for key in repeated:
+            _warn_rejection(
+                f"the key {key!r} is repeated in a JSON object; the last value is used"
+            )
+        # Decoded here, not in json.load(), so that a warning names the caller's line.
+        document = ProvDocument()
+        decode_json_document(container, document)
+        return document
+
+
+def _repeated_key_hook(
+    repeated: list[str],
+    object_hook: Callable[[dict[str, Any]], Any] | None,
+    object_pairs_hook: Callable[[list[tuple[str, Any]]], Any] | None,
+) -> Callable[[list[tuple[str, Any]]], Any]:
+    """Return a ``json`` ``object_pairs_hook`` that records each repeated key
+    in ``repeated`` and then hands the object to the caller's own hook."""
+
+    def hook(pairs: list[tuple[str, Any]]) -> Any:
+        obj = dict(pairs)
+        if len(obj) < len(pairs):
+            counts = Counter(key for key, _ in pairs)
+            repeated.extend(key for key, count in counts.items() if count > 1)
+        if object_pairs_hook is not None:
+            return object_pairs_hook(pairs)
+        return object_hook(obj) if object_hook is not None else obj
+
+    return hook
 
 
 class ProvJSONEncoder(json.JSONEncoder):
@@ -686,6 +725,27 @@ def _decode_formal_attribute(
         else parse_xsd_datetime(value)
     )
     return value, membership_extra_members
+
+
+def _position(rec_id: str | None, attr_name: str | None) -> str:
+    """Return the ``"record 'r', attribute 'a': "`` that starts a message,
+    naming as much of the value's position as is known."""
+    parts = []
+    if rec_id is not None:
+        parts.append(f"record {rec_id!r}")
+    if attr_name is not None:
+        parts.append(f"attribute {attr_name!r}")
+    return ", ".join(parts) + ": " if parts else ""
+
+
+def _warn_rejection(
+    detail: str, rec_id: str | None = None, attr_name: str | None = None
+) -> None:
+    """Warn that 3.3.0 rejects the value ``detail`` describes."""
+    warn(
+        future_rejection_message(_position(rec_id, attr_name) + detail),
+        ProvFutureRejectionWarning,
+    )
 
 
 def encode_json_representation(

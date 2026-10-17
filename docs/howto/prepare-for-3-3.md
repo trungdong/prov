@@ -98,3 +98,12 @@ activity's start and end times, and `prov:time` given as an attribute, from any
 format or from code. An `xsd:dateTime` value of any other attribute is not a
 time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 `Literal` with its text, not as a `datetime`.
+
+## PROV-JSON
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For several values, an array, `"ex:k": ["a", "b"]`. |
+
+The repeated-key warning names only the key, because Python's JSON parser
+reports no position for it.
