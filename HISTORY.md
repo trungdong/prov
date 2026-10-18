@@ -62,7 +62,7 @@
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
   `$` as a string, so `{"$": null}` reads as the string `"None"`. A number typed the
   way `prov` 2.x and earlier wrote it, in a value object with no `lang`, does not warn,
-  and 3.3.0 reads it as now. That is `{"$": 1, "type": "xsd:int"}`,
+  and 3.3.0 reads it as now. Such a number is `{"$": 1, "type": "xsd:int"}`,
   `{"$": 1, "type": "xsd:long"}` or `{"$": 1.5, "type": "xsd:double"}`
 - A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
   `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
