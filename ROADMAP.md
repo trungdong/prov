@@ -10,13 +10,14 @@ release is under [`planning/specs/`](planning/specs/).
 
 | Release | Theme | Contents |
 |---|---|---|
-| **3.3.0** | Polish | A runtime immutability guard for `Identifier`, `QualifiedName` and `Literal` ([#444](https://github.com/trungdong/prov/issues/444)); parent-aware namespace reconciliation, so bundles stop copying the document's prefixes ([#449](https://github.com/trungdong/prov/issues/449)); PROV-N reader and writer refactors ([#450](https://github.com/trungdong/prov/issues/450)); wrapped, readable PROV-N output ([#131](https://github.com/trungdong/prov/issues/131)); a deduplication option for relations in `unified()` ([#124](https://github.com/trungdong/prov/issues/124)); a structural `diff()` that `prov-compare` reports instead of a bare yes or no; smaller items from the 3.2.1 reviews; follow-ups from the 3.2.2 typing work: a clear error for Python values that have no PROV form ([#482](https://github.com/trungdong/prov/issues/482)), public return types that match the runtime ([#491](https://github.com/trungdong/prov/issues/491)), namespace arguments that accept any mapping ([#492](https://github.com/trungdong/prov/issues/492)), and the whole test suite under strict mypy ([#494](https://github.com/trungdong/prov/issues/494)); PROV-N serialisation speed recovered after the 3.2.1 writer fixes ([#498](https://github.com/trungdong/prov/issues/498)); a Pygments lexer for PROV-N, registered as a `pygments.lexers` entry point. **Python 3.10 support dropped** under the policy below. Additive apart from the floor |
+| **3.3.0** | Polish | A runtime immutability guard for `Identifier`, `QualifiedName` and `Literal` ([#444](https://github.com/trungdong/prov/issues/444)); parent-aware namespace reconciliation, so bundles stop copying the document's prefixes ([#449](https://github.com/trungdong/prov/issues/449)); PROV-N reader and writer refactors ([#450](https://github.com/trungdong/prov/issues/450)); wrapped, readable PROV-N output ([#131](https://github.com/trungdong/prov/issues/131)); a deduplication option for relations in `unified()` ([#124](https://github.com/trungdong/prov/issues/124)); a structural `diff()` that `prov-compare` reports instead of a bare yes or no; smaller items from the 3.2.1 reviews; follow-ups from the 3.2.2 typing work: a clear error for Python values that have no PROV form ([#482](https://github.com/trungdong/prov/issues/482)), public return types that match the runtime ([#491](https://github.com/trungdong/prov/issues/491)), namespace arguments that accept any mapping ([#492](https://github.com/trungdong/prov/issues/492)), and the whole test suite under strict mypy ([#494](https://github.com/trungdong/prov/issues/494)); PROV-N serialisation speed recovered after the 3.2.1 writer fixes ([#498](https://github.com/trungdong/prov/issues/498)); a Pygments lexer for PROV-N, registered as a `pygments.lexers` entry point. **Python 3.10 support dropped** under the policy below. Additive apart from the floor and the input that 3.3.0 rejects or reads differently, which 3.2.3 warns about with `ProvFutureRejectionWarning` ([#590](https://github.com/trungdong/prov/issues/590)) |
 | **3.4.0** | Recording helpers | A recording-session helper that opens an activity, stamps its start and end and yields a scoped bundle; factories for the agent subtypes and `EmptyCollection` ([#260](https://github.com/trungdong/prov/issues/260)); a bundle as a first-class `prov:Bundle` entity ([#261](https://github.com/trungdong/prov/issues/261)); a how-to for recording AI agent runs. Scope to be confirmed by a spec. Additive |
 | **3.5.0** | Storage | A store protocol with the in-memory document as its first implementation; `prov.sql`, a SQLite engine on the standard library with a versioned schema, provisional for one minor release; `find()` on bundles and documents, with predicates on record class, asserted type, attribute value and formal endpoint, as the protocol's query method; the canonical SQL mapping as a reference document for other engines. Additive |
 | **Unscheduled** | | A PROV-CONSTRAINTS validation engine ([#62](https://github.com/trungdong/prov/issues/62)), once its home is settled; a serializer plugin registry via entry points, when an external format needs it; an optional pyoxigraph RDF backend, on demand |
 
-Releases since 3.0.0 are additive. A 4.0 happens only if a breaking change accrues; none
-is queued.
+Releases since 3.0.0 keep the public API. 3.3.0 also rejects or reads differently some
+input that 3.2.3 warns about first, because it does not conform to PROV. A 4.0 happens
+only if a breaking API change accrues; none is queued.
 
 ## Support policy
 
@@ -27,7 +28,7 @@ is queued.
   [2.5.3](https://github.com/trungdong/prov/releases/tag/2.5.3) (2026-08-08). Its public
   API stayed stable throughout the series: every documented name importable from its
   historic location, and no behaviour-changing bug fixes.
-- **3.0.** The one release that changed compatibility. The
+- **3.0.** The one release that changed the public API. The
   [Upgrading to 3.0](docs/upgrading-3.0.md) guide lists every change and what to do
   about it.
 
