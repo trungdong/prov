@@ -101,6 +101,9 @@ format or from code. An `xsd:dateTime` value of any other attribute is not a
 time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 `Literal` with its text, not as a `datetime`.
 
+Each warning fires when the time is first asserted. `unified()`, `flattened()`,
+`add_record()` and copies of the record or the document do not warn again.
+
 ## Language tags
 
 | Warning | Example | Write instead |

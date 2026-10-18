@@ -19,7 +19,18 @@ from collections.abc import (
     Sequence,
     Set as AbstractSet,
 )
-from typing import IO, TYPE_CHECKING, Any, Final, Protocol, TypeVar, Union, cast
+from contextvars import ContextVar
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    Final,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from prov import Error
 from prov._warnings import (
@@ -694,6 +705,34 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 #  PROV records
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+# True while a record is rebuilt from one already asserted, so the 3.3.0
+# warnings about its values fire once, when they are first asserted.
+_rebuilding: ContextVar[bool] = ContextVar("prov_rebuilding", default=False)
+
+
+def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
+    """Return ``make(*args, **kwargs)``, which rebuilds records already asserted."""
+    token = _rebuilding.set(True)
+    try:
+        return make(*args, **kwargs)
+    finally:
+        _rebuilding.reset(token)
+
+
+def _warn_offset_beyond_bound(detail: str, outcome: str = "reject this") -> None:
+    """Warn that the time in ``detail`` has an offset beyond ±14:00 (#513)."""
+    if not _rebuilding.get():
+        warn(
+            future_rejection_message(
+                f"{detail} has a timezone offset beyond ±14:00", outcome
+            ),
+            ProvFutureRejectionWarning,
+        )
+
+
 class ProvRecord:
     """Base class for PROV records."""
 
@@ -745,8 +784,11 @@ class ProvRecord:
 
     def copy(self) -> ProvRecord:
         """Return an exact copy of this record."""
-        return PROV_REC_CLS[self.get_type()](
-            self._bundle, self.identifier, self.attributes
+        return _rebuild(
+            PROV_REC_CLS[self.get_type()],
+            self._bundle,
+            self.identifier,
+            self.attributes,
         )
 
     def get_type(self) -> QualifiedName:
@@ -978,13 +1020,7 @@ class ProvRecord:
                     f" that parses as one."
                 )
             if _offset_beyond_xsd_bound(value):
-                warn(
-                    future_rejection_message(
-                        f"{attr} {value.isoformat()} has a timezone"
-                        f" offset beyond ±14:00"
-                    ),
-                    ProvFutureRejectionWarning,
-                )
+                _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
         else:
             value = self._auto_literal_conversion(original_value)
             if (
@@ -992,12 +1028,8 @@ class ProvRecord:
                 and isinstance(original_value, Literal)
                 and _offset_beyond_xsd_bound(value)
             ):
-                warn(
-                    future_rejection_message(
-                        f"{attr} {original_value} has a timezone offset beyond ±14:00",
-                        "keep it as a Literal",
-                    ),
-                    ProvFutureRejectionWarning,
+                _warn_offset_beyond_bound(
+                    f"{attr} {original_value}", "keep it as a Literal"
                 )
 
         if value is None:
