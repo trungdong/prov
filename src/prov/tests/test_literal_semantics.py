@@ -26,7 +26,7 @@ def test_decimal_literals_compare_in_value_space() -> None:
 
 
 def test_ill_formed_decimal_literals_compare_lexically() -> None:
-    # A text outside the xsd:decimal lexical space compares as text.
+    # A text that decimal.Decimal cannot parse compares as text.
     assert Literal("abc", XSD_DECIMAL) == Literal("abc", XSD_DECIMAL)
     assert hash(Literal("abc", XSD_DECIMAL)) == hash(Literal("abc", XSD_DECIMAL))
     assert Literal("abc", XSD_DECIMAL) != Literal("abd", XSD_DECIMAL)
