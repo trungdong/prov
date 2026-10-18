@@ -157,6 +157,121 @@ def test_resolvable_qualified_name_value_does_not_warn(
         assert_in(literal)
 
 
+#  PROV-N
+def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
+    return f"document\n{declarations}entity(ex:e, [ex:k={attributes}])\nendDocument\n"
+
+
+@pytest.mark.parametrize(
+    ("value", "text", "reason", "today", "stored"),
+    [
+        pytest.param("'zz:x'", "zz:x", UNDECLARED, KEPT, None, id="undeclared"),
+        pytest.param(
+            f"'{EX}x'", f"{EX}x", FULL_IRI, "it reads as ex:x", "ex:x", id="full IRI"
+        ),
+        pytest.param(
+            '"zz:x" %% prov:QUALIFIED_NAME',
+            "zz:x",
+            UNDECLARED,
+            KEPT,
+            None,
+            id="typed undeclared",
+        ),
+        pytest.param(
+            f'"{EX}x" %% prov:QUALIFIED_NAME',
+            f"{EX}x",
+            FULL_IRI,
+            "it reads as ex:x",
+            "ex:x",
+            id="typed full IRI",
+        ),
+        pytest.param(
+            '"not a name" %% prov:QUALIFIED_NAME',
+            "not a name",
+            NO_PREFIX,
+            KEPT,
+            None,
+            id="typed no prefix",
+        ),
+        pytest.param(
+            '"zz:x" %% xsd:QName', "zz:x", UNDECLARED, KEPT, None, id="xsd:QName"
+        ),
+        pytest.param(
+            f'"{EX}x" %% xsd:QName',
+            f"{EX}x",
+            FULL_IRI,
+            KEPT,
+            None,
+            id="xsd:QName full IRI",
+        ),
+        pytest.param(
+            '"xsi:x" %% xsd:QName',
+            "xsi:x",
+            "its prefix 'xsi' is not declared",
+            KEPT,
+            None,
+            id="xsd:QName undeclared xsi",
+        ),
+    ],
+)
+def test_provn_unresolvable_qualified_name_value_warns_once(
+    value: str, text: str, reason: str, today: str, stored: str | None
+) -> None:
+    source = _provn(value)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ProvFutureRejectionWarning)
+        expected = ProvDocument.deserialize(content=source, format="provn")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = ProvDocument.deserialize(content=source, format="provn")
+    assert _future_warnings(caught) == [
+        _message("line 3, column 20: ", text, reason, today)
+    ]
+    assert document == expected
+    if stored is not None:
+        ((_, read),) = next(iter(document.get_records())).extra_attributes
+        assert str(read) == stored
+
+
+@pytest.mark.parametrize(
+    ("value", "declarations"),
+    [
+        pytest.param("'ex:x'", f"prefix ex <{EX}>\n", id="declared"),
+        pytest.param(
+            '"ex:x" %% prov:QUALIFIED_NAME', f"prefix ex <{EX}>\n", id="typed"
+        ),
+        pytest.param('"ex:x" %% xsd:QName', f"prefix ex <{EX}>\n", id="xsd:QName"),
+        pytest.param("'x'", f"prefix ex <{EX}>\ndefault <{EX}>\n", id="default"),
+        pytest.param(
+            '"xsi:x" %% xsd:QName',
+            f"prefix ex <{EX}>\nprefix xsi <http://www.w3.org/2001/XMLSchema-instance>\n",
+            id="xsd:QName declared xsi",
+        ),
+        pytest.param(
+            "'http://example.org/x'",
+            f"prefix ex <{EX}>\nprefix http <http://h/>\n",
+            id="prefix named http",
+        ),
+    ],
+)
+def test_provn_resolvable_qualified_name_value_does_not_warn(
+    value: str, declarations: str
+) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        ProvDocument.deserialize(content=_provn(value, declarations), format="provn")
+
+
+def test_provn_value_in_a_bundle_resolves_against_the_document() -> None:
+    source = (
+        f"document\nprefix ex <{EX}>\nbundle ex:b\nprefix b <http://b/>\n"
+        "entity(ex:e, [ex:k='ex:x', ex:j='b:y'])\nendBundle\nendDocument\n"
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        ProvDocument.deserialize(content=source, format="provn")
+
+
 #  Every reader, once per value; the XML reader already rejects such a value
 @pytest.mark.parametrize("fmt", [fmt for fmt in ROUNDTRIP_FORMATS if fmt != "xml"])
 def test_written_unresolvable_value_warns_once_on_reading(fmt: str) -> None:
