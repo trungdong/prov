@@ -42,6 +42,13 @@
   given. 3.3.0 stores a `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
   `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and rejects a
   value of any other such type
+- A qualified-name value that does not resolve against the declared prefixes, such as
+  `'zz:x'` with no `zz` declaration or a full IRI such as
+  `"http://example.org/x" %% prov:QUALIFIED_NAME`, from any reader or from code (#516,
+  #553), and a PROV-JSON record key that is a full IRI (#551). `prov` still keeps the
+  value as a `Literal`, or reads the IRI as a name in a declared namespace it starts
+  with. A PROV-JSON formal attribute or `hadMember` member whose name does not resolve,
+  which `prov` drops, warns too
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that

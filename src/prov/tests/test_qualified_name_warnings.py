@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import warnings
 from typing import Any
 
@@ -270,6 +271,135 @@ def test_provn_value_in_a_bundle_resolves_against_the_document() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         ProvDocument.deserialize(content=source, format="provn")
+
+
+#  PROV-JSON
+def _json(records: dict[str, Any], prefixes: dict[str, str] | None = None) -> str:
+    return json.dumps({"prefix": prefixes or {"ex": EX}, **records})
+
+
+def _read_json(text: str) -> tuple[ProvDocument, list[str], ProvDocument]:
+    """Read ``text``; return the document, its warnings and the document read
+    with the warnings ignored."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", ProvFutureRejectionWarning)
+        expected = ProvDocument.deserialize(content=text, format="json")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = ProvDocument.deserialize(content=text, format="json")
+    return document, _future_warnings(caught), expected
+
+
+def test_json_record_key_that_is_a_full_iri_warns() -> None:
+    document, messages, expected = _read_json(_json({"entity": {f"{EX}e1": {}}}))
+    assert messages == [
+        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1")
+    ]
+    assert document == expected
+    assert str(next(iter(document.get_records())).identifier) == "ex:e1"
+
+
+@pytest.mark.parametrize(
+    ("value", "reason", "today"),
+    [
+        pytest.param(
+            {"$": f"{EX}x", "type": "prov:QUALIFIED_NAME"},
+            FULL_IRI,
+            "it reads as ex:x",
+            id="full IRI",
+        ),
+        pytest.param(
+            {"$": "zz:x", "type": "prov:QUALIFIED_NAME"},
+            UNDECLARED,
+            KEPT,
+            id="undeclared",
+        ),
+        pytest.param(
+            {"$": "zz:x", "type": "xsd:QName"}, UNDECLARED, KEPT, id="xsd:QName"
+        ),
+        pytest.param(
+            {"$": "not a name", "type": "xsd:QName"}, NO_PREFIX, KEPT, id="no prefix"
+        ),
+    ],
+)
+def test_json_unresolvable_qualified_name_value_warns_once(
+    value: dict[str, str], reason: str, today: str
+) -> None:
+    document, messages, expected = _read_json(
+        _json({"entity": {"ex:e": {"ex:k": value}}})
+    )
+    where = "record 'ex:e', attribute 'ex:k': "
+    assert messages == [_message(where, value["$"], reason, today)]
+    assert document == expected
+
+
+@pytest.mark.parametrize(
+    ("section", "attributes", "attr_name"),
+    [
+        pytest.param(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "prov:activity": "zz:a"},
+            "prov:activity",
+            id="formal",
+        ),
+        pytest.param(
+            "hadMember",
+            {"prov:collection": "ex:c", "prov:entity": ["ex:e", "zz:a"]},
+            "prov:entity",
+            id="member",
+        ),
+    ],
+)
+def test_json_unresolvable_name_that_is_dropped_warns(
+    section: str, attributes: dict[str, Any], attr_name: str
+) -> None:
+    document, messages, expected = _read_json(_json({section: {"ex:r": attributes}}))
+    where = f"record 'ex:r', attribute '{attr_name}': "
+    assert messages == [_message(where, "zz:a", UNDECLARED, "it is dropped")]
+    assert document == expected
+
+
+@pytest.mark.parametrize(
+    ("records", "prefixes"),
+    [
+        pytest.param({"entity": {"ex:e": {}}}, None, id="declared key"),
+        pytest.param(
+            {"wasGeneratedBy": {"_:id1": {"prov:entity": "ex:e"}}},
+            None,
+            id="blank node key",
+        ),
+        pytest.param(
+            {"entity": {"http://example.org/e": {}}},
+            {"ex": EX, "http": "http://h/"},
+            id="prefix named http",
+        ),
+        pytest.param(
+            {"entity": {"ex:e": {"ex:k": {"$": "ex:x", "type": "xsd:QName"}}}},
+            None,
+            id="declared value",
+        ),
+        pytest.param(
+            {
+                "entity": {
+                    "ex:e": {"ex:k": {"$": "zz:x", "type": "xsd:QName", "lang": "en"}}
+                }
+            },
+            None,
+            id="value with a language tag",
+        ),
+        pytest.param(
+            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": [None]}}},
+            None,
+            id="null member",
+        ),
+    ],
+)
+def test_json_resolvable_name_does_not_warn(
+    records: dict[str, Any], prefixes: dict[str, str] | None
+) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        ProvDocument.deserialize(content=_json(records, prefixes), format="json")
 
 
 #  Every reader, once per value; the XML reader already rejects such a value

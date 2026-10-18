@@ -48,7 +48,8 @@ Each message ends with what 3.3.0 does instead, such as
 of the input: the line and column in PROV-N, or the record identifier and
 attribute name in PROV-JSON. A message about a language tag, a local part or
 a Python value comes from the model, wherever the value was read or built, so
-it names the value instead.
+it names the value instead. So does a message about a qualified-name value
+built in code or read from PROV-JSONLD or RDF.
 
 ## PROV-N declarations
 
@@ -167,6 +168,33 @@ as a `Decimal`, and warn for each such number.
 The warning fires when the value is first asserted. `unified()`, `flattened()`,
 `update()`, `add_record()` and copies of the record or the document do not warn
 again.
+
+## Qualified names
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, or `"http://example.org/x"` as a PROV-JSON record key | The qualified name, `ex:x`. |
+| `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared` | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
+| `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
+
+A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and
+so does `'zz:x'` in PROV-N. 3.3.0 splits its text at the first `:` and looks the
+prefix up in the declarations in scope. `prov` 3.2.x keeps a value whose prefix
+is not declared as a `Literal`. It also reads a full IRI as a name in a declared
+namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
+3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
+`http` is declared.
+
+The PROV-JSON reader applies the same rule to a record key that is a full IRI,
+and to the value of a formal attribute such as `prov:activity`, which 3.2.x
+drops when it does not resolve.
+
+The PROV-N and PROV-JSON readers warn with the position of the value, and the
+model does not warn again. The model warns about a value built in code or read
+from another format when the value is first asserted. In code, a plain string
+given as an identifier, such as `bundle.entity("http://example.org/e1")`, still
+compacts in 3.3.0, and does not warn.
 
 ## PROV-JSON
 
