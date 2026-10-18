@@ -308,6 +308,28 @@ class NamespaceManager(dict[str, Namespace]):
                     return namespace[local]
         return None
 
+    def _unresolved_reason(self, text: str) -> str | None:
+        """Return why ``text`` resolves to no qualified name by its prefix alone.
+
+        Splits ``text`` at its first ``:`` and looks the prefix up in this
+        manager and its parents, with no IRI compaction. A text with no ``:``
+        needs a default namespace. Returns ``None`` when the text resolves.
+        """
+        if not text:
+            return "it is empty"
+        prefix, colon, _ = text.partition(":")
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            if colon:
+                if prefix in manager or prefix in manager._prefix_renamed_map:
+                    return None
+            elif manager._default is not None:
+                return None
+            manager = manager.parent
+        if colon:
+            return f"its prefix {prefix!r} is not declared"
+        return "it has no prefix and no default namespace is declared"
+
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:
         """Return a fresh anonymous (blank-node) identifier.
 

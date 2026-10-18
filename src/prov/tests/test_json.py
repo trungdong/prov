@@ -167,11 +167,14 @@ def test_unresolvable_qualified_name_literal_stays_opaque() -> None:
     # A prov:QUALIFIED_NAME literal whose prefix has no in-scope namespace
     # cannot be resolved to a QualifiedName; it must stay an opaque Literal
     # rather than crash or silently guess a namespace (#238, #257 lock).
+    # Asserting it and reading it back each warn, as 3.3.0 rejects it (#516).
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e1", {"ex:a": Literal("unknown:v", PROV_QUALIFIEDNAME)})
+    with pytest.warns(ProvFutureRejectionWarning, match="'unknown:v' of ex:a"):
+        document.entity("ex:e1", {"ex:a": Literal("unknown:v", PROV_QUALIFIEDNAME)})
     content = document.serialize(format="json")
-    reloaded = ProvDocument.deserialize(content=content, format="json")
+    with pytest.warns(ProvFutureRejectionWarning, match="'unknown:v'"):
+        reloaded = ProvDocument.deserialize(content=content, format="json")
     assert reloaded == document
 
 

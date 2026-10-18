@@ -456,6 +456,11 @@ class ProvBundle:
         """
         return self._namespaces.valid_qualified_name(identifier)
 
+    def _unresolved_reason(self, text: str) -> str | None:
+        """Return why ``text`` resolves to no qualified name in this bundle by
+        its prefix alone, or ``None`` when it resolves."""
+        return self._namespaces._unresolved_reason(text)
+
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate
     ) -> QualifiedName:

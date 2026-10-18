@@ -21,6 +21,7 @@ from collections.abc import (
     Sequence,
     Set as AbstractSet,
 )
+from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import (
     IO,
@@ -104,6 +105,7 @@ from prov.constants import (
     XSD_INT,
     XSD_INTEGER,
     XSD_LONG,
+    XSD_QNAME,
     XSD_STRING,
     XSD_TIME,
 )
@@ -727,6 +729,23 @@ def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
         _rebuilding.reset(token)
 
 
+# True while a reader that warns about unresolvable qualified-name values
+# itself builds records, so the model does not warn about them again.
+_reader_checks_names: ContextVar[bool] = ContextVar(
+    "prov_reader_checks_names", default=False
+)
+
+
+@contextmanager
+def _reader_checking_names() -> Iterator[None]:
+    """Build records inside a reader that checks its qualified-name values."""
+    token = _reader_checks_names.set(True)
+    try:
+        yield
+    finally:
+        _reader_checks_names.reset(token)
+
+
 # The types of a converted non-formal attribute value that need no check.
 # bool is an int and QualifiedName an Identifier, so isinstance() needs only
 # the tuple.
@@ -796,6 +815,33 @@ def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
     else:
         message = future_rejection_message(f"{detail}, which has no PROV form")
     warn(message, ProvFutureRejectionWarning)
+
+
+def _warn_unresolved_name(
+    bundle: ProvBundle, attr: QualifiedName, literal: Literal, value: object
+) -> None:
+    """Warn that ``literal``, typed as a qualified name, does not resolve by its
+    prefix (#516, #551, #553); ``value`` is what it converted to."""
+    if (
+        literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
+        or _rebuilding.get()
+        or _reader_checks_names.get()
+    ):
+        return
+    reason = bundle._unresolved_reason(literal.value)
+    if reason is not None:
+        today = (
+            f"it reads as {value}"
+            if isinstance(value, QualifiedName)
+            else "it is kept as a Literal"
+        )
+        warn(
+            future_rejection_message(
+                f"the qualified name {literal.value!r} of {attr} does not resolve,"
+                f" because {reason}; {today}"
+            ),
+            ProvFutureRejectionWarning,
+        )
 
 
 #  PROV records
@@ -1091,6 +1137,8 @@ class ProvRecord:
             value = self._auto_literal_conversion(original_value)
             if type(value) not in _PLAIN_VALUE_TYPES:
                 _warn_about_value(attr, original_value, value)
+            elif isinstance(original_value, Literal):
+                _warn_unresolved_name(self._bundle, attr, original_value, value)
 
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
