@@ -197,6 +197,20 @@ def _provn_escape_local_and_warn(localpart: str, uri: str) -> str:
     return escaped
 
 
+def _provn_string_literal(value: str) -> str:
+    """Quote ``value`` as a PROV-N string, triple-quoted if it has a line feed."""
+    # Escape backslashes first, so quote-escaping below doesn't re-escape
+    # the backslashes it just introduced.
+    s = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    if "\n" in s:
+        return f'"""{s}"""'
+    else:
+        # STRING_LITERAL2 ([60]) forbids a bare CR in a short string; the
+        # lexer decodes the "\r" escape, so use it rather than emit one raw.
+        s = s.replace("\r", "\\r")
+        return f'"{s}"'
+
+
 class Identifier:
     """Base class for all identifiers and also represents xsd:anyURI."""
 
@@ -256,10 +270,7 @@ class Identifier:
 
     def provn_representation(self) -> str:
         """Return the PROV-N representation of this identifier as an xsd:anyURI literal."""
-        # Imported here because prov.model imports this module.
-        from prov.model.records import _ensure_multiline_string_triple_quoted
-
-        return f"{_ensure_multiline_string_triple_quoted(self._uri)} %% xsd:anyURI"
+        return f"{_provn_string_literal(self._uri)} %% xsd:anyURI"
 
 
 class QualifiedName(Identifier):

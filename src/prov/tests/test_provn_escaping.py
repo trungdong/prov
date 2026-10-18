@@ -1,12 +1,18 @@
 """PROV-N output correctness: local-part metacharacter escaping (#223, PROV-N
-[53]/[55]) and Mention keyword rendering (#248)."""
+[53]/[55]), Mention keyword rendering (#248) and string quoting."""
 
 import warnings
 
 import pytest
 
 from prov.identifier import Identifier, Namespace
-from prov.model import Literal, ProvDocument, ProvFutureRejectionWarning, ProvWarning
+from prov.model import (
+    Literal,
+    ProvDocument,
+    ProvFutureRejectionWarning,
+    ProvWarning,
+    encoding_provn_value,
+)
 
 METACHARS = "='(),:;[]"
 
@@ -322,3 +328,12 @@ def test_any_uri_value_with_a_line_break_round_trips(uri) -> None:
     document = _doc()
     document.entity("ex:e", {"ex:v": Identifier(uri)})
     _roundtrips(document)
+
+
+class _Shouted(str):
+    def __str__(self) -> str:
+        return self.upper()
+
+
+def test_string_subclass_is_written_through_its_str() -> None:
+    assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'

@@ -25,6 +25,13 @@ def test_decimal_literals_compare_in_value_space() -> None:
     assert Literal(10, XSD_DECIMAL) != Literal("10.01", XSD_DECIMAL)
 
 
+def test_ill_formed_decimal_literals_compare_lexically() -> None:
+    # A text that decimal.Decimal cannot parse compares as text.
+    assert Literal("abc", XSD_DECIMAL) == Literal("abc", XSD_DECIMAL)
+    assert hash(Literal("abc", XSD_DECIMAL)) == hash(Literal("abc", XSD_DECIMAL))
+    assert Literal("abc", XSD_DECIMAL) != Literal("abd", XSD_DECIMAL)
+
+
 def test_non_decimal_literals_compare_lexically() -> None:
     # value-space comparison is decimal-only; other datatypes stay lexical.
     assert Literal("1", XSD_INT) != Literal("01", XSD_INT)

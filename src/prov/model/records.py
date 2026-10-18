@@ -109,7 +109,13 @@ from prov.constants import (
     XSD_STRING,
     XSD_TIME,
 )
-from prov.identifier import Identifier, Namespace, QualifiedName, _slot_state
+from prov.identifier import (
+    Identifier,
+    Namespace,
+    QualifiedName,
+    _provn_string_literal,
+    _slot_state,
+)
 
 if TYPE_CHECKING:
     from prov.model.bundle import ProvBundle
@@ -364,23 +370,6 @@ class TypedValueSet(MutableSet[Any]):
         return f"{type(self).__name__}({list(self._index.values())!r})"
 
 
-def _ensure_multiline_string_triple_quoted(value: str) -> str:
-    # converting the value to a string
-    s = str(value)
-    # Escape backslashes first, so quote-escaping below doesn't re-escape
-    # the backslashes it just introduced.
-    s = s.replace("\\", "\\\\")
-    # Escaping any double quote
-    s = s.replace('"', '\\"')
-    if "\n" in s:
-        return f'"""{s}"""'
-    else:
-        # STRING_LITERAL2 ([60]) forbids a bare CR in a short string; the
-        # lexer decodes the "\r" escape, so use it rather than emit one raw.
-        s = s.replace("\r", "\\r")
-        return f'"{s}"'
-
-
 def _xsd_double_text(value: float) -> str:
     """The xsd:double lexical form of a float: INF, -INF and NaN for the
     non-finite values (XSD 1.1 Part 2, numericalSpecialRep), float's repr()
@@ -424,7 +413,7 @@ def encoding_provn_value(
     via :func:`str`.
     """
     if isinstance(value, str):
-        return _ensure_multiline_string_triple_quoted(value)
+        return _provn_string_literal(value)
     elif isinstance(value, datetime.datetime):
         return f'"{_xsd_datetime_text(value)}" %% xsd:dateTime'
     elif isinstance(value, float):
@@ -612,7 +601,7 @@ class Literal:
         this is a writer-only choice and leaves the model's own ``langtag``
         value (``""``, not ``None``) untouched.
         """
-        quoted_value = _ensure_multiline_string_triple_quoted(self._value)
+        quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
             # PROV-N's LANGTAG ([63]) only allows hyphens between subtags, so
