@@ -49,7 +49,8 @@ of the input: the line and column in PROV-N, or the record identifier and
 attribute name in PROV-JSON. A message about a language tag, a local part or
 a Python value comes from the model, wherever the value was read or built, so
 it names the value instead. So does a message about a qualified-name value
-built in code or read from PROV-JSONLD or RDF.
+built in code or read from PROV-JSONLD or RDF. A message from `unified()`
+starts with the identifier of the records it merges.
 
 ## PROV-N declarations
 
@@ -198,6 +199,32 @@ after the value, as in `the qualified name 'zz:x' of ex:k does not resolve`. In
 code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts in 3.3.0, and does not
 warn.
+
+## Unification
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `ex:assoc: an absent prov:plan means none, so it does not unify with ex:p; unified() merges the records and keeps ex:p. prov 3.3.0 will raise ProvUnificationError` | `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` and `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` | The same plan on every record with that identifier, or a plan on none of them. |
+| `ex:d: an absent prov:activity means none, so it does not unify with ex:a; …` | `wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same activity on every record with that identifier, or an activity on none of them. |
+| `ex:d: an absent prov:generation on a derivation with no activity means none, so it does not unify with ex:g; …` | `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, ex:g, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same generation on every record with that identifier, or the activity of the derivation on each. The same holds for `prov:usage`. |
+
+`unified()` merges records that share an identifier, and an absent formal
+attribute usually unifies with any value. PROV-CONSTRAINTS makes a few positions
+non-expandable, where an absent value means "none" and unifies only with another
+absent value. They are the plan of an association, the activity of a
+derivation, and the generation and usage of a derivation that names no
+activity. `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource` are
+derivations and follow the same rule. In 3.2.x `unified()` still merges an
+absent value in one of these positions with a present one and keeps the present
+value. 3.3.0 raises {py:class}`~prov.model.ProvUnificationError`.
+
+`unified()` warns once for each set of records of one type that share an
+identifier, at the first such position in the order of the statement's
+arguments, which is where 3.3.0 raises.
+
+`prov_to_graph()` and `prov_to_dot()` call `unified()`, so they warn about the
+same documents. In 3.3.0 `prov_to_graph()` raises, and `prov_to_dot()` draws the
+document as asserted, without merging any records.
 
 ## PROV-JSON
 

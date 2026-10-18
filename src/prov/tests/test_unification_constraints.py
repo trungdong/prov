@@ -9,9 +9,15 @@ outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``)
 - fail-cases whose same-identifier records carry *conflicting concrete* formal
   attribute values are rejected with the documented ``ProvUnificationError``
   (``UNIFICATION_REJECTS`` below);
-- every other fail-case still merges (placeholder-vs-concrete conflicts, which
-  the model cannot represent — an absent formal attribute is an existential
-  that unifies with any concrete value) or passes through untouched
+- fail-cases that pair an absent non-expandable formal (an association's
+  plan, a derivation's activity, or the generation or usage of a derivation
+  with no activity) with a present one still merge, with a
+  ``ProvFutureRejectionWarning``, because 3.3.0 rejects them (#547)
+  (``ABSENT_NONE_WARNINGS`` below);
+- every other fail-case still merges (placeholder-vs-concrete conflicts in
+  other positions, which the model cannot represent, so an absent formal
+  attribute there is an existential that unifies with any concrete value) or
+  passes through untouched
   (uniqueness Constraints 24-29, mandatory-placeholder and impossibility
   cases, all keyed on something other than the record identifier and hence
   outside ``unified()``'s documented scope — they belong to the opt-in
@@ -57,13 +63,14 @@ umbrella issue #253.
 """
 
 import datetime
+import warnings
 from pathlib import Path
 
 import pytest
 
 pytest.importorskip("lxml")
 
-from prov.model import ProvDocument, ProvUnificationError
+from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvUnificationError
 
 CORPUS = Path(__file__).parent / "unification" / "constraints"
 
@@ -79,7 +86,7 @@ PARSE_FAILURES = {
 
 # Fail-cases rejected by term unification: their same-identifier records carry
 # two *different concrete* values for the same formal attribute, so the records
-# cannot be merged. This is the only rejection unified() performs.
+# cannot be merged.
 UNIFICATION_REJECTS = {
     "association-fail1.xml",
     "association-fail2.xml",
@@ -106,6 +113,20 @@ UNIFICATION_REJECTS = {
     "usage-fail2.xml",
     "usage-fail3.xml",
     "usage-fail4.xml",
+}
+
+
+# Fail-cases whose same-identifier records pair an absent non-expandable formal
+# (PROV-CONSTRAINTS Table 3) with a present one, mapped to the attribute the
+# warning names: the first such position in PROV-DM order. unified() still
+# merges them and warns; 3.3.0 raises (#547).
+ABSENT_NONE_WARNINGS = {
+    "association-fail4.xml": "prov:plan",
+    "association-fail5.xml": "prov:plan",
+    "derivation-fail1.xml": "prov:activity",
+    "derivation-fail2.xml": "prov:activity",
+    "derivation-fail3.xml": "prov:activity",
+    "derivation-fail4.xml": "prov:activity",
 }
 
 
@@ -152,7 +173,10 @@ def test_corpus_inventory() -> None:
     assert len(files) == 153
     assert files >= PARSE_FAILURES
     assert files >= UNIFICATION_REJECTS
+    assert files >= set(ABSENT_NONE_WARNINGS)
+    assert not UNIFICATION_REJECTS & set(ABSENT_NONE_WARNINGS)
     assert all("-fail" in name for name in UNIFICATION_REJECTS)
+    assert all("-fail" in name for name in ABSENT_NONE_WARNINGS)
 
 
 @pytest.mark.parametrize("xml_path, expected", list(_cases()))
@@ -166,7 +190,9 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # cases). Note this is NOT always the spec's normal form: anonymous
         # records that Constraints 24-27 would fold into an identified one
         # stay separate (gap analysis section 3.4).
-        unified = document.unified()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvFutureRejectionWarning)
+            unified = document.unified()
         assert _n_records(unified) == _expected_unified_count(document)
     elif xml_path.name in UNIFICATION_REJECTS:
         # Invalid instance rejected by term unification: two same-identifier
@@ -177,14 +203,30 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # type-compatibility rejection's "... incompatible types ..." (none
         # of these 153 ProvToolbox cases exercise that path; see the module
         # docstring).
-        with pytest.raises(ProvUnificationError, match="has conflicting"):
-            document.unified()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvFutureRejectionWarning)
+            with pytest.raises(ProvUnificationError, match="has conflicting"):
+                document.unified()
+    elif xml_path.name in ABSENT_NONE_WARNINGS:
+        # Invalid instance that 3.3.0 rejects: an absent non-expandable formal
+        # meets a present one. unified() still merges, and warns.
+        attr_name = ABSENT_NONE_WARNINGS[xml_path.name]
+        with pytest.warns(
+            ProvFutureRejectionWarning, match=f"an absent {attr_name} means none"
+        ) as record:
+            unified = document.unified()
+        assert (
+            sum(issubclass(w.category, ProvFutureRejectionWarning) for w in record) == 1
+        )
+        assert _n_records(unified) == _expected_unified_count(document)
     else:
         # Invalid instance ("fail" per the corpus label) that unified()
         # nevertheless accepts, producing the plain identifier-keyed union —
         # these fail on constraints outside unified()'s documented scope
         # (see the module docstring).
-        unified = document.unified()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvFutureRejectionWarning)
+            unified = document.unified()
         assert _n_records(unified) == _expected_unified_count(document)
 
 
@@ -281,14 +323,15 @@ def test_placeholder_vs_concrete_plan_merges() -> None:
     # with itself or an existential variable, never with a concrete value.
     # Corpus analogue association-fail4: wasAssociatedWith(assoc1; a1, ag1,
     # ex:pl1) + wasAssociatedWith(assoc1; a1, ag1, -) must FAIL to merge.
-    # prov cannot represent - (deserializers drop the distinction), so an
-    # absent formal attribute is an existential and unifies with the concrete
-    # plan. Locked decision (#253): out of scope by representation.
+    # The plan is non-expandable, so an absent plan can only be -. 3.2.3
+    # still merges it with the concrete plan and warns, and 3.3.0 raises
+    # (#547).
     doc = ProvDocument()
     doc.set_default_namespace("http://example.org/")
     doc.association("a1", agent="ag1", plan="pl1", identifier="assoc1")
     doc.association("a1", agent="ag1", identifier="assoc1")
-    unified = doc.unified()
+    with pytest.warns(ProvFutureRejectionWarning, match="prov:plan means none"):
+        unified = doc.unified()
     records = unified.get_records()
     assert len(records) == 1
     assert records[0].get_provn() == "wasAssociatedWith(assoc1; a1, ag1, pl1)"

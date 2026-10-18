@@ -562,6 +562,11 @@ def prov_to_dot(
 
     Returns:
         The :class:`pydot.Dot` graph object.
+
+    Warns:
+        ProvFutureRejectionWarning: Propagated from
+            :meth:`~prov.model.ProvBundle.unified`. In prov 3.3.0 that call
+            raises instead, and the bundle is drawn as asserted.
     """
     if direction not in {"BT", "TB", "LR", "RL"}:
         # Invalid direction is provided

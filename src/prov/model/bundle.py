@@ -15,6 +15,11 @@ from typing import Any, cast
 from urllib.parse import urlparse
 
 from prov import serializers
+from prov._warnings import (
+    ProvFutureRejectionWarning,
+    future_rejection_message,
+    warn,
+)
 from prov.constants import (
     PROV,
     PROV_ACTIVITY,
@@ -203,6 +208,55 @@ _KEYLESS_RELATIONS = frozenset(
 )
 
 
+# Non-expandable positions, from PROV-CONSTRAINTS Definition 4 and Table 3. An
+# absent value in one of them is the constant "none", which unifies only with
+# itself. Generation and usage are non-expandable only on a derivation that
+# names no activity.
+_NON_EXPANDABLE = {
+    PROV_ASSOCIATION: (PROV_ATTR_PLAN,),
+    PROV_DERIVATION: (PROV_ATTR_ACTIVITY, PROV_ATTR_GENERATION, PROV_ATTR_USAGE),
+}
+
+
+def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
+    """Warn if an absent non-expandable formal meets a present one in ``records``.
+
+    Only the first such position in ``FORMAL_ATTRIBUTES`` order warns, since
+    3.3.0 raises there. The group has already unified, so its records agree on
+    every position where they all have a value.
+    """
+    positions = _NON_EXPANDABLE.get(PROV_BASE_CLS[records[0].get_type()])
+    if positions is None:
+        return
+    formal_values = [dict(record.formal_attributes) for record in records]
+    for attr_name in positions:
+        present = [
+            values[attr_name]
+            for values in formal_values
+            if values[attr_name] is not None
+        ]
+        if present and len(present) < len(records):
+            condition = (
+                " on a derivation with no activity"
+                if attr_name in (PROV_ATTR_GENERATION, PROV_ATTR_USAGE)
+                else ""
+            )
+            warn(
+                future_rejection_message(
+                    f"{records[0].identifier}: an absent {attr_name}{condition} "
+                    f"means none, so it does not unify with {present[0]}; "
+                    f"unified() merges the records and keeps {present[0]}",
+                    "raise ProvUnificationError",
+                ),
+                ProvFutureRejectionWarning,
+            )
+            return
+        if attr_name == PROV_ATTR_ACTIVITY and present:
+            # A derivation that names its activity has expandable generation
+            # and usage.
+            return
+
+
 def _incompatible_types(type_a: QualifiedName, type_b: QualifiedName) -> bool:
     """True if two distinct base record types cannot share an identifier."""
     if {type_a, type_b} == _ENTITY_ACTIVITY:
@@ -228,12 +282,14 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
 
     Formal attributes are unified positionally: an absent value is an
     existential ("unknown") that unifies with anything, equal concrete values
-    unify, and two different concrete values do not unify. Non-formal ("extra")
-    attributes are unioned. The merged record is newly constructed from the
-    unified formal attributes, so no *formal-attribute* conflict is ever
-    routed through :meth:`ProvRecord.add_attributes`' single-value guard --
-    a conflict between two records' *extra* attributes still is, since those
-    are reasserted through the merged record's constructor unchanged.
+    unify, and two different concrete values do not unify. An absent value in
+    a non-expandable position also unifies, and ``_warn_absent_non_expandable``
+    warns once the merged record is built. Non-formal ("extra") attributes are
+    unioned. The merged record is newly constructed from the unified formal
+    attributes, so no *formal-attribute* conflict is ever routed through
+    :meth:`ProvRecord.add_attributes`' single-value guard -- a conflict between
+    two records' *extra* attributes still is, since those are reasserted
+    through the merged record's constructor unchanged.
 
     Args:
         records: Two or more records of the same base record type, carrying
@@ -257,9 +313,10 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
         unified_value = None
         for _, value in pairs:
             if value is None:
-                # An absent formal attribute is an existential variable: the
+                # An absent formal attribute is an existential variable. The
                 # model cannot express PROV-N's placeholder `-`, so absent
-                # unifies with any concrete value.
+                # unifies with any concrete value; the non-expandable positions
+                # warn after the merge.
                 continue
             if unified_value is None:
                 unified_value = value
@@ -279,9 +336,11 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     for record in records:
         attributes.extend(record.extra_attributes)
 
-    return _rebuild(
+    merged = _rebuild(
         PROV_REC_CLS[record_type], first_record.bundle, identifier, attributes
     )
+    _warn_absent_non_expandable(records)
+    return merged
 
 
 def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecord]:
@@ -757,7 +816,11 @@ class ProvBundle:
         attributes are unified position by position — an absent formal
         attribute is an existential that unifies with any concrete value,
         equal concrete values unify, and two different concrete values do not
-        — while their remaining attributes are unioned. Records with a unique
+        — while their remaining attributes are unioned. In the non-expandable
+        positions of PROV-CONSTRAINTS Table 3 (the plan of an association,
+        the activity of a derivation, and the generation and usage of a
+        derivation with no activity) an absent value means "none"; it still
+        unifies with a concrete value, with a warning. Records with a unique
         identifier, or no identifier, pass through unchanged. So do
         ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
         records, even when several share an identifier, since PROV-DM and
@@ -776,6 +839,11 @@ class ProvBundle:
                 identifier hold different concrete values for the same formal
                 attribute, or if two records sharing an identifier have
                 incompatible types.
+
+        Warns:
+            ProvFutureRejectionWarning: If two records sharing an identifier
+                pair an absent non-expandable formal attribute with a present
+                one. prov 3.3.0 raises ProvUnificationError instead.
         """
         unified_records = self._unified_records()
         bundle = ProvBundle(records=unified_records, identifier=self.identifier)
@@ -1817,6 +1885,10 @@ class ProvDocument(ProvBundle):
                 the same scope hold different concrete values for the same
                 formal attribute, or have incompatible types (see
                 :meth:`ProvBundle.unified`).
+
+        Warns:
+            ProvFutureRejectionWarning: As for :meth:`ProvBundle.unified`, in
+                the document's top-level records or in any of its bundles.
         """
         document = ProvDocument(self._unified_records())
         document._namespaces = self._namespaces

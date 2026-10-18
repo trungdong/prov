@@ -87,7 +87,8 @@ For each identifier that appears on more than one record, `unified()` builds a s
 merged record by term unification of those records' formal attributes, following the key
 constraints of the W3C specification. Position by position:
 
-- an absent formal attribute is an existential ("unknown") and unifies with anything;
+- an absent formal attribute is an existential ("unknown") and unifies with anything; in
+  the non-expandable positions described under the limits below, it also warns;
 - two equal concrete values unify to that value;
 - two different concrete values do not unify, and the merge raises
   {py:class}`~prov.model.ProvUnificationError`.
@@ -138,7 +139,13 @@ Four limits apply:
 - **The placeholder `-` is not represented.** PROV-N distinguishes an omitted term from an
   explicit `-`, which is a constant and unifies only with itself. `prov`'s model has no way
   to express the latter, and every deserializer drops the distinction, so an absent formal
-  attribute always behaves as an existential.
+  attribute behaves as an existential. PROV-CONSTRAINTS makes a few positions
+  non-expandable, where an absent value can only be `-`: the plan of an association, the
+  activity of a derivation, and the generation and usage of a derivation with no activity.
+  When `unified()` merges an absent value in one of these positions with a present one, it
+  keeps the present value and warns with a
+  {py:class}`~prov.model.ProvFutureRejectionWarning`. 3.3.0 raises
+  {py:class}`~prov.model.ProvUnificationError` instead.
 - **No inference or key-based unification.** The model does not use PROV's keys (for
   example, that an entity has at most one generation) to unify records that lack a shared
   identifier, and it draws no new conclusions.
