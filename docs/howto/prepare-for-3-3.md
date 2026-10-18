@@ -9,8 +9,9 @@ documents and code.
 ## Turn the warnings into errors
 
 `ProvFutureRejectionWarning` is a subclass of {py:class}`~prov.model.ProvWarning`.
-A filter on the subclass stops at the first affected input and leaves the other
-`ProvWarning`s alone, such as the statements the `lenient` PROV-N profile skips.
+An `error` filter on the subclass raises at the first message, in the order "Read the
+message" describes, and leaves the other `ProvWarning`s alone, such as the statements
+the `lenient` PROV-N profile skips.
 
 When running pytest:
 
@@ -52,10 +53,11 @@ wherever the value was read or built, so it names the value instead. So does a
 message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
 A message from `unified()` starts with the identifier of the records it merges.
 
-The PROV-N reader emits its own messages once the parse ends, after the messages the
-model emits while the parse runs. So its messages do not follow the order of the
-input, and under an `error` filter the first one raised may not be the first problem
-in the file.
+A PROV-N read emits its messages in three groups. The model's come first, as the
+parse runs. The reader's own follow once the parse ends, those about whitespace before
+the rest. A read that fails with `ProvNSyntaxError` emits none of the reader's own.
+So the messages do not follow the order of the input, and under an `error` filter the
+first one raised may not be the first problem in the file.
 
 A filter on the issue number silences every case that issue tracks and leaves
 every other case an error. Python tries the filter added last first, so add the
@@ -195,7 +197,7 @@ again.
 
 | Warning | Issue | Example | Write instead |
 |---|---|---|---|
-| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516), or [#510](https://github.com/trungdong/prov/issues/510) for an `xsi:` name in PROV-N | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
 | `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, or `"http://example.org/x"` as a PROV-JSON record key | The qualified name, `ex:x`. |
 | `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
 | `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
