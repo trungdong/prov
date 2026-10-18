@@ -621,7 +621,7 @@ def test_deserialize_typed_value_that_is_a_full_iri_warns(datatype: str) -> None
 def test_deserialize_iri_value_does_not_warn(
     key: str, value: str | dict[str, str]
 ) -> None:
-    # An @id, or a bare string under an @id-typed term, is an IRI by definition.
+    # An @id, or a compactable bare full IRI under an @id-typed term, does not warn.
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         doc = ProvDocument.deserialize(
