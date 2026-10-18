@@ -3,7 +3,6 @@
 import datetime
 import io
 import json
-import logging
 from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -30,8 +29,6 @@ from prov.model.records import (
     _xsd_double_text,
 )
 from prov.serializers import Serializer, _is_text_stream
-
-logger = logging.getLogger(__name__)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -918,8 +915,9 @@ def _json_text(value: Any) -> str:
         return str(value)
 
 
-# The JSON numbers prov 2.x and earlier wrote in "$", which 3.3.0 still reads.
-_LEGACY_NUMBER_TYPES = {int: XSD_INT, float: XSD_DOUBLE}
+# The JSON numbers prov 2.x and earlier wrote in "$", which 3.3.0 still reads;
+# prov 1.x on Python 2 wrote a long as xsd:long.
+_LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
 
 
 def _warn_rejection(
@@ -986,7 +984,10 @@ def decode_json_representation(
     A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
     a ``"$"`` that is not a string, a ``"type"`` that does not resolve, or a
     qualified-name value that does not resolve by its prefix warns with
-    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before.
+    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before. A
+    number typed as ``prov`` 2.x and earlier wrote it, an integer as
+    ``xsd:int`` or ``xsd:long`` or a float as ``xsd:double``, with no
+    ``"lang"``, does not warn.
 
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
@@ -1028,8 +1029,9 @@ def decode_json_representation(
             )
         datatype_str: str | None = literal.get("type", None)
         datatype = valid_qualified_name(bundle, datatype_str)
+        legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
         if not isinstance(value, str) and (
-            datatype is None or datatype != _LEGACY_NUMBER_TYPES.get(type(value))
+            datatype not in legacy_types or "lang" in literal
         ):
             _warn_rejection(
                 f'the value object\'s "$" is {_json_text(value)}, not a string',

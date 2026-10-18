@@ -612,6 +612,12 @@ def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> N
             id="boolean-typed-int",
         ),
         pytest.param(
+            {"$": 1, "type": "xsd:int", "lang": "en"},
+            ['the value object\'s "$" is 1, not a string'],
+            {"$": "1", "type": "xsd:int", "lang": "en"},
+            id="typed-number-with-lang",
+        ),
+        pytest.param(
             {"$": True},
             ['the value object\'s "$" is true, not a string'],
             "True",
@@ -659,6 +665,14 @@ def test_value_object_that_3_3_0_rejects_warns(
             id="double",
         ),
         pytest.param(
+            {"$": 1, "type": "xsd:long"}, {"$": "1", "type": "xsd:long"}, id="long"
+        ),
+        pytest.param(
+            {"$": 3000000000, "type": "xsd:int"},
+            {"$": "3000000000", "type": "xsd:int"},
+            id="int-beyond-the-xsd-int-range",
+        ),
+        pytest.param(
             {"$": 1e20, "type": "xsd:double"},
             {"$": "1e+20", "type": "xsd:double"},
             id="double-with-exponent",
@@ -668,7 +682,8 @@ def test_value_object_that_3_3_0_rejects_warns(
 def test_value_object_number_as_prov_2_wrote_it_reads_quietly(
     value: dict[str, object], same_as: dict[str, str]
 ) -> None:
-    # prov 2.x and earlier wrote an int as xsd:int and a float as xsd:double.
+    # prov 2.x and earlier wrote an int as xsd:int and a float as xsd:double,
+    # and prov 1.x on Python 2 wrote a long as xsd:long.
     text = _json({"entity": {"ex:e": {"ex:k": value}}})
     expected = _json({"entity": {"ex:e": {"ex:k": same_as}}})
     assert _read_quietly(text) == _read_quietly(expected)
