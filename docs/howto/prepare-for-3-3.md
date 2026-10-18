@@ -47,10 +47,15 @@ Each message ends with what 3.3.0 does instead and the number of the GitHub issu
 that tracks the rule, such as "prov 3.3.0 will reject this (#529)". A message from a
 reader starts with the position of the input: the line and column in PROV-N, or the
 record identifier and attribute name in PROV-JSON. A message about a language tag, a
-local part or a Python value comes from the model, wherever the value was read or
-built, so it names the value instead. So does a message about a qualified-name value
-built in code or read from PROV-JSONLD or RDF. A message from `unified()` starts with
-the identifier of the records it merges.
+local part, a Python value or a time offset beyond ±14:00 comes from the model,
+wherever the value was read or built, so it names the value instead. So does a
+message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
+A message from `unified()` starts with the identifier of the records it merges.
+
+The PROV-N reader emits its own messages once the parse ends, after the messages the
+model emits while the parse runs. So its messages do not follow the order of the
+input, and under an `error` filter the first one raised may not be the first problem
+in the file.
 
 A filter on the issue number silences every case that issue tracks and leaves
 every other case an error. Python tries the filter added last first, so add the
@@ -70,23 +75,23 @@ warnings.filterwarnings(
 
 ## PROV-N declarations
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `'default' is declared twice in this scope` | `default <http://a/>` followed by `default <http://b/>` | One `default` declaration. `prov` 3.2 uses the last one. |
-| `'…' is not a PROV-N prefix name` | `prefix _ <http://x/>`, `prefix a/b <http://x/>` | A prefix that starts with a letter, such as `prefix ab <http://x/>`. |
-| `prefix 'xsi' is not declared` | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
-| `'default' follows a 'prefix' declaration` (strict profile) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
-| `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `'default' is declared twice in this scope` | [#508](https://github.com/trungdong/prov/issues/508) | `default <http://a/>` followed by `default <http://b/>` | One `default` declaration. `prov` 3.2 uses the last one. |
+| `'…' is not a PROV-N prefix name` | [#511](https://github.com/trungdong/prov/issues/511) | `prefix _ <http://x/>`, `prefix a/b <http://x/>` | A prefix that starts with a letter, such as `prefix ab <http://x/>`. |
+| `prefix 'xsi' is not declared` | [#510](https://github.com/trungdong/prov/issues/510) | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
+| `'default' follows a 'prefix' declaration` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
+| `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
 
 `prov` 3.2.2 and earlier wrote `xsi:` names without a `prefix xsi` line. Reading
 such a file and writing it again with `prov` 3.2.3 adds the declaration.
 
 ## PROV-N whitespace
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `U+00A0 is not PROV-N whitespace` | `entity(ex:e)` followed by a no-break space | A space, tab, CR or LF. |
-| `U+1680 is not PROV-N whitespace` | `entity(` followed by U+1680 and `ex:e)` | A space, tab, CR or LF. 3.3.0 reads U+1680 as part of a name. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `U+00A0 is not PROV-N whitespace` | [#509](https://github.com/trungdong/prov/issues/509) | `entity(ex:e)` followed by a no-break space | A space, tab, CR or LF. |
+| `U+1680 is not PROV-N whitespace` | [#509](https://github.com/trungdong/prov/issues/509) | `entity(` followed by U+1680 and `ex:e)` | A space, tab, CR or LF. 3.3.0 reads U+1680 as part of a name. |
 
 The same warning names any other Unicode whitespace character between tokens,
 such as U+000C (form feed) or U+2028 (line separator). Whitespace inside a
@@ -94,12 +99,12 @@ string, an IRI or a comment does not warn.
 
 ## PROV-N statements
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |
-| `a statement follows a bundle` (strict profile) | `entity(ex:f)` after `endBundle` | Every statement before the first bundle. |
-| `'hadMember' has an identifier` (strict profile) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
-| `'specializationOf' has an attribute block` (strict profile) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | [#523](https://github.com/trungdong/prov/issues/523) | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |
+| `a statement follows a bundle` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `entity(ex:f)` after `endBundle` | Every statement before the first bundle. |
+| `'hadMember' has an identifier` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
+| `'specializationOf' has an attribute block` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
 
 The identifier and attribute-block warnings name whichever of `alternateOf`,
 `specializationOf` and `hadMember` carries one. The `default` and `lenient`
@@ -108,10 +113,10 @@ warning.
 
 ## Times
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `… has a timezone offset beyond ±14:00. prov 3.3.0 will reject this` | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)` | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
-| `… has a timezone offset beyond ±14:00. prov 3.3.0 will keep it as a Literal` | `[ex:t="2011-11-16T16:05:33+15:00" %% xsd:dateTime]` | The same instant with an offset from -14:00 to +14:00, such as `"2011-11-16T15:05:33+14:00" %% xsd:dateTime`. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `… has a timezone offset beyond ±14:00. prov 3.3.0 will reject this (#513)` | [#513](https://github.com/trungdong/prov/issues/513) | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)` | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
+| `… has a timezone offset beyond ±14:00. prov 3.3.0 will keep it as a Literal (#513)` | [#513](https://github.com/trungdong/prov/issues/513) | `[ex:t="2011-11-16T16:05:33+15:00" %% xsd:dateTime]` | The same instant with an offset from -14:00 to +14:00, such as `"2011-11-16T15:05:33+14:00" %% xsd:dateTime`. |
 
 The first warning covers every time of a statement: the time of a relation, an
 activity's start and end times, and `prov:time` given as an attribute, from any
@@ -125,10 +130,10 @@ again.
 
 ## Language tags
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `the language tag 'en_US' of 'hi' is not a BCP 47 tag` | `Literal("hi", langtag="en_US")`, or `{"$": "hi", "lang": "en_US"}` in PROV-JSON | A BCP 47 tag, such as `en-US`. |
-| `the language tag of 'hi' is empty` | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `the language tag 'en_US' of 'hi' is not a BCP 47 tag` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="en_US")`, or `{"$": "hi", "lang": "en_US"}` in PROV-JSON | A BCP 47 tag, such as `en-US`. |
+| `the language tag of 'hi' is empty` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
 
 `prov` checks only the form of the tag. A tag is letters, followed by any
 number of groups of letters and digits that each start with a hyphen. `prov`
@@ -137,9 +142,9 @@ rejects these tags.
 
 ## Local parts
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | [#524](https://github.com/trungdong/prov/issues/524) | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
 
 A local part cannot hold a space, a control character or another character
 that PROV-N can write only by percent-encoding it, such as `"` or `|`. Nor can
@@ -155,10 +160,10 @@ builds each occurrence of a name afresh, so it warns once for each.
 
 ## Python values
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `the value datetime.date(2026, 1, 1) of ex:due has type datetime.date. prov 3.3.0 will store it as a Literal of type xsd:date` | `{"ex:due": datetime.date(2026, 1, 1)}` | The `Literal` 3.3.0 stores, such as `Literal("2026-01-01", XSD["date"])`. |
-| `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form. prov 3.3.0 will reject this` | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `the value datetime.date(2026, 1, 1) of ex:due has type datetime.date. prov 3.3.0 will store it as a Literal of type xsd:date (#482)` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:due": datetime.date(2026, 1, 1)}` | The `Literal` 3.3.0 stores, such as `Literal("2026-01-01", XSD["date"])`. |
+| `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form. prov 3.3.0 will reject this (#482)` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
 
 An attribute value has a PROV form when it is a `str`, `int`, `float`, `bool`,
 `datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record, or an
@@ -188,12 +193,12 @@ again.
 
 ## Qualified names
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
-| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, or `"http://example.org/x"` as a PROV-JSON record key | The qualified name, `ex:x`. |
-| `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
-| `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, or `"http://example.org/x"` as a PROV-JSON record key | The qualified name, `ex:x`. |
+| `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
+| `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
 
 A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and
 so does `'zz:x'` in PROV-N. 3.3.0 splits its text at the first `:` and looks the
@@ -218,11 +223,11 @@ warn.
 
 ## Unification
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `ex:assoc: an absent prov:plan means none, so it does not unify with ex:p; unified() merges the records and keeps ex:p. prov 3.3.0 will raise ProvUnificationError` | `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` and `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` | The same plan on every record with that identifier, or a plan on none of them. |
-| `ex:d: an absent prov:activity means none, so it does not unify with ex:a; …` | `wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same activity on every record with that identifier, or an activity on none of them. |
-| `ex:d: an absent prov:generation on a derivation with no activity means none, so it does not unify with ex:g; …` | `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, ex:g, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same generation on every record with that identifier, or the activity of the derivation on each. The same holds for `prov:usage`. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `ex:assoc: an absent prov:plan means none, so it does not unify with ex:p; unified() merges the records and keeps ex:p. prov 3.3.0 will raise ProvUnificationError (#547)` | [#547](https://github.com/trungdong/prov/issues/547) | `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` and `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` | The same plan on every record with that identifier, or a plan on none of them. |
+| `ex:d: an absent prov:activity means none, so it does not unify with ex:a; …` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same activity on every record with that identifier, or an activity on none of them. |
+| `ex:d: an absent prov:generation on a derivation with no activity means none, so it does not unify with ex:g; …` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, ex:g, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same generation on every record with that identifier, or the activity of the derivation on each. The same holds for `prov:usage`. |
 
 `unified()` merges records that share an identifier, and an absent formal
 attribute usually unifies with any value. PROV-CONSTRAINTS makes a few positions
@@ -244,15 +249,15 @@ document as asserted, without merging any records.
 
 ## PROV-JSON
 
-| Warning | Example | Write instead |
-|---|---|---|
-| `the key '…' is repeated in a JSON object` | `{"ex:k": "a", "ex:k": "b"}` | One key. For an attribute with several values, an array, `"ex:k": ["a", "b"]`. |
-| `'…' is not an xsd:dateTime and is dropped` | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
-| `the value is written as an array` | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
-| `the value is null and is dropped` | `"ex:k": null` | No attribute. |
-| `the value object has the unknown key '…'` | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
-| `the value object's "$" is …, not a string` | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
-| `the datatype '…' does not resolve and is dropped` | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `the key '…' is repeated in a JSON object` | [#532](https://github.com/trungdong/prov/issues/532) | `{"ex:k": "a", "ex:k": "b"}` | One key. For an attribute with several values, an array, `"ex:k": ["a", "b"]`. |
+| `'…' is not an xsd:dateTime and is dropped` | [#555](https://github.com/trungdong/prov/issues/555) | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
+| `the value is written as an array` | [#531](https://github.com/trungdong/prov/issues/531) | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
+| `the value is null and is dropped` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null` | No attribute. |
+| `the value object has the unknown key '…'` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
+| `the value object's "$" is …, not a string` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
+| `the datatype '…' does not resolve and is dropped` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
 
 A number in `$` typed the way `prov` 2.x and earlier wrote it does not warn. That
 is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as

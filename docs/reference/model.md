@@ -156,6 +156,10 @@ hold. {doc}`../howto/typing` shows how to use it when a type checker reports a c
    :members:
    :show-inheritance:
 
+.. autoclass:: prov.model.ProvFutureRejectionWarning
+   :members:
+   :show-inheritance:
+
 .. autoclass:: prov.model.ProvExceptionInvalidQualifiedName
    :members:
    :show-inheritance:
