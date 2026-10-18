@@ -16,8 +16,8 @@ release is under [`planning/specs/`](planning/specs/).
 | **Unscheduled** | | A PROV-CONSTRAINTS validation engine ([#62](https://github.com/trungdong/prov/issues/62)), once its home is settled; a serializer plugin registry via entry points, when an external format needs it; an optional pyoxigraph RDF backend, on demand |
 
 Releases since 3.0.0 keep the public API. 3.3.0 also rejects or reads differently some
-input that does not conform to PROV, which 3.2.3 warns about first. A 4.0 happens only if a
-breaking API change accrues; none is queued.
+input that 3.2.3 warns about first, because it does not conform to PROV. A 4.0 happens
+only if a breaking API change accrues; none is queued.
 
 ## Support policy
 
