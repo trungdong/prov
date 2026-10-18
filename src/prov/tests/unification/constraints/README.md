@@ -59,8 +59,8 @@ Files are named `<category>-successN.xml` / `<category>-failN.xml`:
 `generation`, ..., `activity-start`/`activity-end` for Constraints 28/29,
 `attributes-*` for attribute-combination cases, `bundle` for bundle scoping).
 
-`prov`'s `unified()` rejects only some of the fail-cases: see the module
-docstring of `test_unification_constraints.py` for which, and why. Six of them
+`prov`'s `unified()` rejects only some of the fail-cases. The module
+docstring of `test_unification_constraints.py` says which, and why. Six of them
 (`association-fail4`, `-fail5` and `derivation-fail1` to `-fail4`) pair an
 absent non-expandable formal with a present one; `unified()` merges those with
 a `ProvFutureRejectionWarning`, and 3.3.0 rejects them
