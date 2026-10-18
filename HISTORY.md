@@ -60,7 +60,10 @@
 - A null PROV-JSON attribute value, alone or in an array (#528). `prov` still drops it
 - A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
-  `$` as a string, so `{"$": null}` reads as the string `"None"`
+  `$` as a string, so `{"$": null}` reads as the string `"None"`. A number typed the
+  way `prov` 2.x and earlier wrote it, in a value object with no `lang`, does not warn,
+  and 3.3.0 reads it as now. Such a number is `{"$": 1, "type": "xsd:int"}`,
+  `{"$": 1, "type": "xsd:long"}` or `{"$": 1.5, "type": "xsd:double"}`
 - A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
   `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
   string, or as a language-tagged string when it has a `lang`
@@ -132,7 +135,9 @@
   `ProvJSONException` naming the record and the attribute
 - A PROV-JSON formal attribute written as an empty array, such as `"prov:entity": []`,
   raises `ProvJSONException` naming the record and the attribute. It raised a bare
-  `IndexError`
+  `IndexError`. The `ProvJSONException` for an array of several values now names the
+  record and the attribute too, and its message no longer goes to the
+  `prov.serializers.provjson` logger first
 - `unified()` leaves `alternateOf`, `specializationOf`, `mentionOf` and `hadMember`
   records out of the merge by identifier, since PROV-DM and PROV-Links give these
   relations no identifier (#530). Two such records that shared an identifier and

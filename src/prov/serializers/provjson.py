@@ -3,7 +3,6 @@
 import datetime
 import io
 import json
-import logging
 from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -30,8 +29,6 @@ from prov.model.records import (
     _xsd_double_text,
 )
 from prov.serializers import Serializer, _is_text_stream
-
-logger = logging.getLogger(__name__)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -778,12 +775,10 @@ def _decode_formal_attribute(
             )
         # only one value is allowed
         if len(values) > 1:
-            error_msg = (
-                "The prov package does not support PROV"
-                " attributes having multiple values."
+            raise ProvJSONException(
+                f"{_position(rec_id, attr_name)}the value is an array of "
+                f"{len(values)} values, but the attribute takes one"
             )
-            logger.error(error_msg)
-            raise ProvJSONException(error_msg)
         _warn_rejection("the value is written as an array", rec_id, attr_name)
         value = values[0]
     else:
@@ -920,6 +915,11 @@ def _json_text(value: Any) -> str:
         return str(value)
 
 
+# The JSON numbers prov 2.x and earlier wrote in "$", which 3.3.0 still reads;
+# prov 1.x on Python 2 wrote a long as xsd:long.
+_LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
+
+
 def _warn_rejection(
     detail: str, rec_id: str | None = None, attr_name: str | None = None
 ) -> None:
@@ -984,7 +984,10 @@ def decode_json_representation(
     A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
     a ``"$"`` that is not a string, a ``"type"`` that does not resolve, or a
     qualified-name value that does not resolve by its prefix warns with
-    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before.
+    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before. A
+    number typed as ``prov`` 2.x and earlier wrote it, an integer as
+    ``xsd:int`` or ``xsd:long`` or a float as ``xsd:double``, with no
+    ``"lang"``, does not warn.
 
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
@@ -1024,14 +1027,17 @@ def decode_json_representation(
             _warn_rejection(
                 f"the value object has the unknown key {key!r}", rec_id, attr_name
             )
-        if not isinstance(value, str):
+        datatype_str: str | None = literal.get("type", None)
+        datatype = valid_qualified_name(bundle, datatype_str)
+        legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
+        if not isinstance(value, str) and (
+            datatype not in legacy_types or "lang" in literal
+        ):
             _warn_rejection(
                 f'the value object\'s "$" is {_json_text(value)}, not a string',
                 rec_id,
                 attr_name,
             )
-        datatype_str: str | None = literal.get("type", None)
-        datatype = valid_qualified_name(bundle, datatype_str)
         if datatype_str is not None and datatype is None:
             _warn_rejection(
                 f"the datatype {datatype_str!r} does not resolve and is dropped",

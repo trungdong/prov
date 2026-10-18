@@ -594,10 +594,28 @@ def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> N
             {"$": 1}, ['the value object\'s "$" is 1, not a string'], "1", id="number"
         ),
         pytest.param(
-            {"$": 1, "type": "xsd:int"},
+            {"$": 1, "type": "xsd:double"},
             ['the value object\'s "$" is 1, not a string'],
-            {"$": "1", "type": "xsd:int"},
-            id="typed-number",
+            {"$": "1", "type": "xsd:double"},
+            id="integer-typed-double",
+        ),
+        pytest.param(
+            {"$": 1.5, "type": "xsd:int"},
+            ['the value object\'s "$" is 1.5, not a string'],
+            {"$": "1.5", "type": "xsd:int"},
+            id="float-typed-int",
+        ),
+        pytest.param(
+            {"$": True, "type": "xsd:int"},
+            ['the value object\'s "$" is true, not a string'],
+            {"$": "True", "type": "xsd:int"},
+            id="boolean-typed-int",
+        ),
+        pytest.param(
+            {"$": 1, "type": "xsd:int", "lang": "en"},
+            ['the value object\'s "$" is 1, not a string'],
+            {"$": "1", "type": "xsd:int", "lang": "en"},
+            id="typed-number-with-lang",
         ),
         pytest.param(
             {"$": True},
@@ -633,6 +651,58 @@ def test_value_object_that_3_3_0_rejects_warns(
         _rejected(f"record 'ex:e', attribute 'ex:k': {detail}") for detail in details
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
+
+
+@pytest.mark.parametrize(
+    ("value", "same_as"),
+    [
+        pytest.param(
+            {"$": 1, "type": "xsd:int"}, {"$": "1", "type": "xsd:int"}, id="int"
+        ),
+        pytest.param(
+            {"$": 1.5, "type": "xsd:double"},
+            {"$": "1.5", "type": "xsd:double"},
+            id="double",
+        ),
+        pytest.param(
+            {"$": 1, "type": "xsd:long"}, {"$": "1", "type": "xsd:long"}, id="long"
+        ),
+        pytest.param(
+            {"$": 3000000000, "type": "xsd:int"},
+            {"$": "3000000000", "type": "xsd:int"},
+            id="int-beyond-the-xsd-int-range",
+        ),
+        pytest.param(
+            {"$": 1e20, "type": "xsd:double"},
+            {"$": "1e+20", "type": "xsd:double"},
+            id="double-with-exponent",
+        ),
+    ],
+)
+def test_value_object_number_as_prov_2_wrote_it_reads_quietly(
+    value: dict[str, object], same_as: dict[str, str]
+) -> None:
+    # prov 2.x and earlier wrote an int as xsd:int and a float as xsd:double,
+    # and prov 1.x on Python 2 wrote a long as xsd:long.
+    text = _json({"entity": {"ex:e": {"ex:k": value}}})
+    expected = _json({"entity": {"ex:e": {"ex:k": same_as}}})
+    assert _read_quietly(text) == _read_quietly(expected)
+
+
+def test_formal_attribute_written_as_an_array_of_several_values_raises() -> None:
+    text = _json(
+        {
+            "wasGeneratedBy": {
+                "ex:g": {"prov:entity": "ex:e", "prov:activity": ["ex:a", "ex:b"]}
+            }
+        }
+    )
+    expected = (
+        "record 'ex:g', attribute 'prov:activity': the value is an array of 2 values, "
+        "but the attribute takes one"
+    )
+    with pytest.raises(ProvJSONException, match=re.escape(expected)):
+        ProvDocument.deserialize(content=text, format="json")
 
 
 def test_value_object_number_parsed_as_a_decimal_warns() -> None:
