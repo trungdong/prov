@@ -50,10 +50,20 @@ def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         warnings.filterwarnings(
-            "ignore", message=r".*\(#528\)$", category=ProvFutureRejectionWarning
+            "ignore", message=r"(?s).*\(#528\)$", category=ProvFutureRejectionWarning
         )
         with pytest.raises(ProvFutureRejectionWarning, match=r"\(#531\)$"):
             ProvDocument.deserialize(content=content, format="json")
+
+
+def test_ignoring_one_issue_by_message_matches_a_message_with_a_line_break() -> None:
+    namespace = prov.model.Namespace("ex", "http://example.org/")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        warnings.filterwarnings(
+            "ignore", message=r"(?s).*\(#524\)$", category=ProvFutureRejectionWarning
+        )
+        assert namespace["a\nb"].localpart == "a\nb"
 
 
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
