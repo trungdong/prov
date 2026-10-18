@@ -14,8 +14,6 @@ from typing import Any
 
 import pytest
 
-from prov.dot import prov_to_dot
-from prov.graph import graph_to_prov, prov_to_graph
 from prov.model import (
     XSD,
     XSD_DATETIME,
@@ -219,14 +217,23 @@ def _updated(document: ProvDocument) -> None:
     _document().update(document)
 
 
+def _dot(document: ProvDocument) -> object:
+    return pytest.importorskip("prov.dot").prov_to_dot(document)
+
+
+def _graph_round_trip(document: ProvDocument) -> object:
+    graph = pytest.importorskip("prov.graph")
+    return graph.graph_to_prov(graph.prov_to_graph(document))
+
+
 REBUILDS: dict[str, Callable[[ProvDocument], object]] = {
     "copy": _copied,
     "add_record": _added,
     "unified": lambda document: document.unified(),
     "flattened": lambda document: document.flattened(),
     "update": _updated,
-    "prov_to_dot": prov_to_dot,
-    "graph": lambda document: graph_to_prov(prov_to_graph(document)),
+    "prov_to_dot": _dot,
+    "graph": _graph_round_trip,
     "pickle": lambda document: pickle.loads(pickle.dumps(document)),  # nosec B301 - nosemgrep
     "deepcopy": copy.deepcopy,
 }
@@ -253,3 +260,14 @@ def test_assertion_after_a_rebuild_warns(
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         assertion(unified)
     assert len(caught) == 1
+
+
+def test_records_built_while_a_document_is_constructed_warn() -> None:
+    source = _document()
+    records = (
+        source.entity(f"ex:e{i}", {"ex:v": fractions.Fraction(1, 3)})  # type: ignore[dict-item]
+        for i in range(2)
+    )
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        ProvDocument(records=records)
+    assert len(caught) == 2

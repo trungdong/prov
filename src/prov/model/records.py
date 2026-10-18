@@ -709,7 +709,7 @@ class ProvElementIdentifierRequired(ProvException):
         return "An identifier is missing. All PROV elements require a valid identifier."
 
 
-#  PROV records
+#  Attribute value warnings and the rebuild guard
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
@@ -798,6 +798,7 @@ def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
     warn(message, ProvFutureRejectionWarning)
 
 
+#  PROV records
 class ProvRecord:
     """Base class for PROV records."""
 

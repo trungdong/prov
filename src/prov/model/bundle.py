@@ -360,7 +360,10 @@ class ProvBundle:
             namespaces, parent=(document._namespaces if document is not None else None)
         )
         if records:
-            _rebuild(self._add_records, records)
+            # Consume the iterable first: records it builds are assertions,
+            # not copies.
+            records = list(records)
+            _rebuild(self._add_record_copies, records)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self._identifier}>"
@@ -790,7 +793,7 @@ class ProvBundle:
                     "ProvBundle.update(): The other bundle is a document with "
                     "sub-bundle(s)."
                 )
-            _rebuild(self._add_records, other.get_records())
+            _rebuild(self._add_record_copies, other.get_records())
         else:
             raise ProvException(
                 "ProvBundle.update(): The other bundle is not a ProvBundle "
@@ -862,10 +865,10 @@ class ProvBundle:
         if _rebuilding.get():
             return self.new_record(*copy_args)
         # A lone copy sets the rebuild guard; copies made in a loop share
-        # the guard _add_records() holds.
+        # the guard _add_record_copies() holds.
         return _rebuild(self.new_record, *copy_args)
 
-    def _add_records(self, records: Iterable[ProvRecord]) -> None:
+    def _add_record_copies(self, records: Iterable[ProvRecord]) -> None:
         # Call through _rebuild(), which holds the guard for every copy.
         for record in records:
             self.add_record(record)
@@ -1784,7 +1787,8 @@ class ProvDocument(ProvBundle):
                 *[b.get_records() for b in self._bundles.values()]
             )
             _rebuild(
-                new_doc._add_records, itertools.chain(self._records, bundled_records)
+                new_doc._add_record_copies,
+                itertools.chain(self._records, bundled_records),
             )
             return new_doc
         else:
@@ -1832,7 +1836,7 @@ class ProvDocument(ProvBundle):
                 subclass).
         """
         if isinstance(other, ProvBundle):
-            _rebuild(self._add_records, other.get_records())
+            _rebuild(self._add_record_copies, other.get_records())
             if other.has_bundles():
                 for bundle in other.bundles:
                     bundle_id = bundle.identifier
