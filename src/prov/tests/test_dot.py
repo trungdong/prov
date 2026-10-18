@@ -288,3 +288,18 @@ def test_complete_relation_draws_without_warning() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
         prov_to_dot(document)
+
+
+def test_absent_plan_against_a_plan_warns_at_the_prov_to_dot_call_site() -> None:
+    # prov_to_dot() unifies each bundle first, so the #547 warning fires
+    # through it and names this module, not a frame inside prov.
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
+    document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
+    with pytest.warns(
+        ProvFutureRejectionWarning, match="prov:plan means none"
+    ) as record:
+        prov_to_dot(document)
+    assert len(record) == 1
+    assert record[0].filename == __file__

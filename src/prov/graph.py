@@ -106,6 +106,9 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
             formal attributes is unset, or because an undeclared endpoint's
             element type cannot be inferred (its attribute has no
             :data:`INFERRED_ELEMENT_CLASS` entry).
+        ProvFutureRejectionWarning: Propagated from
+            :meth:`~prov.model.ProvBundle.unified`, which prov 3.3.0 makes
+            raise instead.
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
     unified = prov_document.unified()

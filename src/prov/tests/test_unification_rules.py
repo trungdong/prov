@@ -4,12 +4,15 @@ Scope (documented): key constraints 22/23 + term unification. An absent
 formal attribute is an existential ("unknown") and unifies with any
 concrete value -- the model cannot represent the spec's placeholder `-`
 (deserializers drop the distinction; gap analysis §3.1), so `-`-vs-concrete
-failures are out of scope by representation. Constraints 24-29 are deferred
-to the #62 validation engine.
+failures are out of scope by representation. The exception is the
+non-expandable positions of PROV-CONSTRAINTS Table 3, where an absent value
+can only mean "none": unified() warns there and 3.3.0 raises (#547).
+Constraints 24-29 are deferred to the #62 validation engine.
 """
 
 import datetime
 import json
+import warnings
 
 import pytest
 
@@ -23,6 +26,7 @@ from prov.model import (
     ProvActivity,
     ProvDocument,
     ProvEntity,
+    ProvFutureRejectionWarning,
     ProvMembership,
     ProvUnificationError,
 )
@@ -71,11 +75,13 @@ def test_conflicting_relation_endpoints_raise() -> None:
 
 
 def test_absent_formal_attribute_unifies_with_concrete() -> None:
-    # Locked decision: absent == existential (the model cannot express `-`).
+    # An absent plan is the constant "none" (#547): 3.2.3 still merges it with
+    # the concrete plan and warns, and 3.3.0 raises.
     document = _doc()
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
-    unified = document.unified()
+    with pytest.warns(ProvFutureRejectionWarning, match="prov:plan means none"):
+        unified = document.unified()
     associations = [r for r in unified.get_records() if r.identifier is not None]
     assert len(associations) == 1
 
@@ -237,3 +243,170 @@ def test_json_had_member_array_with_an_identifier_unifies() -> None:
     )
     document = ProvDocument.deserialize(content=content, format="json")
     assert len(list(document.unified().get_records(ProvMembership))) == 2
+
+
+# --- Non-expandable formals (PROV-CONSTRAINTS Definition 4, Table 3; #547)
+#
+# An absent plan on an association, or an absent activity on a derivation, is
+# the constant "none". So are an absent generation and usage on a derivation
+# that names no activity. 3.2.3 warns where 3.3.0 raises, and still merges.
+
+
+def _assert_one_absent_none_warning(
+    record: pytest.WarningsRecorder, message: str
+) -> None:
+    future = [w for w in record if issubclass(w.category, ProvFutureRejectionWarning)]
+    assert len(future) == 1
+    assert str(future[0].message) == message
+    assert future[0].filename == __file__
+
+
+@pytest.mark.parametrize("plan_first", [True, False])
+def test_absent_plan_against_a_plan_warns_and_merges(plan_first: bool) -> None:
+    document = _doc()
+    plans = ["ex:pl1", None] if plan_first else [None, "ex:pl1"]
+    for plan in plans:
+        document.association("ex:a1", agent="ex:ag1", plan=plan, identifier="ex:assoc1")
+    with pytest.warns(ProvFutureRejectionWarning) as record:
+        unified = document.unified()
+    _assert_one_absent_none_warning(
+        record,
+        "ex:assoc1: an absent prov:plan means none, so it does not unify with "
+        "ex:pl1; unified() merges the records and keeps ex:pl1. "
+        "prov 3.3.0 will raise ProvUnificationError",
+    )
+    (association,) = unified.get_records()
+    assert (
+        association.get_provn() == "wasAssociatedWith(ex:assoc1; ex:a1, ex:ag1, ex:pl1)"
+    )
+
+
+def test_absent_derivation_activity_against_an_activity_warns() -> None:
+    document = _doc()
+    document.derivation("ex:e2", "ex:e1", identifier="ex:d")
+    document.derivation("ex:e2", "ex:e1", activity="ex:a", identifier="ex:d")
+    with pytest.warns(ProvFutureRejectionWarning) as record:
+        unified = document.unified()
+    _assert_one_absent_none_warning(
+        record,
+        "ex:d: an absent prov:activity means none, so it does not unify with "
+        "ex:a; unified() merges the records and keeps ex:a. "
+        "prov 3.3.0 will raise ProvUnificationError",
+    )
+    (derivation,) = unified.get_records()
+    assert derivation.get_provn() == "wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)"
+
+
+@pytest.mark.parametrize("attr", ["generation", "usage"])
+def test_absent_generation_or_usage_without_activity_warns(attr: str) -> None:
+    document = _doc()
+    document.derivation("ex:e2", "ex:e1", identifier="ex:d")
+    if attr == "generation":
+        document.derivation("ex:e2", "ex:e1", generation="ex:x", identifier="ex:d")
+    else:
+        document.derivation("ex:e2", "ex:e1", usage="ex:x", identifier="ex:d")
+    with pytest.warns(ProvFutureRejectionWarning) as record:
+        document.unified()
+    _assert_one_absent_none_warning(
+        record,
+        f"ex:d: an absent prov:{attr} on a derivation with no activity means "
+        "none, so it does not unify with ex:x; unified() merges the records and "
+        "keeps ex:x. prov 3.3.0 will raise ProvUnificationError",
+    )
+
+
+def test_absent_activity_and_generation_warn_once_at_the_activity() -> None:
+    # 3.3.0 raises at the first position in PROV-DM order, the activity.
+    document = _doc()
+    document.derivation("ex:e2", "ex:e1", identifier="ex:d")
+    document.derivation(
+        "ex:e2", "ex:e1", activity="ex:a", generation="ex:g", identifier="ex:d"
+    )
+    with pytest.warns(ProvFutureRejectionWarning) as record:
+        document.unified()
+    _assert_one_absent_none_warning(
+        record,
+        "ex:d: an absent prov:activity means none, so it does not unify with "
+        "ex:a; unified() merges the records and keeps ex:a. "
+        "prov 3.3.0 will raise ProvUnificationError",
+    )
+
+
+def test_revision_follows_the_derivation_rule() -> None:
+    document = _doc()
+    document.revision("ex:e2", "ex:e1", identifier="ex:d")
+    document.revision("ex:e2", "ex:e1", activity="ex:a", identifier="ex:d")
+    with pytest.warns(ProvFutureRejectionWarning, match="prov:activity means none"):
+        document.unified()
+
+
+def test_absent_none_in_a_bundle_warns() -> None:
+    document = _doc()
+    bundle = document.bundle("ex:b")
+    bundle.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
+    bundle.association("ex:a1", plan="ex:pl1", identifier="ex:assoc1")
+    with pytest.warns(ProvFutureRejectionWarning) as record:
+        document.unified()
+    _assert_one_absent_none_warning(
+        record,
+        "ex:assoc1: an absent prov:plan means none, so it does not unify with "
+        "ex:pl1; unified() merges the records and keeps ex:pl1. "
+        "prov 3.3.0 will raise ProvUnificationError",
+    )
+
+
+def _no_future_warning_document(build: str) -> ProvDocument:
+    document = _doc()
+    if build == "generation with activity":
+        # Generation and usage are expandable once the activity is named.
+        document.derivation("ex:e2", "ex:e1", activity="ex:a", identifier="ex:d")
+        document.derivation(
+            "ex:e2", "ex:e1", activity="ex:a", generation="ex:g", identifier="ex:d"
+        )
+    elif build == "both absent":
+        document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
+        document.association("ex:a1", identifier="ex:assoc1")
+    elif build == "equal plans":
+        document.association("ex:a1", plan="ex:pl1", identifier="ex:assoc1")
+        document.association(
+            "ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1"
+        )
+    elif build == "delegation activity":
+        # The activity of a delegation is expandable.
+        document.delegation("ex:ag2", "ex:ag1", identifier="ex:del")
+        document.delegation("ex:ag2", "ex:ag1", activity="ex:a", identifier="ex:del")
+    elif build == "absent agent":
+        # The agent of an association is expandable.
+        document.association(
+            "ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1"
+        )
+        document.association("ex:a1", plan="ex:pl1", identifier="ex:assoc1")
+    return document
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        "generation with activity",
+        "both absent",
+        "equal plans",
+        "delegation activity",
+        "absent agent",
+    ],
+)
+def test_expandable_or_matching_formals_do_not_warn(build: str) -> None:
+    document = _no_future_warning_document(build)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        unified = document.unified()
+    assert len(list(unified.get_records())) == 1
+
+
+def test_conflict_elsewhere_raises_without_the_absent_none_warning() -> None:
+    document = _doc()
+    document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
+    document.association("ex:a1", agent="ex:ag2", plan="ex:pl1", identifier="ex:assoc1")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        with pytest.raises(ProvUnificationError, match="conflicting"):
+            document.unified()
