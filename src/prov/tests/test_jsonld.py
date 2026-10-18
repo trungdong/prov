@@ -321,6 +321,11 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         ({"@context": [], "@graph": [{"@type": None}]}, "@type"),
         ({"@context": [], "@graph": [{"@type": 123}]}, "@type"),
         ({"@context": [], "@graph": [{"@type": ["Entity"]}]}, "@type"),
+        ({"@context": [], "@graph": {}}, "must be a JSON array; found dict"),
+        (
+            {"@context": [], "@graph": [{"@type": "Bundle"}]},
+            'A Bundle requires an "@id"',
+        ),
     ],
 )
 def test_deserialize_malformed(payload, match) -> None:
