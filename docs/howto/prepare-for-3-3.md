@@ -61,9 +61,9 @@ first one raised may not be the first problem in the file.
 
 A filter on the issue number silences every case that issue tracks and leaves
 every other case an error. Python tries the filter added last first, so add the
-`ignore` filter after the `error` filter. A message that quotes a value can contain
-a line break, so start the pattern with `(?s)`, which lets `.*` match one. This
-example ignores the cases that issue #529 tracks.
+`ignore` filter after the `error` filter. A message that names a value can contain
+a line break, so start the pattern with `(?s)`, which makes `.` match a line break
+too. This example ignores the cases that issue #529 tracks.
 
 ```python
 import warnings

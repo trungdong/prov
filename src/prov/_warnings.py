@@ -32,8 +32,9 @@ class ProvFutureRejectionWarning(ProvWarning):
     for example with ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
     to find every such input without failing on any other :class:`ProvWarning`.
     Each message ends with the issue that tracks its 3.3.0 rule, such as
-    ``(#529)``, so a ``message=`` filter such as ``r"(?s).*\(#529\)$"`` can
-    silence one issue.
+    ``(#529)``, so a ``message=`` filter can silence one issue. Write it as
+    ``r"(?s).*\(#529\)$"``, since ``(?s)`` lets the pattern match a message
+    that spans lines.
     """
 
 
