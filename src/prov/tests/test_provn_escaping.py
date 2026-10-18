@@ -337,3 +337,7 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
+
+
+def test_value_of_another_type_is_written_through_its_str() -> None:
+    assert encoding_provn_value(NS["a"]) == "ex:a"
