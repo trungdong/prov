@@ -26,13 +26,15 @@ class ProvWarning(Warning):
 
 
 class ProvFutureRejectionWarning(ProvWarning):
-    """Input that ``prov`` 3.2.x reads but 3.3.0 rejects or reads differently.
+    r"""Input that ``prov`` 3.2.x reads but 3.3.0 rejects or reads differently.
 
     ``prov`` still reads the input as before. Turn this class into an error,
     for example with ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
     to find every such input without failing on any other :class:`ProvWarning`.
     Each message ends with the issue that tracks its 3.3.0 rule, such as
-    ``(#529)``, so a ``message=`` filter can silence one issue.
+    ``(#529)``, so a ``message=`` filter can silence one issue. Write it as
+    ``r"(?s).*\(#529\)$"``, since ``(?s)`` lets the pattern match a message
+    that spans lines.
     """
 
 
