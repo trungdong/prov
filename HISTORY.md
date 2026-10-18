@@ -44,12 +44,13 @@
   `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and rejects a
   value of any other such type
 - A qualified-name value that does not resolve against the declared prefixes, such as
-  `'zz:x'` with no `zz` declaration or a full IRI such as
-  `"http://example.org/x" %% prov:QUALIFIED_NAME`, from any reader or from code (#516,
-  #553), and a PROV-JSON record key that is a full IRI (#551). `prov` still keeps the
-  value as a `Literal`, or reads the IRI as a name in a declared namespace it starts
-  with. A PROV-JSON formal attribute or `hadMember` member whose name does not resolve,
-  which `prov` drops, warns too
+  `'zz:x'` with no `zz` declaration, from any reader or from code (#516). `prov` still
+  keeps the value as a `Literal`, and a PROV-JSON formal attribute or `hadMember` member
+  it drops warns too. A full IRI that `prov` reads as a name in a declared namespace it
+  starts with, such as `"http://example.org/x" %% prov:QUALIFIED_NAME`, warns as well,
+  citing #553 in PROV-N, PROV-JSONLD and code, and #551 in PROV-JSON. In PROV-JSON the
+  #551 warning covers a qualified-name value, a record key, a formal attribute, a
+  `hadMember` member and a bundle key
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
@@ -58,7 +59,13 @@
 - A PROV-JSON formal attribute written as a one-element array, such as
   `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
   `hadMember` are an array by design and do not warn
-- A null PROV-JSON attribute value, alone or in an array (#528). `prov` still drops it
+- A null PROV-JSON attribute value, alone or in an array, and a null `hadMember` member
+  or null value of a formal attribute that names a record, such as `prov:activity`
+  (#528). `prov` still drops it. A null `prov:time`, `prov:startTime` or `prov:endTime`
+  raises `ProvJSONException`
+- A PROV-JSON `hadMember` member or formal attribute that names a record and is not a
+  string, such as `"prov:activity": 5` (#597). `prov` still drops it. A time attribute
+  that is not a string or an `xsd:dateTime` value object raises `ProvJSONException`
 - A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
   `$` as a string, so `{"$": null}` reads as the string `"None"`. A number typed the

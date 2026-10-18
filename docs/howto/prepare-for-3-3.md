@@ -199,7 +199,7 @@ again.
 | Warning | Issue | Example | Write instead |
 |---|---|---|---|
 | `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516), or [#510](https://github.com/trungdong/prov/issues/510) for an `xsi:` name in PROV-N | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
-| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, or `"http://example.org/x"` as a PROV-JSON record key | The qualified name, `ex:x`. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
 | `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
 | `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
 
@@ -212,9 +212,17 @@ namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
 `http` is declared.
 
-The PROV-JSON reader applies the same rule to a record key that is a full IRI.
-It also warns when it drops a formal attribute value or a `hadMember` member
-that does not resolve, such as `"prov:activity": "zz:a"`.
+The PROV-JSON reader applies the same rule to a record key, a formal attribute
+value, a `hadMember` member and a bundle key that is a full IRI. It also warns
+when it drops a formal attribute value or a `hadMember` member that does not
+resolve, such as `"prov:activity": "zz:a"`.
+
+The PROV-JSONLD reader warns about an `xsd:QName` or `prov:QUALIFIED_NAME` value
+object that holds a full IRI, in the model's wording and without a position.
+Under the `@id`-typed terms `type`, `role` and `location`, a bare full IRI that a
+declared namespace compacts does not warn. One that no declared namespace compacts
+is kept as a `Literal` and warns under #516, as does a name with an undeclared
+prefix. A `{"@id": …}` node reference stays an IRI and does not warn.
 
 The PROV-N and PROV-JSON readers warn with the position of the value, and the
 model does not warn again. The model warns about a value built in code or read
@@ -257,7 +265,8 @@ document as asserted, without merging any records.
 | `the key '…' is repeated in a JSON object` | [#532](https://github.com/trungdong/prov/issues/532) | `{"ex:k": "a", "ex:k": "b"}` | One key. For an attribute with several values, an array, `"ex:k": ["a", "b"]`. |
 | `'…' is not an xsd:dateTime and is dropped` | [#555](https://github.com/trungdong/prov/issues/555) | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
 | `the value is written as an array` | [#531](https://github.com/trungdong/prov/issues/531) | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
-| `the value is null and is dropped` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null` | No attribute. |
+| `the value is null and is dropped` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null`, or `"prov:activity": null` | No attribute. A null `prov:time`, `prov:startTime` or `prov:endTime` already raises `ProvJSONException`. |
+| `the value is …, not a qualified name, and is dropped` | [#597](https://github.com/trungdong/prov/issues/597) | `"prov:activity": 5` | A qualified name, as in `"prov:activity": "ex:a"`, or no attribute. This covers a `hadMember` member and a formal attribute that names a record, not a time, which raises `ProvJSONException` unless it is a string or an `xsd:dateTime` value object. |
 | `the value object has the unknown key '…'` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the value object's "$" is …, not a string` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the datatype '…' does not resolve and is dropped` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
@@ -273,6 +282,8 @@ reports no position for it.
 
 Every other message starts with the record identifier and the attribute name,
 as in `record 'ex:g', attribute 'prov:entity': the value is written as an array`.
+A record key has no attribute, so its message starts with `record 'ex:g'` and a
+colon. A bundle key starts with `bundle 'ex:b'` and a colon.
 A formal attribute is one of the record's arguments in PROV-N, such as
-`prov:entity` or `prov:time`. The members of `hadMember` are an array by design
-and do not warn.
+`prov:entity` or `prov:time`. The members of `hadMember` are an array by design,
+so the array itself does not warn.
