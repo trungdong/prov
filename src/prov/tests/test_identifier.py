@@ -137,7 +137,7 @@ def _updated(document: ProvDocument) -> ProvDocument:
 
 
 COPIES: dict[str, Callable[[ProvDocument], ProvDocument]] = {
-    "pickle": lambda document: pickle.loads(pickle.dumps(document)),
+    "pickle": lambda document: pickle.loads(pickle.dumps(document)),  # nosec B301 - nosemgrep
     "deepcopy": copy.deepcopy,
     "unified": lambda document: document.unified(),
     "flattened": lambda document: document.flattened(),
