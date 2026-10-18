@@ -186,9 +186,9 @@ namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
 `http` is declared.
 
-The PROV-JSON reader applies the same rule to a record key that is a full IRI,
-and to the value of a formal attribute such as `prov:activity`, which 3.2.x
-drops when it does not resolve.
+The PROV-JSON reader applies the same rule to a record key that is a full IRI.
+It also warns when it drops a formal attribute value or a `hadMember` member
+that does not resolve, such as `"prov:activity": "zz:a"`.
 
 The PROV-N and PROV-JSON readers warn with the position of the value, and the
 model does not warn again. The model warns about a value built in code or read
