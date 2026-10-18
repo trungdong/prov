@@ -11,7 +11,7 @@ import pytest
 pydot = pytest.importorskip("pydot")
 
 from prov.dot import htlm_link_if_uri, prov_to_dot
-from prov.model import ProvDocument
+from prov.model import ProvDocument, ProvFutureRejectionWarning
 from prov.tests import examples
 
 MIN_SVG_SIZE = 850
@@ -219,7 +219,8 @@ def test_html_label_special_characters_are_escaped() -> None:
 def test_quoted_label_escapes_double_quote() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
-    doc.entity('ex:e"1')
+    with pytest.warns(ProvFutureRejectionWarning):
+        doc.entity('ex:e"1')
 
     dot = prov_to_dot(doc)
     dot_text = dot.to_string()

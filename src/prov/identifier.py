@@ -1,9 +1,10 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
+from contextvars import ContextVar
 from typing import Any, Final
 
-from prov._warnings import warn
+from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -96,6 +97,16 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
 _PROVN_LOCAL_NOT_PLAIN = re.compile(
     f"^{_PN_LOCAL_BAD_START.pattern}|{_PROVN_LOCAL_NEEDS_ESCAPE.pattern}"
 )
+# A local part PROV-N writes without percent-encoding. A '%' falls outside it,
+# so a local part holding one goes to _provn_escape_local() to be settled.
+_PROVN_LOCAL_WRITABLE = re.compile(
+    f"(?!{_PN_LOCAL_BAD_START.pattern})[{_PROVN_LOCAL_ALLOWED_UNESCAPED}]*"
+)
+
+# False while Namespace._adopt() copies a name that was checked when first built.
+_check_local_parts: ContextVar[bool] = ContextVar(
+    "prov_check_local_parts", default=True
+)
 
 
 def _slot_state(state: Any) -> dict[str, Any]:
@@ -121,10 +132,12 @@ def _escape_local_char(
         # percent-encoding is the only way to write one first.
         return "".join(f"%{byte:02X}" for byte in char.encode("utf-8")), True
     if char == "%":
-        # An existing valid escape (e.g. "%20") is kept verbatim; a bare
-        # '%' not followed by two hex digits is not, so it is escaped
-        # itself to keep the sequence unambiguous.
-        return (char if _PROVN_HEX_PAIR.match(localpart, i + 1) else "%25"), False
+        # An existing valid escape (e.g. "%20") is kept verbatim. A bare
+        # '%' not followed by two hex digits is written as "%25", which a
+        # PROV-N reader keeps as that text, so it counts as encoded.
+        if _PROVN_HEX_PAIR.match(localpart, i + 1):
+            return char, False
+        return "%25", True
     if (
         (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
         or (i == last_index and char == ".")
@@ -146,7 +159,8 @@ def _provn_escape_local(localpart: str) -> tuple[str, bool]:
     Returns the escaped text and whether it was percent-encoded anywhere: a
     backslash escape (a metacharacter, or a leading/trailing ``-``/``.``) is
     reversible and a PROV-N reader recovers the original text, but a
-    percent-encoded character is not, so the caller warns when it happens.
+    percent-encoded character, or a bare ``%`` written as ``%25``, is not, so
+    the caller warns when it happens.
     """
     if not _PROVN_LOCAL_NEEDS_ESCAPE.search(localpart) and not (
         localpart and _PN_LOCAL_BAD_START.match(localpart[0])
@@ -277,7 +291,9 @@ class QualifiedName(Identifier):
         Args:
             namespace (Namespace): The namespace object containing a URI and optional
                 prefix associated with this qualified name.
-            localpart (str): The local part of the qualified name.
+            localpart (str): The local part of the qualified name. One that
+                PROV-N cannot write without changing the IRI, such as
+                ``"a b"``, emits a :class:`~prov.model.ProvFutureRejectionWarning`.
         """
         Identifier.__init__(self, "".join([namespace.uri, localpart]))
         self._namespace = namespace
@@ -285,6 +301,20 @@ class QualifiedName(Identifier):
         self._str = (
             ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
         )
+        # An ASCII identifier, the usual local part, needs no regex.
+        if (
+            not (localpart.isascii() and localpart.isidentifier())
+            and not _PROVN_LOCAL_WRITABLE.fullmatch(localpart)
+            and _check_local_parts.get()
+            and _provn_escape_local(localpart)[1]
+        ):
+            warn(
+                future_rejection_message(
+                    f"the local part {localpart!r} of <{self._uri}> contains a "
+                    "character PROV-N cannot write"
+                ),
+                ProvFutureRejectionWarning,
+            )
 
     def _compute_hash(self) -> int:
         """Hash by URI alone, as the base class does; kept explicit because
@@ -395,7 +425,7 @@ class Namespace:
         """Namespace prefix."""
         return self._prefix
 
-    def contains(self, identifier: Identifier) -> bool:
+    def contains(self, identifier: str | Identifier) -> bool:
         """Check whether the given identifier's URI is contained in this namespace.
 
         Args:
@@ -464,6 +494,21 @@ class Namespace:
         object.__setattr__(self, "_prefix", state["_prefix"])
         object.__setattr__(self, "_uri", state["_uri"])
         object.__setattr__(self, "_cache", {})
+
+    def _adopt(self, qname: QualifiedName) -> QualifiedName:
+        """Return ``qname``'s local part in this namespace, without a second check.
+
+        ``qname`` was checked when it was built, so the copy a bundle makes in
+        its own namespace does not repeat the warning.
+        """
+        localpart = qname.localpart
+        if localpart in self._cache:
+            return self._cache[localpart]
+        token = _check_local_parts.set(False)
+        try:
+            return self[localpart]
+        finally:
+            _check_local_parts.reset(token)
 
     def __getitem__(self, localpart: str) -> QualifiedName:
         if localpart in self._cache:

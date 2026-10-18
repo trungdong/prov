@@ -130,15 +130,19 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   an escape is therefore unescaped.
 - **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, is
   percent-encoded with a `ProvWarning`, and the identifier reads back as the encoded IRI, so
-  `ex:a b` becomes `ex:a%20b`. PROV-O rejects an IRI containing a space. A namespace prefix
+  `ex:a b` becomes `ex:a%20b`. A `%` that starts no escape is written as `%25`, with the
+  same warning. From 3.2.3 such a name also warns when it is built, and 3.3.0 rejects it
+  ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
   `.`); `prov` does not validate or rename one that is not.
 - **C5. Empty language tag.** `Literal("hi", langtag="")` survives PROV-XML only, as
   `xml:lang=""`. PROV-N, PROV-JSON and PROV-JSONLD read it back as a plain string and PROV-O
-  raises. A future release will treat an empty tag as no tag in the model.
+  raises. From 3.2.3 an empty tag warns when the literal is built, and 3.3.0 rejects it
+  ([#472](https://github.com/trungdong/prov/issues/472)).
 - **C6. Language tag that is not BCP 47.** PROV-N writes an underscore separator as a hyphen,
   so `en_US` reads back as `en-US`; PROV-O raises rdflib's `ValueError`. PROV-JSON, PROV-XML
-  and PROV-JSONLD pass the tag through unchanged.
+  and PROV-JSONLD pass the tag through unchanged. From 3.2.3 such a tag warns when the
+  literal is built, and 3.3.0 rejects it ([#472](https://github.com/trungdong/prov/issues/472)).
 - **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
   in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
   the round trip compares equal; the original offset is not preserved.

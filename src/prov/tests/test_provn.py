@@ -760,7 +760,8 @@ def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
     # provn_bare_representation() uses.
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
-    b = d.bundle("b 1")
+    with pytest.warns(ProvFutureRejectionWarning):
+        b = d.bundle("b 1")
     b.set_default_namespace("http://bundle.org/")
     b.entity("e1")
     with pytest.warns(ProvWarning) as record:
