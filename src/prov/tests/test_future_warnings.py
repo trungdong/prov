@@ -57,16 +57,17 @@ def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
 
 
 def test_ignoring_one_issue_by_message_matches_a_message_with_a_line_break() -> None:
-    namespace = prov.model.Namespace("ex", "http://example.org/")
+    # Namespace caches the names it builds, so each half needs a fresh one.
     with pytest.warns(ProvFutureRejectionWarning, match=r"\(#524\)$") as caught:
-        namespace["a\nb"]
+        prov.model.Namespace("ex", "http://example.org/")["a\nb"]
     assert "\n" in str(caught[0].message)
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         warnings.filterwarnings(
             "ignore", message=r"(?s).*\(#524\)$", category=ProvFutureRejectionWarning
         )
-        assert namespace["a\nb"].localpart == "a\nb"
+        name = prov.model.Namespace("ex", "http://example.org/")["a\nb"]
+    assert name.localpart == "a\nb"
 
 
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
