@@ -134,7 +134,8 @@ class ProvJSONSerializer(Serializer):
         container = json.load(stream, object_pairs_hook=hook, **args)
         for key in repeated:
             _warn_rejection(
-                f"the key {key!r} is repeated in a JSON object; the last value is used"
+                f"the key {key!r} is repeated in a JSON object; the last value is used",
+                issue=532,
             )
         # Decoded here, not in json.load(), so that a warning names the caller's line.
         document = ProvDocument()
@@ -671,7 +672,10 @@ def _decode_record_instance(
                 if value is None:
                     # The model drops a None value.
                     _warn_rejection(
-                        "the value is null and is dropped", rec_id, attr_name
+                        "the value is null and is dropped",
+                        rec_id,
+                        attr_name,
+                        issue=528,
                     )
                 other_attributes.append(
                     (attr, decode_json_representation(value, bundle, attr_name, rec_id))
@@ -779,7 +783,9 @@ def _decode_formal_attribute(
                 f"{_position(rec_id, attr_name)}the value is an array of "
                 f"{len(values)} values, but the attribute takes one"
             )
-        _warn_rejection("the value is written as an array", rec_id, attr_name)
+        _warn_rejection(
+            "the value is written as an array", rec_id, attr_name, issue=531
+        )
         value = values[0]
     else:
         value = values
@@ -801,7 +807,9 @@ def _decode_name(
         and isinstance(value, str)
         and (reason := bundle._unresolved_reason(value)) is not None
     ):
-        _warn_unresolved_name(value, reason, "it is dropped", rec_id, attr_name)
+        _warn_unresolved_name(
+            value, reason, "it is dropped", rec_id, attr_name, issue=516
+        )
     return resolved
 
 
@@ -816,7 +824,9 @@ def _check_record_key(bundle: ProvBundle, rec_id: str) -> None:
         and (reason := bundle._unresolved_reason(rec_id)) is not None
         and (resolved := bundle.valid_qualified_name(rec_id)) is not None
     ):
-        _warn_unresolved_name(rec_id, reason, f"it reads as {resolved}", rec_id)
+        _warn_unresolved_name(
+            rec_id, reason, f"it reads as {resolved}", rec_id, issue=551
+        )
 
 
 def _check_name_value(
@@ -837,7 +847,8 @@ def _check_name_value(
             if resolved is not None
             else "it is kept as a Literal"
         )
-        _warn_unresolved_name(value, reason, today, rec_id, attr_name)
+        issue = 551 if resolved is not None else 516
+        _warn_unresolved_name(value, reason, today, rec_id, attr_name, issue=issue)
 
 
 def _warn_unresolved_name(
@@ -846,6 +857,8 @@ def _warn_unresolved_name(
     today: str,
     rec_id: str | None,
     attr_name: str | None = None,
+    *,
+    issue: int,
 ) -> None:
     """Warn that the qualified name ``text`` does not resolve, for ``reason``;
     ``today`` says how ``prov`` reads it instead."""
@@ -853,6 +866,7 @@ def _warn_unresolved_name(
         f"the qualified name {text!r} does not resolve, because {reason}; {today}",
         rec_id,
         attr_name,
+        issue=issue,
     )
 
 
@@ -879,7 +893,10 @@ def _decode_time(
         parsed = parse_xsd_datetime(value)
         if parsed is None:
             _warn_rejection(
-                f"{value!r} is not an xsd:dateTime and is dropped", rec_id, attr_name
+                f"{value!r} is not an xsd:dateTime and is dropped",
+                rec_id,
+                attr_name,
+                issue=555,
             )
         return parsed
     if (
@@ -921,11 +938,15 @@ _LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
 
 
 def _warn_rejection(
-    detail: str, rec_id: str | None = None, attr_name: str | None = None
+    detail: str,
+    rec_id: str | None = None,
+    attr_name: str | None = None,
+    *,
+    issue: int,
 ) -> None:
     """Warn that 3.3.0 rejects the value ``detail`` describes."""
     warn(
-        future_rejection_message(_position(rec_id, attr_name) + detail),
+        future_rejection_message(_position(rec_id, attr_name) + detail, issue=issue),
         ProvFutureRejectionWarning,
     )
 
@@ -1025,7 +1046,10 @@ def decode_json_representation(
             ) from exc
         for key in sorted(literal.keys() - {"$", "type", "lang"}, key=str):
             _warn_rejection(
-                f"the value object has the unknown key {key!r}", rec_id, attr_name
+                f"the value object has the unknown key {key!r}",
+                rec_id,
+                attr_name,
+                issue=529,
             )
         datatype_str: str | None = literal.get("type", None)
         datatype = valid_qualified_name(bundle, datatype_str)
@@ -1037,12 +1061,14 @@ def decode_json_representation(
                 f'the value object\'s "$" is {_json_text(value)}, not a string',
                 rec_id,
                 attr_name,
+                issue=529,
             )
         if datatype_str is not None and datatype is None:
             _warn_rejection(
                 f"the datatype {datatype_str!r} does not resolve and is dropped",
                 rec_id,
                 attr_name,
+                issue=552,
             )
         langtag = literal.get("lang", None)
         if datatype == XSD_ANYURI:

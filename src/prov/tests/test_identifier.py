@@ -83,7 +83,7 @@ UNWRITABLE = [
 def _message(localpart: str) -> str:
     return re.escape(
         f"the local part {localpart!r} of <{EX}{localpart}> contains a character "
-        "PROV-N cannot write. prov 3.3.0 will reject this"
+        "PROV-N cannot write. prov 3.3.0 will reject this (#524)"
     )
 
 

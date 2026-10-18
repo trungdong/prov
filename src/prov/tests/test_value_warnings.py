@@ -57,7 +57,7 @@ CONVERTED: list[tuple[Any, str, str]] = [
 def test_value_3_3_converts_warns(value: Any, type_name: str, datatype: str) -> None:
     expected = (
         f"the value {value!r} of ex:v has type {type_name}."
-        f" prov 3.3.0 will store it as a Literal of type {datatype}"
+        f" prov 3.3.0 will store it as a Literal of type {datatype} (#482)"
     )
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         entity = _document().entity("ex:e", {"ex:v": value})
@@ -71,7 +71,7 @@ def test_unhashable_value_3_3_converts_warns_before_failing() -> None:
         pytest.warns(
             ProvFutureRejectionWarning,
             match=r"^the value bytearray\(b'ab'\) of ex:v has type bytearray\."
-            r" prov 3\.3\.0 will store it as a Literal of type xsd:base64Binary$",
+            r" prov 3\.3\.0 will store it as a Literal of type xsd:base64Binary \(#482\)$",
         ),
         pytest.raises(TypeError, match="unhashable"),
     ):
@@ -92,7 +92,7 @@ REJECTED: list[tuple[Any, str]] = [
 def test_value_with_no_prov_form_warns(value: Any, type_name: str) -> None:
     expected = (
         f"the value {value!r} of ex:v has type {type_name}, which has no PROV form."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#482)"
     )
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         entity = _document().entity("ex:e", {"ex:v": value})
@@ -110,7 +110,7 @@ def test_json_number_read_as_decimal_warns() -> None:
         )
     assert [str(w.message) for w in caught] == [
         "the value Decimal('1.5') of ex:x has type decimal.Decimal."
-        " prov 3.3.0 will store it as a Literal of type xsd:decimal"
+        " prov 3.3.0 will store it as a Literal of type xsd:decimal (#482)"
     ]
     assert caught[0].filename == __file__
     (entity,) = document.get_record("ex:e")

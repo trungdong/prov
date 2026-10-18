@@ -31,10 +31,10 @@ def _document() -> ProvDocument:
     return document
 
 
-def _message(where: str, text: str, reason: str, today: str) -> str:
+def _message(where: str, text: str, reason: str, today: str, issue: int) -> str:
     return (
         f"{where}the qualified name {text!r} does not resolve, because {reason};"
-        f" {today}. prov 3.3.0 will reject this"
+        f" {today}. prov 3.3.0 will reject this (#{issue})"
     )
 
 
@@ -48,13 +48,14 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
 
 #  Values asserted in code
 @pytest.mark.parametrize(
-    ("literal", "reason", "today", "stored"),
+    ("literal", "reason", "today", "stored", "issue"),
     [
         pytest.param(
             Literal("zz:x", PROV_QUALIFIEDNAME),
             UNDECLARED,
             KEPT,
             Literal("zz:x", PROV_QUALIFIEDNAME),
+            516,
             id="undeclared",
         ),
         pytest.param(
@@ -62,6 +63,7 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
             FULL_IRI,
             "it reads as ex:x",
             Namespace("ex", EX)["x"],
+            553,
             id="full IRI",
         ),
         pytest.param(
@@ -69,6 +71,7 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
             NO_PREFIX,
             KEPT,
             Literal("not a name", PROV_QUALIFIEDNAME),
+            516,
             id="no prefix",
         ),
         pytest.param(
@@ -76,6 +79,7 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
             "it is empty",
             KEPT,
             Literal("", PROV_QUALIFIEDNAME),
+            516,
             id="empty",
         ),
         pytest.param(
@@ -83,6 +87,7 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
             UNDECLARED,
             KEPT,
             Literal("zz:x", XSD_QNAME),
+            516,
             id="xsd:QName undeclared",
         ),
         pytest.param(
@@ -90,19 +95,20 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
             FULL_IRI,
             KEPT,
             Literal(f"{EX}x", XSD_QNAME),
+            516,
             id="xsd:QName full IRI",
         ),
     ],
 )
 def test_unresolvable_qualified_name_value_warns(
-    literal: Literal, reason: str, today: str, stored: object
+    literal: Literal, reason: str, today: str, stored: object, issue: int
 ) -> None:
     document = _document()
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         entity = document.entity("ex:e", {"ex:k": literal})
     assert _future_warnings(caught) == [
-        _message("", literal.value, reason, today).replace(
+        _message("", literal.value, reason, today, issue).replace(
             " does not resolve", " of ex:k does not resolve"
         )
     ]
@@ -164,11 +170,17 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
 
 
 @pytest.mark.parametrize(
-    ("value", "text", "reason", "today", "stored"),
+    ("value", "text", "reason", "today", "stored", "issue"),
     [
-        pytest.param("'zz:x'", "zz:x", UNDECLARED, KEPT, None, id="undeclared"),
+        pytest.param("'zz:x'", "zz:x", UNDECLARED, KEPT, None, 516, id="undeclared"),
         pytest.param(
-            f"'{EX}x'", f"{EX}x", FULL_IRI, "it reads as ex:x", "ex:x", id="full IRI"
+            f"'{EX}x'",
+            f"{EX}x",
+            FULL_IRI,
+            "it reads as ex:x",
+            "ex:x",
+            553,
+            id="full IRI",
         ),
         pytest.param(
             '"zz:x" %% prov:QUALIFIED_NAME',
@@ -176,6 +188,7 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             UNDECLARED,
             KEPT,
             None,
+            516,
             id="typed undeclared",
         ),
         pytest.param(
@@ -184,6 +197,7 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             FULL_IRI,
             "it reads as ex:x",
             "ex:x",
+            553,
             id="typed full IRI",
         ),
         pytest.param(
@@ -192,10 +206,11 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             NO_PREFIX,
             KEPT,
             None,
+            516,
             id="typed no prefix",
         ),
         pytest.param(
-            '"zz:x" %% xsd:QName', "zz:x", UNDECLARED, KEPT, None, id="xsd:QName"
+            '"zz:x" %% xsd:QName', "zz:x", UNDECLARED, KEPT, None, 516, id="xsd:QName"
         ),
         pytest.param(
             f'"{EX}x" %% xsd:QName',
@@ -203,6 +218,7 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             FULL_IRI,
             KEPT,
             None,
+            516,
             id="xsd:QName full IRI",
         ),
         pytest.param(
@@ -211,12 +227,13 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             "its prefix 'xsi' is not declared",
             KEPT,
             None,
+            510,
             id="xsd:QName undeclared xsi",
         ),
     ],
 )
 def test_provn_unresolvable_qualified_name_value_warns_once(
-    value: str, text: str, reason: str, today: str, stored: str | None
+    value: str, text: str, reason: str, today: str, stored: str | None, issue: int
 ) -> None:
     source = _provn(value)
     with warnings.catch_warnings():
@@ -226,7 +243,7 @@ def test_provn_unresolvable_qualified_name_value_warns_once(
         warnings.simplefilter("always")
         document = ProvDocument.deserialize(content=source, format="provn")
     assert _future_warnings(caught) == [
-        _message("line 3, column 20: ", text, reason, today)
+        _message("line 3, column 20: ", text, reason, today, issue)
     ]
     assert document == expected
     if stored is not None:
@@ -293,7 +310,7 @@ def _read_json(text: str) -> tuple[ProvDocument, list[str], ProvDocument]:
 def test_json_record_key_that_is_a_full_iri_warns() -> None:
     document, messages, expected = _read_json(_json({"entity": {f"{EX}e1": {}}}))
     assert messages == [
-        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1")
+        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1", 551)
     ]
     assert document == expected
     assert str(next(iter(document.get_records())).identifier) == "ex:e1"
@@ -304,42 +321,48 @@ def test_json_record_key_with_several_instances_warns_once() -> None:
         _json({"entity": {f"{EX}e1": [{}, {"ex:k": "v"}]}})
     )
     assert messages == [
-        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1")
+        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1", 551)
     ]
     assert document == expected
 
 
 @pytest.mark.parametrize(
-    ("value", "reason", "today"),
+    ("value", "reason", "today", "issue"),
     [
         pytest.param(
             {"$": f"{EX}x", "type": "prov:QUALIFIED_NAME"},
             FULL_IRI,
             "it reads as ex:x",
+            551,
             id="full IRI",
         ),
         pytest.param(
             {"$": "zz:x", "type": "prov:QUALIFIED_NAME"},
             UNDECLARED,
             KEPT,
+            516,
             id="undeclared",
         ),
         pytest.param(
-            {"$": "zz:x", "type": "xsd:QName"}, UNDECLARED, KEPT, id="xsd:QName"
+            {"$": "zz:x", "type": "xsd:QName"}, UNDECLARED, KEPT, 516, id="xsd:QName"
         ),
         pytest.param(
-            {"$": "not a name", "type": "xsd:QName"}, NO_PREFIX, KEPT, id="no prefix"
+            {"$": "not a name", "type": "xsd:QName"},
+            NO_PREFIX,
+            KEPT,
+            516,
+            id="no prefix",
         ),
     ],
 )
 def test_json_unresolvable_qualified_name_value_warns_once(
-    value: dict[str, str], reason: str, today: str
+    value: dict[str, str], reason: str, today: str, issue: int
 ) -> None:
     document, messages, expected = _read_json(
         _json({"entity": {"ex:e": {"ex:k": value}}})
     )
     where = "record 'ex:e', attribute 'ex:k': "
-    assert messages == [_message(where, value["$"], reason, today)]
+    assert messages == [_message(where, value["$"], reason, today, issue)]
     assert document == expected
 
 
@@ -365,7 +388,7 @@ def test_json_unresolvable_name_that_is_dropped_warns(
 ) -> None:
     document, messages, expected = _read_json(_json({section: {"ex:r": attributes}}))
     where = f"record 'ex:r', attribute '{attr_name}': "
-    assert messages == [_message(where, "zz:a", UNDECLARED, "it is dropped")]
+    assert messages == [_message(where, "zz:a", UNDECLARED, "it is dropped", 516)]
     assert document == expected
 
 

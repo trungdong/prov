@@ -457,7 +457,7 @@ def test_non_ws_space_between_tokens_is_skipped_and_warned(ch) -> None:
     assert values(text) == values("entity(ex:e) endDocument")
     assert lexer_warnings(text) == [
         f"line 1, column 13: U+{ord(ch):04X} is not PROV-N whitespace."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#509)"
     ]
 
 
@@ -466,14 +466,14 @@ def test_ogham_space_mark_warns_that_it_becomes_a_name_character() -> None:
     assert values(text) == values("entity(ex:e)")
     assert lexer_warnings(text) == [
         "line 1, column 8: U+1680 is not PROV-N whitespace."
-        " prov 3.3.0 will read it as a name character"
+        " prov 3.3.0 will read it as a name character (#509)"
     ]
 
 
 def test_a_run_of_one_character_warns_once() -> None:
     assert lexer_warnings("entity(ex:e)\xa0\xa0\xa0\u2028endDocument") == [
-        "line 1, column 13: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
-        "line 1, column 16: U+2028 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 1, column 13: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this (#509)",
+        "line 1, column 16: U+2028 is not PROV-N whitespace. prov 3.3.0 will reject this (#509)",
     ]
 
 
@@ -481,8 +481,8 @@ def test_non_ws_space_between_ws_and_comments_is_skipped() -> None:
     text = "entity(ex:e) \xa0// note\n\xa0endDocument"
     assert values(text) == values("entity(ex:e) endDocument")
     assert lexer_warnings(text) == [
-        "line 1, column 14: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
-        "line 2, column 1: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this",
+        "line 1, column 14: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this (#509)",
+        "line 2, column 1: U+00A0 is not PROV-N whitespace. prov 3.3.0 will reject this (#509)",
     ]
 
 

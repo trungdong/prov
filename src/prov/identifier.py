@@ -322,7 +322,8 @@ class QualifiedName(Identifier):
             warn(
                 future_rejection_message(
                     f"the local part {localpart!r} of <{self._uri}> contains a "
-                    "character PROV-N cannot write"
+                    "character PROV-N cannot write",
+                    issue=524,
                 ),
                 ProvFutureRejectionWarning,
             )

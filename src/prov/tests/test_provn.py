@@ -467,7 +467,7 @@ def test_undeclared_xsi_resolves_to_the_builtin_namespace_and_warns() -> None:
     assert messages[0].startswith("line 3, column ")
     assert messages[0].endswith(
         f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#510)"
     )
 
 
@@ -508,7 +508,7 @@ def test_undeclared_xsi_qualified_name_literal_warns_and_keeps_the_builtin() -> 
     assert len(messages) == 1
     assert messages[0].endswith(
         f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#510)"
     )
 
 
@@ -848,7 +848,10 @@ def test_writer_declares_xsi_in_the_bundle_that_uses_it() -> None:
     assert _reads_back_without_future_warnings(text) == doc
 
 
-STRICT_CLAUSE = ". prov 3.3.0 will reject this under the strict profile"
+STRICT_ISSUE = 519
+STRICT_CLAUSE = (
+    f". prov 3.3.0 will reject this under the strict profile (#{STRICT_ISSUE})"
+)
 
 
 @pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
@@ -881,7 +884,7 @@ def test_repeated_default_warns_and_the_last_one_wins() -> None:
     assert only_record(doc).identifier.uri == "http://b/e"
     assert messages == [
         "line 3, column 1: 'default' is declared twice in this scope; the last one"
-        " is used. prov 3.3.0 will reject this"
+        " is used. prov 3.3.0 will reject this (#508)"
     ]
 
 
@@ -901,7 +904,7 @@ def test_prefix_name_that_is_not_a_pn_prefix_warns(name) -> None:
     assert only_record(doc).identifier.uri == "http://example.org/e"
     assert messages == [
         f"line 2, column 8: '{name}' is not a PROV-N prefix name, so no qualified"
-        " name can use it. prov 3.3.0 will reject this"
+        " name can use it. prov 3.3.0 will reject this (#511)"
     ]
 
 
@@ -1025,7 +1028,7 @@ def test_non_ws_space_warns_and_reads_as_before(profile) -> None:
         text,
         (
             r"^line 3, column 13: U\+00A0 is not PROV-N whitespace\."
-            r" prov 3\.3\.0 will reject this$"
+            r" prov 3\.3\.0 will reject this \(#509\)$"
         ),
         profile,
     )
@@ -1087,7 +1090,7 @@ def test_attribute_named_after_a_formal_warns_and_reads_as_that_formal(
     assert messages == [
         f"line 3, column {column}: 'prov:{formal}' names the '{formal}' argument"
         f" of '{keyword}', which PROV-N gives only by position."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#523)"
     ]
     positional_doc, positional_messages = read_statement(positional, profile)
     assert positional_messages == []
@@ -1119,7 +1122,7 @@ def test_formal_attribute_is_matched_by_name_not_spelling() -> None:
     assert messages == [
         "line 4, column 29: 'p:activity' names the 'activity' argument of"
         " 'wasGeneratedBy', which PROV-N gives only by position."
-        " prov 3.3.0 will reject this"
+        " prov 3.3.0 will reject this (#523)"
     ]
 
 

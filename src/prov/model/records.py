@@ -443,7 +443,7 @@ def _warn_language_tag(langtag: str, value: str) -> None:
         if langtag
         else f"the language tag of {value!r} is empty"
     )
-    warn(future_rejection_message(detail), ProvFutureRejectionWarning)
+    warn(future_rejection_message(detail, issue=472), ProvFutureRejectionWarning)
 
 
 class Literal:
@@ -765,7 +765,7 @@ def _warn_offset_beyond_bound(detail: str, outcome: str = "reject this") -> None
     if not _rebuilding.get():
         warn(
             future_rejection_message(
-                f"{detail} has a timezone offset beyond ±14:00", outcome
+                f"{detail} has a timezone offset beyond ±14:00", outcome, issue=513
             ),
             ProvFutureRejectionWarning,
         )
@@ -798,11 +798,13 @@ def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
     for types, datatype in _PROV_FORMS:
         if isinstance(value, types):
             message = future_rejection_message(
-                detail, f"store it as a Literal of type {datatype}"
+                detail, f"store it as a Literal of type {datatype}", issue=482
             )
             break
     else:
-        message = future_rejection_message(f"{detail}, which has no PROV form")
+        message = future_rejection_message(
+            f"{detail}, which has no PROV form", issue=482
+        )
     warn(message, ProvFutureRejectionWarning)
 
 
@@ -810,7 +812,7 @@ def _warn_unresolved_name(
     bundle: ProvBundle, attr: QualifiedName, literal: Literal, value: object
 ) -> None:
     """Warn that ``literal``, typed as a qualified name, does not resolve by its
-    prefix (#516, #551, #553); ``value`` is what it converted to."""
+    prefix (#516, #553); ``value`` is what it converted to."""
     if (
         literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
         or _rebuilding.get()
@@ -824,10 +826,12 @@ def _warn_unresolved_name(
             if isinstance(value, QualifiedName)
             else "it is kept as a Literal"
         )
+        issue = 553 if isinstance(value, QualifiedName) else 516
         warn(
             future_rejection_message(
                 f"the qualified name {literal.value!r} of {attr} does not resolve,"
-                f" because {reason}; {today}"
+                f" because {reason}; {today}",
+                issue=issue,
             ),
             ProvFutureRejectionWarning,
         )
