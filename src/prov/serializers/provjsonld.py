@@ -45,7 +45,11 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import _xsd_datetime_text, _xsd_double_text
+from prov.model.records import (
+    _warn_unresolved_name,
+    _xsd_datetime_text,
+    _xsd_double_text,
+)
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers.provjson import _add_memberships, _JSONPrefixMap
 
@@ -458,7 +462,9 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
-def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
+def decode_jsonld_value(
+    value: Any, bundle: ProvBundle, term: str, *, attr: QualifiedName | None = None
+) -> Any:
     """Decode one member of a non-formal attribute's value array.
 
     Mirrors :func:`~prov.serializers.provjson.decode_json_representation`'s
@@ -475,6 +481,9 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
         term: The unprefixed JSON-LD term ``value`` was read from (e.g.
             ``"type"``, ``"ex:price"``), used to decide how a bare string is
             interpreted.
+        attr: The attribute ``value`` belongs to, named in the warning for a
+            typed qualified-name value that resolves only by compacting a
+            full IRI. Without it, that value does not warn.
 
     Returns:
         The resolved :class:`~prov.identifier.QualifiedName` for a bare
@@ -520,7 +529,12 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
         return Identifier(text)
     if datatype in (XSD_QNAME, PROV_QUALIFIEDNAME):
         resolved = bundle.valid_qualified_name(text)
-        return resolved if resolved is not None else Literal(text, datatype)
+        if resolved is None:
+            # The model warns about the Literal.
+            return Literal(text, datatype)
+        if attr is not None:
+            _warn_unresolved_name(bundle, attr, Literal(text, datatype), resolved)
+        return resolved
     return Literal(text, datatype)
 
 
@@ -646,7 +660,7 @@ def _decode_statement_attributes(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            (qname, decode_jsonld_value(v, bundle, term)) for v in value
+            (qname, decode_jsonld_value(v, bundle, term, attr=qname)) for v in value
         )
     return attributes, other_attributes, members
 

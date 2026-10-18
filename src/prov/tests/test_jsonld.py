@@ -10,10 +10,12 @@ import pytest
 import prov
 from prov.constants import PROV
 from prov.model import (
+    XSD_QNAME,
     Identifier,
     Literal,
     Namespace,
     ProvDocument,
+    ProvFutureRejectionWarning,
     ProvMembership,
     ProvWarning,
 )
@@ -21,6 +23,7 @@ from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
     ProvJSONLDSerializer,
+    decode_jsonld_value,
 )
 
 EX_URI = "http://example.org/"
@@ -586,3 +589,88 @@ def test_deserialize_value_object_without_value_raises() -> None:
     payload = _entity_with("ex:ref", [{"@type": "xsd:string"}])
     with pytest.raises(ProvJSONLDException, match="@value"):
         ProvDocument.deserialize(content=payload, format="jsonld")
+
+
+@pytest.mark.parametrize("datatype", ["xsd:QName", "prov:QUALIFIED_NAME"])
+def test_deserialize_typed_value_that_is_a_full_iri_warns(datatype: str) -> None:
+    # The reader compacts the IRI to ex:thing; 3.3.0 rejects the value (#553).
+    payload = _entity_with("ex:ref", [{"@value": EX_URI + "thing", "@type": datatype}])
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        doc = ProvDocument.deserialize(content=payload, format="jsonld")
+    assert [str(w.message) for w in caught] == [
+        "the qualified name 'http://example.org/thing' of ex:ref does not resolve,"
+        " because its prefix 'http' is not declared; it reads as ex:thing."
+        " prov 3.3.0 will reject this (#553)"
+    ]
+    assert [w.filename for w in caught] == [__file__]
+    (entity,) = doc.get_records()
+    (value,) = [v for _, v in entity.extra_attributes]
+    assert value == doc.valid_qualified_name("ex:thing")
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        pytest.param("ex:ref", {"@id": EX_URI + "thing"}, id="node-reference"),
+        pytest.param("type", EX_URI + "thing", id="id-typed-term"),
+        pytest.param(
+            "ex:ref", {"@value": "ex:thing", "@type": "xsd:QName"}, id="declared"
+        ),
+    ],
+)
+def test_deserialize_iri_value_does_not_warn(
+    key: str, value: str | dict[str, str]
+) -> None:
+    # An @id, or a bare string under an @id-typed term, is an IRI by definition.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        doc = ProvDocument.deserialize(
+            content=_entity_with(key, [value]), format="jsonld"
+        )
+    (entity,) = doc.get_records()
+    (read,) = [v for _, v in entity.extra_attributes]
+    assert read == doc.valid_qualified_name("ex:thing")
+
+
+def test_decode_jsonld_value_without_an_attribute_does_not_warn() -> None:
+    value = {"@value": EX_URI + "thing", "@type": "xsd:QName"}
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        read = decode_jsonld_value(value, _new_doc(), "ex:ref")
+    assert str(read) == "ex:thing"
+
+
+@pytest.mark.parametrize(
+    ("text", "reason"),
+    [
+        pytest.param(
+            "http://other.org/x", "its prefix 'http' is not declared", id="full-iri"
+        ),
+        pytest.param("zz:x", "its prefix 'zz' is not declared", id="undeclared"),
+    ],
+)
+def test_deserialize_unresolvable_bare_string_under_id_typed_term_warns(
+    text: str, reason: str
+) -> None:
+    # No declared namespace compacts it, so it is kept as a Literal (#516).
+    with pytest.warns(ProvFutureRejectionWarning) as caught:
+        doc = ProvDocument.deserialize(
+            content=_entity_with("type", [text]), format="jsonld"
+        )
+    assert [str(w.message) for w in caught] == [
+        f"the qualified name {text!r} of prov:type does not resolve, because"
+        f" {reason}; it is kept as a Literal. prov 3.3.0 will reject this (#516)"
+    ]
+    assert [w.filename for w in caught] == [__file__]
+    (entity,) = doc.get_records()
+    (value,) = [v for _, v in entity.extra_attributes]
+    assert value == Literal(text, XSD_QNAME)
+
+
+def test_deserialize_node_reference_outside_every_namespace_does_not_warn() -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        ProvDocument.deserialize(
+            content=_entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
+            format="jsonld",
+        )

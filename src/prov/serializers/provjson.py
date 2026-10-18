@@ -3,6 +3,7 @@
 import datetime
 import io
 import json
+import typing
 from collections import Counter, defaultdict
 from collections.abc import Callable, Sequence
 from typing import Any
@@ -32,6 +33,8 @@ from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
+
+_Kind = typing.Literal["record", "bundle"]
 
 
 ProvJSONDict = dict[str, dict[str, Any]]
@@ -521,6 +524,7 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     for bundle_id, bundle_content in bundles.items():
         bundle = ProvBundle(document=document)
         decode_json_container(bundle_content, bundle)
+        _check_record_key(bundle, bundle_id, "bundle")
         document.add_bundle(bundle, bundle.valid_qualified_name(bundle_id))
 
 
@@ -799,33 +803,52 @@ def _decode_name(
 ) -> QualifiedName | None:
     """Resolve the qualified name a formal attribute or a member refers to.
 
-    A string that does not resolve is dropped with a warning.
+    A value that is not a string, and a string that does not resolve, are
+    dropped with a warning. A string that resolves only by compacting an IRI
+    warns too.
     """
     resolved = valid_qualified_name(bundle, value)
-    if (
-        resolved is None
-        and isinstance(value, str)
+    if value is None:
+        _warn_rejection(
+            "the value is null and is dropped", rec_id, attr_name, issue=528
+        )
+    elif not isinstance(value, str):
+        _warn_rejection(
+            f"the value is {_json_text(value)}, not a qualified name, and is dropped",
+            rec_id,
+            attr_name,
+            issue=597,
+        )
+    elif (
+        # A resolved name with a declared prefix needs no check.
+        (resolved is None or value.partition(":")[0] not in bundle._namespaces)
         and (reason := bundle._unresolved_reason(value)) is not None
     ):
-        _warn_unresolved_name(
-            value, reason, "it is dropped", rec_id, attr_name, issue=516
-        )
+        if resolved is None:
+            _warn_unresolved_name(
+                value, reason, "it is dropped", rec_id, attr_name, issue=516
+            )
+        else:
+            _warn_unresolved_name(
+                value, reason, f"it reads as {resolved}", rec_id, attr_name, issue=551
+            )
     return resolved
 
 
-def _check_record_key(bundle: ProvBundle, rec_id: str) -> None:
-    """Warn when the record key ``rec_id`` resolves only by compacting an IRI (#551)."""
+def _check_record_key(bundle: ProvBundle, key: str, kind: _Kind = "record") -> None:
+    """Warn when the record or bundle key ``key`` resolves only by compacting an
+    IRI (#551); ``kind`` is ``"record"`` or ``"bundle"``."""
     if (
-        isinstance(rec_id, str)
+        isinstance(key, str)
         # Check the common cases first, a prefix this bundle declares and a
         # relation's blank node identifier, which has no namespace.
-        and (prefix := rec_id.partition(":")[0]) not in bundle._namespaces
+        and (prefix := key.partition(":")[0]) not in bundle._namespaces
         and prefix != "_"
-        and (reason := bundle._unresolved_reason(rec_id)) is not None
-        and (resolved := bundle.valid_qualified_name(rec_id)) is not None
+        and (reason := bundle._unresolved_reason(key)) is not None
+        and (resolved := bundle.valid_qualified_name(key)) is not None
     ):
         _warn_unresolved_name(
-            rec_id, reason, f"it reads as {resolved}", rec_id, issue=551
+            key, reason, f"it reads as {resolved}", key, issue=551, kind=kind
         )
 
 
@@ -859,6 +882,7 @@ def _warn_unresolved_name(
     attr_name: str | None = None,
     *,
     issue: int,
+    kind: _Kind = "record",
 ) -> None:
     """Warn that the qualified name ``text`` does not resolve, for ``reason``;
     ``today`` says how ``prov`` reads it instead."""
@@ -867,6 +891,7 @@ def _warn_unresolved_name(
         rec_id,
         attr_name,
         issue=issue,
+        kind=kind,
     )
 
 
@@ -913,12 +938,13 @@ def _decode_time(
     )
 
 
-def _position(rec_id: str | None, attr_name: str | None) -> str:
+def _position(rec_id: str | None, attr_name: str | None, kind: _Kind = "record") -> str:
     """Return the ``"record 'r', attribute 'a': "`` that starts a message,
-    naming as much of the value's position as is known."""
+    naming as much of the value's position as is known; ``kind`` is ``"bundle"``
+    for a bundle's key."""
     parts = []
     if rec_id is not None:
-        parts.append(f"record {rec_id!r}")
+        parts.append(f"{kind} {rec_id!r}")
     if attr_name is not None:
         parts.append(f"attribute {attr_name!r}")
     return ", ".join(parts) + ": " if parts else ""
@@ -943,10 +969,13 @@ def _warn_rejection(
     attr_name: str | None = None,
     *,
     issue: int,
+    kind: _Kind = "record",
 ) -> None:
     """Warn that 3.3.0 rejects the value ``detail`` describes."""
     warn(
-        future_rejection_message(_position(rec_id, attr_name) + detail, issue=issue),
+        future_rejection_message(
+            _position(rec_id, attr_name, kind) + detail, issue=issue
+        ),
         ProvFutureRejectionWarning,
     )
 

@@ -578,6 +578,173 @@ def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> N
     assert document == _read_quietly(_json({"entity": {"ex:e": same_as}}))
 
 
+_FULL_IRI_REASON = "its prefix 'http' is not declared"
+
+
+def _full_iri(text: str, position: str) -> str:
+    return _rejected(
+        f"{position}: the qualified name {text!r} does not resolve, because"
+        f" {_FULL_IRI_REASON}; it reads as ex:{text.rpartition('/')[2]}",
+        551,
+    )
+
+
+@pytest.mark.parametrize(
+    ("section", "attributes", "attr_name", "clean"),
+    [
+        pytest.param(
+            "wasGeneratedBy",
+            {"prov:entity": "ex:e", "prov:activity": "http://example.org/a"},
+            "prov:activity",
+            {"prov:entity": "ex:e", "prov:activity": "ex:a"},
+            id="formal",
+        ),
+        pytest.param(
+            "hadMember",
+            {"prov:collection": "ex:c", "prov:entity": "http://example.org/e"},
+            "prov:entity",
+            {"prov:collection": "ex:c", "prov:entity": "ex:e"},
+            id="member",
+        ),
+        pytest.param(
+            "hadMember",
+            {"prov:collection": "ex:c", "prov:entity": ["http://example.org/e"]},
+            "prov:entity",
+            {"prov:collection": "ex:c", "prov:entity": ["ex:e"]},
+            id="member-in-an-array",
+        ),
+    ],
+)
+def test_formal_attribute_that_is_a_full_iri_warns(
+    section: str, attributes: dict[str, Any], attr_name: str, clean: dict[str, Any]
+) -> None:
+    document, messages = _read_warning(_json({section: {"ex:r": attributes}}))
+    value = attributes[attr_name]
+    text = value[0] if isinstance(value, list) else value
+    assert messages == [_full_iri(text, f"record 'ex:r', attribute '{attr_name}'")]
+    assert document == _read_quietly(_json({section: {"ex:r": clean}}))
+
+
+def test_had_member_full_iri_members_each_warn() -> None:
+    entity = ["http://example.org/e1", "ex:e2", "http://example.org/e3"]
+    document, messages = _read_warning(
+        _json(
+            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": entity}}}
+        )
+    )
+    assert messages == [
+        _full_iri("http://example.org/e1", "record 'ex:m', attribute 'prov:entity'"),
+        _full_iri("http://example.org/e3", "record 'ex:m', attribute 'prov:entity'"),
+    ]
+    clean = ["ex:e1", "ex:e2", "ex:e3"]
+    assert document == _read_quietly(
+        _json(
+            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": clean}}}
+        )
+    )
+
+
+def test_bundle_key_that_is_a_full_iri_warns() -> None:
+    def text(key: str) -> str:
+        return _json({"bundle": {key: {"entity": {"ex:e": {}}}}})
+
+    document, messages = _read_warning(text("http://example.org/b"))
+    assert messages == [
+        _full_iri("http://example.org/b", "bundle 'http://example.org/b'")
+    ]
+    assert document == _read_quietly(text("ex:b"))
+
+
+def test_null_formal_attribute_warns() -> None:
+    attributes = {"prov:entity": "ex:e", "prov:activity": None}
+    document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
+    assert messages == [
+        _rejected(
+            "record 'ex:r', attribute 'prov:activity': the value is null and is"
+            " dropped",
+            528,
+        )
+    ]
+    assert document == _read_quietly(
+        _json({"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e"}}})
+    )
+
+
+@pytest.mark.parametrize(
+    ("entity", "members"),
+    [
+        pytest.param(None, [set()], id="alone"),
+        pytest.param([None, "ex:e"], [set(), {"ex:e"}], id="in-an-array"),
+    ],
+)
+def test_null_had_member_member_warns(entity: object, members: list[set[str]]) -> None:
+    document, messages = _read_warning(
+        _json(
+            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": entity}}}
+        )
+    )
+    assert messages == [
+        _rejected(
+            "record 'ex:m', attribute 'prov:entity': the value is null and is dropped",
+            528,
+        )
+    ]
+    read = [r.get_attribute("prov:entity") for r in document.get_records()]
+    assert [{str(e) for e in m} for m in read] == members
+
+
+@pytest.mark.parametrize(
+    ("value", "text"),
+    [
+        pytest.param(5, "5", id="number"),
+        pytest.param(1.5, "1.5", id="float"),
+        pytest.param(True, "true", id="boolean"),
+        pytest.param({"$": "ex:a", "type": "prov:QUALIFIED_NAME"}, None, id="object"),
+        pytest.param([[1]], "[1]", id="nested-array"),
+    ],
+)
+def test_formal_attribute_that_is_not_a_string_warns(
+    value: object, text: str | None
+) -> None:
+    attributes = {"prov:entity": "ex:e", "prov:activity": value}
+    document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
+    shown = text if text is not None else json.dumps(value)
+    expected = [
+        _rejected(
+            f"record 'ex:r', attribute 'prov:activity': the value is {shown}, not a"
+            " qualified name, and is dropped",
+            597,
+        )
+    ]
+    if isinstance(value, list):
+        expected.insert(
+            0,
+            _rejected(
+                "record 'ex:r', attribute 'prov:activity': the value is written as"
+                " an array",
+                531,
+            ),
+        )
+    assert messages == expected
+    assert document == _read_quietly(
+        _json({"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e"}}})
+    )
+
+
+def test_had_member_member_that_is_not_a_string_warns() -> None:
+    document, messages = _read_warning(
+        _json({"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": [5]}}})
+    )
+    assert messages == [
+        _rejected(
+            "record 'ex:m', attribute 'prov:entity': the value is 5, not a qualified"
+            " name, and is dropped",
+            597,
+        )
+    ]
+    assert [r.get_attribute("prov:entity") for r in document.get_records()] == [set()]
+
+
 @pytest.mark.parametrize(
     ("value", "details", "same_as"),
     [
