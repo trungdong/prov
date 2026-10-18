@@ -62,7 +62,7 @@ def test_language_tag_not_shaped_like_bcp47_warns(tag: str) -> None:
     message = f"the language tag {tag!r} of 'hi' is not a BCP 47 tag"
     with pytest.warns(
         ProvFutureRejectionWarning,
-        match=re.escape(f"{message}. prov 3.3.0 will reject this"),
+        match=re.escape(f"{message}. prov 3.3.0 will reject this (#472)"),
     ) as record:
         literal = Literal("hi", langtag=tag)
     assert literal.langtag == tag
@@ -74,7 +74,7 @@ def test_empty_language_tag_warns() -> None:
     with pytest.warns(
         ProvFutureRejectionWarning,
         match=re.escape(
-            "the language tag of 'hi' is empty. prov 3.3.0 will reject this"
+            "the language tag of 'hi' is empty. prov 3.3.0 will reject this (#472)"
         ),
     ):
         literal = Literal("hi", langtag="")

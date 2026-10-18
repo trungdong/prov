@@ -273,8 +273,8 @@ def _read_warning(text: str) -> tuple[ProvDocument, list[str]]:
     return document, [str(w.message) for w in future]
 
 
-def _rejected(detail: str) -> str:
-    return f"{detail}. prov 3.3.0 will reject this"
+def _rejected(detail: str, issue: int) -> str:
+    return f"{detail}. prov 3.3.0 will reject this (#{issue})"
 
 
 _PREFIX = '"prefix": {"ex": "http://example.org/"}'
@@ -320,7 +320,8 @@ def test_repeated_key_warns(repeated: str, single: str, key: str) -> None:
     document, messages = _read_warning(repeated)
     assert messages == [
         _rejected(
-            f"the key {key!r} is repeated in a JSON object; the last value is used"
+            f"the key {key!r} is repeated in a JSON object; the last value is used",
+            532,
         )
     ]
     assert document == _read_quietly(single)
@@ -332,7 +333,7 @@ def test_repeated_key_warns_once_per_object() -> None:
         ' "ex:f": {"ex:k": "a", "ex:k": "b"}}}'
     )
     message = _rejected(
-        "the key 'ex:k' is repeated in a JSON object; the last value is used"
+        "the key 'ex:k' is repeated in a JSON object; the last value is used", 532
     )
     assert messages == [message, message]
 
@@ -378,7 +379,8 @@ def test_model_warning_from_a_json_read_names_the_caller() -> None:
     assert messages == [
         _rejected(
             "prov:startTime 2012-01-01T00:00:00+15:00 has a timezone offset"
-            " beyond ±14:00"
+            " beyond ±14:00",
+            513,
         )
     ]
 
@@ -446,7 +448,8 @@ def test_bare_time_that_is_not_an_xsd_datetime_warns(
     assert messages == [
         _rejected(
             f"record 'ex:r', attribute {time_attr!r}: {time!r} is not an"
-            " xsd:dateTime and is dropped"
+            " xsd:dateTime and is dropped",
+            555,
         )
     ]
     assert document == _read_quietly(_json({section: {"ex:r": attributes}}))
@@ -477,7 +480,8 @@ def test_formal_attribute_written_as_an_array_warns(
     )
     assert messages == [
         _rejected(
-            f"record 'ex:r', attribute {attr!r}: the value is written as an array"
+            f"record 'ex:r', attribute {attr!r}: the value is written as an array",
+            531,
         )
     ]
     assert document == _read_quietly(
@@ -567,7 +571,9 @@ def test_formal_attribute_written_as_an_empty_array_raises(
 def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> None:
     document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
     assert messages == [
-        _rejected("record 'ex:e', attribute 'ex:k': the value is null and is dropped")
+        _rejected(
+            "record 'ex:e', attribute 'ex:k': the value is null and is dropped", 528
+        )
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": same_as}}))
 
@@ -577,78 +583,82 @@ def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> N
     [
         pytest.param(
             {"$": "1", "datatype": "xsd:int"},
-            ["the value object has the unknown key 'datatype'"],
+            [("the value object has the unknown key 'datatype'", 529)],
             "1",
             id="unknown-key",
         ),
         pytest.param(
             {"$": "1", "b": "x", "a": "x"},
             [
-                "the value object has the unknown key 'a'",
-                "the value object has the unknown key 'b'",
+                ("the value object has the unknown key 'a'", 529),
+                ("the value object has the unknown key 'b'", 529),
             ],
             "1",
             id="unknown-keys",
         ),
         pytest.param(
-            {"$": 1}, ['the value object\'s "$" is 1, not a string'], "1", id="number"
+            {"$": 1},
+            [('the value object\'s "$" is 1, not a string', 529)],
+            "1",
+            id="number",
         ),
         pytest.param(
             {"$": 1, "type": "xsd:double"},
-            ['the value object\'s "$" is 1, not a string'],
+            [('the value object\'s "$" is 1, not a string', 529)],
             {"$": "1", "type": "xsd:double"},
             id="integer-typed-double",
         ),
         pytest.param(
             {"$": 1.5, "type": "xsd:int"},
-            ['the value object\'s "$" is 1.5, not a string'],
+            [('the value object\'s "$" is 1.5, not a string', 529)],
             {"$": "1.5", "type": "xsd:int"},
             id="float-typed-int",
         ),
         pytest.param(
             {"$": True, "type": "xsd:int"},
-            ['the value object\'s "$" is true, not a string'],
+            [('the value object\'s "$" is true, not a string', 529)],
             {"$": "True", "type": "xsd:int"},
             id="boolean-typed-int",
         ),
         pytest.param(
             {"$": 1, "type": "xsd:int", "lang": "en"},
-            ['the value object\'s "$" is 1, not a string'],
+            [('the value object\'s "$" is 1, not a string', 529)],
             {"$": "1", "type": "xsd:int", "lang": "en"},
             id="typed-number-with-lang",
         ),
         pytest.param(
             {"$": True},
-            ['the value object\'s "$" is true, not a string'],
+            [('the value object\'s "$" is true, not a string', 529)],
             "True",
             id="boolean",
         ),
         pytest.param(
             {"$": None},
-            ['the value object\'s "$" is null, not a string'],
+            [('the value object\'s "$" is null, not a string', 529)],
             "None",
             id="null",
         ),
         pytest.param(
             {"$": "1", "type": "foo:int"},
-            ["the datatype 'foo:int' does not resolve and is dropped"],
+            [("the datatype 'foo:int' does not resolve and is dropped", 552)],
             "1",
             id="undeclared-datatype",
         ),
         pytest.param(
             {"$": "1", "type": "foo:int", "lang": "en"},
-            ["the datatype 'foo:int' does not resolve and is dropped"],
+            [("the datatype 'foo:int' does not resolve and is dropped", 552)],
             {"$": "1", "lang": "en"},
             id="undeclared-datatype-with-lang",
         ),
     ],
 )
 def test_value_object_that_3_3_0_rejects_warns(
-    value: dict[str, object], details: list[str], same_as: object
+    value: dict[str, object], details: list[tuple[str, int]], same_as: object
 ) -> None:
     document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
     assert messages == [
-        _rejected(f"record 'ex:e', attribute 'ex:k': {detail}") for detail in details
+        _rejected(f"record 'ex:e', attribute 'ex:k': {detail}", issue)
+        for detail, issue in details
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
 
@@ -715,7 +725,8 @@ def test_value_object_number_parsed_as_a_decimal_warns() -> None:
     future = [w for w in caught if w.category is ProvFutureRejectionWarning]
     assert [str(w.message) for w in future] == [
         _rejected(
-            "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string"
+            "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string",
+            529,
         )
     ]
     assert [w.filename for w in future] == [__file__]
@@ -734,10 +745,12 @@ def test_value_object_keys_a_caller_hook_makes_non_strings_warn() -> None:
     future = [w for w in caught if w.category is ProvFutureRejectionWarning]
     assert [str(w.message) for w in future] == [
         _rejected(
-            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2"
+            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2",
+            529,
         ),
         _rejected(
-            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 'a'"
+            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 'a'",
+            529,
         ),
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": "1"}}}))
@@ -763,5 +776,5 @@ def test_value_object_warning_without_a_position() -> None:
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         decode_json_representation({"$": "1", "x": "y"}, ProvDocument())
     assert [str(w.message) for w in caught] == [
-        _rejected("the value object has the unknown key 'x'")
+        _rejected("the value object has the unknown key 'x'", 529)
     ]

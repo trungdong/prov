@@ -298,7 +298,7 @@ class _Lexer:
         )
         # PN_CHARS_BASE ([53]) includes U+1680, so 3.3.0 reads it as part of a name.
         outcome = "read it as a name character" if char == "\u1680" else "reject this"
-        self.warnings.append(future_rejection_message(detail, outcome))
+        self.warnings.append(future_rejection_message(detail, outcome, issue=509))
         self.advance(end - pos)
 
     def next_token(self) -> Token:

@@ -1,5 +1,6 @@
 """The 3.3.0 warning class, its message helper and the PROV-N channel."""
 
+import json
 import warnings
 
 import pytest
@@ -16,15 +17,43 @@ def test_future_rejection_warning_is_a_prov_warning() -> None:
 
 
 def test_future_rejection_message_ends_with_the_default_outcome() -> None:
-    message = future_rejection_message("line 3, column 1: 'default' is declared twice")
+    message = future_rejection_message(
+        "line 3, column 1: 'default' is declared twice", issue=508
+    )
     assert message == (
-        "line 3, column 1: 'default' is declared twice. prov 3.3.0 will reject this"
+        "line 3, column 1: 'default' is declared twice. "
+        "prov 3.3.0 will reject this (#508)"
     )
 
 
 def test_future_rejection_message_takes_another_outcome() -> None:
-    message = future_rejection_message("U+1680 between tokens", "read this differently")
-    assert message == "U+1680 between tokens. prov 3.3.0 will read this differently"
+    message = future_rejection_message(
+        "U+1680 between tokens", "read this differently", issue=509
+    )
+    assert message == (
+        "U+1680 between tokens. prov 3.3.0 will read this differently (#509)"
+    )
+
+
+def test_future_rejection_message_ends_with_the_issue_number() -> None:
+    message = future_rejection_message("probe", "keep it", issue=529)
+    assert message.endswith(" (#529)")
+    assert message.count("(#") == 1
+
+
+def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
+    document = {
+        "prefix": {"ex": "http://example.org/"},
+        "wasGeneratedBy": {"ex:g": {"ex:nothing": None, "prov:entity": ["ex:e1"]}},
+    }
+    content = json.dumps(document)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        warnings.filterwarnings(
+            "ignore", message=r".*\(#528\)$", category=ProvFutureRejectionWarning
+        )
+        with pytest.raises(ProvFutureRejectionWarning, match=r"\(#531\)$"):
+            ProvDocument.deserialize(content=content, format="json")
 
 
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
@@ -37,7 +66,9 @@ def test_provn_parser_warnings_reach_the_caller(
 
     def parse_and_warn(self: ProvNParser) -> ProvDocument:
         document = original(self)
-        self.warnings.append(future_rejection_message("line 3, column 3: probe"))
+        self.warnings.append(
+            future_rejection_message("line 3, column 3: probe", issue=509)
+        )
         return document
 
     monkeypatch.setattr(ProvNParser, "parse", parse_and_warn)
@@ -45,7 +76,7 @@ def test_provn_parser_warnings_reach_the_caller(
         ProvDocument.deserialize(content=PROVN, format="provn")
     future = [w for w in record if issubclass(w.category, ProvFutureRejectionWarning)]
     assert [str(w.message) for w in future] == [
-        "line 3, column 3: probe. prov 3.3.0 will reject this"
+        "line 3, column 3: probe. prov 3.3.0 will reject this (#509)"
     ]
     assert future[0].filename == __file__
 

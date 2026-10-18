@@ -43,14 +43,30 @@ pytest's option, a pytest configuration or a filter in code instead.
 
 ## Read the message
 
-Each message ends with what 3.3.0 does instead, such as
-"prov 3.3.0 will reject this". A message from a reader starts with the position
-of the input: the line and column in PROV-N, or the record identifier and
-attribute name in PROV-JSON. A message about a language tag, a local part or
-a Python value comes from the model, wherever the value was read or built, so
-it names the value instead. So does a message about a qualified-name value
-built in code or read from PROV-JSONLD or RDF. A message from `unified()`
-starts with the identifier of the records it merges.
+Each message ends with what 3.3.0 does instead and the number of the GitHub issue
+that tracks the rule, such as "prov 3.3.0 will reject this (#529)". A message from a
+reader starts with the position of the input: the line and column in PROV-N, or the
+record identifier and attribute name in PROV-JSON. A message about a language tag, a
+local part or a Python value comes from the model, wherever the value was read or
+built, so it names the value instead. So does a message about a qualified-name value
+built in code or read from PROV-JSONLD or RDF. A message from `unified()` starts with
+the identifier of the records it merges.
+
+A filter on the issue number silences every case that issue tracks and leaves
+every other case an error. Python tries the filter added last first, so add the
+`ignore` filter after the `error` filter. This example ignores the cases that
+issue #529 tracks.
+
+```python
+import warnings
+
+from prov.model import ProvFutureRejectionWarning
+
+warnings.simplefilter("error", ProvFutureRejectionWarning)
+warnings.filterwarnings(
+    "ignore", message=r".*\(#529\)$", category=ProvFutureRejectionWarning
+)
+```
 
 ## PROV-N declarations
 

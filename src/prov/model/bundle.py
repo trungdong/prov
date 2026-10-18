@@ -247,6 +247,7 @@ def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
                     f"means none, so it does not unify with {present[0]}; "
                     f"unified() merges the records and keeps {present[0]}",
                     "raise ProvUnificationError",
+                    issue=547,
                 ),
                 ProvFutureRejectionWarning,
             )

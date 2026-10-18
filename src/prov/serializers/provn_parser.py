@@ -307,6 +307,7 @@ class ProvNParser:
                         " does not allow",
                         self._current,
                         "reject this under the strict profile",
+                        issue=519,
                     )
                 after_bundle = False
                 self._statement(document)
@@ -346,6 +347,7 @@ class ProvNParser:
                         f"'{local}' is not a PROV-N prefix name, so no qualified"
                         " name can use it",
                         name,
+                        issue=511,
                     )
                 namespaces.append(Namespace(local, iri.value))
                 seen.add(local)
@@ -359,6 +361,7 @@ class ProvNParser:
                         "'default' is declared twice in this scope; the last one"
                         " is used",
                         keyword,
+                        issue=508,
                     )
                 if namespaces and self.profile == "strict":
                     self._future(
@@ -366,6 +369,7 @@ class ProvNParser:
                         " strict profile does not allow",
                         keyword,
                         "reject this under the strict profile",
+                        issue=519,
                     )
                 default = iri.value
             else:
@@ -385,13 +389,18 @@ class ProvNParser:
                 " not allow declaring it",
                 token,
                 "reject this under the strict profile",
+                issue=519,
             )
 
-    def _future(self, detail: str, token: Token, outcome: str = "reject this") -> None:
+    def _future(
+        self, detail: str, token: Token, outcome: str = "reject this", *, issue: int
+    ) -> None:
         """Record a message for input that 3.3.0 rejects or reads differently."""
         self.warnings.append(
             future_rejection_message(
-                f"line {token.line}, column {token.column}: {detail}", outcome
+                f"line {token.line}, column {token.column}: {detail}",
+                outcome,
+                issue=issue,
             )
         )
 
@@ -406,7 +415,11 @@ class ProvNParser:
         declared = self._scope.get("xsi")
         if declared is not None:
             return declared[token.value[1] if local is None else local]
-        self._future(f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>", token)
+        self._future(
+            f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>",
+            token,
+            issue=510,
+        )
         return None
 
     def _apply_declarations(
@@ -637,6 +650,7 @@ class ProvNParser:
                 f"'{keyword.text}' has {what}, which the strict profile does not allow",
                 token,
                 "reject this under the strict profile",
+                issue=519,
             )
 
     def _check_formal_attributes(
@@ -653,6 +667,7 @@ class ProvNParser:
                     f"'{token.text}' names the '{name.localpart}' argument of"
                     f" '{keyword.text}', which PROV-N gives only by position",
                     token,
+                    issue=523,
                 )
 
     def _check_strict_required_positions(
@@ -860,7 +875,7 @@ class ProvNParser:
         self, text: str, token: Token, bundle: ProvBundle, resolves: bool
     ) -> None:
         """Record a 3.3.0 message at ``token`` when the qualified-name value
-        ``text`` does not resolve by its prefix (#516, #553).
+        ``text`` does not resolve by its prefix (#510, #516, #553).
 
         ``resolves`` says whether the model resolves ``text`` today, possibly
         by compacting an IRI, rather than keeping it as a Literal.
@@ -869,15 +884,20 @@ class ProvNParser:
             # The model keeps the text as a Literal, so nothing else reports
             # the undeclared prefix.
             reason: str | None = "its prefix 'xsi' is not declared"
+            issue: int | None = 510
         else:
             reason = bundle._unresolved_reason(text)
+            issue = None
         if reason is None:
             return
         qname = bundle.valid_qualified_name(text) if resolves else None
+        if issue is None:
+            issue = 553 if qname is not None else 516
         today = (
             f"it reads as {qname}" if qname is not None else "it is kept as a Literal"
         )
         self._future(
             f"the qualified name {text!r} does not resolve, because {reason}; {today}",
             token,
+            issue=issue,
         )

@@ -381,7 +381,7 @@ def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path) -> None:
 # -- warnings during auto-detection ----------------------------------------
 
 _PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
-_PROBE = future_rejection_message("probe")
+_PROBE = future_rejection_message("probe", issue=509)
 _provn_deserialize = ProvNSerializer.deserialize
 
 

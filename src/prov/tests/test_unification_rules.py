@@ -274,7 +274,7 @@ def test_absent_plan_against_a_plan_warns_and_merges(plan_first: bool) -> None:
         record,
         "ex:assoc1: an absent prov:plan means none, so it does not unify with "
         "ex:pl1; unified() merges the records and keeps ex:pl1. "
-        "prov 3.3.0 will raise ProvUnificationError",
+        "prov 3.3.0 will raise ProvUnificationError (#547)",
     )
     (association,) = unified.get_records()
     assert (
@@ -292,7 +292,7 @@ def test_absent_derivation_activity_against_an_activity_warns() -> None:
         record,
         "ex:d: an absent prov:activity means none, so it does not unify with "
         "ex:a; unified() merges the records and keeps ex:a. "
-        "prov 3.3.0 will raise ProvUnificationError",
+        "prov 3.3.0 will raise ProvUnificationError (#547)",
     )
     (derivation,) = unified.get_records()
     assert derivation.get_provn() == "wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)"
@@ -312,7 +312,7 @@ def test_absent_generation_or_usage_without_activity_warns(attr: str) -> None:
         record,
         f"ex:d: an absent prov:{attr} on a derivation with no activity means "
         "none, so it does not unify with ex:x; unified() merges the records and "
-        "keeps ex:x. prov 3.3.0 will raise ProvUnificationError",
+        "keeps ex:x. prov 3.3.0 will raise ProvUnificationError (#547)",
     )
 
 
@@ -329,7 +329,7 @@ def test_absent_activity_and_generation_warn_once_at_the_activity() -> None:
         record,
         "ex:d: an absent prov:activity means none, so it does not unify with "
         "ex:a; unified() merges the records and keeps ex:a. "
-        "prov 3.3.0 will raise ProvUnificationError",
+        "prov 3.3.0 will raise ProvUnificationError (#547)",
     )
 
 
@@ -352,7 +352,7 @@ def test_absent_none_in_a_bundle_warns() -> None:
         record,
         "ex:assoc1: an absent prov:plan means none, so it does not unify with "
         "ex:pl1; unified() merges the records and keeps ex:pl1. "
-        "prov 3.3.0 will raise ProvUnificationError",
+        "prov 3.3.0 will raise ProvUnificationError (#547)",
     )
 
 

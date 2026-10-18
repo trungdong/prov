@@ -7,7 +7,8 @@
 - New `prov.model.ProvFutureRejectionWarning`, a subclass of `ProvWarning`. `prov`
   emits it for input that 3.3.0 rejects or reads differently, and still reads that
   input as before. "Prepare for prov 3.3.0" in the how-to guides shows how to turn it
-  into an error to check a corpus
+  into an error to check a corpus. Each message ends with the issue that tracks its
+  3.3.0 rule, such as `(#529)`
 - A second `default` declaration in one PROV-N declaration block (#508). `prov` still
   uses the last one
 - A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <…>`
