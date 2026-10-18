@@ -24,7 +24,11 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import _xsd_datetime_text, _xsd_double_text
+from prov.model.records import (
+    _reader_checking_names,
+    _xsd_datetime_text,
+    _xsd_double_text,
+)
 from prov.serializers import Serializer, _is_text_stream
 
 logger = logging.getLogger(__name__)
@@ -554,8 +558,11 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     if "prefix" in jc:
         _decode_namespaces(jc, bundle)
 
-    for rec_type_str in jc:
-        _decode_record_group(jc, rec_type_str, bundle)
+    # The reader warns about its own qualified-name values, with their
+    # position, so the model does not warn about them again.
+    with _reader_checking_names():
+        for rec_type_str in jc:
+            _decode_record_group(jc, rec_type_str, bundle)
 
 
 def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
@@ -616,6 +623,7 @@ def _decode_record_group(
     records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
     for rec_id, content in records_by_id.items():
         elements = _json_record_elements(content, rec_type_str, rec_id)
+        _check_record_key(bundle, rec_id)
         for element in elements:
             _decode_record_instance(rec_type, rec_id, element, bundle)
 
@@ -720,18 +728,19 @@ def _decode_members(
         bundle: Bundle used to resolve the members' qualified names.
 
     Returns:
-        The resolved members, in the order written.
+        The resolved members, in the order written. A member that does not
+        resolve is ``None``, with a warning.
 
     Raises:
         ProvJSONException: If ``values`` is an empty JSON array.
     """
     if not isinstance(values, list):
-        return [valid_qualified_name(bundle, values)]
+        return [_decode_name(bundle, values, rec_id, attr_name)]
     if not values:
         raise ProvJSONException(
             f"{_position(rec_id, attr_name)}the value is an empty array"
         )
-    return [valid_qualified_name(bundle, value) for value in values]
+    return [_decode_name(bundle, value, rec_id, attr_name) for value in values]
 
 
 def _decode_formal_attribute(
@@ -780,8 +789,76 @@ def _decode_formal_attribute(
     else:
         value = values
     if attr in PROV_ATTRIBUTE_QNAMES:
-        return valid_qualified_name(bundle, value)
+        return _decode_name(bundle, value, rec_id, attr_name)
     return _decode_time(rec_id, attr_name, value, bundle)
+
+
+def _decode_name(
+    bundle: ProvBundle, value: Any, rec_id: str, attr_name: str
+) -> QualifiedName | None:
+    """Resolve the qualified name a formal attribute or a member refers to.
+
+    A string that does not resolve is dropped with a warning.
+    """
+    resolved = valid_qualified_name(bundle, value)
+    if (
+        resolved is None
+        and isinstance(value, str)
+        and (reason := bundle._unresolved_reason(value)) is not None
+    ):
+        _warn_unresolved_name(value, reason, "it is dropped", rec_id, attr_name)
+    return resolved
+
+
+def _check_record_key(bundle: ProvBundle, rec_id: str) -> None:
+    """Warn when the record key ``rec_id`` resolves only by compacting an IRI (#551)."""
+    if (
+        isinstance(rec_id, str)
+        # Check the common cases first, a prefix this bundle declares and a
+        # relation's blank node identifier, which has no namespace.
+        and (prefix := rec_id.partition(":")[0]) not in bundle._namespaces
+        and prefix != "_"
+        and (reason := bundle._unresolved_reason(rec_id)) is not None
+        and (resolved := bundle.valid_qualified_name(rec_id)) is not None
+    ):
+        _warn_unresolved_name(rec_id, reason, f"it reads as {resolved}", rec_id)
+
+
+def _check_name_value(
+    bundle: ProvBundle,
+    value: Any,
+    resolved: QualifiedName | None,
+    rec_id: str | None,
+    attr_name: str | None,
+) -> None:
+    """Warn when the qualified-name value ``value`` does not resolve by its
+    prefix (#516, #551); ``resolved`` is what it resolves to today."""
+    if (
+        isinstance(value, str)
+        and (reason := bundle._unresolved_reason(value)) is not None
+    ):
+        today = (
+            f"it reads as {resolved}"
+            if resolved is not None
+            else "it is kept as a Literal"
+        )
+        _warn_unresolved_name(value, reason, today, rec_id, attr_name)
+
+
+def _warn_unresolved_name(
+    text: str,
+    reason: str,
+    today: str,
+    rec_id: str | None,
+    attr_name: str | None = None,
+) -> None:
+    """Warn that the qualified name ``text`` does not resolve, for ``reason``;
+    ``today`` says how ``prov`` reads it instead."""
+    _warn_rejection(
+        f"the qualified name {text!r} does not resolve, because {reason}; {today}",
+        rec_id,
+        attr_name,
+    )
 
 
 def _decode_time(
@@ -905,9 +982,9 @@ def decode_json_representation(
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
     A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
-    a ``"$"`` that is not a string, or a ``"type"`` that does not resolve
-    warns with :class:`~prov.model.ProvFutureRejectionWarning` and is read as
-    before.
+    a ``"$"`` that is not a string, a ``"type"`` that does not resolve, or a
+    qualified-name value that does not resolve by its prefix warns with
+    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before.
 
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
@@ -970,6 +1047,10 @@ def decode_json_representation(
             # by 2.x. If the value's prefix has no in-scope namespace, keep
             # it as an opaque Literal rather than dropping it (#238).
             resolved = valid_qualified_name(bundle, value)
+            # A value with a "lang" is no qualified name, and the model logs
+            # that it overrides its datatype.
+            if langtag is None:
+                _check_name_value(bundle, value, resolved, rec_id, attr_name)
             return (
                 resolved if resolved is not None else Literal(value, datatype, langtag)
             )

@@ -87,11 +87,21 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-dm-example-63.provn": "used gives only the activity and entity without the paired time",
 }
 
+_UNDECLARED_VALUE_PREFIX = "does not resolve, because its prefix '.*' is not declared"
+
 # Recommendation examples that the strict profile reads with a 3.3.0 warning
-# (#519). The examples are not normative, so the grammar wins.
+# (#516, #519). The examples are not normative, so the grammar wins.
 STRICT_WARNING_EXAMPLES: dict[str, str] = {
     "prov-n-example-51.provn": "'default' follows a 'prefix' declaration",
     "prov-dm-example-42.provn": "a statement follows a bundle",
+    # The specifications use these prefixes in a qualified-name value
+    # without declaring them (#516).
+    "prov-n-example-34.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-n-example-35.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-27.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-31.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-61.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-62.provn": _UNDECLARED_VALUE_PREFIX,
 }
 
 # ProvToolbox-written documents that legitimately differ from our JSON
@@ -324,6 +334,15 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     return params
 
 
+def _read_strict(expected, **source) -> ProvDocument:
+    """Read PROV-N with the strict profile, warning as ``expected`` matches, or
+    not at all if it is ``None``."""
+    if expected is None:
+        return ProvDocument.deserialize(format="provn", profile="strict", **source)
+    with pytest.warns(ProvFutureRejectionWarning, match=expected):
+        return ProvDocument.deserialize(format="provn", profile="strict", **source)
+
+
 @pytest.mark.parametrize(
     "path",
     _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
@@ -331,20 +350,12 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
 )
 def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
     expected = STRICT_WARNING_EXAMPLES.get(path.name)
+    # prov writes an undeclared prefix back as it read it.
+    rewritten = expected if expected == _UNDECLARED_VALUE_PREFIX else None
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
-        if expected is None:
-            document = ProvDocument.deserialize(
-                str(path), format="provn", profile="strict"
-            )
-        else:
-            with pytest.warns(ProvFutureRejectionWarning, match=expected):
-                document = ProvDocument.deserialize(
-                    str(path), format="provn", profile="strict"
-                )
-        reloaded = ProvDocument.deserialize(
-            content=document.get_provn(strict=True), format="provn", profile="strict"
-        )
+        document = _read_strict(expected, source=str(path))
+        reloaded = _read_strict(rewritten, content=document.get_provn(strict=True))
         assert reloaded == document
 
 

@@ -53,6 +53,7 @@ from prov.constants import (
     PROV_START,
     PROV_USAGE,
     XSD,
+    XSD_QNAME,
     XSI,
 )
 from prov.identifier import Namespace, QualifiedName
@@ -64,6 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
+from prov.model.records import _reader_checking_names
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,
@@ -276,6 +278,12 @@ class ProvNParser:
 
     def parse(self) -> ProvDocument:
         """Parse the whole input and return the document."""
+        # The parser warns about its own qualified-name values, with their
+        # position, so the model does not warn about them again.
+        with _reader_checking_names():
+            return self._parse()
+
+    def _parse(self) -> ProvDocument:
         self._tokens = list(tokenize(self._text, self.warnings))
         self._pos = 0
         self._depth = 0
@@ -804,6 +812,7 @@ class ProvNParser:
                     declared = self._xsi_name(token, token.value.partition(":")[2])
                     if declared is not None:
                         return declared
+                self._check_typed_name_value(token, datatype, bundle)
                 return Literal(token.value, datatype)
             return token.value
         if token.kind is TokenKind.INT:
@@ -829,7 +838,46 @@ class ProvNParser:
                 return default[local]
             text = f"{prefix}:{local}" if prefix else local
             qname = bundle.valid_qualified_name(text)
+            self._check_name_value(text, token, bundle, True)
             # An unresolvable prefix stays an opaque literal, as it does when
             # decoded from PROV-JSON.
             return qname if qname is not None else Literal(text, PROV_QUALIFIEDNAME)
         raise self._error(f"expected a literal value, found {self._found()}")
+
+    def _check_typed_name_value(
+        self, token: Token, datatype: QualifiedName, bundle: ProvBundle
+    ) -> None:
+        """Check the text of the string ``token`` when ``datatype`` is a
+        qualified-name datatype."""
+        if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+            # The model resolves a prov:QUALIFIED_NAME text and keeps an
+            # xsd:QName one as a Literal.
+            self._check_name_value(
+                token.value, token, bundle, datatype == PROV_QUALIFIEDNAME
+            )
+
+    def _check_name_value(
+        self, text: str, token: Token, bundle: ProvBundle, resolves: bool
+    ) -> None:
+        """Record a 3.3.0 message at ``token`` when the qualified-name value
+        ``text`` does not resolve by its prefix (#516, #553).
+
+        ``resolves`` says whether the model resolves ``text`` today, possibly
+        by compacting an IRI, rather than keeping it as a Literal.
+        """
+        if not resolves and text.startswith("xsi:") and "xsi" not in self._scope:
+            # The model keeps the text as a Literal, so nothing else reports
+            # the undeclared prefix.
+            reason: str | None = "its prefix 'xsi' is not declared"
+        else:
+            reason = bundle._unresolved_reason(text)
+        if reason is None:
+            return
+        qname = bundle.valid_qualified_name(text) if resolves else None
+        today = (
+            f"it reads as {qname}" if qname is not None else "it is kept as a Literal"
+        )
+        self._future(
+            f"the qualified name {text!r} does not resolve, because {reason}; {today}",
+            token,
+        )

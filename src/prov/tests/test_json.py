@@ -167,12 +167,26 @@ def test_unresolvable_qualified_name_literal_stays_opaque() -> None:
     # A prov:QUALIFIED_NAME literal whose prefix has no in-scope namespace
     # cannot be resolved to a QualifiedName; it must stay an opaque Literal
     # rather than crash or silently guess a namespace (#238, #257 lock).
+    # Asserting it and reading it back each warn, as 3.3.0 rejects it (#516).
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e1", {"ex:a": Literal("unknown:v", PROV_QUALIFIEDNAME)})
+    with pytest.warns(ProvFutureRejectionWarning, match="'unknown:v' of ex:a"):
+        document.entity("ex:e1", {"ex:a": Literal("unknown:v", PROV_QUALIFIEDNAME)})
     content = document.serialize(format="json")
-    reloaded = ProvDocument.deserialize(content=content, format="json")
+    with pytest.warns(ProvFutureRejectionWarning, match="'unknown:v'"):
+        reloaded = ProvDocument.deserialize(content=content, format="json")
     assert reloaded == document
+
+
+def test_equal_anonymous_relations_share_a_key_and_both_read_back() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.wasGeneratedBy("ex:e", "ex:a")
+    document.wasGeneratedBy("ex:e", "ex:a")
+    content = json.loads(document.serialize(format="json"))
+    assert list(content["wasGeneratedBy"]) == ["_:id1"]
+    reloaded = ProvDocument.deserialize(content=json.dumps(content), format="json")
+    assert len(reloaded.get_records()) == 2
 
 
 def _qualified_names(bundle: ProvBundle) -> Iterator[object]:
@@ -509,16 +523,18 @@ def test_had_member_array_without_a_collection_reads() -> None:
 def test_had_member_members_resolve_alike() -> None:
     # Every member resolves as the first one does. A later member with an
     # undeclared prefix, or a null, raised ProvExceptionInvalidQualifiedName.
+    # The undeclared prefix warns, as 3.3.0 rejects it (#516).
     def members(entities: list[str | None]) -> list[set[Any]]:
-        document = _read_quietly(
-            _json(
-                {
-                    "hadMember": {
-                        "ex:m": {"prov:collection": "ex:c", "prov:entity": entities}
-                    }
+        text = _json(
+            {
+                "hadMember": {
+                    "ex:m": {"prov:collection": "ex:c", "prov:entity": entities}
                 }
-            )
+            }
         )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ProvFutureRejectionWarning)
+            document = ProvDocument.deserialize(content=text, format="json")
         return [r.get_attribute("prov:entity") for r in document.get_records()]
 
     assert members(["foo:e1", "ex:e2"]) == members(["ex:e2", "foo:e1"])[::-1]
