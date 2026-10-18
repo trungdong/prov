@@ -623,6 +623,7 @@ def _decode_record_group(
     records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
     for rec_id, content in records_by_id.items():
         elements = _json_record_elements(content, rec_type_str, rec_id)
+        _check_record_key(bundle, rec_id)
         for element in elements:
             _decode_record_instance(rec_type, rec_id, element, bundle)
 
@@ -655,7 +656,6 @@ def _decode_record_instance(
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName | None] | None = None
-    _check_record_key(bundle, rec_id)
     for attr_name, values in element.items():
         attr: QualifiedName = (
             PROV_ATTRIBUTES_ID_MAP[attr_name]
@@ -814,8 +814,8 @@ def _check_record_key(bundle: ProvBundle, rec_id: str) -> None:
     """Warn when the record key ``rec_id`` resolves only by compacting an IRI (#551)."""
     if (
         isinstance(rec_id, str)
-        # The common cases first: a prefix this bundle declares, and the
-        # blank node identifier of a relation, which has no namespace.
+        # Check the common cases first, a prefix this bundle declares and a
+        # relation's blank node identifier, which has no namespace.
         and (prefix := rec_id.partition(":")[0]) not in bundle._namespaces
         and prefix != "_"
         and (reason := bundle._unresolved_reason(rec_id)) is not None
@@ -1047,8 +1047,8 @@ def decode_json_representation(
             # by 2.x. If the value's prefix has no in-scope namespace, keep
             # it as an opaque Literal rather than dropping it (#238).
             resolved = valid_qualified_name(bundle, value)
-            # A value with a "lang" is no qualified name, and the model warns
-            # about its datatype.
+            # A value with a "lang" is no qualified name, and the model logs
+            # that it overrides its datatype.
             if langtag is None:
                 _check_name_value(bundle, value, resolved, rec_id, attr_name)
             return (

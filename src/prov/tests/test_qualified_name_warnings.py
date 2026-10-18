@@ -299,6 +299,16 @@ def test_json_record_key_that_is_a_full_iri_warns() -> None:
     assert str(next(iter(document.get_records())).identifier) == "ex:e1"
 
 
+def test_json_record_key_with_several_instances_warns_once() -> None:
+    document, messages, expected = _read_json(
+        _json({"entity": {f"{EX}e1": [{}, {"ex:k": "v"}]}})
+    )
+    assert messages == [
+        _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1")
+    ]
+    assert document == expected
+
+
 @pytest.mark.parametrize(
     ("value", "reason", "today"),
     [
@@ -367,6 +377,11 @@ def test_json_unresolvable_name_that_is_dropped_warns(
             {"wasGeneratedBy": {"_:id1": {"prov:entity": "ex:e"}}},
             None,
             id="blank node key",
+        ),
+        pytest.param(
+            {"wasGeneratedBy": {"g1": {"prov:entity": "ex:e"}}},
+            None,
+            id="bare key with no default",
         ),
         pytest.param(
             {"entity": {"http://example.org/e": {}}},
