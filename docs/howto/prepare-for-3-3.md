@@ -238,6 +238,11 @@ document as asserted, without merging any records.
 | `the value object's "$" is …, not a string` | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the datatype '…' does not resolve and is dropped` | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
 
+A number in `$` typed the way `prov` 2.x and earlier wrote it, an integer as
+`xsd:int` or a number with a fraction or exponent as `xsd:double`, does not warn.
+`{"$": 1, "type": "xsd:int"}` and `{"$": 1.5, "type": "xsd:double"}` read in 3.3.0 as
+they do now.
+
 The repeated-key warning names only the key, because Python's JSON parser
 reports no position for it.
 

@@ -778,12 +778,10 @@ def _decode_formal_attribute(
             )
         # only one value is allowed
         if len(values) > 1:
-            error_msg = (
-                "The prov package does not support PROV"
-                " attributes having multiple values."
+            raise ProvJSONException(
+                f"{_position(rec_id, attr_name)}the value is an array of "
+                f"{len(values)} values, but the attribute takes one"
             )
-            logger.error(error_msg)
-            raise ProvJSONException(error_msg)
         _warn_rejection("the value is written as an array", rec_id, attr_name)
         value = values[0]
     else:
@@ -920,6 +918,10 @@ def _json_text(value: Any) -> str:
         return str(value)
 
 
+# The JSON numbers prov 2.x and earlier wrote in "$", which 3.3.0 still reads.
+_LEGACY_NUMBER_TYPES = {int: XSD_INT, float: XSD_DOUBLE}
+
+
 def _warn_rejection(
     detail: str, rec_id: str | None = None, attr_name: str | None = None
 ) -> None:
@@ -1024,14 +1026,16 @@ def decode_json_representation(
             _warn_rejection(
                 f"the value object has the unknown key {key!r}", rec_id, attr_name
             )
-        if not isinstance(value, str):
+        datatype_str: str | None = literal.get("type", None)
+        datatype = valid_qualified_name(bundle, datatype_str)
+        if not isinstance(value, str) and (
+            datatype is None or datatype != _LEGACY_NUMBER_TYPES.get(type(value))
+        ):
             _warn_rejection(
                 f'the value object\'s "$" is {_json_text(value)}, not a string',
                 rec_id,
                 attr_name,
             )
-        datatype_str: str | None = literal.get("type", None)
-        datatype = valid_qualified_name(bundle, datatype_str)
         if datatype_str is not None and datatype is None:
             _warn_rejection(
                 f"the datatype {datatype_str!r} does not resolve and is dropped",
