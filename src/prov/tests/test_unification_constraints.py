@@ -15,7 +15,7 @@ outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``)
   ``ProvFutureRejectionWarning``, because 3.3.0 rejects them (#547)
   (``ABSENT_NONE_WARNINGS`` below);
 - every other fail-case still merges (placeholder-vs-concrete conflicts in
-  other positions, which the model cannot represent — an absent formal
+  other positions, which the model cannot represent, so an absent formal
   attribute there is an existential that unifies with any concrete value) or
   passes through untouched
   (uniqueness Constraints 24-29, mandatory-placeholder and impossibility
@@ -174,6 +174,7 @@ def test_corpus_inventory() -> None:
     assert files >= PARSE_FAILURES
     assert files >= UNIFICATION_REJECTS
     assert files >= set(ABSENT_NONE_WARNINGS)
+    assert not UNIFICATION_REJECTS & set(ABSENT_NONE_WARNINGS)
     assert all("-fail" in name for name in UNIFICATION_REJECTS)
     assert all("-fail" in name for name in ABSENT_NONE_WARNINGS)
 
@@ -202,16 +203,21 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # type-compatibility rejection's "... incompatible types ..." (none
         # of these 153 ProvToolbox cases exercise that path; see the module
         # docstring).
-        with pytest.raises(ProvUnificationError, match="has conflicting"):
-            document.unified()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvFutureRejectionWarning)
+            with pytest.raises(ProvUnificationError, match="has conflicting"):
+                document.unified()
     elif xml_path.name in ABSENT_NONE_WARNINGS:
         # Invalid instance that 3.3.0 rejects: an absent non-expandable formal
         # meets a present one. unified() still merges, and warns.
         attr_name = ABSENT_NONE_WARNINGS[xml_path.name]
         with pytest.warns(
             ProvFutureRejectionWarning, match=f"an absent {attr_name} means none"
-        ):
+        ) as record:
             unified = document.unified()
+        assert (
+            sum(issubclass(w.category, ProvFutureRejectionWarning) for w in record) == 1
+        )
         assert _n_records(unified) == _expected_unified_count(document)
     else:
         # Invalid instance ("fail" per the corpus label) that unified()
@@ -317,7 +323,7 @@ def test_placeholder_vs_concrete_plan_merges() -> None:
     # with itself or an existential variable, never with a concrete value.
     # Corpus analogue association-fail4: wasAssociatedWith(assoc1; a1, ag1,
     # ex:pl1) + wasAssociatedWith(assoc1; a1, ag1, -) must FAIL to merge.
-    # The plan is non-expandable, so an absent plan can only be -: 3.2.3
+    # The plan is non-expandable, so an absent plan can only be -. 3.2.3
     # still merges it with the concrete plan and warns, and 3.3.0 raises
     # (#547).
     doc = ProvDocument()

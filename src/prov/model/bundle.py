@@ -208,9 +208,10 @@ _KEYLESS_RELATIONS = frozenset(
 )
 
 
-# PROV-CONSTRAINTS Definition 4 and Table 3: an absent value in these positions
-# is the constant "none", which unifies only with itself. Generation and usage
-# are non-expandable only on a derivation that names no activity.
+# Non-expandable positions, from PROV-CONSTRAINTS Definition 4 and Table 3. An
+# absent value in one of them is the constant "none", which unifies only with
+# itself. Generation and usage are non-expandable only on a derivation that
+# names no activity.
 _NON_EXPANDABLE = {
     PROV_ASSOCIATION: (PROV_ATTR_PLAN,),
     PROV_DERIVATION: (PROV_ATTR_ACTIVITY, PROV_ATTR_GENERATION, PROV_ATTR_USAGE),
@@ -224,9 +225,11 @@ def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
     3.3.0 raises there. The group has already unified, so its records agree on
     every position where they all have a value.
     """
-    record_type = PROV_BASE_CLS[records[0].get_type()]
+    positions = _NON_EXPANDABLE.get(PROV_BASE_CLS[records[0].get_type()])
+    if positions is None:
+        return
     formal_values = [dict(record.formal_attributes) for record in records]
-    for attr_name in _NON_EXPANDABLE.get(record_type, ()):
+    for attr_name in positions:
         present = [
             values[attr_name]
             for values in formal_values
@@ -280,13 +283,13 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     Formal attributes are unified positionally: an absent value is an
     existential ("unknown") that unifies with anything, equal concrete values
     unify, and two different concrete values do not unify. An absent value in
-    a non-expandable position also unifies, with the warning of
-    ``_warn_absent_non_expandable``. Non-formal ("extra")
-    attributes are unioned. The merged record is newly constructed from the
-    unified formal attributes, so no *formal-attribute* conflict is ever
-    routed through :meth:`ProvRecord.add_attributes`' single-value guard --
-    a conflict between two records' *extra* attributes still is, since those
-    are reasserted through the merged record's constructor unchanged.
+    a non-expandable position also unifies, and ``_warn_absent_non_expandable``
+    warns once the merged record is built. Non-formal ("extra") attributes are
+    unioned. The merged record is newly constructed from the unified formal
+    attributes, so no *formal-attribute* conflict is ever routed through
+    :meth:`ProvRecord.add_attributes`' single-value guard -- a conflict between
+    two records' *extra* attributes still is, since those are reasserted
+    through the merged record's constructor unchanged.
 
     Args:
         records: Two or more records of the same base record type, carrying
@@ -310,9 +313,10 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
         unified_value = None
         for _, value in pairs:
             if value is None:
-                # An absent formal attribute is an existential variable: the
+                # An absent formal attribute is an existential variable. The
                 # model cannot express PROV-N's placeholder `-`, so absent
-                # unifies with any concrete value.
+                # unifies with any concrete value; the non-expandable positions
+                # warn after the merge.
                 continue
             if unified_value is None:
                 unified_value = value
@@ -328,15 +332,15 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
         if unified_value is not None:
             attributes.append((attr_name, unified_value))
 
-    _warn_absent_non_expandable(records)
-
     # Extra attributes keep their set-union semantics.
     for record in records:
         attributes.extend(record.extra_attributes)
 
-    return _rebuild(
+    merged = _rebuild(
         PROV_REC_CLS[record_type], first_record.bundle, identifier, attributes
     )
+    _warn_absent_non_expandable(records)
+    return merged
 
 
 def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecord]:
@@ -1881,6 +1885,10 @@ class ProvDocument(ProvBundle):
                 the same scope hold different concrete values for the same
                 formal attribute, or have incompatible types (see
                 :meth:`ProvBundle.unified`).
+
+        Warns:
+            ProvFutureRejectionWarning: As for :meth:`ProvBundle.unified`, in
+                the document's top-level records or in any of its bundles.
         """
         document = ProvDocument(self._unified_records())
         document._namespaces = self._namespaces

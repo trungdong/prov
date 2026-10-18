@@ -87,8 +87,8 @@ For each identifier that appears on more than one record, `unified()` builds a s
 merged record by term unification of those records' formal attributes, following the key
 constraints of the W3C specification. Position by position:
 
-- an absent formal attribute is an existential ("unknown") and unifies with anything,
-  with the exception of the non-expandable positions described under the limits below;
+- an absent formal attribute is an existential ("unknown") and unifies with anything; in
+  the non-expandable positions described under the limits below, it also warns;
 - two equal concrete values unify to that value;
 - two different concrete values do not unify, and the merge raises
   {py:class}`~prov.model.ProvUnificationError`.

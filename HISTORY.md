@@ -68,11 +68,11 @@
   association, or no activity on a derivation, and another has one, such as
   `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` with
   `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` (#547). PROV-CONSTRAINTS reads an absent
-  value in these positions as "none", which unifies only with itself, and so it does for
+  value in these positions as "none", which unifies only with itself. The same holds for
   the generation and usage of a derivation that names no activity. `prov` still merges
   the records and keeps the value. `prov_to_graph()` and `prov_to_dot()` call
-  `unified()`, so they warn too; 3.3.0 `prov_to_graph()` raises and `prov_to_dot()` draws
-  the document as asserted
+  `unified()`, so they warn too; in 3.3.0 `prov_to_graph()` raises and `prov_to_dot()`
+  draws the document as asserted
 
 ### Fixes
 

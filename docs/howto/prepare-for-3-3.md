@@ -218,8 +218,9 @@ derivations and follow the same rule. In 3.2.x `unified()` still merges an
 absent value in one of these positions with a present one and keeps the present
 value. 3.3.0 raises {py:class}`~prov.model.ProvUnificationError`.
 
-`unified()` warns once for each identifier, at the first such position in the
-order of the statement's arguments, which is where 3.3.0 raises.
+`unified()` warns once for each set of records of one type that share an
+identifier, at the first such position in the order of the statement's
+arguments, which is where 3.3.0 raises.
 
 `prov_to_graph()` and `prov_to_dot()` call `unified()`, so they warn about the
 same documents. In 3.3.0 `prov_to_graph()` raises, and `prov_to_dot()` draws the

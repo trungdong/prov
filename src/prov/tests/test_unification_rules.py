@@ -6,7 +6,7 @@ concrete value -- the model cannot represent the spec's placeholder `-`
 (deserializers drop the distinction; gap analysis §3.1), so `-`-vs-concrete
 failures are out of scope by representation. The exception is the
 non-expandable positions of PROV-CONSTRAINTS Table 3, where an absent value
-can only mean "none": unified() warns there and 3.3.0 raises (#547).
+can only mean "none", so unified() warns there and 3.3.0 raises (#547).
 Constraints 24-29 are deferred to the #62 validation engine.
 """
 
@@ -26,6 +26,7 @@ from prov.model import (
     ProvActivity,
     ProvDocument,
     ProvEntity,
+    ProvException,
     ProvFutureRejectionWarning,
     ProvMembership,
     ProvUnificationError,
@@ -75,7 +76,7 @@ def test_conflicting_relation_endpoints_raise() -> None:
 
 
 def test_absent_formal_attribute_unifies_with_concrete() -> None:
-    # An absent plan is the constant "none" (#547): 3.2.3 still merges it with
+    # An absent plan is the constant "none" (#547). 3.2.3 still merges it with
     # the concrete plan and warns, and 3.3.0 raises.
     document = _doc()
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
@@ -409,4 +410,27 @@ def test_conflict_elsewhere_raises_without_the_absent_none_warning() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvFutureRejectionWarning)
         with pytest.raises(ProvUnificationError, match="conflicting"):
+            document.unified()
+
+
+def test_extra_attribute_conflict_raises_without_the_absent_none_warning() -> None:
+    # The merged record rebuilds its extra attributes, and a second prov:time
+    # still raises there; the warning waits until the merge succeeds.
+    document = _doc()
+    document.association(
+        "ex:a1",
+        agent="ex:ag1",
+        identifier="ex:assoc1",
+        other_attributes={"prov:time": T1},
+    )
+    document.association(
+        "ex:a1",
+        agent="ex:ag1",
+        plan="ex:pl1",
+        identifier="ex:assoc1",
+        other_attributes={"prov:time": T2},
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        with pytest.raises(ProvException, match="more than one value"):
             document.unified()
