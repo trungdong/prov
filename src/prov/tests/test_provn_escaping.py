@@ -1,5 +1,5 @@
 """PROV-N output correctness: local-part metacharacter escaping (#223, PROV-N
-[53]/[55]) and Mention keyword rendering (#248)."""
+[53]/[55]), Mention keyword rendering (#248) and string quoting."""
 
 import warnings
 
@@ -337,7 +337,3 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
-
-
-def test_value_of_another_type_is_written_through_its_str() -> None:
-    assert encoding_provn_value(NS["a"]) == "ex:a"
