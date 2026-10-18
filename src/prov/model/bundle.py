@@ -853,16 +853,17 @@ class ProvBundle:
         Returns:
             The newly created :class:`ProvRecord` belonging to this bundle.
         """
-        if not _rebuilding.get():
-            # A lone copy sets the rebuild guard; copies made in a loop share
-            # the guard _add_records() holds.
-            return _rebuild(self.add_record, record)
-        return self.new_record(
+        copy_args = (
             record.get_type(),
             record.identifier,
             record.formal_attributes,
             record.extra_attributes,
         )
+        if _rebuilding.get():
+            return self.new_record(*copy_args)
+        # A lone copy sets the rebuild guard; copies made in a loop share
+        # the guard _add_records() holds.
+        return _rebuild(self.new_record, *copy_args)
 
     def _add_records(self, records: Iterable[ProvRecord]) -> None:
         # Call through _rebuild(), which holds the guard for every copy.
