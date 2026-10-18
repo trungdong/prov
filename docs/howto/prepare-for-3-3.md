@@ -102,7 +102,8 @@ time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 `Literal` with its text, not as a `datetime`.
 
 Each warning fires when the time is first asserted. `unified()`, `flattened()`,
-`add_record()` and copies of the record or the document do not warn again.
+`update()`, `add_record()` and copies of the record or the document do not warn
+again.
 
 ## Language tags
 
@@ -142,10 +143,11 @@ builds each occurrence of a name afresh, so it warns once for each.
 | `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form. prov 3.3.0 will reject this` | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
 
 An attribute value has a PROV form when it is a `str`, `int`, `float`, `bool`,
-`datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record. `prov`
-3.2.x stores a value of any other type as given, and no format can write it
-faithfully. 3.3.0 stores a value of these types as a `Literal` and rejects any
-other.
+`datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record, or an
+instance of a subclass of one of them. `prov` 3.2.x stores a value of any other
+type as given, and no format can write it faithfully. 3.3.0 stores a value of a
+type in the table below as a `Literal` of its datatype, and rejects a value of
+any other type.
 
 | Python type | 3.3.0 datatype |
 |---|---|
@@ -156,12 +158,15 @@ other.
 | `uuid.UUID` | `xsd:anyURI` |
 | `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` |
 
-A converted value reads back as the `Literal`, not as the Python value. The
-readers never build these types, with one exception. A PROV-JSON read with
-`parse_float=decimal.Decimal` reads each bare JSON number with a fraction or an
-exponent as a `Decimal`, so it warns for each. The warning fires when the value is first
-asserted. `unified()`, `flattened()`,
-`add_record()` and copies of the record or the document do not warn again.
+In 3.3.0, a converted value reads back as the `Literal`, not as the Python
+value. The readers never build these types unless a `json.load` option asks for
+one. With `parse_float=decimal.Decimal`, for example, the PROV-JSON and
+PROV-JSONLD readers read each bare JSON number with a fraction or an exponent
+as a `Decimal`, and warn for each such number.
+
+The warning fires when the value is first asserted. `unified()`, `flattened()`,
+`update()`, `add_record()` and copies of the record or the document do not warn
+again.
 
 ## PROV-JSON
 

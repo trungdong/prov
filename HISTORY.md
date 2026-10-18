@@ -37,10 +37,11 @@
   keeps the name as given, and the PROV-N writer still percent-encodes the character.
   The writer now also warns when it writes a `%` that starts no escape as `%25`
 - An attribute value of a Python type that has no PROV form, such as `datetime.date`,
-  `decimal.Decimal` or `fractions.Fraction`, given in code (#482). `prov` still stores
-  the value as given. 3.3.0 stores a `Decimal`, `date`, `time`, `timedelta`, `UUID`,
-  `bytes`, `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and
-  rejects a value of any other such type
+  `decimal.Decimal` or `fractions.Fraction`, given in code or produced by a `json.load`
+  option such as `parse_float=decimal.Decimal` (#482). `prov` still stores the value as
+  given. 3.3.0 stores a `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
+  `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and rejects a
+  value of any other such type
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
