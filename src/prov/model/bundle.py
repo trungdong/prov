@@ -112,6 +112,8 @@ from prov.model.records import (
     UsageRef,
     _attribute_pairs,
     _ensure_datetime,
+    _rebuild,
+    _rebuilding,
 )
 
 logger = logging.getLogger(__name__)
@@ -277,7 +279,9 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     for record in records:
         attributes.extend(record.extra_attributes)
 
-    return PROV_REC_CLS[record_type](first_record.bundle, identifier, attributes)
+    return _rebuild(
+        PROV_REC_CLS[record_type], first_record.bundle, identifier, attributes
+    )
 
 
 def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecord]:
@@ -356,8 +360,10 @@ class ProvBundle:
             namespaces, parent=(document._namespaces if document is not None else None)
         )
         if records:
-            for record in records:
-                self.add_record(record)
+            # Consume the iterable first: records it builds are assertions,
+            # not copies.
+            records = list(records)
+            _rebuild(self._add_record_copies, records)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: {self._identifier}>"
@@ -787,8 +793,7 @@ class ProvBundle:
                     "ProvBundle.update(): The other bundle is a document with "
                     "sub-bundle(s)."
                 )
-            for record in other.get_records():
-                self.add_record(record)
+            _rebuild(self._add_record_copies, other.get_records())
         else:
             raise ProvException(
                 "ProvBundle.update(): The other bundle is not a ProvBundle "
@@ -851,12 +856,22 @@ class ProvBundle:
         Returns:
             The newly created :class:`ProvRecord` belonging to this bundle.
         """
-        return self.new_record(
+        copy_args = (
             record.get_type(),
             record.identifier,
             record.formal_attributes,
             record.extra_attributes,
         )
+        if _rebuilding.get():
+            return self.new_record(*copy_args)
+        # A lone copy sets the rebuild guard; copies made in a loop share
+        # the guard _add_record_copies() holds.
+        return _rebuild(self.new_record, *copy_args)
+
+    def _add_record_copies(self, records: Iterable[ProvRecord]) -> None:
+        # Call through _rebuild(), which holds the guard for every copy.
+        for record in records:
+            self.add_record(record)
 
     def entity(
         self,
@@ -1771,8 +1786,10 @@ class ProvDocument(ProvBundle):
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
             )
-            for record in itertools.chain(self._records, bundled_records):
-                new_doc.add_record(record)
+            _rebuild(
+                new_doc._add_record_copies,
+                itertools.chain(self._records, bundled_records),
+            )
             return new_doc
         else:
             # returning the same document
@@ -1819,8 +1836,7 @@ class ProvDocument(ProvBundle):
                 subclass).
         """
         if isinstance(other, ProvBundle):
-            for record in other.get_records():
-                self.add_record(record)
+            _rebuild(self._add_record_copies, other.get_records())
             if other.has_bundles():
                 for bundle in other.bundles:
                     bundle_id = bundle.identifier

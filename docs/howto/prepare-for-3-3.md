@@ -46,9 +46,9 @@ pytest's option, a pytest configuration or a filter in code instead.
 Each message ends with what 3.3.0 does instead, such as
 "prov 3.3.0 will reject this". A message from a reader starts with the position
 of the input: the line and column in PROV-N, or the record identifier and
-attribute name in PROV-JSON. A message about a language tag or a local part
-comes from the model, wherever the value was read or built, so it names the
-value instead.
+attribute name in PROV-JSON. A message about a language tag, a local part or
+a Python value comes from the model, wherever the value was read or built, so
+it names the value instead.
 
 ## PROV-N declarations
 
@@ -101,6 +101,10 @@ format or from code. An `xsd:dateTime` value of any other attribute is not a
 time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
 `Literal` with its text, not as a `datetime`.
 
+Each warning fires when the time is first asserted. `unified()`, `flattened()`,
+`update()`, `add_record()` and copies of the record or the document do not warn
+again.
+
 ## Language tags
 
 | Warning | Example | Write instead |
@@ -130,6 +134,39 @@ are written with a backslash instead, and do not warn.
 The warning fires when the name is first built. `unified()`, `flattened()` and
 copies of the document reuse the name and do not warn again. The XML reader
 builds each occurrence of a name afresh, so it warns once for each.
+
+## Python values
+
+| Warning | Example | Write instead |
+|---|---|---|
+| `the value datetime.date(2026, 1, 1) of ex:due has type datetime.date. prov 3.3.0 will store it as a Literal of type xsd:date` | `{"ex:due": datetime.date(2026, 1, 1)}` | The `Literal` 3.3.0 stores, such as `Literal("2026-01-01", XSD["date"])`. |
+| `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form. prov 3.3.0 will reject this` | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
+
+An attribute value has a PROV form when it is a `str`, `int`, `float`, `bool`,
+`datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record, or an
+instance of a subclass of one of them. `prov` 3.2.x stores a value of any other
+type as given, and no format can write it faithfully. 3.3.0 stores a value of a
+type in the table below as a `Literal` of its datatype, and rejects a value of
+any other type.
+
+| Python type | 3.3.0 datatype |
+|---|---|
+| `decimal.Decimal` | `xsd:decimal` |
+| `datetime.date` | `xsd:date` |
+| `datetime.time` | `xsd:time` |
+| `datetime.timedelta` | `xsd:duration` |
+| `uuid.UUID` | `xsd:anyURI` |
+| `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` |
+
+In 3.3.0, a converted value reads back as the `Literal`, not as the Python
+value. The readers never build these types unless a `json.load` option asks for
+one. With `parse_float=decimal.Decimal`, for example, the PROV-JSON and
+PROV-JSONLD readers read each bare JSON number with a fraction or an exponent
+as a `Decimal`, and warn for each such number.
+
+The warning fires when the value is first asserted. `unified()`, `flattened()`,
+`update()`, `add_record()` and copies of the record or the document do not warn
+again.
 
 ## PROV-JSON
 

@@ -85,8 +85,9 @@ document.entity("ex:review", list(review_attributes()))
 
 A checker reports a dict value of any other type, such as `decimal.Decimal`,
 `datetime.date` or `bytes`. Those values have no PROV form, and `prov` cannot serialise
-them faithfully. Write the value as a {py:class}`~prov.model.Literal` with its XSD
-datatype:
+them faithfully. From 3.2.3, `prov` warns about such a value when it is asserted;
+{doc}`prepare-for-3-3` lists the types 3.3.0 converts and rejects. Write the value as a
+{py:class}`~prov.model.Literal` with its XSD datatype:
 
 ```python
 from prov.model import XSD, XSD_DECIMAL, Literal

@@ -23,6 +23,7 @@ from prov.model import (
     ProvElementIdentifierRequired,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvRecord,
     ProvUnificationError,
     first,
     parse_boolean,
@@ -872,3 +873,26 @@ def test_attribute_values_keep_insertion_order_in_provn_and_json(values) -> None
 
     encoded = json.loads(document.serialize(format="json"))
     assert encoded["entity"]["id"]["prov:type"] == list(values)
+
+
+class _CountingDocument(ProvDocument):
+    def __init__(self) -> None:
+        self.added = 0
+        super().__init__()
+
+    def add_record(self, record: ProvRecord) -> ProvRecord:
+        self.added += 1
+        return super().add_record(record)
+
+
+def test_add_record_override_runs_once_per_record() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    entity = document.entity("ex:e")
+
+    counting = _CountingDocument()
+    counting.add_record(entity)
+    assert counting.added == 1
+
+    counting.update(document)
+    assert counting.added == 2

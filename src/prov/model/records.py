@@ -9,7 +9,9 @@ import logging
 import math
 import os
 import re
+import reprlib
 import typing
+import uuid
 from collections import defaultdict
 from collections.abc import (
     Callable,
@@ -19,7 +21,18 @@ from collections.abc import (
     Sequence,
     Set as AbstractSet,
 )
-from typing import IO, TYPE_CHECKING, Any, Final, Protocol, TypeVar, Union, cast
+from contextvars import ContextVar
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    Final,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    Union,
+    cast,
+)
 
 from prov import Error
 from prov._warnings import (
@@ -81,8 +94,10 @@ from prov.constants import (
     PROV_TYPE,
     PROV_USAGE,
     PROV_VALUE,
+    XSD,
     XSD_ANYURI,
     XSD_BOOLEAN,
+    XSD_DATE,
     XSD_DATETIME,
     XSD_DECIMAL,
     XSD_DOUBLE,
@@ -90,6 +105,7 @@ from prov.constants import (
     XSD_INTEGER,
     XSD_LONG,
     XSD_STRING,
+    XSD_TIME,
 )
 from prov.identifier import Identifier, Namespace, QualifiedName, _slot_state
 
@@ -693,6 +709,95 @@ class ProvElementIdentifierRequired(ProvException):
         return "An identifier is missing. All PROV elements require a valid identifier."
 
 
+#  Attribute value warnings and the rebuild guard
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+# True while a record is rebuilt from one already asserted, so the 3.3.0
+# warnings about its values fire once, when they are first asserted.
+_rebuilding: ContextVar[bool] = ContextVar("prov_rebuilding", default=False)
+
+
+def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
+    """Return ``make(*args, **kwargs)``, which rebuilds records already asserted."""
+    token = _rebuilding.set(True)
+    try:
+        return make(*args, **kwargs)
+    finally:
+        _rebuilding.reset(token)
+
+
+# The types of a converted non-formal attribute value that need no check.
+# bool is an int and QualifiedName an Identifier, so isinstance() needs only
+# the tuple.
+_PLAIN_VALUE_TYPES = frozenset(
+    {str, int, bool, float, Identifier, QualifiedName, Literal}
+)
+_PLAIN_VALUE_BASES = (str, int, float, Identifier, Literal)
+
+# The values prov 3.3.0 converts to a typed Literal (#482), in lookup order.
+# datetime.datetime is a date, so it must be excluded before this table.
+_PROV_FORMS: tuple[tuple[type | tuple[type, ...], QualifiedName], ...] = (
+    (decimal.Decimal, XSD_DECIMAL),
+    (datetime.date, XSD_DATE),
+    (datetime.time, XSD_TIME),
+    (datetime.timedelta, XSD["duration"]),
+    (uuid.UUID, XSD_ANYURI),
+    ((bytes, bytearray, memoryview), XSD["base64Binary"]),
+)
+
+
+# Bounds a warning's copy of a value, which may be a large bytes object.
+_value_repr = reprlib.Repr()
+_value_repr.maxother = _value_repr.maxstring = 80
+
+
+def _warn_offset_beyond_bound(detail: str, outcome: str = "reject this") -> None:
+    """Warn that the time in ``detail`` has an offset beyond ±14:00 (#513)."""
+    if not _rebuilding.get():
+        warn(
+            future_rejection_message(
+                f"{detail} has a timezone offset beyond ±14:00", outcome
+            ),
+            ProvFutureRejectionWarning,
+        )
+
+
+def _warn_about_value(
+    attr: QualifiedName, original_value: object, value: object
+) -> None:
+    """Warn about a converted non-formal attribute value 3.3.0 treats differently."""
+    if isinstance(value, datetime.datetime):
+        if isinstance(original_value, Literal) and _offset_beyond_xsd_bound(value):
+            _warn_offset_beyond_bound(
+                f"{attr} {original_value}", "keep it as a Literal"
+            )
+    elif value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
+        _warn_no_prov_form(attr, value)
+
+
+def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
+    """Warn that 3.3.0 converts or rejects ``value``, which has no PROV form."""
+    if _rebuilding.get():
+        return
+    cls = type(value)
+    name = (
+        cls.__qualname__
+        if cls.__module__ == "builtins"
+        else f"{cls.__module__}.{cls.__qualname__}"
+    )
+    detail = f"the value {_value_repr.repr(value)} of {attr} has type {name}"
+    for types, datatype in _PROV_FORMS:
+        if isinstance(value, types):
+            message = future_rejection_message(
+                detail, f"store it as a Literal of type {datatype}"
+            )
+            break
+    else:
+        message = future_rejection_message(f"{detail}, which has no PROV form")
+    warn(message, ProvFutureRejectionWarning)
+
+
 #  PROV records
 class ProvRecord:
     """Base class for PROV records."""
@@ -745,8 +850,11 @@ class ProvRecord:
 
     def copy(self) -> ProvRecord:
         """Return an exact copy of this record."""
-        return PROV_REC_CLS[self.get_type()](
-            self._bundle, self.identifier, self.attributes
+        return _rebuild(
+            PROV_REC_CLS[self.get_type()],
+            self._bundle,
+            self.identifier,
+            self.attributes,
         )
 
     def get_type(self) -> QualifiedName:
@@ -978,27 +1086,11 @@ class ProvRecord:
                     f" that parses as one."
                 )
             if _offset_beyond_xsd_bound(value):
-                warn(
-                    future_rejection_message(
-                        f"{attr} {value.isoformat()} has a timezone"
-                        f" offset beyond ±14:00"
-                    ),
-                    ProvFutureRejectionWarning,
-                )
+                _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
         else:
             value = self._auto_literal_conversion(original_value)
-            if (
-                isinstance(value, datetime.datetime)
-                and isinstance(original_value, Literal)
-                and _offset_beyond_xsd_bound(value)
-            ):
-                warn(
-                    future_rejection_message(
-                        f"{attr} {original_value} has a timezone offset beyond ±14:00",
-                        "keep it as a Literal",
-                    ),
-                    ProvFutureRejectionWarning,
-                )
+            if type(value) not in _PLAIN_VALUE_TYPES:
+                _warn_about_value(attr, original_value, value)
 
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
