@@ -67,6 +67,9 @@
 
 ### Fixes
 
+- Document equality compares the bundle identifier sets before their contents (#549).
+  A bundle present only in the right-hand document made the documents compare equal
+  in one direction and unequal in the other
 - The PROV-JSONLD reader accepts a qualified name written as a node reference,
   `{"@id": "ex:shed"}`, under any attribute (#545). The 2026-10-14 revision of the
   PROV-JSONLD schema adds this form, and ProvToolbox 2.2.5 writes it for a qualified name

@@ -740,15 +740,27 @@ def test_deserialize_without_source_or_content_raises_type_error() -> None:
 # model.py).
 
 
-def test_not_equal_when_other_is_missing_a_bundle() -> None:
+@pytest.mark.parametrize("with_toplevel_record", [False, True])
+@pytest.mark.parametrize(
+    "left_bundles, right_bundles",
+    [((), ("b1",)), (("b1",), ("b1", "b2")), (("b1",), ("b2",))],
+)
+def test_not_equal_when_bundle_identifiers_differ(
+    left_bundles: tuple[str, ...],
+    right_bundles: tuple[str, ...],
+    with_toplevel_record: bool,
+) -> None:
     d1 = ProvDocument()
-    d1.set_default_namespace("http://example.org/")
-    d1.bundle("b1").entity("e1")
-
     d2 = ProvDocument()
-    d2.set_default_namespace("http://example.org/")
+    for doc, bundle_ids in ((d1, left_bundles), (d2, right_bundles)):
+        doc.set_default_namespace("http://example.org/")
+        if with_toplevel_record:
+            doc.entity("e1")
+        for bundle_id in bundle_ids:
+            doc.bundle(bundle_id).entity("e1")
 
-    assert d1 != d2
+    assert (d1 == d2) is False
+    assert (d2 == d1) is False
 
 
 def test_not_equal_when_matching_bundle_content_differs() -> None:

@@ -1744,9 +1744,9 @@ class ProvDocument(ProvBundle):
             return False
 
         # Comparing the documents' bundles
+        if self._bundles.keys() != other._bundles.keys():
+            return False
         for b_id, bundle in self._bundles.items():
-            if b_id not in other._bundles:
-                return False
             other_bundle = other._bundles[b_id]
             if bundle != other_bundle:
                 return False
