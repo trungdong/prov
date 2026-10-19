@@ -7,35 +7,38 @@ differently. No dependency or Python-floor changes; one additive class,
 `prov.model.ProvFutureRejectionWarning`. In the PROV-JSON read benchmark, the new checks
 make reading about 8% slower than in 3.2.2.
 
-Four kinds of fix change behaviour that existing code may rely on:
+Five kinds of fix change behaviour that existing code may rely on:
 
 - Some errors change type. An empty PROV-N namespace IRI raises `ProvNSyntaxError`, not
-  `ValueError` (#512). A PROV-JSON formal attribute written as an empty array, or a time
-  written as a value object that is not an `xsd:dateTime`, raises `ProvJSONException`,
-  not `IndexError` or `AttributeError` (#554). A PROV-JSONLD value with both `@id` and
-  `@value` raises `ProvJSONLDException` (#545)
+  `ValueError` (#512). A PROV-JSON formal attribute written as an empty array raises
+  `ProvJSONException`, not `IndexError`. So does a time written as a value object that
+  is not an `xsd:dateTime`, which raised `AttributeError` (#554)
+- A PROV-JSONLD value with both `@id` and `@value`, which read as the `@value`, now
+  raises `ProvJSONLDException` (#545)
 - An ill-formed typed literal, such as `"abc" %% xsd:int`, stays a `Literal` instead of
   raising (#522)
 - `unified()` leaves `alternateOf`, `specializationOf`, `mentionOf` and `hadMember`
   records out of the merge by identifier, so equal ones stay two and differing ones no
-  longer raise (#530). `prov_to_graph()` and `prov_to_dot()` follow
+  longer raise (#530). `prov_to_graph()` and `prov_to_dot()` draw such records as
+  separate edges
 - The writers change their output for non-finite doubles (#550), a prefix named
   `default` (#518), default-namespace names containing `:` (#517) and `xsi:` names
   (#510)
 
 ### Warnings ahead of 3.3.0
 
-`prov` now emits `ProvFutureRejectionWarning`, a new subclass of `ProvWarning`, for input
-that 3.3.0 rejects or reads differently, and still reads that input as before. Each
-message ends with the issue that tracks the 3.3.0 rule, such as `(#529)`. The warnings
-cover:
+`prov` now emits `ProvFutureRejectionWarning`, a new subclass of `ProvWarning`, for
+input that 3.3.0 rejects or reads differently, and still reads that input as before.
+Each message ends with the issue that tracks the 3.3.0 rule, such as `(#529)`. The
+warnings cover:
 
-- PROV-N: a repeated `default`, a prefix name PROV-N does not allow, an undeclared `xsi:`,
-  whitespace PROV-N does not allow, an attribute named after one of the statement's
-  arguments, and four `strict`-profile rules (#508, #509, #510, #511, #519, #523)
+- PROV-N: a repeated `default`, a prefix name PROV-N does not allow, an `xsi:` name with
+  no `prefix xsi`, whitespace PROV-N does not allow, an attribute named after one of the
+  statement's arguments, and four `strict`-profile rules (#508, #509, #510, #511, #519,
+  #523)
 - Any reader or code: timezone offsets beyond ±14:00, malformed language tags, local
-  parts PROV-N cannot write, Python values with no PROV form, and qualified names that do
-  not resolve or are full IRIs (#472, #482, #513, #516, #524, #553)
+  parts PROV-N cannot write, Python values with no PROV form, and qualified names that
+  do not resolve or are full IRIs (#472, #482, #513, #516, #524, #553)
 - PROV-JSON: repeated keys, malformed times, one-element arrays, nulls, names that are
   not strings, unknown value-object keys, a `$` that is not a string, undeclared
   datatypes, and full IRIs as names (#528, #529, #531, #532, #551, #552, #555, #597)
@@ -83,6 +86,9 @@ how to turn the warnings into errors to check a corpus.
   Python's `inf`, `-inf` and `nan`, which are outside the lexical space, and the PROV-O
   writer did the same in RDF/XML, N-Triples and N-Quads. Every reader accepts both. A
   float subclass, such as `numpy.float64`, is written as the plain float it holds
+- The PROV-N writer warns with a `ProvWarning` when it writes a `%` that two hexadecimal
+  digits do not follow as `%25`, as it already did for the characters it percent-encodes
+  (#524). A PROV-N reader keeps the `%25`, so it recovers a different IRI
 - The PROV-N writer escapes an `xsd:anyURI` value as it does a string (#526). A value
   containing `"`, `\`, a carriage return or a line feed produced PROV-N that the reader
   rejected

@@ -279,6 +279,9 @@ document as asserted, without merging any records.
 `prov` 3.2.x reads a `$` that is not a string as its string form, so `{"$": null}`
 reads as the string `"None"`.
 
+When a datatype does not resolve, `prov` 3.2.x reads the value as a string, or as
+a language-tagged string when it has a `lang`.
+
 A number in `$` typed the way `prov` 2.x and earlier wrote it does not warn. That
 is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
 `xsd:double`, in a value object with no `lang`.
