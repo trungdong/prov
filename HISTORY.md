@@ -86,9 +86,9 @@ how to turn the warnings into errors to check a corpus.
   Python's `inf`, `-inf` and `nan`, which are outside the lexical space, and the PROV-O
   writer did the same in RDF/XML, N-Triples and N-Quads. Every reader accepts both. A
   float subclass, such as `numpy.float64`, is written as the plain float it holds
-- The PROV-N writer warns with a `ProvWarning` when it writes a `%` that two hexadecimal
-  digits do not follow as `%25`, as it already did for the characters it percent-encodes
-  (#524). A PROV-N reader keeps the `%25`, so it recovers a different IRI
+- The PROV-N writer warns with a `ProvWarning` when it writes a `%` as `%25` because two
+  hexadecimal digits do not follow it, as it already did for the characters it
+  percent-encodes (#524). A PROV-N reader keeps the `%25`, so it recovers a different IRI
 - The PROV-N writer escapes an `xsd:anyURI` value as it does a string (#526). A value
   containing `"`, `\`, a carriage return or a line feed produced PROV-N that the reader
   rejected
