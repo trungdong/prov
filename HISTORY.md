@@ -2,13 +2,23 @@
 
 ## Unreleased
 
+3.2.3 is a bug-fix release that also warns about input 3.3.0 will reject. No dependency or
+Python-floor changes; one additive class, `prov.model.ProvFutureRejectionWarning`. Four
+fixes change what existing code sees: an empty PROV-N namespace IRI raises
+`ProvNSyntaxError` instead of `ValueError` (#512), an ill-formed typed literal stays a
+`Literal` instead of raising `ValueError` (#522), `unified()` keeps two equal
+`alternateOf`, `specializationOf`, `mentionOf` or `hadMember` records as two (#530), and a
+PROV-JSONLD node reference with a key other than `@id` raises (#545). The new checks make
+reading PROV-JSON about 8% slower than in 3.2.2.
+
 ### Warnings ahead of 3.3.0
 
-- New `prov.model.ProvFutureRejectionWarning`, a subclass of `ProvWarning`. `prov`
-  emits it for input that 3.3.0 rejects or reads differently, and still reads that
-  input as before. "Prepare for prov 3.3.0" in the how-to guides shows how to turn it
-  into an error to check a corpus. Each message ends with the issue that tracks its
-  3.3.0 rule, such as `(#529)`
+`prov` now emits `prov.model.ProvFutureRejectionWarning`, a new subclass of `ProvWarning`,
+for each input below. It still reads the input as before; 3.3.0 rejects it or reads it
+differently. Each message ends with the issue that tracks the 3.3.0 rule, such as
+`(#529)`. "Prepare for prov 3.3.0" in the how-to guides lists every message and what to
+write instead, and shows how to turn the warnings into errors to check a corpus.
+
 - A second `default` declaration in one PROV-N declaration block (#508). `prov` still
   uses the last one
 - A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <…>`
@@ -36,21 +46,23 @@
 - A qualified name whose local part PROV-N cannot write without changing the IRI, such
   as `ex:a b`, `ex:a"b` or `ex:50%`, from any reader or from code (#524). `prov` still
   keeps the name as given, and the PROV-N writer still percent-encodes the character.
-  The writer now also warns when it writes a `%` that starts no escape as `%25`
+  The writer now also warns when it writes a lone `%` as `%25`
 - An attribute value of a Python type that has no PROV form, such as `datetime.date`,
   `decimal.Decimal` or `fractions.Fraction`, given in code or produced by a `json.load`
   option such as `parse_float=decimal.Decimal` (#482). `prov` still stores the value as
   given. 3.3.0 stores a `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
   `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and rejects a
   value of any other such type
-- A qualified-name value that does not resolve against the declared prefixes, such as
-  `'zz:x'` with no `zz` declaration, from any reader or from code (#516). `prov` still
-  keeps the value as a `Literal`, and a PROV-JSON formal attribute or `hadMember` member
-  it drops warns too. A full IRI that `prov` reads as a name in a declared namespace it
-  starts with, such as `"http://example.org/x" %% prov:QUALIFIED_NAME`, warns as well,
-  citing #553 in PROV-N, PROV-JSONLD and code, and #551 in PROV-JSON. In PROV-JSON the
-  #551 warning covers a qualified-name value, a record key, a formal attribute, a
-  `hadMember` member and a bundle key
+- A qualified-name value that does not resolve, such as `'zz:x'` with no `zz` prefix
+  declared, from any reader or from code (#516). `prov` still keeps the value as a
+  `Literal`. The PROV-JSON reader also warns when it drops such a name from a `hadMember`
+  member or from a formal attribute, one of the record's arguments such as
+  `prov:activity`
+- A full IRI where a qualified name belongs, such as
+  `"http://example.org/x" %% prov:QUALIFIED_NAME`. `prov` still reads it as `ex:x` when
+  the declared namespace `ex` matches the start of the IRI. The warning cites #553 in
+  PROV-N, PROV-JSONLD and code, and #551 in PROV-JSON, where it also covers a record
+  key, a formal attribute, a `hadMember` member and a bundle key
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
@@ -59,31 +71,33 @@
 - A PROV-JSON formal attribute written as a one-element array, such as
   `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
   `hadMember` are an array by design and do not warn
-- A null PROV-JSON attribute value, alone or in an array, and a null `hadMember` member
-  or null value of a formal attribute that names a record, such as `prov:activity`
-  (#528). `prov` still drops it. A null `prov:time`, `prov:startTime` or `prov:endTime`
-  raises `ProvJSONException`
-- A PROV-JSON `hadMember` member or formal attribute that names a record and is not a
-  string, such as `"prov:activity": 5` (#597). `prov` still drops it. A time attribute
-  that is not a string or an `xsd:dateTime` value object raises `ProvJSONException`
+- A null PROV-JSON attribute value, alone or in an array, a null `hadMember` member, and
+  a null formal attribute other than a time, such as `"prov:activity": null` (#528).
+  `prov` still drops it. A null `prov:time`, `prov:startTime` or `prov:endTime` raises
+  `ProvJSONException`
+- A PROV-JSON `hadMember` member, or a formal attribute other than a time, that is a
+  number, a boolean or an object, such as `"prov:activity": 5` (#597). `prov` still
+  drops it. A time that is neither a string nor an `xsd:dateTime` value object raises
+  `ProvJSONException`
 - A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
-  `$` as a string, so `{"$": null}` reads as the string `"None"`. A number typed the
-  way `prov` 2.x and earlier wrote it, in a value object with no `lang`, does not warn,
-  and 3.3.0 reads it as now. Such a number is `{"$": 1, "type": "xsd:int"}`,
-  `{"$": 1, "type": "xsd:long"}` or `{"$": 1.5, "type": "xsd:double"}`
+  `$` as a string, so `{"$": null}` reads as the string `"None"`. The numbers that
+  `prov` 2.x and earlier wrote do not warn, and 3.3.0 reads them as now. They are
+  `{"$": 1, "type": "xsd:int"}`, `{"$": 1, "type": "xsd:long"}` and
+  `{"$": 1.5, "type": "xsd:double"}`, with no `lang`
 - A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
   `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
   string, or as a language-tagged string when it has a `lang`
-- `unified()` merging records that share an identifier when one has no plan on an
-  association, or no activity on a derivation, and another has one, such as
+- `unified()` merging two records with the same identifier when one leaves a
+  non-expandable position empty and the other fills it (#547). These positions are the
+  plan of an association, the activity of a derivation, and the generation and usage of
+  a derivation with no activity. PROV-CONSTRAINTS reads an empty value there as "none",
+  which unifies only with another empty value. An example is
   `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` with
-  `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` (#547). PROV-CONSTRAINTS reads an absent
-  value in these positions as "none", which unifies only with itself. The same holds for
-  the generation and usage of a derivation that names no activity. `prov` still merges
-  the records and keeps the value. `prov_to_graph()` and `prov_to_dot()` call
-  `unified()`, so they warn too; in 3.3.0 `prov_to_graph()` raises and `prov_to_dot()`
-  draws the document as asserted
+  `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)`. `prov` still merges the records and
+  keeps the value. `prov_to_graph()` and `prov_to_dot()` call `unified()`, so they warn
+  too. In 3.3.0 `prov_to_graph()` raises and `prov_to_dot()` draws the document as
+  asserted
 
 ### Fixes
 
@@ -92,11 +106,12 @@
   PROV-JSONLD schema adds this form, and ProvToolbox 2.2.5 writes it for a qualified name
   under any attribute other than `prov:type`, `prov:location` and `prov:role`. The reader
   raised `ProvJSONLDException` for the missing `"@value"`. A node reference with a key
-  other than `@id` now raises `ProvJSONLDException`; one that also had an `"@value"` was
-  read as that value, and its `"@id"` was dropped
+  other than `@id` now raises `ProvJSONLDException`. Before, one that also had an
+  `"@value"` read as that value, and its `"@id"` was dropped
 - `prov.read()` without a format no longer shows `prov`'s warnings from a format it tried
-  and set aside, and under an `error` filter it raises a warning from the format it chose
-  instead of moving on to the next format
+  and set aside. Under an `error` filter, a warning from the format it settles on now
+  raises from `read()`. Before, the warning made `read()` give up on that format and try
+  the next one
 - The PROV-N reader treats `xsi` as an ordinary prefix, as PROV-N reserves only `prov`
   and `xsd` (#510). `prefix xsi <http://example.org/>` raised "prefix 'xsi' is reserved".
   An `xsi:` name now resolves against the document's own declaration. The PROV-N
@@ -159,16 +174,17 @@
   array the membership's identifier and attributes (#530). Only the first record had
   them, so the same collection read differently depending on which member came first.
   A membership with several members and no `prov:collection` reads; it raised
-  `KeyError`. Every member resolves as the first one does, so a later member that does
-  not resolve, such as one with an undeclared prefix or a null, reads as a membership
-  with no entity instead of raising `ProvExceptionInvalidQualifiedName`
+  `KeyError`. A later member that does not resolve, such as one with an undeclared
+  prefix or a null, now reads as a membership with no entity, as the first member
+  already did, instead of raising `ProvExceptionInvalidQualifiedName`
 - The PROV-JSONLD reader keeps the `@id` of a `Membership` with several members on every
   record it reads, as it already did for one member (#530). 3.2.1 dropped the `@id`
   with a `ProvWarning`, because `unified()` raised on records sharing it
 
 ### Project
 
-- Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and PyPy 3.11. No code changes were needed (#542)
+- Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and
+  PyPy 3.11. No code changes were needed (#542)
 
 ## 3.2.2 (2026-09-18)
 
