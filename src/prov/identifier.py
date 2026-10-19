@@ -260,7 +260,7 @@ class Identifier:
         return self._uri
 
     def __eq__(self, other: Any) -> bool:
-        return self.uri == other.uri if isinstance(other, Identifier) else False
+        return self._uri == other._uri if isinstance(other, Identifier) else False
 
     def __hash__(self) -> int:
         return self._hash
@@ -476,16 +476,9 @@ class Namespace:
 
     def __eq__(self, other: Any) -> bool:
         return (
-            (self._uri == other.uri and self._prefix == other.prefix)
+            (self._uri == other._uri and self._prefix == other._prefix)
             if isinstance(other, Namespace)
             else False
-        )
-
-    def __ne__(self, other: Any) -> bool:
-        return (
-            not isinstance(other, Namespace)
-            or self._uri != other.uri
-            or self._prefix != other.prefix
         )
 
     def __hash__(self) -> int:
