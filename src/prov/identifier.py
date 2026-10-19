@@ -481,13 +481,6 @@ class Namespace:
             else False
         )
 
-    def __ne__(self, other: Any) -> bool:
-        return (
-            not isinstance(other, Namespace)
-            or self._uri != other.uri
-            or self._prefix != other.prefix
-        )
-
     def __hash__(self) -> int:
         return hash((self._uri, self._prefix))
 
