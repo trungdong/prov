@@ -276,6 +276,9 @@ document as asserted, without merging any records.
 | `the value object's "$" is …, not a string` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the datatype '…' does not resolve and is dropped` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
 
+`prov` 3.2.x reads a `$` that is not a string as its string form, so `{"$": null}`
+reads as the string `"None"`.
+
 A number in `$` typed the way `prov` 2.x and earlier wrote it does not warn. That
 is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
 `xsd:double`, in a value object with no `lang`.

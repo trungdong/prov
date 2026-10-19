@@ -7,122 +7,43 @@ differently. No dependency or Python-floor changes; one additive class,
 `prov.model.ProvFutureRejectionWarning`. In the PROV-JSON read benchmark, the new checks
 make reading about 8% slower than in 3.2.2.
 
-These fixes change behaviour that existing code may rely on:
+Four kinds of fix change behaviour that existing code may rely on:
 
-- An empty PROV-N namespace IRI raises `ProvNSyntaxError`, which is not a `ValueError`
-  (#512)
-- A PROV-JSON formal attribute written as an empty array raises `ProvJSONException`
-  instead of `IndexError`
-- A PROV-JSON time written as a value object reads when typed `xsd:dateTime`, and
-  otherwise raises `ProvJSONException` instead of `AttributeError` (#554)
+- Some errors change type. An empty PROV-N namespace IRI raises `ProvNSyntaxError`, not
+  `ValueError` (#512). A PROV-JSON formal attribute written as an empty array, or a time
+  written as a value object that is not an `xsd:dateTime`, raises `ProvJSONException`,
+  not `IndexError` or `AttributeError` (#554). A PROV-JSONLD value with both `@id` and
+  `@value` raises `ProvJSONLDException` (#545)
 - An ill-formed typed literal, such as `"abc" %% xsd:int`, stays a `Literal` instead of
-  raising `ValueError` (a syntax error in PROV-N), and the `lenient` PROV-N profile
-  keeps its statement (#522)
-- A PROV-JSONLD value with both `@id` and `@value`, which read as the `@value`, raises
-  `ProvJSONLDException` (#545)
-- Under an `error` filter, `prov.read()` without a format raises a warning from the
-  format it settles on instead of trying the next format
-- `unified()` keeps two equal `alternateOf`, `specializationOf`, `mentionOf` or
-  `hadMember` records as two, and no longer raises `ProvUnificationError` on two that
-  share an identifier and differ (#530). On a document that failed to unify only because
-  of such records, `prov_to_graph()` no longer raises and `prov_to_dot()` no longer
-  falls back to the bundle as asserted
-- Every record the PROV-JSON reader makes for a `hadMember` with several members carries
-  the membership's identifier and attributes, and the PROV-JSONLD reader keeps its `@id`
-  (#530)
-- The writers spell the non-finite doubles `INF`, `-INF` and `NaN` (#550). The PROV-JSON
-  writer renames a prefix called `default` (#518), and the PROV-JSON and PROV-JSONLD
-  writers can declare a `dn` prefix (#517). The PROV-N writer declares `prefix xsi` when
-  it writes an `xsi:` name (#510)
+  raising (#522)
+- `unified()` leaves `alternateOf`, `specializationOf`, `mentionOf` and `hadMember`
+  records out of the merge by identifier, so equal ones stay two and differing ones no
+  longer raise (#530). `prov_to_graph()` and `prov_to_dot()` follow
+- The writers change their output for non-finite doubles (#550), a prefix named
+  `default` (#518), default-namespace names containing `:` (#517) and `xsi:` names
+  (#510)
 
 ### Warnings ahead of 3.3.0
 
-`prov` now emits `prov.model.ProvFutureRejectionWarning`, a new subclass of
-`ProvWarning`, for each input below. `prov` still reads the input as before; 3.3.0
-rejects it or reads it differently. Each message ends with the issue that tracks the
-3.3.0 rule, such as `(#529)`. "Prepare for prov 3.3.0" in the how-to guides lists every
-message and what to write instead, and shows how to turn the warnings into errors to
-check a corpus.
+`prov` now emits `ProvFutureRejectionWarning`, a new subclass of `ProvWarning`, for input
+that 3.3.0 rejects or reads differently, and still reads that input as before. Each
+message ends with the issue that tracks the 3.3.0 rule, such as `(#529)`. The warnings
+cover:
 
-- A second `default` declaration in one PROV-N declaration block (#508). `prov` still
-  uses the last one
-- A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <…>`
-  (#511). No qualified name can use such a prefix
-- An `xsi:` name in PROV-N with no `prefix xsi` declaration in scope (#510). Files
-  written by `prov` 3.2.2 or earlier lack the declaration; reading and writing them
-  again with 3.2.3 adds it
-- Under the `strict` PROV-N profile, a `default` declaration after a `prefix`
-  declaration, a `prefix prov` or `prefix xsd` declaration, a statement after a bundle,
-  and an identifier or attribute block on `alternateOf`, `specializationOf` or
-  `hadMember` (#519)
-- Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a no-break
-  space (#509). `prov` still skips it. PROV-N counts U+1680 as a name character, so
-  3.3.0 reads it as part of a name
-- A PROV-N attribute named after one of the statement's own arguments, such as
-  `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523). `prov`
-  still reads it as that argument
-- A time whose timezone offset is beyond ±14:00, the `xsd:dateTime` bound, such as
-  `2012-01-01T00:00:00+15:00`, from any reader or from code (#513). An `xsd:dateTime`
-  attribute value with such an offset still reads as a `datetime`; 3.3.0 keeps it as a
-  `Literal`
-- A language tag that does not have the form of a BCP 47 tag, such as `en_US`, or an
-  empty one, from any reader or from code (#472). `prov` still keeps the tag as given,
-  and the PROV-N writer still writes `en_US` as `en-US`
-- A qualified name whose local part PROV-N cannot write without changing the IRI, such
-  as `ex:a b`, `ex:a"b` or `ex:50%`, from any reader or from code (#524). `prov` still
-  keeps the name as given, and the PROV-N writer still percent-encodes the character.
-  The writer now also warns when it writes a `%` that two hexadecimal digits do not
-  follow as `%25`
-- An attribute value of a Python type that has no PROV form, such as `datetime.date`,
-  `decimal.Decimal` or `fractions.Fraction`, given in code or produced by a `json.load`
-  option such as `parse_float=decimal.Decimal` (#482). `prov` still stores the value as
-  given. 3.3.0 stores a `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`,
-  `bytearray` or `memoryview` as a `Literal` of the matching XSD datatype, and rejects a
-  value of any other such type
-- A qualified-name value that does not resolve, such as `'zz:x'` with no `zz` prefix
-  declared, from any reader or from code (#516). `prov` still keeps the value as a
-  `Literal`. The PROV-JSON reader also warns when it drops a `hadMember` member or a
-  formal attribute value that does not resolve. A formal attribute is one of the
-  record's arguments, such as `prov:activity`
-- A full IRI given as a qualified name, which `prov` reads as a name in a declared
-  namespace that the IRI starts with, such as
-  `"http://example.org/x" %% prov:QUALIFIED_NAME` read as `ex:x` (#553, or #551 in
-  PROV-JSON). In PROV-JSON the warning also covers a record key, a formal attribute, a
-  `hadMember` member and a bundle key
-- A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
-  `prov` still uses the last value. The warning names the key but not its position
-- A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
-  is not an `xsd:dateTime`, such as `"not-a-time"` or the date `"2011-11-16"` (#555).
-  `prov` still drops the time
-- A PROV-JSON formal attribute written as a one-element array, such as
-  `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
-  `hadMember` are an array by design and do not warn
-- A null PROV-JSON value given as an attribute value (alone or in an array), as a
-  `hadMember` member, or as a formal attribute other than a time, such as
-  `"prov:activity": null` (#528). `prov` still drops it. A null `prov:time`,
-  `prov:startTime` or `prov:endTime` raises `ProvJSONException`
-- A PROV-JSON `hadMember` member, or a formal attribute other than a time, that is not a
-  string, such as `"prov:activity": 5` (#597). `prov` still drops it. A time that is
-  neither a string nor an `xsd:dateTime` value object raises `ProvJSONException`
-- A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
-  not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
-  `$` as a string, so `{"$": null}` reads as the string `"None"`. An integer typed
-  `xsd:int` or `xsd:long`, or a float typed `xsd:double`, in a value object with no
-  `lang`, is how `prov` 2.x and earlier wrote numbers. It does not warn, and 3.3.0 reads
-  it as now, as in `{"$": 1, "type": "xsd:int"}`
-- A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
-  `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
-  string, or as a language-tagged string when it has a `lang`
-- `unified()` merging records with the same identifier when one leaves a non-expandable
-  position empty and another fills it (#547). These positions are the plan of an
-  association, the activity of a derivation, and the generation and usage of a
-  derivation with no activity. PROV-CONSTRAINTS reads an empty value there as "none",
-  which unifies only with another empty value. An example is
-  `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` with
-  `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)`. `prov` still merges the records and
-  keeps the value. `prov_to_graph()` and `prov_to_dot()` call `unified()`, so they warn
-  too. In 3.3.0 `prov_to_graph()` raises and `prov_to_dot()` draws the document as
-  asserted
+- PROV-N: a repeated `default`, a prefix name PROV-N does not allow, an undeclared `xsi:`,
+  whitespace PROV-N does not allow, an attribute named after one of the statement's
+  arguments, and four `strict`-profile rules (#508, #509, #510, #511, #519, #523)
+- Any reader or code: timezone offsets beyond ±14:00, malformed language tags, local
+  parts PROV-N cannot write, Python values with no PROV form, and qualified names that do
+  not resolve or are full IRIs (#472, #482, #513, #516, #524, #553)
+- PROV-JSON: repeated keys, malformed times, one-element arrays, nulls, names that are
+  not strings, unknown value-object keys, a `$` that is not a string, undeclared
+  datatypes, and full IRIs as names (#528, #529, #531, #532, #551, #552, #555, #597)
+- `unified()`: an empty non-expandable position merged with a filled one (#547)
+
+[Prepare for prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
+lists every message, the input that triggers it and what to write instead. It also shows
+how to turn the warnings into errors to check a corpus.
 
 ### Fixes
 
