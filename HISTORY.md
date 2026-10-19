@@ -13,14 +13,19 @@ These fixes change behaviour that existing code may rely on:
   (#512)
 - A PROV-JSON formal attribute written as an empty array raises `ProvJSONException`
   instead of `IndexError`
+- A PROV-JSON time written as a value object reads when typed `xsd:dateTime`, and
+  otherwise raises `ProvJSONException` instead of `AttributeError` (#554)
 - An ill-formed typed literal, such as `"abc" %% xsd:int`, stays a `Literal` instead of
-  raising `ValueError`, and the `lenient` PROV-N profile keeps its statement (#522)
+  raising `ValueError`, or a syntax error in PROV-N, and the `lenient` PROV-N profile
+  keeps its statement (#522)
 - A PROV-JSONLD value with both `@id` and `@value`, which read as the `@value`, raises
   `ProvJSONLDException` (#545)
 - Under an `error` filter, `prov.read()` without a format raises a warning from the
   format it settles on instead of trying the next format
 - `unified()` keeps two equal `alternateOf`, `specializationOf`, `mentionOf` or
-  `hadMember` records as two (#530)
+  `hadMember` records as two, and no longer raises `ProvUnificationError` on two that
+  share an identifier and differ (#530). So `prov_to_graph()` no longer raises on such a
+  document, and `prov_to_dot()` no longer falls back to the bundle as asserted
 - Every record the PROV-JSON reader makes for a `hadMember` with several members carries
   the membership's identifier and attributes, and the PROV-JSONLD reader keeps its `@id`
   (#530)
@@ -31,29 +36,30 @@ These fixes change behaviour that existing code may rely on:
 
 ### Warnings ahead of 3.3.0
 
-`prov` now emits `prov.model.ProvFutureRejectionWarning`, a new subclass of `ProvWarning`,
-for each input below. `prov` still reads the input as before; 3.3.0 rejects it or reads
-it differently. Each message ends with the issue that tracks the 3.3.0 rule, such as
-`(#529)`. "Prepare for prov 3.3.0" in the how-to guides lists every message and what to
-write instead, and shows how to turn the warnings into errors to check a corpus.
+`prov` now emits `prov.model.ProvFutureRejectionWarning`, a new subclass of
+`ProvWarning`, for each input below. `prov` still reads the input as before; 3.3.0
+rejects it or reads it differently. Each message ends with the issue that tracks the
+3.3.0 rule, such as `(#529)`. "Prepare for prov 3.3.0" in the how-to guides lists every
+message and what to write instead, and shows how to turn the warnings into errors to
+check a corpus.
 
 - A second `default` declaration in one PROV-N declaration block (#508). `prov` still
   uses the last one
 - A PROV-N `prefix` declaration whose name is not a prefix name, such as `prefix _ <…>`
   (#511). No qualified name can use such a prefix
-- An `xsi:` name in PROV-N with no `prefix xsi` declaration in scope (#510). Files written
-  by `prov` 3.2.2 or earlier lack the declaration; reading and writing them again with
-  3.2.3 adds it
-- Under the `strict` PROV-N profile, a `default` declaration after a `prefix` declaration,
-  a `prefix prov` or `prefix xsd` declaration, a statement after a bundle, and an
-  identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`
-  (#519)
-- Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a
-  no-break space (#509). `prov` still skips it. PROV-N counts U+1680 as a name
-  character, so 3.3.0 reads it as part of a name
+- An `xsi:` name in PROV-N with no `prefix xsi` declaration in scope (#510). Files
+  written by `prov` 3.2.2 or earlier lack the declaration; reading and writing them
+  again with 3.2.3 adds it
+- Under the `strict` PROV-N profile, a `default` declaration after a `prefix`
+  declaration, a `prefix prov` or `prefix xsd` declaration, a statement after a bundle,
+  and an identifier or attribute block on `alternateOf`, `specializationOf` or
+  `hadMember` (#519)
+- Whitespace between PROV-N tokens other than space, tab, CR and LF, such as a no-break
+  space (#509). `prov` still skips it. PROV-N counts U+1680 as a name character, so
+  3.3.0 reads it as part of a name
 - A PROV-N attribute named after one of the statement's own arguments, such as
-  `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523).
-  `prov` still reads it as that argument
+  `prov:activity` in `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` (#523). `prov`
+  still reads it as that argument
 - A time whose timezone offset is beyond ±14:00, the `xsd:dateTime` bound, such as
   `2012-01-01T00:00:00+15:00`, from any reader or from code (#513). An `xsd:dateTime`
   attribute value with such an offset still reads as a `datetime`; 3.3.0 keeps it as a
@@ -80,8 +86,8 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
 - A full IRI given as a qualified name, which `prov` reads as a name in a declared
   namespace that the IRI starts with, such as
   `"http://example.org/x" %% prov:QUALIFIED_NAME` read as `ex:x` (#553, or #551 in
-  PROV-JSON). In PROV-JSON the warning also covers a
-  record key, a formal attribute, a `hadMember` member and a bundle key
+  PROV-JSON). In PROV-JSON the warning also covers a record key, a formal attribute, a
+  `hadMember` member and a bundle key
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
@@ -92,13 +98,11 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
   `hadMember` are an array by design and do not warn
 - A null PROV-JSON value given as an attribute value (alone or in an array), as a
   `hadMember` member, or as a formal attribute other than a time, such as
-  `"prov:activity": null` (#528).
-  `prov` still drops it. A null `prov:time`, `prov:startTime` or `prov:endTime` raises
-  `ProvJSONException`
+  `"prov:activity": null` (#528). `prov` still drops it. A null `prov:time`,
+  `prov:startTime` or `prov:endTime` raises `ProvJSONException`
 - A PROV-JSON `hadMember` member, or a formal attribute other than a time, that is not a
-  string, such as `"prov:activity": 5` (#597). `prov` still
-  drops it. A time that is neither a string nor an `xsd:dateTime` value object raises
-  `ProvJSONException`
+  string, such as `"prov:activity": 5` (#597). `prov` still drops it. A time that is
+  neither a string nor an `xsd:dateTime` value object raises `ProvJSONException`
 - A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
   `$` as a string, so `{"$": null}` reads as the string `"None"`. An integer typed
@@ -109,9 +113,9 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
   `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
   string, or as a language-tagged string when it has a `lang`
 - `unified()` merging records with the same identifier when one leaves a non-expandable
-  position empty and another fills it (#547). These positions are the
-  plan of an association, the activity of a derivation, and the generation and usage of
-  a derivation with no activity. PROV-CONSTRAINTS reads an empty value there as "none",
+  position empty and another fills it (#547). These positions are the plan of an
+  association, the activity of a derivation, and the generation and usage of a
+  derivation with no activity. PROV-CONSTRAINTS reads an empty value there as "none",
   which unifies only with another empty value. An example is
   `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` with
   `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)`. `prov` still merges the records and

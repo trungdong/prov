@@ -55,9 +55,10 @@ A message from `unified()` starts with the identifier of the records it merges.
 
 A PROV-N read emits its messages in three groups: the model's messages, as the
 parse runs, then the reader's messages about whitespace, then the reader's other
-messages. The reader's messages wait until the parse ends, so a read that fails with `ProvNSyntaxError` emits none of
-them. The messages therefore do not follow the order of the input, and under an
-`error` filter the first one raised may not be the first problem in the file.
+messages. The reader's messages wait until the parse ends, so a read that fails
+with `ProvNSyntaxError` emits none of them. The messages therefore do not follow
+the order of the input, and under an `error` filter the first one raised may not
+be the first problem in the file.
 
 A filter on the issue number silences every case that issue tracks and leaves
 every other case an error. Python tries the filter added last first, so add the
@@ -214,17 +215,18 @@ namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 
 A formal attribute is one of the record's arguments in PROV-N, such as
 `prov:entity` or `prov:activity`. The PROV-JSON reader applies the same rule to a
-record key, a formal attribute value other than a time, a `hadMember` member and
-a bundle key that is a full IRI. It also warns when it drops a formal attribute value or a
-`hadMember` member that does not resolve, such as `"prov:activity": "zz:a"`.
+record key, a formal attribute value other than a time, a `hadMember` member and a
+bundle key that is a full IRI. It also warns when it drops a formal attribute
+value or a `hadMember` member that does not resolve, such as
+`"prov:activity": "zz:a"`.
 
 The PROV-JSONLD reader warns about an `xsd:QName` or `prov:QUALIFIED_NAME` value
 object that holds a full IRI. The message uses the model's wording and has no
 position. The PROV-JSONLD context marks the values of `type`, `role` and
-`location` as IRIs, so a bare full IRI there that starts with a declared
-namespace IRI does not warn. One that starts with no declared namespace IRI is
-kept as a `Literal` and warns under #516, as does a name with an undeclared prefix. A `{"@id": …}` node
-reference stays an IRI and does not warn.
+`location` as IRIs, so a bare full IRI there that starts with a declared namespace
+IRI does not warn. One that starts with no declared namespace IRI is kept as a
+`Literal` and warns under #516, as does a name with an undeclared prefix. A
+`{"@id": …}` node reference stays an IRI and does not warn.
 
 The PROV-N and PROV-JSON readers warn with the position of the value, and the
 model does not warn again. The model warns about a value built in code or read
