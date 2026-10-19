@@ -814,9 +814,9 @@ def _warn_unresolved_name(
     """Warn that ``literal``, typed as a qualified name, does not resolve by its
     prefix (#516, #553); ``value`` is what it converted to."""
     if (
-        literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
+        _reader_checks_names.get()
         or _rebuilding.get()
-        or _reader_checks_names.get()
+        or literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
     ):
         return
     reason = bundle._unresolved_reason(literal.value)

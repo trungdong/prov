@@ -658,6 +658,7 @@ def _decode_record_instance(
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName | None] | None = None
+    is_membership = rec_type == PROV_MEMBERSHIP
     for attr_name, values in element.items():
         attr: QualifiedName = (
             PROV_ATTRIBUTES_ID_MAP[attr_name]
@@ -665,7 +666,7 @@ def _decode_record_instance(
             else bundle.mandatory_valid_qname(attr_name)
         )
         if attr in PROV_ATTRIBUTES:
-            if attr == PROV_ATTR_ENTITY and rec_type == PROV_MEMBERSHIP:
+            if is_membership and attr == PROV_ATTR_ENTITY:
                 members = _decode_members(rec_id, attr_name, values, bundle)
             else:
                 attributes[attr] = _decode_formal_attribute(
@@ -962,6 +963,9 @@ def _json_text(value: Any) -> str:
 # prov 1.x on Python 2 wrote a long as xsd:long.
 _LEGACY_NUMBER_TYPES = {int: (XSD_INT, XSD_LONG), float: (XSD_DOUBLE,)}
 
+# The keys a PROV-JSON value object may have.
+_VALUE_OBJECT_KEYS = frozenset({"$", "type", "lang"})
+
 
 def _warn_rejection(
     detail: str,
@@ -1073,13 +1077,14 @@ def decode_json_representation(
                 f"The typed-literal representation for {where} is missing "
                 f'its required "$" (value) key; found {literal!r}'
             ) from exc
-        for key in sorted(literal.keys() - {"$", "type", "lang"}, key=str):
-            _warn_rejection(
-                f"the value object has the unknown key {key!r}",
-                rec_id,
-                attr_name,
-                issue=529,
-            )
+        if not literal.keys() <= _VALUE_OBJECT_KEYS:
+            for key in sorted(literal.keys() - _VALUE_OBJECT_KEYS, key=str):
+                _warn_rejection(
+                    f"the value object has the unknown key {key!r}",
+                    rec_id,
+                    attr_name,
+                    issue=529,
+                )
         datatype_str: str | None = literal.get("type", None)
         datatype = valid_qualified_name(bundle, datatype_str)
         legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
