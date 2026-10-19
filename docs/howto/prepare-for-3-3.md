@@ -9,9 +9,9 @@ documents and code.
 ## Turn the warnings into errors
 
 `ProvFutureRejectionWarning` is a subclass of {py:class}`~prov.model.ProvWarning`.
-An `error` filter on the subclass raises at the first message, in the order "Read the
-message" describes, and leaves the other `ProvWarning`s alone, such as the statements
-the `lenient` PROV-N profile skips.
+An `error` filter on the subclass raises at the first such message and leaves the
+other `ProvWarning`s alone, such as the statements the `lenient` PROV-N profile
+skips.
 
 When running pytest:
 
@@ -53,11 +53,12 @@ wherever the value was read or built, so it names the value instead. So does a
 message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
 A message from `unified()` starts with the identifier of the records it merges.
 
-A PROV-N read emits its messages in three groups. The model's come first, as the
-parse runs. The reader's own follow once the parse ends, those about whitespace before
-the rest. A read that fails with `ProvNSyntaxError` emits none of the reader's own.
-So the messages do not follow the order of the input, and under an `error` filter the
-first one raised may not be the first problem in the file.
+A PROV-N read emits its messages in three groups: the model's messages, as the
+parse runs, then the reader's messages about whitespace, then the reader's other
+messages. The reader's messages wait until the parse ends, so a read that fails
+with `ProvNSyntaxError` emits none of them. The messages therefore do not follow
+the order of the input, and under an `error` filter the first one raised may not
+be the first problem in the file.
 
 A filter on the issue number silences every case that issue tracks and leaves
 every other case an error. Python tries the filter added last first, so add the
@@ -212,23 +213,27 @@ namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
 `http` is declared.
 
-The PROV-JSON reader applies the same rule to a record key, a formal attribute
-value, a `hadMember` member and a bundle key that is a full IRI. It also warns
-when it drops a formal attribute value or a `hadMember` member that does not
-resolve, such as `"prov:activity": "zz:a"`.
+A formal attribute is one of the record's arguments in PROV-N, such as
+`prov:entity` or `prov:activity`. The PROV-JSON reader applies the same rule to a
+record key, a formal attribute value other than a time, a `hadMember` member and a
+bundle key that is a full IRI. It also warns when it drops a formal attribute
+value or a `hadMember` member that does not resolve, such as
+`"prov:activity": "zz:a"`.
 
 The PROV-JSONLD reader warns about an `xsd:QName` or `prov:QUALIFIED_NAME` value
-object that holds a full IRI, in the model's wording and without a position.
-Under the `@id`-typed terms `type`, `role` and `location`, a bare full IRI that a
-declared namespace compacts does not warn. One that no declared namespace compacts
-is kept as a `Literal` and warns under #516, as does a name with an undeclared
-prefix. A `{"@id": …}` node reference stays an IRI and does not warn.
+object that holds a full IRI. The message uses the model's wording and has no
+position. The PROV-JSONLD context marks the values of `type`, `role` and
+`location` as IRIs, so a bare full IRI there that starts with a declared namespace
+IRI does not warn. One that starts with no declared namespace IRI is kept as a
+`Literal` and warns under #516, as does a name with an undeclared prefix. A
+`{"@id": …}` node reference stays an IRI and does not warn.
 
 The PROV-N and PROV-JSON readers warn with the position of the value, and the
 model does not warn again. The model warns about a value built in code or read
 from another format when the value is first asserted, and names the attribute
-after the value, as in `the qualified name 'zz:x' of ex:k does not resolve`. In
-code, a plain string given as an identifier, such as
+after the value, as in `the qualified name 'zz:x' of ex:k does not resolve`.
+
+In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts in 3.3.0, and does not
 warn.
 
@@ -266,10 +271,16 @@ document as asserted, without merging any records.
 | `'…' is not an xsd:dateTime and is dropped` | [#555](https://github.com/trungdong/prov/issues/555) | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
 | `the value is written as an array` | [#531](https://github.com/trungdong/prov/issues/531) | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
 | `the value is null and is dropped` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null`, or `"prov:activity": null` | No attribute. A null `prov:time`, `prov:startTime` or `prov:endTime` already raises `ProvJSONException`. |
-| `the value is …, not a qualified name, and is dropped` | [#597](https://github.com/trungdong/prov/issues/597) | `"prov:activity": 5` | A qualified name, as in `"prov:activity": "ex:a"`, or no attribute. This covers a `hadMember` member and a formal attribute that names a record, not a time, which raises `ProvJSONException` unless it is a string or an `xsd:dateTime` value object. |
+| `the value is …, not a qualified name, and is dropped` | [#597](https://github.com/trungdong/prov/issues/597) | `"prov:activity": 5` | A qualified name, as in `"prov:activity": "ex:a"`, or no attribute. |
 | `the value object has the unknown key '…'` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the value object's "$" is …, not a string` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the datatype '…' does not resolve and is dropped` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
+
+`prov` 3.2.x reads a `$` that is not a string as its string form, so `{"$": null}`
+reads as the string `"None"`.
+
+When a datatype does not resolve, `prov` 3.2.x reads the value as a string, or as
+a language-tagged string when it has a `lang`.
 
 A number in `$` typed the way `prov` 2.x and earlier wrote it does not warn. That
 is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
@@ -277,13 +288,15 @@ is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponen
 `{"$": 1, "type": "xsd:int"}` and `{"$": 1.5, "type": "xsd:double"}` read in 3.3.0 as
 they do now.
 
+The warning for a value that is not a qualified name covers a `hadMember` member
+and a formal attribute other than a time. A time that is neither a string nor an
+`xsd:dateTime` value object already raises `ProvJSONException`.
+
 The repeated-key warning names only the key, because Python's JSON parser
 reports no position for it.
 
 Every other message starts with the record identifier and the attribute name,
 as in `record 'ex:g', attribute 'prov:entity': the value is written as an array`.
 A record key has no attribute, so its message starts with `record 'ex:g'` and a
-colon. A bundle key starts with `bundle 'ex:b'` and a colon.
-A formal attribute is one of the record's arguments in PROV-N, such as
-`prov:entity` or `prov:time`. The members of `hadMember` are an array by design,
-so the array itself does not warn.
+colon. A bundle key starts with `bundle 'ex:b'` and a colon. The members of
+`hadMember` are an array by design, so the array itself does not warn.
