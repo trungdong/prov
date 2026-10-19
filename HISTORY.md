@@ -16,7 +16,7 @@ These fixes change behaviour that existing code may rely on:
 - A PROV-JSON time written as a value object reads when typed `xsd:dateTime`, and
   otherwise raises `ProvJSONException` instead of `AttributeError` (#554)
 - An ill-formed typed literal, such as `"abc" %% xsd:int`, stays a `Literal` instead of
-  raising `ValueError`, or a syntax error in PROV-N, and the `lenient` PROV-N profile
+  raising `ValueError` (a syntax error in PROV-N), and the `lenient` PROV-N profile
   keeps its statement (#522)
 - A PROV-JSONLD value with both `@id` and `@value`, which read as the `@value`, raises
   `ProvJSONLDException` (#545)
@@ -24,8 +24,9 @@ These fixes change behaviour that existing code may rely on:
   format it settles on instead of trying the next format
 - `unified()` keeps two equal `alternateOf`, `specializationOf`, `mentionOf` or
   `hadMember` records as two, and no longer raises `ProvUnificationError` on two that
-  share an identifier and differ (#530). So `prov_to_graph()` no longer raises on such a
-  document, and `prov_to_dot()` no longer falls back to the bundle as asserted
+  share an identifier and differ (#530). On a document that failed to unify only because
+  of such records, `prov_to_graph()` no longer raises and `prov_to_dot()` no longer
+  falls back to the bundle as asserted
 - Every record the PROV-JSON reader makes for a `hadMember` with several members carries
   the membership's identifier and attributes, and the PROV-JSONLD reader keeps its `@id`
   (#530)
