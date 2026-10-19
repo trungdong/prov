@@ -2,20 +2,38 @@
 
 ## Unreleased
 
-3.2.3 is a bug-fix release that also warns about input 3.3.0 will reject. No dependency or
-Python-floor changes; one additive class, `prov.model.ProvFutureRejectionWarning`. Four
-fixes change what existing code sees: an empty PROV-N namespace IRI raises
-`ProvNSyntaxError` instead of `ValueError` (#512), an ill-formed typed literal stays a
-`Literal` instead of raising `ValueError` (#522), `unified()` keeps two equal
-`alternateOf`, `specializationOf`, `mentionOf` or `hadMember` records as two (#530), and a
-PROV-JSONLD node reference with a key other than `@id` raises (#545). The new checks make
-reading PROV-JSON about 8% slower than in 3.2.2.
+3.2.3 is a bug-fix release that also warns about input 3.3.0 rejects or reads
+differently. No dependency or Python-floor changes; one additive class,
+`prov.model.ProvFutureRejectionWarning`. In the PROV-JSON read benchmark, the new checks
+make reading about 8% slower than in 3.2.2.
+
+These fixes change behaviour that existing code may rely on:
+
+- An empty PROV-N namespace IRI raises `ProvNSyntaxError`, which is not a `ValueError`
+  (#512)
+- A PROV-JSON formal attribute written as an empty array raises `ProvJSONException`
+  instead of `IndexError`
+- An ill-formed typed literal, such as `"abc" %% xsd:int`, stays a `Literal` instead of
+  raising `ValueError`, and the `lenient` PROV-N profile keeps its statement (#522)
+- A PROV-JSONLD value with both `@id` and `@value`, which read as the `@value`, raises
+  `ProvJSONLDException` (#545)
+- Under an `error` filter, `prov.read()` without a format raises a warning from the
+  format it settles on instead of trying the next format
+- `unified()` keeps two equal `alternateOf`, `specializationOf`, `mentionOf` or
+  `hadMember` records as two (#530)
+- Every record the PROV-JSON reader makes for a `hadMember` with several members carries
+  the membership's identifier and attributes, and the PROV-JSONLD reader keeps its `@id`
+  (#530)
+- The writers spell the non-finite doubles `INF`, `-INF` and `NaN` (#550). The PROV-JSON
+  writer renames a prefix called `default` (#518), and the PROV-JSON and PROV-JSONLD
+  writers can declare a `dn` prefix (#517). The PROV-N writer declares `prefix xsi` when
+  it writes an `xsi:` name (#510)
 
 ### Warnings ahead of 3.3.0
 
 `prov` now emits `prov.model.ProvFutureRejectionWarning`, a new subclass of `ProvWarning`,
-for each input below. It still reads the input as before; 3.3.0 rejects it or reads it
-differently. Each message ends with the issue that tracks the 3.3.0 rule, such as
+for each input below. `prov` still reads the input as before; 3.3.0 rejects it or reads
+it differently. Each message ends with the issue that tracks the 3.3.0 rule, such as
 `(#529)`. "Prepare for prov 3.3.0" in the how-to guides lists every message and what to
 write instead, and shows how to turn the warnings into errors to check a corpus.
 
@@ -46,7 +64,8 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
 - A qualified name whose local part PROV-N cannot write without changing the IRI, such
   as `ex:a b`, `ex:a"b` or `ex:50%`, from any reader or from code (#524). `prov` still
   keeps the name as given, and the PROV-N writer still percent-encodes the character.
-  The writer now also warns when it writes a lone `%` as `%25`
+  The writer now also warns when it writes a `%` that two hexadecimal digits do not
+  follow as `%25`
 - An attribute value of a Python type that has no PROV form, such as `datetime.date`,
   `decimal.Decimal` or `fractions.Fraction`, given in code or produced by a `json.load`
   option such as `parse_float=decimal.Decimal` (#482). `prov` still stores the value as
@@ -55,14 +74,14 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
   value of any other such type
 - A qualified-name value that does not resolve, such as `'zz:x'` with no `zz` prefix
   declared, from any reader or from code (#516). `prov` still keeps the value as a
-  `Literal`. The PROV-JSON reader also warns when it drops such a name from a `hadMember`
-  member or from a formal attribute, one of the record's arguments such as
-  `prov:activity`
-- A full IRI where a qualified name belongs, such as
-  `"http://example.org/x" %% prov:QUALIFIED_NAME`. `prov` still reads it as `ex:x` when
-  the declared namespace `ex` matches the start of the IRI. The warning cites #553 in
-  PROV-N, PROV-JSONLD and code, and #551 in PROV-JSON, where it also covers a record
-  key, a formal attribute, a `hadMember` member and a bundle key
+  `Literal`. The PROV-JSON reader also warns when it drops a `hadMember` member or a
+  formal attribute value that does not resolve. A formal attribute is one of the
+  record's arguments, such as `prov:activity`
+- A full IRI given as a qualified name, which `prov` reads as a name in a declared
+  namespace that the IRI starts with, such as
+  `"http://example.org/x" %% prov:QUALIFIED_NAME` read as `ex:x` (#553, or #551 in
+  PROV-JSON). In PROV-JSON the warning also covers a
+  record key, a formal attribute, a `hadMember` member and a bundle key
 - A key repeated in a PROV-JSON object, such as `{"ex:k": "a", "ex:k": "b"}` (#532).
   `prov` still uses the last value. The warning names the key but not its position
 - A PROV-JSON `prov:time`, `prov:startTime` or `prov:endTime` written as a string that
@@ -71,25 +90,26 @@ write instead, and shows how to turn the warnings into errors to check a corpus.
 - A PROV-JSON formal attribute written as a one-element array, such as
   `"prov:entity": ["ex:e"]` (#531). `prov` still reads the element. The members of
   `hadMember` are an array by design and do not warn
-- A null PROV-JSON attribute value, alone or in an array, a null `hadMember` member, and
-  a null formal attribute other than a time, such as `"prov:activity": null` (#528).
+- A null PROV-JSON value given as an attribute value (alone or in an array), as a
+  `hadMember` member, or as a formal attribute other than a time, such as
+  `"prov:activity": null` (#528).
   `prov` still drops it. A null `prov:time`, `prov:startTime` or `prov:endTime` raises
   `ProvJSONException`
-- A PROV-JSON `hadMember` member, or a formal attribute other than a time, that is a
-  number, a boolean or an object, such as `"prov:activity": 5` (#597). `prov` still
+- A PROV-JSON `hadMember` member, or a formal attribute other than a time, that is not a
+  string, such as `"prov:activity": 5` (#597). `prov` still
   drops it. A time that is neither a string nor an `xsd:dateTime` value object raises
   `ProvJSONException`
 - A PROV-JSON value object with a key other than `$`, `type` and `lang`, or whose `$` is
   not a string, such as `{"$": 1}` (#529). `prov` still ignores the key and reads the
-  `$` as a string, so `{"$": null}` reads as the string `"None"`. The numbers that
-  `prov` 2.x and earlier wrote do not warn, and 3.3.0 reads them as now. They are
-  `{"$": 1, "type": "xsd:int"}`, `{"$": 1, "type": "xsd:long"}` and
-  `{"$": 1.5, "type": "xsd:double"}`, with no `lang`
+  `$` as a string, so `{"$": null}` reads as the string `"None"`. An integer typed
+  `xsd:int` or `xsd:long`, or a float typed `xsd:double`, in a value object with no
+  `lang`, is how `prov` 2.x and earlier wrote numbers. It does not warn, and 3.3.0 reads
+  it as now, as in `{"$": 1, "type": "xsd:int"}`
 - A PROV-JSON value object whose `type` does not resolve, such as `"foo:int"` with no
   `foo` prefix declared (#552). `prov` still drops the datatype and reads the value as a
   string, or as a language-tagged string when it has a `lang`
-- `unified()` merging two records with the same identifier when one leaves a
-  non-expandable position empty and the other fills it (#547). These positions are the
+- `unified()` merging records with the same identifier when one leaves a non-expandable
+  position empty and another fills it (#547). These positions are the
   plan of an association, the activity of a derivation, and the generation and usage of
   a derivation with no activity. PROV-CONSTRAINTS reads an empty value there as "none",
   which unifies only with another empty value. An example is
