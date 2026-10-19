@@ -426,9 +426,41 @@ def test_json_unresolvable_name_that_is_dropped_warns(
             id="value with a language tag",
         ),
         pytest.param(
-            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": [None]}}},
+            {"bundle": {"ex:b": {"entity": {"ex:e": {}}}}},
             None,
-            id="null member",
+            id="declared bundle key",
+        ),
+        pytest.param(
+            {"bundle": {"http://example.org/b": {"entity": {"ex:e": {}}}}},
+            {"ex": EX, "http": "http://h/"},
+            id="bundle key with a prefix named http",
+        ),
+        pytest.param(
+            {
+                "wasGeneratedBy": {
+                    "ex:r": {"prov:entity": "ex:e", "prov:activity": "ex:a"}
+                }
+            },
+            None,
+            id="declared formal attribute",
+        ),
+        pytest.param(
+            {
+                "wasGeneratedBy": {
+                    "ex:r": {"prov:entity": "ex:e", "prov:activity": "http://h/a"}
+                }
+            },
+            {"ex": EX, "http": "http://h/"},
+            id="formal attribute with a prefix named http",
+        ),
+        pytest.param(
+            {
+                "hadMember": {
+                    "ex:m": {"prov:collection": "ex:c", "prov:entity": ["ex:e"]}
+                }
+            },
+            None,
+            id="declared member",
         ),
     ],
 )
