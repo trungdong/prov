@@ -36,6 +36,7 @@ only if a breaking API change accrues; none is queued.
 
 | Version | Date | Theme |
 |---|---|---|
+| [3.2.3](https://github.com/trungdong/prov/releases/tag/3.2.3) | 2026-10-19 | Point release: `ProvFutureRejectionWarning` for input that 3.3.0 rejects or reads differently, with the [Prepare for prov 3.3.0](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) guide; PROV-N, PROV-JSON and PROV-JSONLD reader and writer fixes; Python 3.15 support |
 | [3.2.2](https://github.com/trungdong/prov/releases/tag/3.2.2) | 2026-09-18 | Point release: attribute arguments type-check for callers under strict mypy and pyright ([#474](https://github.com/trungdong/prov/issues/474)); `add_attributes` accepts a generator; non-`dict` mappings are read through `items()` |
 | [3.2.1](https://github.com/trungdong/prov/releases/tag/3.2.1) | 2026-09-13 | Point release: PROV-N parser corrections from a by-eye verification against ProvToolbox and PLEAD documents; `argparse.FileType` removed from the CLI |
 | [3.2.0](https://github.com/trungdong/prov/releases/tag/3.2.0) | 2026-09-12 | Two-way PROV-N with `strict`, `default` and `lenient` profiles ([#122](https://github.com/trungdong/prov/issues/122)); benchmark suite with a CI regression check; measured speed-ups |

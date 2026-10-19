@@ -1,6 +1,6 @@
 # History
 
-## Unreleased
+## 3.2.3 (2026-10-19)
 
 3.2.3 is a bug-fix release that also warns about input 3.3.0 rejects or reads
 differently. No dependency or Python-floor changes; one additive class,
