@@ -10,10 +10,10 @@ treat the public API with care.
 ## Roadmap and planning
 
 `ROADMAP.md` is the release plan and current status — check it rather than assuming from
-memory of past work. Design specs and implementation plans live under `planning/`
-(`planning/specs/`, `planning/plans/`), not `docs/`; write new ones there. The
-`*.tasks.json` files beside plans are local execution state and are gitignored by design.
-Durable rules:
+memory of past work. Design specs live under `planning/specs/` and are committed.
+Implementation plans and their `*.tasks.json` execution state live under
+`planning/plans/`, which is gitignored: plans are local working files and are never
+committed. Neither goes in `docs/`. Durable rules:
 
 - One focused PR per roadmap step, green CI before merge.
 - If a step changes tooling, update the affected sections of this file in the same PR.

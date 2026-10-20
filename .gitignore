@@ -94,3 +94,7 @@ __pycache__/
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local planning state: implementation plans and their task files are working
+# files, never committed. Design specs under planning/specs/ are committed.
+planning/plans/
