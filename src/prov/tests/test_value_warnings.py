@@ -1,4 +1,4 @@
-"""3.3.0 warnings about attribute values, and when they fire (#482, #513, #516)."""
+"""3.3.0 warnings about attribute values, and when they fire (#482, #516)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ import pytest
 
 from prov.model import (
     XSD,
-    XSD_DATETIME,
     XSD_DECIMAL,
     XSD_QNAME,
     Identifier,
@@ -168,22 +167,12 @@ def _python_value(bundle: ProvBundle) -> None:
     bundle.entity("ex:r", {"ex:v": datetime.date(2026, 1, 1)})  # type: ignore[dict-item]
 
 
-def _time(bundle: ProvBundle) -> None:
-    bundle.activity("ex:r", startTime="2012-01-01T00:00:00+15:00")
-
-
-def _typed_datetime(bundle: ProvBundle) -> None:
-    bundle.entity("ex:r", {"ex:t": Literal("2011-11-16T16:05:33+15:00", XSD_DATETIME)})
-
-
 def _qualified_name(bundle: ProvBundle) -> None:
     bundle.entity("ex:r", {"ex:q": Literal("zz:x", XSD_QNAME)})
 
 
 ASSERTIONS: dict[str, Callable[[ProvBundle], None]] = {
     "python value": _python_value,
-    "time": _time,
-    "typed datetime": _typed_datetime,
     "qualified name": _qualified_name,
 }
 

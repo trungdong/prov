@@ -7,9 +7,7 @@ import pytest
 
 from prov.identifier import Identifier, Namespace
 from prov.model import (
-    Literal,
     ProvDocument,
-    ProvFutureRejectionWarning,
     ProvWarning,
     encoding_provn_value,
 )
@@ -103,134 +101,39 @@ def test_dash_and_dot_local_parts(local, written) -> None:
     assert f"entity(ex:{written})" in provn
 
 
-@pytest.mark.parametrize(
-    ("local", "escaped"),
-    [
-        ("a\tb", "a%09b"),  # tab: not a PN_CHAR, previously written raw
-        ("a\u00d7b", "a%C3%97b"),  # multiplication sign, 2-byte UTF-8
-        ("a\u2192b", "a%E2%86%92b"),  # rightwards arrow, 3-byte UTF-8
-        ("a b", "a%20b"),  # space, already covered but kept for symmetry
-    ],
-)
-def test_unrepresentable_chars_are_percent_encoded(local, escaped) -> None:
-    document = _doc()
-    with pytest.warns(ProvFutureRejectionWarning):
-        document.entity(f"ex:{local}")
-    provn = document.get_provn()
-    assert f"entity(ex:{escaped})" in provn
-    # Documented non-round-trip: the reloaded local part is the
-    # percent-encoded text, not the original character.
-    reloaded = ProvDocument.deserialize(content=provn, format="provn")
-    (reloaded_entity,) = reloaded.get_records()
-    assert reloaded_entity.identifier.localpart == escaped
-
-
-def test_percent_encoding_warns_that_the_iri_changes() -> None:
-    with pytest.warns(ProvFutureRejectionWarning):
-        qname = Namespace("ex", "http://example.org/")["a b"]
-    with pytest.warns(ProvWarning, match="percent"):
-        assert qname.provn_bare_representation() == "ex:a%20b"
-
-
-def test_bare_percent_is_written_as_25_with_a_warning() -> None:
-    # "%25" reads back as that text, not as '%', so the IRI changes.
-    namespace = Namespace("ex", "http://example.org/")
-    with pytest.warns(ProvFutureRejectionWarning):
-        qname = namespace["50%"]
-    with pytest.warns(ProvWarning, match="percent-encoded") as record:
-        assert qname.provn_bare_representation() == "ex:50%25"
-    assert len(record) == 1
-
-
-def test_percent_escape_is_written_unchanged_without_a_warning() -> None:
+def test_percent_escape_is_written_unchanged() -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         assert NS["a%20b"].provn_bare_representation() == "ex:a%20b"
 
 
-def test_lone_surrogate_is_percent_encoded() -> None:
-    with pytest.warns(ProvWarning):
-        assert NS["e\udc80"].provn_bare_representation() == "ex:e%ED%B2%80"
-
-
-@pytest.mark.parametrize("first", ["·", "́", "‿"])
-def test_leading_name_char_that_cannot_start_a_local_part_is_encoded(first) -> None:
-    with pytest.warns(ProvWarning):
-        written = NS[first + "a"].provn_bare_representation()
-    assert written.startswith("ex:%")
-    doc = ProvDocument.deserialize(
-        content=f"document\n prefix ex <{NS.uri}>\n entity({written})\nendDocument",
-        format="provn",
-    )
-    assert len(list(doc.get_records())) == 1
-
-
 def test_fast_path_skips_only_local_parts_written_unchanged() -> None:
-    from prov.identifier import _PROVN_LOCAL_NOT_PLAIN, _provn_escape_local
+    from prov.identifier import _PROVN_LOCAL_NEEDS_ESCAPE, _provn_escape_local
 
     # Every BMP character, lone surrogates included, and one astral character,
     # in the three positions the escaping rules tell apart.
     chars = [chr(cp) for cp in (*range(0x10000), 0x1F600)]
     local_parts = [lp for ch in chars for lp in (ch + "a", "a" + ch + "a", "a" + ch)]
-    skipped = [lp for lp in local_parts if not _PROVN_LOCAL_NOT_PLAIN.search(lp)]
+    skipped = [lp for lp in local_parts if not _PROVN_LOCAL_NEEDS_ESCAPE.search(lp)]
 
     assert 0 < len(skipped) < len(local_parts)
-    assert [lp for lp in skipped if _provn_escape_local(lp) != (lp, False)] == []
+    assert [lp for lp in skipped if _provn_escape_local(lp) != lp] == []
 
 
-def test_writable_fast_path_skips_only_local_parts_written_unencoded() -> None:
+def test_every_local_part_that_can_be_built_is_written_reversibly() -> None:
     from prov.identifier import _PROVN_LOCAL_PERCENT_ENCODED, _provn_escape_local
 
-    # The same characters and positions as the test above, for the check
-    # QualifiedName runs on every new name (#524).
+    # The same characters and positions as the test above, against the rule
+    # QualifiedName enforces (#524): what it lets through, the writer spells
+    # with backslash escapes only, which a PROV-N reader reverses.
     chars = [chr(cp) for cp in (*range(0x10000), 0x1F600)]
     local_parts = [lp for ch in chars for lp in (ch + "a", "a" + ch + "a", "a" + ch)]
-    skipped = [lp for lp in local_parts if not _PROVN_LOCAL_PERCENT_ENCODED.search(lp)]
+    accepted = [lp for lp in local_parts if not _PROVN_LOCAL_PERCENT_ENCODED.search(lp)]
 
-    assert 0 < len(skipped) < len(local_parts)
-    assert [lp for lp in skipped if _provn_escape_local(lp)[1]] == []
-    # Escaping adds no percent sign to a local part with no bare '%'.
+    assert 0 < len(accepted) < len(local_parts)
     assert [
-        lp for lp in skipped if _provn_escape_local(lp)[0].count("%") != lp.count("%")
+        lp for lp in accepted if _provn_escape_local(lp).replace("\\", "") != lp
     ] == []
-
-
-def test_empty_langtag_literal_written_as_plain_string() -> None:
-    """An empty langtag has no PROV-N spelling, so the writer treats it as none.
-
-    The model itself is unaffected. The ``Literal``'s own ``langtag`` stays
-    ``""`` (not ``None``), so this is a writer-only choice, not a round trip;
-    the JSON/XML/RDF/JSON-LD codecs still keep the empty tag, e.g. PROV-XML's
-    ``xml:lang=""``, which this task leaves untouched.
-    """
-    with pytest.warns(ProvFutureRejectionWarning, match="empty"):
-        literal = Literal("hi", langtag="")
-    assert literal.langtag == ""
-    document = _doc()
-    document.entity("ex:e1", {"ex:note": literal})
-    provn = document.get_provn()
-    assert '[ex:note="hi"]' in provn
-    assert "None" not in provn
-
-
-def test_langtag_underscore_written_as_hyphen() -> None:
-    """An underscore-separated langtag is not valid PROV-N LANGTAG ([63]).
-
-    BCP 47 tags use hyphens, so writing one changes the tag's lexical form
-    from "en_US" to "en-US". That is a different value under the model's
-    case-insensitive langtag comparison, so this is not a round trip like the
-    other fixes here.
-    """
-    document = _doc()
-    with pytest.warns(ProvFutureRejectionWarning, match="en_US"):
-        literal = Literal("hi", langtag="en_US")
-    document.entity("ex:e1", {"ex:note": literal})
-    provn = document.get_provn()
-    assert '[ex:note="hi"@en-US]' in provn
-    reloaded = ProvDocument.deserialize(content=provn, format="provn")
-    (reloaded_entity,) = reloaded.get_records()
-    (reloaded_literal,) = reloaded_entity.get_attribute("ex:note")
-    assert reloaded_literal.langtag == "en-US"
 
 
 def test_short_string_carriage_return_is_escaped() -> None:
@@ -341,21 +244,3 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
-
-
-def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
-    # The synthesised "dn:" prefix and the percent-encoding of an
-    # unrepresentable character in the bundle's own identifier are two
-    # separate writer decisions on the same identifier; only one warning
-    # should reach the caller, via the same code path
-    # provn_bare_representation() uses.
-    d = ProvDocument()
-    d.set_default_namespace("http://doc.org/")
-    with pytest.warns(ProvFutureRejectionWarning):
-        b = d.bundle("b 1")
-    b.set_default_namespace("http://bundle.org/")
-    b.entity("e1")
-    with pytest.warns(ProvWarning) as record:
-        text = d.get_provn()
-    assert "bundle dn:b%201" in text
-    assert len(record) == 1

@@ -3,13 +3,12 @@ and the 3.2.3 warning for a language tag 3.3.0 rejects (#472)."""
 
 import io
 import re
+import warnings
 
 import pytest
 
 from prov.constants import XSD_DECIMAL, XSD_INT
-from prov.model import Literal, ProvDocument, ProvFutureRejectionWarning
-
-from .conftest import no_future_rejection
+from prov.model import Literal, ProvDocument, ProvValueError
 
 
 def _doc() -> ProvDocument:
@@ -64,54 +63,48 @@ def test_rdf_plain_string_emitted_without_xsd_string() -> None:
 
 
 @pytest.mark.parametrize("tag", ["en_US", "1en", "en-", "en--US", "en US", "fr-ç"])
-def test_language_tag_not_shaped_like_bcp47_warns(tag: str) -> None:
-    # #472: 3.3.0 rejects a tag that does not match PROV-N's LANGTAG; 3.2.3
-    # warns and keeps the tag as given.
+def test_language_tag_not_shaped_like_bcp47_raises(tag: str) -> None:
+    # #472: a tag that does not match PROV-N's LANGTAG has no PROV form.
     message = f"the language tag {tag!r} of 'hi' is not a BCP 47 tag"
-    with pytest.warns(
-        ProvFutureRejectionWarning,
-        match=re.escape(f"{message}. prov 3.3.0 will reject this (#472)"),
-    ) as record:
-        literal = Literal("hi", langtag=tag)
-    assert literal.langtag == tag
-    assert record[0].filename == __file__
+    with pytest.raises(ProvValueError, match=re.escape(message)):
+        Literal("hi", langtag=tag)
 
 
-def test_empty_language_tag_warns() -> None:
-    # #472: 3.3.0 rejects an empty tag too.
-    with pytest.warns(
-        ProvFutureRejectionWarning,
-        match=re.escape(
-            "the language tag of 'hi' is empty. prov 3.3.0 will reject this (#472)"
-        ),
+def test_empty_language_tag_raises() -> None:
+    with pytest.raises(
+        ProvValueError, match=re.escape("the language tag of 'hi' is empty")
     ):
-        literal = Literal("hi", langtag="")
-    assert literal.langtag == ""
+        Literal("hi", langtag="")
 
 
 @pytest.mark.parametrize(
     "tag", [None, "en", "EN", "en-GB", "zh-Hant-TW", "de-CH-1901", "x-private"]
 )
-def test_bcp47_language_tag_does_not_warn(tag: str | None) -> None:
-    with no_future_rejection():
+def test_bcp47_language_tag_is_kept(tag: str | None) -> None:
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         assert Literal("hi", langtag=tag).langtag == tag
 
 
 READERS = ["json", "xml", "jsonld"]
 
 
-@pytest.mark.parametrize("fmt", READERS)
-def test_language_tag_warns_when_read(fmt: str) -> None:
-    # The readers build the Literal, so the model's warning reaches their caller.
-    # PROV-N cannot carry such a tag and PROV-O refuses to write one.
+def _written_with_tag(fmt: str, tag: str) -> str:
+    # PROV-N cannot carry such a tag and PROV-O refuses to write one; the
+    # other three write the tag as given, so the text is edited after writing.
     document = _doc()
-    with pytest.warns(ProvFutureRejectionWarning):
-        document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en_US")})
-    content = document.serialize(format=fmt)
-    with pytest.warns(ProvFutureRejectionWarning, match="'en_US'") as record:
-        read = ProvDocument.deserialize(content=content, format=fmt)
-    assert read == document
-    assert [w.filename for w in record] == [__file__]
+    document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
+    text = document.serialize(format=fmt)
+    assert text is not None
+    assert text.count("en-US") == 1
+    return text.replace("en-US", tag)
+
+
+@pytest.mark.parametrize("fmt", READERS)
+def test_language_tag_raises_when_read(fmt: str) -> None:
+    # The readers build the Literal, so the model's error reaches their caller.
+    with pytest.raises(ProvValueError, match="'en_US'"):
+        ProvDocument.deserialize(content=_written_with_tag(fmt, "en_US"), format=fmt)
 
 
 @pytest.mark.parametrize("fmt", READERS)
@@ -119,15 +112,16 @@ def test_bcp47_language_tag_reads_without_warning(fmt: str) -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     content = document.serialize(format=fmt)
-    with no_future_rejection():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
         assert ProvDocument.deserialize(content=content, format=fmt) == document
 
 
-def test_empty_json_lang_warns() -> None:
+def test_empty_json_lang_raises() -> None:
     # #472's second way in: PROV-JSON passes "lang" to the Literal as written.
     content = (
         '{"prefix": {"ex": "http://example.org/"},'
         ' "entity": {"ex:e1": {"ex:a": {"$": "hi", "lang": ""}}}}'
     )
-    with pytest.warns(ProvFutureRejectionWarning, match="is empty"):
+    with pytest.raises(ProvValueError, match="is empty"):
         ProvDocument.deserialize(content=content, format="json")

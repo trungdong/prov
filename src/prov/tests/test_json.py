@@ -367,19 +367,6 @@ def test_json_decoder_decodes_a_document() -> None:
     assert json.loads(text, cls=ProvJSONDecoder) == _read_quietly(text)
 
 
-def test_model_warning_from_a_json_read_names_the_caller() -> None:
-    _, messages = _read_warning(
-        _json({"activity": {"ex:a": {"prov:startTime": "2012-01-01T00:00:00+15:00"}}})
-    )
-    assert messages == [
-        rejected(
-            "prov:startTime 2012-01-01T00:00:00+15:00 has a timezone offset"
-            " beyond ±14:00",
-            513,
-        )
-    ]
-
-
 _TIMES = [
     pytest.param(
         "wasGeneratedBy", {"prov:entity": "ex:e"}, "prov:time", id="generation"

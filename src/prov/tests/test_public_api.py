@@ -60,6 +60,7 @@ PUBLIC_API = {
         "ProvExceptionInvalidQualifiedName",
         "ProvElementIdentifierRequired",
         "ProvUnificationError",
+        "ProvValueError",
         # identifiers & literals (historically importable from prov.model too)
         "Namespace",
         "QualifiedName",
@@ -115,7 +116,7 @@ OPTIONAL_MODULE_REQUIREMENTS = {
 
 
 # Exact snapshot of the non-dunder names in sorted(dir(prov.model)),
-# generated at commit dccff00217b745a8107379742a7157366703b5bd (166 names).
+# generated at commit dccff00217b745a8107379742a7157366703b5bd (167 names).
 # Unlike PUBLIC_API above, this is not curated -- it is every non-dunder
 # name the module exports, including re-exported stdlib/typing imports and
 # internal constants, because the freeze in prov/model/__init__.py applies
@@ -251,6 +252,7 @@ PROV_MODEL_DIR_SNAPSHOT = [
     "ProvStart",
     "ProvUnificationError",
     "ProvUsage",
+    "ProvValueError",
     "ProvWarning",
     "QualifiedName",
     "QualifiedNameCandidate",

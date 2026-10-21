@@ -47,13 +47,10 @@ EX_NS = Namespace("ex", NAMESPACES["ex"])
 # never in identifiers.
 #
 # A space and the characters < > " { } | ^ ` \ never appear here either.
-# PROV-N's PN_LOCAL ([53]) cannot express them even escaped, so
-# provn_bare_representation() percent-encodes them. A percent-encoded local
-# part does not round-trip to an *equal* QualifiedName (the local part
-# changes, e.g. "a b" to "a%20b"), a documented exclusion covered by the
-# pinning test in test_provn_escaping.py. '-', '.' and '%' are excluded too,
-# because PN_LOCAL forbids a bare '-'/'.' as the first character and a bare
-# '.' as the last, and a bare '%' must be followed by two hex digits -- all
+# PROV-N's PN_LOCAL ([53]) cannot express them even escaped, so no
+# QualifiedName holds one (#524). '-', '.' and '%' are excluded too, because
+# PN_LOCAL forbids a bare '-'/'.' as the first character and a bare '.' as
+# the last, and a bare '%' must be followed by two hex digits -- all
 # positional rules this fixed-alphabet generator cannot express.
 local_part = st.text(
     alphabet=string.ascii_lowercase + string.digits + "='(),:;[]",
