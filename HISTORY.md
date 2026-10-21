@@ -5,7 +5,8 @@
 ### Rejected input
 
 Every input that `prov` 3.2.3 read with a `ProvFutureRejectionWarning` is rejected from
-3.3.0 by the reader or the model that warned, with the same message and position. The
+3.3.0 by the reader or the model that warned, at the same position and, except for an
+undeclared `xsi:` name in PROV-N, with the same message. The
 [how-to](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) lists each
 message with what to write instead. 3.3.0 rejects these inputs.
 
