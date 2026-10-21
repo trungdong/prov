@@ -27,18 +27,37 @@ XSD_DATETIME = "http://www.w3.org/2001/XMLSchema#dateTime"
 CONTEXT_MODES = ["url", "embed"]
 
 
-def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
-    """Serialize ``document``, flatten it with pyld, and index nodes by ``@id``.
+def _offline_container(document: ProvDocument, context: str) -> dict[str, Any]:
+    """Serialize ``document`` to a JSON-LD container that needs no network.
 
     The ``@context`` array's URL entry (``context="url"``) is replaced by
     the vendored context object so pyld resolves every term locally;
     ``context="embed"`` output already carries that same object in its
     place, so the substitution is a no-op for it -- either way pyld never
-    makes a network request. JSON-LD *flattening* (rather than plain
-    expansion) is used because it is what resolves the submission's
-    ``@reverse``-encoded edges (e.g. ``qualifiedGeneration``) onto the
-    referring node as an ordinary forward property, which is what the
-    assertions below check.
+    makes a network request.
+
+    Args:
+        document: Document to serialize.
+        context: ``"url"`` or ``"embed"``, passed through to ``serialize()``.
+
+    Returns:
+        The parsed container with every ``@context`` entry an object.
+    """
+    container = json.loads(document.serialize(format="jsonld", context=context))
+    container["@context"] = [
+        item if isinstance(item, dict) else load_vendored_context()
+        for item in container["@context"]
+    ]
+    return container
+
+
+def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
+    """Serialize ``document``, flatten it with pyld, and index nodes by ``@id``.
+
+    JSON-LD *flattening* (rather than plain expansion) is used because it
+    is what resolves the submission's ``@reverse``-encoded edges (e.g.
+    ``qualifiedGeneration``) onto the referring node as an ordinary forward
+    property, which is what the assertions below check.
 
     Args:
         document: Document to serialize and flatten.
@@ -49,11 +68,7 @@ def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
         without an explicit identifier surface here under a blank node id
         minted by pyld).
     """
-    container = json.loads(document.serialize(format="jsonld", context=context))
-    container["@context"] = [
-        item if isinstance(item, dict) else load_vendored_context()
-        for item in container["@context"]
-    ]
+    container = _offline_container(document, context)
     flattened = jsonld.flatten(container)
     return {node["@id"]: node for node in flattened if "@id" in node}
 
@@ -161,32 +176,27 @@ def _triples_about(dataset: Dataset, subject: URIRef) -> set[tuple[Any, Any, Any
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
 def test_issue_545_node_triples_match_the_rdf_writer(context) -> None:
-    # The whole graphs differ by design: the submission context writes every
+    # The whole graphs differ by design. The submission context writes every
     # relation in its qualified PROV-O form (prov:qualifiedGeneration with a
-    # blank node) while the RDF writer writes an unidentified relation in its
+    # blank node), while the RDF writer writes an unidentified relation in its
     # binary form (prov:wasGeneratedBy). The node triples #545 is about must
-    # agree: foaf:pastProject is the IRI ex:shed, not a typed string, and
+    # agree, so foaf:pastProject is the IRI ex:shed, not a typed string, and
     # ex:arthur carries both rdf:type triples.
     doc = _issue_545_document()
 
     rdf_dataset = Dataset()
     rdf_dataset.parse(data=doc.serialize(format="rdf"), format="trig")
 
-    container = json.loads(doc.serialize(format="jsonld", context=context))
-    container["@context"] = [
-        item if isinstance(item, dict) else load_vendored_context()
-        for item in container["@context"]
-    ]
+    container = _offline_container(doc, context)
     nquads = jsonld.to_rdf(container, {"format": "application/n-quads"})
     ld_dataset = Dataset()
     ld_dataset.parse(data=nquads, format="nquads")
 
     arthur = URIRef(EX_545 + "arthur")
     shed = URIRef(EX_545 + "shed")
-    assert _triples_about(ld_dataset, arthur) == _triples_about(rdf_dataset, arthur)
+    arthur_triples = _triples_about(ld_dataset, arthur)
+    assert arthur_triples == _triples_about(rdf_dataset, arthur)
     assert _triples_about(ld_dataset, shed) == _triples_about(rdf_dataset, shed)
-    assert (arthur, URIRef(FOAF + "pastProject"), shed) in _triples_about(
-        ld_dataset, arthur
-    )
-    types = {o for _, p, o in _triples_about(ld_dataset, arthur) if p == RDF.type}
+    assert (arthur, URIRef(FOAF + "pastProject"), shed) in arthur_triples
+    types = {o for _, p, o in arthur_triples if p == RDF.type}
     assert types == {URIRef(PROV_NS + "Agent"), URIRef(PROV_NS + "Person")}

@@ -82,20 +82,27 @@ def test_serialize_special_and_extra_attributes() -> None:
     [("ex:ref", "ex:ref"), ("prov:label", "label"), ("prov:value", "value")],
 )
 def test_serialize_qualified_name_as_node_reference(key: str, term: str) -> None:
-    # Schema 2026-10-14 (openprov/prov-jsonld#7): a qualified name under any
-    # term outside ID_TYPED_TERMS is a node reference, as ProvToolbox 2.2.5
-    # writes it. A JSON-LD processor reads it as the IRI, matching PROV-O.
+    # Schema 2026-10-14 (openprov/prov-jsonld#7) makes a qualified name under any
+    # term outside ID_TYPED_TERMS a node reference, as ProvToolbox 2.2.5 writes
+    # it. A JSON-LD processor reads it as the IRI, matching PROV-O.
     doc = _new_doc()
     doc.entity("ex:e1", ((key, doc.valid_qualified_name("ex:thing")),))
     (stmt,) = _dump(doc)["@graph"]
     assert stmt[term] == [{"@id": "ex:thing"}]
 
 
-def test_serialize_qualified_name_under_type_stays_a_bare_string() -> None:
+@pytest.mark.parametrize("term", ["type", "location", "role"])
+def test_serialize_qualified_name_under_id_typed_term_stays_a_bare_string(
+    term: str,
+) -> None:
     doc = _new_doc()
-    doc.entity("ex:e1", (("prov:type", doc.valid_qualified_name("ex:Sort")),))
+    value = doc.valid_qualified_name("ex:Sort")
+    if term == "role":
+        doc.usage("ex:a1", "ex:e1", other_attributes={"prov:role": value})
+    else:
+        doc.entity("ex:e1", ((f"prov:{term}", value),))
     (stmt,) = _dump(doc)["@graph"]
-    assert stmt["type"] == ["ex:Sort"]
+    assert stmt[term] == ["ex:Sort"]
 
 
 def test_serialize_default_namespace_qualified_name_as_node_reference() -> None:
@@ -118,8 +125,7 @@ def test_roundtrip_qualified_name_value(context: str, default_namespace: bool) -
     else:
         doc.add_namespace("ex", EX_URI)
         doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:thing")),))
-    text = doc.serialize(format="jsonld", context=context)
-    assert ProvDocument.deserialize(content=text, format="jsonld") == doc
+    assert _roundtrip(doc, context=context) == doc
 
 
 def test_serialize_bundle_nesting() -> None:
@@ -229,9 +235,9 @@ def test_serialize_without_a_document_raises() -> None:
     assert "No document to serialize" in str(ctx.value)
 
 
-def _roundtrip(doc: ProvDocument) -> ProvDocument:
+def _roundtrip(doc: ProvDocument, **kwargs) -> ProvDocument:
     return ProvDocument.deserialize(
-        content=doc.serialize(format="jsonld"), format="jsonld"
+        content=doc.serialize(format="jsonld", **kwargs), format="jsonld"
     )
 
 

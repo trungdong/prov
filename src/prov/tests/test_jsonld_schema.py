@@ -138,14 +138,11 @@ def test_qualified_name_under_extension_key_validates_against_prov_jsonld_schema
     """
     document = ProvDocument()
     document.add_namespace("ex", EX_URI)
-    document.entity(
-        "ex:e1",
-        (
-            ("ex:ref", document.valid_qualified_name("ex:thing")),
-            ("prov:value", document.valid_qualified_name("ex:thing")),
-        ),
-    )
+    thing = document.valid_qualified_name("ex:thing")
+    document.entity("ex:e1", (("ex:ref", thing), ("prov:value", thing)))
     container = json.loads(document.serialize(format="jsonld"))
+    (stmt,) = container["@graph"]
+    assert stmt["ex:ref"] == [{"@id": "ex:thing"}]
     errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
     assert not errors, "\n".join(str(e) for e in errors)
 
