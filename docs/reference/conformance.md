@@ -175,7 +175,7 @@ The reader also accepts a leading byte order mark, a carriage return as a line e
 all-digit local name as an attribute name or datatype, and a `bytearray` stream. A
 prefix declared twice in one scope, a repeated `default`, a declared prefix that is not
 a `PN_PREFIX`, a Unicode whitespace character other than space, tab, CR and LF between
-tokens, and a duplicate bundle identifier, and an attribute named after one of the
+tokens, a duplicate bundle identifier, and an attribute named after one of the
 statement's own arguments are errors.
 
 ### PROV-XML

@@ -382,15 +382,11 @@ class ProvNParser:
                 token,
             )
 
-    def _future(
-        self, detail: str, token: Token, outcome: str = "reject this", *, issue: int
-    ) -> None:
+    def _future(self, detail: str, token: Token, *, issue: int) -> None:
         """Record a message for input that 3.3.0 rejects or reads differently."""
         self.warnings.append(
             future_rejection_message(
-                f"line {token.line}, column {token.column}: {detail}",
-                outcome,
-                issue=issue,
+                f"line {token.line}, column {token.column}: {detail}", issue=issue
             )
         )
 

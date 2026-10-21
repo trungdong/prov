@@ -1106,10 +1106,11 @@ class ProvRecord:
         identifier = ""
         items: list[str] = []
         if self._identifier:
-            identifier = self._identifier.provn_bare_representation()
+            bare = self._identifier.provn_bare_representation()
             if self.is_element():
-                items.append(identifier)
-                identifier = ""
+                items.append(bare)
+            else:
+                identifier = bare
         items.extend(self._provn_formal_items())
         block = self._provn_attribute_block()
         if strict and self.get_type() == PROV_MENTION:
@@ -1118,7 +1119,8 @@ class ProvRecord:
             # reads (#248).
             keyword = "prov:mentionOf"
         elif strict and self.get_type() in _PROV_N_BARE_RELATIONS:
-            # A strict read rejects either, so neither is written (#569).
+            # A strict read rejects an identifier or attribute block here, so neither
+            # is written (#569).
             written = f"{keyword}({', '.join(items)})"
             if identifier:
                 warn(
@@ -1160,13 +1162,12 @@ class ProvRecord:
         for attr in self._attributes:
             if attr in self.FORMAL_ATTRIBUTES:
                 continue
-            name = attr.provn_bare_representation()
             for value in self._attributes[attr]:
                 try:
                     text = value.provn_representation()
                 except AttributeError:
                     text = encoding_provn_value(value)
-                pairs.append(f"{name}={text}")
+                pairs.append(f"{attr.provn_bare_representation()}={text}")
         return f"[{', '.join(pairs)}]" if pairs else ""
 
     def is_element(self) -> bool:

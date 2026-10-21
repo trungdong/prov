@@ -20,13 +20,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   declaration of `prov` or `xsd`, a statement after a bundle, and an identifier or an
   attribute block on `alternateOf`, `specializationOf` or `hadMember`
   ([#519](https://github.com/trungdong/prov/issues/519))
+- In PROV-N, an `xsi:` name with no `prefix xsi` declaration, a `ProvNSyntaxError` that
+  names the missing declaration ([#510](https://github.com/trungdong/prov/issues/510))
 - In PROV-N, an attribute named after one of the statement's own arguments, such as
   `prov:activity` on `wasGeneratedBy`, a `ProvNSyntaxError` at the attribute. The
   `lenient` profile skips the statement with a `ProvWarning`, as it skips any statement
   that fails to parse, where 3.2.3 read the statement and warned
   ([#523](https://github.com/trungdong/prov/issues/523))
-- In PROV-N, an `xsi:` name with no `prefix xsi` declaration, a `ProvNSyntaxError` that
-  names the missing declaration ([#510](https://github.com/trungdong/prov/issues/510))
 
 ### Changes with no prior warning
 

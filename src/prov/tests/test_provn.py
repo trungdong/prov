@@ -1,6 +1,7 @@
 """PROV-N parser tests: document structure, every expression form, literal
 forms, error paths and equality with documents the writer produced.
-Profile behaviour (default, lenient) is in test_provn_profiles.py."""
+The rejection and acceptance tables cover every profile; the rest of the
+profile behaviour is in test_provn_profiles.py."""
 
 import datetime
 import io
@@ -454,6 +455,12 @@ REJECTED_DOCUMENTS = [
                 "startTime",
                 "time argument given as an attribute",
             ),
+            (
+                'wasGeneratedBy(ex:e, ex:a, -, [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
+                "wasGeneratedBy",
+                "time",
+                "time argument of a relation given as a typed attribute",
+            ),
         )
     ],
     pytest.param(
@@ -897,6 +904,9 @@ def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
         {"prov:alternate1": "ex:e1", "prov:alternate2": "ex:e2"},
         {"ex:k": "v"},
     )
+    document.wasDerivedFrom(
+        "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
+    )
     with pytest.warns(ProvWarning) as caught:
         text = document.get_provn(strict=True)
     assert [str(w.message) for w in caught] == [
@@ -912,6 +922,9 @@ def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
     expected.add_namespace("ex", "http://example.org/")
     expected.membership("ex:c", "ex:x")
     expected.alternateOf("ex:e1", "ex:e2")
+    expected.wasDerivedFrom(
+        "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
+    )
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         reread = ProvDocument.deserialize(
