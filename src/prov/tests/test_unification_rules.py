@@ -12,7 +12,6 @@ Constraints 24-29 are deferred to the #62 validation engine.
 
 import datetime
 import json
-import warnings
 
 import pytest
 
@@ -31,6 +30,8 @@ from prov.model import (
     ProvMembership,
     ProvUnificationError,
 )
+
+from .conftest import no_future_rejection
 
 T1 = datetime.datetime(2011, 11, 16, 16, 0, 0)
 T2 = datetime.datetime(2011, 11, 16, 18, 0, 0)
@@ -397,8 +398,7 @@ def _no_future_warning_document(build: str) -> ProvDocument:
 )
 def test_expandable_or_matching_formals_do_not_warn(build: str) -> None:
     document = _no_future_warning_document(build)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         unified = document.unified()
     assert len(list(unified.get_records())) == 1
 
@@ -407,10 +407,11 @@ def test_conflict_elsewhere_raises_without_the_absent_none_warning() -> None:
     document = _doc()
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag2", plan="ex:pl1", identifier="ex:assoc1")
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
-        with pytest.raises(ProvUnificationError, match="conflicting"):
-            document.unified()
+    with (
+        no_future_rejection(),
+        pytest.raises(ProvUnificationError, match="conflicting"),
+    ):
+        document.unified()
 
 
 def test_extra_attribute_conflict_raises_without_the_absent_none_warning() -> None:
@@ -430,7 +431,8 @@ def test_extra_attribute_conflict_raises_without_the_absent_none_warning() -> No
         identifier="ex:assoc1",
         other_attributes={"prov:time": T2},
     )
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
-        with pytest.raises(ProvException, match="more than one value"):
-            document.unified()
+    with (
+        no_future_rejection(),
+        pytest.raises(ProvException, match="more than one value"),
+    ):
+        document.unified()

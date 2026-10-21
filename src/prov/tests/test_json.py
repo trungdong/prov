@@ -37,6 +37,8 @@ from prov.serializers.provjson import (
 from prov.serializers.provjsonld import _JSONLD_DEFAULT_KEYS
 from prov.tests import examples
 
+from .conftest import future_messages, no_future_rejection, rejected
+
 
 def test_decoding_unicode_value() -> None:
     unicode_char = "\u2019"
@@ -258,8 +260,7 @@ def _json(sections: dict[str, Any]) -> str:
 
 def _read_quietly(text: str) -> ProvDocument:
     """Read ``text``, failing on any ProvFutureRejectionWarning."""
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         return ProvDocument.deserialize(content=text, format="json")
 
 
@@ -268,13 +269,7 @@ def _read_warning(text: str) -> tuple[ProvDocument, list[str]]:
     messages, each of which must name this file as the caller."""
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         document = ProvDocument.deserialize(content=text, format="json")
-    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
-    assert [w.filename for w in future] == [__file__] * len(future)
-    return document, [str(w.message) for w in future]
-
-
-def _rejected(detail: str, issue: int) -> str:
-    return f"{detail}. prov 3.3.0 will reject this (#{issue})"
+    return document, future_messages(caught, __file__)
 
 
 _PREFIX = '"prefix": {"ex": "http://example.org/"}'
@@ -319,7 +314,7 @@ _PREFIX = '"prefix": {"ex": "http://example.org/"}'
 def test_repeated_key_warns(repeated: str, single: str, key: str) -> None:
     document, messages = _read_warning(repeated)
     assert messages == [
-        _rejected(
+        rejected(
             f"the key {key!r} is repeated in a JSON object; the last value is used",
             532,
         )
@@ -332,7 +327,7 @@ def test_repeated_key_warns_once_per_object() -> None:
         f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b", "ex:k": "c"}},'
         ' "ex:f": {"ex:k": "a", "ex:k": "b"}}}'
     )
-    message = _rejected(
+    message = rejected(
         "the key 'ex:k' is repeated in a JSON object; the last value is used", 532
     )
     assert messages == [message, message]
@@ -377,7 +372,7 @@ def test_model_warning_from_a_json_read_names_the_caller() -> None:
         _json({"activity": {"ex:a": {"prov:startTime": "2012-01-01T00:00:00+15:00"}}})
     )
     assert messages == [
-        _rejected(
+        rejected(
             "prov:startTime 2012-01-01T00:00:00+15:00 has a timezone offset"
             " beyond ±14:00",
             513,
@@ -446,7 +441,7 @@ def test_bare_time_that_is_not_an_xsd_datetime_warns(
         _json({section: {"ex:r": {**attributes, time_attr: time}}})
     )
     assert messages == [
-        _rejected(
+        rejected(
             f"record 'ex:r', attribute {time_attr!r}: {time!r} is not an"
             " xsd:dateTime and is dropped",
             555,
@@ -479,7 +474,7 @@ def test_formal_attribute_written_as_an_array_warns(
         _json({section: {"ex:r": {**attributes, attr: [value]}}})
     )
     assert messages == [
-        _rejected(
+        rejected(
             f"record 'ex:r', attribute {attr!r}: the value is written as an array",
             531,
         )
@@ -571,7 +566,7 @@ def test_formal_attribute_written_as_an_empty_array_raises(
 def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> None:
     document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
     assert messages == [
-        _rejected(
+        rejected(
             "record 'ex:e', attribute 'ex:k': the value is null and is dropped", 528
         )
     ]
@@ -582,7 +577,7 @@ _FULL_IRI_REASON = "its prefix 'http' is not declared"
 
 
 def _full_iri(text: str, position: str) -> str:
-    return _rejected(
+    return rejected(
         f"{position}: the qualified name {text!r} does not resolve, because"
         f" {_FULL_IRI_REASON}; it reads as ex:{text.rpartition('/')[2]}",
         551,
@@ -659,7 +654,7 @@ def test_null_formal_attribute_warns() -> None:
     attributes = {"prov:entity": "ex:e", "prov:activity": None}
     document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
     assert messages == [
-        _rejected(
+        rejected(
             "record 'ex:r', attribute 'prov:activity': the value is null and is"
             " dropped",
             528,
@@ -684,7 +679,7 @@ def test_null_had_member_member_warns(entity: object, members: list[set[str]]) -
         )
     )
     assert messages == [
-        _rejected(
+        rejected(
             "record 'ex:m', attribute 'prov:entity': the value is null and is dropped",
             528,
         )
@@ -710,7 +705,7 @@ def test_formal_attribute_that_is_not_a_string_warns(
     document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
     shown = text if text is not None else json.dumps(value)
     expected = [
-        _rejected(
+        rejected(
             f"record 'ex:r', attribute 'prov:activity': the value is {shown}, not a"
             " qualified name, and is dropped",
             597,
@@ -719,7 +714,7 @@ def test_formal_attribute_that_is_not_a_string_warns(
     if isinstance(value, list):
         expected.insert(
             0,
-            _rejected(
+            rejected(
                 "record 'ex:r', attribute 'prov:activity': the value is written as"
                 " an array",
                 531,
@@ -736,7 +731,7 @@ def test_had_member_member_that_is_not_a_string_warns() -> None:
         _json({"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": [5]}}})
     )
     assert messages == [
-        _rejected(
+        rejected(
             "record 'ex:m', attribute 'prov:entity': the value is 5, not a qualified"
             " name, and is dropped",
             597,
@@ -824,7 +819,7 @@ def test_value_object_that_3_3_0_rejects_warns(
 ) -> None:
     document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
     assert messages == [
-        _rejected(f"record 'ex:e', attribute 'ex:k': {detail}", issue)
+        rejected(f"record 'ex:e', attribute 'ex:k': {detail}", issue)
         for detail, issue in details
     ]
     assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
@@ -891,7 +886,7 @@ def test_value_object_number_parsed_as_a_decimal_warns() -> None:
         )
     future = [w for w in caught if w.category is ProvFutureRejectionWarning]
     assert [str(w.message) for w in future] == [
-        _rejected(
+        rejected(
             "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string",
             529,
         )
@@ -911,11 +906,11 @@ def test_value_object_keys_a_caller_hook_makes_non_strings_warn() -> None:
         document = prov.read(io.StringIO(text), format="json", object_pairs_hook=hook)
     future = [w for w in caught if w.category is ProvFutureRejectionWarning]
     assert [str(w.message) for w in future] == [
-        _rejected(
+        rejected(
             "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2",
             529,
         ),
-        _rejected(
+        rejected(
             "record 'ex:e', attribute 'ex:k': the value object has the unknown key 'a'",
             529,
         ),
@@ -943,5 +938,5 @@ def test_value_object_warning_without_a_position() -> None:
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         decode_json_representation({"$": "1", "x": "y"}, ProvDocument())
     assert [str(w.message) for w in caught] == [
-        _rejected("the value object has the unknown key 'x'", 529)
+        rejected("the value object has the unknown key 'x'", 529)
     ]

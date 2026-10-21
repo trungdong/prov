@@ -8,7 +8,6 @@ import decimal
 import fractions
 import pickle
 import uuid
-import warnings
 from collections.abc import Callable
 from typing import Any
 
@@ -28,11 +27,7 @@ from prov.model import (
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS
 
-
-def _document() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
+from .conftest import ex_document, no_future_rejection
 
 
 class _Opaque:
@@ -60,7 +55,7 @@ def test_value_3_3_converts_warns(value: Any, type_name: str, datatype: str) -> 
         f" prov 3.3.0 will store it as a Literal of type {datatype} (#482)"
     )
     with pytest.warns(ProvFutureRejectionWarning) as caught:
-        entity = _document().entity("ex:e", {"ex:v": value})
+        entity = ex_document().entity("ex:e", {"ex:v": value})
     assert [str(w.message) for w in caught] == [expected]
     assert caught[0].filename == __file__
     assert entity.get_attribute("ex:v") == {value}
@@ -75,7 +70,7 @@ def test_unhashable_value_3_3_converts_warns_before_failing() -> None:
         ),
         pytest.raises(TypeError, match="unhashable"),
     ):
-        _document().entity("ex:e", {"ex:v": bytearray(b"ab")})  # type: ignore[dict-item]
+        ex_document().entity("ex:e", {"ex:v": bytearray(b"ab")})  # type: ignore[dict-item]
 
 
 REJECTED: list[tuple[Any, str]] = [
@@ -95,7 +90,7 @@ def test_value_with_no_prov_form_warns(value: Any, type_name: str) -> None:
         " prov 3.3.0 will reject this (#482)"
     )
     with pytest.warns(ProvFutureRejectionWarning) as caught:
-        entity = _document().entity("ex:e", {"ex:v": value})
+        entity = ex_document().entity("ex:e", {"ex:v": value})
     assert [str(w.message) for w in caught] == [expected]
     assert entity.get_attribute("ex:v") == {value}
 
@@ -119,7 +114,7 @@ def test_json_number_read_as_decimal_warns() -> None:
 
 def test_long_value_is_shortened_in_the_message() -> None:
     with pytest.warns(ProvFutureRejectionWarning) as caught:
-        _document().entity("ex:e", {"ex:v": b"x" * 1000})  # type: ignore[dict-item]
+        ex_document().entity("ex:e", {"ex:v": b"x" * 1000})  # type: ignore[dict-item]
     message = str(caught[0].message)
     assert "..." in message
     assert len(message) < 200
@@ -147,16 +142,15 @@ PROV_VALUES: list[Any] = [
 
 @pytest.mark.parametrize("value", PROV_VALUES, ids=repr)
 def test_value_with_a_prov_form_does_not_warn(value: Any) -> None:
-    document = _document()
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    document = ex_document()
+    with no_future_rejection():
         document.entity("ex:e", {"ex:v": value})
         document.entity("ex:f", {"ex:v": document.entity("ex:g")})
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 def test_typed_literals_read_without_warning(fmt: str) -> None:
-    document = _document()
+    document = ex_document()
     document.entity(
         "ex:e",
         {
@@ -166,8 +160,7 @@ def test_typed_literals_read_without_warning(fmt: str) -> None:
         },
     )
     text = document.serialize(format=fmt)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(content=text, format=fmt)
 
 
@@ -198,7 +191,7 @@ ASSERTIONS: dict[str, Callable[[ProvBundle], None]] = {
 def _asserted_twice(assertion: Callable[[ProvBundle], None]) -> ProvDocument:
     # Twice in the document and twice in a bundle, so unified() merges a pair
     # in each scope and flattened() has a bundle to lift.
-    document = _document()
+    document = ex_document()
     bundle = document.bundle("ex:b")
     with pytest.warns(ProvFutureRejectionWarning) as caught:
         for scope in (document, bundle):
@@ -220,7 +213,7 @@ def _added(document: ProvDocument) -> None:
 
 
 def _updated(document: ProvDocument) -> None:
-    _document().update(document)
+    ex_document().update(document)
 
 
 def _dot(document: ProvDocument) -> object:
@@ -252,8 +245,7 @@ def test_rebuilt_records_do_not_warn_again(
     rebuild: Callable[[ProvDocument], object],
 ) -> None:
     document = _asserted_twice(assertion)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         rebuild(document)
 
 
@@ -269,7 +261,7 @@ def test_assertion_after_a_rebuild_warns(
 
 
 def test_records_built_while_a_document_is_constructed_warn() -> None:
-    source = _document()
+    source = ex_document()
     records = (
         source.entity(f"ex:e{i}", {"ex:v": fractions.Fraction(1, 3)})  # type: ignore[dict-item]
         for i in range(2)

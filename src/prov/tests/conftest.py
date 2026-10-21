@@ -10,11 +10,19 @@ non-serializing ``model`` target.
 
 import io
 import os
+import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 
 import pytest
 from hypothesis import settings
 
-from prov.model import ProvBundle, ProvDocument, ProvMention
+from prov.model import (
+    ProvBundle,
+    ProvDocument,
+    ProvFutureRejectionWarning,
+    ProvMention,
+)
 
 # Hypothesis profiles for the property-based round-trip tests
 # (``test_property_roundtrip.py``). The local ``default`` profile is
@@ -141,3 +149,35 @@ def pytest_assertrepr_compare(config, op, left, right):
         f"  in right only ({len(only_right)}):",
         *(f"    + {r}" for r in only_right),
     ]
+
+
+#  Helpers for the 3.2.3 warning tests. They leave with the warnings in 3.3.0.
+EX_URI = "http://example.org/"
+
+
+def ex_document() -> ProvDocument:
+    """A document with ``ex`` declared at ``http://example.org/``."""
+    document = ProvDocument()
+    document.add_namespace("ex", EX_URI)
+    return document
+
+
+@contextmanager
+def no_future_rejection() -> Iterator[None]:
+    """Fail the block on any ``ProvFutureRejectionWarning``."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        yield
+
+
+def future_messages(caught: list[warnings.WarningMessage], caller: str) -> list[str]:
+    """The ``ProvFutureRejectionWarning`` messages in ``caught``, each of
+    which must name ``caller`` (a test module's ``__file__``) as its site."""
+    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
+    assert [w.filename for w in future] == [caller] * len(future)
+    return [str(w.message) for w in future]
+
+
+def rejected(detail: str, issue: int) -> str:
+    """The text of a 3.3.0 rejection warning for ``detail``."""
+    return f"{detail}. prov 3.3.0 will reject this (#{issue})"

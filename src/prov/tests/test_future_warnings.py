@@ -10,6 +10,8 @@ from prov._warnings import collect_warnings, future_rejection_message, warn
 from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
 from prov.serializers.provn_parser import ProvNParser
 
+from .conftest import no_future_rejection
+
 
 def test_future_rejection_warning_is_a_prov_warning() -> None:
     assert issubclass(ProvFutureRejectionWarning, ProvWarning)
@@ -96,8 +98,7 @@ def test_provn_parser_warnings_reach_the_caller(
 
 
 def test_provn_document_without_messages_emits_no_future_rejection() -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(content=PROVN, format="provn")
 
 

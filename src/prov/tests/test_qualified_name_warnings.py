@@ -18,6 +18,8 @@ from prov.model import (
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS
 
+from .conftest import ex_document, future_messages, no_future_rejection
+
 EX = "http://example.org/"
 UNDECLARED = "its prefix 'zz' is not declared"
 FULL_IRI = "its prefix 'http' is not declared"
@@ -25,25 +27,11 @@ NO_PREFIX = "it has no prefix and no default namespace is declared"
 KEPT = "it is kept as a Literal"
 
 
-def _document() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", EX)
-    return document
-
-
 def _message(where: str, text: str, reason: str, today: str, issue: int) -> str:
     return (
         f"{where}the qualified name {text!r} does not resolve, because {reason};"
         f" {today}. prov 3.3.0 will reject this (#{issue})"
     )
-
-
-def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
-    """The ProvFutureRejectionWarning messages in ``caught``, each of which
-    must name this file as the caller."""
-    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
-    assert [w.filename for w in future] == [__file__] * len(future)
-    return [str(w.message) for w in future]
 
 
 #  Values asserted in code
@@ -103,11 +91,11 @@ def _future_warnings(caught: list[warnings.WarningMessage]) -> list[str]:
 def test_unresolvable_qualified_name_value_warns(
     literal: Literal, reason: str, today: str, stored: object, issue: int
 ) -> None:
-    document = _document()
+    document = ex_document()
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         entity = document.entity("ex:e", {"ex:k": literal})
-    assert _future_warnings(caught) == [
+    assert future_messages(caught, __file__) == [
         _message("", literal.value, reason, today, issue).replace(
             " does not resolve", " of ex:k does not resolve"
         )
@@ -116,7 +104,7 @@ def test_unresolvable_qualified_name_value_warns(
 
 
 def _declared_in_the_document(literal: Literal) -> None:
-    document = _document()
+    document = ex_document()
     document.bundle("ex:b").entity("ex:e", {"ex:k": literal})
 
 
@@ -131,12 +119,12 @@ def _bare_name_with_a_default(literal: Literal) -> None:
     [
         pytest.param(
             Literal("ex:x", PROV_QUALIFIEDNAME),
-            lambda literal: _document().entity("ex:e", {"ex:k": literal}),
+            lambda literal: ex_document().entity("ex:e", {"ex:k": literal}),
             id="declared",
         ),
         pytest.param(
             Literal("ex:x", XSD_QNAME),
-            lambda literal: _document().entity("ex:e", {"ex:k": literal}),
+            lambda literal: ex_document().entity("ex:e", {"ex:k": literal}),
             id="xsd:QName declared",
         ),
         pytest.param(
@@ -151,7 +139,7 @@ def _bare_name_with_a_default(literal: Literal) -> None:
         ),
         pytest.param(
             Literal("zz:x"),
-            lambda literal: _document().entity("ex:e", {"ex:k": literal}),
+            lambda literal: ex_document().entity("ex:e", {"ex:k": literal}),
             id="untyped",
         ),
     ],
@@ -159,8 +147,7 @@ def _bare_name_with_a_default(literal: Literal) -> None:
 def test_resolvable_qualified_name_value_does_not_warn(
     literal: Literal, assert_in: Any
 ) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         assert_in(literal)
 
 
@@ -242,7 +229,7 @@ def test_provn_unresolvable_qualified_name_value_warns_once(
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         document = ProvDocument.deserialize(content=source, format="provn")
-    assert _future_warnings(caught) == [
+    assert future_messages(caught, __file__) == [
         _message("line 3, column 20: ", text, reason, today, issue)
     ]
     assert document == expected
@@ -275,8 +262,7 @@ def test_provn_unresolvable_qualified_name_value_warns_once(
 def test_provn_resolvable_qualified_name_value_does_not_warn(
     value: str, declarations: str
 ) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(content=_provn(value, declarations), format="provn")
 
 
@@ -285,8 +271,7 @@ def test_provn_value_in_a_bundle_resolves_against_the_document() -> None:
         f"document\nprefix ex <{EX}>\nbundle ex:b\nprefix b <http://b/>\n"
         "entity(ex:e, [ex:k='ex:x', ex:j='b:y'])\nendBundle\nendDocument\n"
     )
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(content=source, format="provn")
 
 
@@ -304,7 +289,7 @@ def _read_json(text: str) -> tuple[ProvDocument, list[str], ProvDocument]:
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         document = ProvDocument.deserialize(content=text, format="json")
-    return document, _future_warnings(caught), expected
+    return document, future_messages(caught, __file__), expected
 
 
 def test_json_record_key_that_is_a_full_iri_warns() -> None:
@@ -467,20 +452,19 @@ def test_json_unresolvable_name_that_is_dropped_warns(
 def test_json_resolvable_name_does_not_warn(
     records: dict[str, Any], prefixes: dict[str, str] | None
 ) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(content=_json(records, prefixes), format="json")
 
 
 #  Every reader, once per value; the XML reader already rejects such a value
 @pytest.mark.parametrize("fmt", [fmt for fmt in ROUNDTRIP_FORMATS if fmt != "xml"])
 def test_written_unresolvable_value_warns_once_on_reading(fmt: str) -> None:
-    document = _document()
+    document = ex_document()
     with pytest.warns(ProvFutureRejectionWarning):
         document.entity("ex:e", {"ex:k": Literal("zz:x", XSD_QNAME)})
     text = document.serialize(format=fmt)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         ProvDocument.deserialize(content=text, format=fmt)
-    (message,) = _future_warnings(caught)
+    (message,) = future_messages(caught, __file__)
     assert "the qualified name 'zz:x'" in message
