@@ -160,7 +160,7 @@ departure from the Recommendations without one.
 
 | Profile | Accepts |
 | --- | --- |
-| `strict` | The Recommendation grammar only: one `default` declaration, before any `prefix` declaration, and no declaration of `prov` or `xsd`. Mention is `prov:mentionOf`, as PROV-Links spells it. |
+| `strict` | The Recommendation grammar only, with one `default` declaration before any `prefix` declaration and no declaration of `prov` or `xsd`. Mention is `prov:mentionOf`, as PROV-Links spells it. |
 | `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
 | `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a `ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. Extensibility expressions (`prefix:name(...)`) are skipped this way. |
 

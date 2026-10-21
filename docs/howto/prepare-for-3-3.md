@@ -87,11 +87,11 @@ warnings.filterwarnings(
 | `'default' follows a 'prefix' declaration` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
 | `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
 
-Each is a `ProvNSyntaxError` at the declaration. In 3.2.3 the first two rows and the two
-strict-profile rows warn with the same text; an undeclared `xsi:` name warns
-`prefix 'xsi' is not declared`. `prov` 3.2.2 and earlier wrote `xsi:` names without a
-`prefix xsi` line. Reading such a file and writing it again with `prov` 3.2.3 adds the
-declaration, so do that before upgrading.
+Each is a `ProvNSyntaxError` at the declaration or, for an undeclared `xsi:` name, at
+the name. In 3.2.3 the first two rows and the two strict-profile rows warn with the same
+text; an undeclared `xsi:` name warns `prefix 'xsi' is not declared`. `prov` 3.2.2 and
+earlier wrote `xsi:` names without a `prefix xsi` line. Reading such a file and writing
+it again with `prov` 3.2.3 adds the declaration, so do that before upgrading.
 
 ## PROV-N whitespace
 
