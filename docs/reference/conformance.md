@@ -134,8 +134,8 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
   `.`); `prov` does not validate or rename one that is not.
-- **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built, as is a tag
-  that is not shaped like a BCP 47 tag; PROV-XML's `xml:lang=""` is rejected on read
+- **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
+  PROV-XML's `xml:lang=""` is rejected on read
   ([#472](https://github.com/trungdong/prov/issues/472)).
 - **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
   `Literal` is built, from any format or from code, so no writer meets one

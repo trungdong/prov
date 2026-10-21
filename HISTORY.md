@@ -29,16 +29,21 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#523](https://github.com/trungdong/prov/issues/523))
 - A time whose timezone offset is beyond ±14:00, which XSD 1.1 gives no `xsd:dateTime`
   form, a `ProvValueError` where the time is asserted, from any reader or from code. A
-  typed `xsd:dateTime` value of an ordinary attribute with such an offset stays a `Literal`
-  with its text, where 3.2.3 read it as a `datetime` and warned
+  PROV-N read raises it as the cause of a `ProvNSyntaxError` at the statement, and the
+  `lenient` profile skips the statement with a `ProvWarning`. A typed `xsd:dateTime`
+  value of an ordinary attribute with such an offset stays a `Literal` with its text,
+  where 3.2.3 read it as a `datetime` and warned
   ([#513](https://github.com/trungdong/prov/issues/513))
 - A language tag that is not shaped like a BCP 47 tag, or is empty, a `ProvValueError`
-  when the `Literal` is built, from any reader or from code. The PROV-N writer no longer
-  rewrites `en_US` as `en-US` or drops an empty tag, since no such tag can be held
+  when the `Literal` is built, from any reader, from code or from a pickle. The PROV-N
+  writer no longer rewrites `en_US` as `en-US` or drops an empty tag, since no such tag
+  can be held
   ([#472](https://github.com/trungdong/prov/issues/472))
 - A local part that PROV-N could write only by percent-encoding it, such as `ex:a b`, a
-  `ProvExceptionInvalidQualifiedName` naming the character when the name is built, from
-  any reader, from code or from a pickle. The PROV-N writer no longer percent-encodes,
+  `ProvExceptionInvalidQualifiedName` naming the local part when the name is built, from
+  any reader, from code or from a pickle. A PROV-N read raises it as the cause of a
+  `ProvNSyntaxError` at the statement, and the `lenient` profile skips the statement with
+  a `ProvWarning`. The PROV-N writer no longer percent-encodes,
   since no such name can be held; a local part with a metacharacter is still written with
   a backslash escape ([#524](https://github.com/trungdong/prov/issues/524))
 
@@ -63,9 +68,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   reads only the `xsd:dateTime` lexical form of XSD 1.1: a date, `T`, a time with optional
   fractional seconds, and `Z` or an `hh:mm` offset. The other ISO 8601 forms that Python's
   `fromisoformat` reads, such as `2012-12-03T21:08Z` without seconds, the basic format
-  `20121203T210816Z`, a week date or a comma before the fraction, are no longer read. On
-  Python 3.10 a few more forms read, such as `2012-12-03T21:08:16.5 +01:00`, because
-  `prov` padded the fraction before parsing; that padding went with the 3.10 floor
+  `20121203T210816Z`, a week date or a comma before the fraction, are no longer read.
+  3.2.x on Python 3.10 read a few more forms, such as `2012-12-03T21:08:16.5 +01:00`,
+  because it padded the fraction before parsing; that padding went when 3.3.0 dropped
+  Python 3.10
   ([#513](https://github.com/trungdong/prov/issues/513))
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`

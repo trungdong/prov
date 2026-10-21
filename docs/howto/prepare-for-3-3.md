@@ -138,7 +138,9 @@ code, for every time of a statement and for a Python `datetime` as the value of 
 attribute. 3.2.3 warned only for a time of a statement. A typed `xsd:dateTime` value of
 an ordinary attribute with such an offset, `[ex:t="2011-11-16T16:05:33+15:00" %%
 xsd:dateTime]`, is not an error. 3.3.0 keeps it as a `Literal` with its text, where 3.2.3
-read it as a `datetime` and warned.
+read it as a `datetime` and warned. A PROV-N read raises the error as the cause of a
+`ProvNSyntaxError` at the statement, and the `lenient` profile skips the statement with
+a `ProvWarning`.
 
 A time string must be in the `xsd:dateTime` lexical form, `YYYY-MM-DDThh:mm:ss`, with
 optional fractional seconds and `Z` or an `hh:mm` offset. 3.2.3 read the other ISO 8601
@@ -152,10 +154,11 @@ and `2012-W01-1T21:08:16Z` are not times.
 | `the language tag 'en_US' of 'hi' is not a BCP 47 tag` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="en_US")`, or `{"$": "hi", "lang": "en_US"}` in PROV-JSON | A BCP 47 tag, such as `en-US`. |
 | `the language tag of 'hi' is empty` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
 
-Each is a `ProvValueError` when the `Literal` is built, from any format or from code.
-`prov` checks only the form of the tag. A tag is letters, followed by any number of
-groups of letters and digits that each start with a hyphen. `prov` does not look the tag
-up in the BCP 47 registry. The PROV-N reader rejected these tags already.
+Each is a `ProvValueError` when the `Literal` is built, from any format, from code or
+from a pickle written by an earlier release. `prov` checks only the form of the tag. A
+tag is letters, followed by any number of groups of letters and digits that each start
+with a hyphen. `prov` does not look the tag up in the BCP 47 registry. The PROV-N
+reader rejected these tags already.
 
 ## Local parts
 
@@ -165,7 +168,9 @@ up in the BCP 47 registry. The PROV-N reader rejected these tags already.
 
 The error is a `ProvExceptionInvalidQualifiedName` when the name is built, from any
 format, from code or from a pickle written by an earlier release; its message is
-`Invalid Qualified Name: ex:a b,` followed by the text in the table. A local part cannot
+`Invalid Qualified Name: ex:a b,` followed by the text in the table. A PROV-N read
+raises it as the cause of a `ProvNSyntaxError` at the statement, and the `lenient`
+profile skips the statement with a `ProvWarning`. A local part cannot
 hold a space, a control character or another character that PROV-N can write only by
 percent-encoding it, such as `"` or `|`. Nor can it hold a `%` that two hexadecimal
 digits do not follow, or start with U+00B7 (middle dot), U+203F (undertie), U+2040
