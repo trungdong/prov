@@ -125,6 +125,31 @@ def test_default_namespace_attributes_validate_against_prov_jsonld_schema(
     assert not errors, "\n".join(str(e) for e in errors)
 
 
+def test_qualified_name_under_extension_key_validates_against_prov_jsonld_schema(
+    prov_jsonld_validator,
+) -> None:
+    """A qualified-name value is written as a node reference (#564).
+
+    No canonical example holds a qualified name under an extension key,
+    which is why the parametrized test above never checked the value's
+    shape. ``label`` is left out: the schema's ``ArrayOfLabelValues``
+    admits only strings, so a qualified name under it does not validate
+    in either form.
+    """
+    document = ProvDocument()
+    document.add_namespace("ex", EX_URI)
+    document.entity(
+        "ex:e1",
+        (
+            ("ex:ref", document.valid_qualified_name("ex:thing")),
+            ("prov:value", document.valid_qualified_name("ex:thing")),
+        ),
+    )
+    container = json.loads(document.serialize(format="jsonld"))
+    errors = sorted(prov_jsonld_validator.iter_errors(container), key=str)
+    assert not errors, "\n".join(str(e) for e in errors)
+
+
 @pytest.mark.parametrize(
     "fixture",
     [

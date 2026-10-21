@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 from pyld import jsonld
+from rdflib import RDF, Dataset, URIRef
 
 from prov.model import Literal, ProvDocument
 from prov.serializers.provjsonld import load_vendored_context
@@ -125,3 +126,67 @@ def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context) -> N
     # base it would neither match "http://example.org/e1" here nor land on
     # this node once flattened.
     assert f"{PROV_NS}qualifiedGeneration" in e1
+
+
+EX_545 = "http://example.com/"
+FOAF = "http://xmlns.com/foaf/0.1/"
+
+
+def _issue_545_document() -> ProvDocument:
+    """The document from #545: an Agent that is also a Person, with FOAF values."""
+    doc = ProvDocument()
+    doc.add_namespace("ex", EX_545)
+    doc.add_namespace("foaf", FOAF)
+    doc.entity("ex:symphony")
+    doc.activity("ex:compose")
+    doc.generation("ex:symphony", "ex:compose")
+    doc.entity("ex:shed")
+    doc.agent(
+        "ex:arthur",
+        other_attributes={
+            "prov:type": doc.valid_qualified_name("prov:Person"),
+            "foaf:givenName": "Arthur",
+            "foaf:pastProject": doc.valid_qualified_name("ex:shed"),
+            "foaf:currentProject": "A hypothetical shed that does not exist",
+        },
+    )
+    doc.wasAssociatedWith("ex:compose", "ex:arthur")
+    return doc
+
+
+def _triples_about(dataset: Dataset, subject: URIRef) -> set[tuple[Any, Any, Any]]:
+    """The ``(s, p, o)`` triples with ``subject`` as subject, from every graph."""
+    return {(s, p, o) for s, p, o, _ in dataset.quads((subject, None, None, None))}
+
+
+@pytest.mark.parametrize("context", CONTEXT_MODES)
+def test_issue_545_node_triples_match_the_rdf_writer(context) -> None:
+    # The whole graphs differ by design: the submission context writes every
+    # relation in its qualified PROV-O form (prov:qualifiedGeneration with a
+    # blank node) while the RDF writer writes an unidentified relation in its
+    # binary form (prov:wasGeneratedBy). The node triples #545 is about must
+    # agree: foaf:pastProject is the IRI ex:shed, not a typed string, and
+    # ex:arthur carries both rdf:type triples.
+    doc = _issue_545_document()
+
+    rdf_dataset = Dataset()
+    rdf_dataset.parse(data=doc.serialize(format="rdf"), format="trig")
+
+    container = json.loads(doc.serialize(format="jsonld", context=context))
+    container["@context"] = [
+        item if isinstance(item, dict) else load_vendored_context()
+        for item in container["@context"]
+    ]
+    nquads = jsonld.to_rdf(container, {"format": "application/n-quads"})
+    ld_dataset = Dataset()
+    ld_dataset.parse(data=nquads, format="nquads")
+
+    arthur = URIRef(EX_545 + "arthur")
+    shed = URIRef(EX_545 + "shed")
+    assert _triples_about(ld_dataset, arthur) == _triples_about(rdf_dataset, arthur)
+    assert _triples_about(ld_dataset, shed) == _triples_about(rdf_dataset, shed)
+    assert (arthur, URIRef(FOAF + "pastProject"), shed) in _triples_about(
+        ld_dataset, arthur
+    )
+    types = {o for _, p, o in _triples_about(ld_dataset, arthur) if p == RDF.type}
+    assert types == {URIRef(PROV_NS + "Agent"), URIRef(PROV_NS + "Person")}
