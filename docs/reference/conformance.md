@@ -160,7 +160,7 @@ departure from the Recommendations without one.
 
 | Profile | Accepts |
 | --- | --- |
-| `strict` | The Recommendation grammar only, with one `default` declaration before any `prefix` declaration and no declaration of `prov` or `xsd`. Mention is `prov:mentionOf`, as PROV-Links spells it. |
+| `strict` | The Recommendation grammar only, with at most one `default` declaration, before any `prefix` declaration, and no declaration of `prov` or `xsd`. Mention is `prov:mentionOf`, as PROV-Links spells it. |
 | `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
 | `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a `ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. Extensibility expressions (`prefix:name(...)`) are skipped this way. |
 
@@ -225,7 +225,7 @@ The [PROV-N conformance corpus](https://github.com/trungdong/prov/tree/main/src/
 
 | Set | Profile | Files | Result |
 | --- | --- | --- | --- |
-| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 98 parse and round-trip through the writer. 29 are excluded because the Recommendation's prose presents them as PROV-N but the grammar rejects them: fragments missing a paired argument, bare literals, ellipses, a copy-paste `dateTime` error, a `prefix` before the `default` declaration, a statement after a bundle, and the PROV-Dictionary and extensibility syntax. |
+| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 99 parse and round-trip through the writer. 28 are excluded because the Recommendation's prose presents them as PROV-N but the grammar rejects them: fragments missing a paired argument, bare literals, ellipses, a copy-paste `dateTime` error, a `prefix` before the `default` declaration, and the PROV-Dictionary and extensibility syntax. |
 | ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 4 parse. 5 are excluded: bare local names with no default namespace, the PROV-Dictionary set-of-pairs literal, and a bare IRI as a datatype. |
 | PROV-N that ProvToolbox's writer produced from the shared test corpus, compared with the PROV-JSON fixture of the same name | `default` | 388 | 229 equal. 159 differ for reasons in ProvToolbox's 2023 generator, not in `prov`: 80 embed a wall-clock timestamp, 79 carry a datatype list that no longer matches the fixture. |
 

@@ -4,18 +4,18 @@
 
 ### Rejected input
 
-Every input that `prov` 3.2.3 read with a `ProvFutureRejectionWarning` is rejected from
-3.3.0 by the reader or the model that warned, at the same position and, except for an
-undeclared `xsi:` name in PROV-N, with the same message. The
-[how-to](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html) lists each
-message with what to write instead. 3.3.0 rejects these inputs.
+From 3.3.0, the reader or the model that warned about an input in `prov` 3.2.3 with a
+`ProvFutureRejectionWarning` rejects it at the same position, or reads it as the warning
+said. The [how-to](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
+lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 - In PROV-N, a repeated `default` declaration, a declared prefix that is not a
   `PN_PREFIX`, and a Unicode whitespace character other than space, tab, CR and LF
   between tokens, each a `ProvNSyntaxError` at the declaration or the character
   ([#508](https://github.com/trungdong/prov/issues/508),
   [#511](https://github.com/trungdong/prov/issues/511),
-  [#509](https://github.com/trungdong/prov/issues/509)). U+1680 is a name character
+  [#509](https://github.com/trungdong/prov/issues/509)). U+1680, which 3.2.3 also warned
+  about, reads as a name character
 - Under the `strict` profile, a `default` declaration after a `prefix` declaration and a
   declaration of `prov` or `xsd` ([#519](https://github.com/trungdong/prov/issues/519))
 - In PROV-N, an `xsi:` name with no `prefix xsi` declaration, a `ProvNSyntaxError` that
@@ -26,10 +26,13 @@ message with what to write instead. 3.3.0 rejects these inputs.
 - `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code,
   PROV-JSON or PROV-JSONLD needs a declaration like any other prefix. Without one, the
   model raises `ProvExceptionInvalidQualifiedName` for an attribute name and
-  `ProvElementIdentifierRequired` for an identifier. A `QualifiedName` built from
-  `prov.constants.XSI` declares itself when it is asserted. PROV-XML still writes and
-  reads `xsi:type` as before, and its writer raises `ProvXMLException` for a document
-  that binds `xsi` to another IRI, which 3.2.x renamed to `xsi_1`
+  `ProvElementIdentifierRequired` for an identifier. PROV-JSON and PROV-JSONLD that 3.2.x
+  wrote with `xsi:` names have no `xsi` entry in their prefix map, so add one before
+  reading them with 3.3.0. A `QualifiedName` built from `prov.constants.XSI` declares
+  itself when it is asserted. `prov.model.DEFAULT_NAMESPACES` no longer has an `xsi` key.
+  PROV-XML still writes and reads `xsi:type` as before, and its writer raises
+  `ProvXMLException` for a document that binds `xsi` to another IRI, which 3.2.x renamed
+  to `xsi_1`
   ([#510](https://github.com/trungdong/prov/issues/510))
 
 ### Output changes

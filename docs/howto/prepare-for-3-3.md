@@ -242,7 +242,7 @@ warn.
 
 ## The `xsi` prefix
 
-`prov` 3.2.x reads these without a warning.
+`prov` 3.2.x accepts these without a warning.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
@@ -252,6 +252,10 @@ warn.
 An `xsi:` identifier with no declaration raises `ProvElementIdentifierRequired`
 instead. PROV-XML documents are unchanged, because the PROV-XML codec reads and writes
 `xsi:type` itself.
+
+`prov` 3.2.x writes `xsi:` names to PROV-JSON and PROV-JSONLD without an `xsi` entry in
+the prefix map, so add an `xsi` entry for `http://www.w3.org/2001/XMLSchema-instance` to
+such a file before reading it with 3.3.0.
 
 ## Unification
 
