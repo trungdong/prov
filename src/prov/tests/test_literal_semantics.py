@@ -1,5 +1,5 @@
 """Literal value-space semantics (3.0): #77 decimal, #259 langtag, #89 string form,
-and the 3.2.3 warning for a language tag 3.3.0 rejects (#472)."""
+and the language tags 3.3.0 rejects (#472)."""
 
 import io
 import re
