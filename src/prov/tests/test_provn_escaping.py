@@ -179,13 +179,13 @@ def test_fast_path_skips_only_local_parts_written_unchanged() -> None:
 
 
 def test_writable_fast_path_skips_only_local_parts_written_unencoded() -> None:
-    from prov.identifier import _PROVN_LOCAL_WRITABLE, _provn_escape_local
+    from prov.identifier import _PROVN_LOCAL_PERCENT_ENCODED, _provn_escape_local
 
     # The same characters and positions as the test above, for the check
     # QualifiedName runs on every new name (#524).
     chars = [chr(cp) for cp in (*range(0x10000), 0x1F600)]
     local_parts = [lp for ch in chars for lp in (ch + "a", "a" + ch + "a", "a" + ch)]
-    skipped = [lp for lp in local_parts if _PROVN_LOCAL_WRITABLE.fullmatch(lp)]
+    skipped = [lp for lp in local_parts if not _PROVN_LOCAL_PERCENT_ENCODED.search(lp)]
 
     assert 0 < len(skipped) < len(local_parts)
     assert [lp for lp in skipped if _provn_escape_local(lp)[1]] == []

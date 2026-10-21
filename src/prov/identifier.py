@@ -92,15 +92,20 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
 
-# One search settles the common case in provn_bare_representation(): a local
-# part this does not match is written as it stands, with no warning.
+# One search settles the common case: a local part this does not match is
+# written as it stands, with no escaping and no warning.
 _PROVN_LOCAL_NOT_PLAIN = re.compile(
     f"^{_PN_LOCAL_BAD_START.pattern}|{_PROVN_LOCAL_NEEDS_ESCAPE.pattern}"
 )
-# A local part PROV-N writes without percent-encoding. A '%' falls outside it,
-# so a local part holding one goes to _provn_escape_local() to be settled.
-_PROVN_LOCAL_WRITABLE = re.compile(
-    f"(?!{_PN_LOCAL_BAD_START.pattern})[{_PROVN_LOCAL_ALLOWED_UNESCAPED}]*"
+# A local part PROV-N can only write by percent-encoding, which changes the
+# IRI a reader recovers: a character that cannot start PN_LOCAL in first
+# place, a '%' that is not an existing escape, or a character PN_LOCAL cannot
+# spell at all. The one decision behind QualifiedName's warning and
+# _provn_escape_local's second result.
+_PROVN_LOCAL_PERCENT_ENCODED = re.compile(
+    f"^{_PN_LOCAL_BAD_START.pattern}"
+    r"|%(?![0-9A-Fa-f]{2})"
+    f"|[^{_PROVN_LOCAL_ALLOWED_UNESCAPED}%]"
 )
 
 # False while Namespace._adopt() copies a name that was checked when first built.
@@ -122,35 +127,33 @@ def _slot_state(state: Any) -> dict[str, Any]:
     return dict(state)
 
 
-def _escape_local_char(
-    localpart: str, i: int, last_index: int, char: str
-) -> tuple[str, bool]:
-    """Return one character's PROV-N spelling and whether it was percent-encoded."""
+def _escape_local_char(localpart: str, i: int, last_index: int, char: str) -> str:
+    """Return one character's PROV-N spelling."""
     if i == 0 and _PN_LOCAL_BAD_START.match(char):
         # PN_LOCAL_BAD_START chars are legal PN_CHARS but cannot start a
         # PN_LOCAL, and there is no backslash escape for "start here";
         # percent-encoding is the only way to write one first.
-        return "".join(f"%{byte:02X}" for byte in char.encode("utf-8")), True
+        return "".join(f"%{byte:02X}" for byte in char.encode("utf-8"))
     if char == "%":
         # An existing valid escape (e.g. "%20") is kept verbatim. A bare
         # '%' not followed by two hex digits is written as "%25", which a
         # PROV-N reader keeps as that text, so it counts as encoded.
         if _PROVN_HEX_PAIR.match(localpart, i + 1):
-            return char, False
-        return "%25", True
+            return char
+        return "%25"
     if (
         (i == 0 and char in _PROVN_LOCAL_LEADING_ESCAPE)
         or (i == last_index and char == ".")
         or char in _PROVN_LOCAL_METACHARS
     ):
-        return f"\\{char}", False
+        return f"\\{char}"
     if _PROVN_LOCAL_NEEDS_PERCENT_ENCODING.match(char):
         # "surrogatepass" lets a lone surrogate (unpaired, e.g. from WTF-8 or
         # a Windows filename) be percent-encoded from its raw UTF-16 code
         # unit rather than raising UnicodeEncodeError.
         encoded = char.encode("utf-8", "surrogatepass")
-        return "".join(f"%{byte:02X}" for byte in encoded), True
-    return char, False
+        return "".join(f"%{byte:02X}" for byte in encoded)
+    return char
 
 
 def _provn_escape_local(localpart: str) -> tuple[str, bool]:
@@ -162,18 +165,14 @@ def _provn_escape_local(localpart: str) -> tuple[str, bool]:
     percent-encoded character, or a bare ``%`` written as ``%25``, is not, so
     the caller warns when it happens.
     """
-    if not _PROVN_LOCAL_NEEDS_ESCAPE.search(localpart) and not (
-        localpart and _PN_LOCAL_BAD_START.match(localpart[0])
-    ):
+    if not _PROVN_LOCAL_NOT_PLAIN.search(localpart):
         return localpart, False
     last_index = len(localpart) - 1
-    parts = []
-    encoded = False
-    for i, char in enumerate(localpart):
-        text, char_was_encoded = _escape_local_char(localpart, i, last_index, char)
-        parts.append(text)
-        encoded = encoded or char_was_encoded
-    return "".join(parts), encoded
+    escaped = "".join(
+        _escape_local_char(localpart, i, last_index, char)
+        for i, char in enumerate(localpart)
+    )
+    return escaped, _PROVN_LOCAL_PERCENT_ENCODED.search(localpart) is not None
 
 
 def _provn_escape_local_and_warn(localpart: str, uri: str) -> str:
@@ -315,9 +314,8 @@ class QualifiedName(Identifier):
         # An ASCII identifier, the usual local part, needs no regex.
         if (
             not (localpart.isascii() and localpart.isidentifier())
-            and not _PROVN_LOCAL_WRITABLE.fullmatch(localpart)
             and _check_local_parts.get()
-            and _provn_escape_local(localpart)[1]
+            and _PROVN_LOCAL_PERCENT_ENCODED.search(localpart)
         ):
             warn(
                 future_rejection_message(
