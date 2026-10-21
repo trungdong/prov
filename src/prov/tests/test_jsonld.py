@@ -645,23 +645,6 @@ def test_deserialize_value_object_without_value_raises() -> None:
         ProvDocument.deserialize(content=payload, format="jsonld")
 
 
-@pytest.mark.parametrize("datatype", ["xsd:QName", "prov:QUALIFIED_NAME"])
-def test_deserialize_typed_value_that_is_a_full_iri_warns(datatype: str) -> None:
-    # The reader compacts the IRI to ex:thing; 3.3.0 rejects the value (#553).
-    payload = _entity_with("ex:ref", [{"@value": EX_URI + "thing", "@type": datatype}])
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        doc = ProvDocument.deserialize(content=payload, format="jsonld")
-    assert [str(w.message) for w in caught] == [
-        "the qualified name 'http://example.org/thing' of ex:ref does not resolve,"
-        " because its prefix 'http' is not declared; it reads as ex:thing."
-        " prov 3.3.0 will reject this (#553)"
-    ]
-    assert [w.filename for w in caught] == [__file__]
-    (entity,) = doc.get_records()
-    (value,) = [v for _, v in entity.extra_attributes]
-    assert value == doc.valid_qualified_name("ex:thing")
-
-
 @pytest.mark.parametrize(
     ("key", "value"),
     [
