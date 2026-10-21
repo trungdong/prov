@@ -161,19 +161,23 @@ def encode_jsonld_value(
             (e.g. ``"type"``, ``"ex:price"``), used to decide whether a
             :class:`~prov.identifier.QualifiedName` value is emitted as a
             bare string (``@id``-typed terms, see :data:`ID_TYPED_TERMS`) or
-            as a typed value object.
+            as a ``{"@id": ...}`` node reference.
         qname_text: Writes a qualified name (the value or a literal's
             datatype); the container's ``_JSONPrefixMap.qname_text`` in
             :func:`encode_jsonld_container`.
 
     Returns:
-        A bare qualified-name string for ``@id``-typed terms, or a
-        ``{"@value": ..., "@type"/"@language": ...}`` value object.
+        A bare qualified-name string for ``@id``-typed terms, a
+        ``{"@id": ...}`` node reference for a qualified name under any other
+        term (schema 2026-10-14 ``node_reference``, openprov/prov-jsonld#7),
+        or a ``{"@value": ..., "@type"/"@language": ...}`` value object. A
+        JSON-LD processor reads the node reference as the IRI, which is what
+        PROV-O holds for the value (#545).
     """
     if isinstance(value, QualifiedName):
         if term in ID_TYPED_TERMS:
             return qname_text(value)  # @id-typed term: bare qualified-name string
-        return {"@value": qname_text(value), "@type": str(XSD_QNAME)}
+        return {"@id": qname_text(value)}
     if isinstance(value, Literal):
         if value.langtag:
             return {"@value": value.value, "@language": value.langtag}

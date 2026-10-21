@@ -77,6 +77,51 @@ def test_serialize_special_and_extra_attributes() -> None:
     assert stmt["ex:note"] == [{"@value": "plain"}]
 
 
+@pytest.mark.parametrize(
+    ("key", "term"),
+    [("ex:ref", "ex:ref"), ("prov:label", "label"), ("prov:value", "value")],
+)
+def test_serialize_qualified_name_as_node_reference(key: str, term: str) -> None:
+    # Schema 2026-10-14 (openprov/prov-jsonld#7): a qualified name under any
+    # term outside ID_TYPED_TERMS is a node reference, as ProvToolbox 2.2.5
+    # writes it. A JSON-LD processor reads it as the IRI, matching PROV-O.
+    doc = _new_doc()
+    doc.entity("ex:e1", ((key, doc.valid_qualified_name("ex:thing")),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[term] == [{"@id": "ex:thing"}]
+
+
+def test_serialize_qualified_name_under_type_stays_a_bare_string() -> None:
+    doc = _new_doc()
+    doc.entity("ex:e1", (("prov:type", doc.valid_qualified_name("ex:Sort")),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt["type"] == ["ex:Sort"]
+
+
+def test_serialize_default_namespace_qualified_name_as_node_reference() -> None:
+    # A default-namespace name is bare, and "@id" values resolve against the
+    # "@base" the writer sets to the default namespace.
+    doc = ProvDocument()
+    doc.set_default_namespace(EX_URI)
+    doc.entity("e1", ((EX_URI + "ref", doc.valid_qualified_name("thing")),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[EX_URI + "ref"] == [{"@id": "thing"}]
+
+
+@pytest.mark.parametrize("context", ["url", "embed"])
+@pytest.mark.parametrize("default_namespace", [False, True])
+def test_roundtrip_qualified_name_value(context: str, default_namespace: bool) -> None:
+    doc = ProvDocument()
+    if default_namespace:
+        doc.set_default_namespace(EX_URI)
+        doc.entity("e1", ((EX_URI + "ref", doc.valid_qualified_name("thing")),))
+    else:
+        doc.add_namespace("ex", EX_URI)
+        doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:thing")),))
+    text = doc.serialize(format="jsonld", context=context)
+    assert ProvDocument.deserialize(content=text, format="jsonld") == doc
+
+
 def test_serialize_bundle_nesting() -> None:
     doc = _new_doc()
     bundle = doc.bundle("ex:b1")
