@@ -26,8 +26,9 @@ rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the en
 four of the steps below change.
 
 ```bash
-# Full interpreter matrix, matching the CI matrix
-for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do
+# Full interpreter matrix, matching the CI matrix. "cpython3.11" stops uv from
+# reusing a PyPy 3.11 environment left by the previous run.
+for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest -q || break
 done
 

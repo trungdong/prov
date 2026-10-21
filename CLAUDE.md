@@ -46,8 +46,9 @@ needed for `mypy --strict` (transitive via `types-networkx`/`matplotlib`).
 ## Gates every PR must pass
 
 ```bash
-# All supported interpreters (matches CI matrix)
-for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do
+# All supported interpreters (matches CI matrix). "cpython3.11" stops uv from
+# reusing a PyPy 3.11 environment left by the previous run.
+for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
 done
 
