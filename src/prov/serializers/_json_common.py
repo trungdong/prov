@@ -1,10 +1,10 @@
 """The JSON machinery PROV-JSON and PROV-JSONLD share.
 
 :mod:`prov.serializers.provjson` and :mod:`prov.serializers.provjsonld` both
-write qualified names against a container's prefix map, fan a membership out
-into one ``hadMember`` record per member, and name a value's position in
-their messages. Those pieces live here so that neither reader imports the
-other's private names (#589).
+write qualified names against a container's prefix map and fan a membership
+out into one ``hadMember`` record per member. Those pieces live here so that
+neither module imports the other's private names. The position and rejection
+helpers that PROV-JSON's messages use live here too (#589).
 """
 
 import json
