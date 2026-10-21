@@ -164,13 +164,13 @@ up in the BCP 47 registry. The PROV-N reader rejected these tags already.
 | `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | [#524](https://github.com/trungdong/prov/issues/524) | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
 
 The error is a `ProvExceptionInvalidQualifiedName` when the name is built, from any
-format, from code or from a pickle written by an earlier release; its message starts
-`Invalid Qualified Name: ex:a b,` and a space, and the table shows the rest. A local
-part cannot hold a space, a control character or another character that PROV-N can write
-only by percent-encoding it, such as `"` or `|`. Nor can it hold a `%` that two
-hexadecimal digits do not follow, or start with U+00B7 (middle dot), U+203F (undertie),
-U+2040 (character tie) or a combining mark from U+0300 to U+036F. 3.2.3 percent-encoded
-such a character when it wrote PROV-N, so a PROV-N reader recovered a different IRI. The
+format, from code or from a pickle written by an earlier release; its message is
+`Invalid Qualified Name: ex:a b,` followed by the text in the table. A local part cannot
+hold a space, a control character or another character that PROV-N can write only by
+percent-encoding it, such as `"` or `|`. Nor can it hold a `%` that two hexadecimal
+digits do not follow, or start with U+00B7 (middle dot), U+203F (undertie), U+2040
+(character tie) or a combining mark from U+0300 to U+036F. 3.2.3 percent-encoded such a
+character when it wrote PROV-N, so a PROV-N reader recovered a different IRI. The
 characters `= ' ( ) , : ; [ ]` are written with a backslash instead, and are accepted.
 
 ## Python values

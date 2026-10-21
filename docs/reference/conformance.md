@@ -137,10 +137,9 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 - **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built, as is a tag
   that is not shaped like a BCP 47 tag; PROV-XML's `xml:lang=""` is rejected on read
   ([#472](https://github.com/trungdong/prov/issues/472)).
-- **C6. Language tag that is not BCP 47.** PROV-N writes an underscore separator as a hyphen,
-  so `en_US` reads back as `en-US`; PROV-O raises rdflib's `ValueError`. PROV-JSON, PROV-XML
-  and PROV-JSONLD pass the tag through unchanged. From 3.2.3 such a tag warns when the
-  literal is built, and 3.3.0 rejects it ([#472](https://github.com/trungdong/prov/issues/472)).
+- **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
+  `Literal` is built, from any format or from code, so no writer meets one
+  ([#472](https://github.com/trungdong/prov/issues/472)).
 - **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
   in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
   the round trip compares equal; the original offset is not preserved.
