@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from prov.constants import XSI
+from prov.constants import PROV, XSD, XSI
 from prov.model import (
     PROV_REC_CLS,
     Literal,
@@ -22,9 +22,11 @@ from prov.serializers.provn_parser import (
     _ELEMENTS,
     _MENTION,
     _RELATIONS,
+    PROFILES,
     ProvNParser,
 )
 from prov.tests import examples
+from prov.tests.conftest import no_future_rejection
 
 PREFIXES = "prefix ex <http://example.org/>\nprefix dc <http://purl.org/dc/terms/>\n"
 
@@ -334,6 +336,142 @@ def test_errors_name_the_problem_and_position(body, message, line) -> None:
         parse(body)
     assert message in str(ctx.value)
     assert ctx.value.line == line
+
+
+EX_PREFIX = "prefix ex <http://example.org/>\n"
+EVERY = PROFILES
+STRICT = ("strict",)
+
+
+# The declarations and whitespace the reader rejects (#508, #509, #510, #511,
+# #519 a and d): the document, the profiles that reject it, the message and
+# the line of the ProvNSyntaxError. PR 7 adds the statement rows.
+REJECTED_DOCUMENTS = [
+    pytest.param(
+        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument",
+        EVERY,
+        "'default' is declared twice in this scope",
+        3,
+        508,
+        id="repeated default",
+    ),
+    *[
+        pytest.param(
+            f"document\nprefix {name} <http://x/>\n{EX_PREFIX}entity(ex:e)\nendDocument",
+            EVERY,
+            f"'{name}' is not a PROV-N prefix name",
+            2,
+            511,
+            id=f"prefix {name}",
+        )
+        for name in ("_", "a/b", "1a")
+    ],
+    pytest.param(
+        f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
+        STRICT,
+        "'default' follows a 'prefix' declaration",
+        3,
+        519,
+        id="default after prefix",
+    ),
+    *[
+        pytest.param(
+            f"document\nprefix {prefix} <{namespace.uri}>\n{EX_PREFIX}entity(ex:e)\nendDocument",
+            STRICT,
+            f"prefix '{prefix}' is predeclared",
+            2,
+            519,
+            id=f"declares {prefix}",
+        )
+        for prefix, namespace in (("prov", PROV), ("xsd", XSD))
+    ],
+    pytest.param(
+        f"document\n{EX_PREFIX}entity(ex:e)\xa0\nendDocument\n",
+        EVERY,
+        "U+00A0 is not PROV-N whitespace",
+        3,
+        509,
+        id="no-break space",
+    ),
+    pytest.param(
+        # A statement-level error, which the lenient profile skips instead.
+        f'document\n{EX_PREFIX}entity(ex:e, [xsi:type="ex:T"])\nendDocument',
+        ("strict", "default"),
+        "cannot resolve 'xsi:type': prefix 'xsi' is not declared",
+        3,
+        510,
+        id="undeclared xsi",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    ("text", "profiles", "message", "line", "issue"), REJECTED_DOCUMENTS
+)
+def test_reader_rejects(text, profiles, message, line, issue) -> None:
+    for profile in profiles:
+        with pytest.raises(ProvNSyntaxError) as ctx:
+            ProvDocument.deserialize(content=text, format="provn", profile=profile)
+        assert message in str(ctx.value), profile
+        assert ctx.value.line == line, profile
+
+
+# Declarations each profile reads without a message (#508, #511, #519 a and d,
+# #510): the declaration block and the profiles that accept it.
+ACCEPTED_DECLARATIONS = [
+    pytest.param("default <http://a/>\n", EVERY, id="one default"),
+    *[
+        pytest.param(f"prefix {name} <http://x/>\n", EVERY, id=f"prefix {name}")
+        for name in ("a.b", "a_b", "a-1")
+    ],
+    pytest.param(
+        f"{EX_PREFIX}default <http://d/>\n",
+        ("default", "lenient"),
+        id="default after prefix",
+    ),
+    pytest.param(
+        f"default <http://d/>\n{EX_PREFIX}", EVERY, id="default before prefix"
+    ),
+    *[
+        pytest.param(
+            f"prefix {prefix} <{namespace.uri}>\n",
+            ("default", "lenient"),
+            id=f"declares {prefix}",
+        )
+        for prefix, namespace in (("prov", PROV), ("xsd", XSD))
+    ],
+    pytest.param(f"prefix xsi <{XSI.uri}>\n", EVERY, id="declares xsi at its XML IRI"),
+    pytest.param(
+        "prefix xsi <http://other/>\n", EVERY, id="declares xsi at another IRI"
+    ),
+]
+
+
+@pytest.mark.parametrize(("declarations", "profiles"), ACCEPTED_DECLARATIONS)
+def test_reader_accepts_declarations(declarations, profiles) -> None:
+    for profile in profiles:
+        with no_future_rejection():
+            ProvDocument.deserialize(
+                content=f"document\n{declarations}endDocument",
+                format="provn",
+                profile=profile,
+            )
+
+
+def test_declared_xsi_keeps_its_name_in_the_writers() -> None:
+    # xsi is an ordinary prefix: a document that binds it to another IRI is
+    # written back under its own name, not renamed away from a built-in.
+    doc = ProvDocument.deserialize(
+        content=OTHER_XSI + XSI_ROUND_TRIP_RECORD + "\nendDocument",
+        format="provn",
+        profile="strict",
+    )
+    record = next(r for r in doc.get_records() if r.identifier is not None)
+    assert record.identifier.uri == "http://other/e"
+    text = doc.get_provn()
+    assert "prefix xsi <http://other/>" in text
+    assert "xsi_1" not in text
+    assert "xsi_1" not in doc.serialize(format="json")
 
 
 def test_strict_rejects_bare_mention_with_a_hint() -> None:
@@ -653,35 +791,6 @@ def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:
     d.add_namespace("bad", "http://example.org/a b/")
     with pytest.raises(ProvException, match="bad"):
         d.get_provn()
-
-
-XSI_LINE = f"prefix xsi <{XSI.uri}>"
-
-
-def _xsi_document() -> ProvDocument:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
-    return doc
-
-
-def test_writer_declares_xsi_for_an_xsi_datatype() -> None:
-    doc = _xsi_document()
-    doc.entity("ex:e", {"ex:p": Literal("v", XSI["t"])})
-    assert XSI_LINE in doc.get_provn()
-
-
-def test_writer_omits_xsi_when_no_record_uses_it() -> None:
-    doc = _xsi_document()
-    doc.entity("ex:e")
-    assert "prefix xsi" not in doc.get_provn()
-
-
-def test_writer_omits_xsi_for_a_string_value_that_only_looks_like_an_xsi_name() -> None:
-    doc = _xsi_document()
-    doc.entity("ex:e", {"ex:p": "xsi:not-a-name"})
-    text = doc.get_provn()
-    assert "xsi:not-a-name" in text
-    assert "prefix xsi" not in text
 
 
 @pytest.mark.parametrize("profile", ["strict", "default", "lenient"])

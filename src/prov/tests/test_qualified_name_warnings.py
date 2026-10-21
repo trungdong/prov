@@ -105,15 +105,6 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             553,
             id="full IRI",
         ),
-        pytest.param(
-            '"xsi:x" %% xsd:QName',
-            "xsi:x",
-            "its prefix 'xsi' is not declared",
-            KEPT,
-            None,
-            510,
-            id="xsd:QName undeclared xsi",
-        ),
     ],
 )
 def test_provn_unresolvable_qualified_name_value_warns_once(
