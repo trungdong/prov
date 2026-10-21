@@ -25,9 +25,10 @@ class ProvNSerializer(Serializer):
             stream: Stream to write the output to. Text streams receive the
                 PROV-N text directly; other (binary) streams receive it
                 UTF-8-encoded.
-            strict: Write ``prov:mentionOf`` instead of the bare
-                ``mentionOf`` keyword so the output parses under the strict
-                PROV-N profile.
+            strict: Write output that parses under the strict PROV-N
+                profile, as :meth:`prov.model.ProvRecord.get_provn` describes,
+                dropping what ``alternateOf``, ``specializationOf`` and
+                ``hadMember`` cannot carry there, with a warning each.
             **args: Unused; accepted for interface compatibility with
                 :meth:`Serializer.serialize`.
 

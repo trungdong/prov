@@ -37,6 +37,7 @@ from prov._warnings import (
     warn,
 )
 from prov.constants import (
+    _PROV_N_BARE_RELATIONS,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
@@ -1093,62 +1094,80 @@ class ProvRecord:
         """Return the PROV-N representation of the record.
 
         Args:
-            strict: Write ``prov:mentionOf`` instead of the bare
-                ``mentionOf`` keyword so the output parses under the strict
-                PROV-N profile.
+            strict: Write output that parses under the strict PROV-N
+                profile. Mention is written ``prov:mentionOf`` instead of
+                the bare ``mentionOf`` keyword, and ``alternateOf``,
+                ``specializationOf`` and ``hadMember`` are written without
+                the identifier or attribute block PROV-N does not give them,
+                each dropped with a :class:`~prov.model.ProvWarning` that
+                names the record.
         """
-        items = []
-
-        # Generating identifier
-        relation_id = ""  # default blank
+        keyword = PROV_N_MAP[self.get_type()]
+        identifier = ""
+        items: list[str] = []
         if self._identifier:
             identifier = self._identifier.provn_bare_representation()
             if self.is_element():
                 items.append(identifier)
-            else:
-                # a relation's identifier is followed by a semicolon
-                relation_id = identifier + "; "
-
-        # Writing out the formal attributes
-        for attr in self.FORMAL_ATTRIBUTES:
-            values = self._attributes.get(attr)
-            if values:
-                # Formal attributes always have single values
-                value = first(values)
-                if isinstance(value, datetime.datetime):
-                    items.append(_xsd_datetime_text(value))
-                elif isinstance(value, QualifiedName):
-                    items.append(value.provn_bare_representation())
-                else:
-                    items.append(str(value))
-            else:
-                items.append("-")
-
-        # Writing out the remaining attributes
-        extra = []
-        for attr in self._attributes:
-            if attr not in self.FORMAL_ATTRIBUTES:
-                for value in self._attributes[attr]:
-                    try:
-                        # try if there is a prov-n representation defined
-                        provn_representation = value.provn_representation()
-                    except AttributeError:
-                        provn_representation = encoding_provn_value(value)
-                    attr_name = attr.provn_bare_representation()
-                    extra.append(f"{attr_name}={provn_representation}")
-
-        if extra:
-            # .format(), not an f-string: the nested string literals reuse the
-            # same quote character, which f-strings only allow from py3.12 (PEP 701)
-            items.append("[{}]".format(", ".join(extra)))
-        keyword = PROV_N_MAP[self.get_type()]
+                identifier = ""
+        items.extend(self._provn_formal_items())
+        block = self._provn_attribute_block()
         if strict and self.get_type() == PROV_MENTION:
             # The Recommendation grammar has no Mention; PROV-Links writes it
             # as prov:mentionOf. The default keeps the bare keyword ProvToolbox
             # reads (#248).
             keyword = "prov:mentionOf"
-        prov_n = "{}({}{})".format(keyword, relation_id, ", ".join(items))
-        return prov_n
+        elif strict and self.get_type() in _PROV_N_BARE_RELATIONS:
+            # A strict read rejects either, so neither is written (#569).
+            written = f"{keyword}({', '.join(items)})"
+            if identifier:
+                warn(
+                    f"strict=True drops the identifier {identifier} of {written},"
+                    f" because PROV-N gives {keyword} no identifier"
+                )
+                identifier = ""
+            if block:
+                warn(
+                    f"strict=True drops the attribute block {block} of {written},"
+                    f" because PROV-N gives {keyword} no attribute block"
+                )
+                block = ""
+        if block:
+            items.append(block)
+        relation_id = f"{identifier}; " if identifier else ""
+        return f"{keyword}({relation_id}{', '.join(items)})"
+
+    def _provn_formal_items(self) -> list[str]:
+        """The formal attributes in production order, ``-`` where absent."""
+        items = []
+        for attr in self.FORMAL_ATTRIBUTES:
+            values = self._attributes.get(attr)
+            if not values:
+                items.append("-")
+                continue
+            value = first(values)  # a formal attribute holds one value
+            if isinstance(value, datetime.datetime):
+                items.append(_xsd_datetime_text(value))
+            elif isinstance(value, QualifiedName):
+                items.append(value.provn_bare_representation())
+            else:
+                items.append(str(value))
+        return items
+
+    def _provn_attribute_block(self) -> str:
+        """The ``[name=value, ...]`` block of the other attributes, or ``""``."""
+        pairs = []
+        for attr in self._attributes:
+            if attr in self.FORMAL_ATTRIBUTES:
+                continue
+            name = attr.provn_bare_representation()
+            for value in self._attributes[attr]:
+                try:
+                    text = value.provn_representation()
+                except AttributeError:
+                    text = encoding_provn_value(value)
+                pairs.append(f"{name}={text}")
+        return f"[{', '.join(pairs)}]" if pairs else ""
 
     def is_element(self) -> bool:
         """Return ``True`` if the record is an element, ``False`` otherwise."""
