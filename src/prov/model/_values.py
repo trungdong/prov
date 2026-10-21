@@ -1,9 +1,10 @@
 """Checks on attribute values at assertion, and the warnings they raise.
 
-:mod:`prov.model.records` calls :func:`check_attribute_value` once for each
-value it asserts. This module imports nothing from :mod:`prov.model.records`,
-so the caller passes in the record types it needs, which are the plain value
-types and the ``Literal`` class.
+:mod:`prov.model.records` calls :func:`check_time_offset` for a time value and
+:func:`check_converted_value` for a value that is neither a time nor a formal
+qualified name. This module imports nothing from :mod:`prov.model.records`,
+so the caller passes in the plain value base types, and a literal is any
+object with a ``datatype``.
 """
 
 from __future__ import annotations
@@ -16,12 +17,10 @@ import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar, cast
 
 from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
-    PROV_ATTRIBUTE_LITERALS,
-    PROV_ATTRIBUTE_QNAMES,
     PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
@@ -176,38 +175,32 @@ def _warn_unresolved_name(
         )
 
 
-def check_attribute_value(
+def check_time_offset(attr: QualifiedName, value: datetime.datetime) -> None:
+    """Warn if the time ``value`` of ``attr`` has an offset beyond ±14:00."""
+    if _offset_beyond_xsd_bound(value):
+        _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
+
+
+def check_converted_value(
     bundle: ProvBundle,
     attr: QualifiedName,
     original_value: object,
     value: object,
-    *,
-    plain_types: frozenset[type],
     plain_bases: tuple[type, ...],
-    literal_type: type[_TypedText],
 ) -> None:
-    """Run the 3.3.0 checks on a converted attribute value.
+    """Run the 3.3.0 checks on a non-formal attribute value.
 
-    A time position checks its offset. A non-formal position checks a value
-    whose type is not in ``plain_types``, and a value converted from a
-    ``literal_type`` typed as a qualified name. Formal qualified-name
-    positions have nothing to check.
+    ``value`` is ``original_value`` after conversion. A datetime converted from
+    a typed literal checks its offset, a value that is not an instance of
+    ``plain_bases`` has no PROV form, and a typed literal checks that its
+    qualified name resolves. A literal is an object with a ``datatype``.
     """
-    if attr in PROV_ATTRIBUTE_QNAMES:
-        return
-    if attr in PROV_ATTRIBUTE_LITERALS:
-        if isinstance(value, datetime.datetime) and _offset_beyond_xsd_bound(value):
-            _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
-        return
-    if type(value) not in plain_types:
-        if isinstance(value, datetime.datetime):
-            if isinstance(original_value, literal_type) and _offset_beyond_xsd_bound(
-                value
-            ):
-                _warn_offset_beyond_bound(
-                    f"{attr} {original_value}", "keep it as a Literal"
-                )
-        elif value is not None and not isinstance(value, plain_bases):
-            _warn_no_prov_form(attr, value)
-    elif isinstance(original_value, literal_type):
-        _warn_unresolved_name(bundle, attr, original_value, value)
+    if isinstance(value, datetime.datetime):
+        if hasattr(original_value, "datatype") and _offset_beyond_xsd_bound(value):
+            _warn_offset_beyond_bound(
+                f"{attr} {original_value}", "keep it as a Literal"
+            )
+    elif value is not None and not isinstance(value, plain_bases):
+        _warn_no_prov_form(attr, value)
+    elif hasattr(original_value, "datatype"):
+        _warn_unresolved_name(bundle, attr, cast(_TypedText, original_value), value)

@@ -4,7 +4,6 @@ from __future__ import annotations  # defer eval: TYPE_CHECKING names in signatu
 
 import datetime
 import decimal
-import functools
 import io
 import logging
 import math
@@ -116,7 +115,8 @@ from prov.model._values import (
     _rebuild as _rebuild,
     _rebuilding as _rebuilding,
     _warn_unresolved_name as _warn_unresolved_name,
-    check_attribute_value,
+    check_converted_value,
+    check_time_offset,
 )
 
 if TYPE_CHECKING:
@@ -688,14 +688,6 @@ _PLAIN_VALUE_TYPES = frozenset(
 )
 _PLAIN_VALUE_BASES = (str, int, float, Identifier, Literal)
 
-# The check takes the value types, so _values.py names no record class.
-_check_attribute_value = functools.partial(
-    check_attribute_value,
-    plain_types=_PLAIN_VALUE_TYPES,
-    plain_bases=_PLAIN_VALUE_BASES,
-    literal_type=Literal,
-)
-
 
 #  PROV records
 class ProvRecord:
@@ -984,10 +976,16 @@ class ProvRecord:
                     f"Expected a datetime, or a string or xsd:dateTime Literal"
                     f" that parses as one."
                 )
+            check_time_offset(attr, value)
         else:
             value = self._auto_literal_conversion(original_value)
+            if type(value) not in _PLAIN_VALUE_TYPES or isinstance(
+                original_value, Literal
+            ):
+                check_converted_value(
+                    self._bundle, attr, original_value, value, _PLAIN_VALUE_BASES
+                )
 
-        _check_attribute_value(self._bundle, attr, original_value, value)
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
 
