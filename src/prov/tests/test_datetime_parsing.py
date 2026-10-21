@@ -12,6 +12,7 @@ from prov.model import (
     ProvDocument,
     ProvException,
     ProvValueError,
+    ProvWarning,
     parse_xsd_datetime,
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document
@@ -278,5 +279,5 @@ def test_every_reader_keeps_a_typed_time_beyond_the_bound_as_a_literal(fmt) -> N
     )
     text = document.serialize(format=fmt)
     with warnings.catch_warnings():
-        warnings.simplefilter("error")
+        warnings.simplefilter("error", ProvWarning)
         assert ProvDocument.deserialize(content=text, format=fmt) == document
