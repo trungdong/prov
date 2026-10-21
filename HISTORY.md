@@ -7,6 +7,18 @@
 - `prov` requires Python 3.11 or later. Python 3.10 reached its end of life on
   2026-10-31, and pip installs the last 3.2.x release on it instead
 
+### Output changes
+
+- The PROV-JSONLD writer writes a qualified name under any attribute other than
+  `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
+  the form the 2026-10-14 revision of the PROV-JSONLD schema specifies and ProvToolbox
+  2.2.5 writes. A JSON-LD processor now reads the value as the IRI it names, as PROV-O
+  holds it ([#564](https://github.com/trungdong/prov/issues/564),
+  [#545](https://github.com/trungdong/prov/issues/545)). `prov` 3.2.2 and earlier wrote an
+  `xsd:QName` value object and cannot read the new form (`missing "@value"`); 3.2.3 reads
+  it. ProvToolbox up to 2.2.5 cannot read `prov`'s PROV-JSONLD output when a `prov:` term
+  appears under `type`, because its reader does not fetch the context that defines `prov`
+
 ## 3.2.3 (2026-10-19)
 
 3.2.3 is a bug-fix release that also warns about input 3.3.0 rejects or reads
