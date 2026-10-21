@@ -79,27 +79,30 @@ warnings.filterwarnings(
 
 ## PROV-N declarations
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `'default' is declared twice in this scope` | [#508](https://github.com/trungdong/prov/issues/508) | `default <http://a/>` followed by `default <http://b/>` | One `default` declaration. `prov` 3.2 uses the last one. |
 | `'…' is not a PROV-N prefix name` | [#511](https://github.com/trungdong/prov/issues/511) | `prefix _ <http://x/>`, `prefix a/b <http://x/>` | A prefix that starts with a letter, such as `prefix ab <http://x/>`. |
-| `prefix 'xsi' is not declared` | [#510](https://github.com/trungdong/prov/issues/510) | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
+| `cannot resolve 'xsi:type': prefix 'xsi' is not declared` | [#510](https://github.com/trungdong/prov/issues/510) | `[xsi:type="ex:T"]` with no `prefix xsi` line | Add `prefix xsi <http://www.w3.org/2001/XMLSchema-instance>`. |
 | `'default' follows a 'prefix' declaration` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix ex <…>` followed by `default <…>` | The `default` declaration first. |
 | `prefix 'prov' is predeclared` or `prefix 'xsd' is predeclared` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `prefix prov <http://www.w3.org/ns/prov#>` | No declaration. Both prefixes are predeclared. |
 
-`prov` 3.2.2 and earlier wrote `xsi:` names without a `prefix xsi` line. Reading
-such a file and writing it again with `prov` 3.2.3 adds the declaration.
+Each is a `ProvNSyntaxError` at the declaration. In 3.2.3 the first two rows and the two
+strict-profile rows warn with the same text; an undeclared `xsi:` name warns
+`prefix 'xsi' is not declared`. `prov` 3.2.2 and earlier wrote `xsi:` names without a
+`prefix xsi` line. Reading such a file and writing it again with `prov` 3.2.3 adds the
+declaration, so do that before upgrading.
 
 ## PROV-N whitespace
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `U+00A0 is not PROV-N whitespace` | [#509](https://github.com/trungdong/prov/issues/509) | `entity(ex:e)` followed by a no-break space | A space, tab, CR or LF. |
-| `U+1680 is not PROV-N whitespace` | [#509](https://github.com/trungdong/prov/issues/509) | `entity(` followed by U+1680 and `ex:e)` | A space, tab, CR or LF. 3.3.0 reads U+1680 as part of a name. |
 
-The same warning names any other Unicode whitespace character between tokens,
-such as U+000C (form feed) or U+2028 (line separator). Whitespace inside a
-string, an IRI or a comment does not warn.
+Each is a `ProvNSyntaxError` at the character, and the same error names any other Unicode
+whitespace character between tokens, such as U+000C (form feed) or U+2028 (line
+separator). U+1680 is a name character, so `entity(` followed by U+1680 and `ex:e)` fails
+at the name instead. Whitespace inside a string, an IRI or a comment is unchanged.
 
 ## PROV-N statements
 
@@ -199,7 +202,7 @@ again.
 
 | Warning | Issue | Example | Write instead |
 |---|---|---|---|
-| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516), or [#510](https://github.com/trungdong/prov/issues/510) for an `xsi:` name in PROV-N | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
 | `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
 | `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
 | `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
@@ -236,6 +239,19 @@ after the value, as in `the qualified name 'zz:x' of ex:k does not resolve`.
 In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts in 3.3.0, and does not
 warn.
+
+## The `xsi` prefix
+
+`prov` 3.2.x reads these without a warning.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `Invalid Qualified Name: xsi:type` | [#510](https://github.com/trungdong/prov/issues/510) | `doc.entity("ex:e", {"xsi:type": "ex:T"})` in code, or an `"xsi:type"` key in PROV-JSON or PROV-JSONLD, with no `xsi` prefix declared | A declaration, such as `doc.add_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")` or an `xsi` entry in `"prefix"` in PROV-JSON, or a name built from `prov.constants.XSI`. |
+| `PROV-XML binds the prefix 'xsi' to <http://www.w3.org/2001/XMLSchema-instance>, but the document binds it to <…>` | [#510](https://github.com/trungdong/prov/issues/510) | `prefix xsi <http://other/>` in PROV-N, written to PROV-XML | Another prefix for that namespace. |
+
+An `xsi:` identifier with no declaration raises `ProvElementIdentifierRequired`
+instead. PROV-XML documents are unchanged, because the PROV-XML codec reads and writes
+`xsi:type` itself.
 
 ## Unification
 
