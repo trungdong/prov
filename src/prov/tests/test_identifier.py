@@ -1,6 +1,6 @@
 """Exercises prov.identifier.Namespace edges not otherwise covered by the
-serializer round-trip tests (planning/test-gap-checklist.md, T13), and the
-3.2.3 warning for a local part 3.3.0 rejects (#524)."""
+serializer round-trip tests (planning/test-gap-checklist.md, T13), and
+the local parts 3.3.0 rejects (#524)."""
 
 import re
 from typing import Any, cast
