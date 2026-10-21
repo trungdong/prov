@@ -1,7 +1,7 @@
 # Installation
 
-`prov` needs Python 3.10 or later. Support for Python 3.10 ends in the first release
-after its end of life on 2026-10-31.
+`prov` needs Python 3.11 or later. On Python 3.10, pip installs the last 3.2.x release
+instead.
 
 ```bash
 python -m pip install prov

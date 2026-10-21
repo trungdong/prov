@@ -21,9 +21,7 @@ from prov.model import *
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
 
-_TIME_2012 = datetime.datetime(
-    2012, 12, 3, 21, 8, 16, 686000, tzinfo=datetime.timezone.utc
-)
+_TIME_2012 = datetime.datetime(2012, 12, 3, 21, 8, 16, 686000, tzinfo=datetime.UTC)
 
 # The 14 "scruffy" documents below add two relations sharing one identifier
 # but differing prov:time; PROV-O cannot represent this (both times serialize

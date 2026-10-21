@@ -85,5 +85,6 @@ upgrade guide does not cover your case.
 ## What comes next
 
 [ROADMAP.md](https://github.com/trungdong/prov/blob/main/ROADMAP.md) lists the planned
-releases in order. Next is 3.3.0, which raises the Python floor to 3.11 under the support
-policy, since Python 3.10's support ends on 2026-10-31.
+releases in order. 3.3.0 requires Python 3.11 or later under the support policy, because
+Python 3.10's support ends on 2026-10-31. On Python 3.10, pip installs the last 3.2.x
+release instead.

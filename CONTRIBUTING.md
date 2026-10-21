@@ -65,10 +65,12 @@ a volunteer-driven project.
 6. Make your changes, then run the tests on every supported interpreter:
 
    ```bash
-   for py in 3.10 3.11 3.12 3.13 3.14 3.15 pypy3.11; do uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break; done
+   for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break; done
    ```
 
-   The first run downloads any interpreter you do not already have cached.
+   The first run downloads any interpreter you do not already have cached. `cpython3.11`
+   names the implementation, so uv does not reuse a PyPy 3.11 environment from an earlier
+   run.
 
    Then run the static checks, which CI also runs:
 
@@ -99,7 +101,7 @@ a volunteer-driven project.
 1. Include tests.
 2. If the pull request adds functionality, update the docs. Give new functions a docstring
    and add the feature to the list in README.md.
-3. The pull request must pass on CPython 3.10 to 3.15 and on PyPy 3.11. The automated
+3. The pull request must pass on CPython 3.11 to 3.15 and on PyPy 3.11. The automated
    checks at the bottom of the pull request run the full matrix.
 4. The `benchmark` check times your change and the target branch on one CI runner. It is
    advisory and never blocks a merge. If it is red, or if your change is meant to alter

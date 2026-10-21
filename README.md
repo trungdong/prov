@@ -13,7 +13,7 @@ import and export in PROV-N, PROV-JSON, PROV-JSONLD, PROV-XML and PROV-O (RDF).
 
 - Documentation: <https://prov.readthedocs.io/>
 - Licence: MIT
-- Python 3.10 or later
+- Python 3.11 or later
 
 ## Features
 

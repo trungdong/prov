@@ -3,7 +3,7 @@
   "exclude": ["src/prov/tests", "build"],
   "venvPath": ".",
   "venv": ".venv",
-  "pythonVersion": "3.10",
+  "pythonVersion": "3.11",
   "typeCheckingMode": "standard",
   "reportOptionalMemberAccess": "none",
   "reportAttributeAccessIssue": "warning"

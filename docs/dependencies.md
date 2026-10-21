@@ -107,9 +107,9 @@ uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
 Sphinx was capped below 9 from 2.3.0 to 3.0.0 because Sphinx 9's autodoc called `repr()`
 on rdflib's `DefinedNamespaceMeta`, which raised `AttributeError` and crashed the build.
 rdflib 7.6.0 catches that error itself, so the cap was lifted for 3.0.0 after a clean
-`sphinx-build -W` against Sphinx 9. The lock file currently resolves Sphinx 8.1.3. If a
-similar autodoc crash appears on a future Sphinx major, rebuild with `-W` before assuming a
-new cap is needed.
+`sphinx-build -W` against Sphinx 9. The lock file resolves Sphinx 9. If a similar autodoc
+crash appears on a future Sphinx major, rebuild with `-W` before assuming a new cap is
+needed.
 
 ## `[tool.uv]` constraint
 

@@ -106,7 +106,7 @@ def test_relation_identifier_is_kept() -> None:
 def test_formal_time_is_a_datetime() -> None:
     record = only_record(parse("used(ex:a1, ex:e1, 2011-11-16T16:05:00Z)"))
     (time,) = [v for k, v in record.formal_attributes if str(k) == "prov:time"]
-    assert time == datetime.datetime(2011, 11, 16, 16, 5, tzinfo=datetime.timezone.utc)
+    assert time == datetime.datetime(2011, 11, 16, 16, 5, tzinfo=datetime.UTC)
 
 
 def test_mention_maps_to_prov_mention() -> None:
