@@ -78,10 +78,6 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-dm-example-34.provn": (
         "wasAssociatedWith gives only the activity and agent without the paired plan"
     ),
-    "prov-dm-example-42.provn": (
-        "a statement after a bundle; production [1] puts every expression before "
-        "the first bundle"
-    ),
     "prov-dm-example-52.provn": (
         "wasAssociatedWith gives only the activity and agent without the paired plan"
     ),
@@ -99,8 +95,10 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
 _UNDECLARED_VALUE_PREFIX = "does not resolve, because its prefix '.*' is not declared"
 
 # Recommendation examples that the strict profile reads with a 3.3.0 warning
-# (#516). The examples are not normative, so the grammar wins.
+# (#516 for the undeclared value prefixes, #519 for the statement after a
+# bundle). The examples are not normative, so the grammar wins.
 STRICT_WARNING_EXAMPLES: dict[str, str] = {
+    "prov-dm-example-42.provn": "a statement follows a bundle",
     # The specifications use these prefixes in a qualified-name value
     # without declaring them (#516).
     "prov-n-example-34.provn": _UNDECLARED_VALUE_PREFIX,

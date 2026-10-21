@@ -47,8 +47,6 @@ rejects even though the Recommendation's prose presents it as valid. Listed in
   activity/entity without the paired plan or time
 - `prov-dm-example-34.provn`, `prov-dm-example-52.provn` - `wasAssociatedWith` gives only the
   activity and agent without the paired plan
-- `prov-dm-example-42.provn` - a statement after a bundle; production [1] puts every
-  expression before the first bundle
 - `prov-dm-example-53.provn`, `prov-dm-example-56.provn`, `prov-dm-example-63.provn` - `used`
   gives only the activity and entity without the paired time
 - `prov-dm-example-55.provn` - `used`/`wasGeneratedBy` give only the activity/entity without
