@@ -108,6 +108,6 @@ logger = logging.getLogger(__name__)
 # pre-split prov/model.py module. `from prov.model.records import ...` (and
 # `.namespaces`/`.bundle`) still works via sys.modules; only attribute access
 # like `prov.model.records` is hidden, which no historic code could have used.
-for _submodule_name in ("bundle", "namespaces", "records"):
+for _submodule_name in ("_values", "bundle", "namespaces", "records"):
     globals().pop(_submodule_name, None)
 del _submodule_name
