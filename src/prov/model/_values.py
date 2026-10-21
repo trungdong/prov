@@ -19,7 +19,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar
 
 from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
@@ -116,23 +116,6 @@ def _warn_offset_beyond_bound(detail: str, outcome: str = "reject this") -> None
         )
 
 
-def _warn_about_value(
-    attr: QualifiedName,
-    original_value: object,
-    value: object,
-    plain_bases: tuple[type, ...],
-    literal_type: type,
-) -> None:
-    """Warn about a converted non-formal attribute value 3.3.0 treats differently."""
-    if isinstance(value, datetime.datetime):
-        if isinstance(original_value, literal_type) and _offset_beyond_xsd_bound(value):
-            _warn_offset_beyond_bound(
-                f"{attr} {original_value}", "keep it as a Literal"
-            )
-    elif value is not None and not isinstance(value, plain_bases):
-        _warn_no_prov_form(attr, value)
-
-
 def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
     """Warn that 3.3.0 converts or rejects ``value``, which has no PROV form."""
     if _rebuilding.get():
@@ -157,17 +140,26 @@ def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
     warn(message, ProvFutureRejectionWarning)
 
 
+class _TypedText(Protocol):
+    """The datatype and text of a ``Literal``."""
+
+    @property
+    def datatype(self) -> QualifiedName | None: ...
+
+    @property
+    def value(self) -> str: ...
+
+
 def _warn_unresolved_name(
-    bundle: ProvBundle, attr: QualifiedName, literal: object, value: object
+    bundle: ProvBundle, attr: QualifiedName, literal: _TypedText, value: object
 ) -> None:
     """Warn that ``literal``, typed as a qualified name, does not resolve by its
     prefix (#516, #553); ``value`` is what it converted to."""
-    datatype = getattr(literal, "datatype", None)
-    text = getattr(literal, "value", "")
+    text = literal.value
     if (
         _reader_checks_names.get()
         or _rebuilding.get()
-        or datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
+        or literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
     ):
         return
     reason = bundle._unresolved_reason(text)
@@ -196,7 +188,7 @@ def check_attribute_value(
     *,
     plain_types: frozenset[type],
     plain_bases: tuple[type, ...],
-    literal_type: type,
+    literal_type: type[_TypedText],
 ) -> None:
     """Run the 3.3.0 checks on a converted attribute value.
 
@@ -212,6 +204,14 @@ def check_attribute_value(
             _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
         return
     if type(value) not in plain_types:
-        _warn_about_value(attr, original_value, value, plain_bases, literal_type)
+        if isinstance(value, datetime.datetime):
+            if isinstance(original_value, literal_type) and _offset_beyond_xsd_bound(
+                value
+            ):
+                _warn_offset_beyond_bound(
+                    f"{attr} {original_value}", "keep it as a Literal"
+                )
+        elif value is not None and not isinstance(value, plain_bases):
+            _warn_no_prov_form(attr, value)
     elif isinstance(original_value, literal_type):
         _warn_unresolved_name(bundle, attr, original_value, value)
