@@ -26,11 +26,11 @@ from prov.model import (
     ProvFutureRejectionWarning,
     ProvMembership,
 )
+from prov.serializers._json_common import _JSONPrefixMap
 from prov.serializers.provjson import (
     ProvJSONDecoder,
     ProvJSONEncoder,
     ProvJSONException,
-    _JSONPrefixMap,
     decode_json_representation,
     encode_json_container,
 )
