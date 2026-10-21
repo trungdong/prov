@@ -542,8 +542,8 @@ REJECTED_DOCUMENTS = [
         f'{STATEMENT_PREFIX}entity(ex:e, [ex:k="ex:a b" %% prov:QUALIFIED_NAME])'
         "\nendDocument",
         STATEMENT,
-        "the local part 'a b' of <http://example.org/a b> contains a character"
-        " PROV-N cannot write",
+        "Invalid Qualified Name: ex:a b, the local part 'a b' of"
+        " <http://example.org/a b> contains a character PROV-N cannot write",
         (3, 1),
         524,
         id="qualified-name value with an unwritable local part",
@@ -566,7 +566,7 @@ def test_reader_rejects(text, profiles, message, position, issue) -> None:
         line, column = position
         with pytest.warns(
             ProvWarning,
-            match=f"skipped: line {line}, column {column}: .*{re.escape(message)}",
+            match=f"skipped: line {line}, column {column}: {re.escape(message)}",
         ) as caught:
             document = ProvDocument.deserialize(
                 content=text, format="provn", profile="lenient"
