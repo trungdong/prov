@@ -186,21 +186,24 @@ def check_converted_value(
     attr: QualifiedName,
     original_value: object,
     value: object,
+    plain_types: frozenset[type],
     plain_bases: tuple[type, ...],
 ) -> None:
     """Run the 3.3.0 checks on a non-formal attribute value.
 
-    ``value`` is ``original_value`` after conversion. A datetime converted from
-    a typed literal checks its offset, a value that is not an instance of
-    ``plain_bases`` has no PROV form, and a typed literal checks that its
-    qualified name resolves. A literal is an object with a ``datatype``.
+    ``value`` is ``original_value`` after conversion. A value whose type is not
+    in ``plain_types`` is a datetime, which checks its offset when converted
+    from a typed literal, or a value outside ``plain_bases``, which has no PROV
+    form. A value of a plain type converted from a typed literal checks that
+    its qualified name resolves. A literal is an object with a ``datatype``.
     """
-    if isinstance(value, datetime.datetime):
-        if hasattr(original_value, "datatype") and _offset_beyond_xsd_bound(value):
-            _warn_offset_beyond_bound(
-                f"{attr} {original_value}", "keep it as a Literal"
-            )
-    elif value is not None and not isinstance(value, plain_bases):
-        _warn_no_prov_form(attr, value)
+    if type(value) not in plain_types:
+        if isinstance(value, datetime.datetime):
+            if hasattr(original_value, "datatype") and _offset_beyond_xsd_bound(value):
+                _warn_offset_beyond_bound(
+                    f"{attr} {original_value}", "keep it as a Literal"
+                )
+        elif value is not None and not isinstance(value, plain_bases):
+            _warn_no_prov_form(attr, value)
     elif hasattr(original_value, "datatype"):
         _warn_unresolved_name(bundle, attr, cast(_TypedText, original_value), value)

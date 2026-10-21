@@ -983,7 +983,12 @@ class ProvRecord:
                 original_value, Literal
             ):
                 check_converted_value(
-                    self._bundle, attr, original_value, value, _PLAIN_VALUE_BASES
+                    self._bundle,
+                    attr,
+                    original_value,
+                    value,
+                    _PLAIN_VALUE_TYPES,
+                    _PLAIN_VALUE_BASES,
                 )
 
         if value is None:
