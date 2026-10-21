@@ -2,15 +2,17 @@
 
 Every file under ``fixtures/written-by-3.2.3`` is read with the format its
 extension names and compared with the document the current code builds from
-the same source. Section 1 of the 3.3.0 release design calls this the
-compatibility promise; the fixtures are the direct test of it.
+the same source. A document prov 3.2.3 wrote reads the same under this
+release, and the fixtures test that directly.
 """
+
+from __future__ import annotations
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
-from _pytest.mark import ParameterSet
 
 import prov
 from prov.model import ProvDocument
@@ -18,12 +20,17 @@ from prov.tests import attribute_values, examples
 
 from .conftest import contains_mention
 
+if TYPE_CHECKING:
+    from _pytest.mark import ParameterSet
+
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "written-by-3.2.3"
+# Maps each format to its file extension. Keep in step with FORMATS in
+# fixtures/written-by-3.2.3/generate.py.
 FORMATS = {
     "json": "json",
     "xml": "xml",
     "provn": "provn",
-    "trig": "rdf",
+    "rdf": "trig",
     "jsonld": "jsonld",
 }
 
@@ -35,8 +42,9 @@ SOURCES: list[tuple[str, Callable[[], ProvDocument]]] = [
 def _cases() -> list[ParameterSet]:
     cases = []
     for slug, build in SOURCES:
-        for extension, fmt in FORMATS.items():
-            if fmt == "jsonld" and contains_mention(build()):
+        mention = contains_mention(build())
+        for fmt, extension in FORMATS.items():
+            if fmt == "jsonld" and mention:
                 continue
             cases.append(
                 pytest.param(slug, build, extension, fmt, id=f"{slug}.{extension}")

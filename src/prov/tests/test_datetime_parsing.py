@@ -14,9 +14,7 @@ from prov.model import (
     ProvFutureRejectionWarning,
     parse_xsd_datetime,
 )
-from prov.tests.conftest import ROUNDTRIP_FORMATS
-
-from .conftest import ex_document
+from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document
 
 UTC = datetime.UTC
 

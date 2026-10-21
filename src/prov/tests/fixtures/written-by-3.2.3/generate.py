@@ -5,9 +5,11 @@ Run from the repository root with the published wheel, never the working tree:
     uvx --from "prov[rdf,xml]==3.2.3" \
         python -I src/prov/tests/fixtures/written-by-3.2.3/generate.py
 
-``-I`` keeps the working tree's ``src`` off ``sys.path``. The example and
-corpus modules are loaded from this checkout by path, so they are the ones the
-test compares against; they import only names every 3.x release has.
+``-I`` keeps the current directory and the user site off ``sys.path``, and the
+script refuses to run when prov is imported from inside this repository. The
+example and corpus modules are loaded from this checkout by path, so they are
+the ones the test compares against; they import only names every 3.x release
+has.
 """
 
 import importlib.util
@@ -20,6 +22,8 @@ import prov.model
 
 HERE = Path(__file__).resolve().parent
 TESTS = HERE.parents[1]
+# Maps each format to its file extension. Keep in step with FORMATS in
+# test_written_by_3_2_3.py.
 FORMATS = {
     "json": "json",
     "xml": "xml",
@@ -54,7 +58,8 @@ def main() -> None:
         sys.exit(f"this directory is written by prov 3.2.3, not {prov.__version__}")
     if Path(prov.__file__).resolve().is_relative_to(HERE.parents[4]):
         sys.exit(
-            "prov is imported from this repository; run with the published 3.2.3 wheel"
+            "prov is imported from inside this repository; run this with the"
+            " published prov 3.2.3 wheel (see the docstring)"
         )
     examples = _load("examples")
     attribute_values = _load("attribute_values")
