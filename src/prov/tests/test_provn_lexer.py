@@ -172,7 +172,6 @@ NON_WS_SPACES = [
         ('"x" %', 1, 5),
         ("ex:a\\zb", 1, 5),
         *[(f"entity(ex:e){ch}endDocument", 1, 13) for ch in NON_WS_SPACES],
-        ("entity(ex:e)\xa0\xa0\xa0\u2028endDocument", 1, 13),
         ("entity(ex:e) \xa0// note\n\xa0endDocument", 1, 14),
     ],
 )
@@ -461,5 +460,5 @@ def test_ogham_space_mark_is_a_name_character() -> None:
 
 
 def test_ws_and_spaces_inside_comments_strings_and_iris_are_not_errors() -> None:
-    text = 'entity(ex:e,\t[ex:a="\xa0"])\r\n// \xa0\n/* 　 */ <http://a/\xa0>'
+    text = 'entity(ex:e,\t[ex:a="\xa0"])\r\n// \xa0\n/* \u3000 */ <http://a/\xa0>'
     assert list(tokenize(text))[-1].kind is TokenKind.EOF

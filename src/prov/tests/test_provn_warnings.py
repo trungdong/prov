@@ -14,8 +14,6 @@ from prov.tests.test_provn import (
     STATEMENT_PREFIX,
 )
 
-from .conftest import no_future_rejection
-
 
 def parse_with_warnings(
     text: str, profile: str = "default"
@@ -40,11 +38,6 @@ def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
         text = d.get_provn()
     assert "bundle dn:b%201" in text
     assert len(record) == 1
-
-
-def _reads_back_without_future_warnings(text: str) -> ProvDocument:
-    with no_future_rejection():
-        return ProvDocument.deserialize(content=text, format="provn")
 
 
 STRICT_ISSUE = 519

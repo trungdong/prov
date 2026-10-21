@@ -345,13 +345,13 @@ STRICT = ("strict",)
 
 # The declarations and whitespace the reader rejects (#508, #509, #510, #511,
 # #519 a and d): the document, the profiles that reject it, the message and
-# the line of the ProvNSyntaxError. PR 7 adds the statement rows.
+# the line and column of the ProvNSyntaxError.
 REJECTED_DOCUMENTS = [
     pytest.param(
         "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument",
         EVERY,
         "'default' is declared twice in this scope",
-        3,
+        (3, 1),
         508,
         id="repeated default",
     ),
@@ -360,7 +360,7 @@ REJECTED_DOCUMENTS = [
             f"document\nprefix {name} <http://x/>\n{EX_PREFIX}entity(ex:e)\nendDocument",
             EVERY,
             f"'{name}' is not a PROV-N prefix name",
-            2,
+            (2, 8),
             511,
             id=f"prefix {name}",
         )
@@ -370,26 +370,26 @@ REJECTED_DOCUMENTS = [
         f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
         STRICT,
         "'default' follows a 'prefix' declaration",
-        3,
+        (3, 1),
         519,
         id="default after prefix",
     ),
     *[
         pytest.param(
-            f"document\nprefix {prefix} <{namespace.uri}>\n{EX_PREFIX}entity(ex:e)\nendDocument",
+            f"document\nprefix {ns.prefix} <{ns.uri}>\n{EX_PREFIX}entity(ex:e)\nendDocument",
             STRICT,
-            f"prefix '{prefix}' is predeclared",
-            2,
+            f"prefix '{ns.prefix}' is predeclared",
+            (2, 8),
             519,
-            id=f"declares {prefix}",
+            id=f"declares {ns.prefix}",
         )
-        for prefix, namespace in (("prov", PROV), ("xsd", XSD))
+        for ns in (PROV, XSD)
     ],
     pytest.param(
         f"document\n{EX_PREFIX}entity(ex:e)\xa0\nendDocument\n",
         EVERY,
         "U+00A0 is not PROV-N whitespace",
-        3,
+        (3, 13),
         509,
         id="no-break space",
     ),
@@ -397,7 +397,7 @@ REJECTED_DOCUMENTS = [
         "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\xa0\nendDocument\n",
         EVERY,
         "U+00A0 is not PROV-N whitespace",
-        4,
+        (4, 10),
         509,
         id="whitespace before a repeated default",
     ),
@@ -406,7 +406,7 @@ REJECTED_DOCUMENTS = [
         f'document\n{EX_PREFIX}entity(ex:e, [xsi:type="ex:T"])\nendDocument',
         ("strict", "default"),
         "cannot resolve 'xsi:type': prefix 'xsi' is not declared",
-        3,
+        (3, 15),
         510,
         id="undeclared xsi",
     ),
@@ -414,14 +414,14 @@ REJECTED_DOCUMENTS = [
 
 
 @pytest.mark.parametrize(
-    ("text", "profiles", "message", "line", "issue"), REJECTED_DOCUMENTS
+    ("text", "profiles", "message", "position", "issue"), REJECTED_DOCUMENTS
 )
-def test_reader_rejects(text, profiles, message, line, issue) -> None:
+def test_reader_rejects(text, profiles, message, position, issue) -> None:
     for profile in profiles:
         with pytest.raises(ProvNSyntaxError) as ctx:
             ProvDocument.deserialize(content=text, format="provn", profile=profile)
         assert message in str(ctx.value), profile
-        assert ctx.value.line == line, profile
+        assert (ctx.value.line, ctx.value.column) == position, profile
 
 
 # Declarations each profile reads without a message (#508, #511, #519 a and d,
@@ -442,11 +442,11 @@ ACCEPTED_DECLARATIONS = [
     ),
     *[
         pytest.param(
-            f"prefix {prefix} <{namespace.uri}>\n",
+            f"prefix {ns.prefix} <{ns.uri}>\n",
             ("default", "lenient"),
-            id=f"declares {prefix}",
+            id=f"declares {ns.prefix}",
         )
-        for prefix, namespace in (("prov", PROV), ("xsd", XSD))
+        for ns in (PROV, XSD)
     ],
     pytest.param(f"prefix xsi <{XSI.uri}>\n", EVERY, id="declares xsi at its XML IRI"),
     pytest.param(
@@ -464,22 +464,6 @@ def test_reader_accepts_declarations(declarations, profiles) -> None:
                 format="provn",
                 profile=profile,
             )
-
-
-def test_declared_xsi_keeps_its_name_in_the_writers() -> None:
-    # xsi is an ordinary prefix: a document that binds it to another IRI is
-    # written back under its own name, not renamed away from a built-in.
-    doc = ProvDocument.deserialize(
-        content=OTHER_XSI + XSI_ROUND_TRIP_RECORD + "\nendDocument",
-        format="provn",
-        profile="strict",
-    )
-    record = next(r for r in doc.get_records() if r.identifier is not None)
-    assert record.identifier.uri == "http://other/e"
-    text = doc.get_provn()
-    assert "prefix xsi <http://other/>" in text
-    assert "xsi_1" not in text
-    assert "xsi_1" not in doc.serialize(format="json")
 
 
 def test_strict_rejects_bare_mention_with_a_hint() -> None:
@@ -548,7 +532,14 @@ def test_declared_xsi_round_trips_through_the_writers(target) -> None:
         OTHER_XSI + XSI_ROUND_TRIP_RECORD + "\nendDocument", "strict"
     ).parse()
     assert _datatype_uri(doc) == "http://other/t"
+    (record,) = [r for r in doc.get_records() if r.identifier is not None]
+    assert record.identifier.uri == "http://other/e"
     content = doc.serialize(format=target)
+    # xsi is an ordinary prefix: a document that binds it to another IRI is
+    # written back under its own name, not renamed away from a built-in.
+    assert "xsi_1" not in content
+    if target == "provn":
+        assert "prefix xsi <http://other/>" in content
     reloaded = ProvDocument.deserialize(content=content, format=target)
     assert reloaded == doc
     assert _datatype_uri(reloaded) == "http://other/t"
@@ -573,8 +564,6 @@ def test_declared_xsi_round_trips_through_the_writers_at_bundle_scope(target) ->
 
 
 def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri() -> None:
-    from prov.constants import PROV
-
     record = only_record(
         ProvNParser(
             f"document\nprefix prov <{PROV.uri}>\nentity(prov:e1)\nendDocument",
@@ -835,7 +824,7 @@ def test_code_point_escapes_read_in_strings_and_iris() -> None:
     assert record.get_attribute("ex:k") == {"café"}
 
 
-STATEMENT_PREFIX = "document\nprefix ex <http://example.org/>\n"
+STATEMENT_PREFIX = f"document\n{EX_PREFIX}"
 
 
 def test_conflicting_formal_attribute_is_skipped_without_a_warning() -> None:

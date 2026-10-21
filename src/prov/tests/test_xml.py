@@ -951,7 +951,7 @@ def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:
         document.serialize(format="xml")
 
 
-def test_xml_namespace_order_ignores_a_declared_xsi_at_its_own_iri() -> None:
+def test_xml_namespace_order_keeps_xsi_last_when_it_is_declared() -> None:
     def prefixes(declare: bool) -> list[str]:
         document = prov.ProvDocument()
         document.add_namespace("ex", "http://example.org/")
