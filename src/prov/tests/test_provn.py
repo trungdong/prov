@@ -548,6 +548,34 @@ REJECTED_DOCUMENTS = [
         524,
         id="qualified-name value with an unwritable local part",
     ),
+    # A full IRI in a name position is the undeclared prefix 'http' (#553,
+    # #599): an identifier, a formal argument, an attribute name and a
+    # datatype are rejected at the name, a value at the value.
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{statement}\nendDocument",
+            STATEMENT,
+            "cannot resolve 'http://example.org/x': prefix 'http' is not declared",
+            (3, column),
+            553,
+            id=f"full IRI as {position}",
+        )
+        for statement, column, position in (
+            ("entity(http://example.org/x)", 8, "an identifier"),
+            ("wasGeneratedBy(ex:e, http://example.org/x, -)", 22, "a formal argument"),
+            ('entity(ex:e, [http://example.org/x="v"])', 15, "an attribute name"),
+            ('entity(ex:e, [ex:k="1" %% http://example.org/x])', 27, "a datatype"),
+        )
+    ],
+    pytest.param(
+        f"{STATEMENT_PREFIX}entity(ex:e, [ex:k='http://example.org/x'])\nendDocument",
+        STATEMENT,
+        "the qualified name 'http://example.org/x' does not resolve, because"
+        " its prefix 'http' is not declared",
+        (3, 20),
+        553,
+        id="full IRI as a qualified-name value",
+    ),
 ]
 
 

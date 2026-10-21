@@ -507,9 +507,8 @@ def test_had_member_array_without_a_collection_reads() -> None:
 
 
 def test_had_member_members_resolve_alike() -> None:
-    # Every member resolves as the first one does. A later member with an
-    # undeclared prefix, or a null, raised ProvExceptionInvalidQualifiedName.
-    # The undeclared prefix warns, as 3.3.0 rejects it (#516).
+    # Every member resolves as the first one does. A null later in the array
+    # raised KeyError; it warns until 3.3.0 rejects it (#528).
     def members(entities: list[str | None]) -> list[set[Any]]:
         text = _json(
             {
@@ -523,7 +522,6 @@ def test_had_member_members_resolve_alike() -> None:
             document = ProvDocument.deserialize(content=text, format="json")
         return [r.get_attribute("prov:entity") for r in document.get_records()]
 
-    assert members(["foo:e1", "ex:e2"]) == members(["ex:e2", "foo:e1"])[::-1]
     assert members([None, "ex:e2"]) == members(["ex:e2", None])[::-1]
 
 
@@ -560,81 +558,131 @@ def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> N
     assert document == _read_quietly(_json({"entity": {"ex:e": same_as}}))
 
 
-_FULL_IRI_REASON = "its prefix 'http' is not declared"
+# A qualified name the reader rejects because it does not resolve by its
+# prefix in scope (#516, #551, #599): the sections under the ex prefix and the
+# message of the ProvJSONException. The reader never compacts an IRI, so a
+# full IRI is the undeclared prefix 'http'. A qualified-name value object is
+# one row here and every reason in test_unresolved_names.py.
+_UNDECLARED = "its prefix 'zz' is not declared"
+_FULL_IRI = "its prefix 'http' is not declared"
+_NO_PREFIX = "it has no prefix and no default namespace is declared"
 
 
-def _full_iri(text: str, position: str) -> str:
-    return rejected(
-        f"{position}: the qualified name {text!r} does not resolve, because"
-        f" {_FULL_IRI_REASON}; it reads as ex:{text.rpartition('/')[2]}",
-        551,
-    )
+def _unresolved(position: str, text: str, reason: str) -> str:
+    return f"{position}: the qualified name {text!r} does not resolve, because {reason}"
 
 
-@pytest.mark.parametrize(
-    ("section", "attributes", "attr_name", "clean"),
-    [
-        pytest.param(
-            "wasGeneratedBy",
-            {"prov:entity": "ex:e", "prov:activity": "http://example.org/a"},
-            "prov:activity",
-            {"prov:entity": "ex:e", "prov:activity": "ex:a"},
-            id="formal",
+REJECTED_NAMES = [
+    pytest.param(
+        {"entity": {"http://example.org/e1": {}}},
+        _unresolved(
+            "record 'http://example.org/e1'", "http://example.org/e1", _FULL_IRI
         ),
-        pytest.param(
-            "hadMember",
-            {"prov:collection": "ex:c", "prov:entity": "http://example.org/e"},
-            "prov:entity",
-            {"prov:collection": "ex:c", "prov:entity": "ex:e"},
-            id="member",
+        id="record key full IRI",
+    ),
+    pytest.param(
+        {"entity": {"zz:e1": {}}},
+        _unresolved("record 'zz:e1'", "zz:e1", _UNDECLARED),
+        id="record key undeclared",
+    ),
+    pytest.param(
+        {"wasGeneratedBy": {"g1": {"prov:entity": "ex:e"}}},
+        _unresolved("record 'g1'", "g1", _NO_PREFIX),
+        id="relation key with no prefix and no default",
+    ),
+    pytest.param(
+        {"bundle": {"http://example.org/b": {"entity": {"ex:e": {}}}}},
+        _unresolved("bundle 'http://example.org/b'", "http://example.org/b", _FULL_IRI),
+        id="bundle key full IRI",
+    ),
+    pytest.param(
+        {
+            "wasGeneratedBy": {
+                "ex:r": {"prov:entity": "ex:e", "prov:activity": "http://example.org/a"}
+            }
+        },
+        _unresolved(
+            "record 'ex:r', attribute 'prov:activity'",
+            "http://example.org/a",
+            _FULL_IRI,
         ),
-        pytest.param(
-            "hadMember",
-            {"prov:collection": "ex:c", "prov:entity": ["http://example.org/e"]},
-            "prov:entity",
-            {"prov:collection": "ex:c", "prov:entity": ["ex:e"]},
-            id="member-in-an-array",
+        id="formal attribute full IRI",
+    ),
+    pytest.param(
+        {"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e", "prov:activity": "zz:a"}}},
+        _unresolved("record 'ex:r', attribute 'prov:activity'", "zz:a", _UNDECLARED),
+        id="formal attribute undeclared",
+    ),
+    pytest.param(
+        {
+            "hadMember": {
+                "ex:m": {
+                    "prov:collection": "ex:c",
+                    "prov:entity": ["ex:e1", "http://example.org/e3"],
+                }
+            }
+        },
+        _unresolved(
+            "record 'ex:m', attribute 'prov:entity'", "http://example.org/e3", _FULL_IRI
         ),
-    ],
-)
-def test_formal_attribute_that_is_a_full_iri_warns(
-    section: str, attributes: dict[str, Any], attr_name: str, clean: dict[str, Any]
+        id="member full IRI",
+    ),
+    pytest.param(
+        {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": "zz:a"}}},
+        _unresolved("record 'ex:m', attribute 'prov:entity'", "zz:a", _UNDECLARED),
+        id="member undeclared",
+    ),
+    pytest.param(
+        {"entity": {"ex:e": {"http://example.org/k": "v"}}},
+        _unresolved(
+            "record 'ex:e', attribute 'http://example.org/k'",
+            "http://example.org/k",
+            _FULL_IRI,
+        ),
+        id="attribute name full IRI",
+    ),
+    pytest.param(
+        {"entity": {"ex:e": {"zz:k": "v"}}},
+        _unresolved("record 'ex:e', attribute 'zz:k'", "zz:k", _UNDECLARED),
+        id="attribute name undeclared",
+    ),
+    pytest.param(
+        {
+            "entity": {
+                "ex:e": {
+                    "ex:k": {"$": "http://example.org/x", "type": "prov:QUALIFIED_NAME"}
+                }
+            }
+        },
+        _unresolved(
+            "record 'ex:e', attribute 'ex:k'", "http://example.org/x", _FULL_IRI
+        ),
+        id="value full IRI",
+    ),
+    pytest.param(
+        {
+            "entity": {
+                "ex:e": {
+                    "ex:k": [
+                        {"$": "ex:x", "type": "xsd:QName"},
+                        {"$": "zz:x", "type": "xsd:QName"},
+                    ]
+                }
+            }
+        },
+        _unresolved("record 'ex:e', attribute 'ex:k'", "zz:x", _UNDECLARED),
+        id="value undeclared after a declared one",
+    ),
+]
+
+
+@pytest.mark.parametrize(("sections", "message"), REJECTED_NAMES)
+def test_reader_rejects_a_name_that_does_not_resolve(
+    sections: dict[str, Any], message: str
 ) -> None:
-    document, messages = _read_warning(_json({section: {"ex:r": attributes}}))
-    value = attributes[attr_name]
-    text = value[0] if isinstance(value, list) else value
-    assert messages == [_full_iri(text, f"record 'ex:r', attribute '{attr_name}'")]
-    assert document == _read_quietly(_json({section: {"ex:r": clean}}))
-
-
-def test_had_member_full_iri_members_each_warn() -> None:
-    entity = ["http://example.org/e1", "ex:e2", "http://example.org/e3"]
-    document, messages = _read_warning(
-        _json(
-            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": entity}}}
-        )
-    )
-    assert messages == [
-        _full_iri("http://example.org/e1", "record 'ex:m', attribute 'prov:entity'"),
-        _full_iri("http://example.org/e3", "record 'ex:m', attribute 'prov:entity'"),
-    ]
-    clean = ["ex:e1", "ex:e2", "ex:e3"]
-    assert document == _read_quietly(
-        _json(
-            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": clean}}}
-        )
-    )
-
-
-def test_bundle_key_that_is_a_full_iri_warns() -> None:
-    def text(key: str) -> str:
-        return _json({"bundle": {key: {"entity": {"ex:e": {}}}}})
-
-    document, messages = _read_warning(text("http://example.org/b"))
-    assert messages == [
-        _full_iri("http://example.org/b", "bundle 'http://example.org/b'")
-    ]
-    assert document == _read_quietly(text("ex:b"))
+    with pytest.raises(ProvJSONException) as ctx:
+        ProvDocument.deserialize(content=_json(sections), format="json")
+    assert str(ctx.value) == message
 
 
 def test_null_formal_attribute_warns() -> None:
