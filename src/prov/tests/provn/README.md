@@ -20,6 +20,8 @@ rejects even though the Recommendation's prose presents it as valid. Listed in
   own text
 - `prov-n-example-37.provn` - `wasAssociatedWith(ex:a1, ex:ag1)` gives the agent without the
   paired plan; production [20] requires them together
+- `prov-n-example-51.provn` - a `prefix` declaration before the `default` declaration;
+  production [45] puts the default first
 - `prov-n-example-52.provn`, `prov-n-example-53.provn` - a bare typed-literal pair, not a
   statement
 - `prov-n-example-54.provn` - a bare qualified-name literal pair, not a statement

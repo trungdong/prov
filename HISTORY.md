@@ -2,6 +2,53 @@
 
 ## 3.3.0 (unreleased)
 
+### Rejected input
+
+From 3.3.0, the reader or the model that warned about an input in `prov` 3.2.3 with a
+`ProvFutureRejectionWarning` rejects it at the same position, or reads it as the warning
+said. The [how-to](https://prov.readthedocs.io/en/latest/howto/prepare-for-3-3.html)
+lists each error message with what to write instead. 3.3.0 rejects these inputs.
+
+- In PROV-N, a repeated `default` declaration, a declared prefix that is not a
+  `PN_PREFIX`, and a Unicode whitespace character other than space, tab, CR and LF
+  between tokens, each a `ProvNSyntaxError` at the declaration or the character
+  ([#508](https://github.com/trungdong/prov/issues/508),
+  [#511](https://github.com/trungdong/prov/issues/511),
+  [#509](https://github.com/trungdong/prov/issues/509)). U+1680, which 3.2.3 also warned
+  about, reads as a name character
+- Under the `strict` profile, a `default` declaration after a `prefix` declaration and a
+  declaration of `prov` or `xsd` ([#519](https://github.com/trungdong/prov/issues/519))
+- In PROV-N, an `xsi:` name with no `prefix xsi` declaration, a `ProvNSyntaxError` that
+  names the missing declaration ([#510](https://github.com/trungdong/prov/issues/510))
+
+### Changes with no prior warning
+
+- `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code,
+  PROV-JSON or PROV-JSONLD needs a declaration like any other prefix. Without one, the
+  model raises `ProvExceptionInvalidQualifiedName` for an attribute name and
+  `ProvElementIdentifierRequired` for an identifier. PROV-JSON and PROV-JSONLD that 3.2.x
+  wrote with `xsi:` names have no `xsi` entry in their prefix map, so add one before
+  reading them with 3.3.0. A `QualifiedName` built from `prov.constants.XSI` declares
+  itself when it is asserted. `prov.model.DEFAULT_NAMESPACES` no longer has an `xsi` key.
+  PROV-XML still writes and reads `xsi:type` as before, and its writer raises
+  `ProvXMLException` for a document that binds `xsi` to another IRI, which 3.2.x renamed
+  to `xsi_1`
+  ([#510](https://github.com/trungdong/prov/issues/510))
+
+### Output changes
+
+- The PROV-JSONLD writer writes a qualified name under any attribute other than
+  `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
+  the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
+  processor now reads the value as the IRI it names, as PROV-O holds it
+  ([#564](https://github.com/trungdong/prov/issues/564),
+  [#545](https://github.com/trungdong/prov/issues/545)). Earlier releases wrote an
+  `xsd:QName` value object. `prov` 3.2.2 and earlier cannot read the new form
+  (`missing "@value"`); 3.2.3 reads it
+- A PROV-N document that declares `prefix xsi <…>` at an IRI other than the XML Schema
+  Instance one is written back under `xsi`. 3.2.x renamed it to `xsi_1`
+  ([#510](https://github.com/trungdong/prov/issues/510))
+
 ### Project
 
 - `prov` requires Python 3.11 or later. Python 3.10 reached its end of life on
@@ -17,17 +64,6 @@
   in `prov.model._values`, called at assertion and by the PROV-N, PROV-JSON and
   PROV-JSONLD readers. Nothing changes in what `prov` accepts, warns about or
   writes ([#587](https://github.com/trungdong/prov/issues/587))
-
-### Output changes
-
-- The PROV-JSONLD writer writes a qualified name under any attribute other than
-  `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
-  the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
-  processor now reads the value as the IRI it names, as PROV-O holds it
-  ([#564](https://github.com/trungdong/prov/issues/564),
-  [#545](https://github.com/trungdong/prov/issues/545)). Earlier releases wrote an
-  `xsd:QName` value object. `prov` 3.2.2 and earlier cannot read the new form
-  (`missing "@value"`); 3.2.3 reads it
 
 ## 3.2.3 (2026-10-19)
 

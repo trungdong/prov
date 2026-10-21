@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from prov._warnings import future_rejection_message
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
 from prov.model._values import LANGTAG_PATTERN
@@ -124,9 +123,9 @@ _SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n\r])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
 _QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n\r])*)'")
 # WS is space, tab, CR and LF (SPARQL [93], whose terminals PROV-N takes);
-# _Lexer.skip_other_space handles any other Unicode whitespace. A '//'
-# comment ends at CR or LF (the Recommendation's note on comments), not
-# just LF.
+# any other Unicode whitespace between tokens is an error (next_token),
+# U+1680 apart, which is a name character. A '//' comment ends at CR or LF
+# (the Recommendation's note on comments), not just LF.
 _SKIP = re.compile(r"(?:[ \t\r\n]+|//[^\n\r]*|/\*.*?\*/)+", re.S)
 _LINEBREAK = re.compile(r"\r\n|\r|\n")
 _ESCAPE_CHAR = re.compile(r"\\(.)", re.S)
@@ -219,9 +218,8 @@ def _split_qname(raw: str, locate: _Locate, start: int) -> tuple[str, str]:
 
 
 class _Lexer:
-    def __init__(self, text: str, warnings: list[str]):
+    def __init__(self, text: str):
         self.text = text
-        self.warnings = warnings
         self.pos = 0
         self.line = 1
         self.line_start = 0
@@ -272,35 +270,12 @@ class _Lexer:
             skip = _SKIP.match(text, self.pos)
             if skip:
                 self.advance(skip.end() - self.pos)
-            if self.pos < len(text) and text[self.pos].isspace():
-                self.skip_other_space()
-                continue
-            if text.startswith("/*", self.pos):
-                raise self.error("unterminated comment")
             if self.pos >= len(text):
                 yield Token(TokenKind.EOF, "", None, self.line, self.column)
                 return
+            if text.startswith("/*", self.pos):
+                raise self.error("unterminated comment")
             yield self.next_token()
-
-    def skip_other_space(self) -> None:
-        """Skip a run of one whitespace character that WS excludes.
-
-        The run is skipped as a separator, and a 3.3.0 message is recorded
-        at its first character.
-        """
-        text, pos = self.text, self.pos
-        char = text[pos]
-        end = pos + 1
-        while text.startswith(char, end):
-            end += 1
-        detail = (
-            f"line {self.line}, column {self.column}:"
-            f" U+{ord(char):04X} is not PROV-N whitespace"
-        )
-        # PN_CHARS_BASE ([53]) includes U+1680, so 3.3.0 reads it as part of a name.
-        outcome = "read it as a name character" if char == "\u1680" else "reject this"
-        self.warnings.append(future_rejection_message(detail, outcome, issue=509))
-        self.advance(end - pos)
 
     def next_token(self) -> Token:
         text, pos = self.text, self.pos
@@ -322,6 +297,10 @@ class _Lexer:
             return token
         if char == "-":
             return self.emit(TokenKind.MARKER, "-", "-")
+        if char.isspace():
+            # WS is space, tab, CR and LF. U+1680 never gets here: it is in
+            # PN_CHARS_BASE ([53]), so literal_or_name_token() reads it as a name.
+            raise self.error(f"U+{ord(char):04X} is not PROV-N whitespace")
         raise self.error(f"unexpected character {char!r}")
 
     def iri_token(self) -> Token:
@@ -390,21 +369,18 @@ class _Lexer:
         return self.emit(TokenKind.STRING, match.group(0), value)
 
 
-def tokenize(text: str, warnings: list[str] | None = None) -> Iterator[Token]:
+def tokenize(text: str) -> Iterator[Token]:
     """Yield the tokens of ``text``, ending with an ``EOF`` token.
 
     Args:
         text: The PROV-N source.
-        warnings: If given, the lexer appends a message to it, built by
-            :func:`prov._warnings.future_rejection_message`, for each run of
-            whitespace between tokens that PROV-N does not allow. The lexer
-            still skips such whitespace.
 
     Raises:
         ProvNSyntaxError: On the first character that starts no valid token,
-            with the line and column of that character.
+            or on a whitespace character outside space, tab, CR and LF between
+            tokens, with the line and column of that character.
     """
     if text.startswith("﻿"):
         # A UTF-8 byte order mark is not part of the document.
         text = text[1:]
-    return _Lexer(text, [] if warnings is None else warnings).tokens()
+    return _Lexer(text).tokens()

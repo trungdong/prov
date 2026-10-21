@@ -30,6 +30,10 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
         "wasAssociatedWith(ex:a1, ex:ag1) gives the agent without the paired "
         "plan; production [20] requires them together"
     ),
+    "prov-n-example-51.provn": (
+        "a prefix declaration before the default declaration; production [45] "
+        "puts the default first"
+    ),
     "prov-n-example-52.provn": "a bare typed-literal pair, not a statement",
     "prov-n-example-53.provn": "a bare typed-literal pair, not a statement",
     "prov-n-example-54.provn": "a bare qualified-name literal pair, not a statement",
@@ -91,9 +95,9 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
 _UNDECLARED_VALUE_PREFIX = "does not resolve, because its prefix '.*' is not declared"
 
 # Recommendation examples that the strict profile reads with a 3.3.0 warning
-# (#516, #519). The examples are not normative, so the grammar wins.
+# (#516 for the undeclared value prefixes, #519 for the statement after a
+# bundle). The examples are not normative, so the grammar wins.
 STRICT_WARNING_EXAMPLES: dict[str, str] = {
-    "prov-n-example-51.provn": "'default' follows a 'prefix' declaration",
     "prov-dm-example-42.provn": "a statement follows a bundle",
     # The specifications use these prefixes in a qualified-name value
     # without declaring them (#516).

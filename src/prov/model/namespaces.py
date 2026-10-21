@@ -5,11 +5,11 @@ from __future__ import annotations  # defer eval: NamespaceManager self-refs in 
 from collections.abc import Iterable
 from typing import cast
 
-from prov.constants import PROV, XSD, XSI
+from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model.records import NSCollection, QualifiedNameCandidate
 
-DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD, "xsi": XSI}
+DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD}
 _DEFAULT_NAMESPACES_BY_URI = {ns.uri: ns for ns in DEFAULT_NAMESPACES.values()}
 
 
@@ -63,7 +63,7 @@ class NamespaceManager(dict[str, Namespace]):
         """Return the known namespace with the given URI.
 
         Lookup is by index, not by scan. When more than one known namespace
-        has the URI, the built-in ``prov``/``xsd``/``xsi`` namespaces win,
+        has the URI, the built-in ``prov`` and ``xsd`` namespaces win,
         then the explicitly registered namespace, then the default namespace.
 
         Args:
@@ -87,7 +87,7 @@ class NamespaceManager(dict[str, Namespace]):
 
         Returns:
             An iterable of :class:`~prov.identifier.Namespace`. This excludes
-            the default namespaces (``prov``, ``xsd``, ``xsi``).
+            the default namespaces (``prov`` and ``xsd``).
         """
         return self._namespaces.values()
 

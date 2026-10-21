@@ -1,9 +1,7 @@
-"""The 3.2.3 warnings of the PROV-N reader, moved from test_provn.py; 3.3.0 turns each into a rejection."""
+"""The remaining 3.2.3 warnings of the PROV-N reader, the statement rules; 3.3.0 turns each into a rejection."""
 
 import pytest
 
-from prov.constants import PROV, XSD, XSI
-from prov.identifier import Namespace
 from prov.model import (
     ProvDocument,
     ProvFutureRejectionWarning,
@@ -13,14 +11,8 @@ from prov.serializers.provn_parser import (
     ProvNParser,
 )
 from prov.tests.test_provn import (
-    OTHER_XSI,
     STATEMENT_PREFIX,
-    XSI_LINE,
-    _xsi_document,
-    only_record,
 )
-
-from .conftest import no_future_rejection
 
 
 def parse_with_warnings(
@@ -28,104 +20,6 @@ def parse_with_warnings(
 ) -> tuple[ProvDocument, list[str]]:
     parser = ProvNParser(text, profile)
     return parser.parse(), parser.warnings
-
-
-@pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
-def test_xsi_is_an_ordinary_prefix(profile: str) -> None:
-    doc, messages = parse_with_warnings(
-        OTHER_XSI + "entity(xsi:e, [xsi:k='xsi:v', ex:t=\"1\" %% xsi:t])\nendDocument",
-        profile,
-    )
-    record = only_record(doc)
-    assert record.identifier.uri == "http://other/e"
-    attributes = {name.uri: value for name, value in record.extra_attributes}
-    assert attributes["http://other/k"].uri == "http://other/v"
-    assert attributes["http://example.org/t"].datatype.uri == "http://other/t"
-    assert messages == []
-
-
-def test_xsi_is_an_ordinary_prefix_at_bundle_scope() -> None:
-    doc, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\nbundle ex:b\n"
-        "prefix xsi <http://other/>\nentity(xsi:e)\nendBundle\nendDocument"
-    )
-    (bundle,) = doc.bundles
-    assert only_record(bundle).identifier.uri == "http://other/e"
-    assert messages == []
-
-
-def test_undeclared_xsi_resolves_to_the_builtin_namespace_and_warns() -> None:
-    doc, messages = parse_with_warnings(
-        'document\nprefix ex <http://example.org/>\nentity(ex:e, [xsi:type="ex:T"])\n'
-        "endDocument"
-    )
-    ((name, _),) = only_record(doc).extra_attributes
-    assert name.uri == XSI.uri + "type"
-    assert len(messages) == 1
-    assert messages[0].startswith("line 3, column ")
-    assert messages[0].endswith(
-        f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>."
-        " prov 3.3.0 will reject this (#510)"
-    )
-
-
-def test_undeclared_xsi_value_warns() -> None:
-    _, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\nentity(ex:e, [ex:p='xsi:v'])\n"
-        "endDocument"
-    )
-    assert len(messages) == 1
-    assert "prefix 'xsi' is not declared" in messages[0]
-
-
-def test_undeclared_xsi_warning_reaches_the_caller() -> None:
-    with pytest.warns(ProvFutureRejectionWarning, match="prefix 'xsi' is not declared"):
-        ProvDocument.deserialize(
-            content="document\nprefix ex <http://example.org/>\n"
-            'entity(ex:e, [xsi:type="ex:T"])\nendDocument',
-            format="provn",
-        )
-
-
-def test_xsi_qualified_name_literal_resolves_against_the_declared_scope() -> None:
-    doc, messages = parse_with_warnings(
-        OTHER_XSI + 'entity(ex:e, [ex:p="xsi:v" %% prov:QUALIFIED_NAME])\nendDocument'
-    )
-    ((_, value),) = only_record(doc).extra_attributes
-    assert value.uri == "http://other/v"
-    assert messages == []
-
-
-def test_undeclared_xsi_qualified_name_literal_warns_and_keeps_the_builtin() -> None:
-    doc, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\n"
-        'entity(ex:e, [ex:p="xsi:v" %% prov:QUALIFIED_NAME])\nendDocument'
-    )
-    ((_, value),) = only_record(doc).extra_attributes
-    assert value.uri == XSI.uri + "v"
-    assert len(messages) == 1
-    assert messages[0].endswith(
-        f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>."
-        " prov 3.3.0 will reject this (#510)"
-    )
-
-
-def test_xsi_bundle_identifier_resolves_against_the_declared_scope() -> None:
-    doc, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\nprefix xsi <http://other/>\n"
-        "bundle xsi:b\nentity(ex:e)\nendBundle\nendDocument"
-    )
-    (bundle,) = doc.bundles
-    assert bundle.identifier.uri == "http://other/b"  # type: ignore[union-attr]
-    assert messages == []
-
-
-def test_xsi_declared_at_its_standard_iri_does_not_warn() -> None:
-    _, messages = parse_with_warnings(
-        f"document\nprefix ex <http://example.org/>\nprefix xsi <{XSI.uri}>\n"
-        'entity(ex:e, [xsi:type="ex:T"])\nendDocument'
-    )
-    assert messages == []
 
 
 def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
@@ -146,47 +40,6 @@ def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
     assert len(record) == 1
 
 
-def _reads_back_without_future_warnings(text: str) -> ProvDocument:
-    with no_future_rejection():
-        return ProvDocument.deserialize(content=text, format="provn")
-
-
-def test_writer_declares_xsi_when_a_record_uses_it() -> None:
-    doc = _xsi_document()
-    doc.entity("ex:e", {XSI["type"]: "ex:T"})
-    text = doc.get_provn()
-    assert XSI_LINE in text
-    assert _reads_back_without_future_warnings(text) == doc
-
-
-def test_writer_declares_xsi_for_an_xsi_identifier() -> None:
-    doc = _xsi_document()
-    doc.entity(XSI["e"])
-    text = doc.get_provn()
-    assert XSI_LINE in text
-    assert _reads_back_without_future_warnings(text) == doc
-
-
-def test_writer_declares_xsi_when_another_prefix_holds_its_iri() -> None:
-    doc = _xsi_document()
-    doc.add_namespace("foo", XSI.uri)
-    doc.entity("ex:e", {XSI["type"]: "ex:T"})
-    text = doc.get_provn()
-    assert XSI_LINE in text
-    assert _reads_back_without_future_warnings(text) == doc
-
-
-def test_writer_declares_xsi_in_the_bundle_that_uses_it() -> None:
-    doc = _xsi_document()
-    doc.entity("ex:e")
-    bundle = doc.bundle("ex:b")
-    bundle.entity("ex:f", {XSI["type"]: "ex:T"})
-    text = doc.get_provn()
-    assert text.count(XSI_LINE) == 1
-    assert text.index(XSI_LINE) > text.index("bundle ex:b")
-    assert _reads_back_without_future_warnings(text) == doc
-
-
 STRICT_ISSUE = 519
 
 
@@ -195,156 +48,11 @@ STRICT_CLAUSE = (
 )
 
 
-def test_repeated_default_warns_and_the_last_one_wins() -> None:
-    doc, messages = parse_with_warnings(
-        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument"
-    )
-    assert only_record(doc).identifier.uri == "http://b/e"
-    assert messages == [
-        "line 3, column 1: 'default' is declared twice in this scope; the last one"
-        " is used. prov 3.3.0 will reject this (#508)"
-    ]
-
-
-def test_single_default_does_not_warn() -> None:
-    _, messages = parse_with_warnings(
-        "document\ndefault <http://a/>\nentity(e)\nendDocument"
-    )
-    assert messages == []
-
-
-@pytest.mark.parametrize("name", ["_", "a/b", "1a"])
-def test_prefix_name_that_is_not_a_pn_prefix_warns(name: str) -> None:
-    doc, messages = parse_with_warnings(
-        f"document\nprefix {name} <http://x/>\nprefix ex <http://example.org/>\n"
-        "entity(ex:e)\nendDocument"
-    )
-    assert only_record(doc).identifier.uri == "http://example.org/e"
-    assert messages == [
-        f"line 2, column 8: '{name}' is not a PROV-N prefix name, so no qualified"
-        " name can use it. prov 3.3.0 will reject this (#511)"
-    ]
-
-
-@pytest.mark.parametrize("name", ["ex", "a.b", "a_b", "a-1"])
-def test_pn_prefix_names_do_not_warn(name: str) -> None:
-    _, messages = parse_with_warnings(
-        f"document\nprefix {name} <http://x/>\nendDocument"
-    )
-    assert messages == []
-
-
-def test_strict_default_after_prefix_warns() -> None:
-    _, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\nendDocument",
-        "strict",
-    )
-    assert messages == [
-        "line 3, column 1: 'default' follows a 'prefix' declaration, which the"
-        " strict profile does not allow" + STRICT_CLAUSE
-    ]
-
-
-@pytest.mark.parametrize("profile", ["default", "lenient"])
-def test_default_after_prefix_warns_only_under_strict(profile: str) -> None:
-    _, messages = parse_with_warnings(
-        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\nendDocument",
-        profile,
-    )
-    assert messages == []
-
-
-def test_strict_default_before_prefix_does_not_warn() -> None:
-    _, messages = parse_with_warnings(
-        "document\ndefault <http://d/>\nprefix ex <http://example.org/>\nendDocument",
-        "strict",
-    )
-    assert messages == []
-
-
-@pytest.mark.parametrize("prefix, namespace", [("prov", PROV), ("xsd", XSD)])
-def test_strict_declaring_a_predeclared_prefix_warns(
-    prefix: str, namespace: Namespace
-) -> None:
-    _, messages = parse_with_warnings(
-        f"document\nprefix {prefix} <{namespace.uri}>\nendDocument", "strict"
-    )
-    assert messages == [
-        f"line 2, column 8: prefix '{prefix}' is predeclared, and the strict"
-        " profile does not allow declaring it" + STRICT_CLAUSE
-    ]
-
-
-@pytest.mark.parametrize("profile", ["default", "lenient"])
-@pytest.mark.parametrize("prefix, namespace", [("prov", PROV), ("xsd", XSD)])
-def test_declaring_a_predeclared_prefix_warns_only_under_strict(
-    profile: str, prefix: str, namespace: Namespace
-) -> None:
-    _, messages = parse_with_warnings(
-        f"document\nprefix {prefix} <{namespace.uri}>\nendDocument", profile
-    )
-    assert messages == []
-
-
 def _read_warning(text: str, match: str, profile: str = "default") -> ProvDocument:
     with pytest.warns(ProvFutureRejectionWarning, match=match) as caught:
         doc = ProvDocument.deserialize(content=text, format="provn", profile=profile)
     assert len(caught) == 1
     return doc
-
-
-def test_repeated_default_warning_reaches_the_caller() -> None:
-    doc = _read_warning(
-        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\nendDocument",
-        "'default' is declared twice in this scope",
-    )
-    assert only_record(doc).identifier.uri == "http://b/e"
-
-
-def test_non_pn_prefix_warning_reaches_the_caller() -> None:
-    doc = _read_warning(
-        "document\nprefix 1a <http://x/>\nprefix ex <http://example.org/>\n"
-        "entity(ex:e)\nendDocument",
-        "'1a' is not a PROV-N prefix name",
-    )
-    assert only_record(doc).identifier.uri == "http://example.org/e"
-
-
-def test_strict_default_after_prefix_warning_reaches_the_caller() -> None:
-    doc = _read_warning(
-        "document\nprefix ex <http://example.org/>\ndefault <http://d/>\n"
-        "entity(e)\nendDocument",
-        "'default' follows a 'prefix' declaration",
-        "strict",
-    )
-    assert only_record(doc).identifier.uri == "http://d/e"
-
-
-def test_strict_predeclared_prefix_warning_reaches_the_caller() -> None:
-    doc = _read_warning(
-        f"document\nprefix prov <{PROV.uri}>\nprefix ex <http://example.org/>\n"
-        "entity(ex:e)\nendDocument",
-        "prefix 'prov' is predeclared",
-        "strict",
-    )
-    assert only_record(doc).identifier.uri == "http://example.org/e"
-
-
-@pytest.mark.parametrize("profile", ["strict", "default", "lenient"])
-def test_non_ws_space_warns_and_reads_as_before(profile: str) -> None:
-    text = "document\nprefix ex <http://example.org/>\nentity(ex:e)\xa0\nendDocument\n"
-    document = _read_warning(
-        text,
-        (
-            r"^line 3, column 13: U\+00A0 is not PROV-N whitespace\."
-            r" prov 3\.3\.0 will reject this \(#509\)$"
-        ),
-        profile,
-    )
-    with no_future_rejection():
-        assert document == ProvDocument.deserialize(
-            content=text.replace("\xa0", " "), format="provn", profile=profile
-        )
 
 
 def read_statement(
