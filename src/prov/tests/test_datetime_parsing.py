@@ -39,7 +39,7 @@ UTC = datetime.UTC
                 tzinfo=datetime.timezone(datetime.timedelta(hours=5, minutes=30)),
             ),
         ),
-        # fractional seconds of any length (fromisoformat on 3.10 takes only 3 or 6 digits)
+        # fractional seconds of any length; digits past the sixth are truncated
         (
             "2012-12-03T21:08:16.68Z",
             datetime.datetime(2012, 12, 3, 21, 8, 16, 680000, tzinfo=UTC),
@@ -47,6 +47,27 @@ UTC = datetime.UTC
         (
             "2012-12-03T21:08:16.1234567Z",
             datetime.datetime(2012, 12, 3, 21, 8, 16, 123456, tzinfo=UTC),
+        ),
+        (
+            "2012-12-03T21:08:16.1Z",
+            datetime.datetime(2012, 12, 3, 21, 8, 16, 100000, tzinfo=UTC),
+        ),
+        (
+            "2012-12-03T21:08:16.1234",
+            datetime.datetime(2012, 12, 3, 21, 8, 16, 123400),
+        ),
+        (
+            "2012-12-03T21:08:16.999999999+01:00",
+            datetime.datetime(
+                2012,
+                12,
+                3,
+                21,
+                8,
+                16,
+                999999,
+                tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
+            ),
         ),
         # xsd:dateTime end-of-day form maps to 00:00:00 of the next day
         ("2011-11-16T24:00:00", datetime.datetime(2011, 11, 17, 0, 0)),

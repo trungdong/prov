@@ -144,8 +144,6 @@ StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 
 # Data Types
 _XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
-_XSD_ZULU_RE = re.compile(r"Z$")
-_XSD_FRACTION_RE = re.compile(r"\.(\d+)")
 
 
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
@@ -189,13 +187,6 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
         text = _XSD_HOUR24_RE.sub("T00:00:00", text)
-    # datetime.fromisoformat on Python 3.10 accepts neither the "Z" suffix
-    # nor fractional seconds that are not exactly 3 or 6 digits long;
-    # normalize both before parsing.
-    text = _XSD_ZULU_RE.sub("+00:00", text)
-    text = _XSD_FRACTION_RE.sub(
-        lambda m: "." + m.group(1)[:6].ljust(6, "0"), text, count=1
-    )
     try:
         parsed = datetime.datetime.fromisoformat(text)
         if end_of_day:
