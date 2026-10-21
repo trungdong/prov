@@ -189,6 +189,10 @@ def test_writable_fast_path_skips_only_local_parts_written_unencoded() -> None:
 
     assert 0 < len(skipped) < len(local_parts)
     assert [lp for lp in skipped if _provn_escape_local(lp)[1]] == []
+    # Escaping adds no percent sign to a local part with no bare '%'.
+    assert [
+        lp for lp in skipped if _provn_escape_local(lp)[0].count("%") != lp.count("%")
+    ] == []
 
 
 def test_empty_langtag_literal_written_as_plain_string() -> None:
