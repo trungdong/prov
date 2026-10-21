@@ -6,6 +6,10 @@
 
 - `prov` requires Python 3.11 or later. Python 3.10 reached its end of life on
   2026-10-31, and pip installs the last 3.2.x release on it instead
+- The JSON machinery PROV-JSON and PROV-JSONLD share, the prefix map, the membership
+  fan-out and the message helpers, lives in `prov.serializers._json_common`. Nothing
+  changes in what either format reads or writes
+  ([#589](https://github.com/trungdong/prov/issues/589))
 
 ### Output changes
 
