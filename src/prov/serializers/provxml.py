@@ -479,7 +479,6 @@ _ALWAYS_CHECK = frozenset(
         datetime.datetime,
         float,
         int,
-        prov.identifier.Identifier,
     }
 )
 
@@ -565,8 +564,6 @@ def _infer_xsd_type(
         # not specify it in the docs.
         if attr.namespace.prefix != "prov" or "time" not in attr.localpart.lower():
             xsd_type = XSD_DATETIME
-    elif isinstance(value, prov.identifier.Identifier):
-        xsd_type = XSD_ANYURI
     return xsd_type, v
 
 

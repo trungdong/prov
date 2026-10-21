@@ -802,15 +802,14 @@ class ProvNParser:
     ) -> None:
         """Check the text of the string ``token`` when ``datatype`` is a
         qualified-name datatype."""
-        if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-            # The model resolves a prov:QUALIFIED_NAME text, compacting an IRI
-            # if it must, and keeps an xsd:QName one as a Literal. The parser
-            # resolves only a text that does not resolve by its prefix.
-            if datatype == XSD_QNAME:
-                self._check_name_value(token.value, token, bundle, None)
-            elif bundle._unresolved_reason(token.value) is not None:
-                resolved = bundle.valid_qualified_name(token.value)
-                self._check_name_value(token.value, token, bundle, resolved)
+        if (
+            datatype in (PROV_QUALIFIEDNAME, XSD_QNAME)
+            and bundle._unresolved_reason(token.value) is not None
+        ):
+            # The model resolves both datatypes, compacting an IRI if it must;
+            # the parser reports a text that does not resolve by its prefix.
+            resolved = bundle.valid_qualified_name(token.value)
+            self._check_name_value(token.value, token, bundle, resolved)
 
     def _check_name_value(
         self,

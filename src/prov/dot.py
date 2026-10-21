@@ -29,6 +29,7 @@ except ImportError as e:  # pragma: no cover -- pydot (dot extra) absent; covere
     ) from e
 
 from prov._warnings import external_stacklevel
+from prov.constants import XSD_ANYURI
 from prov.graph import INFERRED_ELEMENT_CLASS
 from prov.identifier import QualifiedName
 from prov.model import (
@@ -52,7 +53,7 @@ from prov.model import (
     PROV_SPECIALIZATION,
     PROV_START,
     PROV_USAGE,
-    Identifier,
+    Literal,
     ProvActivity,
     ProvAgent,
     ProvBundle,
@@ -223,13 +224,24 @@ def _href_attr(uri: str) -> str:
     return f' href="{escape(link)}"' if link is not None else ""
 
 
+def _value_cell(value: Any) -> tuple[str, str]:
+    """The ``href`` attribute text and the escaped text of an attribute value's cell."""
+    if isinstance(value, Literal) and value.datatype == XSD_ANYURI:
+        return _href_attr(value.value), escape(value.value)
+    if isinstance(value, QualifiedName):
+        return _href_attr(value.uri), escape(str(value))
+    if isinstance(value, datetime):
+        return "", escape(_xsd_datetime_text(value))
+    return "", escape(str(value))
+
+
 def htlm_link_if_uri(value: Any) -> str:
     """Render an attribute value as an HTML anchor if it has a ``uri``, else as plain text.
 
     Args:
         value: Attribute value to render; typically an
-            :class:`~prov.identifier.Identifier`/:class:`~prov.identifier.QualifiedName`
-            (which have a ``uri`` attribute) or a plain literal.
+            :class:`~prov.identifier.QualifiedName` (which has a ``uri``
+            attribute) or a plain literal.
 
     Returns:
         An ``<a href="...">`` HTML fragment linking to ``value.uri`` if
@@ -291,12 +303,7 @@ def _attach_attribute_annotation(
         % (
             _href_attr(attr.uri),
             escape(str(attr)),
-            _href_attr(value.uri) if isinstance(value, Identifier) else "",
-            escape(
-                str(value)
-                if not isinstance(value, datetime)
-                else _xsd_datetime_text(value)
-            ),
+            *_value_cell(value),
         )
         for attr, value in attributes
     )
