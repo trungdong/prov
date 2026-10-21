@@ -51,7 +51,7 @@ from prov.model.records import (
     _xsd_double_text,
 )
 from prov.serializers import Serializer, _is_text_stream
-from prov.serializers.provjson import _add_memberships, _JSONPrefixMap
+from prov.serializers._json_common import _add_memberships, _JSONPrefixMap
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
