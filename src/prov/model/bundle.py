@@ -513,6 +513,10 @@ class ProvBundle:
         Returns:
             The resolved :class:`~prov.identifier.QualifiedName`, or ``None`` if
             it could not be resolved.
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If the local part is one PROV-N
+                cannot write (#524).
         """
         return self._namespaces.valid_qualified_name(identifier)
 

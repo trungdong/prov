@@ -7,7 +7,7 @@ import warnings
 
 import pytest
 
-from prov.constants import XSD_DECIMAL, XSD_INT
+from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD_DECIMAL, XSD_INT
 from prov.model import Literal, ProvDocument, ProvValueError
 
 
@@ -75,6 +75,20 @@ def test_empty_language_tag_raises() -> None:
         ProvValueError, match=re.escape("the language tag of 'hi' is empty")
     ):
         Literal("hi", langtag="")
+
+
+@pytest.mark.parametrize("tag", ["", "en_US"])
+def test_unpickled_literal_is_checked_too(tag: str) -> None:
+    # A pickle from an earlier release may hold such a tag; loading it runs
+    # the same check, so no document holds a tag the writers cannot spell.
+    literal = Literal.__new__(Literal)
+    state = {
+        "_value": "hi",
+        "_datatype": PROV_INTERNATIONALIZEDSTRING,
+        "_langtag": tag,
+    }
+    with pytest.raises(ProvValueError, match="'hi'"):
+        literal.__setstate__(state)
 
 
 @pytest.mark.parametrize(

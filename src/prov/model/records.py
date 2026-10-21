@@ -410,6 +410,19 @@ def encoding_provn_value(
         return str(value)
 
 
+def _check_langtag(value: Any, langtag: Any) -> None:
+    """Raise for a language tag that is empty or not shaped like a BCP 47 tag (#472).
+
+    ``Literal.__init__`` and ``Literal.__setstate__`` both check.
+    """
+    if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
+        raise ProvValueError(
+            f"the language tag {langtag!r} of {value!r} is not a BCP 47 tag"
+            if langtag
+            else f"the language tag of {value!r} is empty"
+        )
+
+
 class Literal:
     """A typed (and optionally language-tagged) PROV literal value.
 
@@ -447,12 +460,7 @@ class Literal:
                 like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
         self._value = str(value)  # value is always a string
-        if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
-            raise ProvValueError(
-                f"the language tag {langtag!r} of {self._value!r} is not a BCP 47 tag"
-                if langtag
-                else f"the language tag of {self._value!r} is empty"
-            )
+        _check_langtag(self._value, langtag)
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -493,6 +501,7 @@ class Literal:
         object.__setattr__(self, "_value", state["_value"])
         object.__setattr__(self, "_datatype", state["_datatype"])
         object.__setattr__(self, "_langtag", state["_langtag"])
+        _check_langtag(self._value, self._langtag)
 
     def __eq__(self, other: Any) -> bool:
         return (

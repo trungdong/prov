@@ -320,7 +320,8 @@ class QualifiedName(Identifier):
         The local part's PROV-N metacharacters (``= ' ( ) , : ; [ ]``) are
         backslash-escaped per grammar production [55] ``PN_CHARS_ESC`` (#223),
         as are a leading ``-``/``.`` and a trailing ``.`` (forbidden bare by
-        [53]/[54]). The prefix is never escaped, as it cannot contain these characters.
+        [53]/[54]). The prefix is never escaped, as it cannot contain these
+        characters.
 
         Raises:
             ProvException: If the local part is empty and the namespace has no
