@@ -566,7 +566,7 @@ def test_reader_rejects(text, profiles, message, position, issue) -> None:
         line, column = position
         with pytest.warns(
             ProvWarning,
-            match=f"skipped: line {line}, column {column}: {re.escape(message)}",
+            match=f"skipped: line {line}, column {column}: .*{re.escape(message)}",
         ) as caught:
             document = ProvDocument.deserialize(
                 content=text, format="provn", profile="lenient"

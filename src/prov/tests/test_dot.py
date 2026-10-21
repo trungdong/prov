@@ -216,16 +216,15 @@ def test_html_label_special_characters_are_escaped() -> None:
     assert len(dot.create(format="svg")) > 0
 
 
-def test_quoted_label_escapes_double_quote() -> None:
+def test_quoted_string_escapes_double_quote() -> None:
     doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
-    with pytest.warns(ProvFutureRejectionWarning):
-        doc.entity('ex:e"1')
+    doc.add_namespace("ex", 'http://example.org/"x/')
+    doc.entity("ex:e1")
 
     dot = prov_to_dot(doc)
     dot_text = dot.to_string()
 
-    assert 'label="ex:e\\"1"' in dot_text
+    assert 'URL="http://example.org/\\"x/e1"' in dot_text
     assert len(dot.create(format="svg")) > 0
 
 

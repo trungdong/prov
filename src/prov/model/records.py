@@ -31,11 +31,7 @@ from typing import (
 )
 
 from prov import Error
-from prov._warnings import (
-    ProvFutureRejectionWarning,
-    future_rejection_message,
-    warn,
-)
+from prov._warnings import warn
 from prov.constants import (
     _PROV_N_BARE_RELATIONS,
     PROV_ACTIVITY,
@@ -414,16 +410,6 @@ def encoding_provn_value(
         return str(value)
 
 
-def _warn_language_tag(langtag: str, value: str) -> None:
-    """Warn that 3.3.0 rejects ``langtag``, which does not match ``_LANGTAG``."""
-    detail = (
-        f"the language tag {langtag!r} of {value!r} is not a BCP 47 tag"
-        if langtag
-        else f"the language tag of {value!r} is empty"
-    )
-    warn(future_rejection_message(detail, issue=472), ProvFutureRejectionWarning)
-
-
 class Literal:
     """A typed (and optionally language-tagged) PROV literal value.
 
@@ -457,13 +443,16 @@ class Literal:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
-                An empty tag, or a tag such as ``"en_US"`` that is not shaped like a
-                BCP 47 tag, emits a
-                :class:`~prov.model.ProvFutureRejectionWarning`.
+                An empty tag, or a tag such as ``"en_US"`` that is not shaped
+                like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
         self._value = str(value)  # value is always a string
         if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
-            _warn_language_tag(str(langtag), self._value)
+            raise ProvValueError(
+                f"the language tag {langtag!r} of {self._value!r} is not a BCP 47 tag"
+                if langtag
+                else f"the language tag of {self._value!r} is empty"
+            )
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -572,25 +561,11 @@ class Literal:
         return self._langtag is None
 
     def provn_representation(self) -> str:
-        """Return the PROV-N representation of the literal.
-
-        An empty language tag has no PROV-N spelling, so it is written as a
-        plain string, the same as a literal built with no language tag at all;
-        this is a writer-only choice and leaves the model's own ``langtag``
-        value (``""``, not ``None``) untouched.
-        """
+        """Return the PROV-N representation of the literal."""
         quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
-            # PROV-N's LANGTAG ([63]) only allows hyphens between subtags, so
-            # an underscore-separated tag (e.g. "en_US") is written with a
-            # hyphen, as BCP 47 itself uses.
-            langtag = self._langtag.replace("_", "-")
-            return f"{quoted_value}@{langtag}"
-        if self._langtag == "" and (
-            self._datatype is None or self._datatype == PROV_INTERNATIONALIZEDSTRING
-        ):
-            return quoted_value
+            return f"{quoted_value}@{self._langtag}"
         return f"{quoted_value} %% {self._datatype!s}"
 
 
@@ -660,17 +635,23 @@ class ProvExceptionInvalidQualifiedName(ProvException):
 
     qname = None
     """The invalid qualified name that triggered the exception."""
+    detail: str | None = None
+    """What is wrong with it, when the name itself does not say."""
 
-    def __init__(self, qname: Any):
+    def __init__(self, qname: Any, detail: str | None = None):
         """Initialise the exception.
 
         Args:
             qname: The invalid qualified name.
+            detail: What is wrong with it, such as a local part PROV-N
+                cannot write (#524).
         """
         self.qname = qname
+        self.detail = detail
 
     def __str__(self) -> str:
-        return f"Invalid Qualified Name: {self.qname}"
+        message = f"Invalid Qualified Name: {self.qname}"
+        return message if self.detail is None else f"{message}, {self.detail}"
 
 
 class ProvUnificationError(ProvException):
