@@ -1,6 +1,6 @@
 """Checks on attribute values at assertion, and the warnings they raise.
 
-:mod:`prov.model.records` calls :func:`check_time_offset` for a time value and
+:mod:`prov.model.records` calls :func:`time_offset_detail` for a time value and
 :func:`check_converted_value` for a value that is neither a time nor a formal
 qualified name. This module imports nothing from :mod:`prov.model.records`,
 so the caller passes in the plain value base types, and a literal is any
@@ -37,6 +37,14 @@ if TYPE_CHECKING:
 # PROV-N's LANGTAG ([63]) without the "@"; every BCP 47 tag matches it. The
 # lexer builds its "@"-prefixed token pattern from the same string.
 LANGTAG_PATTERN = r"[A-Za-z]+(?:-[A-Za-z0-9]+)*"
+
+# xsd:dateTime's lexical form (XSD 1.1 section 3.3.7): a year of four or more
+# digits, the date, "T", the time, an optional fraction and an optional zone.
+# The PROV-N lexer's DATETIME token ([62]) is the same form.
+XSD_DATETIME_PATTERN = (
+    r"-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
+    r"(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?"
+)
 _LANGTAG = re.compile(LANGTAG_PATTERN)
 
 
@@ -98,17 +106,6 @@ _PROV_FORMS: tuple[tuple[type | tuple[type, ...], QualifiedName], ...] = (
 # Bounds a warning's copy of a value, which may be a large bytes object.
 _value_repr = reprlib.Repr()
 _value_repr.maxother = _value_repr.maxstring = 80
-
-
-def _warn_offset_beyond_bound(detail: str, outcome: str = "reject this") -> None:
-    """Warn that the time in ``detail`` has an offset beyond ±14:00 (#513)."""
-    if not _rebuilding.get():
-        warn(
-            future_rejection_message(
-                f"{detail} has a timezone offset beyond ±14:00", outcome, issue=513
-            ),
-            ProvFutureRejectionWarning,
-        )
 
 
 def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
@@ -199,10 +196,14 @@ def _warn_unresolved_name(
         warn(future_rejection_message(detail, issue=issue), ProvFutureRejectionWarning)
 
 
-def check_time_offset(attr: QualifiedName, value: datetime.datetime) -> None:
-    """Warn if the time ``value`` of ``attr`` has an offset beyond ±14:00."""
+def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:
+    """Why the time ``value`` of ``attr`` is not an ``xsd:dateTime``, or ``None``.
+
+    XSD 1.1 (section 3.3.7) bounds the timezone offset to ±14:00 (#513).
+    """
     if _offset_beyond_xsd_bound(value):
-        _warn_offset_beyond_bound(f"{attr} {value.isoformat()}")
+        return f"{attr} {value.isoformat()} has a timezone offset beyond ±14:00"
+    return None
 
 
 def check_converted_value(
@@ -215,19 +216,13 @@ def check_converted_value(
 ) -> None:
     """Run the 3.3.0 checks on a non-formal attribute value.
 
-    ``value`` is ``original_value`` after conversion. A value whose type is not
-    in ``plain_types`` is a datetime, which checks its offset when converted
-    from a typed literal, or a value outside ``plain_bases``, which has no PROV
+    ``value`` is ``original_value`` after conversion. A value whose type is
+    not in ``plain_types`` and not an instance of ``plain_bases`` has no PROV
     form. A value of a plain type converted from a typed literal checks that
     its qualified name resolves. A literal is an object with a ``datatype``.
     """
     if type(value) not in plain_types:
-        if isinstance(value, datetime.datetime):
-            if hasattr(original_value, "datatype") and _offset_beyond_xsd_bound(value):
-                _warn_offset_beyond_bound(
-                    f"{attr} {original_value}", "keep it as a Literal"
-                )
-        elif value is not None and not isinstance(value, plain_bases):
+        if value is not None and not isinstance(value, plain_bases):
             _warn_no_prov_form(attr, value)
     elif hasattr(original_value, "datatype"):
         _warn_unresolved_name(bundle, attr, cast(_TypedText, original_value), value)

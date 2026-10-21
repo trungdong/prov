@@ -791,8 +791,9 @@ class ProvRDFSerializer(Serializer):
         if datatype == XSD["dateTime"]:
             parsed = pm.parse_xsd_datetime(str(literal))
             # An ill-formed literal, or one whose offset is beyond ±14:00,
-            # goes to the model as a Literal. The model keeps the first and
-            # warns about the second.
+            # goes to the model as a Literal. As an ordinary attribute value
+            # the model keeps both as a Literal; as a time of the statement it
+            # raises.
             if parsed is None or _offset_beyond_xsd_bound(parsed):
                 return pm.Literal(str(literal), pm.XSD_DATETIME)
             return parsed
