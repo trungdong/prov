@@ -170,7 +170,7 @@ class ProvXMLSerializer(Serializer):
         the order of the mapping, so the registered namespaces of
         ``self.document`` come first, then its default namespace (under the
         ``None`` key), then ``bundle``'s own namespaces, then
-        :data:`~prov.model.DEFAULT_NAMESPACES`.
+        :data:`~prov.model.DEFAULT_NAMESPACES` and ``xsi``.
 
         Args:
             bundle: The bundle or document being serialized.
@@ -196,6 +196,14 @@ class ProvXMLSerializer(Serializer):
                 # for PROV XML, but for all other serializations it does.
                 uri = uri.rstrip("#")
             nsmap[value.prefix] = uri
+        # xsi:type carries every typed value's datatype (PROV-XML section 2.1).
+        bound = nsmap.get(XSI.prefix)
+        if bound not in (None, XSI.uri):
+            raise ProvXMLException(
+                f"PROV-XML binds the prefix '{XSI.prefix}' to <{XSI.uri}>, "
+                f"but the document binds it to <{bound}>"
+            )
+        nsmap[XSI.prefix] = XSI.uri
         return nsmap
 
     def _encode_record(
@@ -758,7 +766,7 @@ def _ns_prov(tag: str) -> str:
 
 
 def _ns_xsi(tag: str) -> str:
-    return _ns(DEFAULT_NAMESPACES["xsi"].uri, tag)
+    return _ns(XSI.uri, tag)
 
 
 def _ns_xml(tag: str) -> str:

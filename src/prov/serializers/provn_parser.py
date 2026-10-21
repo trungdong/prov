@@ -54,7 +54,6 @@ from prov.constants import (
     PROV_USAGE,
     XSD,
     XSD_QNAME,
-    XSI,
 )
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
@@ -401,24 +400,6 @@ class ProvNParser:
             )
         )
 
-    def _xsi_name(self, token: Token, local: str | None = None) -> QualifiedName | None:
-        """Resolve an ``xsi:`` name against this scope's own declaration.
-
-        The local part comes from ``token`` unless ``local`` is given, as
-        for a name held in a string literal. Returns ``None``, after
-        recording a 3.3.0 message at ``token``, when no declaration is in
-        scope, so the caller falls back to the built-in namespace.
-        """
-        declared = self._scope.get("xsi")
-        if declared is not None:
-            return declared[token.value[1] if local is None else local]
-        self._future(
-            f"prefix 'xsi' is not declared; it resolves to <{XSI.uri}>",
-            token,
-            issue=510,
-        )
-        return None
-
     def _apply_declarations(
         self, target: ProvBundle, namespaces: list[Namespace], default: str | None
     ) -> None:
@@ -735,9 +716,6 @@ class ProvNParser:
         # new_record()'s later, unpositioned resolution.
         resolved = self._resolve(token, bundle)
         prefix, local = token.value
-        if prefix == "xsi" and "xsi" in self._scope:
-            # new_record() would resolve the text against the built-in xsi.
-            return resolved
         if not prefix and ":" in local:
             # An escaped colon in a bare local part can't be turned back
             # into text without looking like a (wrong) prefixed name, so
@@ -755,10 +733,6 @@ class ProvNParser:
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
         prefix, local = token.value
         if prefix:
-            if prefix == "xsi":
-                declared = self._xsi_name(token)
-                if declared is not None:
-                    return declared
             qname = bundle.valid_qualified_name(f"{prefix}:{local}")
             if qname is None:
                 raise self._error(
@@ -819,11 +793,6 @@ class ProvNParser:
                     TokenKind.NAME, "a datatype"
                 )
                 datatype = self._resolve(datatype_token, bundle)
-                if datatype == PROV_QUALIFIEDNAME and token.value.startswith("xsi:"):
-                    # The model would look the text up in its own prefix map.
-                    declared = self._xsi_name(token, token.value.partition(":")[2])
-                    if declared is not None:
-                        return declared
                 self._check_typed_name_value(token, datatype, bundle)
                 return Literal(token.value, datatype)
             return token.value
@@ -832,10 +801,6 @@ class ProvNParser:
         if token.kind is TokenKind.QNAME_LITERAL:
             self._advance()
             prefix, local = token.value
-            if prefix == "xsi":
-                declared = self._xsi_name(token)
-                if declared is not None:
-                    return declared
             if not prefix and ":" in local:
                 # Mirrors _resolve()'s bare-local branch: an escaped colon
                 # inside an unprefixed local part would otherwise be
@@ -879,22 +844,9 @@ class ProvNParser:
         resolved: QualifiedName | None,
     ) -> None:
         """Record a 3.3.0 message at ``token`` when the qualified-name value
-        ``text`` does not resolve by its prefix (#510, #516, #553).
-
-        ``resolved`` is what the model reads ``text`` as today, possibly by
-        compacting an IRI, or ``None`` when it keeps the text as a Literal.
-        """
-        if resolved is None and text.startswith("xsi:") and "xsi" not in self._scope:
-            # xsi is predeclared, so the lookup below finds it; the model
-            # keeps the text as a Literal and nothing else reports the
-            # undeclared prefix.
-            self._future(
-                f"the qualified name {text!r} does not resolve, because its prefix"
-                " 'xsi' is not declared; it is kept as a Literal",
-                token,
-                issue=510,
-            )
-            return
+        ``text`` does not resolve by its prefix (#516, #553); ``resolved`` is
+        what the model reads it as today, or ``None`` when it keeps the text
+        as a Literal."""
         found = unresolved_name_detail(bundle, text, resolved)
         if found is not None:
             detail, issue = found

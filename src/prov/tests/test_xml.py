@@ -936,3 +936,16 @@ def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
         prov.ProvDocument.deserialize(content=xml_string, format="xml")
     (warning,) = [w for w in caught if issubclass(w.category, prov.ProvWarning)]
     assert warning.filename == __file__
+
+
+def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:
+    document = prov.ProvDocument()
+    document.add_namespace("xsi", "http://other/")
+    document.entity("xsi:e")
+
+    with pytest.raises(
+        ProvXMLException,
+        match=r"prefix 'xsi' to <http://www\.w3\.org/2001/XMLSchema-instance>, "
+        r"but the document binds it to <http://other/>",
+    ):
+        document.serialize(format="xml")
