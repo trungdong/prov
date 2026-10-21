@@ -524,6 +524,10 @@ class ProvBundle:
         its prefix alone, or ``None`` when it resolves."""
         return self._namespaces._unresolved_reason(text)
 
+    def _declares_prefix(self, prefix: str) -> bool:
+        """Whether ``prefix`` is declared here or in an enclosing scope."""
+        return prefix in self._namespaces
+
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate
     ) -> QualifiedName:
