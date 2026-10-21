@@ -79,8 +79,8 @@ SPECIAL_ATTR_TERMS: dict[QualifiedName, str] = {
 SPECIAL_TERM_ATTRS: dict[str, QualifiedName] = {
     term: attr for attr, term in SPECIAL_ATTR_TERMS.items()
 }
-#: Special terms typed ``@id`` in the context: their values are bare
-#: qualified-name strings, not value objects.
+#: Special terms typed ``@id`` in the context. Their values are bare
+#: qualified-name strings, not node references or value objects.
 ID_TYPED_TERMS = frozenset({"type", "role", "location"})
 
 #: Every bare (unprefixed) term the submission context defines: each record

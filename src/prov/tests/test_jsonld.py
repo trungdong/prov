@@ -4,6 +4,7 @@ import io
 import json
 import warnings
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -235,7 +236,7 @@ def test_serialize_without_a_document_raises() -> None:
     assert "No document to serialize" in str(ctx.value)
 
 
-def _roundtrip(doc: ProvDocument, **kwargs) -> ProvDocument:
+def _roundtrip(doc: ProvDocument, **kwargs: Any) -> ProvDocument:
     return ProvDocument.deserialize(
         content=doc.serialize(format="jsonld", **kwargs), format="jsonld"
     )
