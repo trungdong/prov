@@ -11,16 +11,12 @@
 
 - The PROV-JSONLD writer writes a qualified name under any attribute other than
   `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
-  the form the 2026-10-14 revision of the PROV-JSONLD schema specifies and ProvToolbox
-  2.2.5 writes. A JSON-LD processor now reads the value as the IRI it names, as PROV-O
-  holds it ([#564](https://github.com/trungdong/prov/issues/564),
+  the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
+  processor now reads the value as the IRI it names, as PROV-O holds it
+  ([#564](https://github.com/trungdong/prov/issues/564),
   [#545](https://github.com/trungdong/prov/issues/545)). Earlier releases wrote an
   `xsd:QName` value object. `prov` 3.2.2 and earlier cannot read the new form
-  (`missing "@value"`); 3.2.3 reads it. ProvToolbox up to 2.2.5 cannot read `prov`'s
-  PROV-JSONLD output at all when a `prov:` or `xsd:` name appears in it, under `type`, as
-  a qualified-name value or as a literal's datatype such as `xsd:int`, because its reader
-  does not fetch the context that defines `prov` and `xsd`
-  ([ProvToolbox #236](https://github.com/lucmoreau/ProvToolbox/issues/236))
+  (`missing "@value"`); 3.2.3 reads it
 
 ## 3.2.3 (2026-10-19)
 
