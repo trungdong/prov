@@ -3,12 +3,13 @@ and the 3.2.3 warning for a language tag 3.3.0 rejects (#472)."""
 
 import io
 import re
-import warnings
 
 import pytest
 
 from prov.constants import XSD_DECIMAL, XSD_INT
 from prov.model import Literal, ProvDocument, ProvFutureRejectionWarning
+
+from .conftest import no_future_rejection
 
 
 def _doc() -> ProvDocument:
@@ -92,8 +93,7 @@ def test_empty_language_tag_warns() -> None:
     "tag", [None, "en", "EN", "en-GB", "zh-Hant-TW", "de-CH-1901", "x-private"]
 )
 def test_bcp47_language_tag_does_not_warn(tag: str | None) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         assert Literal("hi", langtag=tag).langtag == tag
 
 
@@ -119,8 +119,7 @@ def test_bcp47_language_tag_reads_without_warning(fmt: str) -> None:
     document = _doc()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     content = document.serialize(format=fmt)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         assert ProvDocument.deserialize(content=content, format=fmt) == document
 
 

@@ -63,7 +63,6 @@ umbrella issue #253.
 """
 
 import datetime
-import warnings
 from pathlib import Path
 
 import pytest
@@ -71,6 +70,8 @@ import pytest
 pytest.importorskip("lxml")
 
 from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvUnificationError
+
+from .conftest import no_future_rejection
 
 CORPUS = Path(__file__).parent / "unification" / "constraints"
 
@@ -190,8 +191,7 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # cases). Note this is NOT always the spec's normal form: anonymous
         # records that Constraints 24-27 would fold into an identified one
         # stay separate (gap analysis section 3.4).
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", ProvFutureRejectionWarning)
+        with no_future_rejection():
             unified = document.unified()
         assert _n_records(unified) == _expected_unified_count(document)
     elif xml_path.name in UNIFICATION_REJECTS:
@@ -203,10 +203,11 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # type-compatibility rejection's "... incompatible types ..." (none
         # of these 153 ProvToolbox cases exercise that path; see the module
         # docstring).
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", ProvFutureRejectionWarning)
-            with pytest.raises(ProvUnificationError, match="has conflicting"):
-                document.unified()
+        with (
+            no_future_rejection(),
+            pytest.raises(ProvUnificationError, match="has conflicting"),
+        ):
+            document.unified()
     elif xml_path.name in ABSENT_NONE_WARNINGS:
         # Invalid instance that 3.3.0 rejects: an absent non-expandable formal
         # meets a present one. unified() still merges, and warns.
@@ -224,8 +225,7 @@ def test_unified_corpus_characterization(xml_path, expected) -> None:
         # nevertheless accepts, producing the plain identifier-keyed union —
         # these fail on constraints outside unified()'s documented scope
         # (see the module docstring).
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", ProvFutureRejectionWarning)
+        with no_future_rejection():
             unified = document.unified()
         assert _n_records(unified) == _expected_unified_count(document)
 

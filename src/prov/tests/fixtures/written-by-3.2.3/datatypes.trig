@@ -1,0 +1,19 @@
+@prefix ex: <http://example.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+{
+    ex:e1 a prov:Entity ;
+        ex:bool true ;
+        ex:float "100.123456"^^xsd:double ;
+        ex:int "100"^^xsd:int ;
+        ex:intstr "PROV Internationalized string"@en ;
+        ex:long "123456789000"^^xsd:long ;
+        ex:multi-line """Line1
+    Line2
+Line3""" ;
+        ex:str "Some string" ;
+        ex:timedate "2012-12-12T14:07:48"^^xsd:dateTime ;
+        ex:unicode "Some unicode string with accents: Huỳnh Trung Đông" .
+}
+

@@ -132,6 +132,9 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
 - `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
   `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
+- `fixtures/written-by-3.2.3/` is written only by its `generate.py` under the published
+  `prov==3.2.3` wheel, never by hand or by the working tree. A PR that appends to
+  `examples.py` or `ATTRIBUTE_VALUES` reruns it.
 
 New shared record types, attributes, or serializer behaviours go into the shared parametrized
 modules so every target is exercised — not into per-format tests.

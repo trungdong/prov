@@ -1,0 +1,7 @@
+document
+  default <http://example.org/>
+  
+  entity(e1, [mine="x", type="y"])
+  activity(a1, -, -)
+  used(a1, e1, -, [entity="collides"])
+endDocument

@@ -17,16 +17,11 @@ from prov.model import (
     PROV_LABEL,
     PROV_TYPE,
     PROV_VALUE,
-    ProvDocument,
     ProvEntity,
     QualifiedName,
 )
 
-
-def _document() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
+from .conftest import ex_document
 
 
 def _attribute_names(entity: ProvEntity) -> set[str]:
@@ -34,7 +29,7 @@ def _attribute_names(entity: ProvEntity) -> set[str]:
 
 
 def test_dict_literals_are_accepted() -> None:
-    document = _document()
+    document = ex_document()
     number: int | float = 1
     other = document.entity("ex:other")
 
@@ -55,7 +50,7 @@ def test_dict_literals_are_accepted() -> None:
 
 
 def test_prebuilt_dict_with_narrow_types_is_accepted() -> None:
-    document = _document()
+    document = ex_document()
     attributes = {PROV_LABEL: "x"}
 
     entity = document.entity("ex:a", attributes)
@@ -66,7 +61,7 @@ def test_prebuilt_dict_with_narrow_types_is_accepted() -> None:
 
 
 def test_non_dict_mapping_is_read_through_items() -> None:
-    document = _document()
+    document = ex_document()
     read_only = types.MappingProxyType({PROV_LABEL: "x"})
 
     entity = document.entity("ex:a", read_only)
@@ -75,7 +70,7 @@ def test_non_dict_mapping_is_read_through_items() -> None:
 
 
 def test_pair_collections_are_accepted() -> None:
-    document = _document()
+    document = ex_document()
 
     from_list = document.entity("ex:a", [(PROV_LABEL, "x"), ("ex:n", 1)])
     from_tuple = document.entity("ex:b", ((PROV_LABEL, "x"),))
@@ -90,7 +85,7 @@ def test_pair_collections_are_accepted() -> None:
 
 
 def test_prebuilt_pair_list_with_mixed_values_is_accepted() -> None:
-    document = _document()
+    document = ex_document()
     pairs = [("ex:a", 1), ("ex:b", "x")]
 
     entity = document.entity("ex:e", pairs)
@@ -99,7 +94,7 @@ def test_prebuilt_pair_list_with_mixed_values_is_accepted() -> None:
 
 
 def test_factory_method_accepts_a_generator() -> None:
-    document = _document()
+    document = ex_document()
     source = [("ex:a", 1), ("ex:b", "x")]
 
     entity = document.entity("ex:e", (pair for pair in source))
@@ -108,7 +103,7 @@ def test_factory_method_accepts_a_generator() -> None:
 
 
 def test_add_attributes_consumes_a_generator_once() -> None:
-    document = _document()
+    document = ex_document()
     entity = document.entity("ex:a")
     source: list[tuple[QualifiedName | str, str | int]] = [
         (PROV_LABEL, "x"),
@@ -121,7 +116,7 @@ def test_add_attributes_consumes_a_generator_once() -> None:
 
 
 def test_values_without_a_prov_form_are_rejected_statically() -> None:
-    document = _document()
+    document = ex_document()
     untyped: dict[QualifiedName, object] = {PROV_LABEL: "x"}
 
     entity = document.entity("ex:a", untyped)  # type: ignore[arg-type]
@@ -130,7 +125,7 @@ def test_values_without_a_prov_form_are_rejected_statically() -> None:
 
 
 def test_add_attributes_reads_a_non_dict_mapping_through_items() -> None:
-    document = _document()
+    document = ex_document()
     entity = document.entity("ex:a")
     read_only = types.MappingProxyType({PROV_LABEL: "x"})
 
@@ -141,7 +136,7 @@ def test_add_attributes_reads_a_non_dict_mapping_through_items() -> None:
 
 def test_iterable_typed_argument_is_rejected_statically() -> None:
     # `Iterable` in the alias would bring back the literal-inference failure of #474.
-    document = _document()
+    document = ex_document()
 
     def pairs() -> Iterable[tuple[str, str]]:
         return [("ex:a", "x")]

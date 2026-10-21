@@ -27,6 +27,8 @@ from prov.serializers.provjsonld import (
     decode_jsonld_value,
 )
 
+from .conftest import no_future_rejection
+
 EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
 
@@ -674,8 +676,7 @@ def test_deserialize_iri_value_does_not_warn(
     key: str, value: str | dict[str, str]
 ) -> None:
     # An @id, or a compactable bare full IRI under an @id-typed term, does not warn.
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         doc = ProvDocument.deserialize(
             content=_entity_with(key, [value]), format="jsonld"
         )
@@ -686,8 +687,7 @@ def test_deserialize_iri_value_does_not_warn(
 
 def test_decode_jsonld_value_without_an_attribute_does_not_warn() -> None:
     value = {"@value": EX_URI + "thing", "@type": "xsd:QName"}
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         read = decode_jsonld_value(value, _new_doc(), "ex:ref")
     assert str(read) == "ex:thing"
 
@@ -720,8 +720,7 @@ def test_deserialize_unresolvable_bare_string_under_id_typed_term_warns(
 
 
 def test_deserialize_node_reference_outside_every_namespace_does_not_warn() -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         ProvDocument.deserialize(
             content=_entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
             format="jsonld",

@@ -1,0 +1,16 @@
+@prefix : <http://example.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+{
+    :a1 a prov:Activity ;
+        prov:qualifiedUsage _:Nc7fb3f4ea3b24bdeb2f7b992d1062adc .
+
+    :e1 a prov:Entity ;
+        :mine "x" ;
+        :type "y" .
+
+    _:Nc7fb3f4ea3b24bdeb2f7b992d1062adc a prov:Usage ;
+        :entity "collides" ;
+        prov:entity :e1 .
+}
+

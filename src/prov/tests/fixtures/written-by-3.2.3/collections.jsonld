@@ -1,0 +1,1 @@
+{"@context": [{"ex": "http://example.org/"}, "https://openprovenance.org/prov-jsonld/context.jsonld"], "@graph": [{"@type": "Entity", "@id": "ex:c1", "type": ["prov:Collection"]}, {"@type": "Entity", "@id": "ex:e1"}, {"@type": "Membership", "collection": "ex:c1", "entity": "ex:e1"}]}

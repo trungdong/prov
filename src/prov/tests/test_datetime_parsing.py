@@ -14,7 +14,7 @@ from prov.model import (
     ProvFutureRejectionWarning,
     parse_xsd_datetime,
 )
-from prov.tests.conftest import ROUNDTRIP_FORMATS
+from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document
 
 UTC = datetime.UTC
 
@@ -115,14 +115,8 @@ def test_factory_rejects_bad_time_with_prov_exception() -> None:
         document.activity("ex:a1", startTime="not a date")
 
 
-def _document() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
-
-
 def test_time_attributes_accept_a_typed_datetime_literal() -> None:
-    document = _document()
+    document = ex_document()
     activity = document.activity(
         "ex:a1",
         startTime=Literal("2012-01-01T00:00:00", XSD_DATETIME),
@@ -148,7 +142,7 @@ def test_time_attribute_rejects_any_other_literal(value) -> None:
     with pytest.raises(
         ProvException, match="Invalid value for attribute prov:startTime"
     ):
-        _document().activity("ex:a1", startTime=value)
+        ex_document().activity("ex:a1", startTime=value)
 
 
 def test_prov_o_time_outside_the_lexical_space_raises() -> None:
@@ -188,7 +182,7 @@ def test_time_beyond_the_offset_bound_warns(time) -> None:
         ProvFutureRejectionWarning,
         match=rf"^prov:startTime \S+ {_BEYOND}\. prov 3\.3\.0 will reject this \(#{_BEYOND_ISSUE}\)$",
     ) as caught:
-        activity = _document().activity("ex:a1", startTime=time)
+        activity = ex_document().activity("ex:a1", startTime=time)
     assert len(caught) == 1
     offset = activity.get_startTime().utcoffset()
     assert abs(offset) > datetime.timedelta(hours=14)
@@ -206,7 +200,7 @@ def test_time_beyond_the_offset_bound_warns(time) -> None:
 def test_time_within_the_offset_bound_does_not_warn(text) -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        _document().activity("ex:a1", startTime=text)
+        ex_document().activity("ex:a1", startTime=text)
 
 
 def test_typed_datetime_value_beyond_the_offset_bound_warns() -> None:
@@ -216,7 +210,7 @@ def test_typed_datetime_value_beyond_the_offset_bound_warns() -> None:
         match=r'^ex:t "2011-11-16T16:05:33\+15:00" %% xsd:dateTime'
         rf" {_BEYOND}\. prov 3\.3\.0 will keep it as a Literal \(#{_BEYOND_ISSUE}\)$",
     ) as caught:
-        entity = _document().entity("ex:e1", {"ex:t": value})
+        entity = ex_document().entity("ex:e1", {"ex:t": value})
     assert len(caught) == 1
     assert entity.get_attribute("ex:t") == {parse_xsd_datetime(value.value)}
 
@@ -233,12 +227,12 @@ def test_typed_datetime_value_beyond_the_offset_bound_warns() -> None:
 def test_typed_datetime_value_within_the_offset_bound_does_not_warn(text) -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        _document().entity("ex:e1", {"ex:t": Literal(text, XSD_DATETIME)})
+        ex_document().entity("ex:e1", {"ex:t": Literal(text, XSD_DATETIME)})
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 def test_every_reader_warns_about_an_offset_beyond_the_bound(fmt) -> None:
-    document = _document()
+    document = ex_document()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", ProvFutureRejectionWarning)
         document.activity("ex:a1", startTime="2012-01-01T00:00:00+15:00")

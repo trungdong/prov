@@ -5,7 +5,6 @@ serializer round-trip tests (planning/test-gap-checklist.md, T13), and the
 import copy
 import pickle
 import re
-import warnings
 from collections.abc import Callable
 from typing import Any, cast
 
@@ -13,6 +12,8 @@ import pytest
 
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import ProvDocument, ProvFutureRejectionWarning
+
+from .conftest import no_future_rejection
 
 
 def test_namespace_rejects_empty_uri() -> None:
@@ -116,8 +117,7 @@ def test_cached_name_warns_once() -> None:
     "localpart", ["e1", "run_1", "a-b.c", "a%20b", "na=me", "-a", "a.", "é", "1a", ""]
 )
 def test_local_part_provn_can_write_does_not_warn(localpart: str) -> None:
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         assert Namespace("ex", EX)[localpart].localpart == localpart
 
 
@@ -150,8 +150,7 @@ def test_copies_of_a_name_do_not_warn_again(
     copy_document: Callable[[ProvDocument], ProvDocument],
 ) -> None:
     document = _document_with_unwritable_name()
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         copied = copy_document(document)
     assert copied == document
 
@@ -170,8 +169,7 @@ def test_default_namespace_name_does_not_warn_again_on_update(
         document.entity("a b")
     other = ProvDocument()
     other.set_default_namespace(target_default)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         other.update(document)
     (record,) = other.get_records()
     assert record.identifier is not None

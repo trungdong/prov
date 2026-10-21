@@ -1,0 +1,93 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix ex: <http://example/> .
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+{
+    ex:articleV2 a prov:Entity ;
+        prov:alternateOf ex:articleV1 ;
+        prov:specializationOf ex:article ;
+        prov:wasDerivedFrom ex:dataSet2 .
+
+    ex:blogEntry a prov:Entity ;
+        prov:qualifiedQuotation _:N131b6659e20e4d399c6abaa8fad217c7 .
+
+    ex:chart1 a prov:Entity ;
+        prov:qualifiedGeneration _:N61592cc19458436790914876a1aa15cc ;
+        prov:wasAttributedTo ex:derek ;
+        prov:wasGeneratedBy ex:illustrate .
+
+    ex:chart2 a prov:Entity ;
+        prov:wasDerivedFrom ex:dataSet2 .
+
+    ex:compile2 a prov:Activity .
+
+    ex:articleV1 a prov:Entity ;
+        prov:specializationOf ex:article ;
+        prov:wasDerivedFrom ex:dataSet1 .
+
+    ex:compile a prov:Activity .
+
+    ex:composition a prov:Entity ;
+        prov:wasGeneratedBy ex:compose .
+
+    ex:correct a prov:Activity ;
+        prov:endedAtTime "2012-04-01T15:21:00"^^xsd:dateTime ;
+        prov:startedAtTime "2012-03-31T09:21:00"^^xsd:dateTime ;
+        prov:used ex:dataSet1 .
+
+    ex:illustrate a prov:Activity ;
+        prov:used ex:composition ;
+        prov:wasAssociatedWith ex:derek .
+
+    ex:regionList a prov:Entity .
+
+    ex:chartgen a prov:Agent,
+            prov:Organization ;
+        foaf:name "Chart Generators Inc" .
+
+    ex:compose a prov:Activity ;
+        prov:qualifiedUsage _:N4030d9fb44464fd4b8bb7b32fc52c770,
+            _:Ncccfe5607bd84d0f8cf2437d83fd4454 ;
+        prov:wasAssociatedWith ex:derek .
+
+    ex:dataSet2 a prov:Entity ;
+        prov:qualifiedRevision _:N0350888673c3486680fb63c7804b809b ;
+        prov:wasGeneratedBy ex:correct .
+
+    ex:article a prov:Entity ;
+        dcterms:title "Crime rises in cities" .
+
+    ex:derek a prov:Agent,
+            prov:Person ;
+        prov:actedOnBehalfOf ex:chartgen ;
+        prov:qualifiedDelegation _:Nf2452777428f4c068f81c5bec657dec1 ;
+        foaf:givenName "Derek" ;
+        foaf:mbox "<mailto:derek@example.org>" .
+
+    ex:dataSet1 a prov:Entity .
+
+    _:N0350888673c3486680fb63c7804b809b a prov:Revision ;
+        prov:entity ex:dataSet1 .
+
+    _:N131b6659e20e4d399c6abaa8fad217c7 a prov:Quotation ;
+        prov:entity ex:article .
+
+    _:N4030d9fb44464fd4b8bb7b32fc52c770 a prov:Usage ;
+        prov:entity ex:regionList ;
+        prov:hadRole "ex:regionsToAggregateBy" .
+
+    _:N61592cc19458436790914876a1aa15cc a prov:Generation ;
+        prov:activity ex:compile ;
+        prov:atTime "2012-03-02T10:30:00"^^xsd:dateTime .
+
+    _:Ncccfe5607bd84d0f8cf2437d83fd4454 a prov:Usage ;
+        prov:entity ex:dataSet1 ;
+        prov:hadRole "ex:dataToCompose" .
+
+    _:Nf2452777428f4c068f81c5bec657dec1 a prov:Delegation ;
+        prov:agent ex:chartgen ;
+        prov:hadActivity ex:compose .
+}
+

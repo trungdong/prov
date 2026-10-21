@@ -1,0 +1,7 @@
+document
+  prefix ex <http://example.org/>
+  
+  entity(ex:c1, [prov:type='prov:Collection'])
+  entity(ex:e1)
+  hadMember(ex:c1, ex:e1)
+endDocument

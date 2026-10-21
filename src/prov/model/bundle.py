@@ -208,39 +208,46 @@ _KEYLESS_RELATIONS = frozenset(
 )
 
 
-# Non-expandable positions, from PROV-CONSTRAINTS Definition 4 and Table 3. An
-# absent value in one of them is the constant "none", which unifies only with
-# itself. Generation and usage are non-expandable only on a derivation that
-# names no activity.
-_NON_EXPANDABLE = {
-    PROV_ASSOCIATION: (PROV_ATTR_PLAN,),
-    PROV_DERIVATION: (PROV_ATTR_ACTIVITY, PROV_ATTR_GENERATION, PROV_ATTR_USAGE),
+# PROV-CONSTRAINTS Table 3: the formal positions that do not expand, each with
+# the position whose presence makes it expandable again (None if none). A
+# derivation that names its activity has expandable generation and usage.
+_NON_EXPANDABLE: dict[
+    QualifiedName, tuple[tuple[QualifiedName, QualifiedName | None], ...]
+] = {
+    PROV_ASSOCIATION: ((PROV_ATTR_PLAN, None),),
+    PROV_DERIVATION: (
+        (PROV_ATTR_ACTIVITY, None),
+        (PROV_ATTR_GENERATION, PROV_ATTR_ACTIVITY),
+        (PROV_ATTR_USAGE, PROV_ATTR_ACTIVITY),
+    ),
 }
 
 
 def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
     """Warn if an absent non-expandable formal meets a present one in ``records``.
 
-    Only the first such position in ``FORMAL_ATTRIBUTES`` order warns, since
-    3.3.0 raises there. The group has already unified, so its records agree on
-    every position where they all have a value.
+    Only the first such position in Table 3 order warns, since 3.3.0 raises
+    there. The table lists each guard before its dependants, and a guard
+    present in only some records has already warned and returned, so by the
+    time a dependant is reached its guard is present in every record or in
+    none.
     """
     positions = _NON_EXPANDABLE.get(PROV_BASE_CLS[records[0].get_type()])
     if positions is None:
         return
     formal_values = [dict(record.formal_attributes) for record in records]
-    for attr_name in positions:
+    for attr_name, guard in positions:
+        if guard is not None and all(
+            values[guard] is not None for values in formal_values
+        ):
+            continue
         present = [
             values[attr_name]
             for values in formal_values
             if values[attr_name] is not None
         ]
         if present and len(present) < len(records):
-            condition = (
-                " on a derivation with no activity"
-                if attr_name in (PROV_ATTR_GENERATION, PROV_ATTR_USAGE)
-                else ""
-            )
+            condition = " on a derivation with no activity" if guard is not None else ""
             warn(
                 future_rejection_message(
                     f"{records[0].identifier}: an absent {attr_name}{condition} "
@@ -251,10 +258,6 @@ def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
                 ),
                 ProvFutureRejectionWarning,
             )
-            return
-        if attr_name == PROV_ATTR_ACTIVITY and present:
-            # A derivation that names its activity has expandable generation
-            # and usage.
             return
 
 
@@ -520,6 +523,11 @@ class ProvBundle:
         """Return why ``text`` resolves to no qualified name in this bundle by
         its prefix alone, or ``None`` when it resolves."""
         return self._namespaces._unresolved_reason(text)
+
+    def _declares_prefix(self, prefix: str) -> bool:
+        """Whether ``prefix`` is declared in this bundle's own namespaces; enclosing
+        scopes are not consulted."""
+        return prefix in self._namespaces
 
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate

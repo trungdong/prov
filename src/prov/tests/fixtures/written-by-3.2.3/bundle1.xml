@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:ex="http://www.example.com/" xmlns:alice="http://example.org/alice/" xmlns:bob="http://example.org/bob/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:bundle prov:id="bob:bundle1"/>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="bob:bundle1"/>
+    <prov:time>2012-05-24T10:30:00</prov:time>
+  </prov:wasGeneratedBy>
+  <prov:agent prov:id="ex:Bob"/>
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="bob:bundle1"/>
+    <prov:agent prov:ref="ex:Bob"/>
+  </prov:wasAttributedTo>
+  <prov:bundle prov:id="alice:bundle2"/>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="alice:bundle2"/>
+    <prov:time>2012-05-25T11:15:00</prov:time>
+  </prov:wasGeneratedBy>
+  <prov:agent prov:id="ex:Alice"/>
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="alice:bundle2"/>
+    <prov:agent prov:ref="ex:Alice"/>
+  </prov:wasAttributedTo>
+  <prov:bundleContent prov:id="bob:bundle1">
+    <prov:entity prov:id="ex:report1">
+      <prov:type xsi:type="xsd:string">report</prov:type>
+      <ex:version xsi:type="xsd:int">1</ex:version>
+    </prov:entity>
+    <prov:wasGeneratedBy>
+      <prov:entity prov:ref="ex:report1"/>
+      <prov:time>2012-05-24T10:00:01</prov:time>
+    </prov:wasGeneratedBy>
+  </prov:bundleContent>
+  <prov:bundleContent prov:id="alice:bundle2">
+    <prov:entity prov:id="ex:report1"/>
+    <prov:entity prov:id="ex:report2">
+      <prov:type xsi:type="xsd:string">report</prov:type>
+      <ex:version xsi:type="xsd:int">2</ex:version>
+    </prov:entity>
+    <prov:wasGeneratedBy>
+      <prov:entity prov:ref="ex:report2"/>
+      <prov:time>2012-05-25T11:00:01</prov:time>
+    </prov:wasGeneratedBy>
+    <prov:wasDerivedFrom>
+      <prov:generatedEntity prov:ref="ex:report2"/>
+      <prov:usedEntity prov:ref="ex:report1"/>
+    </prov:wasDerivedFrom>
+  </prov:bundleContent>
+</prov:document>

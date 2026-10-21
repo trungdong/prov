@@ -18,6 +18,7 @@ from typing import Any
 from prov._warnings import future_rejection_message
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
+from prov.model._values import LANGTAG_PATTERN
 
 __all__ = ["ProvNSyntaxError", "Token", "TokenKind", "tokenize"]
 
@@ -118,7 +119,7 @@ _INT = re.compile(r"-?[0-9]+")
 _IRI_EXCLUDED = r'<>"{}|^`\\\x00-\x20'
 _IRI = re.compile(rf"<((?:[^{_IRI_EXCLUDED}]|\\[^\x00-\x20])*)>")
 _IRI_FORBIDDEN = re.compile(rf"[{_IRI_EXCLUDED}]")
-_LANGTAG = re.compile(r"@([A-Za-z]+(?:-[A-Za-z0-9]+)*)")
+_LANGTAG = re.compile(f"@({LANGTAG_PATTERN})")
 _SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n\r])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
 _QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n\r])*)'")

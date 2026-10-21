@@ -689,7 +689,7 @@ def _decode_name(
         )
     elif (
         # A resolved name with a declared prefix needs no check.
-        (resolved is None or value.partition(":")[0] not in bundle._namespaces)
+        (resolved is None or not bundle._declares_prefix(value.partition(":")[0]))
         and (reason := bundle._unresolved_reason(value)) is not None
     ):
         if resolved is None:
@@ -710,7 +710,7 @@ def _check_record_key(bundle: ProvBundle, key: str, kind: _Kind = "record") -> N
         isinstance(key, str)
         # Check the common cases first, a prefix this bundle declares and a
         # relation's blank node identifier, which has no namespace.
-        and (prefix := key.partition(":")[0]) not in bundle._namespaces
+        and not bundle._declares_prefix(prefix := key.partition(":")[0])
         and prefix != "_"
         and (reason := bundle._unresolved_reason(key)) is not None
         and (resolved := bundle.valid_qualified_name(key)) is not None

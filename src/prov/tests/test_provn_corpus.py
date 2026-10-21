@@ -6,12 +6,13 @@ documents (default profile), and the PROV-N that ProvToolbox's writer
 produced from the shared test corpus, compared for equality with the
 PROV-JSON fixture of the same name (the interoperability claim)."""
 
-import warnings
 from pathlib import Path
 
 import pytest
 
 from prov.model import ProvDocument, ProvFutureRejectionWarning
+
+from .conftest import no_future_rejection
 
 CORPUS = Path(__file__).parent / "provn"
 JSON_FIXTURES = Path(__file__).parent / "json"
@@ -352,8 +353,7 @@ def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
     expected = STRICT_WARNING_EXAMPLES.get(path.name)
     # prov writes an undeclared prefix back as it read it.
     rewritten = expected if expected == _UNDECLARED_VALUE_PREFIX else None
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+    with no_future_rejection():
         document = _read_strict(expected, source=str(path))
         reloaded = _read_strict(rewritten, content=document.get_provn(strict=True))
         assert reloaded == document

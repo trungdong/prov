@@ -18,7 +18,7 @@ on first use. Reading the layers in order gives the shape of the library.
 | `prov.dot` | `prov_to_dot()`: Graphviz rendering via pydot | `prov.identifier`, `prov.graph`, `prov.model`, `pydot` (extra `dot`) |
 | `prov.scripts` | The `prov-convert` and `prov-compare` command-line tools | `prov.model`, `prov.serializers` |
 
-`prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`) whose `__init__.py`
+`prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`, `_values.py` for assertion-time value checks) whose `__init__.py`
 re-exports every public name at its historic `prov.model` location. User code imports from
 `prov.model` and never from the submodules. Both `prov.model.__init__` and
 `prov.model.bundle` import `prov.serializers` at module load time.

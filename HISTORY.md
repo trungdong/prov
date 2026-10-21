@@ -9,6 +9,10 @@
 - The prefix map and the membership fan-out that PROV-JSON and PROV-JSONLD share
   live in `prov.serializers._json_common`. Nothing changes in what either format
   reads or writes ([#589](https://github.com/trungdong/prov/issues/589))
+- The checks `prov` runs on an attribute value at assertion live in
+  `prov.model._values`, and the test suite reads every canonical document as
+  `prov` 3.2.3 wrote it. Nothing changes in what `prov` accepts or writes
+  ([#591](https://github.com/trungdong/prov/issues/591))
 
 ### Output changes
 

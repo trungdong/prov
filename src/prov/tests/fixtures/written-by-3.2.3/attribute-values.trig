@@ -1,0 +1,121 @@
+@prefix ex: <http://example.org/> .
+@prefix ex_1: <http://example4.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+{
+    ex:e0 a prov:Entity ;
+        ex:v "un lieu" .
+
+    ex:e1 a prov:Entity ;
+        ex:v "un lieu"@fr .
+
+    ex:e10 a prov:Entity ;
+        ex:v false .
+
+    ex:e11 a prov:Entity ;
+        ex:v "10"^^xsd:byte .
+
+    ex:e12 a prov:Entity ;
+        ex:v "10"^^xsd:unsignedInt .
+
+    ex:e13 a prov:Entity ;
+        ex:v "10"^^xsd:unsignedLong .
+
+    ex:e14 a prov:Entity ;
+        ex:v 10 .
+
+    ex:e15 a prov:Entity ;
+        ex:v "10"^^xsd:unsignedShort .
+
+    ex:e16 a prov:Entity ;
+        ex:v "10"^^xsd:nonNegativeInteger .
+
+    ex:e17 a prov:Entity ;
+        ex:v "-10"^^xsd:nonPositiveInteger .
+
+    ex:e18 a prov:Entity ;
+        ex:v "10"^^xsd:positiveInteger .
+
+    ex:e19 a prov:Entity ;
+        ex:v "10"^^xsd:unsignedByte .
+
+    ex:e2 a prov:Entity ;
+        ex:v "a place"@en .
+
+    ex:e20 a prov:Entity ;
+        ex:v "http://example.org"^^xsd:anyURI .
+
+    ex:e21 a prov:Entity ;
+        ex:v "http://example.org"^^xsd:anyURI .
+
+    ex:e22 a prov:Entity ;
+        ex:v ex:abc .
+
+    ex:e23 a prov:Entity ;
+        ex:v ex:abcd .
+
+    ex:e24 a prov:Entity ;
+        ex:v ex_1:zabc .
+
+    ex:e25 a prov:Entity ;
+        ex:v ex_1:zabcd .
+
+    ex:e26 a prov:Entity ;
+        ex:v "2026-10-21T14:30:15.123456"^^xsd:dateTime .
+
+    ex:e27 a prov:Entity ;
+        ex:v "2026-10-21T14:30:15.123456"^^xsd:dateTime .
+
+    ex:e28 a prov:Entity ;
+        ex:v "aGVsbG8="^^xsd:base64Binary .
+
+    ex:e29 a prov:Entity ;
+        ex:v "INF"^^xsd:double .
+
+    ex:e3 a prov:Entity ;
+        ex:v "1"^^xsd:int .
+
+    ex:e30 a prov:Entity ;
+        ex:v "-INF"^^xsd:double .
+
+    ex:e31 a prov:Entity ;
+        ex:v "http://example.org/a\"b\\c"^^xsd:anyURI .
+
+    ex:e32 a prov:Entity ;
+        ex:v "abc"^^xsd:int .
+
+    ex:e33 a prov:Entity ;
+        ex:v "abc"^^xsd:double .
+
+    ex:e34 a prov:Entity ;
+        ex:v "2012-13-01T00:00:00"^^xsd:dateTime .
+
+    ex:e35 a prov:Entity ;
+        ex:v "2026-01-01"^^xsd:date .
+
+    ex:e36 a prov:Entity ;
+        ex:v "10:30:00"^^xsd:time .
+
+    ex:e37 a prov:Entity ;
+        ex:v "PT1H"^^xsd:duration .
+
+    ex:e4 a prov:Entity ;
+        ex:v "1"^^xsd:long .
+
+    ex:e5 a prov:Entity ;
+        ex:v "1"^^xsd:short .
+
+    ex:e6 a prov:Entity ;
+        ex:v "2.0"^^xsd:double .
+
+    ex:e7 a prov:Entity ;
+        ex:v "1.0"^^xsd:float .
+
+    ex:e8 a prov:Entity ;
+        ex:v 10.0 .
+
+    ex:e9 a prov:Entity ;
+        ex:v true .
+}
+

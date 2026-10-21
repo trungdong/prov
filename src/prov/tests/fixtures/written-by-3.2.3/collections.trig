@@ -1,0 +1,11 @@
+@prefix ex: <http://example.org/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+{
+    ex:c1 a prov:Collection,
+            prov:Entity ;
+        prov:hadMember ex:e1 .
+
+    ex:e1 a prov:Entity .
+}
+
