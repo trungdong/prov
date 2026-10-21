@@ -84,6 +84,11 @@ committed baseline. `benchmarks/README.md` has the details.
 - No AI attribution lines in commits or PR bodies.
 - British English in shipped documentation and changelog text; describe changes by release,
   never by plan task or batch.
+- **Maintainability governs.** Added functionality keeps complexity as low as it can be.
+  Removed behaviour comes with less code and fewer or consolidated tests, never more. Neither
+  is bought with a loss of correctness. A change that simplifies and a change that breaks a
+  round trip are two changes, and only the first merges. Each PR body states what got simpler
+  and what got more complex, with Lizard CCN and line counts where they moved.
 
 ## Architecture
 
