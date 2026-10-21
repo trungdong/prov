@@ -11,8 +11,8 @@ import pytest
 import prov
 from prov.constants import PROV
 from prov.model import (
+    XSD_ANYURI,
     XSD_QNAME,
-    Identifier,
     Literal,
     Namespace,
     ProvDocument,
@@ -611,7 +611,7 @@ def test_deserialize_node_reference_with_absolute_iri() -> None:
 
 
 @pytest.mark.parametrize("iri", ["http://other.org/x", "nope:thing"])
-def test_deserialize_node_reference_outside_every_namespace_is_an_identifier(
+def test_deserialize_node_reference_outside_every_namespace_is_an_anyuri_literal(
     iri,
 ) -> None:
     doc = ProvDocument.deserialize(
@@ -619,7 +619,7 @@ def test_deserialize_node_reference_outside_every_namespace_is_an_identifier(
     )
     (entity,) = doc.get_records()
     (value,) = [v for _, v in entity.extra_attributes]
-    assert value == Identifier(iri)
+    assert value == Literal(iri, XSD_ANYURI)
 
 
 @pytest.mark.parametrize(

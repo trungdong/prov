@@ -11,7 +11,7 @@ values by index (e.g. index 8 is the ``xsd:decimal`` case).
 import datetime
 from typing import Any
 
-from prov.identifier import Identifier, Namespace
+from prov.identifier import Namespace
 from prov.model import (
     XSD,
     XSD_ANYURI,
@@ -59,7 +59,7 @@ ATTRIBUTE_VALUES: list[Any] = [
     Literal(-10, XSD_NONPOSITIVEINTEGER),
     Literal(10, XSD_POSITIVEINTEGER),
     Literal(10, XSD_UNSIGNEDBYTE),
-    Identifier("http://example.org"),
+    Literal("http://example.org", XSD_ANYURI),
     Literal("http://example.org", XSD_ANYURI),
     EX_NS["abc"],
     EX_OTHER_NS["abcd"],
@@ -70,7 +70,7 @@ ATTRIBUTE_VALUES: list[Any] = [
     Literal("aGVsbG8=", XSD["base64Binary"]),
     float("inf"),
     float("-inf"),
-    Identifier('http://example.org/a"b\\c'),
+    Literal('http://example.org/a"b\\c', XSD_ANYURI),
     Literal("abc", XSD_INT),
     Literal("abc", XSD_DOUBLE),
     Literal("2012-13-01T00:00:00", XSD_DATETIME),

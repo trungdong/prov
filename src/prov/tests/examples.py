@@ -1,6 +1,6 @@
 import datetime
 
-from prov.model import PROV, Identifier, Literal, Namespace, ProvDocument
+from prov.model import PROV, XSD_ANYURI, Literal, Namespace, ProvDocument
 
 
 def primer_example():
@@ -344,8 +344,8 @@ def w3c_publication_2():
     g.entity(
         "ex:req3",
         {
-            "prov:type": Identifier(
-                "http://www.w3.org/2005/08/01-transitions.html#pubreq"
+            "prov:type": Literal(
+                "http://www.w3.org/2005/08/01-transitions.html#pubreq", XSD_ANYURI
             )
         },
     )

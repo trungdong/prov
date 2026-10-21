@@ -363,11 +363,9 @@ def test_every_reader_and_assertion_warn_once_with_one_message(
     reader: str, text: str, reason: str, datatype: QualifiedName
 ) -> None:
     build, where, attr, compaction_issue = _READERS[reader]
-    # A prov:QUALIFIED_NAME full IRI compacts everywhere; an xsd:QName one
-    # only in the two JSON readers. 3.3.0 rejects both (#553).
-    compacts = text == f"{EX}x" and (
-        datatype == PROV_QUALIFIEDNAME or reader in ("json", "jsonld")
-    )
+    # A full IRI compacts at assertion and in every reader, whichever of the
+    # two datatypes it carries. 3.3.0 rejects it (#553).
+    compacts = text == f"{EX}x"
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         document = build(text, datatype)
