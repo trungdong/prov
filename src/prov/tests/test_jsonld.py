@@ -4,6 +4,7 @@ import io
 import json
 import warnings
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -75,6 +76,57 @@ def test_serialize_special_and_extra_attributes() -> None:
     assert stmt["label"] == [{"@value": "hello"}]
     assert stmt["ex:price"] == [{"@value": "42", "@type": "xsd:int"}]
     assert stmt["ex:note"] == [{"@value": "plain"}]
+
+
+@pytest.mark.parametrize(
+    ("key", "term"),
+    [("ex:ref", "ex:ref"), ("prov:label", "label"), ("prov:value", "value")],
+)
+def test_serialize_qualified_name_as_node_reference(key: str, term: str) -> None:
+    # Schema 2026-10-14 (openprov/prov-jsonld#7) makes a qualified name under any
+    # term outside ID_TYPED_TERMS a node reference, as ProvToolbox 2.2.5 writes
+    # it. A JSON-LD processor reads it as the IRI, matching PROV-O.
+    doc = _new_doc()
+    doc.entity("ex:e1", ((key, doc.valid_qualified_name("ex:thing")),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[term] == [{"@id": "ex:thing"}]
+
+
+@pytest.mark.parametrize("term", ["type", "location", "role"])
+def test_serialize_qualified_name_under_id_typed_term_stays_a_bare_string(
+    term: str,
+) -> None:
+    doc = _new_doc()
+    value = doc.valid_qualified_name("ex:Sort")
+    if term == "role":
+        doc.usage("ex:a1", "ex:e1", other_attributes={"prov:role": value})
+    else:
+        doc.entity("ex:e1", ((f"prov:{term}", value),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[term] == ["ex:Sort"]
+
+
+def test_serialize_default_namespace_qualified_name_as_node_reference() -> None:
+    # A default-namespace name is bare, and "@id" values resolve against the
+    # "@base" the writer sets to the default namespace.
+    doc = ProvDocument()
+    doc.set_default_namespace(EX_URI)
+    doc.entity("e1", ((EX_URI + "ref", doc.valid_qualified_name("thing")),))
+    (stmt,) = _dump(doc)["@graph"]
+    assert stmt[EX_URI + "ref"] == [{"@id": "thing"}]
+
+
+@pytest.mark.parametrize("context", ["url", "embed"])
+@pytest.mark.parametrize("default_namespace", [False, True])
+def test_roundtrip_qualified_name_value(context: str, default_namespace: bool) -> None:
+    doc = ProvDocument()
+    if default_namespace:
+        doc.set_default_namespace(EX_URI)
+        doc.entity("e1", ((EX_URI + "ref", doc.valid_qualified_name("thing")),))
+    else:
+        doc.add_namespace("ex", EX_URI)
+        doc.entity("ex:e1", (("ex:ref", doc.valid_qualified_name("ex:thing")),))
+    assert _roundtrip(doc, context=context) == doc
 
 
 def test_serialize_bundle_nesting() -> None:
@@ -184,9 +236,9 @@ def test_serialize_without_a_document_raises() -> None:
     assert "No document to serialize" in str(ctx.value)
 
 
-def _roundtrip(doc: ProvDocument) -> ProvDocument:
+def _roundtrip(doc: ProvDocument, **kwargs: Any) -> ProvDocument:
     return ProvDocument.deserialize(
-        content=doc.serialize(format="jsonld"), format="jsonld"
+        content=doc.serialize(format="jsonld", **kwargs), format="jsonld"
     )
 
 
