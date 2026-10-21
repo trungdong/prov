@@ -20,6 +20,7 @@
   PROV-JSONLD output at all when a `prov:` or `xsd:` name appears in it, under `type`, as
   a qualified-name value or as a literal's datatype such as `xsd:int`, because its reader
   does not fetch the context that defines `prov` and `xsd`
+  ([ProvToolbox #236](https://github.com/lucmoreau/ProvToolbox/issues/236))
 
 ## 3.2.3 (2026-10-19)
 
