@@ -1,0 +1,1 @@
+{"prefix": {"default": "http://example.org/"}, "entity": {"e1": {"mine": "x", "type": "y"}}, "activity": {"a1": {}}, "used": {"_:id1": {"prov:activity": "a1", "prov:entity": "e1", "entity": "collides"}}}

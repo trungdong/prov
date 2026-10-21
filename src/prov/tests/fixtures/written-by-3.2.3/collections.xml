@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:ex="http://example.org/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:collection prov:id="ex:c1"/>
+  <prov:entity prov:id="ex:e1"/>
+  <prov:hadMember>
+    <prov:collection prov:ref="ex:c1"/>
+    <prov:entity prov:ref="ex:e1"/>
+  </prov:hadMember>
+</prov:document>

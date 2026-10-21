@@ -1,0 +1,51 @@
+@prefix ex: <http://example.org/> .
+@prefix process: <http://www.w3.org/2005/10/Process-20051014/tr.html#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix tr: <http://www.w3.org/TR/2011/> .
+@prefix w3: <http://www.w3.org/> .
+
+{
+    tr:WD-prov-dm-20111215 a prov:Entity,
+            "rec54:WD" ;
+        prov:wasDerivedFrom tr:WD-prov-dm-20111018 ;
+        prov:wasGeneratedBy ex:act2 .
+
+    ex:act1 a prov:Activity,
+            "publish" ;
+        prov:qualifiedAssociation _:Ncf81c762a50a4c80b3db2e94b0d4f487 ;
+        prov:used <https://lists.w3.org/Archives/Member/chairs/2011OctDec/0004>,
+            <https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/0141> .
+
+    ex:act2 a prov:Activity,
+            "publish" ;
+        prov:qualifiedAssociation _:Ne2f629d22cf64e7988cdab571a19dec0 ;
+        prov:used <https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/0111> .
+
+    tr:WD-prov-dm-20111018 a prov:Entity,
+            "rec54:WD" ;
+        prov:wasGeneratedBy ex:act1 .
+
+    <https://lists.w3.org/Archives/Member/chairs/2011OctDec/0004> a prov:Entity,
+            "trans:transreq" .
+
+    <https://lists.w3.org/Archives/Member/w3c-archive/2011Dec/0111> a prov:Entity,
+            "trans:pubreq" .
+
+    <https://lists.w3.org/Archives/Member/w3c-archive/2011Oct/0141> a prov:Entity,
+            "trans:pubreq" .
+
+    process:rec-advance a prov:Entity,
+            prov:Plan .
+
+    w3:Consortium a prov:Agent,
+            prov:Organization .
+
+    _:Ncf81c762a50a4c80b3db2e94b0d4f487 a prov:Association ;
+        prov:agent w3:Consortium ;
+        prov:hadPlan process:rec-advance .
+
+    _:Ne2f629d22cf64e7988cdab571a19dec0 a prov:Association ;
+        prov:agent w3:Consortium ;
+        prov:hadPlan process:rec-advance .
+}
+

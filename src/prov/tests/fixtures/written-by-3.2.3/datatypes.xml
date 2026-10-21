@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:ex="http://example.org/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:entity prov:id="ex:e1">
+    <ex:bool xsi:type="xsd:boolean">true</ex:bool>
+    <ex:float xsi:type="xsd:double">100.123456</ex:float>
+    <ex:int xsi:type="xsd:int">100</ex:int>
+    <ex:intstr xml:lang="en">PROV Internationalized string</ex:intstr>
+    <ex:long xsi:type="xsd:long">123456789000</ex:long>
+    <ex:multi-line>Line1
+    Line2
+Line3</ex:multi-line>
+    <ex:str>Some string</ex:str>
+    <ex:timedate xsi:type="xsd:dateTime">2012-12-12T14:07:48</ex:timedate>
+    <ex:unicode>Some unicode string with accents: Hu&#7923;nh Trung &#272;&#244;ng</ex:unicode>
+  </prov:entity>
+</prov:document>

@@ -1,0 +1,53 @@
+@prefix alice: <http://example.org/alice/> .
+@prefix bob: <http://example.org/bob/> .
+@prefix ex: <http://www.example.com/> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+{
+    alice:bundle5 a prov:Bundle,
+            prov:Entity ;
+        prov:qualifiedGeneration _:Nc1758ae4fede440797343a461f7a267b ;
+        prov:wasAttributedTo ex:Alice .
+
+    bob:bundle4 a prov:Bundle,
+            prov:Entity ;
+        prov:qualifiedGeneration _:N66dec27ecc304052b1b165980894f6c7 ;
+        prov:wasAttributedTo ex:Bob .
+
+    ex:Alice a prov:Agent .
+
+    ex:Bob a prov:Agent .
+
+    _:N66dec27ecc304052b1b165980894f6c7 a prov:Generation ;
+        prov:atTime "2012-05-24T10:30:00"^^xsd:dateTime .
+
+    _:Nc1758ae4fede440797343a461f7a267b a prov:Generation ;
+        prov:atTime "2012-05-25T11:15:00"^^xsd:dateTime .
+}
+
+alice:bundle5 {
+    ex:report2 a prov:Entity,
+            "report" ;
+        ex:version "2"^^xsd:int ;
+        prov:qualifiedGeneration _:Ncdadf7cd25c546d69baf5c1d2176abce ;
+        prov:wasDerivedFrom ex:report1bis .
+
+    ex:report1bis a prov:Entity ;
+        prov:asInBundle bob:bundle4 ;
+        prov:mentionOf ex:report1 .
+
+    _:Ncdadf7cd25c546d69baf5c1d2176abce a prov:Generation ;
+        prov:atTime "2012-05-25T11:00:01"^^xsd:dateTime .
+}
+
+bob:bundle4 {
+    ex:report1 a prov:Entity,
+            "report" ;
+        ex:version "1"^^xsd:int ;
+        prov:qualifiedGeneration _:N7bae706eca5c4272acf4bce71f5ec99a .
+
+    _:N7bae706eca5c4272acf4bce71f5ec99a a prov:Generation ;
+        prov:atTime "2012-05-24T10:00:01"^^xsd:dateTime .
+}
+

@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns="http://example.org/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:entity prov:id="e1">
+    <mine>x</mine>
+    <type>y</type>
+  </prov:entity>
+  <prov:activity prov:id="a1"/>
+  <prov:used>
+    <prov:activity prov:ref="a1"/>
+    <prov:entity prov:ref="e1"/>
+    <entity>collides</entity>
+  </prov:used>
+</prov:document>

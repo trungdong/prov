@@ -1,0 +1,117 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:ex="http://example.org/" xmlns:ex_1="http://example4.org/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:entity prov:id="ex:e0">
+    <ex:v>un lieu</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e1">
+    <ex:v xml:lang="fr">un lieu</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e2">
+    <ex:v xml:lang="en">a place</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e3">
+    <ex:v xsi:type="xsd:int">1</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e4">
+    <ex:v xsi:type="xsd:long">1</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e5">
+    <ex:v xsi:type="xsd:short">1</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e6">
+    <ex:v xsi:type="xsd:double">2.0</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e7">
+    <ex:v xsi:type="xsd:float">1.0</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e8">
+    <ex:v xsi:type="xsd:decimal">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e9">
+    <ex:v xsi:type="xsd:boolean">true</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e10">
+    <ex:v xsi:type="xsd:boolean">false</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e11">
+    <ex:v xsi:type="xsd:byte">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e12">
+    <ex:v xsi:type="xsd:unsignedInt">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e13">
+    <ex:v xsi:type="xsd:unsignedLong">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e14">
+    <ex:v xsi:type="xsd:integer">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e15">
+    <ex:v xsi:type="xsd:unsignedShort">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e16">
+    <ex:v xsi:type="xsd:nonNegativeInteger">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e17">
+    <ex:v xsi:type="xsd:nonPositiveInteger">-10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e18">
+    <ex:v xsi:type="xsd:positiveInteger">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e19">
+    <ex:v xsi:type="xsd:unsignedByte">10</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e20">
+    <ex:v xsi:type="xsd:anyURI">http://example.org</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e21">
+    <ex:v xsi:type="xsd:anyURI">http://example.org</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e22">
+    <ex:v xsi:type="xsd:QName">ex:abc</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e23">
+    <ex:v xsi:type="xsd:QName">ex:abcd</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e24">
+    <ex:v xsi:type="xsd:QName">ex_1:zabc</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e25">
+    <ex:v xsi:type="xsd:QName">ex_1:zabcd</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e26">
+    <ex:v xsi:type="xsd:dateTime">2026-10-21T14:30:15.123456</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e27">
+    <ex:v xsi:type="xsd:dateTime">2026-10-21T14:30:15.123456</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e28">
+    <ex:v xsi:type="xsd:base64Binary">aGVsbG8=</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e29">
+    <ex:v xsi:type="xsd:double">INF</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e30">
+    <ex:v xsi:type="xsd:double">-INF</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e31">
+    <ex:v xsi:type="xsd:anyURI">http://example.org/a"b\c</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e32">
+    <ex:v xsi:type="xsd:int">abc</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e33">
+    <ex:v xsi:type="xsd:double">abc</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e34">
+    <ex:v xsi:type="xsd:dateTime">2012-13-01T00:00:00</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e35">
+    <ex:v xsi:type="xsd:date">2026-01-01</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e36">
+    <ex:v xsi:type="xsd:time">10:30:00</ex:v>
+  </prov:entity>
+  <prov:entity prov:id="ex:e37">
+    <ex:v xsi:type="xsd:duration">PT1H</ex:v>
+  </prov:entity>
+</prov:document>

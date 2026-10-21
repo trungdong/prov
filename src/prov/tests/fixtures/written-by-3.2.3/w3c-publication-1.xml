@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:ex="http://example.org/" xmlns:w3="http://www.w3.org/" xmlns:tr="http://www.w3.org/TR/2011/" xmlns:process="http://www.w3.org/2005/10/Process-20051014/tr.html#" xmlns:email="https://lists.w3.org/Archives/Member/w3c-archive/" xmlns:chairs="https://lists.w3.org/Archives/Member/chairs/" xmlns:trans="http://www.w3.org/2005/08/01-transitions.html#" xmlns:rec54="http://www.w3.org/2001/02pd/rec54#" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:entity prov:id="tr:WD-prov-dm-20111018">
+    <prov:type xsi:type="xsd:string">rec54:WD</prov:type>
+  </prov:entity>
+  <prov:entity prov:id="tr:WD-prov-dm-20111215">
+    <prov:type xsi:type="xsd:string">rec54:WD</prov:type>
+  </prov:entity>
+  <prov:plan prov:id="process:rec-advance"/>
+  <prov:entity prov:id="chairs:2011OctDec/0004">
+    <prov:type xsi:type="xsd:string">trans:transreq</prov:type>
+  </prov:entity>
+  <prov:entity prov:id="email:2011Oct/0141">
+    <prov:type xsi:type="xsd:string">trans:pubreq</prov:type>
+  </prov:entity>
+  <prov:entity prov:id="email:2011Dec/0111">
+    <prov:type xsi:type="xsd:string">trans:pubreq</prov:type>
+  </prov:entity>
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="tr:WD-prov-dm-20111215"/>
+    <prov:usedEntity prov:ref="tr:WD-prov-dm-20111018"/>
+  </prov:wasDerivedFrom>
+  <prov:activity prov:id="ex:act1">
+    <prov:type xsi:type="xsd:string">publish</prov:type>
+  </prov:activity>
+  <prov:activity prov:id="ex:act2">
+    <prov:type xsi:type="xsd:string">publish</prov:type>
+  </prov:activity>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="tr:WD-prov-dm-20111018"/>
+    <prov:activity prov:ref="ex:act1"/>
+  </prov:wasGeneratedBy>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="tr:WD-prov-dm-20111215"/>
+    <prov:activity prov:ref="ex:act2"/>
+  </prov:wasGeneratedBy>
+  <prov:used>
+    <prov:activity prov:ref="ex:act1"/>
+    <prov:entity prov:ref="chairs:2011OctDec/0004"/>
+  </prov:used>
+  <prov:used>
+    <prov:activity prov:ref="ex:act1"/>
+    <prov:entity prov:ref="email:2011Oct/0141"/>
+  </prov:used>
+  <prov:used>
+    <prov:activity prov:ref="ex:act2"/>
+    <prov:entity prov:ref="email:2011Dec/0111"/>
+  </prov:used>
+  <prov:organization prov:id="w3:Consortium"/>
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:act1"/>
+    <prov:agent prov:ref="w3:Consortium"/>
+    <prov:plan prov:ref="process:rec-advance"/>
+  </prov:wasAssociatedWith>
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:act2"/>
+    <prov:agent prov:ref="w3:Consortium"/>
+    <prov:plan prov:ref="process:rec-advance"/>
+  </prov:wasAssociatedWith>
+</prov:document>

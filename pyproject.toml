@@ -88,6 +88,7 @@ prov = ["py.typed"]
     "unification/constraints/*",
     "malformed/*",
     "schemas/*",
+    "fixtures/written-by-3.2.3/*",
     "provn/README.md",
     "provn/spec/prov-n/*.provn",
     "provn/spec/prov-dm/*.provn",

@@ -1,0 +1,114 @@
+<?xml version='1.0' encoding='ASCII'?>
+<prov:document xmlns:dcterms="http://purl.org/dc/terms/" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:ex="http://example/" xmlns:prov="http://www.w3.org/ns/prov#" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <prov:entity prov:id="ex:article">
+    <dcterms:title>Crime rises in cities</dcterms:title>
+  </prov:entity>
+  <prov:entity prov:id="ex:articleV1"/>
+  <prov:entity prov:id="ex:articleV2"/>
+  <prov:entity prov:id="ex:dataSet1"/>
+  <prov:entity prov:id="ex:dataSet2"/>
+  <prov:entity prov:id="ex:regionList"/>
+  <prov:entity prov:id="ex:composition"/>
+  <prov:entity prov:id="ex:chart1"/>
+  <prov:entity prov:id="ex:chart2"/>
+  <prov:entity prov:id="ex:blogEntry"/>
+  <prov:activity prov:id="ex:compile"/>
+  <prov:activity prov:id="ex:compile2"/>
+  <prov:activity prov:id="ex:compose"/>
+  <prov:activity prov:id="ex:correct">
+    <prov:startTime>2012-03-31T09:21:00</prov:startTime>
+    <prov:endTime>2012-04-01T15:21:00</prov:endTime>
+  </prov:activity>
+  <prov:activity prov:id="ex:illustrate"/>
+  <prov:used>
+    <prov:activity prov:ref="ex:compose"/>
+    <prov:entity prov:ref="ex:dataSet1"/>
+    <prov:role>ex:dataToCompose</prov:role>
+  </prov:used>
+  <prov:used>
+    <prov:activity prov:ref="ex:compose"/>
+    <prov:entity prov:ref="ex:regionList"/>
+    <prov:role>ex:regionsToAggregateBy</prov:role>
+  </prov:used>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:composition"/>
+    <prov:activity prov:ref="ex:compose"/>
+  </prov:wasGeneratedBy>
+  <prov:used>
+    <prov:activity prov:ref="ex:illustrate"/>
+    <prov:entity prov:ref="ex:composition"/>
+  </prov:used>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:chart1"/>
+    <prov:activity prov:ref="ex:illustrate"/>
+  </prov:wasGeneratedBy>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:chart1"/>
+    <prov:activity prov:ref="ex:compile"/>
+    <prov:time>2012-03-02T10:30:00</prov:time>
+  </prov:wasGeneratedBy>
+  <prov:person prov:id="ex:derek">
+    <foaf:givenName>Derek</foaf:givenName>
+    <foaf:mbox>&lt;mailto:derek@example.org&gt;</foaf:mbox>
+  </prov:person>
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:compose"/>
+    <prov:agent prov:ref="ex:derek"/>
+  </prov:wasAssociatedWith>
+  <prov:wasAssociatedWith>
+    <prov:activity prov:ref="ex:illustrate"/>
+    <prov:agent prov:ref="ex:derek"/>
+  </prov:wasAssociatedWith>
+  <prov:organization prov:id="ex:chartgen">
+    <foaf:name>Chart Generators Inc</foaf:name>
+  </prov:organization>
+  <prov:actedOnBehalfOf>
+    <prov:delegate prov:ref="ex:derek"/>
+    <prov:responsible prov:ref="ex:chartgen"/>
+    <prov:activity prov:ref="ex:compose"/>
+  </prov:actedOnBehalfOf>
+  <prov:wasAttributedTo>
+    <prov:entity prov:ref="ex:chart1"/>
+    <prov:agent prov:ref="ex:derek"/>
+  </prov:wasAttributedTo>
+  <prov:wasGeneratedBy>
+    <prov:entity prov:ref="ex:dataSet2"/>
+    <prov:activity prov:ref="ex:correct"/>
+  </prov:wasGeneratedBy>
+  <prov:used>
+    <prov:activity prov:ref="ex:correct"/>
+    <prov:entity prov:ref="ex:dataSet1"/>
+  </prov:used>
+  <prov:wasRevisionOf>
+    <prov:generatedEntity prov:ref="ex:dataSet2"/>
+    <prov:usedEntity prov:ref="ex:dataSet1"/>
+  </prov:wasRevisionOf>
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:chart2"/>
+    <prov:usedEntity prov:ref="ex:dataSet2"/>
+  </prov:wasDerivedFrom>
+  <prov:wasQuotedFrom>
+    <prov:generatedEntity prov:ref="ex:blogEntry"/>
+    <prov:usedEntity prov:ref="ex:article"/>
+  </prov:wasQuotedFrom>
+  <prov:specializationOf>
+    <prov:specificEntity prov:ref="ex:articleV1"/>
+    <prov:generalEntity prov:ref="ex:article"/>
+  </prov:specializationOf>
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:articleV1"/>
+    <prov:usedEntity prov:ref="ex:dataSet1"/>
+  </prov:wasDerivedFrom>
+  <prov:specializationOf>
+    <prov:specificEntity prov:ref="ex:articleV2"/>
+    <prov:generalEntity prov:ref="ex:article"/>
+  </prov:specializationOf>
+  <prov:wasDerivedFrom>
+    <prov:generatedEntity prov:ref="ex:articleV2"/>
+    <prov:usedEntity prov:ref="ex:dataSet2"/>
+  </prov:wasDerivedFrom>
+  <prov:alternateOf>
+    <prov:alternate1 prov:ref="ex:articleV2"/>
+    <prov:alternate2 prov:ref="ex:articleV1"/>
+  </prov:alternateOf>
+</prov:document>
