@@ -323,6 +323,9 @@ class ProvNParser:
         :meth:`_apply_declarations`) and by :meth:`_bundle` (which needs the
         bundle's own declarations before the bundle exists, to resolve its
         identifier against them).
+
+        Raises at a repeated default, at a prefix that is not a PN_PREFIX,
+        and under the strict profile at a default that follows a prefix.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -343,11 +346,10 @@ class ProvNParser:
                     raise self._error("a namespace IRI cannot be empty", iri)
                 self._check_reserved_prefix(local, iri.value, name)
                 if not _PN_PREFIX_NAME.fullmatch(local):
-                    self._future(
+                    raise self._error(
                         f"'{local}' is not a PROV-N prefix name, so no qualified"
                         " name can use it",
                         name,
-                        issue=511,
                     )
                 namespaces.append(Namespace(local, iri.value))
                 seen.add(local)
@@ -357,19 +359,14 @@ class ProvNParser:
                 if not iri.value:
                     raise self._error("a namespace IRI cannot be empty", iri)
                 if default is not None:
-                    self._future(
-                        "'default' is declared twice in this scope; the last one"
-                        " is used",
-                        keyword,
-                        issue=508,
+                    raise self._error(
+                        "'default' is declared twice in this scope", keyword
                     )
                 if namespaces and self.profile == "strict":
-                    self._future(
+                    raise self._error(
                         "'default' follows a 'prefix' declaration, which the"
                         " strict profile does not allow",
                         keyword,
-                        "reject this under the strict profile",
-                        issue=519,
                     )
                 default = iri.value
             else:
@@ -377,19 +374,19 @@ class ProvNParser:
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:
         reserved = _RESERVED_PREFIXES.get(prefix)
-        if reserved is not None and reserved.uri != uri:
+        if reserved is None:
+            return
+        if reserved.uri != uri:
             raise self._error(
                 f"prefix '{prefix}' is reserved for <{reserved.uri}> and cannot"
                 " be redeclared",
                 token,
             )
-        if reserved is not None and self.profile == "strict":
-            self._future(
+        if self.profile == "strict":
+            raise self._error(
                 f"prefix '{prefix}' is predeclared, and the strict profile does"
                 " not allow declaring it",
                 token,
-                "reject this under the strict profile",
-                issue=519,
             )
 
     def _future(

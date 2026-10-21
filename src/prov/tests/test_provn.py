@@ -186,7 +186,7 @@ def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> Non
     # ProvNParser._identifier_text().
     doc = parse(
         "bundle ex:b\n  entity(a\\:b)\nendBundle",
-        prefixes="prefix ex <http://example.org/>\ndefault <http://d.org/>\n",
+        prefixes="default <http://d.org/>\nprefix ex <http://example.org/>\n",
     )
     (bundle,) = doc.bundles
     record = only_record(bundle)
@@ -578,7 +578,7 @@ def test_prefix_declaration_accepts_redeclaring_prov_to_its_own_iri() -> None:
     record = only_record(
         ProvNParser(
             f"document\nprefix prov <{PROV.uri}>\nentity(prov:e1)\nendDocument",
-            "strict",
+            "default",
         ).parse()
     )
     assert str(record.identifier) == "prov:e1"
@@ -735,7 +735,7 @@ def test_duplicate_bundle_identifier_is_a_positioned_syntax_error() -> None:
 
 
 def test_all_digit_local_name_as_an_attribute_name() -> None:
-    doc = parse('entity(ex:e1, [123="x"])', prefixes=PREFIXES + "default <http://d/>\n")
+    doc = parse('entity(ex:e1, [123="x"])', prefixes="default <http://d/>\n" + PREFIXES)
     (record,) = doc.get_records()
     ((attr, _),) = record.attributes
     assert attr.uri == "http://d/123"
@@ -743,7 +743,7 @@ def test_all_digit_local_name_as_an_attribute_name() -> None:
 
 def test_all_digit_local_name_as_a_datatype() -> None:
     doc = parse(
-        'entity(ex:e1, [ex:a="x" %% 123])', prefixes=PREFIXES + "default <http://d/>\n"
+        'entity(ex:e1, [ex:a="x" %% 123])', prefixes="default <http://d/>\n" + PREFIXES
     )
     (record,) = doc.get_records()
     ((_, value),) = record.attributes
