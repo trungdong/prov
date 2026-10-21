@@ -168,6 +168,10 @@ hold. {doc}`../howto/typing` shows how to use it when a type checker reports a c
    :members:
    :show-inheritance:
 
+.. autoclass:: prov.model.ProvValueError
+   :members:
+   :show-inheritance:
+
 .. autoclass:: prov.model.ProvUnificationError
    :members:
    :show-inheritance:

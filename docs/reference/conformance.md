@@ -110,7 +110,7 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | `xsd:decimal` | as given; compared in value space, so `10`, `10.0` and `"10.00"` are one value | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere | ✓ |
-| `xsd:dateTime` | ISO 8601 text; a naive `datetime` is written without a zone | ✓ C7 |
+| `xsd:dateTime` | the `xsd:dateTime` lexical form; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one stays a `Literal` | ✓ C7 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ | ✓ |
 
 ## Caveats
@@ -128,16 +128,14 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
   convention, and reversed on read ([#289](https://github.com/trungdong/prov/issues/289)). A third-party name that already looks like
   an escape is therefore unescaped.
-- **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, is
-  percent-encoded with a `ProvWarning`, and the identifier reads back as the encoded IRI, so
-  `ex:a b` becomes `ex:a%20b`. A `%` that starts no escape is written as `%25`, with the
-  same warning. From 3.2.3 such a name also warns when it is built, and 3.3.0 rejects it
-  ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
+- **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, cannot
+  be in a local part: `QualifiedName` rejects it when built, from any format or from code,
+  since the only PROV-N spelling would be a percent-encoding that reads back as a different
+  IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
   `.`); `prov` does not validate or rename one that is not.
-- **C5. Empty language tag.** `Literal("hi", langtag="")` survives PROV-XML only, as
-  `xml:lang=""`. PROV-N, PROV-JSON and PROV-JSONLD read it back as a plain string and PROV-O
-  raises. From 3.2.3 an empty tag warns when the literal is built, and 3.3.0 rejects it
+- **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built, as is a tag
+  that is not shaped like a BCP 47 tag; PROV-XML's `xml:lang=""` is rejected on read
   ([#472](https://github.com/trungdong/prov/issues/472)).
 - **C6. Language tag that is not BCP 47.** PROV-N writes an underscore separator as a hyphen,
   so `en_US` reads back as `en-US`; PROV-O raises rdflib's `ValueError`. PROV-JSON, PROV-XML
