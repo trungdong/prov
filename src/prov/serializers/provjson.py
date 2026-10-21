@@ -21,8 +21,8 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
+from prov.model._values import _reader_checking_names, unresolved_name_detail
 from prov.model.records import (
-    _reader_checking_names,
     _xsd_datetime_text,
     _xsd_double_text,
 )
@@ -687,19 +687,10 @@ def _decode_name(
             attr_name,
             issue=597,
         )
-    elif (
-        # A resolved name with a declared prefix needs no check.
-        (resolved is None or not bundle._declares_prefix(value.partition(":")[0]))
-        and (reason := bundle._unresolved_reason(value)) is not None
-    ):
-        if resolved is None:
-            _warn_unresolved_name(
-                value, reason, "it is dropped", rec_id, attr_name, issue=516
-            )
-        else:
-            _warn_unresolved_name(
-                value, reason, f"it reads as {resolved}", rec_id, attr_name, issue=551
-            )
+    else:
+        _warn_unresolved_name(
+            bundle, value, resolved, rec_id, attr_name, outcome="it is dropped"
+        )
     return resolved
 
 
@@ -712,55 +703,31 @@ def _check_record_key(bundle: ProvBundle, key: str, kind: _Kind = "record") -> N
         # relation's blank node identifier, which has no namespace.
         and not bundle._declares_prefix(prefix := key.partition(":")[0])
         and prefix != "_"
-        and (reason := bundle._unresolved_reason(key)) is not None
         and (resolved := bundle.valid_qualified_name(key)) is not None
     ):
-        _warn_unresolved_name(
-            key, reason, f"it reads as {resolved}", key, issue=551, kind=kind
-        )
-
-
-def _check_name_value(
-    bundle: ProvBundle,
-    value: Any,
-    resolved: QualifiedName | None,
-    rec_id: str | None,
-    attr_name: str | None,
-) -> None:
-    """Warn when the qualified-name value ``value`` does not resolve by its
-    prefix (#516, #551); ``resolved`` is what it resolves to today."""
-    if (
-        isinstance(value, str)
-        and (reason := bundle._unresolved_reason(value)) is not None
-    ):
-        today = (
-            f"it reads as {resolved}"
-            if resolved is not None
-            else "it is kept as a Literal"
-        )
-        issue = 551 if resolved is not None else 516
-        _warn_unresolved_name(value, reason, today, rec_id, attr_name, issue=issue)
+        _warn_unresolved_name(bundle, key, resolved, key, kind=kind)
 
 
 def _warn_unresolved_name(
+    bundle: ProvBundle,
     text: str,
-    reason: str,
-    today: str,
+    resolved: QualifiedName | None,
     rec_id: str | None,
     attr_name: str | None = None,
     *,
-    issue: int,
+    outcome: str = "it is kept as a Literal",
     kind: _Kind = "record",
 ) -> None:
-    """Warn that the qualified name ``text`` does not resolve, for ``reason``;
-    ``today`` says how ``prov`` reads it instead."""
-    _warn_rejection(
-        f"the qualified name {text!r} does not resolve, because {reason}; {today}",
-        rec_id,
-        attr_name,
-        issue=issue,
-        kind=kind,
+    """Warn, with the value's position, when the qualified name ``text`` does
+    not resolve by its prefix (#516, #551); ``resolved`` is what it reads as
+    today by compacting an IRI, or ``None``, in which case ``outcome`` says
+    what happens to it."""
+    found = unresolved_name_detail(
+        bundle, text, resolved, outcome=outcome, compaction_issue=551
     )
+    if found is not None:
+        detail, issue = found
+        _warn_rejection(detail, rec_id, attr_name, issue=issue, kind=kind)
 
 
 def _decode_time(
@@ -976,9 +943,10 @@ def decode_json_representation(
         # it as an opaque Literal rather than dropping it (#238).
         resolved = valid_qualified_name(bundle, value)
         # A value with a "lang" is no qualified name, and the model logs
-        # that it overrides its datatype.
-        if langtag is None:
-            _check_name_value(bundle, value, resolved, rec_id, attr_name)
+        # that it overrides its datatype. A "$" that is not a string was
+        # already reported.
+        if langtag is None and isinstance(value, str):
+            _warn_unresolved_name(bundle, value, resolved, rec_id, attr_name)
         return resolved if resolved is not None else Literal(value, datatype, langtag)
     # The literal of standard Python types is not converted here. It is
     # converted when added to a record by _auto_literal_conversion().

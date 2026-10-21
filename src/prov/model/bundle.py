@@ -75,6 +75,7 @@ from prov.constants import (
     XSI,
 )
 from prov.identifier import Namespace, QualifiedName, _provn_escape_local_and_warn
+from prov.model._values import _rebuild, _rebuilding
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -117,8 +118,6 @@ from prov.model.records import (
     UsageRef,
     _attribute_pairs,
     _ensure_datetime,
-    _rebuild,
-    _rebuilding,
 )
 
 logger = logging.getLogger(__name__)

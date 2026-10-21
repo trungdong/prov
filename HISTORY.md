@@ -13,6 +13,10 @@
   `prov.model._values`, and the test suite reads every canonical document as
   `prov` 3.2.3 wrote it. Nothing changes in what `prov` accepts or writes
   ([#591](https://github.com/trungdong/prov/issues/591))
+- The check that a qualified-name value resolves by its prefix is one function
+  in `prov.model._values`, called at assertion and by the PROV-N, PROV-JSON and
+  PROV-JSONLD readers. Nothing changes in what `prov` accepts, warns about or
+  writes ([#587](https://github.com/trungdong/prov/issues/587))
 
 ### Output changes
 

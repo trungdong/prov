@@ -65,7 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.model.records import _reader_checking_names
+from prov.model._values import _reader_checking_names, unresolved_name_detail
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,
@@ -853,7 +853,7 @@ class ProvNParser:
                 return default[local]
             text = f"{prefix}:{local}" if prefix else local
             qname = bundle.valid_qualified_name(text)
-            self._check_name_value(text, token, bundle, True)
+            self._check_name_value(text, token, bundle, qname)
             # An unresolvable prefix stays an opaque literal, as it does when
             # decoded from PROV-JSON.
             return qname if qname is not None else Literal(text, PROV_QUALIFIEDNAME)
@@ -865,39 +865,40 @@ class ProvNParser:
         """Check the text of the string ``token`` when ``datatype`` is a
         qualified-name datatype."""
         if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-            # The model resolves a prov:QUALIFIED_NAME text and keeps an
-            # xsd:QName one as a Literal.
-            self._check_name_value(
-                token.value, token, bundle, datatype == PROV_QUALIFIEDNAME
-            )
+            # The model resolves a prov:QUALIFIED_NAME text, compacting an IRI
+            # if it must, and keeps an xsd:QName one as a Literal. The parser
+            # resolves only a text that does not resolve by its prefix.
+            if datatype == XSD_QNAME:
+                self._check_name_value(token.value, token, bundle, None)
+            elif bundle._unresolved_reason(token.value) is not None:
+                resolved = bundle.valid_qualified_name(token.value)
+                self._check_name_value(token.value, token, bundle, resolved)
 
     def _check_name_value(
-        self, text: str, token: Token, bundle: ProvBundle, resolves: bool
+        self,
+        text: str,
+        token: Token,
+        bundle: ProvBundle,
+        resolved: QualifiedName | None,
     ) -> None:
         """Record a 3.3.0 message at ``token`` when the qualified-name value
         ``text`` does not resolve by its prefix (#510, #516, #553).
 
-        ``resolves`` says whether the model resolves ``text`` today, possibly
-        by compacting an IRI, rather than keeping it as a Literal.
+        ``resolved`` is what the model reads ``text`` as today, possibly by
+        compacting an IRI, or ``None`` when it keeps the text as a Literal.
         """
-        if not resolves and text.startswith("xsi:") and "xsi" not in self._scope:
-            # The model keeps the text as a Literal, so nothing else reports
-            # the undeclared prefix.
-            reason: str | None = "its prefix 'xsi' is not declared"
-            issue: int | None = 510
-        else:
-            reason = bundle._unresolved_reason(text)
-            issue = None
-        if reason is None:
+        if resolved is None and text.startswith("xsi:") and "xsi" not in self._scope:
+            # xsi is predeclared, so the lookup below finds it; the model
+            # keeps the text as a Literal and nothing else reports the
+            # undeclared prefix.
+            self._future(
+                f"the qualified name {text!r} does not resolve, because its prefix"
+                " 'xsi' is not declared; it is kept as a Literal",
+                token,
+                issue=510,
+            )
             return
-        qname = bundle.valid_qualified_name(text) if resolves else None
-        if issue is None:
-            issue = 553 if qname is not None else 516
-        today = (
-            f"it reads as {qname}" if qname is not None else "it is kept as a Literal"
-        )
-        self._future(
-            f"the qualified name {text!r} does not resolve, because {reason}; {today}",
-            token,
-            issue=issue,
-        )
+        found = unresolved_name_detail(bundle, text, resolved)
+        if found is not None:
+            detail, issue = found
+            self._future(detail, token, issue=issue)

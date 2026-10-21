@@ -15,10 +15,12 @@ from prov.model import (
     Namespace,
     ProvDocument,
     ProvFutureRejectionWarning,
+    QualifiedName,
 )
+from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 from prov.tests.conftest import ROUNDTRIP_FORMATS
 
-from .conftest import ex_document, future_messages, no_future_rejection
+from .conftest import ex_document, future_messages, no_future_rejection, rejected
 
 EX = "http://example.org/"
 UNDECLARED = "its prefix 'zz' is not declared"
@@ -27,82 +29,16 @@ NO_PREFIX = "it has no prefix and no default namespace is declared"
 KEPT = "it is kept as a Literal"
 
 
-def _message(where: str, text: str, reason: str, today: str, issue: int) -> str:
+def _message(
+    where: str, text: str, reason: str, today: str, issue: int, attr: str = ""
+) -> str:
     return (
-        f"{where}the qualified name {text!r} does not resolve, because {reason};"
-        f" {today}. prov 3.3.0 will reject this (#{issue})"
+        f"{where}the qualified name {text!r}{attr} does not resolve, because"
+        f" {reason}; {today}. prov 3.3.0 will reject this (#{issue})"
     )
 
 
 #  Values asserted in code
-@pytest.mark.parametrize(
-    ("literal", "reason", "today", "stored", "issue"),
-    [
-        pytest.param(
-            Literal("zz:x", PROV_QUALIFIEDNAME),
-            UNDECLARED,
-            KEPT,
-            Literal("zz:x", PROV_QUALIFIEDNAME),
-            516,
-            id="undeclared",
-        ),
-        pytest.param(
-            Literal(f"{EX}x", PROV_QUALIFIEDNAME),
-            FULL_IRI,
-            "it reads as ex:x",
-            Namespace("ex", EX)["x"],
-            553,
-            id="full IRI",
-        ),
-        pytest.param(
-            Literal("not a name", PROV_QUALIFIEDNAME),
-            NO_PREFIX,
-            KEPT,
-            Literal("not a name", PROV_QUALIFIEDNAME),
-            516,
-            id="no prefix",
-        ),
-        pytest.param(
-            Literal("", PROV_QUALIFIEDNAME),
-            "it is empty",
-            KEPT,
-            Literal("", PROV_QUALIFIEDNAME),
-            516,
-            id="empty",
-        ),
-        pytest.param(
-            Literal("zz:x", XSD_QNAME),
-            UNDECLARED,
-            KEPT,
-            Literal("zz:x", XSD_QNAME),
-            516,
-            id="xsd:QName undeclared",
-        ),
-        pytest.param(
-            Literal(f"{EX}x", XSD_QNAME),
-            FULL_IRI,
-            KEPT,
-            Literal(f"{EX}x", XSD_QNAME),
-            516,
-            id="xsd:QName full IRI",
-        ),
-    ],
-)
-def test_unresolvable_qualified_name_value_warns(
-    literal: Literal, reason: str, today: str, stored: object, issue: int
-) -> None:
-    document = ex_document()
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        entity = document.entity("ex:e", {"ex:k": literal})
-    assert future_messages(caught, __file__) == [
-        _message("", literal.value, reason, today, issue).replace(
-            " does not resolve", " of ex:k does not resolve"
-        )
-    ]
-    assert entity.get_attribute("ex:k") == {stored}
-
-
 def _declared_in_the_document(literal: Literal) -> None:
     document = ex_document()
     document.bundle("ex:b").entity("ex:e", {"ex:k": literal})
@@ -170,45 +106,6 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
             id="full IRI",
         ),
         pytest.param(
-            '"zz:x" %% prov:QUALIFIED_NAME',
-            "zz:x",
-            UNDECLARED,
-            KEPT,
-            None,
-            516,
-            id="typed undeclared",
-        ),
-        pytest.param(
-            f'"{EX}x" %% prov:QUALIFIED_NAME',
-            f"{EX}x",
-            FULL_IRI,
-            "it reads as ex:x",
-            "ex:x",
-            553,
-            id="typed full IRI",
-        ),
-        pytest.param(
-            '"not a name" %% prov:QUALIFIED_NAME',
-            "not a name",
-            NO_PREFIX,
-            KEPT,
-            None,
-            516,
-            id="typed no prefix",
-        ),
-        pytest.param(
-            '"zz:x" %% xsd:QName', "zz:x", UNDECLARED, KEPT, None, 516, id="xsd:QName"
-        ),
-        pytest.param(
-            f'"{EX}x" %% xsd:QName',
-            f"{EX}x",
-            FULL_IRI,
-            KEPT,
-            None,
-            516,
-            id="xsd:QName full IRI",
-        ),
-        pytest.param(
             '"xsi:x" %% xsd:QName',
             "xsi:x",
             "its prefix 'xsi' is not declared",
@@ -236,6 +133,25 @@ def test_provn_unresolvable_qualified_name_value_warns_once(
     if stored is not None:
         ((_, read),) = next(iter(document.get_records())).extra_attributes
         assert str(read) == stored
+
+
+def test_provn_typed_name_in_a_bundle_checks_its_local_part_once() -> None:
+    # The prefix is declared on the document only, not in the bundle.
+    source = (
+        "document\n"
+        f"prefix ex <{EX}>\n"
+        "bundle ex:b\n"
+        'entity(ex:e, [ex:k="ex:a b" %% prov:QUALIFIED_NAME])\n'
+        "endBundle\n"
+        "endDocument\n"
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        ProvDocument.deserialize(content=source, format="provn")
+    detail = (
+        f"the local part 'a b' of <{EX}a b> contains a character PROV-N cannot write"
+    )
+    assert future_messages(caught, __file__) == [rejected(detail, 524)]
 
 
 @pytest.mark.parametrize(
@@ -308,46 +224,6 @@ def test_json_record_key_with_several_instances_warns_once() -> None:
     assert messages == [
         _message(f"record '{EX}e1': ", f"{EX}e1", FULL_IRI, "it reads as ex:e1", 551)
     ]
-    assert document == expected
-
-
-@pytest.mark.parametrize(
-    ("value", "reason", "today", "issue"),
-    [
-        pytest.param(
-            {"$": f"{EX}x", "type": "prov:QUALIFIED_NAME"},
-            FULL_IRI,
-            "it reads as ex:x",
-            551,
-            id="full IRI",
-        ),
-        pytest.param(
-            {"$": "zz:x", "type": "prov:QUALIFIED_NAME"},
-            UNDECLARED,
-            KEPT,
-            516,
-            id="undeclared",
-        ),
-        pytest.param(
-            {"$": "zz:x", "type": "xsd:QName"}, UNDECLARED, KEPT, 516, id="xsd:QName"
-        ),
-        pytest.param(
-            {"$": "not a name", "type": "xsd:QName"},
-            NO_PREFIX,
-            KEPT,
-            516,
-            id="no prefix",
-        ),
-    ],
-)
-def test_json_unresolvable_qualified_name_value_warns_once(
-    value: dict[str, str], reason: str, today: str, issue: int
-) -> None:
-    document, messages, expected = _read_json(
-        _json({"entity": {"ex:e": {"ex:k": value}}})
-    )
-    where = "record 'ex:e', attribute 'ex:k': "
-    assert messages == [_message(where, value["$"], reason, today, issue)]
     assert document == expected
 
 
@@ -454,6 +330,81 @@ def test_json_resolvable_name_does_not_warn(
 ) -> None:
     with no_future_rejection():
         ProvDocument.deserialize(content=_json(records, prefixes), format="json")
+
+
+#  Every reader and assertion, one message per reason (#587)
+_REASONS = [
+    pytest.param("zz:x", UNDECLARED, id="undeclared"),
+    pytest.param(f"{EX}x", FULL_IRI, id="full IRI"),
+    pytest.param("not a name", NO_PREFIX, id="no prefix"),
+    pytest.param("", "it is empty", id="empty"),
+]
+
+
+def _asserted(text: str, datatype: QualifiedName) -> ProvDocument:
+    document = ex_document()
+    document.entity("ex:e", {"ex:k": Literal(text, datatype)})
+    return document
+
+
+def _read_provn(text: str, datatype: QualifiedName) -> ProvDocument:
+    source = _provn(f'"{text}" %% {datatype}')
+    return ProvDocument.deserialize(content=source, format="provn")
+
+
+def _read_json_value(text: str, datatype: QualifiedName) -> ProvDocument:
+    source = _json({"entity": {"ex:e": {"ex:k": {"$": text, "type": str(datatype)}}}})
+    return ProvDocument.deserialize(content=source, format="json")
+
+
+def _read_jsonld(text: str, datatype: QualifiedName) -> ProvDocument:
+    source = json.dumps(
+        {
+            "@context": [{"ex": EX}, JSONLD_CONTEXT_URL],
+            "@graph": [
+                {
+                    "@type": "Entity",
+                    "@id": "ex:e",
+                    "ex:k": [{"@value": text, "@type": str(datatype)}],
+                }
+            ],
+        }
+    )
+    return ProvDocument.deserialize(content=source, format="jsonld")
+
+
+# Each reader: its builder, the position that starts its message, the
+# attribute named after the text, and the issue it cites when the value reads
+# by compacting an IRI.
+_READERS = {
+    "asserted": (_asserted, "", " of ex:k", 553),
+    "provn": (_read_provn, "line 3, column 20: ", "", 553),
+    "json": (_read_json_value, "record 'ex:e', attribute 'ex:k': ", "", 551),
+    "jsonld": (_read_jsonld, "", " of ex:k", 553),
+}
+
+
+@pytest.mark.parametrize("datatype", [PROV_QUALIFIEDNAME, XSD_QNAME], ids=str)
+@pytest.mark.parametrize(("text", "reason"), _REASONS)
+@pytest.mark.parametrize("reader", list(_READERS))
+def test_every_reader_and_assertion_warn_once_with_one_message(
+    reader: str, text: str, reason: str, datatype: QualifiedName
+) -> None:
+    build, where, attr, compaction_issue = _READERS[reader]
+    # A prov:QUALIFIED_NAME full IRI compacts everywhere; an xsd:QName one
+    # only in the two JSON readers. 3.3.0 rejects both (#553).
+    compacts = text == f"{EX}x" and (
+        datatype == PROV_QUALIFIEDNAME or reader in ("json", "jsonld")
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = build(text, datatype)
+    today, issue = ("it reads as ex:x", compaction_issue) if compacts else (KEPT, 516)
+    assert future_messages(caught, __file__) == [
+        _message(where, text, reason, today, issue, attr)
+    ]
+    ((_, value),) = next(iter(document.get_records())).extra_attributes
+    assert value == (Namespace("ex", EX)["x"] if compacts else Literal(text, datatype))
 
 
 #  Every reader, once per value; the XML reader already rejects such a value
