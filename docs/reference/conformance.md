@@ -109,7 +109,7 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Integer with an asserted datatype (`xsd:long`, `xsd:short`, `xsd:unsignedByte`, ...) | the asserted datatype, never collapsed to a narrower one | ✓ |
 | `xsd:decimal` | as given; compared in value space, so `10`, `10.0` and `"10.00"` are one value | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
-| Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD, native elsewhere | ✓ |
+| Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere | ✓ |
 | `xsd:dateTime` | ISO 8601 text; a naive `datetime` is written without a zone | ✓ C7 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ | ✓ |
 
@@ -199,10 +199,11 @@ declared twice in one scope and a duplicate bundle identifier are errors.
   `@id`, and a string under any other attribute. A node reference whose IRI no declared
   namespace compacts becomes an `Identifier`. A node reference with a key other than `@id`, or
   with an empty `@id`, raises `ProvJSONLDException`. From 3.3.0 `prov` writes a qualified name
-  under any other attribute as a node reference. It still reads an `xsd:QName` or
-  `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a qualified name, although a
-  JSON-LD processor reads that as a typed literal. The schema's `label` production admits only
-  strings, so a qualified name under `prov:label` does not validate in either form.
+  under any attribute other than `type`, `location` and `role` as a node reference. It still
+  reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a
+  qualified name, although a JSON-LD processor reads that as a typed literal. The schema's
+  `label` production admits only strings, so a qualified name under `prov:label` does not
+  validate in either form.
 
 ### PROV-O
 
