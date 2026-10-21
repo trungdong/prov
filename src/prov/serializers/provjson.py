@@ -857,6 +857,73 @@ def encode_json_representation(
         return value
 
 
+def _check_value_object(
+    literal: dict[str, Any],
+    bundle: ProvBundle,
+    attr_name: str | None,
+    rec_id: str | None,
+) -> tuple[Any, QualifiedName | None]:
+    """Check a PROV-JSON value object and return its ``"$"`` and datatype.
+
+    A key other than ``"$"``, ``"type"`` and ``"lang"``, a ``"$"`` that is
+    not a string, or a ``"type"`` that does not resolve warns with
+    :class:`~prov.model.ProvFutureRejectionWarning`. A number typed as
+    ``prov`` 2.x and earlier wrote it, an integer as ``xsd:int`` or
+    ``xsd:long`` or a float as ``xsd:double``, with no ``"lang"``, does not
+    warn.
+
+    Args:
+        literal: The value object.
+        bundle: Bundle used to resolve the ``"type"``.
+        attr_name: The attribute key ``literal`` was read from, for
+            messages, or ``None``.
+        rec_id: The identifier of the record, for messages, or ``None``.
+
+    Returns:
+        The ``"$"`` value and the resolved datatype, which is ``None`` when
+        there is no ``"type"`` or it does not resolve.
+
+    Raises:
+        ProvJSONException: If ``literal`` has no ``"$"`` key.
+    """
+    try:
+        value = literal["$"]
+    except KeyError as exc:
+        where = f"attribute {attr_name!r}" if attr_name is not None else "a value"
+        raise ProvJSONException(
+            f"The typed-literal representation for {where} is missing "
+            f'its required "$" (value) key; found {literal!r}'
+        ) from exc
+    if not literal.keys() <= _VALUE_OBJECT_KEYS:
+        for key in sorted(literal.keys() - _VALUE_OBJECT_KEYS, key=str):
+            _warn_rejection(
+                f"the value object has the unknown key {key!r}",
+                rec_id,
+                attr_name,
+                issue=529,
+            )
+    datatype_str: str | None = literal.get("type")
+    datatype = valid_qualified_name(bundle, datatype_str)
+    legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
+    if not isinstance(value, str) and (
+        datatype not in legacy_types or "lang" in literal
+    ):
+        _warn_rejection(
+            f'the value object\'s "$" is {_json_text(value)}, not a string',
+            rec_id,
+            attr_name,
+            issue=529,
+        )
+    if datatype_str is not None and datatype is None:
+        _warn_rejection(
+            f"the datatype {datatype_str!r} does not resolve and is dropped",
+            rec_id,
+            attr_name,
+            issue=552,
+        )
+    return value, datatype
+
+
 def decode_json_representation(
     literal: Any,
     bundle: ProvBundle,
@@ -865,13 +932,11 @@ def decode_json_representation(
 ) -> Any:
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
-    A value object with a key other than ``"$"``, ``"type"`` and ``"lang"``,
-    a ``"$"`` that is not a string, a ``"type"`` that does not resolve, or a
-    qualified-name value that does not resolve by its prefix warns with
-    :class:`~prov.model.ProvFutureRejectionWarning` and is read as before. A
-    number typed as ``prov`` 2.x and earlier wrote it, an integer as
-    ``xsd:int`` or ``xsd:long`` or a float as ``xsd:double``, with no
-    ``"lang"``, does not warn.
+    A value object is checked by :func:`_check_value_object`, which warns
+    with :class:`~prov.model.ProvFutureRejectionWarning` about a key other
+    than ``"$"``, ``"type"`` and ``"lang"``, a ``"$"`` that is not a string
+    and a ``"type"`` that does not resolve. A qualified-name value that does
+    not resolve by its prefix warns the same way and is read as before.
 
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
@@ -897,67 +962,27 @@ def decode_json_representation(
         ProvJSONException: If ``literal`` is a dict (the complex/typed
             representation) missing its required ``"$"`` (value) key.
     """
-    if isinstance(literal, dict):
-        # complex type
-        try:
-            value = literal["$"]
-        except KeyError as exc:
-            where = f"attribute {attr_name!r}" if attr_name is not None else "a value"
-            raise ProvJSONException(
-                f"The typed-literal representation for {where} is missing "
-                f'its required "$" (value) key; found {literal!r}'
-            ) from exc
-        if not literal.keys() <= _VALUE_OBJECT_KEYS:
-            for key in sorted(literal.keys() - _VALUE_OBJECT_KEYS, key=str):
-                _warn_rejection(
-                    f"the value object has the unknown key {key!r}",
-                    rec_id,
-                    attr_name,
-                    issue=529,
-                )
-        datatype_str: str | None = literal.get("type", None)
-        datatype = valid_qualified_name(bundle, datatype_str)
-        legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
-        if not isinstance(value, str) and (
-            datatype not in legacy_types or "lang" in literal
-        ):
-            _warn_rejection(
-                f'the value object\'s "$" is {_json_text(value)}, not a string',
-                rec_id,
-                attr_name,
-                issue=529,
-            )
-        if datatype_str is not None and datatype is None:
-            _warn_rejection(
-                f"the datatype {datatype_str!r} does not resolve and is dropped",
-                rec_id,
-                attr_name,
-                issue=552,
-            )
-        langtag = literal.get("lang", None)
-        if datatype == XSD_ANYURI:
-            return Identifier(value)
-        elif datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-            # #168: xsd:QName is the submission's type for QualifiedName
-            # values; prov:QUALIFIED_NAME is accepted for documents produced
-            # by 2.x. If the value's prefix has no in-scope namespace, keep
-            # it as an opaque Literal rather than dropping it (#238).
-            resolved = valid_qualified_name(bundle, value)
-            # A value with a "lang" is no qualified name, and the model logs
-            # that it overrides its datatype.
-            if langtag is None:
-                _check_name_value(bundle, value, resolved, rec_id, attr_name)
-            return (
-                resolved if resolved is not None else Literal(value, datatype, langtag)
-            )
-        else:
-            # The literal of standard Python types is not converted here
-            # It will be automatically converted when added to a record by
-            # _auto_literal_conversion()
-            return Literal(value, datatype, langtag)
-    else:
+    if not isinstance(literal, dict):
         # simple type, just return it
         return literal
+    value, datatype = _check_value_object(literal, bundle, attr_name, rec_id)
+    langtag = literal.get("lang", None)
+    if datatype == XSD_ANYURI:
+        return Identifier(value)
+    if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+        # #168: xsd:QName is the submission's type for QualifiedName
+        # values; prov:QUALIFIED_NAME is accepted for documents produced
+        # by 2.x. If the value's prefix has no in-scope namespace, keep
+        # it as an opaque Literal rather than dropping it (#238).
+        resolved = valid_qualified_name(bundle, value)
+        # A value with a "lang" is no qualified name, and the model logs
+        # that it overrides its datatype.
+        if langtag is None:
+            _check_name_value(bundle, value, resolved, rec_id, attr_name)
+        return resolved if resolved is not None else Literal(value, datatype, langtag)
+    # The literal of standard Python types is not converted here. It is
+    # converted when added to a record by _auto_literal_conversion().
+    return Literal(value, datatype, langtag)
 
 
 def literal_json_representation(
