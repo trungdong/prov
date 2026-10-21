@@ -20,7 +20,7 @@ from prov.model import (
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 from prov.tests.conftest import ROUNDTRIP_FORMATS
 
-from .conftest import ex_document, future_messages, no_future_rejection
+from .conftest import ex_document, future_messages, no_future_rejection, rejected
 
 EX = "http://example.org/"
 UNDECLARED = "its prefix 'zz' is not declared"
@@ -133,6 +133,25 @@ def test_provn_unresolvable_qualified_name_value_warns_once(
     if stored is not None:
         ((_, read),) = next(iter(document.get_records())).extra_attributes
         assert str(read) == stored
+
+
+def test_provn_typed_name_in_a_bundle_checks_its_local_part_once() -> None:
+    # The prefix is declared on the document only, not in the bundle.
+    source = (
+        "document\n"
+        f"prefix ex <{EX}>\n"
+        "bundle ex:b\n"
+        'entity(ex:e, [ex:k="ex:a b" %% prov:QUALIFIED_NAME])\n'
+        "endBundle\n"
+        "endDocument\n"
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        ProvDocument.deserialize(content=source, format="provn")
+    detail = (
+        f"the local part 'a b' of <{EX}a b> contains a character PROV-N cannot write"
+    )
+    assert future_messages(caught, __file__) == [rejected(detail, 524)]
 
 
 @pytest.mark.parametrize(
