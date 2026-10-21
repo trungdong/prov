@@ -10,6 +10,7 @@ import math
 import os
 import re
 import typing
+import uuid
 from collections import defaultdict
 from collections.abc import (
     Callable,
@@ -110,6 +111,8 @@ from prov.model._values import (
     _offset_beyond_xsd_bound,
     _rebuild,
     check_converted_value,
+    no_prov_form_detail,
+    python_value_form,
     time_offset_detail,
 )
 
@@ -597,9 +600,24 @@ class _SupportsItems(Protocol[_K_co, _V_co]):
 
 
 AttributeValue: typing.TypeAlias = Union[
-    "ProvRecord", QualifiedName, datetime.datetime, Literal, SupportedXSDParsedTypes
+    "ProvRecord",
+    QualifiedName,
+    Identifier,
+    datetime.datetime,
+    Literal,
+    SupportedXSDParsedTypes,
+    decimal.Decimal,
+    datetime.date,
+    datetime.time,
+    datetime.timedelta,
+    uuid.UUID,
+    bytes,
+    bytearray,
+    memoryview,
 ]
-"""A value accepted for a record attribute, before coercion."""
+"""A value accepted for a record attribute, before coercion. An ``Identifier``
+is stored as an ``xsd:anyURI`` ``Literal``, and a value of one of the Python
+types after it as a ``Literal`` of its XSD datatype (#482)."""
 
 # `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
 # member makes a dict literal's target ambiguous to mypy and breaks its
@@ -941,6 +959,20 @@ class ProvRecord:
             return literal
         return value
 
+    @staticmethod
+    def _literal_for_python_value(attr: QualifiedName, value: Any) -> Literal:
+        """The ``Literal`` prov stores a Python value of ``attr`` as, or
+        ``ProvValueError`` when the value has no PROV form (#482)."""
+        form = python_value_form(value)
+        if form is None:
+            raise ProvValueError(no_prov_form_detail(attr, value))
+        text, datatype = form
+        if text is None:
+            raise ProvValueError(
+                f"the value {value!r} of {attr} has no {datatype} form"
+            )
+        return Literal(text, datatype)
+
     def _coerce_attribute_value(
         self, attr: QualifiedName, original_value: Any
     ) -> CoercedAttributeValue:
@@ -969,17 +1001,11 @@ class ProvRecord:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value)
-            if type(value) not in _PLAIN_VALUE_TYPES or isinstance(
-                original_value, Literal
-            ):
-                check_converted_value(
-                    self._bundle,
-                    attr,
-                    original_value,
-                    value,
-                    _PLAIN_VALUE_TYPES,
-                    _PLAIN_VALUE_BASES,
-                )
+            if type(value) not in _PLAIN_VALUE_TYPES:
+                if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
+                    value = self._literal_for_python_value(attr, value)
+            elif isinstance(original_value, Literal):
+                check_converted_value(self._bundle, attr, original_value, value)
 
         if isinstance(value, datetime.datetime):
             # In any position, because no writer could emit it as an

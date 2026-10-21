@@ -1,14 +1,15 @@
-"""Checks on attribute values at assertion, and the warnings they raise.
+"""Checks and conversions on attribute values at assertion.
 
-:mod:`prov.model.records` calls :func:`time_offset_detail` for a time value and
-:func:`check_converted_value` for a value that is neither a time nor a formal
-qualified name. This module imports nothing from :mod:`prov.model.records`,
-so the caller passes in the plain value base types, and a literal is any
-object with a ``datatype``.
+:mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
+:func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
+the model does not hold as it is, and :func:`check_converted_value` for a
+typed literal. This module imports nothing from :mod:`prov.model.records`, so
+it returns text and datatypes and the caller builds the ``Literal`` or raises.
 """
 
 from __future__ import annotations
 
+import base64
 import datetime
 import decimal
 import re
@@ -17,7 +18,7 @@ import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
 
 from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
@@ -91,45 +92,86 @@ def _reader_checking_names() -> Iterator[None]:
         _reader_checks_names.reset(token)
 
 
-# The values prov 3.3.0 converts to a typed Literal (#482), in lookup order.
-# datetime.datetime is a date, so it must be excluded before this table.
-_PROV_FORMS: tuple[tuple[type | tuple[type, ...], QualifiedName], ...] = (
-    (decimal.Decimal, XSD_DECIMAL),
-    (datetime.date, XSD_DATE),
-    (datetime.time, XSD_TIME),
-    (datetime.timedelta, XSD["duration"]),
-    (uuid.UUID, XSD_ANYURI),
-    ((bytes, bytearray, memoryview), XSD["base64Binary"]),
+def _decimal_text(value: decimal.Decimal) -> str | None:
+    # xsd:decimal has no exponent, NaN or infinity.
+    return format(value, "f") if value.is_finite() else None
+
+
+def _time_text(value: datetime.time) -> str | None:
+    # An xsd:time zone is a whole number of minutes.
+    offset = value.utcoffset()
+    if offset is not None and (offset.seconds % 60 or offset.microseconds):
+        return None
+    return value.isoformat()
+
+
+def _duration_text(value: datetime.timedelta) -> str:
+    """``value`` as an xsd:duration, such as ``-P1DT2H3M4.5S``; zero is ``PT0S``."""
+    sign = "-" if value < datetime.timedelta(0) else ""
+    value = abs(value)
+    hours, rest = divmod(value.seconds, 3600)
+    minutes, seconds = divmod(rest, 60)
+    text = f"{value.days}D" if value.days else ""
+    clock = ""
+    if hours:
+        clock += f"{hours}H"
+    if minutes:
+        clock += f"{minutes}M"
+    if seconds or value.microseconds:
+        fraction = (
+            f".{value.microseconds:06d}".rstrip("0") if value.microseconds else ""
+        )
+        clock += f"{seconds}{fraction}S"
+    if clock:
+        text += f"T{clock}"
+    return f"{sign}P{text or 'T0S'}"
+
+
+# The Python values prov stores as a typed Literal (#482), in lookup order, with
+# the function that writes the lexical form, or None when this value has none.
+# datetime.datetime is a date, but it is a plain value and never reaches here.
+_PROV_FORMS: tuple[
+    tuple[type | tuple[type, ...], QualifiedName, Callable[[Any], str | None]], ...
+] = (
+    (decimal.Decimal, XSD_DECIMAL, _decimal_text),
+    (datetime.date, XSD_DATE, datetime.date.isoformat),
+    (datetime.time, XSD_TIME, _time_text),
+    (datetime.timedelta, XSD["duration"], _duration_text),
+    (uuid.UUID, XSD_ANYURI, lambda value: value.urn),
+    (
+        (bytes, bytearray, memoryview),
+        XSD["base64Binary"],
+        lambda value: base64.b64encode(bytes(value)).decode("ascii"),
+    ),
 )
 
 
-# Bounds a warning's copy of a value, which may be a large bytes object.
+# Bounds a message's copy of a value, which may be a large object.
 _value_repr = reprlib.Repr()
 _value_repr.maxother = _value_repr.maxstring = 80
 
 
-def _warn_no_prov_form(attr: QualifiedName, value: object) -> None:
-    """Warn that 3.3.0 converts or rejects ``value``, which has no PROV form."""
-    if _rebuilding.get():
-        return
+def python_value_form(value: object) -> tuple[str | None, QualifiedName] | None:
+    """The lexical text and XSD datatype prov stores ``value`` as (#482).
+
+    ``None`` when its type has no PROV form; the text is ``None`` when the type
+    converts but this value has no lexical form, such as ``Decimal("NaN")``.
+    """
+    for types, datatype, text in _PROV_FORMS:
+        if isinstance(value, types):
+            return text(value), datatype
+    return None
+
+
+def no_prov_form_detail(attr: QualifiedName, value: object) -> str:
+    """Why ``value`` of ``attr``, whose type has no PROV form, is rejected (#482)."""
     cls = type(value)
     name = (
         cls.__qualname__
         if cls.__module__ == "builtins"
         else f"{cls.__module__}.{cls.__qualname__}"
     )
-    detail = f"the value {_value_repr.repr(value)} of {attr} has type {name}"
-    for types, datatype in _PROV_FORMS:
-        if isinstance(value, types):
-            message = future_rejection_message(
-                detail, f"store it as a Literal of type {datatype}", issue=482
-            )
-            break
-    else:
-        message = future_rejection_message(
-            f"{detail}, which has no PROV form", issue=482
-        )
-    warn(message, ProvFutureRejectionWarning)
+    return f"the value {_value_repr.repr(value)} of {attr} has type {name}, which has no PROV form"
 
 
 class _TypedText(Protocol):
@@ -207,22 +249,9 @@ def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | N
 
 
 def check_converted_value(
-    bundle: ProvBundle,
-    attr: QualifiedName,
-    original_value: object,
-    value: object,
-    plain_types: frozenset[type],
-    plain_bases: tuple[type, ...],
+    bundle: ProvBundle, attr: QualifiedName, original_value: object, value: object
 ) -> None:
-    """Run the 3.3.0 checks on a non-formal attribute value.
-
-    ``value`` is ``original_value`` after conversion. A value whose type is
-    not in ``plain_types`` and not an instance of ``plain_bases`` has no PROV
-    form. A value of a plain type converted from a typed literal checks that
-    its qualified name resolves. A literal is an object with a ``datatype``.
-    """
-    if type(value) not in plain_types:
-        if value is not None and not isinstance(value, plain_bases):
-            _warn_no_prov_form(attr, value)
-    elif hasattr(original_value, "datatype"):
+    """Warn when ``original_value``, a literal typed as a qualified name, does not
+    resolve by its prefix (#516, #553); ``value`` is what it converted to."""
+    if hasattr(original_value, "datatype"):
         _warn_unresolved_name(bundle, attr, cast(_TypedText, original_value), value)
