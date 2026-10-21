@@ -89,7 +89,7 @@ def test_local_part_provn_cannot_write_raises(localpart: str) -> None:
     # #524: a local part that PROV-N can write only by percent-encoding it
     # would read back as a different IRI, so no QualifiedName holds one.
     with pytest.raises(ProvExceptionInvalidQualifiedName, match=_message(localpart)):
-        Namespace("ex", EX)[localpart]
+        _ = Namespace("ex", EX)[localpart]
 
 
 def test_qualified_name_built_directly_raises() -> None:
