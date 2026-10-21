@@ -203,6 +203,7 @@ class ProvXMLSerializer(Serializer):
                 f"PROV-XML binds the prefix '{XSI.prefix}' to <{XSI.uri}>, "
                 f"but the document binds it to <{bound}>"
             )
+        nsmap.pop(XSI.prefix, None)
         nsmap[XSI.prefix] = XSI.uri
         return nsmap
 

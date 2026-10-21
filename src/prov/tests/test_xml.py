@@ -949,3 +949,15 @@ def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:
         r"but the document binds it to <http://other/>",
     ):
         document.serialize(format="xml")
+
+
+def test_xml_namespace_order_ignores_a_declared_xsi_at_its_own_iri() -> None:
+    def prefixes(declare: bool) -> list[str]:
+        document = prov.ProvDocument()
+        document.add_namespace("ex", "http://example.org/")
+        if declare:
+            document.add_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        document.entity("ex:e")
+        return re.findall(r"xmlns:(\w+)=", document.serialize(format="xml"))
+
+    assert prefixes(True) == prefixes(False) == ["ex", "prov", "xsd", "xsi"]
