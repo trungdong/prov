@@ -341,3 +341,21 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
+
+
+def test_bundle_header_prefix_percent_encoding_warns_once() -> None:
+    # The synthesised "dn:" prefix and the percent-encoding of an
+    # unrepresentable character in the bundle's own identifier are two
+    # separate writer decisions on the same identifier; only one warning
+    # should reach the caller, via the same code path
+    # provn_bare_representation() uses.
+    d = ProvDocument()
+    d.set_default_namespace("http://doc.org/")
+    with pytest.warns(ProvFutureRejectionWarning):
+        b = d.bundle("b 1")
+    b.set_default_namespace("http://bundle.org/")
+    b.entity("e1")
+    with pytest.warns(ProvWarning) as record:
+        text = d.get_provn()
+    assert "bundle dn:b%201" in text
+    assert len(record) == 1
