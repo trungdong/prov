@@ -147,9 +147,8 @@ class ProvNParser:
             after :meth:`parse` returns.
         warnings: Messages for input that ``prov`` 3.3.0 rejects or reads
             differently, each built by
-            :func:`prov._warnings.future_rejection_message`. The lexer's
-            messages come first, then the parser's, each in source order.
-            Read after :meth:`parse` returns.
+            :func:`prov._warnings.future_rejection_message`, in source
+            order. Read after :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
@@ -161,9 +160,6 @@ class ProvNParser:
         self.profile = profile
         self.skipped: list[str] = []
         self.warnings: list[str] = []
-        # Namespaces declared in the scope being parsed, by prefix: the
-        # document's, overlaid with the current bundle's.
-        self._scope: dict[str, Namespace] = {}
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
@@ -289,7 +285,6 @@ class ProvNParser:
         document = ProvDocument()
         self._expect_keyword("document")
         namespaces, default = self._declarations()
-        self._scope = {namespace.prefix: namespace for namespace in namespaces}
         self._apply_declarations(document, namespaces, default)
         after_bundle = False
         while not self._at_keyword("endDocument"):
@@ -324,7 +319,8 @@ class ProvNParser:
         identifier against them).
 
         Raises at a repeated default, at a prefix that is not a PN_PREFIX,
-        and under the strict profile at a default that follows a prefix.
+        and under the strict profile at a default that follows a prefix and
+        at a declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -404,10 +400,7 @@ class ProvNParser:
         self, target: ProvBundle, namespaces: list[Namespace], default: str | None
     ) -> None:
         for namespace in namespaces:
-            # The model may register the namespace under a different prefix, so
-            # resolve names through what it returns to keep parsed values
-            # writable.
-            self._scope[namespace.prefix] = target.add_namespace(namespace)
+            target.add_namespace(namespace)
         if default is not None:
             target.set_default_namespace(default)
 
@@ -425,44 +418,36 @@ class ProvNParser:
         # resolve against the document directly, exactly as a bundle with no
         # declarations of its own would, so a document-level prefix used for
         # the identifier is not redundantly copied onto the bundle too.
-        outer_scope = self._scope
-        self._scope = {
-            **outer_scope,
-            **{namespace.prefix: namespace for namespace in namespaces},
-        }
+        prefix, _ = id_token.value
         try:
-            prefix, _ = id_token.value
-            try:
-                if (prefix and prefix in {ns.prefix for ns in namespaces}) or (
-                    not prefix and default is not None
-                ):
-                    bundle = ProvBundle(document=document)
-                    self._apply_declarations(bundle, namespaces, default)
-                    identifier = self._resolve(id_token, bundle)
-                    document.add_bundle(bundle, identifier)
-                else:
-                    identifier = self._resolve(id_token, document)
-                    bundle = document.bundle(identifier)
-                    self._apply_declarations(bundle, namespaces, default)
-            except ProvNSyntaxError:
-                raise
-            except ProvException as exc:
-                error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
-                if self.profile != "lenient":
-                    raise error from exc
-                error.__cause__ = exc
-                self.skipped.append(f"PROV-N bundle skipped: {error}")
-                self._skip_bundle_body()
-                return
-            while not self._at_keyword("endBundle"):
-                if self._current.kind is TokenKind.EOF:
-                    raise self._error("expected 'endBundle', found end of input")
-                if self._at_keyword("bundle"):
-                    raise self._error("a bundle cannot contain a bundle")
-                self._statement(bundle)
-            self._advance()
-        finally:
-            self._scope = outer_scope
+            if (prefix and prefix in {ns.prefix for ns in namespaces}) or (
+                not prefix and default is not None
+            ):
+                bundle = ProvBundle(document=document)
+                self._apply_declarations(bundle, namespaces, default)
+                identifier = self._resolve(id_token, bundle)
+                document.add_bundle(bundle, identifier)
+            else:
+                identifier = self._resolve(id_token, document)
+                bundle = document.bundle(identifier)
+                self._apply_declarations(bundle, namespaces, default)
+        except ProvNSyntaxError:
+            raise
+        except ProvException as exc:
+            error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
+            if self.profile != "lenient":
+                raise error from exc
+            error.__cause__ = exc
+            self.skipped.append(f"PROV-N bundle skipped: {error}")
+            self._skip_bundle_body()
+            return
+        while not self._at_keyword("endBundle"):
+            if self._current.kind is TokenKind.EOF:
+                raise self._error("expected 'endBundle', found end of input")
+            if self._at_keyword("bundle"):
+                raise self._error("a bundle cannot contain a bundle")
+            self._statement(bundle)
+        self._advance()
 
     def _skip_bundle_body(self) -> None:
         """Consume everything up to and including the next 'endBundle'."""

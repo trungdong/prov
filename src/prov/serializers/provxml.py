@@ -197,13 +197,12 @@ class ProvXMLSerializer(Serializer):
                 uri = uri.rstrip("#")
             nsmap[value.prefix] = uri
         # xsi:type carries every typed value's datatype (PROV-XML section 2.1).
-        bound = nsmap.get(XSI.prefix)
-        if bound not in (None, XSI.uri):
+        bound = nsmap.pop(XSI.prefix, XSI.uri)
+        if bound != XSI.uri:
             raise ProvXMLException(
                 f"PROV-XML binds the prefix '{XSI.prefix}' to <{XSI.uri}>, "
                 f"but the document binds it to <{bound}>"
             )
-        nsmap.pop(XSI.prefix, None)
         nsmap[XSI.prefix] = XSI.uri
         return nsmap
 

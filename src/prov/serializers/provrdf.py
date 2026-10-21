@@ -957,7 +957,7 @@ class ProvRDFSerializer(Serializer):
         for namespace in bundle.get_registered_namespaces():
             container.bind(namespace.prefix, namespace.uri)
         # #96: `get_registered_namespaces()` excludes the bundle's default
-        # namespace (a separate concept from the core prov/xsd/xsi
+        # namespace (a separate concept from the core prov/xsd
         # namespaces that it also excludes -- `set_default_namespace` never
         # writes to the registered-namespace dict), so it needs its own
         # bind() call here, under the empty prefix, for its terms to render

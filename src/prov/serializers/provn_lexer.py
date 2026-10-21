@@ -123,9 +123,9 @@ _SHORT_STRING = re.compile(r'"((?:\\.|[^"\\\n\r])*)"')
 _LONG_STRING = re.compile(r'"""((?:\\.|"(?!"")|[^"\\])*)"""', re.S)
 _QNAME_LITERAL = re.compile(r"'((?:\\.|[^'\\\n\r])*)'")
 # WS is space, tab, CR and LF (SPARQL [93], whose terminals PROV-N takes);
-# any other Unicode whitespace between tokens is an error, U+1680 apart,
-# which is a name character. A '//' comment ends at CR or LF (the
-# Recommendation's note on comments), not just LF.
+# any other Unicode whitespace between tokens is an error (next_token),
+# U+1680 apart, which is a name character. A '//' comment ends at CR or LF
+# (the Recommendation's note on comments), not just LF.
 _SKIP = re.compile(r"(?:[ \t\r\n]+|//[^\n\r]*|/\*.*?\*/)+", re.S)
 _LINEBREAK = re.compile(r"\r\n|\r|\n")
 _ESCAPE_CHAR = re.compile(r"\\(.)", re.S)
@@ -270,17 +270,11 @@ class _Lexer:
             skip = _SKIP.match(text, self.pos)
             if skip:
                 self.advance(skip.end() - self.pos)
-            if self.pos < len(text):
-                char = text[self.pos]
-                # WS is space, tab, CR and LF; U+1680 is in PN_CHARS_BASE
-                # ([53]), so it starts a name instead of separating tokens.
-                if char.isspace() and char != "\u1680":
-                    raise self.error(f"U+{ord(char):04X} is not PROV-N whitespace")
-            if text.startswith("/*", self.pos):
-                raise self.error("unterminated comment")
             if self.pos >= len(text):
                 yield Token(TokenKind.EOF, "", None, self.line, self.column)
                 return
+            if text.startswith("/*", self.pos):
+                raise self.error("unterminated comment")
             yield self.next_token()
 
     def next_token(self) -> Token:
@@ -303,6 +297,10 @@ class _Lexer:
             return token
         if char == "-":
             return self.emit(TokenKind.MARKER, "-", "-")
+        if char.isspace():
+            # WS is space, tab, CR and LF. U+1680 never gets here: it is in
+            # PN_CHARS_BASE ([53]), so literal_or_name_token() reads it as a name.
+            raise self.error(f"U+{ord(char):04X} is not PROV-N whitespace")
         raise self.error(f"unexpected character {char!r}")
 
     def iri_token(self) -> Token:
