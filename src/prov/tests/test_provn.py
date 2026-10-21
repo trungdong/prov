@@ -1,14 +1,17 @@
 """PROV-N parser tests: document structure, every expression form, literal
 forms, error paths and equality with documents the writer produced.
-Profile behaviour (default, lenient) is in test_provn_profiles.py."""
+The rejection and acceptance tables cover every profile; the rest of the
+profile behaviour is in test_provn_profiles.py."""
 
 import datetime
 import io
+import re
+import warnings
 from typing import Any
 
 import pytest
 
-from prov.constants import PROV, XSD, XSI
+from prov.constants import PROV, PROV_ALTERNATE, XSD, XSI
 from prov.model import (
     PROV_REC_CLS,
     Literal,
@@ -16,6 +19,7 @@ from prov.model import (
     ProvDocument,
     ProvException,
     ProvMention,
+    ProvWarning,
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import (
@@ -339,8 +343,11 @@ def test_errors_name_the_problem_and_position(body, message, line) -> None:
 
 
 EX_PREFIX = "prefix ex <http://example.org/>\n"
+STATEMENT_PREFIX = f"document\n{EX_PREFIX}"
 EVERY = PROFILES
 STRICT = ("strict",)
+# Rejected inside a statement, so the lenient profile skips the statement.
+STATEMENT = ("strict", "default")
 
 
 # The declarations and whitespace the reader rejects (#508, #509, #510, #511,
@@ -402,14 +409,133 @@ REJECTED_DOCUMENTS = [
         id="whitespace before a repeated default",
     ),
     pytest.param(
-        # A statement-level error, which the lenient profile skips instead.
         f'document\n{EX_PREFIX}entity(ex:e, [xsi:type="ex:T"])\nendDocument',
-        ("strict", "default"),
+        STATEMENT,
         "cannot resolve 'xsi:type': prefix 'xsi' is not declared",
         (3, 15),
         510,
         id="undeclared xsi",
     ),
+    # Statement rules (#523, #519 b and c). An attribute named after one of
+    # the statement's own arguments is rejected at the attribute; under
+    # strict, a statement after a bundle at the statement, and an identifier
+    # or an attribute block on a bare relation at that identifier or '['.
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{statement}\nendDocument",
+            STATEMENT,
+            f"'prov:{formal}' names the '{formal}' argument of '{keyword}',"
+            " which PROV-N gives only by position",
+            (3, statement.index("[prov:") + 2),
+            523,
+            id=label,
+        )
+        for statement, keyword, formal, label in (
+            (
+                "wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])",
+                "wasGeneratedBy",
+                "activity",
+                "argument given as an attribute",
+            ),
+            (
+                "wasGeneratedBy(ex:e, ex:a, -, [prov:activity='ex:a'])",
+                "wasGeneratedBy",
+                "activity",
+                "argument repeated as an attribute",
+            ),
+            (
+                "wasGeneratedBy(ex:e, ex:a, -, [prov:activity='ex:b'])",
+                "wasGeneratedBy",
+                "activity",
+                "argument contradicted by an attribute",
+            ),
+            (
+                'activity(ex:a, -, -, [prov:startTime="2011-11-16T16:05:00"])',
+                "activity",
+                "startTime",
+                "time argument given as an attribute",
+            ),
+            (
+                'wasGeneratedBy(ex:e, ex:a, -, [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
+                "wasGeneratedBy",
+                "time",
+                "time argument of a relation given as a typed attribute",
+            ),
+        )
+    ],
+    pytest.param(
+        "document\nprefix ex <http://example.org/>\n"
+        "prefix p <http://www.w3.org/ns/prov#>\n"
+        "wasGeneratedBy(ex:e, -, -, [p:activity='ex:a'])\nendDocument",
+        STATEMENT,
+        "'p:activity' names the 'activity' argument of 'wasGeneratedBy'",
+        (4, 29),
+        523,
+        id="argument matched by name, not spelling",
+    ),
+    pytest.param(
+        f"{STATEMENT_PREFIX}bundle ex:b\nentity(ex:e)\nendBundle\n"
+        "entity(ex:f)\nendDocument",
+        STRICT,
+        "a statement follows a bundle, which the strict profile does not allow",
+        (6, 1),
+        519,
+        id="statement after a bundle",
+    ),
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{statement}\nendDocument",
+            STRICT,
+            f"'{keyword}' has {what}, which the strict profile does not allow",
+            (3, statement.index(marker) + 1),
+            519,
+            id=label,
+        )
+        for keyword, statement, what, marker, label in (
+            (
+                "hadMember",
+                "hadMember(ex:m; ex:c, ex:e)",
+                "an identifier",
+                "ex:m",
+                "hadMember with an identifier",
+            ),
+            (
+                "hadMember",
+                "hadMember(-; ex:c, ex:e)",
+                "an identifier",
+                "-",
+                "hadMember with a marker",
+            ),
+            (
+                "alternateOf",
+                "alternateOf(ex:a; ex:e2, ex:e1)",
+                "an identifier",
+                "ex:a",
+                "alternateOf with an identifier",
+            ),
+            (
+                "specializationOf",
+                'specializationOf(ex:e2, ex:e1, [ex:k="x"])',
+                "an attribute block",
+                "[",
+                "specializationOf with attributes",
+            ),
+            (
+                "alternateOf",
+                "alternateOf(ex:e2, ex:e1, [])",
+                "an attribute block",
+                "[",
+                "alternateOf with an empty attribute block",
+            ),
+            (
+                "hadMember",
+                'hadMember(ex:m; ex:c, ex:e, [ex:k="x"])',
+                "an identifier",
+                "ex:m",
+                "hadMember with both, rejected at the identifier",
+            ),
+        )
+    ],
 ]
 
 
@@ -422,6 +548,19 @@ def test_reader_rejects(text, profiles, message, position, issue) -> None:
             ProvDocument.deserialize(content=text, format="provn", profile=profile)
         assert message in str(ctx.value), profile
         assert (ctx.value.line, ctx.value.column) == position, profile
+    if profiles == STATEMENT:
+        # The lenient profile skips the statement with the same text at the
+        # same position, warns about nothing else and reads nothing from it.
+        line, column = position
+        with pytest.warns(
+            ProvWarning,
+            match=f"skipped: line {line}, column {column}: {re.escape(message)}",
+        ) as caught:
+            document = ProvDocument.deserialize(
+                content=text, format="provn", profile="lenient"
+            )
+        assert len(caught) == 1
+        assert not list(document.get_records())
 
 
 # Declarations each profile reads without a message (#508, #511, #519 a and d,
@@ -461,6 +600,62 @@ def test_reader_accepts_declarations(declarations, profiles) -> None:
         with no_future_rejection():
             ProvDocument.deserialize(
                 content=f"document\n{declarations}endDocument",
+                format="provn",
+                profile=profile,
+            )
+
+
+# Statements each profile reads with no warning of any kind (#523, #519 b
+# and c): the statement block and the profiles that accept it.
+ACCEPTED_STATEMENTS = [
+    pytest.param(
+        "wasGeneratedBy(ex:e, ex:a, -, [prov:role='ex:r'])",
+        EVERY,
+        id="reserved attribute that is not an argument",
+    ),
+    pytest.param(
+        "entity(ex:f)\nbundle ex:b\nentity(ex:e)\nendBundle",
+        EVERY,
+        id="statement before a bundle",
+    ),
+    pytest.param(
+        "bundle ex:b\nentity(ex:e)\nendBundle\nentity(ex:f)",
+        ("default", "lenient"),
+        id="statement after a bundle",
+    ),
+    *[
+        pytest.param(statement, ("default", "lenient"), id=label)
+        for statement, label in (
+            ("hadMember(ex:m; ex:c, ex:e)", "hadMember with an identifier"),
+            ("hadMember(-; ex:c, ex:e)", "hadMember with a marker"),
+            ("alternateOf(ex:a; ex:e2, ex:e1)", "alternateOf with an identifier"),
+            (
+                'specializationOf(ex:e2, ex:e1, [ex:k="x"])',
+                "specializationOf with attributes",
+            ),
+            ("alternateOf(ex:e2, ex:e1, [])", "alternateOf with an empty block"),
+        )
+    ],
+    pytest.param(
+        'wasDerivedFrom(ex:d; ex:e2, ex:e1, [ex:k="x"])',
+        EVERY,
+        id="identifier and attributes on a derivation",
+    ),
+    pytest.param(
+        "prov:mentionOf(ex:m; ex:e2, ex:e1, ex:b)",
+        EVERY,
+        id="identifier on a mention",
+    ),
+]
+
+
+@pytest.mark.parametrize(("body", "profiles"), ACCEPTED_STATEMENTS)
+def test_reader_accepts_statements(body, profiles) -> None:
+    for profile in profiles:
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvWarning)
+            ProvDocument.deserialize(
+                content=f"{STATEMENT_PREFIX}{body}\nendDocument",
                 format="provn",
                 profile=profile,
             )
@@ -647,15 +842,8 @@ def test_time_attribute_rejects_a_non_datetime_argument() -> None:
         parse("wasGeneratedBy(ex:e1, ex:a1, ex:notatime)")
 
 
-@pytest.mark.parametrize(
-    "statement",
-    [
-        'entity(ex:e1, [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
-        "wasGeneratedBy(ex:e1, ex:a1, -,"
-        ' [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])',
-    ],
-)
-def test_time_attribute_accepts_a_typed_datetime_literal(statement) -> None:
+def test_time_attribute_accepts_a_typed_datetime_literal() -> None:
+    statement = 'entity(ex:e1, [prov:time="2012-01-01T00:00:00" %% xsd:dateTime])'
     record = only_record(parse(statement))
     assert record.get_attribute("prov:time") == {datetime.datetime(2012, 1, 1)}
 
@@ -701,6 +889,50 @@ def test_writer_output_parses_to_an_equal_document(build) -> None:
     doc = build()
     reloaded = ProvNParser(doc.get_provn(), "default").parse()
     assert reloaded == doc
+
+
+def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
+    # Productions 24 to 26 give alternateOf, specializationOf and hadMember
+    # neither an identifier nor an attribute block, and the strict reader
+    # rejects both, so strict=True drops each with a warning (#569).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.membership("ex:c", "ex:x").add_attributes({"ex:k": 1})
+    document.new_record(
+        PROV_ALTERNATE,
+        "ex:alt",
+        {"prov:alternate1": "ex:e1", "prov:alternate2": "ex:e2"},
+        {"ex:k": "v"},
+    )
+    document.wasDerivedFrom(
+        "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
+    )
+    with pytest.warns(ProvWarning) as caught:
+        text = document.get_provn(strict=True)
+    assert [str(w.message) for w in caught] == [
+        "strict=True drops the attribute block [ex:k=1] of hadMember(ex:c, ex:x),"
+        " because PROV-N gives hadMember no attribute block",
+        "strict=True drops the identifier ex:alt of alternateOf(ex:e1, ex:e2),"
+        " because PROV-N gives alternateOf no identifier",
+        'strict=True drops the attribute block [ex:k="v"] of'
+        " alternateOf(ex:e1, ex:e2), because PROV-N gives alternateOf no"
+        " attribute block",
+    ]
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    expected.membership("ex:c", "ex:x")
+    expected.alternateOf("ex:e1", "ex:e2")
+    expected.wasDerivedFrom(
+        "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
+        reread = ProvDocument.deserialize(
+            content=text, format="provn", profile="strict"
+        )
+        assert reread == expected
+        # The default writer keeps both and warns about nothing.
+        assert 'alternateOf(ex:alt; ex:e1, ex:e2, [ex:k="v"])' in document.get_provn()
 
 
 def test_duplicate_prefix_in_one_scope_is_an_error() -> None:
@@ -822,17 +1054,3 @@ def test_code_point_escapes_read_in_strings_and_iris() -> None:
     (record,) = document.get_records()
     assert record.identifier.uri == "http://example.org/café/e"
     assert record.get_attribute("ex:k") == {"café"}
-
-
-STATEMENT_PREFIX = f"document\n{EX_PREFIX}"
-
-
-def test_conflicting_formal_attribute_is_skipped_without_a_warning() -> None:
-    parser = ProvNParser(
-        f"{STATEMENT_PREFIX}wasGeneratedBy(ex:e, ex:a, -, [prov:activity='ex:b'])\n"
-        "entity(ex:z)\nendDocument",
-        "lenient",
-    )
-    parser.parse()
-    assert parser.warnings == []
-    assert len(parser.skipped) == 1

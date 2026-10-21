@@ -47,6 +47,13 @@ PROV_MENTION = PROV["Mention"]
 #  C6. Collections
 PROV_MEMBERSHIP = PROV["Membership"]
 
+# Productions 24 to 26 of PROV-N give these relations neither an identifier
+# nor an attribute block. Underscore-named so the star import into prov.model
+# does not export it.
+_PROV_N_BARE_RELATIONS = frozenset(
+    {PROV_ALTERNATE, PROV_SPECIALIZATION, PROV_MEMBERSHIP}
+)
+
 PROV_N_MAP = {
     PROV_ENTITY: "entity",
     PROV_ACTIVITY: "activity",

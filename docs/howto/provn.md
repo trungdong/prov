@@ -73,7 +73,9 @@ files other tools wrote, and `lenient` to salvage what a damaged file still hold
 lenient profile recovers from parse errors and from statements the model rejects. A
 tokenisation error, such as an unterminated string, IRI or comment, and a duplicate prefix
 declaration still raise in every profile; a bundle whose identifier is already taken is
-skipped whole under `lenient`.
+skipped whole under `lenient`. A statement that breaks a rule the strict and default
+profiles enforce, such as an attribute named after one of its own arguments, fails to
+parse too, so `lenient` skips it.
 
 ## Handle syntax errors
 
@@ -96,8 +98,11 @@ candidate format's error; pass `format="provn"` to see it.
 ## Write strictly conformant output
 
 `get_provn()` and `serialize(format="provn")` write the bare `mentionOf` keyword by
-default, which ProvToolbox reads. Pass `strict=True` to write `prov:mentionOf` instead, so
-the output parses under the `strict` profile:
+default, which ProvToolbox reads, and write an identifier or attribute block on
+`alternateOf`, `specializationOf` and `hadMember` when a record carries one, which the
+grammar does not allow. Pass `strict=True` to write `prov:mentionOf` and to drop those
+identifiers and attribute blocks, each with a {py:class}`~prov.model.ProvWarning` that
+names the record, so the output parses under the `strict` profile:
 
 ```python
 document.serialize("document.provn", format="provn", strict=True)

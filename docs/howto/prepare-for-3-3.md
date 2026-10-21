@@ -106,17 +106,26 @@ at the name instead. Whitespace inside a string, an IRI or a comment is unchange
 
 ## PROV-N statements
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `'prov:activity' names the 'activity' argument of 'wasGeneratedBy'` | [#523](https://github.com/trungdong/prov/issues/523) | `wasGeneratedBy(ex:e, -, -, [prov:activity='ex:a'])` | The value as the argument, `wasGeneratedBy(ex:e, ex:a, -)`. |
 | `a statement follows a bundle` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `entity(ex:f)` after `endBundle` | Every statement before the first bundle. |
 | `'hadMember' has an identifier` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `hadMember(ex:m; ex:c, ex:e)` | `hadMember(ex:c, ex:e)`. |
 | `'specializationOf' has an attribute block` (strict profile) | [#519](https://github.com/trungdong/prov/issues/519) | `specializationOf(ex:e2, ex:e1, [ex:k="x"])` | `specializationOf(ex:e2, ex:e1)`. |
 
-The identifier and attribute-block warnings name whichever of `alternateOf`,
-`specializationOf` and `hadMember` carries one. The `default` and `lenient`
-profiles accept the three strict-profile constructs in this table without a
-warning.
+Each is a `ProvNSyntaxError` at the attribute name, the statement, the identifier or the
+`[`. The identifier and attribute-block errors name whichever of `alternateOf`,
+`specializationOf` and `hadMember` carries one. The `default` and `lenient` profiles
+accept the three strict-profile constructs in this table. Under `lenient`, the first row
+is a skipped statement with a `ProvWarning`, like any statement that fails to parse. In
+3.2.3 a `lenient` read kept that statement and warned, so an `error` filter on
+`ProvFutureRejectionWarning` raised then and does not now.
+
+The strict writer drops what the strict reader rejects:
+
+| Warning | Issue | Example | Write instead |
+|---|---|---|---|
+| `strict=True drops the identifier ex:m of hadMember(ex:c, ex:e), because PROV-N gives hadMember no identifier` | [#569](https://github.com/trungdong/prov/issues/569) | `document.membership("ex:c", "ex:e")` with an identifier or attributes, written with `strict=True`. A `hadMember` read from PROV-JSON with several members gives every member its identifier and attributes. | The record without them, or `get_provn()` without `strict=True`, which keeps both. |
 
 ## Times
 

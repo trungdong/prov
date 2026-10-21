@@ -674,9 +674,10 @@ class ProvBundle:
 
         Args:
             _indent_level: Indentation level for nested bundles.
-            strict: Write ``prov:mentionOf`` instead of the bare
-                ``mentionOf`` keyword so the output parses under the strict
-                PROV-N profile.
+            strict: Write output that parses under the strict PROV-N
+                profile, as :meth:`ProvRecord.get_provn` describes, dropping
+                what ``alternateOf``, ``specializationOf`` and ``hadMember``
+                cannot carry there, with a warning each.
         """
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))
