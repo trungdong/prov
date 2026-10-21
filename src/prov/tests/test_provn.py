@@ -394,6 +394,14 @@ REJECTED_DOCUMENTS = [
         id="no-break space",
     ),
     pytest.param(
+        "document\ndefault <http://a/>\ndefault <http://b/>\nentity(e)\xa0\nendDocument\n",
+        EVERY,
+        "U+00A0 is not PROV-N whitespace",
+        4,
+        509,
+        id="whitespace before a repeated default",
+    ),
+    pytest.param(
         # A statement-level error, which the lenient profile skips instead.
         f'document\n{EX_PREFIX}entity(ex:e, [xsi:type="ex:T"])\nendDocument',
         ("strict", "default"),
