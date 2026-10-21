@@ -117,6 +117,12 @@ REJECTED: list[tuple[Any, str]] = [
     (decimal.Decimal("NaN"), "has no xsd:decimal form"),
     (decimal.Decimal("Infinity"), "has no xsd:decimal form"),
     (datetime.time(10, 30, tzinfo=HALF_MINUTE), "has no xsd:time form"),
+    (
+        datetime.time(10, 30, tzinfo=datetime.timezone(datetime.timedelta(hours=15))),
+        "has no xsd:time form",
+    ),
+    (decimal.Decimal("1E+10000"), "has no xsd:decimal form"),
+    (decimal.Decimal("1E-10000"), "has no xsd:decimal form"),
 ]
 
 

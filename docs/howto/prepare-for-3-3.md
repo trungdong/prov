@@ -194,18 +194,20 @@ write it faithfully.
 
 | Python type | Datatype | Written as |
 |---|---|---|
-| `decimal.Decimal` | `xsd:decimal` | `format(value, "f")`, so `Decimal("1E+2")` is `100` |
+| `decimal.Decimal` | `xsd:decimal` | `format(value, "f")`, so `Decimal("1E+2")` is `100`; a value too long to write is an error |
 | `datetime.date` | `xsd:date` | `isoformat()` |
-| `datetime.time` | `xsd:time` | `isoformat()`; an offset that is not a whole number of minutes is an error |
+| `datetime.time` | `xsd:time` | `isoformat()`; an offset that is not a whole number of minutes or is beyond ±14:00 is an error |
 | `datetime.timedelta` | `xsd:duration` | days, hours, minutes and seconds, such as `P1DT2H`, `-PT1H30M` or `PT0S` |
 | `uuid.UUID` | `xsd:anyURI` | `urn:uuid:…` |
 | `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` | standard base64 |
 
 A converted value reads back as the `Literal`, not as the Python value, from
-`get_attribute()` and from every format. The readers never build these types unless a
-`json.load` option asks for one. With `parse_float=decimal.Decimal`, the PROV-JSON and
-PROV-JSONLD readers read each bare JSON number with a fraction or an exponent as a
-`Decimal`, which is stored as an `xsd:decimal` `Literal`.
+`get_attribute()` and from every format, except that an `xsd:duration` read from RDF comes
+back in rdflib's normalised form, so a zero `timedelta` reads as `P0D`
+([#620](https://github.com/trungdong/prov/issues/620)). The readers never build these
+types unless a `json.load` option asks for one. With `parse_float=decimal.Decimal`, the
+PROV-JSON and PROV-JSONLD readers read each bare JSON number with a fraction or an
+exponent as a `Decimal`, which is stored as an `xsd:decimal` `Literal`.
 
 An `Identifier` given as a value is stored as a `Literal` typed `xsd:anyURI`, the form
 every writer wrote for it and every reader now builds, so `isinstance(value, Identifier)`
@@ -230,11 +232,12 @@ namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
 `http` is declared.
 
-A value typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as
-a `QualifiedName` in 3.3.0, in code and from every format, so PROV-N writes it as `'ex:x'`
-where it wrote `"ex:x" %% xsd:QName`, and RDF writes the IRI where it wrote
-`"ex:x"^^xsd:QName`. 3.2.3 kept an `xsd:QName` value opaque in code and when read from
-PROV-N or RDF, and did not warn.
+A value typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a
+`QualifiedName` in 3.3.0, in code and from every format, so PROV-N writes it as `'ex:x'`
+where it wrote `"ex:x" %% xsd:QName`, RDF writes the IRI where it wrote
+`"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where it wrote an `xsd:QName`
+value object. 3.2.3 kept an `xsd:QName` value opaque in code and when read from PROV-N or
+RDF, and did not warn.
 
 A formal attribute is one of the record's arguments in PROV-N, such as
 `prov:entity` or `prov:activity`. The PROV-JSON reader applies the same rule to a

@@ -50,9 +50,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvValueError` naming the attribute and the type where the value is asserted. A
   `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview` is
   stored as a `Literal` of its XSD datatype, as 3.2.3 said it would be, and reads back as
-  that `Literal` from `get_attribute()` and from every format. A `Decimal` that is `NaN` or
-  infinite, or a `time` whose offset is not a whole number of minutes, has no lexical form
-  and is rejected too
+  that `Literal` from `get_attribute()` and from every format, except that an
+  `xsd:duration` read from RDF comes back in rdflib's normalised form, so a zero
+  `timedelta` reads as `P0D` ([#620](https://github.com/trungdong/prov/issues/620)). A
+  `Decimal` that is `NaN` or infinite, or a `time` whose offset is not a whole number of
+  minutes or is beyond ±14:00, has no lexical form and is rejected too
   ([#482](https://github.com/trungdong/prov/issues/482))
 
 ### Changes with no prior warning
@@ -118,8 +120,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   member, so that is where the warning most often appears. The default writer keeps both
   ([#569](https://github.com/trungdong/prov/issues/569))
 - PROV-N writes a qualified-name value given as an `xsd:QName` literal as `'ex:x'`, where
-  3.2.x wrote `"ex:x" %% xsd:QName`, and RDF writes the IRI where 3.2.x wrote
-  `"ex:x"^^xsd:QName`, which is what PROV-O holds for a qualified name
+  3.2.x wrote `"ex:x" %% xsd:QName`, RDF writes the IRI where 3.2.x wrote
+  `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
+  `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
 
 ### Project

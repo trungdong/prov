@@ -112,7 +112,7 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
 | `xsd:dateTime` | the `xsd:dateTime` lexical form; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one stays a `Literal` | ✓ C7 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ |
-| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ |
+| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C9 |
 
 ## Caveats
 
@@ -147,6 +147,10 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 - **C8. RDF's `json-ld` syntax is not PROV-JSONLD.** `rdf_format="json-ld"` is rdflib's
   generic JSON-LD writer over the PROV-O graph, with every PROV-O limitation. Use
   `format="jsonld"` for PROV-JSONLD.
+- **C9. An `xsd:duration` read from RDF is normalised
+  ([#620](https://github.com/trungdong/prov/issues/620)).** rdflib rewrites the lexical
+  form when it parses the literal, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`; the
+  zero-duration row of the converted-value round trip is marked known-lossy for RDF.
 
 ## Reading other producers' output
 
@@ -196,15 +200,15 @@ statement's own arguments are errors.
 - Attribute values follow the 2026-10-14 revision of the PROV-JSONLD schema
   ([openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7)). A node
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
-  string is a qualified name under `type`, `location` and `role`, which the context coerces to
-  `@id`, and a string under any other attribute. A node reference whose IRI no declared
-  namespace compacts is stored as an `xsd:anyURI` `Literal`. A node reference with a key other than `@id`, or
-  with an empty `@id`, raises `ProvJSONLDException`. From 3.3.0 `prov` writes a qualified name
-  under any attribute other than `type`, `location` and `role` as a node reference. It still
-  reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a
-  qualified name, although a JSON-LD processor reads that as a typed literal. The schema's
-  `label` production admits only strings, so a qualified name under `prov:label` does not
-  validate in either form.
+  string is a qualified name under `type`, `location` and `role`, which the context
+  coerces to `@id`, and a string under any other attribute. A node reference whose IRI no
+  declared namespace compacts is stored as an `xsd:anyURI` `Literal`. A node reference
+  with a key other than `@id`, or with an empty `@id`, raises `ProvJSONLDException`. From
+  3.3.0 `prov` writes a qualified name under any attribute other than `type`, `location`
+  and `role` as a node reference. It still reads an `xsd:QName` or `prov:QUALIFIED_NAME`
+  value object, the form 3.2.x wrote, as a qualified name, although a JSON-LD processor
+  reads that as a typed literal. The schema's `label` production admits only strings, so a
+  qualified name under `prov:label` does not validate in either form.
 
 ### PROV-O
 

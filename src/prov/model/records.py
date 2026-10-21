@@ -111,7 +111,7 @@ from prov.model._values import (
     XSD_DATETIME_PATTERN,
     _offset_beyond_xsd_bound,
     _rebuild,
-    check_converted_value,
+    _warn_unresolved_name,
     no_prov_form_detail,
     python_value_form,
     time_offset_detail,
@@ -616,8 +616,9 @@ AttributeValue: typing.TypeAlias = Union[
     memoryview,
 ]
 """A value accepted for a record attribute, before coercion. An ``Identifier``
-is stored as an ``xsd:anyURI`` ``Literal``, and a value of one of the Python
-types after it as a ``Literal`` of its XSD datatype (#482)."""
+is stored as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``,
+``time``, ``timedelta``, ``UUID``, ``bytes``, ``bytearray`` or ``memoryview``
+as a ``Literal`` of its XSD datatype (#482)."""
 
 # `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
 # member makes a dict literal's target ambiguous to mypy and breaks its
@@ -1001,7 +1002,7 @@ class ProvRecord:
                 if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
                     value = self._literal_for_python_value(attr, value)
             elif isinstance(original_value, Literal):
-                check_converted_value(self._bundle, attr, original_value, value)
+                _warn_unresolved_name(self._bundle, attr, original_value, value)
 
         if isinstance(value, datetime.datetime):
             # In any position, because no writer could emit it as an

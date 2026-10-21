@@ -2,7 +2,7 @@
 
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
-the model does not hold as it is, and :func:`check_converted_value` for a
+the model does not hold as it is, and :func:`_warn_unresolved_name` for a
 typed literal. This module imports nothing from :mod:`prov.model.records`, so
 it returns text and datatypes and the caller builds the ``Literal`` or raises.
 """
@@ -14,11 +14,12 @@ import datetime
 import decimal
 import re
 import reprlib
+import sys
 import uuid
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar, cast
+from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar
 
 from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
@@ -93,14 +94,22 @@ def _reader_checking_names() -> Iterator[None]:
 
 
 def _decimal_text(value: decimal.Decimal) -> str | None:
-    # xsd:decimal has no exponent, NaN or infinity.
-    return format(value, "f") if value.is_finite() else None
+    # xsd:decimal has no exponent, NaN or infinity. A plain form longer than
+    # the interpreter's int digit limit is refused, as int() refuses one.
+    if not value.is_finite():
+        return None
+    limit = sys.get_int_max_str_digits()
+    if limit and max(abs(value.adjusted()), len(value.as_tuple().digits)) > limit:
+        return None
+    return format(value, "f")
 
 
 def _time_text(value: datetime.time) -> str | None:
-    # An xsd:time zone is a whole number of minutes.
+    # An xsd:time zone is a whole number of minutes within ±14:00.
     offset = value.utcoffset()
-    if offset is not None and (offset.seconds % 60 or offset.microseconds):
+    if offset is not None and (
+        offset.seconds % 60 or offset.microseconds or abs(offset) > _XSD_MAX_OFFSET
+    ):
         return None
     return value.isoformat()
 
@@ -118,10 +127,7 @@ def _duration_text(value: datetime.timedelta) -> str:
     if minutes:
         clock += f"{minutes}M"
     if seconds or value.microseconds:
-        fraction = (
-            f".{value.microseconds:06d}".rstrip("0") if value.microseconds else ""
-        )
-        clock += f"{seconds}{fraction}S"
+        clock += f"{seconds}.{value.microseconds:06d}".rstrip("0").rstrip(".") + "S"
     if clock:
         text += f"T{clock}"
     return f"{sign}P{text or 'T0S'}"
@@ -246,12 +252,3 @@ def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | N
     if _offset_beyond_xsd_bound(value):
         return f"{attr} {value.isoformat()} has a timezone offset beyond ±14:00"
     return None
-
-
-def check_converted_value(
-    bundle: ProvBundle, attr: QualifiedName, original_value: object, value: object
-) -> None:
-    """Warn when ``original_value``, a literal typed as a qualified name, does not
-    resolve by its prefix (#516, #553); ``value`` is what it converted to."""
-    if hasattr(original_value, "datatype"):
-        _warn_unresolved_name(bundle, attr, cast(_TypedText, original_value), value)
