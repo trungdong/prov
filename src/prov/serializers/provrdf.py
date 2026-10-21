@@ -50,8 +50,8 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
+from prov.model._values import _offset_beyond_xsd_bound
 from prov.model.records import (
-    _offset_beyond_xsd_bound,
     _xsd_datetime_text,
     _xsd_double_text,
 )

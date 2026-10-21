@@ -145,34 +145,58 @@ class _TypedText(Protocol):
     def value(self) -> str: ...
 
 
+def unresolved_name_detail(
+    bundle: ProvBundle,
+    text: str,
+    resolved: QualifiedName | None,
+    *,
+    attr: QualifiedName | None = None,
+    outcome: str = "it is kept as a Literal",
+    compaction_issue: int = 553,
+) -> tuple[str, int] | None:
+    """Return the 3.3.0 message and issue for ``text`` when it does not resolve
+    by its prefix in ``bundle``, or ``None`` when it does (#516, #551, #553).
+
+    ``resolved`` is what prov reads the text as today by compacting an IRI,
+    cited as ``compaction_issue``, or ``None`` when the text stays as it is,
+    which ``outcome`` describes. ``attr`` names the attribute after the text.
+    The caller emits the detail through its own channel, with its position.
+    """
+    reason = bundle._unresolved_reason(text)
+    if reason is None:
+        return None
+    of_attr = f" of {attr}" if attr is not None else ""
+    if resolved is not None:
+        today, issue = f"it reads as {resolved}", compaction_issue
+    else:
+        today, issue = outcome, 516
+    return (
+        f"the qualified name {text!r}{of_attr} does not resolve, because {reason};"
+        f" {today}",
+        issue,
+    )
+
+
 def _warn_unresolved_name(
     bundle: ProvBundle, attr: QualifiedName, literal: _TypedText, value: object
 ) -> None:
     """Warn that ``literal``, typed as a qualified name, does not resolve by its
     prefix (#516, #553); ``value`` is what it converted to."""
-    text = literal.value
     if (
         _reader_checks_names.get()
         or _rebuilding.get()
         or literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
     ):
         return
-    reason = bundle._unresolved_reason(text)
-    if reason is not None:
-        today = (
-            f"it reads as {value}"
-            if isinstance(value, QualifiedName)
-            else "it is kept as a Literal"
-        )
-        issue = 553 if isinstance(value, QualifiedName) else 516
-        warn(
-            future_rejection_message(
-                f"the qualified name {text!r} of {attr} does not resolve,"
-                f" because {reason}; {today}",
-                issue=issue,
-            ),
-            ProvFutureRejectionWarning,
-        )
+    found = unresolved_name_detail(
+        bundle,
+        literal.value,
+        value if isinstance(value, QualifiedName) else None,
+        attr=attr,
+    )
+    if found is not None:
+        detail, issue = found
+        warn(future_rejection_message(detail, issue=issue), ProvFutureRejectionWarning)
 
 
 def check_time_offset(attr: QualifiedName, value: datetime.datetime) -> None:

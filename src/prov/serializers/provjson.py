@@ -21,8 +21,8 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
+from prov.model._values import _reader_checking_names
 from prov.model.records import (
-    _reader_checking_names,
     _xsd_datetime_text,
     _xsd_double_text,
 )

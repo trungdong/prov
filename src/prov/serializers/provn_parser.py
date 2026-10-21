@@ -65,7 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.model.records import _reader_checking_names
+from prov.model._values import _reader_checking_names
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,

@@ -109,12 +109,7 @@ from prov.identifier import (
 )
 from prov.model._values import (
     _LANGTAG,
-    # Re-exported for the bundle and the serializers.
-    _offset_beyond_xsd_bound as _offset_beyond_xsd_bound,
-    _reader_checking_names as _reader_checking_names,
-    _rebuild as _rebuild,
-    _rebuilding as _rebuilding,
-    _warn_unresolved_name as _warn_unresolved_name,
+    _rebuild,
     check_converted_value,
     check_time_offset,
 )
