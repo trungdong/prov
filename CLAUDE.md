@@ -87,8 +87,9 @@ committed baseline. `benchmarks/README.md` has the details.
 - **Maintainability governs.** Added functionality keeps complexity as low as it can be.
   Removed behaviour comes with less code and fewer or consolidated tests, never more. Neither
   is bought with a loss of correctness. A change that simplifies and a change that breaks a
-  round trip are two changes, and only the first merges. Each PR body states what got simpler
-  and what got more complex, with Lizard CCN and line counts where they moved.
+  round trip are two changes, and only the first merges. What got simpler and what got more
+  complex, with Lizard CCN and line counts where they moved, goes in the plan's complexity
+  ledger and in the report to the maintainer, never in the PR body.
 
 ## Architecture
 
