@@ -109,9 +109,10 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Integer with an asserted datatype (`xsd:long`, `xsd:short`, `xsd:unsignedByte`, ...) | the asserted datatype, never collapsed to a narrower one | ✓ |
 | `xsd:decimal` | as given; compared in value space, so `10`, `10.0` and `"10.00"` are one value | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
-| Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere | ✓ |
+| Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
 | `xsd:dateTime` | the `xsd:dateTime` lexical form; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one stays a `Literal` | ✓ C7 |
-| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ | ✓ |
+| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ |
+| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ |
 
 ## Caveats
 
@@ -197,7 +198,7 @@ statement's own arguments are errors.
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
   string is a qualified name under `type`, `location` and `role`, which the context coerces to
   `@id`, and a string under any other attribute. A node reference whose IRI no declared
-  namespace compacts becomes an `Identifier`. A node reference with a key other than `@id`, or
+  namespace compacts is stored as an `xsd:anyURI` `Literal`. A node reference with a key other than `@id`, or
   with an empty `@id`, raises `ProvJSONLDException`. From 3.3.0 `prov` writes a qualified name
   under any attribute other than `type`, `location` and `role` as a node reference. It still
   reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a
