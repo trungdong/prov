@@ -83,6 +83,7 @@ from prov.model.records import (
     ProvStart as ProvStart,
     ProvUnificationError as ProvUnificationError,
     ProvUsage as ProvUsage,
+    ProvValueError as ProvValueError,
     QualifiedNameCandidate as QualifiedNameCandidate,
     RecordAttributesArg as RecordAttributesArg,
     StreamOrPath as StreamOrPath,

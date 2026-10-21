@@ -17,7 +17,7 @@ from typing import Any
 
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
-from prov.model._values import LANGTAG_PATTERN
+from prov.model._values import LANGTAG_PATTERN, XSD_DATETIME_PATTERN
 
 __all__ = ["ProvNSyntaxError", "Token", "TokenKind", "tokenize"]
 
@@ -106,10 +106,7 @@ _QNAME = re.compile(rf"(?:({_PN_PREFIX}):({_PN_LOCAL})?|({_PN_LOCAL}))")
 _QNAME_FULL = re.compile(_QNAME.pattern + r"\Z")
 # DIGIT is [0-9] ([55]); \d would also match other Unicode decimal digits,
 # which the grammar treats as ordinary name characters, not digits.
-_DATETIME = re.compile(
-    r"-?[0-9]{4,}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}"
-    r"(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?"
-)
+_DATETIME = re.compile(XSD_DATETIME_PATTERN)
 _INT = re.compile(r"-?[0-9]+")
 # [56]'s UCHAR exclusion is [#x00-#x20], not full Unicode whitespace: \s
 # would reject non-breaking space (a legal IRI character) and admit other

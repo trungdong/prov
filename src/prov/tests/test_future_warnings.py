@@ -58,20 +58,6 @@ def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
             ProvDocument.deserialize(content=content, format="json")
 
 
-def test_ignoring_one_issue_by_message_matches_a_message_with_a_line_break() -> None:
-    # Namespace caches the names it builds, so each half needs a fresh one.
-    with pytest.warns(ProvFutureRejectionWarning, match=r"\(#524\)$") as caught:
-        prov.model.Namespace("ex", "http://example.org/")["a\nb"]
-    assert "\n" in str(caught[0].message)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
-        warnings.filterwarnings(
-            "ignore", message=r"(?s).*\(#524\)$", category=ProvFutureRejectionWarning
-        )
-        name = prov.model.Namespace("ex", "http://example.org/")["a\nb"]
-    assert name.localpart == "a\nb"
-
-
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
 
 

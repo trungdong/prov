@@ -31,11 +31,7 @@ from typing import (
 )
 
 from prov import Error
-from prov._warnings import (
-    ProvFutureRejectionWarning,
-    future_rejection_message,
-    warn,
-)
+from prov._warnings import warn
 from prov.constants import (
     _PROV_N_BARE_RELATIONS,
     PROV_ACTIVITY,
@@ -110,9 +106,11 @@ from prov.identifier import (
 )
 from prov.model._values import (
     _LANGTAG,
+    XSD_DATETIME_PATTERN,
+    _offset_beyond_xsd_bound,
     _rebuild,
     check_converted_value,
-    check_time_offset,
+    time_offset_detail,
 )
 
 if TYPE_CHECKING:
@@ -141,6 +139,7 @@ StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 
 
 # Data Types
+_XSD_DATETIME_RE = re.compile(XSD_DATETIME_PATTERN)
 _XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
 
 
@@ -164,10 +163,12 @@ def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
 def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
-    Accepts the ``xsd:dateTime`` lexical space: ISO 8601 date-time with
-    optional fractional seconds and timezone, ``Z`` for UTC, and the
-    hour-24 end-of-day form (which maps to 00:00:00 of the following day,
-    per the XSD value space).
+    Accepts the ``xsd:dateTime`` lexical space (XSD 1.1 section 3.3.7) and
+    nothing else: a date, ``T``, a time with optional fractional seconds,
+    and ``Z`` or an ``hh:mm`` offset. The hour-24 end-of-day form maps to
+    00:00:00 of the following day, per the XSD value space. Text in another
+    ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, and a bare
+    ``xsd:date`` are not accepted.
 
     Args:
         value: The date/time string to parse.
@@ -177,10 +178,7 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
         could not be parsed.
     """
     text = value.strip()
-    if "T" not in text:
-        # xsd:dateTime requires a literal "T" date/time separator; bare
-        # xsd:date strings (e.g. "2011-11-16") are a distinct, narrower
-        # datatype and are intentionally not accepted here (3.0 narrowing).
+    if not _XSD_DATETIME_RE.fullmatch(text):
         return None
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
@@ -412,14 +410,17 @@ def encoding_provn_value(
         return str(value)
 
 
-def _warn_language_tag(langtag: str, value: str) -> None:
-    """Warn that 3.3.0 rejects ``langtag``, which does not match ``_LANGTAG``."""
-    detail = (
-        f"the language tag {langtag!r} of {value!r} is not a BCP 47 tag"
-        if langtag
-        else f"the language tag of {value!r} is empty"
-    )
-    warn(future_rejection_message(detail, issue=472), ProvFutureRejectionWarning)
+def _check_langtag(value: Any, langtag: Any) -> None:
+    """Raise for a language tag that is empty or not shaped like a BCP 47 tag (#472).
+
+    ``Literal.__init__`` and ``Literal.__setstate__`` both check.
+    """
+    if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
+        raise ProvValueError(
+            f"the language tag {langtag!r} of {value!r} is not a BCP 47 tag"
+            if langtag
+            else f"the language tag of {value!r} is empty"
+        )
 
 
 class Literal:
@@ -455,13 +456,11 @@ class Literal:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
                 coerced to ``prov:InternationalizedString`` (default: ``None``).
-                An empty tag, or a tag such as ``"en_US"`` that is not shaped like a
-                BCP 47 tag, emits a
-                :class:`~prov.model.ProvFutureRejectionWarning`.
+                An empty tag, or a tag such as ``"en_US"`` that is not shaped
+                like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
         self._value = str(value)  # value is always a string
-        if langtag is not None and not _LANGTAG.fullmatch(str(langtag)):
-            _warn_language_tag(str(langtag), self._value)
+        _check_langtag(self._value, langtag)
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -502,6 +501,7 @@ class Literal:
         object.__setattr__(self, "_value", state["_value"])
         object.__setattr__(self, "_datatype", state["_datatype"])
         object.__setattr__(self, "_langtag", state["_langtag"])
+        _check_langtag(self._value, self._langtag)
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -570,25 +570,11 @@ class Literal:
         return self._langtag is None
 
     def provn_representation(self) -> str:
-        """Return the PROV-N representation of the literal.
-
-        An empty language tag has no PROV-N spelling, so it is written as a
-        plain string, the same as a literal built with no language tag at all;
-        this is a writer-only choice and leaves the model's own ``langtag``
-        value (``""``, not ``None``) untouched.
-        """
+        """Return the PROV-N representation of the literal."""
         quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
-            # PROV-N's LANGTAG ([63]) only allows hyphens between subtags, so
-            # an underscore-separated tag (e.g. "en_US") is written with a
-            # hyphen, as BCP 47 itself uses.
-            langtag = self._langtag.replace("_", "-")
-            return f"{quoted_value}@{langtag}"
-        if self._langtag == "" and (
-            self._datatype is None or self._datatype == PROV_INTERNATIONALIZEDSTRING
-        ):
-            return quoted_value
+            return f"{quoted_value}@{self._langtag}"
         return f"{quoted_value} %% {self._datatype!s}"
 
 
@@ -643,22 +629,38 @@ class ProvException(Error):
     """Base class for PROV model exceptions."""
 
 
+class ProvValueError(ProvException, ValueError):
+    """A value a :class:`Literal` or an attribute cannot hold.
+
+    Raised at assertion for a time whose offset is beyond ±14:00 (#513) and
+    for a language tag that is empty or not shaped like a BCP 47 tag (#472).
+    A subclass of both :class:`ProvException` and :class:`ValueError`, so a
+    caller can catch either.
+    """
+
+
 class ProvExceptionInvalidQualifiedName(ProvException):
     """Exception for an invalid qualified identifier name."""
 
     qname = None
     """The invalid qualified name that triggered the exception."""
+    detail: str | None = None
+    """What is wrong with it, when the name itself does not say."""
 
-    def __init__(self, qname: Any):
+    def __init__(self, qname: Any, detail: str | None = None):
         """Initialise the exception.
 
         Args:
             qname: The invalid qualified name.
+            detail: What is wrong with it, such as a local part PROV-N
+                cannot write (#524).
         """
         self.qname = qname
+        self.detail = detail
 
     def __str__(self) -> str:
-        return f"Invalid Qualified Name: {self.qname}"
+        message = f"Invalid Qualified Name: {self.qname}"
+        return message if self.detail is None else f"{message}, {self.detail}"
 
 
 class ProvUnificationError(ProvException):
@@ -680,9 +682,9 @@ class ProvElementIdentifierRequired(ProvException):
 # bool is an int and QualifiedName an Identifier, so isinstance() needs only
 # the tuple.
 _PLAIN_VALUE_TYPES = frozenset(
-    {str, int, bool, float, Identifier, QualifiedName, Literal}
+    {str, int, bool, float, datetime.datetime, Identifier, QualifiedName, Literal}
 )
-_PLAIN_VALUE_BASES = (str, int, float, Identifier, Literal)
+_PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, Identifier, Literal)
 
 
 #  PROV records
@@ -902,34 +904,42 @@ class ProvRecord:
                 resolved = self._bundle.valid_qualified_name(literal.value)
                 return resolved if resolved is not None else literal
             if literal.datatype:
-                # try to convert a generic Literal object to Python standard type
-                # to match the JSON decoding's literal conversion
-                # #522: a lexical form outside the datatype's lexical space
-                # keeps the Literal.
-                try:
-                    value = parse_xsd_types(literal.value, literal.datatype)
-                except (ValueError, OverflowError):
-                    return literal
-                # #235: only collapse the integer family when it is lossless,
-                # i.e. the asserted datatype is the one `prov` would itself
-                # infer for the parsed value. Otherwise, keep the Literal so
-                # its asserted datatype survives serialization (e.g.
-                # Literal("42", XSD_LONG)).
-                if (
-                    value is not None
-                    and literal.datatype in (XSD_LONG, XSD_INT, XSD_INTEGER)
-                    and canonical_xsd_datatype(value) != literal.datatype
-                ):
-                    return literal
-            else:
-                # A literal with no datatype nor langtag defined
-                # try auto-converting the value
-                value = self._auto_literal_conversion(literal.value)
+                return self._convert_typed_literal(literal, literal.datatype)
+            # A literal with no datatype nor langtag defined
+            # try auto-converting the value
+            value = self._auto_literal_conversion(literal.value)
             if value is not None:
                 return value
 
         # No conversion possible, return the original value
         return literal
+
+    @staticmethod
+    def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:
+        """The Python value of a typed literal, or the literal where it keeps
+        its asserted form."""
+        # Match the JSON decoding's literal conversion. #522: a lexical form
+        # outside the datatype's lexical space keeps the Literal.
+        try:
+            value = parse_xsd_types(literal.value, datatype)
+        except (ValueError, OverflowError):
+            return literal
+        if value is None:
+            return literal
+        # #235: only collapse the integer family when it is lossless, i.e.
+        # the asserted datatype is the one `prov` would itself infer for the
+        # parsed value. Otherwise, keep the Literal so its asserted datatype
+        # survives serialization (e.g. Literal("42", XSD_LONG)).
+        if (
+            datatype in (XSD_LONG, XSD_INT, XSD_INTEGER)
+            and canonical_xsd_datatype(value) != datatype
+        ):
+            return literal
+        # No xsd:dateTime has an offset beyond ±14:00, so the text has no
+        # datetime value and stays as written (#513).
+        if isinstance(value, datetime.datetime) and _offset_beyond_xsd_bound(value):
+            return literal
+        return value
 
     def _coerce_attribute_value(
         self, attr: QualifiedName, original_value: Any
@@ -956,23 +966,7 @@ class ProvRecord:
                 qname = original_value
             value = self._bundle.mandatory_valid_qname(qname)
         elif attr in PROV_ATTRIBUTE_LITERALS:
-            # Expecting a datetime, or a string or xsd:dateTime Literal that parses as one
-            if isinstance(original_value, str):
-                value = parse_xsd_datetime(original_value)
-            elif (
-                isinstance(original_value, Literal)
-                and original_value.datatype == XSD_DATETIME
-            ):
-                value = parse_xsd_datetime(original_value.value)
-            else:
-                value = original_value
-            if not isinstance(value, datetime.datetime):
-                raise ProvException(
-                    f"Invalid value for attribute {attr}: {original_value}. "
-                    f"Expected a datetime, or a string or xsd:dateTime Literal"
-                    f" that parses as one."
-                )
-            check_time_offset(attr, value)
+            value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value)
             if type(value) not in _PLAIN_VALUE_TYPES or isinstance(
@@ -987,9 +981,37 @@ class ProvRecord:
                     _PLAIN_VALUE_BASES,
                 )
 
+        if isinstance(value, datetime.datetime):
+            # In any position, because no writer could emit it as an
+            # xsd:dateTime; a typed Literal beyond the bound stayed a Literal.
+            detail = time_offset_detail(attr, value)
+            if detail is not None:
+                raise ProvValueError(detail)
         if value is None:
             raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
 
+        return value
+
+    def _coerce_time(
+        self, attr: QualifiedName, original_value: Any
+    ) -> datetime.datetime:
+        # A time of the statement: a datetime, or a string or xsd:dateTime
+        # Literal that parses as one.
+        if isinstance(original_value, str):
+            value = parse_xsd_datetime(original_value)
+        elif (
+            isinstance(original_value, Literal)
+            and original_value.datatype == XSD_DATETIME
+        ):
+            value = parse_xsd_datetime(original_value.value)
+        else:
+            value = original_value
+        if not isinstance(value, datetime.datetime):
+            raise ProvException(
+                f"Invalid value for attribute {attr}: {original_value}. "
+                f"Expected a datetime, or a string or xsd:dateTime Literal"
+                f" that parses as one."
+            )
         return value
 
     def _store_attribute_value(

@@ -129,50 +129,54 @@ The strict writer drops what the strict reader rejects:
 
 ## Times
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `… has a timezone offset beyond ±14:00. prov 3.3.0 will reject this (#513)` | [#513](https://github.com/trungdong/prov/issues/513) | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)` | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
-| `… has a timezone offset beyond ±14:00. prov 3.3.0 will keep it as a Literal (#513)` | [#513](https://github.com/trungdong/prov/issues/513) | `[ex:t="2011-11-16T16:05:33+15:00" %% xsd:dateTime]` | The same instant with an offset from -14:00 to +14:00, such as `"2011-11-16T15:05:33+14:00" %% xsd:dateTime`. |
+| `… has a timezone offset beyond ±14:00` | [#513](https://github.com/trungdong/prov/issues/513) | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)`, or `datetime(2012, 1, 1, tzinfo=timezone(timedelta(hours=15)))` as any attribute value | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
 
-The first warning covers every time of a statement: the time of a relation, an
-activity's start and end times, and `prov:time` given as an attribute, from any
-format or from code. An `xsd:dateTime` value of any other attribute is not a
-time of the statement, so 3.3.0 does not reject it. 3.3.0 reads the value as a
-`Literal` with its text, not as a `datetime`.
+The error is a `ProvValueError` where the time is asserted, from any format or from
+code, for every time of a statement and for a Python `datetime` as the value of any
+attribute. 3.2.3 warned only for a time of a statement. A typed `xsd:dateTime` value of
+an ordinary attribute with such an offset, `[ex:t="2011-11-16T16:05:33+15:00" %%
+xsd:dateTime]`, is not an error. 3.3.0 keeps it as a `Literal` with its text, where 3.2.3
+read it as a `datetime` and warned. A PROV-N read raises the error as the cause of a
+`ProvNSyntaxError` at the statement, and the `lenient` profile skips the statement with
+a `ProvWarning`.
 
-Each warning fires when the time is first asserted. `unified()`, `flattened()`,
-`update()`, `add_record()` and copies of the record or the document do not warn
-again.
+A time string must be in the `xsd:dateTime` lexical form, `YYYY-MM-DDThh:mm:ss`, with
+optional fractional seconds and `Z` or an `hh:mm` offset. 3.2.3 read the other ISO 8601
+forms Python reads and did not warn. From 3.3.0 `2012-12-03T21:08Z`, `20121203T210816Z`
+and `2012-W01-1T21:08:16Z` are not times.
 
 ## Language tags
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the language tag 'en_US' of 'hi' is not a BCP 47 tag` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="en_US")`, or `{"$": "hi", "lang": "en_US"}` in PROV-JSON | A BCP 47 tag, such as `en-US`. |
 | `the language tag of 'hi' is empty` | [#472](https://github.com/trungdong/prov/issues/472) | `Literal("hi", langtag="")`, or `{"$": "hi", "lang": ""}` in PROV-JSON | No language tag. |
 
-`prov` checks only the form of the tag. A tag is letters, followed by any
-number of groups of letters and digits that each start with a hyphen. `prov`
-does not look the tag up in the BCP 47 registry. The PROV-N reader already
-rejects these tags.
+Each is a `ProvValueError` when the `Literal` is built, from any format, from code or
+from a pickle written by an earlier release. `prov` checks only the form of the tag. A
+tag is letters, followed by any number of groups of letters and digits that each start
+with a hyphen. `prov` does not look the tag up in the BCP 47 registry. The PROV-N
+reader rejected these tags already.
 
 ## Local parts
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the local part 'a b' of <http://example.org/a b> contains a character PROV-N cannot write` | [#524](https://github.com/trungdong/prov/issues/524) | `ex:a b`, `ex:a"b`, `ex:50%` | A local part without the character, such as `ex:a_b`, or with it percent-encoded, such as `ex:a%20b`, which is a different IRI. |
 
-A local part cannot hold a space, a control character or another character
-that PROV-N can write only by percent-encoding it, such as `"` or `|`. Nor can
-it hold a `%` that two hexadecimal digits do not follow, or start with U+00B7
-(middle dot), U+203F (undertie), U+2040 (character tie) or a combining mark
-from U+0300 to U+036F. The PROV-N writer percent-encodes such a character, so
-a PROV-N reader recovers a different IRI. The characters `= ' ( ) , : ; [ ]`
-are written with a backslash instead, and do not warn.
-
-The warning fires when the name is first built. `unified()`, `flattened()` and
-copies of the document reuse the name and do not warn again. The XML reader
-builds each occurrence of a name afresh, so it warns once for each.
+The error is a `ProvExceptionInvalidQualifiedName` when the name is built, from any
+format, from code or from a pickle written by an earlier release; its message is
+`Invalid Qualified Name: ex:a b,` followed by the text in the table. A PROV-N read
+raises it as the cause of a `ProvNSyntaxError` at the statement, and the `lenient`
+profile skips the statement with a `ProvWarning`. A local part cannot
+hold a space, a control character or another character that PROV-N can write only by
+percent-encoding it, such as `"` or `|`. Nor can it hold a `%` that two hexadecimal
+digits do not follow, or start with U+00B7 (middle dot), U+203F (undertie), U+2040
+(character tie) or a combining mark from U+0300 to U+036F. 3.2.3 percent-encoded such a
+character when it wrote PROV-N, so a PROV-N reader recovered a different IRI. The
+characters `= ' ( ) , : ; [ ]` are written with a backslash instead, and are accepted.
 
 ## Python values
 

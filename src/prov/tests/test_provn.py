@@ -536,6 +536,18 @@ REJECTED_DOCUMENTS = [
             ),
         )
     ],
+    pytest.param(
+        # The model's error for a name, raised while the statement is built,
+        # so it is positioned at the statement and skipped under lenient.
+        f'{STATEMENT_PREFIX}entity(ex:e, [ex:k="ex:a b" %% prov:QUALIFIED_NAME])'
+        "\nendDocument",
+        STATEMENT,
+        "Invalid Qualified Name: ex:a b, the local part 'a b' of"
+        " <http://example.org/a b> contains a character PROV-N cannot write",
+        (3, 1),
+        524,
+        id="qualified-name value with an unwritable local part",
+    ),
 ]
 
 
