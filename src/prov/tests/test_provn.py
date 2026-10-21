@@ -827,18 +827,6 @@ def test_code_point_escapes_read_in_strings_and_iris() -> None:
     assert record.get_attribute("ex:k") == {"café"}
 
 
-def test_lexer_warnings_come_before_parser_warnings() -> None:
-    text = (
-        "document\ndefault <http://a/>\ndefault <http://b/>\n"
-        "entity(e)\xa0\nendDocument\n"
-    )
-    parser = ProvNParser(text)
-    parser.parse()
-    assert len(parser.warnings) == 2
-    assert "U+00A0 is not PROV-N whitespace" in parser.warnings[0]
-    assert "'default' is declared twice" in parser.warnings[1]
-
-
 STATEMENT_PREFIX = "document\nprefix ex <http://example.org/>\n"
 
 

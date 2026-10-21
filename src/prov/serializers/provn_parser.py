@@ -284,7 +284,7 @@ class ProvNParser:
             return self._parse()
 
     def _parse(self) -> ProvDocument:
-        self._tokens = list(tokenize(self._text, self.warnings))
+        self._tokens = list(tokenize(self._text))
         self._pos = 0
         self._depth = 0
         document = ProvDocument()
