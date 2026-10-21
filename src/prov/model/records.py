@@ -896,7 +896,7 @@ class ProvRecord:
 
     # Handling attributes
     def _auto_literal_conversion(self, literal: Any) -> Any:
-        # The form a non-formal attribute value takes at assertion (D9).
+        # The form a non-formal attribute value takes at assertion.
 
         if isinstance(literal, ProvRecord):
             # Use the QName of the record as the literal
