@@ -52,6 +52,10 @@ def _contains_mention(document: prov.model.ProvDocument) -> bool:
 def main() -> None:
     if not prov.__version__.startswith("3.2.3"):
         sys.exit(f"this directory is written by prov 3.2.3, not {prov.__version__}")
+    if Path(prov.__file__).resolve().is_relative_to(HERE.parents[4]):
+        sys.exit(
+            "prov is imported from this repository; run with the published 3.2.3 wheel"
+        )
     examples = _load("examples")
     attribute_values = _load("attribute_values")
     sources = [(_slug(name), build) for name, build in examples.tests]
