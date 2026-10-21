@@ -31,6 +31,7 @@ from typing import Any
 
 from prov._warnings import future_rejection_message
 from prov.constants import (
+    _PROV_N_BARE_RELATIONS,
     PROV,
     PROV_ACTIVITY,
     PROV_AGENT,
@@ -48,6 +49,7 @@ from prov.constants import (
     PROV_INVALIDATION,
     PROV_MEMBERSHIP,
     PROV_MENTION,
+    PROV_N_MAP,
     PROV_QUALIFIEDNAME,
     PROV_SPECIALIZATION,
     PROV_START,
@@ -124,9 +126,9 @@ _STRICT_REQUIRED_LEADING: dict[str, int] = {
     name: min(arities) for name, (_, arities) in _RELATIONS.items()
 } | {"mentionOf": min(_MENTION[1])}
 
-# Productions 24 to 26 give these relations neither an identifier nor an
-# attribute block.
-_BARE_RELATIONS = frozenset({"alternateOf", "specializationOf", "hadMember"})
+# PROV-N keywords of the relations that take neither an identifier nor an
+# attribute block (productions 24 to 26).
+_BARE_RELATIONS = frozenset(PROV_N_MAP[t] for t in _PROV_N_BARE_RELATIONS)
 
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
@@ -296,14 +298,10 @@ class ProvNParser:
             else:
                 # Production 1 puts every expression before the first bundle.
                 if after_bundle and self.profile == "strict":
-                    self._future(
+                    raise self._error(
                         "a statement follows a bundle, which the strict profile"
-                        " does not allow",
-                        self._current,
-                        "reject this under the strict profile",
-                        issue=519,
+                        " does not allow"
                     )
-                after_bundle = False
                 self._statement(document)
         self._advance()
         if self._current.kind is not TokenKind.EOF:
@@ -599,21 +597,19 @@ class ProvNParser:
             value = self._argument_value(token, attr, bundle)
             if value is not None:
                 attributes.append((attr, value))
+        self._check_formal_attributes(keyword, formal_names, attribute_block)
         other_attributes = [(name, value) for name, value, _ in attribute_block]
         bundle.new_record(rec_type, identifier, attributes, other_attributes)
-        self._check_formal_attributes(keyword, formal_names, attribute_block)
 
     def _check_strict_bare_relation(
         self, keyword: Token, token: Token, what: str
     ) -> None:
-        """Under ``strict``, record a 3.3.0 message for an identifier or an
-        attribute block on a relation whose production has neither."""
+        """Under ``strict``, reject an identifier or an attribute block on a
+        relation whose production has neither (productions 24 to 26)."""
         if self.profile == "strict" and keyword.value[1] in _BARE_RELATIONS:
-            self._future(
+            raise self._error(
                 f"'{keyword.text}' has {what}, which the strict profile does not allow",
                 token,
-                "reject this under the strict profile",
-                issue=519,
             )
 
     def _check_formal_attributes(
@@ -622,15 +618,14 @@ class ProvNParser:
         formal_names: tuple[QualifiedName, ...],
         attribute_block: list[tuple[QualifiedName, Any, Token]],
     ) -> None:
-        """Record a 3.3.0 message for each attribute named after one of the
-        statement's own arguments; new_record() reads it as that argument."""
+        """Reject an attribute named after one of the statement's own
+        arguments, which PROV-N gives only by position (#523)."""
         for name, _, token in attribute_block:
             if name in formal_names:
-                self._future(
+                raise self._error(
                     f"'{token.text}' names the '{name.localpart}' argument of"
                     f" '{keyword.text}', which PROV-N gives only by position",
                     token,
-                    issue=523,
                 )
 
     def _check_strict_required_positions(
