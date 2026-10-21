@@ -46,6 +46,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   a `ProvWarning`. The PROV-N writer no longer percent-encodes,
   since no such name can be held; a local part with a metacharacter is still written with
   a backslash escape ([#524](https://github.com/trungdong/prov/issues/524))
+- A Python value of a type with no PROV form, such as a `Fraction` or a `tuple`, a
+  `ProvValueError` naming the attribute and the type where the value is asserted. A
+  `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview` is
+  stored as a `Literal` of its XSD datatype, as 3.2.3 said it would be, and reads back as
+  that `Literal` from `get_attribute()` and from every format, except that an
+  `xsd:duration` read from RDF comes back in rdflib's normalised form, so a zero
+  `timedelta` reads as `P0D` ([#620](https://github.com/trungdong/prov/issues/620)). A
+  `Decimal` that is `NaN` or infinite, or a `time` whose offset is not a whole number of
+  minutes or is beyond ±14:00, has no lexical form and is rejected too
+  ([#482](https://github.com/trungdong/prov/issues/482))
 
 ### Changes with no prior warning
 
@@ -76,6 +86,18 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`
   gains a `detail` attribute and prints it after the name
+- An `Identifier` given as an attribute value is stored as a `Literal` typed `xsd:anyURI`,
+  the form every writer already wrote for it and every reader now builds, so
+  `isinstance(value, Identifier)` no longer matches a stored value and
+  `XSD_DATATYPE_PARSERS` has no `xsd:anyURI` entry. A `QualifiedName` value is unchanged.
+  `AttributeValue` names the eight Python types `prov` converts
+  ([#526](https://github.com/trungdong/prov/issues/526))
+- A `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored
+  as a `QualifiedName` in every path. 3.2.x kept an `xsd:QName` literal opaque in code and
+  when read from PROV-N or RDF, so a document read through PROV-JSON compared unequal to
+  the same document read through PROV-N. One whose prefix is not declared is kept as a
+  `Literal`
+  ([#526](https://github.com/trungdong/prov/issues/526))
 
 ### Output changes
 
@@ -97,6 +119,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   read from PROV-JSON with several members carries its identifier and attributes on every
   member, so that is where the warning most often appears. The default writer keeps both
   ([#569](https://github.com/trungdong/prov/issues/569))
+- PROV-N writes a qualified-name value given as an `xsd:QName` literal as `'ex:x'`, where
+  3.2.x wrote `"ex:x" %% xsd:QName`, RDF writes the IRI where 3.2.x wrote
+  `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
+  `xsd:QName` value object, which is what PROV-O holds for a qualified name
+  ([#526](https://github.com/trungdong/prov/issues/526))
 
 ### Project
 

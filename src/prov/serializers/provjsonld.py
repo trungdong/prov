@@ -31,7 +31,7 @@ from prov.constants import (
     XSD_ANYURI,
     XSD_QNAME,
 )
-from prov.identifier import Identifier, Namespace, QualifiedName
+from prov.identifier import Namespace, QualifiedName
 from prov.model import (
     PROV_REC_CLS,
     AttributePair,
@@ -153,7 +153,7 @@ def encode_jsonld_value(
         value: Attribute value to encode: a
             :class:`~prov.identifier.QualifiedName`, a
             :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-            another :class:`~prov.identifier.Identifier`, a plain ``bool``,
+            a plain ``bool``,
             ``str``, ``int``/``float`` (typed by
             :func:`~prov.model.canonical_xsd_datatype`), or another plain
             JSON-native value.
@@ -184,8 +184,6 @@ def encode_jsonld_value(
         return {"@value": value.value, "@type": qname_text(value.datatype)}
     if isinstance(value, datetime.datetime):
         return {"@value": _xsd_datetime_text(value), "@type": "xsd:dateTime"}
-    if isinstance(value, Identifier):
-        return {"@value": value.uri, "@type": "xsd:anyURI"}
     if isinstance(value, bool):
         return {"@value": "true" if value else "false", "@type": "xsd:boolean"}
     if isinstance(value, str):
@@ -474,9 +472,8 @@ def decode_jsonld_value(
     Mirrors :func:`~prov.serializers.provjson.decode_json_representation`'s
     #168/#238 behaviour: a qualified-name value whose prefix has no in-scope
     namespace is kept as an opaque :class:`~prov.model.Literal` rather than
-    dropped. A node reference is the exception: a JSON-LD processor reads
-    its ``"@id"`` as an IRI, so one no namespace compacts is kept as an
-    :class:`~prov.identifier.Identifier`.
+    dropped. A node reference no namespace compacts is an IRI, so it is kept
+    as an ``xsd:anyURI`` :class:`~prov.model.Literal`.
 
     Args:
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
@@ -494,9 +491,8 @@ def decode_jsonld_value(
         string under an ``@id``-typed term (see :data:`ID_TYPED_TERMS`), a
         node reference under any term, or an
         ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value object; an
-        :class:`~prov.identifier.Identifier` for an ``xsd:anyURI``-typed
-        value object or a node reference no namespace compacts; a
-        language-tagged or datatyped
+        ``xsd:anyURI`` :class:`~prov.model.Literal` for a node reference no
+        namespace compacts; a language-tagged or datatyped
         :class:`~prov.model.Literal`; or the plain decoded text, which is
         what a bare string under any other term is.
 
@@ -515,7 +511,7 @@ def decode_jsonld_value(
     if "@id" in value:
         text = _decode_node_reference(value, term)
         resolved = bundle.valid_qualified_name(text)
-        return resolved if resolved is not None else Identifier(text)
+        return resolved if resolved is not None else Literal(text, XSD_ANYURI)
     try:
         text = value["@value"]
     except KeyError as exc:
@@ -529,8 +525,6 @@ def decode_jsonld_value(
     if datatype_str is None:
         return text
     datatype = bundle.valid_qualified_name(datatype_str)
-    if datatype == XSD_ANYURI:
-        return Identifier(text)
     if datatype in (XSD_QNAME, PROV_QUALIFIEDNAME):
         resolved = bundle.valid_qualified_name(text)
         if resolved is None:

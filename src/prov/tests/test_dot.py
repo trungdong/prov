@@ -11,7 +11,7 @@ import pytest
 pydot = pytest.importorskip("pydot")
 
 from prov.dot import htlm_link_if_uri, prov_to_dot
-from prov.model import ProvDocument, ProvFutureRejectionWarning
+from prov.model import Identifier, ProvDocument, ProvFutureRejectionWarning
 from prov.tests import examples
 
 MIN_SVG_SIZE = 850
@@ -244,6 +244,15 @@ def test_sub_minute_utc_offset_attribute_is_rendered_as_utc() -> None:
 
     assert "2026-09-12T10:00:00+00:00" in dot_text
     assert "+00:00:30" not in dot_text
+
+
+def test_anyuri_value_is_linked_and_shown_as_its_text() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e", {"ex:v": Identifier("http://example.org/v")})
+    dot_text = prov_to_dot(doc).to_string()
+    assert 'href="http://example.org/v"' in dot_text
+    assert "xsd:anyURI" not in dot_text
 
 
 def test_unset_endpoint_is_drawn_to_a_blank_node_with_a_warning() -> None:

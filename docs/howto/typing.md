@@ -52,8 +52,10 @@ Pyright accepts the call without the annotation.
 
 `AttributeValue` covers `str`, `int`, `float`, `bool`, `datetime.datetime`,
 {py:class}`~prov.identifier.Identifier`, {py:class}`~prov.model.QualifiedName`,
-{py:class}`~prov.model.Literal`, any {py:class}`~prov.model.ProvRecord`, and `None`. A
-record stands for its identifier. A `None` value is skipped.
+{py:class}`~prov.model.Literal`, any {py:class}`~prov.model.ProvRecord`, `None`, and the
+types `prov` stores as a `Literal`: `decimal.Decimal`, `datetime.date`, `datetime.time`,
+`datetime.timedelta`, `uuid.UUID`, `bytes`, `bytearray` and `memoryview`. A record stands
+for its identifier. A `None` value is skipped.
 
 ## Pass attributes as pairs
 
@@ -81,13 +83,14 @@ def review_attributes() -> Iterable[tuple[str, str]]:
 document.entity("ex:review", list(review_attributes()))
 ```
 
-## Give other values an XSD datatype
+## Values prov stores as a Literal
 
-A checker reports a dict value of any other type, such as `decimal.Decimal`,
-`datetime.date` or `bytes`. Those values have no PROV form, and `prov` cannot serialise
-them faithfully. From 3.2.3, `prov` warns about such a value when it is asserted;
-{doc}`prepare-for-3-3` lists the types 3.3.0 converts and rejects. Write the value as a
-{py:class}`~prov.model.Literal` with its XSD datatype:
+A `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview`
+value is stored as a {py:class}`~prov.model.Literal` of its XSD datatype, and
+`get_attribute()` returns that `Literal`. {doc}`prepare-for-3-3` lists the lexical forms.
+A checker reports a value of any other type, such as a `Fraction`, and `prov` raises
+{py:class}`~prov.model.ProvValueError` for it at runtime. To choose the datatype yourself,
+write the `Literal`:
 
 ```python
 from prov.model import XSD, XSD_DECIMAL, Literal

@@ -10,6 +10,7 @@ import math
 import os
 import re
 import typing
+import uuid
 from collections import defaultdict
 from collections.abc import (
     Callable,
@@ -95,6 +96,7 @@ from prov.constants import (
     XSD_INT,
     XSD_INTEGER,
     XSD_LONG,
+    XSD_QNAME,
     XSD_STRING,
 )
 from prov.identifier import (
@@ -109,7 +111,9 @@ from prov.model._values import (
     XSD_DATETIME_PATTERN,
     _offset_beyond_xsd_bound,
     _rebuild,
-    check_converted_value,
+    _warn_unresolved_name,
+    no_prov_form_detail,
+    python_value_form,
     time_offset_detail,
 )
 
@@ -218,7 +222,7 @@ DATATYPE_PARSERS = {
 
 # Mappings for XSD datatypes to Python standard types
 SupportedXSDParsedTypes: typing.TypeAlias = (
-    str | datetime.datetime | float | int | bool | Identifier | None
+    str | datetime.datetime | float | int | bool | None
 )
 XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedTypes]] = {
     XSD_STRING: str,
@@ -228,7 +232,6 @@ XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedType
     XSD_INTEGER: int,
     XSD_BOOLEAN: parse_boolean,
     XSD_DATETIME: parse_xsd_datetime,
-    XSD_ANYURI: Identifier,
 }
 
 
@@ -597,9 +600,25 @@ class _SupportsItems(Protocol[_K_co, _V_co]):
 
 
 AttributeValue: typing.TypeAlias = Union[
-    "ProvRecord", QualifiedName, datetime.datetime, Literal, SupportedXSDParsedTypes
+    "ProvRecord",
+    QualifiedName,
+    Identifier,
+    datetime.datetime,
+    Literal,
+    SupportedXSDParsedTypes,
+    decimal.Decimal,
+    datetime.date,
+    datetime.time,
+    datetime.timedelta,
+    uuid.UUID,
+    bytes,
+    bytearray,
+    memoryview,
 ]
-"""A value accepted for a record attribute, before coercion."""
+"""A value accepted for a record attribute, before coercion. An ``Identifier``
+is stored as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``,
+``time``, ``timedelta``, ``UUID``, ``bytes``, ``bytearray`` or ``memoryview``
+as a ``Literal`` of its XSD datatype (#482)."""
 
 # `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
 # member makes a dict literal's target ambiguous to mypy and breaks its
@@ -679,12 +698,11 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 # The types of a converted non-formal attribute value that need no check.
-# bool is an int and QualifiedName an Identifier, so isinstance() needs only
-# the tuple.
+# bool is an int, so isinstance() needs only the tuple.
 _PLAIN_VALUE_TYPES = frozenset(
-    {str, int, bool, float, datetime.datetime, Identifier, QualifiedName, Literal}
+    {str, int, bool, float, datetime.datetime, QualifiedName, Literal}
 )
-_PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, Identifier, Literal)
+_PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, QualifiedName, Literal)
 
 
 #  PROV records
@@ -879,7 +897,7 @@ class ProvRecord:
 
     # Handling attributes
     def _auto_literal_conversion(self, literal: Any) -> Any:
-        # This method normalise datatype for literals
+        # The form a non-formal attribute value takes at assertion.
 
         if isinstance(literal, ProvRecord):
             # Use the QName of the record as the literal
@@ -890,17 +908,10 @@ class ProvRecord:
         elif isinstance(literal, QualifiedName):
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
-            if literal.datatype == PROV_QUALIFIEDNAME:
-                # #238: a prov:QUALIFIED_NAME-typed Literal (e.g. decoded from
-                # a legacy PROV-JSON document, or asserted directly) denotes a
-                # QualifiedName; resolve it against this record's bundle
-                # namespaces. If the prefix has no in-scope namespace, keep
-                # the opaque Literal rather than reject it (#257 lock). Only
-                # PROV_QUALIFIEDNAME is handled here: an XSD_QNAME literal
-                # keeps today's opaque model-side behaviour -- the PROV-JSON
-                # and PROV-JSONLD codecs are the only places that treat
-                # xsd:QName as a QualifiedName value, per the submission
-                # (#168).
+            if literal.datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+                # A qualified-name literal that resolves in this record's
+                # bundle is the QualifiedName; one that does not is kept as
+                # written until it is rejected (#516).
                 resolved = self._bundle.valid_qualified_name(literal.value)
                 return resolved if resolved is not None else literal
             if literal.datatype:
@@ -910,6 +921,10 @@ class ProvRecord:
             value = self._auto_literal_conversion(literal.value)
             if value is not None:
                 return value
+        elif isinstance(literal, Identifier):
+            # An IRI value is an xsd:anyURI literal, the form every writer
+            # emits for it.
+            return Literal(literal.uri, XSD_ANYURI)
 
         # No conversion possible, return the original value
         return literal
@@ -941,6 +956,20 @@ class ProvRecord:
             return literal
         return value
 
+    @staticmethod
+    def _literal_for_python_value(attr: QualifiedName, value: Any) -> Literal:
+        """The ``Literal`` prov stores a Python value of ``attr`` as, or
+        ``ProvValueError`` when the value has no PROV form (#482)."""
+        form = python_value_form(value)
+        if form is None:
+            raise ProvValueError(no_prov_form_detail(attr, value))
+        text, datatype = form
+        if text is None:
+            raise ProvValueError(
+                f"the value {value!r} of {attr} has no {datatype} form"
+            )
+        return Literal(text, datatype)
+
     def _coerce_attribute_value(
         self, attr: QualifiedName, original_value: Any
     ) -> CoercedAttributeValue:
@@ -969,17 +998,11 @@ class ProvRecord:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value)
-            if type(value) not in _PLAIN_VALUE_TYPES or isinstance(
-                original_value, Literal
-            ):
-                check_converted_value(
-                    self._bundle,
-                    attr,
-                    original_value,
-                    value,
-                    _PLAIN_VALUE_TYPES,
-                    _PLAIN_VALUE_BASES,
-                )
+            if type(value) not in _PLAIN_VALUE_TYPES:
+                if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
+                    value = self._literal_for_python_value(attr, value)
+            elif isinstance(original_value, Literal):
+                _warn_unresolved_name(self._bundle, attr, original_value, value)
 
         if isinstance(value, datetime.datetime):
             # In any position, because no writer could emit it as an

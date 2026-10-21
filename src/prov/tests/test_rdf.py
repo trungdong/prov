@@ -221,7 +221,7 @@ def test_decode_xsd_qname_gyear_gyearmonth_round_trip() -> None:
 
     assert {lit.value for lit in e1.get_attribute("ex:year")} == {"2020"}
     assert {lit.value for lit in e1.get_attribute("ex:yearmonth")} == {"2020-05"}
-    assert {lit.value for lit in e1.get_attribute("ex:qname")} == {"ex:e1"}
+    assert e1.get_attribute("ex:qname") == {doc.valid_qualified_name("ex:e1")}
 
 
 @pytest.mark.parametrize(

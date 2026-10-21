@@ -174,10 +174,7 @@ def _provn_string_literal(value: str) -> str:
 
 
 class Identifier:
-    """Base class for all identifiers and also represents xsd:anyURI."""
-
-    # TODO: make Identifier an "abstract" base class and move xsd:anyURI
-    # into a subclass
+    """Base class for all identifiers."""
 
     __slots__ = ("__weakref__", "_hash", "_uri")
 

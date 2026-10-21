@@ -789,8 +789,7 @@ def encode_json_representation(
     Args:
         value: Attribute value to encode: a :class:`~prov.model.Literal`,
             a :class:`datetime.datetime`, a
-            :class:`~prov.identifier.QualifiedName`, another
-            :class:`~prov.identifier.Identifier`, a plain ``int``/``float``
+            :class:`~prov.identifier.QualifiedName`, a plain ``int``/``float``
             (typed by :func:`~prov.model.canonical_xsd_datatype`), or a
             plain JSON-native value.
         qname_text: Writes a qualified name (the value or a literal's
@@ -811,8 +810,6 @@ def encode_json_representation(
         # as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0 choice)
         # remains accepted on input for backward compatibility.
         return {"$": qname_text(value), "type": str(XSD_QNAME)}
-    elif isinstance(value, Identifier):
-        return {"$": value.uri, "type": "xsd:anyURI"}
     elif (datatype := canonical_xsd_datatype(value)) is not None:
         # int/float: the submission's typedLiteral schema requires a string
         # "$" (#246); the datatype is magnitude-aware for ints (#244/#256).
@@ -917,10 +914,9 @@ def decode_json_representation(
             known. Used only to name the record in warning messages.
 
     Returns:
-        An :class:`~prov.identifier.Identifier` for ``xsd:anyURI`` values, a
-        resolved :class:`~prov.identifier.QualifiedName` for ``xsd:QName`` or
-        (legacy) ``prov:QUALIFIED_NAME`` values whose prefix is in scope, an
-        opaque :class:`~prov.model.Literal` if it is not, a
+        A resolved :class:`~prov.identifier.QualifiedName` for ``xsd:QName``
+        or (legacy) ``prov:QUALIFIED_NAME`` values whose prefix is in scope,
+        an opaque :class:`~prov.model.Literal` if it is not, a
         :class:`~prov.model.Literal` for other typed values, or ``literal``
         unchanged if it was not a dict (conversion of plain Python types
         happens later, when the value is added to a record).
@@ -934,8 +930,6 @@ def decode_json_representation(
         return literal
     value, datatype = _check_value_object(literal, bundle, attr_name, rec_id)
     langtag = literal.get("lang", None)
-    if datatype == XSD_ANYURI:
-        return Identifier(value)
     if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
         # #168: xsd:QName is the submission's type for QualifiedName
         # values; prov:QUALIFIED_NAME is accepted for documents produced

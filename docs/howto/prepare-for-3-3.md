@@ -180,36 +180,39 @@ characters `= ' ( ) , : ; [ ]` are written with a backslash instead, and are acc
 
 ## Python values
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `the value datetime.date(2026, 1, 1) of ex:due has type datetime.date. prov 3.3.0 will store it as a Literal of type xsd:date (#482)` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:due": datetime.date(2026, 1, 1)}` | The `Literal` 3.3.0 stores, such as `Literal("2026-01-01", XSD["date"])`. |
-| `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form. prov 3.3.0 will reject this (#482)` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
+| `the value Fraction(1, 3) of ex:ratio has type fractions.Fraction, which has no PROV form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Fraction(1, 3)}` | A value with a PROV form, such as the `float` `1 / 3`, or a `Literal` with an XSD datatype. |
+| `the value Decimal('NaN') of ex:ratio has no xsd:decimal form` | [#482](https://github.com/trungdong/prov/issues/482) | `{"ex:ratio": Decimal("NaN")}` | A finite `Decimal`, or the `float` `nan`, which `xsd:double` holds. |
 
-An attribute value has a PROV form when it is a `str`, `int`, `float`, `bool`,
-`datetime.datetime`, `Identifier`, `QualifiedName`, `Literal` or record, or an
-instance of a subclass of one of them. `prov` 3.2.x stores a value of any other
-type as given, and no format can write it faithfully. 3.3.0 stores a value of a
-type in the table below as a `Literal` of its datatype, and rejects a value of
-any other type.
+The error is a `ProvValueError` where the value is asserted. An attribute value has a
+PROV form when it is a `str`, `int`, `float`, `bool`, `datetime.datetime`, `Identifier`,
+`QualifiedName`, `Literal` or record, or an instance of a subclass of one of them, or a
+value of a type in the table below, which 3.3.0 stores as a `Literal` of its datatype in
+the form shown. 3.2.x stored a value of any other type as given, and no format could
+write it faithfully.
 
-| Python type | 3.3.0 datatype |
-|---|---|
-| `decimal.Decimal` | `xsd:decimal` |
-| `datetime.date` | `xsd:date` |
-| `datetime.time` | `xsd:time` |
-| `datetime.timedelta` | `xsd:duration` |
-| `uuid.UUID` | `xsd:anyURI` |
-| `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` |
+| Python type | Datatype | Written as |
+|---|---|---|
+| `decimal.Decimal` | `xsd:decimal` | `format(value, "f")`, so `Decimal("1E+2")` is `100`; a value too long to write is an error |
+| `datetime.date` | `xsd:date` | `isoformat()` |
+| `datetime.time` | `xsd:time` | `isoformat()`; an offset that is not a whole number of minutes or is beyond ±14:00 is an error |
+| `datetime.timedelta` | `xsd:duration` | days, hours, minutes and seconds, such as `P1DT2H`, `-PT1H30M` or `PT0S` |
+| `uuid.UUID` | `xsd:anyURI` | `urn:uuid:…` |
+| `bytes`, `bytearray`, `memoryview` | `xsd:base64Binary` | standard base64 |
 
-In 3.3.0, a converted value reads back as the `Literal`, not as the Python
-value. The readers never build these types unless a `json.load` option asks for
-one. With `parse_float=decimal.Decimal`, for example, the PROV-JSON and
-PROV-JSONLD readers read each bare JSON number with a fraction or an exponent
-as a `Decimal`, and warn for each such number.
+A converted value reads back as the `Literal`, not as the Python value, from
+`get_attribute()` and from every format, except that an `xsd:duration` read from RDF comes
+back in rdflib's normalised form, so a zero `timedelta` reads as `P0D`
+([#620](https://github.com/trungdong/prov/issues/620)). The readers never build these
+types unless a `json.load` option asks for one. With `parse_float=decimal.Decimal`, the
+PROV-JSON and PROV-JSONLD readers read each bare JSON number with a fraction or an
+exponent as a `Decimal`, which is stored as an `xsd:decimal` `Literal`.
 
-The warning fires when the value is first asserted. `unified()`, `flattened()`,
-`update()`, `add_record()` and copies of the record or the document do not warn
-again.
+An `Identifier` given as a value is stored as a `Literal` typed `xsd:anyURI`, the form
+every writer wrote for it and every reader now builds, so `isinstance(value, Identifier)`
+no longer matches a stored value. A `QualifiedName` value is unchanged. 3.2.3 did not
+warn about this.
 
 ## Qualified names
 
@@ -228,6 +231,13 @@ is not declared as a `Literal`. It also reads a full IRI typed
 namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
 3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
 `http` is declared.
+
+A value typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a
+`QualifiedName` in 3.3.0, in code and from every format, so PROV-N writes it as `'ex:x'`
+where it wrote `"ex:x" %% xsd:QName`, RDF writes the IRI where it wrote
+`"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where it wrote an `xsd:QName`
+value object. 3.2.3 kept an `xsd:QName` value opaque in code and when read from PROV-N or
+RDF, and did not warn.
 
 A formal attribute is one of the record's arguments in PROV-N, such as
 `prov:entity` or `prov:activity`. The PROV-JSON reader applies the same rule to a

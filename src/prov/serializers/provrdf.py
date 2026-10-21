@@ -518,8 +518,7 @@ class ProvRDFSerializer(Serializer):
         Args:
             value: Attribute value to encode: a ``URIRef`` (returned as-is),
                 a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-                a :class:`~prov.identifier.QualifiedName`, another
-                :class:`~prov.identifier.Identifier`, a plain ``int``
+                a :class:`~prov.identifier.QualifiedName`, a plain ``int``
                 (typed by magnitude via
                 :func:`~prov.model.canonical_xsd_datatype`), a type listed in
                 :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
@@ -536,8 +535,6 @@ class ProvRDFSerializer(Serializer):
             return RDFLiteral(_xsd_datetime_text(value), datatype=XSD["dateTime"])
         elif isinstance(value, pm.QualifiedName):
             return URIRef(value.uri)
-        elif isinstance(value, pm.Identifier):
-            return RDFLiteral(value.uri, datatype=XSD["anyURI"])
         elif (
             isinstance(value, int)
             and (xsd_datatype := pm.canonical_xsd_datatype(value)) is not None

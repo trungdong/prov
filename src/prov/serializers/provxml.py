@@ -473,15 +473,7 @@ def _encode_attribute_value(
 # To enable a mapping of Python types to XML and back, the XSD type must be
 # written for values of these types. Membership is tested against the value's
 # exact type, deliberately not with isinstance().
-_ALWAYS_CHECK = frozenset(
-    {
-        bool,
-        datetime.datetime,
-        float,
-        int,
-        prov.identifier.Identifier,
-    }
-)
+_ALWAYS_CHECK = frozenset({bool, datetime.datetime, float, int})
 
 
 def _needs_xsd_type_inference(
@@ -565,8 +557,6 @@ def _infer_xsd_type(
         # not specify it in the docs.
         if attr.namespace.prefix != "prov" or "time" not in attr.localpart.lower():
             xsd_type = XSD_DATETIME
-    elif isinstance(value, prov.identifier.Identifier):
-        xsd_type = XSD_ANYURI
     return xsd_type, v
 
 
