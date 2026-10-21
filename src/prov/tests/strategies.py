@@ -18,7 +18,7 @@ for it) is instead skipped per-format with an ``assume()`` in
 """
 
 import string
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from hypothesis import strategies as st
 
@@ -90,7 +90,7 @@ attr_values = st.one_of(
     st.floats(allow_nan=False),
     # Timezone-aware UTC datetimes; PROV serialises these as xsd:dateTime.
     st.datetimes(min_value=datetime(1900, 1, 1), max_value=datetime(2100, 1, 1)).map(
-        lambda dt: dt.replace(tzinfo=timezone.utc)
+        lambda dt: dt.replace(tzinfo=UTC)
     ),
     # QualifiedName values, drawn from the registered "ex" namespace.
     local_part.map(lambda s: EX_NS[s]),
@@ -128,7 +128,7 @@ def _draw_ids(draw, tag: str) -> list[str]:
 _rel_time = st.one_of(
     st.none(),
     st.datetimes(min_value=datetime(1900, 1, 1), max_value=datetime(2100, 1, 1)).map(
-        lambda dt: dt.replace(tzinfo=timezone.utc)
+        lambda dt: dt.replace(tzinfo=UTC)
     ),
 )
 

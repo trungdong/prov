@@ -27,7 +27,7 @@ def build_document(n: int = N) -> ProvDocument:
     doc.add_namespace("ex", "http://example.org/")
     doc.add_namespace("dc", "http://purl.org/dc/terms/")
     bundles = [doc.bundle(f"ex:bundle{i}") for i in range(5)]
-    base_time = datetime.datetime(2026, 1, 1, tzinfo=datetime.timezone.utc)
+    base_time = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
     per_block = 8  # records created per loop iteration
     for i in range(max(1, n // per_block)):
         target = bundles[i % 5] if i % 5 == 0 else doc

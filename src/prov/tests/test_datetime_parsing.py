@@ -16,7 +16,7 @@ from prov.model import (
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS
 
-UTC = datetime.timezone.utc
+UTC = datetime.UTC
 
 
 @pytest.mark.parametrize(

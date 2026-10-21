@@ -386,7 +386,7 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
     whole number of minutes (historical LMT offsets) is normalised to UTC."""
     offset = value.utcoffset()
     if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
-        value = value.astimezone(datetime.timezone.utc)
+        value = value.astimezone(datetime.UTC)
     return value.isoformat()
 
 
