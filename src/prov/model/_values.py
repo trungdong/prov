@@ -1,12 +1,9 @@
 """Checks on attribute values at assertion, and the warnings they raise.
 
-:class:`~prov.model.ProvRecord` asserts a value through
-:meth:`~prov.model.ProvRecord._coerce_attribute_value`, which converts it
-and then calls :func:`check_attribute_value` once. The checks here know
-nothing of the record classes: :mod:`prov.model.records` imports this
-module, never the reverse, and passes the value types that need no check as
-arguments. The 3.3.0 rejections of sections 5.4 and 5.7 of the release
-design land here.
+:mod:`prov.model.records` calls :func:`check_attribute_value` once for each
+value it asserts. This module imports nothing from :mod:`prov.model.records`,
+so the caller passes in the record types it needs, which are the plain value
+types and the ``Literal`` class.
 """
 
 from __future__ import annotations
@@ -53,7 +50,6 @@ def _offset_beyond_xsd_bound(value: datetime.datetime) -> bool:
     return offset is not None and abs(offset) > _XSD_MAX_OFFSET
 
 
-#  Attribute value warnings and the rebuild guard
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
@@ -192,9 +188,9 @@ def check_attribute_value(
 ) -> None:
     """Run the 3.3.0 checks on a converted attribute value.
 
-    A time position checks its offset. Any other non-formal position checks
-    a value whose type is not in ``plain_types``, and a value converted from
-    a ``literal_type`` typed as a qualified name. Formal qualified-name
+    A time position checks its offset. A non-formal position checks a value
+    whose type is not in ``plain_types``, and a value converted from a
+    ``literal_type`` typed as a qualified name. Formal qualified-name
     positions have nothing to check.
     """
     if attr in PROV_ATTRIBUTE_QNAMES:

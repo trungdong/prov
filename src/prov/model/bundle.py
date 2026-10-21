@@ -227,10 +227,10 @@ def _warn_absent_non_expandable(records: list[ProvRecord]) -> None:
     """Warn if an absent non-expandable formal meets a present one in ``records``.
 
     Only the first such position in Table 3 order warns, since 3.3.0 raises
-    there. The group has already unified, so its records agree on every
-    position where they all have a value, and a guard position is therefore
-    either present in every record or absent from every record by the time
-    its dependants are reached.
+    there. The table lists each guard before its dependants, and a guard
+    present in only some records has already warned and returned, so by the
+    time a dependant is reached its guard is present in every record or in
+    none.
     """
     positions = _NON_EXPANDABLE.get(PROV_BASE_CLS[records[0].get_type()])
     if positions is None:

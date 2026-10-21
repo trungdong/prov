@@ -151,7 +151,7 @@ def pytest_assertrepr_compare(config, op, left, right):
     ]
 
 
-#  Helpers for the 3.2.3 warning tests. They leave with the warnings in 3.3.0.
+#  Helpers for the tests of the warnings prov 3.2.3 emits.
 EX_URI = "http://example.org/"
 
 

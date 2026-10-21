@@ -8,7 +8,7 @@ compatibility promise of the 3.3.0 release: a document 3.2.3 wrote reads the
 same under 3.3.0.
 
 The files are not edited by hand. To regenerate them, run `generate.py` as its
-docstring says. The one example that holds `mentionOf` (Bundle2) has no PROV-JSONLD file,
-because the submission defines no Mention term. The `.trig` files carry
+docstring says. The one example that holds `mentionOf` (Bundle2) has no
+PROV-JSONLD file, because the submission defines no Mention term. The `.trig` files carry
 blank-node labels that differ between runs; the test compares documents, not
 bytes.

@@ -92,16 +92,16 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     + f"|{_PROVN_LOCAL_NEEDS_PERCENT_ENCODING.pattern}"
 )
 
-# One search settles the common case: a local part this does not match is
-# written as it stands, with no escaping and no warning.
+# A local part this does not match is written as it stands, with no escaping
+# and no warning, so one search settles the common case.
 _PROVN_LOCAL_NOT_PLAIN = re.compile(
     f"^{_PN_LOCAL_BAD_START.pattern}|{_PROVN_LOCAL_NEEDS_ESCAPE.pattern}"
 )
 # A local part PROV-N can only write by percent-encoding, which changes the
-# IRI a reader recovers: a character that cannot start PN_LOCAL in first
+# IRI a reader recovers: a character that cannot start PN_LOCAL in the first
 # place, a '%' that is not an existing escape, or a character PN_LOCAL cannot
-# spell at all. The one decision behind QualifiedName's warning and
-# _provn_escape_local's second result.
+# spell at all. QualifiedName's warning and _provn_escape_local's second
+# result both use it.
 _PROVN_LOCAL_PERCENT_ENCODED = re.compile(
     f"^{_PN_LOCAL_BAD_START.pattern}"
     r"|%(?![0-9A-Fa-f]{2})"
@@ -137,7 +137,7 @@ def _escape_local_char(localpart: str, i: int, last_index: int, char: str) -> st
     if char == "%":
         # An existing valid escape (e.g. "%20") is kept verbatim. A bare
         # '%' not followed by two hex digits is written as "%25", which a
-        # PROV-N reader keeps as that text, so it counts as encoded.
+        # PROV-N reader keeps as that text.
         if _PROVN_HEX_PAIR.match(localpart, i + 1):
             return char
         return "%25"
