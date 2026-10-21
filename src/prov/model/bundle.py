@@ -525,7 +525,8 @@ class ProvBundle:
         return self._namespaces._unresolved_reason(text)
 
     def _declares_prefix(self, prefix: str) -> bool:
-        """Whether ``prefix`` is declared here or in an enclosing scope."""
+        """Whether ``prefix`` is declared in this bundle's own namespaces; enclosing
+        scopes are not consulted."""
         return prefix in self._namespaces
 
     def mandatory_valid_qname(
