@@ -16,8 +16,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   [#511](https://github.com/trungdong/prov/issues/511),
   [#509](https://github.com/trungdong/prov/issues/509)). U+1680, which 3.2.3 also warned
   about, reads as a name character
-- Under the `strict` profile, a `default` declaration after a `prefix` declaration and a
-  declaration of `prov` or `xsd` ([#519](https://github.com/trungdong/prov/issues/519))
+- Under the `strict` profile, a `default` declaration after a `prefix` declaration, a
+  declaration of `prov` or `xsd`, a statement after a bundle, and an identifier or an
+  attribute block on `alternateOf`, `specializationOf` or `hadMember`
+  ([#519](https://github.com/trungdong/prov/issues/519))
+- In PROV-N, an attribute named after one of the statement's own arguments, such as
+  `prov:activity` on `wasGeneratedBy`, a `ProvNSyntaxError` at the attribute. The
+  `lenient` profile skips the statement with a `ProvWarning`, as it skips any statement
+  that fails to parse, where 3.2.3 read the statement and warned
+  ([#523](https://github.com/trungdong/prov/issues/523))
 - In PROV-N, an `xsi:` name with no `prefix xsi` declaration, a `ProvNSyntaxError` that
   names the missing declaration ([#510](https://github.com/trungdong/prov/issues/510))
 
@@ -48,6 +55,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A PROV-N document that declares `prefix xsi <…>` at an IRI other than the XML Schema
   Instance one is written back under `xsi`. 3.2.x renamed it to `xsi_1`
   ([#510](https://github.com/trungdong/prov/issues/510))
+- `get_provn(strict=True)` and `serialize(format="provn", strict=True)` write
+  `alternateOf`, `specializationOf` and `hadMember` without an identifier or attribute
+  block, which the PROV-N grammar does not give them, so a strict write reads under the
+  `strict` profile. Each dropped item is a `ProvWarning` naming the record. A `hadMember`
+  read from PROV-JSON with several members carries its identifier and attributes on every
+  member, so that is where the warning most often appears. The default writer keeps both
+  ([#569](https://github.com/trungdong/prov/issues/569))
 
 ### Project
 
