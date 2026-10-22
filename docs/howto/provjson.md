@@ -66,9 +66,11 @@ assert loaded == document
 A seekable stream, such as an open file or `io.StringIO`, is rewound between attempts. A
 non-seekable stream is consumed by the first attempt, so pass `format=` for those.
 
-Auto-detection swallows every deserializer's error. When no format succeeds it raises a
-generic `TypeError`. Pass `format=` explicitly when you want the real error from one
-deserializer.
+Auto-detection treats each deserializer's error as "not this format" and raises
+`TypeError` when no format succeeds. When the content starts with `{` and the PROV-JSON
+or PROV-JSONLD reader rejected it with its own `ProvJSONException` or
+`ProvJSONLDException`, that error is the `TypeError`'s `__cause__`. Pass `format=`
+explicitly to get the error from one deserializer on its own.
 
 ## Common errors
 

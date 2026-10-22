@@ -63,6 +63,59 @@ def _prepare_stream(
     return stream, start_pos
 
 
+def _head(
+    src: StreamOrPath | None,
+    content: str | bytes | None,
+    stream: IO[Any] | None,
+    start_pos: int | None,
+) -> str | None:
+    """The first 4096 characters of the input (4096 bytes decoded as UTF-8
+    for bytes content, a binary stream or a path), for naming the reader
+    whose error ``_detect_and_parse`` chains, or ``None`` when a
+    non-seekable stream was consumed or the input cannot be read again."""
+    try:
+        if content is not None:
+            head: str | bytes = content[:4096]
+        elif stream is not None:
+            if start_pos is None:
+                return None
+            stream.seek(start_pos)
+            head = stream.read(4096)
+        else:
+            with open(cast("str | bytes | os.PathLike[Any]", src), "rb") as f:
+                head = f.read(4096)
+    except Exception:
+        return None
+    return head.decode("utf-8", "replace") if isinstance(head, bytes) else head
+
+
+def _rejection_cause(
+    head: str | None, errors: dict[str, Exception]
+) -> Exception | None:
+    """The error of the reader the input's first character names, when that
+    reader rejected the input with its own positioned error: PROV-JSON or
+    PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds ``"@context"`` or
+    ``"@graph"``), PROV-N for ``document``. The PROV-XML and RDF readers
+    raise no positioned error of their own, so ``<`` chains nothing."""
+    # Lazy imports: prov and the serializers are circularly dependent.
+    from prov.serializers.provjson import ProvJSONException
+    from prov.serializers.provjsonld import ProvJSONLDException
+    from prov.serializers.provn_lexer import ProvNSyntaxError
+
+    if head is None:
+        return None
+    text = head.lstrip()
+    if text.startswith("{"):
+        name = "jsonld" if '"@context"' in head or '"@graph"' in head else "json"
+    elif text.startswith("document"):
+        name = "provn"
+    else:
+        return None
+    error = errors.get(name)
+    positioned = (ProvJSONException, ProvJSONLDException, ProvNSyntaxError)
+    return error if isinstance(error, positioned) else None
+
+
 def _detect_and_parse(
     src: StreamOrPath | None,
     content: str | bytes | None,
@@ -73,24 +126,28 @@ def _detect_and_parse(
 
     Raises:
         TypeError: If no registered serializer produced a non-empty
-            document from ``src``/``content``.
+            document from ``src``/``content``. When the content's first
+            character names PROV-JSON, PROV-JSONLD or PROV-N and that reader
+            rejected the input with its own error, that error is the
+            ``TypeError``'s ``__cause__``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
     from prov._warnings import collect_warnings, warn
     from prov.model import ProvDocument
 
     stream, start_pos = _prepare_stream(src)
+    errors: dict[str, Exception] = {}
 
     # Failed-candidate diagnostics (e.g. rdflib's "does not look like a
     # valid URI" logger warnings) are noise by definition here: every
-    # candidate's exception is swallowed below, so nothing about a failed
-    # attempt is ever surfaced to the caller anyway. Raise rdflib's logger
-    # level for the duration of auto-detection only -- the explicit-format
-    # path in read() is unaffected and still shows real diagnostics. Note
-    # this mutation is process-global and not thread-safe: two concurrent
-    # auto-detecting read() calls can race on the level, but the impact is
-    # bounded to transient log noise, so a Filter/thread-local would be
-    # more machinery than warranted.
+    # candidate's exception is swallowed below, and only the rejection of
+    # the reader the content names is chained as the TypeError's cause.
+    # Raise rdflib's logger level for the duration of auto-detection only
+    # -- the explicit-format path in read() is unaffected and still shows
+    # real diagnostics. Note this mutation is process-global and not
+    # thread-safe: two concurrent auto-detecting read() calls can race on
+    # the level, but the impact is bounded to transient log noise, so a
+    # Filter/thread-local would be more machinery than warranted.
     rdflib_term_logger = logging.getLogger("rdflib.term")
     previous_level = rdflib_term_logger.level
     rdflib_term_logger.setLevel(logging.ERROR)
@@ -126,9 +183,10 @@ def _detect_and_parse(
                     document = ProvDocument.deserialize(
                         source=src, content=content, format=format, **candidate_kwargs
                     )
-                except Exception:  # nosec B112 - nosemgrep
+                except Exception as exc:  # nosemgrep
                     # Any failure from a candidate deserializer means "not
-                    # this format" -- move on to the next candidate.
+                    # this format"; the error is kept for the cause below.
+                    errors[format] = exc
                     continue
             if document.get_records() or document.has_bundles():
                 for message, category in collected:
@@ -154,7 +212,9 @@ def _detect_and_parse(
             " Note: the source is not a path to an existing file and was "
             "parsed as raw content."
         )
-    raise TypeError(message)
+    raise TypeError(message) from _rejection_cause(
+        _head(src, content, stream, start_pos), errors
+    )
 
 
 def read(
@@ -174,9 +234,11 @@ def read(
     -- is treated as "not this format"; registered namespaces are not used
     as a signal here since the rdf deserializer always registers rdflib's
     own default-bound namespace prefixes on every successful parse, empty
-    or not). Auto-detection swallows all deserializer errors; pass
-    ``format`` explicitly to get the actual traceback from the matching
-    deserializer.
+    or not). Auto-detection swallows each candidate's error. When every
+    candidate fails and the content's first character names PROV-JSON,
+    PROV-JSONLD or PROV-N, that reader's own error is the ``TypeError``'s
+    ``__cause__``, so the traceback shows the rule and its position; pass
+    ``format`` explicitly to get that error on its own.
 
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the
@@ -208,7 +270,9 @@ def read(
         TypeError: If ``format`` is given and names an option the
             corresponding deserializer does not declare, or if ``format``
             is ``None`` and no registered serializer produced a non-empty
-            document from ``source``.
+            document from ``source``. The ``TypeError`` is raised from the
+            rejecting reader's error when the content names one of PROV-JSON,
+            PROV-JSONLD or PROV-N.
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument

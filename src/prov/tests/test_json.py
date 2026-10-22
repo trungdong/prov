@@ -11,7 +11,6 @@ import decimal
 import io
 import json
 import re
-import warnings
 from collections.abc import Iterator
 from typing import Any
 
@@ -22,7 +21,6 @@ from prov.model import (
     Literal,
     ProvBundle,
     ProvDocument,
-    ProvFutureRejectionWarning,
     ProvMembership,
 )
 from prov.serializers._json_common import _JSONPrefixMap
@@ -35,8 +33,6 @@ from prov.serializers.provjson import (
 )
 from prov.serializers.provjsonld import _JSONLD_DEFAULT_KEYS
 from prov.tests import examples
-
-from .conftest import future_messages, no_future_rejection, rejected
 
 
 def test_decoding_unicode_value() -> None:
@@ -230,9 +226,6 @@ def test_encode_json_container_builds_its_own_prefix_map() -> None:
     assert "dn:a:b" in container["entity"]
 
 
-# The 3.2.3 reader warnings. Each one names an input 3.3.0 rejects, and the
-# document still reads as it did before 3.2.3.
-
 _TIME = "2012-01-01T00:00:00"
 _DATETIME_OBJECT = {"$": _TIME, "type": "xsd:dateTime"}
 
@@ -242,79 +235,11 @@ def _json(sections: dict[str, Any]) -> str:
     return json.dumps({"prefix": {"ex": "http://example.org/"}, **sections})
 
 
-def _read_quietly(text: str) -> ProvDocument:
-    """Read ``text``, failing on any ProvFutureRejectionWarning."""
-    with no_future_rejection():
-        return ProvDocument.deserialize(content=text, format="json")
-
-
-def _read_warning(text: str) -> tuple[ProvDocument, list[str]]:
-    """Read ``text``; return the document and its ProvFutureRejectionWarning
-    messages, each of which must name this file as the caller."""
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        document = ProvDocument.deserialize(content=text, format="json")
-    return document, future_messages(caught, __file__)
+def _read(text: str) -> ProvDocument:
+    return ProvDocument.deserialize(content=text, format="json")
 
 
 _PREFIX = '"prefix": {"ex": "http://example.org/"}'
-
-
-@pytest.mark.parametrize(
-    ("repeated", "single", "key"),
-    [
-        pytest.param(
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}',
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "b"}}}}}}',
-            "ex:k",
-            id="attribute",
-        ),
-        pytest.param(
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a"}}, "ex:e": {{}}}}}}',
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}}}',
-            "ex:e",
-            id="record",
-        ),
-        pytest.param(
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}, "entity": {{"ex:f": {{}}}}}}',
-            f'{{{_PREFIX}, "entity": {{"ex:f": {{}}}}}}',
-            "entity",
-            id="section",
-        ),
-        pytest.param(
-            '{"prefix": {"ex": "http://other.org/", "ex": "http://example.org/"},'
-            ' "entity": {"ex:e": {}}}',
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}}}',
-            "ex",
-            id="prefix",
-        ),
-        pytest.param(
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": {{"$": "a", "$": "b"}}}}}}}}',
-            f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": {{"$": "b"}}}}}}}}',
-            "$",
-            id="value-object",
-        ),
-    ],
-)
-def test_repeated_key_warns(repeated: str, single: str, key: str) -> None:
-    document, messages = _read_warning(repeated)
-    assert messages == [
-        rejected(
-            f"the key {key!r} is repeated in a JSON object; the last value is used",
-            532,
-        )
-    ]
-    assert document == _read_quietly(single)
-
-
-def test_repeated_key_warns_once_per_object() -> None:
-    _, messages = _read_warning(
-        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b", "ex:k": "c"}},'
-        ' "ex:f": {"ex:k": "a", "ex:k": "b"}}}'
-    )
-    message = rejected(
-        "the key 'ex:k' is repeated in a JSON object; the last value is used", 532
-    )
-    assert messages == [message, message]
 
 
 def test_caller_object_hook_still_sees_every_object() -> None:
@@ -324,13 +249,10 @@ def test_caller_object_hook_still_sees_every_object() -> None:
         seen.append(obj)
         return obj
 
-    text = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
-    with pytest.warns(ProvFutureRejectionWarning, match="'ex:k' is repeated"):
-        document = prov.read(text, format="json", object_hook=object_hook)
-    assert {"ex:k": "b"} in seen
-    assert document == _read_quietly(
-        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "b"}}}}}}'
-    )
+    text = _json({"entity": {"ex:e": {"ex:k": "a"}}})
+    document = prov.read(text, format="json", object_hook=object_hook)
+    assert {"ex:k": "a"} in seen
+    assert document == _read(text)
 
 
 def test_caller_object_pairs_hook_still_sees_every_pair() -> None:
@@ -340,15 +262,22 @@ def test_caller_object_pairs_hook_still_sees_every_pair() -> None:
         seen.append(pairs)
         return dict(pairs)
 
-    text = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
-    with pytest.warns(ProvFutureRejectionWarning, match="'ex:k' is repeated"):
-        prov.read(text, format="json", object_pairs_hook=object_pairs_hook)
-    assert [("ex:k", "a"), ("ex:k", "b")] in seen
+    text = _json({"entity": {"ex:e": {"ex:k": "a"}}})
+    _ = prov.read(text, format="json", object_pairs_hook=object_pairs_hook)
+    assert [("ex:k", "a")] in seen
+
+    seen.clear()
+    repeated = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
+    with pytest.raises(
+        ProvJSONException, match=r"^the key 'ex:k' is repeated in a JSON object$"
+    ):
+        _ = prov.read(repeated, format="json", object_pairs_hook=object_pairs_hook)
+    assert [("ex:k", "a"), ("ex:k", "b")] not in seen
 
 
 def test_json_decoder_decodes_a_document() -> None:
     text = _json({"entity": {"ex:e": {"ex:k": "a"}}})
-    assert json.loads(text, cls=ProvJSONDecoder) == _read_quietly(text)
+    assert json.loads(text, cls=ProvJSONDecoder) == _read(text)
 
 
 _TIMES = [
@@ -373,95 +302,30 @@ def test_time_reads_from_a_datetime_value_object(
     def text(time: object) -> str:
         return _json({section: {"ex:r": {**attributes, time_attr: time}}})
 
-    document = _read_quietly(text(_DATETIME_OBJECT))
-    assert document == _read_quietly(text(_TIME))
+    document = _read(text(_DATETIME_OBJECT))
+    assert document == _read(text(_TIME))
     (record,) = document.get_records()
     assert datetime.datetime(2012, 1, 1) in {value for _, value in record.attributes}
 
 
-@pytest.mark.parametrize(
-    "time",
-    [
-        pytest.param({"$": "not-a-time", "type": "xsd:dateTime"}, id="ill-formed"),
-        pytest.param({"$": _TIME, "type": "xsd:string"}, id="other-datatype"),
-        pytest.param({"$": _TIME, "type": "foo:dateTime"}, id="unresolved-datatype"),
-        pytest.param({"$": _TIME}, id="no-datatype"),
-        pytest.param({"$": _TIME, "type": "xsd:dateTime", "lang": "en"}, id="lang"),
-        pytest.param({"$": 2012, "type": "xsd:dateTime"}, id="number"),
-        pytest.param({"$": _TIME, "type": 5}, id="number-datatype"),
-        pytest.param(None, id="null"),
-        pytest.param(5, id="bare-number"),
-    ],
-)
-def test_time_that_is_not_an_xsd_datetime_raises(time: object) -> None:
-    text = _json({"activity": {"ex:a": {"prov:startTime": time}}})
-    expected = (
-        "record 'ex:a', attribute 'prov:startTime': expected an xsd:dateTime,"
-        f" found {time!r}"
-    )
-    with pytest.raises(ProvJSONException, match=re.escape(expected)):
-        ProvDocument.deserialize(content=text, format="json")
-
-
 @pytest.mark.parametrize("time", ["not-a-time", "2011-11-16"])
 @pytest.mark.parametrize(("section", "attributes", "time_attr"), _TIMES)
-def test_bare_time_that_is_not_an_xsd_datetime_warns(
+def test_bare_time_that_is_not_an_xsd_datetime_raises(
     section: str, attributes: dict[str, str], time_attr: str, time: str
 ) -> None:
-    document, messages = _read_warning(
-        _json({section: {"ex:r": {**attributes, time_attr: time}}})
-    )
-    assert messages == [
-        rejected(
-            f"record 'ex:r', attribute {time_attr!r}: {time!r} is not an"
-            " xsd:dateTime and is dropped",
-            555,
-        )
-    ]
-    assert document == _read_quietly(_json({section: {"ex:r": attributes}}))
+    text = _json({section: {"ex:r": {**attributes, time_attr: time}}})
+    expected = f"record 'ex:r', attribute {time_attr!r}: expected an xsd:dateTime, found {time!r}"
+    with pytest.raises(ProvJSONException, match=re.escape(expected)):
+        _ = ProvDocument.deserialize(content=text, format="json")
 
 
-@pytest.mark.parametrize(
-    ("section", "attributes", "attr", "value"),
-    [
-        pytest.param("wasGeneratedBy", {}, "prov:entity", "ex:e", id="qualified-name"),
-        pytest.param("activity", {}, "prov:startTime", _TIME, id="time"),
-        pytest.param(
-            "activity", {}, "prov:startTime", _DATETIME_OBJECT, id="time-value-object"
-        ),
-        pytest.param(
-            "hadMember",
-            {"prov:entity": "ex:e"},
-            "prov:collection",
-            "ex:c",
-            id="collection",
-        ),
-    ],
-)
-def test_formal_attribute_written_as_an_array_warns(
-    section: str, attributes: dict[str, str], attr: str, value: object
-) -> None:
-    document, messages = _read_warning(
-        _json({section: {"ex:r": {**attributes, attr: [value]}}})
-    )
-    assert messages == [
-        rejected(
-            f"record 'ex:r', attribute {attr!r}: the value is written as an array",
-            531,
-        )
-    ]
-    assert document == _read_quietly(
-        _json({section: {"ex:r": {**attributes, attr: value}}})
-    )
-
-
-def test_had_member_entity_written_as_an_array_does_not_warn() -> None:
+def test_had_member_entity_written_as_an_array_reads() -> None:
     def text(entity: object) -> str:
         return _json(
             {"hadMember": {"ex:r": {"prov:collection": "ex:c", "prov:entity": entity}}}
         )
 
-    assert _read_quietly(text(["ex:e"])) == _read_quietly(text("ex:e"))
+    assert _read(text(["ex:e"])) == _read(text("ex:e"))
 
 
 def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> None:
@@ -470,10 +334,8 @@ def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> 
     def membership(entity: object) -> dict[str, object]:
         return {"prov:collection": "ex:c", "prov:entity": entity, "ex:k": "v"}
 
-    fanned_out = _read_quietly(
-        _json({"hadMember": {"ex:m": membership(["ex:e1", "ex:e2"])}})
-    )
-    one_each = _read_quietly(
+    fanned_out = _read(_json({"hadMember": {"ex:m": membership(["ex:e1", "ex:e2"])}}))
+    one_each = _read(
         _json({"hadMember": {"ex:m": [membership("ex:e1"), membership("ex:e2")]}})
     )
     assert fanned_out == one_each
@@ -483,7 +345,7 @@ def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> 
 def test_had_member_array_without_a_collection_reads() -> None:
     # The fan-out took the collection from the first record and raised
     # KeyError when the membership had none.
-    document = _read_quietly(
+    document = _read(
         _json({"hadMember": {"ex:m": {"prov:entity": ["ex:e1", "ex:e2"]}}})
     )
     members = [r.get_attribute("prov:entity") for r in document.get_records()]
@@ -491,61 +353,27 @@ def test_had_member_array_without_a_collection_reads() -> None:
 
 
 def test_had_member_members_resolve_alike() -> None:
-    # Every member resolves as the first one does; a null member warns (#528).
-    def members(entities: list[str | None]) -> list[set[Any]]:
-        text = _json(
-            {
-                "hadMember": {
-                    "ex:m": {"prov:collection": "ex:c", "prov:entity": entities}
-                }
-            }
-        )
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ProvFutureRejectionWarning)
-            document = ProvDocument.deserialize(content=text, format="json")
+    # Every member resolves as the first one does.
+    def members(entities: list[str]) -> list[set[Any]]:
+        document = _read(_membership(entities))
         return [r.get_attribute("prov:entity") for r in document.get_records()]
 
-    assert members([None, "ex:e2"]) == members(["ex:e2", None])[::-1]
-
-
-@pytest.mark.parametrize(
-    ("section", "attributes"),
-    [
-        pytest.param("wasGeneratedBy", {}, id="generation"),
-        pytest.param("hadMember", {"prov:collection": "ex:c"}, id="membership"),
-    ],
-)
-def test_formal_attribute_written_as_an_empty_array_raises(
-    section: str, attributes: dict[str, str]
-) -> None:
-    text = _json({section: {"ex:r": {**attributes, "prov:entity": []}}})
-    expected = "record 'ex:r', attribute 'prov:entity': the value is an empty array"
-    with pytest.raises(ProvJSONException, match=re.escape(expected)):
-        ProvDocument.deserialize(content=text, format="json")
-
-
-@pytest.mark.parametrize(
-    ("value", "same_as"),
-    [
-        pytest.param(None, {}, id="alone"),
-        pytest.param([None, "x"], {"ex:k": "x"}, id="in-an-array"),
-    ],
-)
-def test_null_attribute_value_warns(value: object, same_as: dict[str, str]) -> None:
-    document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
-    assert messages == [
-        rejected(
-            "record 'ex:e', attribute 'ex:k': the value is null and is dropped", 528
-        )
-    ]
-    assert document == _read_quietly(_json({"entity": {"ex:e": same_as}}))
+    assert members(["ex:e1", "ex:e2"]) == members(["ex:e2", "ex:e1"])[::-1]
 
 
 # A qualified name the reader rejects because it does not resolve by its
 # prefix in scope (#516, #551, #599): the sections under the ex prefix and the
 # message of the ProvJSONException. The reader never compacts an IRI, so a
 # full IRI is the undeclared prefix 'http'. A qualified-name value object is
-# one row here and every reason in test_unresolved_names.py.
+# one row here and every reason in test_unresolved_names.py. The other rows are
+# the inputs 3.2.3 warned about (#528, #529, #531, #532, #552, #555, #597), one
+# per message the reader gives.
+_E = "record 'ex:e', attribute 'ex:k': "
+_R = "record 'ex:r', attribute "
+_M = "record 'ex:m', attribute 'prov:entity': "
+_T = "record 'ex:a', attribute 'prov:startTime': "
+_GENERATION = {"prov:entity": "ex:e"}
+_MEMBERSHIP = {"prov:collection": "ex:c"}
 _UNDECLARED = "its prefix 'zz' is not declared"
 _FULL_IRI = "its prefix 'http' is not declared"
 _NO_PREFIX = "it has no prefix and no default namespace is declared"
@@ -555,35 +383,56 @@ def _unresolved(position: str, text: str, reason: str) -> str:
     return f"{position}: the qualified name {text!r} does not resolve, because {reason}"
 
 
-REJECTED_NAMES = [
+def _generation(**attributes: object) -> str:
+    return _json({"wasGeneratedBy": {"ex:r": {**_GENERATION, **attributes}}})
+
+
+def _membership(entity: object) -> str:
+    return _json({"hadMember": {"ex:m": {**_MEMBERSHIP, "prov:entity": entity}}})
+
+
+def _value(value: object) -> str:
+    return _json({"entity": {"ex:e": {"ex:k": value}}})
+
+
+def _time(time: object) -> str:
+    return _json({"activity": {"ex:a": {"prov:startTime": time}}})
+
+
+REJECTED_DOCUMENTS = [
     pytest.param(
-        {"entity": {"http://example.org/e1": {}}},
+        _json({"entity": {"http://example.org/e1": {}}}),
         _unresolved(
             "record 'http://example.org/e1'", "http://example.org/e1", _FULL_IRI
         ),
         id="record key full IRI",
     ),
     pytest.param(
-        {"entity": {"zz:e1": {}}},
+        _json({"entity": {"zz:e1": {}}}),
         _unresolved("record 'zz:e1'", "zz:e1", _UNDECLARED),
         id="record key undeclared",
     ),
     pytest.param(
-        {"wasGeneratedBy": {"g1": {"prov:entity": "ex:e"}}},
+        _json({"wasGeneratedBy": {"g1": {"prov:entity": "ex:e"}}}),
         _unresolved("record 'g1'", "g1", _NO_PREFIX),
         id="relation key with no prefix and no default",
     ),
     pytest.param(
-        {"bundle": {"http://example.org/b": {"entity": {"ex:e": {}}}}},
+        _json({"bundle": {"http://example.org/b": {"entity": {"ex:e": {}}}}}),
         _unresolved("bundle 'http://example.org/b'", "http://example.org/b", _FULL_IRI),
         id="bundle key full IRI",
     ),
     pytest.param(
-        {
-            "wasGeneratedBy": {
-                "ex:r": {"prov:entity": "ex:e", "prov:activity": "http://example.org/a"}
+        _json(
+            {
+                "wasGeneratedBy": {
+                    "ex:r": {
+                        "prov:entity": "ex:e",
+                        "prov:activity": "http://example.org/a",
+                    }
+                }
             }
-        },
+        ),
         _unresolved(
             "record 'ex:r', attribute 'prov:activity'",
             "http://example.org/a",
@@ -592,14 +441,16 @@ REJECTED_NAMES = [
         id="formal attribute full IRI",
     ),
     pytest.param(
-        {
-            "wasGeneratedBy": {
-                "ex:r": {
-                    "prov:entity": "ex:e",
-                    "prov:activity": "http://example.org/a b",
+        _json(
+            {
+                "wasGeneratedBy": {
+                    "ex:r": {
+                        "prov:entity": "ex:e",
+                        "prov:activity": "http://example.org/a b",
+                    }
                 }
             }
-        },
+        ),
         _unresolved(
             "record 'ex:r', attribute 'prov:activity'",
             "http://example.org/a b",
@@ -608,31 +459,41 @@ REJECTED_NAMES = [
         id="formal attribute full IRI with a space",
     ),
     pytest.param(
-        {"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e", "prov:activity": "zz:a"}}},
+        _json(
+            {
+                "wasGeneratedBy": {
+                    "ex:r": {"prov:entity": "ex:e", "prov:activity": "zz:a"}
+                }
+            }
+        ),
         _unresolved("record 'ex:r', attribute 'prov:activity'", "zz:a", _UNDECLARED),
         id="formal attribute undeclared",
     ),
     pytest.param(
-        {
-            "hadMember": {
-                "ex:m": {
-                    "prov:collection": "ex:c",
-                    "prov:entity": ["ex:e1", "http://example.org/e3"],
+        _json(
+            {
+                "hadMember": {
+                    "ex:m": {
+                        "prov:collection": "ex:c",
+                        "prov:entity": ["ex:e1", "http://example.org/e3"],
+                    }
                 }
             }
-        },
+        ),
         _unresolved(
             "record 'ex:m', attribute 'prov:entity'", "http://example.org/e3", _FULL_IRI
         ),
         id="member full IRI",
     ),
     pytest.param(
-        {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": "zz:a"}}},
+        _json(
+            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": "zz:a"}}}
+        ),
         _unresolved("record 'ex:m', attribute 'prov:entity'", "zz:a", _UNDECLARED),
         id="member undeclared",
     ),
     pytest.param(
-        {"entity": {"ex:e": {"http://example.org/k": "v"}}},
+        _json({"entity": {"ex:e": {"http://example.org/k": "v"}}}),
         _unresolved(
             "record 'ex:e', attribute 'http://example.org/k'",
             "http://example.org/k",
@@ -641,222 +502,301 @@ REJECTED_NAMES = [
         id="attribute name full IRI",
     ),
     pytest.param(
-        {"entity": {"ex:e": {"zz:k": "v"}}},
+        _json({"entity": {"ex:e": {"zz:k": "v"}}}),
         _unresolved("record 'ex:e', attribute 'zz:k'", "zz:k", _UNDECLARED),
         id="attribute name undeclared",
     ),
     pytest.param(
-        {
-            "entity": {
-                "ex:e": {
-                    "ex:k": {"$": "http://example.org/x", "type": "prov:QUALIFIED_NAME"}
+        _json(
+            {
+                "entity": {
+                    "ex:e": {
+                        "ex:k": {
+                            "$": "http://example.org/x",
+                            "type": "prov:QUALIFIED_NAME",
+                        }
+                    }
                 }
             }
-        },
+        ),
         _unresolved(
             "record 'ex:e', attribute 'ex:k'", "http://example.org/x", _FULL_IRI
         ),
         id="value full IRI",
     ),
     pytest.param(
-        {
-            "entity": {
-                "ex:e": {
-                    "ex:k": [
-                        {"$": "ex:x", "type": "xsd:QName"},
-                        {"$": "zz:x", "type": "xsd:QName"},
-                    ]
+        _json(
+            {
+                "entity": {
+                    "ex:e": {
+                        "ex:k": [
+                            {"$": "ex:x", "type": "xsd:QName"},
+                            {"$": "zz:x", "type": "xsd:QName"},
+                        ]
+                    }
                 }
             }
-        },
+        ),
         _unresolved("record 'ex:e', attribute 'ex:k'", "zz:x", _UNDECLARED),
         id="value undeclared after a declared one",
+    ),
+    # #532: a repeated key, with no position (Python's JSON parser reports none)
+    pytest.param(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}',
+        "the key 'ex:k' is repeated in a JSON object",
+        id="repeated attribute",
+    ),
+    pytest.param(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a"}}, "ex:e": {{}}}}}}',
+        "the key 'ex:e' is repeated in a JSON object",
+        id="repeated record",
+    ),
+    pytest.param(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{}}}}, "entity": {{"ex:f": {{}}}}}}',
+        "the key 'entity' is repeated in a JSON object",
+        id="repeated section",
+    ),
+    pytest.param(
+        '{"prefix": {"ex": "http://other.org/", "ex": "http://example.org/"},'
+        ' "entity": {"ex:e": {}}}',
+        "the key 'ex' is repeated in a JSON object",
+        id="repeated prefix",
+    ),
+    pytest.param(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": {{"$": "a", "$": "b"}}}}}}}}',
+        "the key '$' is repeated in a JSON object",
+        id="repeated value-object key",
+    ),
+    pytest.param(
+        f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b", "ex:j": 1, "ex:j": 2}}}}}}',
+        "the key 'ex:k' is repeated in a JSON object",
+        id="the first repeated key of an object",
+    ),
+    # #528: null
+    pytest.param(_value(None), _E + "the value is null", id="null attribute value"),
+    pytest.param(
+        _value([None, "x"]), _E + "the value is null", id="null in an attribute array"
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": None}),
+        _R + "'prov:activity': the value is null",
+        id="null formal attribute",
+    ),
+    pytest.param(_membership(None), _M + "the value is null", id="null member"),
+    pytest.param(
+        _membership([None, "ex:e"]), _M + "the value is null", id="null in the members"
+    ),
+    # #597: a formal attribute or member that is not a string
+    pytest.param(
+        _generation(**{"prov:activity": 5}),
+        _R + "'prov:activity': the value is 5, not a qualified name",
+        id="formal number",
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": 1.5}),
+        _R + "'prov:activity': the value is 1.5, not a qualified name",
+        id="formal float",
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": True}),
+        _R + "'prov:activity': the value is true, not a qualified name",
+        id="formal boolean",
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": {"$": "ex:a", "type": "prov:QUALIFIED_NAME"}}),
+        _R + "'prov:activity': the value is "
+        '{"$": "ex:a", "type": "prov:QUALIFIED_NAME"}, not a qualified name',
+        id="formal value object",
+    ),
+    pytest.param(
+        _membership([5]),
+        _M + "the value is 5, not a qualified name",
+        id="member number",
+    ),
+    # #531: a formal attribute written as an array, of any length
+    pytest.param(
+        _generation(**{"prov:entity": ["ex:e"]}),
+        _R + "'prov:entity': the value is written as an array",
+        id="array qualified name",
+    ),
+    pytest.param(
+        _time([_TIME]), _T + "the value is written as an array", id="array time"
+    ),
+    pytest.param(
+        _time([_DATETIME_OBJECT]),
+        _T + "the value is written as an array",
+        id="array time value object",
+    ),
+    pytest.param(
+        _json(
+            {
+                "hadMember": {
+                    "ex:r": {"prov:collection": ["ex:c"], "prov:entity": "ex:e"}
+                }
+            }
+        ),
+        _R + "'prov:collection': the value is written as an array",
+        id="array collection",
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": ["ex:a", "ex:b"]}),
+        _R + "'prov:activity': the value is written as an array",
+        id="array of several values",
+    ),
+    pytest.param(
+        _generation(**{"prov:entity": []}),
+        _R + "'prov:entity': the value is written as an array",
+        id="empty array",
+    ),
+    pytest.param(
+        _generation(**{"prov:activity": [[1]]}),
+        _R + "'prov:activity': the value is written as an array",
+        id="nested array",
+    ),
+    pytest.param(
+        _json({"hadMember": {"ex:r": {**_MEMBERSHIP, "prov:entity": []}}}),
+        _R + "'prov:entity': the value is an empty array",
+        id="empty members",
+    ),
+    # #529 and #552: a value object
+    pytest.param(
+        _value({"$": "1", "datatype": "xsd:int"}),
+        _E + "the value object has the unknown key 'datatype'",
+        id="unknown key",
+    ),
+    pytest.param(
+        _value({"$": "1", "b": "x", "a": "x"}),
+        _E + "the value object has the unknown key 'a'",
+        id="the first unknown key",
+    ),
+    pytest.param(
+        _value({"$": 1}), _E + 'the value object\'s "$" is 1, not a string', id="number"
+    ),
+    pytest.param(
+        _value({"$": 1, "type": "xsd:double"}),
+        _E + 'the value object\'s "$" is 1, not a string',
+        id="integer typed double",
+    ),
+    pytest.param(
+        _value({"$": 1.5, "type": "xsd:int"}),
+        _E + 'the value object\'s "$" is 1.5, not a string',
+        id="float typed int",
+    ),
+    pytest.param(
+        _value({"$": True, "type": "xsd:int"}),
+        _E + 'the value object\'s "$" is true, not a string',
+        id="boolean typed int",
+    ),
+    pytest.param(
+        _value({"$": 1, "type": "xsd:int", "lang": "en"}),
+        _E + 'the value object\'s "$" is 1, not a string',
+        id="typed number with lang",
+    ),
+    pytest.param(
+        _value({"$": True}),
+        _E + 'the value object\'s "$" is true, not a string',
+        id="boolean",
+    ),
+    pytest.param(
+        _value({"$": None}),
+        _E + 'the value object\'s "$" is null, not a string',
+        id="null $",
+    ),
+    pytest.param(
+        _value({"$": 1, "type": "xsd:QName"}),
+        _E + 'the value object\'s "$" is 1, not a string',
+        id="number typed QName",
+    ),
+    pytest.param(
+        _value({"$": "1", "type": "foo:int"}),
+        _E
+        + "the qualified name 'foo:int' does not resolve, because its prefix 'foo' is not declared",
+        id="undeclared datatype",
+    ),
+    pytest.param(
+        _value({"$": "1", "type": "foo:int", "lang": "en"}),
+        _E
+        + "the qualified name 'foo:int' does not resolve, because its prefix 'foo' is not declared",
+        id="undeclared datatype with lang",
+    ),
+    pytest.param(
+        _value({"$": "1", "type": "http://www.w3.org/2001/XMLSchema#int"}),
+        _E
+        + "the qualified name 'http://www.w3.org/2001/XMLSchema#int' does not resolve, "
+        "because its prefix 'http' is not declared",
+        id="full IRI datatype",
+    ),
+    pytest.param(
+        _value({"$": "1", "type": 5}),
+        _E + 'the value object\'s "type" is 5, not a string',
+        id="datatype not a string",
+    ),
+    pytest.param(
+        _value({"$": 1, "type": "foo:int", "x": 1}),
+        _E + "the value object has the unknown key 'x'",
+        id="unknown key before the datatype",
+    ),
+    pytest.param(
+        _value({"$": 1, "type": "foo:int"}),
+        _E
+        + "the qualified name 'foo:int' does not resolve, because its prefix 'foo' is not declared",
+        id="datatype before $",
+    ),
+    # #555 and the value-object rules at a time position
+    pytest.param(
+        _time({"$": "not-a-time", "type": "xsd:dateTime"}),
+        _T
+        + "expected an xsd:dateTime, found "
+        + repr({"$": "not-a-time", "type": "xsd:dateTime"}),
+        id="time ill-formed",
+    ),
+    pytest.param(
+        _time({"$": _TIME, "type": "xsd:string"}),
+        _T
+        + "expected an xsd:dateTime, found "
+        + repr({"$": _TIME, "type": "xsd:string"}),
+        id="time other datatype",
+    ),
+    pytest.param(
+        _time({"$": _TIME, "type": "foo:dateTime"}),
+        _T
+        + "the qualified name 'foo:dateTime' does not resolve, because its prefix 'foo' is not declared",
+        id="time undeclared datatype",
+    ),
+    pytest.param(
+        _time({"$": _TIME}),
+        _T + "expected an xsd:dateTime, found " + repr({"$": _TIME}),
+        id="time no datatype",
+    ),
+    pytest.param(
+        _time({"$": _TIME, "type": "xsd:dateTime", "lang": "en"}),
+        _T
+        + "expected an xsd:dateTime, found "
+        + repr({"$": _TIME, "type": "xsd:dateTime", "lang": "en"}),
+        id="time with lang",
+    ),
+    pytest.param(
+        _time({"$": 2012, "type": "xsd:dateTime"}),
+        _T + 'the value object\'s "$" is 2012, not a string',
+        id="time number $",
+    ),
+    pytest.param(
+        _time({"$": _TIME, "type": 5}),
+        _T + 'the value object\'s "type" is 5, not a string',
+        id="time datatype not a string",
+    ),
+    pytest.param(_time(None), _T + "the value is null", id="time null"),
+    pytest.param(
+        _time(5), _T + "expected an xsd:dateTime, found 5", id="time bare number"
     ),
 ]
 
 
-@pytest.mark.parametrize(("sections", "message"), REJECTED_NAMES)
-def test_reader_rejects_a_name_that_does_not_resolve(
-    sections: dict[str, Any], message: str
-) -> None:
+@pytest.mark.parametrize(("text", "message"), REJECTED_DOCUMENTS)
+def test_reader_rejects(text: str, message: str) -> None:
     with pytest.raises(ProvJSONException) as ctx:
-        ProvDocument.deserialize(content=_json(sections), format="json")
+        _ = ProvDocument.deserialize(content=text, format="json")
     assert str(ctx.value) == message
-
-
-def test_null_formal_attribute_warns() -> None:
-    attributes = {"prov:entity": "ex:e", "prov:activity": None}
-    document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
-    assert messages == [
-        rejected(
-            "record 'ex:r', attribute 'prov:activity': the value is null and is"
-            " dropped",
-            528,
-        )
-    ]
-    assert document == _read_quietly(
-        _json({"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e"}}})
-    )
-
-
-@pytest.mark.parametrize(
-    ("entity", "members"),
-    [
-        pytest.param(None, [set()], id="alone"),
-        pytest.param([None, "ex:e"], [set(), {"ex:e"}], id="in-an-array"),
-    ],
-)
-def test_null_had_member_member_warns(entity: object, members: list[set[str]]) -> None:
-    document, messages = _read_warning(
-        _json(
-            {"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": entity}}}
-        )
-    )
-    assert messages == [
-        rejected(
-            "record 'ex:m', attribute 'prov:entity': the value is null and is dropped",
-            528,
-        )
-    ]
-    read = [r.get_attribute("prov:entity") for r in document.get_records()]
-    assert [{str(e) for e in m} for m in read] == members
-
-
-@pytest.mark.parametrize(
-    ("value", "text"),
-    [
-        pytest.param(5, "5", id="number"),
-        pytest.param(1.5, "1.5", id="float"),
-        pytest.param(True, "true", id="boolean"),
-        pytest.param({"$": "ex:a", "type": "prov:QUALIFIED_NAME"}, None, id="object"),
-        pytest.param([[1]], "[1]", id="nested-array"),
-    ],
-)
-def test_formal_attribute_that_is_not_a_string_warns(
-    value: object, text: str | None
-) -> None:
-    attributes = {"prov:entity": "ex:e", "prov:activity": value}
-    document, messages = _read_warning(_json({"wasGeneratedBy": {"ex:r": attributes}}))
-    shown = text if text is not None else json.dumps(value)
-    expected = [
-        rejected(
-            f"record 'ex:r', attribute 'prov:activity': the value is {shown}, not a"
-            " qualified name, and is dropped",
-            597,
-        )
-    ]
-    if isinstance(value, list):
-        expected.insert(
-            0,
-            rejected(
-                "record 'ex:r', attribute 'prov:activity': the value is written as"
-                " an array",
-                531,
-            ),
-        )
-    assert messages == expected
-    assert document == _read_quietly(
-        _json({"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e"}}})
-    )
-
-
-def test_had_member_member_that_is_not_a_string_warns() -> None:
-    document, messages = _read_warning(
-        _json({"hadMember": {"ex:m": {"prov:collection": "ex:c", "prov:entity": [5]}}})
-    )
-    assert messages == [
-        rejected(
-            "record 'ex:m', attribute 'prov:entity': the value is 5, not a qualified"
-            " name, and is dropped",
-            597,
-        )
-    ]
-    assert [r.get_attribute("prov:entity") for r in document.get_records()] == [set()]
-
-
-@pytest.mark.parametrize(
-    ("value", "details", "same_as"),
-    [
-        pytest.param(
-            {"$": "1", "datatype": "xsd:int"},
-            [("the value object has the unknown key 'datatype'", 529)],
-            "1",
-            id="unknown-key",
-        ),
-        pytest.param(
-            {"$": "1", "b": "x", "a": "x"},
-            [
-                ("the value object has the unknown key 'a'", 529),
-                ("the value object has the unknown key 'b'", 529),
-            ],
-            "1",
-            id="unknown-keys",
-        ),
-        pytest.param(
-            {"$": 1},
-            [('the value object\'s "$" is 1, not a string', 529)],
-            "1",
-            id="number",
-        ),
-        pytest.param(
-            {"$": 1, "type": "xsd:double"},
-            [('the value object\'s "$" is 1, not a string', 529)],
-            {"$": "1", "type": "xsd:double"},
-            id="integer-typed-double",
-        ),
-        pytest.param(
-            {"$": 1.5, "type": "xsd:int"},
-            [('the value object\'s "$" is 1.5, not a string', 529)],
-            {"$": "1.5", "type": "xsd:int"},
-            id="float-typed-int",
-        ),
-        pytest.param(
-            {"$": True, "type": "xsd:int"},
-            [('the value object\'s "$" is true, not a string', 529)],
-            {"$": "True", "type": "xsd:int"},
-            id="boolean-typed-int",
-        ),
-        pytest.param(
-            {"$": 1, "type": "xsd:int", "lang": "en"},
-            [('the value object\'s "$" is 1, not a string', 529)],
-            {"$": "1", "type": "xsd:int", "lang": "en"},
-            id="typed-number-with-lang",
-        ),
-        pytest.param(
-            {"$": True},
-            [('the value object\'s "$" is true, not a string', 529)],
-            "True",
-            id="boolean",
-        ),
-        pytest.param(
-            {"$": None},
-            [('the value object\'s "$" is null, not a string', 529)],
-            "None",
-            id="null",
-        ),
-        pytest.param(
-            {"$": "1", "type": "foo:int"},
-            [("the datatype 'foo:int' does not resolve and is dropped", 552)],
-            "1",
-            id="undeclared-datatype",
-        ),
-        pytest.param(
-            {"$": "1", "type": "foo:int", "lang": "en"},
-            [("the datatype 'foo:int' does not resolve and is dropped", 552)],
-            {"$": "1", "lang": "en"},
-            id="undeclared-datatype-with-lang",
-        ),
-    ],
-)
-def test_value_object_that_3_3_0_rejects_warns(
-    value: dict[str, object], details: list[tuple[str, int]], same_as: object
-) -> None:
-    document, messages = _read_warning(_json({"entity": {"ex:e": {"ex:k": value}}}))
-    assert messages == [
-        rejected(f"record 'ex:e', attribute 'ex:k': {detail}", issue)
-        for detail, issue in details
-    ]
-    assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": same_as}}}))
 
 
 @pytest.mark.parametrize(
@@ -885,71 +825,34 @@ def test_value_object_that_3_3_0_rejects_warns(
         ),
     ],
 )
-def test_value_object_number_as_prov_2_wrote_it_reads_quietly(
+def test_value_object_number_as_prov_2_wrote_it_reads(
     value: dict[str, object], same_as: dict[str, str]
 ) -> None:
     # prov 2.x and earlier wrote an int as xsd:int and a float as xsd:double,
     # and prov 1.x on Python 2 wrote a long as xsd:long.
     text = _json({"entity": {"ex:e": {"ex:k": value}}})
     expected = _json({"entity": {"ex:e": {"ex:k": same_as}}})
-    assert _read_quietly(text) == _read_quietly(expected)
+    assert _read(text) == _read(expected)
 
 
-def test_formal_attribute_written_as_an_array_of_several_values_raises() -> None:
-    text = _json(
-        {
-            "wasGeneratedBy": {
-                "ex:g": {"prov:entity": "ex:e", "prov:activity": ["ex:a", "ex:b"]}
-            }
-        }
-    )
+def test_value_object_number_parsed_as_a_decimal_is_rejected() -> None:
     expected = (
-        "record 'ex:g', attribute 'prov:activity': the value is an array of 2 values, "
-        "but the attribute takes one"
+        "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string"
     )
     with pytest.raises(ProvJSONException, match=re.escape(expected)):
-        ProvDocument.deserialize(content=text, format="json")
-
-
-def test_value_object_number_parsed_as_a_decimal_warns() -> None:
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        document = prov.read(
-            io.StringIO(_json({"entity": {"ex:e": {"ex:k": {"$": 1.5}}}})),
-            format="json",
-            parse_float=decimal.Decimal,
+        _ = prov.read(
+            io.StringIO(_value({"$": 1.5})), format="json", parse_float=decimal.Decimal
         )
-    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
-    assert [str(w.message) for w in future] == [
-        rejected(
-            "record 'ex:e', attribute 'ex:k': the value object's \"$\" is 1.5, not a string",
-            529,
-        )
-    ]
-    assert [w.filename for w in future] == [__file__]
-    assert document == _read_quietly(
-        _json({"entity": {"ex:e": {"ex:k": {"$": "1.5"}}}})
-    )
 
 
-def test_value_object_keys_a_caller_hook_makes_non_strings_warn() -> None:
+def test_value_object_keys_a_caller_hook_makes_non_strings_are_rejected() -> None:
     def hook(pairs: list[tuple[str, Any]]) -> dict[Any, Any]:
         return {int(k) if k.isdigit() else k: v for k, v in pairs}
 
-    text = _json({"entity": {"ex:e": {"ex:k": {"$": "1", "2": "x", "a": "y"}}}})
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        document = prov.read(io.StringIO(text), format="json", object_pairs_hook=hook)
-    future = [w for w in caught if w.category is ProvFutureRejectionWarning]
-    assert [str(w.message) for w in future] == [
-        rejected(
-            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2",
-            529,
-        ),
-        rejected(
-            "record 'ex:e', attribute 'ex:k': the value object has the unknown key 'a'",
-            529,
-        ),
-    ]
-    assert document == _read_quietly(_json({"entity": {"ex:e": {"ex:k": "1"}}}))
+    text = _value({"$": "1", "2": "x", "a": "y"})
+    expected = "record 'ex:e', attribute 'ex:k': the value object has the unknown key 2"
+    with pytest.raises(ProvJSONException, match=re.escape(expected)):
+        _ = prov.read(io.StringIO(text), format="json", object_pairs_hook=hook)
 
 
 @pytest.mark.parametrize(
@@ -964,13 +867,12 @@ def test_value_object_keys_a_caller_hook_makes_non_strings_warn() -> None:
         pytest.param(["1", {"$": "2", "type": "xsd:int"}], id="array"),
     ],
 )
-def test_well_formed_attribute_value_does_not_warn(value: object) -> None:
-    _read_quietly(_json({"entity": {"ex:e": {"ex:k": value}}}))
+def test_well_formed_attribute_value_reads(value: object) -> None:
+    _read(_json({"entity": {"ex:e": {"ex:k": value}}}))
 
 
-def test_value_object_warning_without_a_position() -> None:
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        decode_json_representation({"$": "1", "x": "y"}, ProvDocument())
-    assert [str(w.message) for w in caught] == [
-        rejected("the value object has the unknown key 'x'", 529)
-    ]
+def test_value_object_error_without_a_position() -> None:
+    with pytest.raises(
+        ProvJSONException, match=r"^the value object has the unknown key 'x'$"
+    ):
+        _ = decode_json_representation({"$": "1", "x": "y"}, ProvDocument())

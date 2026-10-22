@@ -385,6 +385,35 @@ def test_deserialize_malformed(payload, match) -> None:
         ProvDocument.deserialize(content=json.dumps(payload), format="jsonld")
 
 
+def test_deserialize_repeated_key_raises() -> None:
+    # #532: Python's JSON parser keeps the last value and reports no position.
+    text = (
+        '{"@context": [{"ex": "http://example.org/"}],'
+        ' "@graph": [{"@type": "Entity", "@id": "ex:e", "@id": "ex:f"}]}'
+    )
+    with pytest.raises(
+        ProvJSONLDException, match=r"^the key '@id' is repeated in a JSON object$"
+    ):
+        _ = ProvDocument.deserialize(content=text, format="jsonld")
+
+
+def test_deserialize_caller_object_pairs_hook_still_sees_every_pair() -> None:
+    seen: list[list[tuple[str, Any]]] = []
+
+    def object_pairs_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        seen.append(pairs)
+        return dict(pairs)
+
+    text = json.dumps(
+        {
+            "@context": [{"ex": EX_URI}],
+            "@graph": [{"@type": "Entity", "@id": "ex:e"}],
+        }
+    )
+    _ = prov.read(text, format="jsonld", object_pairs_hook=object_pairs_hook)
+    assert [("@type", "Entity"), ("@id", "ex:e")] in seen
+
+
 def _membership_payload(entities) -> str:
     return json.dumps(
         {

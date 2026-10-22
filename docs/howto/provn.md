@@ -92,8 +92,9 @@ except ProvNSyntaxError as error:
     # 2 10 cannot resolve 'ex:e1': prefix 'ex' is not declared
 ```
 
-With {py:func}`prov.read` and no `format`, a PROV-N error is swallowed like any other
-candidate format's error; pass `format="provn"` to see it.
+With {py:func}`prov.read` and no `format`, a document that starts with `document` and
+that the PROV-N reader rejects raises `TypeError` with the `ProvNSyntaxError` as its
+`__cause__`; pass `format="provn"` to get the error on its own.
 
 ## Write strictly conformant output
 

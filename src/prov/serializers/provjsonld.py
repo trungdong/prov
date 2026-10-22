@@ -48,7 +48,11 @@ from prov.model.records import (
     _xsd_double_text,
 )
 from prov.serializers import Serializer, _is_text_stream
-from prov.serializers._json_common import _add_memberships, _JSONPrefixMap
+from prov.serializers._json_common import (
+    _add_memberships,
+    _JSONPrefixMap,
+    _repeated_key_hook,
+)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -749,7 +753,10 @@ class ProvJSONLDSerializer(Serializer):
             "parse_constant",
         }
     )
-    """The :func:`json.load` options :meth:`deserialize` forwards."""
+    """The :func:`json.load` options :meth:`deserialize` forwards.
+
+    ``object_hook`` and ``object_pairs_hook`` receive each object after the
+    check for repeated keys."""
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_.
@@ -803,12 +810,18 @@ class ProvJSONLDSerializer(Serializer):
             The deserialized :class:`~prov.model.ProvDocument`.
 
         Raises:
-            ProvJSONLDException: If ``stream`` does not hold a well-formed
-                PROV-JSONLD document (see :func:`decode_jsonld_document`).
+            ProvJSONLDException: If a key is repeated in a JSON object (#532),
+                or if ``stream`` does not hold a well-formed PROV-JSONLD
+                document (see :func:`decode_jsonld_document`).
         """
         if not _is_text_stream(stream):
             stream = io.StringIO(stream.read().decode("utf-8"))
-        container = json.load(stream, **args)
+        hook = _repeated_key_hook(
+            ProvJSONLDException,
+            args.pop("object_hook", None),
+            args.pop("object_pairs_hook", None),
+        )
+        container = json.load(stream, object_pairs_hook=hook, **args)
         document = ProvDocument()
         decode_jsonld_document(container, document)
         return document

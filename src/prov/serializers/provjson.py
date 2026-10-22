@@ -3,7 +3,7 @@
 import datetime
 import io
 import json
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
@@ -33,7 +33,7 @@ from prov.serializers._json_common import (
     _JSONPrefixMap,
     _Kind,
     _position,
-    _warn_rejection,
+    _repeated_key_hook,
 )
 
 __author__ = "Trung Dong Huynh"
@@ -119,9 +119,6 @@ class ProvJSONSerializer(Serializer):
         """Deserialize a `PROV-JSON <https://openprovenance.org/prov-json/>`_
         stream into a :class:`~prov.model.ProvDocument`.
 
-        A key repeated in a JSON object warns with
-        :class:`~prov.model.ProvFutureRejectionWarning`; the last value is used.
-
         Args:
             stream: Input data; binary streams are decoded as UTF-8 first.
             **args: Extra keyword arguments passed through to
@@ -129,44 +126,23 @@ class ProvJSONSerializer(Serializer):
 
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
+
+        Raises:
+            ProvJSONException: If a key is repeated in a JSON object (#532), or
+                if the document holds a construct the reader rejects; see
+                :func:`decode_json_container`.
         """
         if not _is_text_stream(stream):
-            buf = io.StringIO(stream.read().decode("utf-8"))
-            stream = buf
-        repeated: list[str] = []
+            stream = io.StringIO(stream.read().decode("utf-8"))
         hook = _repeated_key_hook(
-            repeated, args.pop("object_hook", None), args.pop("object_pairs_hook", None)
+            ProvJSONException,
+            args.pop("object_hook", None),
+            args.pop("object_pairs_hook", None),
         )
         container = json.load(stream, object_pairs_hook=hook, **args)
-        for key in repeated:
-            _warn_rejection(
-                f"the key {key!r} is repeated in a JSON object; the last value is used",
-                issue=532,
-            )
-        # Decoded here, not in json.load(), so that a warning names the caller's line.
         document = ProvDocument()
         decode_json_document(container, document)
         return document
-
-
-def _repeated_key_hook(
-    repeated: list[str],
-    object_hook: Callable[[dict[str, Any]], Any] | None,
-    object_pairs_hook: Callable[[list[tuple[str, Any]]], Any] | None,
-) -> Callable[[list[tuple[str, Any]]], Any]:
-    """Return a ``json`` ``object_pairs_hook`` that records each repeated key
-    in ``repeated`` and then hands the object to the caller's own hook."""
-
-    def hook(pairs: list[tuple[str, Any]]) -> Any:
-        obj = dict(pairs)
-        if len(obj) < len(pairs):
-            counts = Counter(key for key, _ in pairs)
-            repeated.extend(key for key, count in counts.items() if count > 1)
-        if object_pairs_hook is not None:
-            return object_pairs_hook(pairs)
-        return object_hook(obj) if object_hook is not None else obj
-
-    return hook
 
 
 class ProvJSONEncoder(json.JSONEncoder):
@@ -192,7 +168,7 @@ class ProvJSONEncoder(json.JSONEncoder):
 class ProvJSONDecoder(json.JSONDecoder):
     """``json.JSONDecoder`` that decodes PROV-JSON into a :class:`~prov.model.ProvDocument`.
 
-    Used directly with :func:`json.loads`, it does not warn about repeated keys;
+    Used directly with :func:`json.loads`, it does not check for repeated keys;
     :meth:`ProvJSONSerializer.deserialize` does.
     """
 
@@ -217,26 +193,6 @@ class ProvJSONDecoder(json.JSONDecoder):
 
 
 # Encoding/decoding functions
-def valid_qualified_name(
-    bundle: ProvBundle, value: QualifiedNameCandidate | None
-) -> QualifiedName | None:
-    """Resolve a candidate value to a :class:`~prov.identifier.QualifiedName` in a bundle.
-
-    Args:
-        bundle: Bundle whose namespaces are used to resolve ``value``.
-        value: Candidate qualified name (string, :class:`QualifiedName`, or
-            other supported representation), or ``None``.
-
-    Returns:
-        The resolved :class:`~prov.identifier.QualifiedName`, or ``None`` if
-        ``value`` is ``None`` or cannot be resolved.
-    """
-    if value is None:
-        return None
-    qualified_name = bundle.valid_qualified_name(value)
-    return qualified_name
-
-
 def encode_json_document(document: ProvDocument) -> ProvJSONDict:
     """Encode a whole :class:`~prov.model.ProvDocument`, including its named bundles.
 
@@ -443,18 +399,10 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
         ProvJSONException: If ``jc`` is not a JSON object; if its
             ``"prefix"`` value (when present) is not a JSON object; if a key
             other than ``"prefix"`` is not a recognised PROV-N record-type
-            keyword; if a record key does not resolve by its prefix in scope
-            (a blank node ``_:…`` is not checked); if a record-type's value
-            is not a JSON object mapping record identifiers to content; if a
-            record's content is not a JSON object or a list of JSON objects;
-            if a non-formal attribute's typed-literal representation is
-            missing its required ``"$"`` key (see
-            :func:`decode_json_representation`); if a formal (QualifiedName-
-            or literal-valued) attribute has more than one value, other than
-            the members of ``hadMember``; if a formal attribute is written as
-            an empty JSON array; or if a time attribute's value is neither a
-            string nor an ``xsd:dateTime`` value object with a well-formed
-            ``"$"``.
+            keyword; if a record's content is not a JSON object or a list of
+            JSON objects; or for any record key, attribute name or value the
+            reader rejects. The how-to (``docs/howto/prepare-for-3-3.md``)
+            lists the errors 3.3.0 adds, with their messages.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -545,18 +493,14 @@ def _decode_record_instance(
             record per member, to.
 
     Raises:
-        ProvJSONException: If an attribute name, a formal attribute value or
-            a member does not resolve by its prefix in scope; if a non-formal
-            attribute's typed-literal representation is missing its required
-            ``"$"`` key; if a formal attribute has more than one value, other
-            than the members of ``hadMember``; if a formal attribute is
-            written as an empty JSON array; or if a time attribute's value is
-            neither a string nor an ``xsd:dateTime`` value object with a
-            well-formed ``"$"``.
+        ProvJSONException: For an attribute name, a formal attribute value, a
+            member or an attribute value the reader rejects; the how-to
+            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds,
+            with their messages.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
-    members: list[QualifiedName | None] | None = None
+    members: list[QualifiedName] | None = None
     is_membership = rec_type == PROV_MEMBERSHIP
     for attr_name, values in element.items():
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
@@ -572,18 +516,10 @@ def _decode_record_instance(
                     rec_id, attr_name, attr, values, bundle
                 )
         else:
-            for value in values if isinstance(values, list) else [values]:
-                if value is None:
-                    # The model drops a None value.
-                    _warn_rejection(
-                        "the value is null and is dropped",
-                        rec_id,
-                        attr_name,
-                        issue=528,
-                    )
-                other_attributes.append(
-                    (attr, decode_json_representation(value, bundle, attr_name, rec_id))
-                )
+            other_attributes.extend(
+                (attr, decode_json_representation(value, bundle, attr_name, rec_id))
+                for value in (values if isinstance(values, list) else [values])
+            )
     if members is None:
         bundle.new_record(rec_type, rec_id, attributes, other_attributes)
     else:
@@ -592,7 +528,7 @@ def _decode_record_instance(
 
 def _decode_members(
     rec_id: str, attr_name: str, values: Any, bundle: ProvBundle
-) -> list[QualifiedName | None]:
+) -> list[QualifiedName]:
     """Decode the ``prov:entity`` of a ``hadMember``, a single value or an array.
 
     Args:
@@ -602,12 +538,12 @@ def _decode_members(
         bundle: Bundle used to resolve the members' qualified names.
 
     Returns:
-        The resolved members, in the order written. A null or non-string
-        member is ``None``, with a warning.
+        The resolved members, in the order written.
 
     Raises:
-        ProvJSONException: If ``values`` is an empty JSON array; or if a
-            string member does not resolve by its prefix in scope.
+        ProvJSONException: If ``values`` is an empty JSON array, or if a
+            member is null, is not a string, or does not resolve by its prefix
+            in scope.
     """
     if not isinstance(values, list):
         return [_decode_name(bundle, values, rec_id, attr_name)]
@@ -622,9 +558,9 @@ def _decode_formal_attribute(
     rec_id: str,
     attr_name: str,
     attr: QualifiedName,
-    values: Any,
+    value: Any,
     bundle: ProvBundle,
-) -> Any:
+) -> QualifiedName | datetime.datetime:
     """Decode the value of a formal (:data:`~prov.constants.PROV_ATTRIBUTES`) attribute.
 
     The members of ``hadMember`` go to :func:`_decode_members` instead.
@@ -633,37 +569,22 @@ def _decode_formal_attribute(
         rec_id: The enclosing record's identifier string, for messages.
         attr_name: The attribute's PROV-JSON key, for messages.
         attr: The formal attribute being decoded.
-        values: The raw value read from the PROV-JSON element, either a
-            single value or a JSON array.
-        bundle: Bundle used to resolve any QualifiedName value.
+        value: The raw value read from the PROV-JSON element.
+        bundle: Bundle used to resolve a qualified-name value.
 
     Returns:
         The decoded attribute value.
 
     Raises:
-        ProvJSONException: If ``values`` is an empty JSON array or a JSON
-            array with more than one value; if a value does not resolve by
-            its prefix in scope; or if a time attribute's value is neither a
-            string nor an ``xsd:dateTime`` value object with a well-formed
-            ``"$"``.
+        ProvJSONException: If ``value`` is a JSON array (#531); if a
+            qualified-name attribute's value is null, is not a string, or
+            does not resolve by its prefix in scope; or if a time attribute's
+            value is not an ``xsd:dateTime`` (see :func:`_decode_time`).
     """
-    if isinstance(values, list):
-        if not values:
-            raise ProvJSONException(
-                f"{_position(rec_id, attr_name)}the value is an empty array"
-            )
-        # only one value is allowed
-        if len(values) > 1:
-            raise ProvJSONException(
-                f"{_position(rec_id, attr_name)}the value is an array of "
-                f"{len(values)} values, but the attribute takes one"
-            )
-        _warn_rejection(
-            "the value is written as an array", rec_id, attr_name, issue=531
+    if isinstance(value, list):
+        raise ProvJSONException(
+            f"{_position(rec_id, attr_name)}the value is written as an array"
         )
-        value = values[0]
-    else:
-        value = values
     if attr in PROV_ATTRIBUTE_QNAMES:
         return _decode_name(bundle, value, rec_id, attr_name)
     return _decode_time(rec_id, attr_name, value, bundle)
@@ -671,25 +592,22 @@ def _decode_formal_attribute(
 
 def _decode_name(
     bundle: ProvBundle, value: Any, rec_id: str, attr_name: str
-) -> QualifiedName | None:
+) -> QualifiedName:
     """Resolve the qualified name a formal attribute or a member refers to.
 
-    A value that is not a string, and a null, are dropped with a warning. A
-    string that does not resolve by its prefix in scope is rejected.
+    Raises:
+        ProvJSONException: If ``value`` is null (#528), is not a string
+            (#597), or does not resolve by its prefix in scope.
     """
-    _check_name(bundle, value, rec_id, attr_name)
     if value is None:
-        _warn_rejection(
-            "the value is null and is dropped", rec_id, attr_name, issue=528
+        raise ProvJSONException(f"{_position(rec_id, attr_name)}the value is null")
+    if not isinstance(value, str):
+        raise ProvJSONException(
+            f"{_position(rec_id, attr_name)}the value is {_json_text(value)}, "
+            "not a qualified name"
         )
-    elif not isinstance(value, str):
-        _warn_rejection(
-            f"the value is {_json_text(value)}, not a qualified name, and is dropped",
-            rec_id,
-            attr_name,
-            issue=597,
-        )
-    return valid_qualified_name(bundle, value)
+    _check_name(bundle, value, rec_id, attr_name)
+    return bundle.mandatory_valid_qname(value)
 
 
 def _check_name(
@@ -712,41 +630,33 @@ def _check_name(
 
 def _decode_time(
     rec_id: str, attr_name: str, value: Any, bundle: ProvBundle
-) -> datetime.datetime | None:
+) -> datetime.datetime:
     """Decode the value of ``prov:time``, ``prov:startTime`` or ``prov:endTime``.
 
     Args:
         rec_id: The enclosing record's identifier string, for messages.
         attr_name: The attribute's PROV-JSON key, for messages.
-        value: A string, or a value object typed ``xsd:dateTime``.
+        value: An ``xsd:dateTime`` string, or a value object typed
+            ``xsd:dateTime`` whose ``"$"`` is one.
         bundle: Bundle used to resolve the value object's ``"type"``.
 
     Returns:
-        The parsed :class:`~datetime.datetime`, or ``None`` for a string
-        that is not an ``xsd:dateTime``, which is dropped with a warning.
+        The parsed :class:`~datetime.datetime`.
 
     Raises:
-        ProvJSONException: If ``value`` is neither a string nor a value
-            object typed ``xsd:dateTime`` whose ``"$"`` is one.
+        ProvJSONException: If ``value`` is null (#528); if it is a value
+            object the reader rejects (see :func:`_check_value_object`); or if
+            it is neither an ``xsd:dateTime`` string nor a value object typed
+            ``xsd:dateTime`` with no ``"lang"`` whose ``"$"`` is one (#555).
     """
-    if isinstance(value, str):
-        parsed = parse_xsd_datetime(value)
-        if parsed is None:
-            _warn_rejection(
-                f"{value!r} is not an xsd:dateTime and is dropped",
-                rec_id,
-                attr_name,
-                issue=555,
-            )
-        return parsed
-    if (
-        isinstance(value, dict)
-        and value.keys() == {"$", "type"}
-        and isinstance(value["$"], str)
-        and isinstance(value["type"], str)
-        and valid_qualified_name(bundle, value["type"]) == XSD_DATETIME
-        and (parsed := parse_xsd_datetime(value["$"])) is not None
-    ):
+    if value is None:
+        raise ProvJSONException(f"{_position(rec_id, attr_name)}the value is null")
+    text = value
+    if isinstance(value, dict):
+        text, datatype = _check_value_object(value, bundle, attr_name, rec_id)
+        if datatype != XSD_DATETIME or "lang" in value:
+            text = None
+    if isinstance(text, str) and (parsed := parse_xsd_datetime(text)) is not None:
         return parsed
     raise ProvJSONException(
         f"{_position(rec_id, attr_name)}expected an xsd:dateTime, found {value!r}"
@@ -809,12 +719,12 @@ def _check_value_object(
 ) -> tuple[Any, QualifiedName | None]:
     """Check a PROV-JSON value object and return its ``"$"`` and datatype.
 
-    A key other than ``"$"``, ``"type"`` and ``"lang"``, a ``"$"`` that is
-    not a string, or a ``"type"`` that does not resolve warns with
-    :class:`~prov.model.ProvFutureRejectionWarning`. A number typed as
-    ``prov`` 2.x and earlier wrote it, an integer as ``xsd:int`` or
-    ``xsd:long`` or a float as ``xsd:double``, with no ``"lang"``, does not
-    warn.
+    The checks run in this order: a key other than ``"$"``, ``"type"`` and
+    ``"lang"`` (#529); a ``"type"`` that is not a string or does not resolve
+    by its prefix in scope (#552); a ``"$"`` that is not a string (#529). A
+    number typed as ``prov`` 2.x and earlier wrote it, an integer as
+    ``xsd:int`` or ``xsd:long`` or a float as ``xsd:double``, with no
+    ``"lang"``, is accepted.
 
     Args:
         literal: The value object.
@@ -824,11 +734,11 @@ def _check_value_object(
         rec_id: The identifier of the record, for messages, or ``None``.
 
     Returns:
-        The ``"$"`` value and the resolved datatype, which is ``None`` when
-        there is no ``"type"`` or it does not resolve.
+        The ``"$"`` value and the resolved datatype, ``None`` when there is
+        no ``"type"``.
 
     Raises:
-        ProvJSONException: If ``literal`` has no ``"$"`` key.
+        ProvJSONException: As above, or if ``literal`` has no ``"$"`` key.
     """
     try:
         value = literal["$"]
@@ -838,32 +748,28 @@ def _check_value_object(
             f"The typed-literal representation for {where} is missing "
             f'its required "$" (value) key; found {literal!r}'
         ) from exc
-    if not literal.keys() <= _VALUE_OBJECT_KEYS:
-        for key in sorted(literal.keys() - _VALUE_OBJECT_KEYS, key=str):
-            _warn_rejection(
-                f"the value object has the unknown key {key!r}",
-                rec_id,
-                attr_name,
-                issue=529,
+    position = _position(rec_id, attr_name)
+    unknown = sorted(literal.keys() - _VALUE_OBJECT_KEYS, key=str)
+    if unknown:
+        raise ProvJSONException(
+            f"{position}the value object has the unknown key {unknown[0]!r}"
+        )
+    datatype = None
+    if "type" in literal:
+        datatype_str = literal["type"]
+        if not isinstance(datatype_str, str):
+            raise ProvJSONException(
+                f'{position}the value object\'s "type" is '
+                f"{_json_text(datatype_str)}, not a string"
             )
-    datatype_str: str | None = literal.get("type")
-    datatype = valid_qualified_name(bundle, datatype_str)
+        _check_name(bundle, datatype_str, rec_id, attr_name)
+        datatype = bundle.mandatory_valid_qname(datatype_str)
     legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
     if not isinstance(value, str) and (
         datatype not in legacy_types or "lang" in literal
     ):
-        _warn_rejection(
-            f'the value object\'s "$" is {_json_text(value)}, not a string',
-            rec_id,
-            attr_name,
-            issue=529,
-        )
-    if datatype_str is not None and datatype is None:
-        _warn_rejection(
-            f"the datatype {datatype_str!r} does not resolve and is dropped",
-            rec_id,
-            attr_name,
-            issue=552,
+        raise ProvJSONException(
+            f'{position}the value object\'s "$" is {_json_text(value)}, not a string'
         )
     return value, datatype
 
@@ -876,22 +782,16 @@ def decode_json_representation(
 ) -> Any:
     """Decode a single non-formal attribute value from its PROV-JSON representation.
 
-    A value object is checked by :func:`_check_value_object`, which warns
-    with :class:`~prov.model.ProvFutureRejectionWarning` about a key other
-    than ``"$"``, ``"type"`` and ``"lang"``, a ``"$"`` that is not a string
-    and a ``"type"`` that does not resolve. A qualified-name value that does
-    not resolve by its prefix in scope is rejected.
-
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
             complex/typed representation) or a plain JSON-native value.
-        bundle: Bundle used to resolve any ``"type"``/value that is a
+        bundle: Bundle used to resolve a ``"type"`` or a value that is a
             qualified name.
         attr_name: The PROV-JSON attribute key ``literal`` was read from, if
             known. Used only to name the attribute in messages; omit for a
             generic message.
         rec_id: The identifier of the record ``literal`` was read from, if
-            known. Used only to name the record in warning messages.
+            known. Used only to name the record in messages.
 
     Returns:
         A :class:`~prov.model.Literal` for a value object (the model resolves
@@ -901,21 +801,24 @@ def decode_json_representation(
         added to a record).
 
     Raises:
-        ProvJSONException: If ``literal`` is a dict (the complex/typed
-            representation) missing its required ``"$"`` (value) key, or if a
-            qualified-name value does not resolve by its prefix in scope.
+        ProvJSONException: If ``literal`` is null (#528); if it is a value
+            object the reader rejects (see :func:`_check_value_object`); or
+            if it is a qualified-name value that does not resolve by its
+            prefix in scope.
     """
+    if literal is None:
+        raise ProvJSONException(f"{_position(rec_id, attr_name)}the value is null")
     if not isinstance(literal, dict):
         # simple type, just return it
         return literal
     value, datatype = _check_value_object(literal, bundle, attr_name, rec_id)
-    langtag = literal.get("lang", None)
+    langtag = literal.get("lang")
     if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME) and langtag is None:
         # #168: xsd:QName is the submission's type for QualifiedName
         # values; prov:QUALIFIED_NAME is accepted for documents produced
         # by 2.x. The model stores the Literal as the QualifiedName; one
-        # that does not resolve is rejected here, with its position. A "$"
-        # that is not a string was already reported.
+        # that does not resolve is rejected here, with its position. The
+        # "$" is a string, checked above.
         _check_name(bundle, value, rec_id, attr_name)
     # The literal of standard Python types is not converted here. It is
     # converted when added to a record by _auto_literal_conversion().

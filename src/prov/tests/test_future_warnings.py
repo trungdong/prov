@@ -1,6 +1,5 @@
 """The 3.3.0 warning class and its message helper."""
 
-import json
 import warnings
 
 import pytest
@@ -40,21 +39,6 @@ def test_future_rejection_message_ends_with_the_issue_number() -> None:
     message = future_rejection_message("probe", "keep it", issue=529)
     assert message.endswith(" (#529)")
     assert message.count("(#") == 1
-
-
-def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
-    document = {
-        "prefix": {"ex": "http://example.org/"},
-        "wasGeneratedBy": {"ex:g": {"ex:nothing": None, "prov:entity": ["ex:e1"]}},
-    }
-    content = json.dumps(document)
-    with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
-        warnings.filterwarnings(
-            "ignore", message=r"(?s).*\(#528\)$", category=ProvFutureRejectionWarning
-        )
-        with pytest.raises(ProvFutureRejectionWarning, match=r"\(#531\)$"):
-            ProvDocument.deserialize(content=content, format="json")
 
 
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"

@@ -3,16 +3,18 @@
 :mod:`prov.serializers.provjson` and :mod:`prov.serializers.provjsonld` both
 write qualified names against a container's prefix map and fan a membership
 out into one ``hadMember`` record per member. Those pieces live here so that
-neither module imports the other's private names. The position and rejection
-helpers that PROV-JSON's messages use live here too (#589).
+neither module imports the other's private names. The position helpers that
+PROV-JSON's messages use, and the ``object_pairs_hook`` both readers give
+:func:`json.load`, live here too (#589, #532).
 """
 
 import json
 import typing
-from collections.abc import Sequence
+from collections import Counter
+from collections.abc import Callable, Sequence
 from typing import Any
 
-from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
+from prov import Error
 from prov.constants import PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.identifier import Namespace, QualifiedName
 from prov.model import AttributePair, OptionalID, ProvBundle, QualifiedNameCandidate
@@ -43,21 +45,26 @@ def _json_text(value: Any) -> str:
         return str(value)
 
 
-def _warn_rejection(
-    detail: str,
-    rec_id: str | None = None,
-    attr_name: str | None = None,
-    *,
-    issue: int,
-    kind: _Kind = "record",
-) -> None:
-    """Warn that 3.3.0 rejects the value ``detail`` describes."""
-    warn(
-        future_rejection_message(
-            _position(rec_id, attr_name, kind) + detail, issue=issue
-        ),
-        ProvFutureRejectionWarning,
-    )
+def _repeated_key_hook(
+    error: type[Error],
+    object_hook: Callable[[dict[str, Any]], Any] | None,
+    object_pairs_hook: Callable[[list[tuple[str, Any]]], Any] | None,
+) -> Callable[[list[tuple[str, Any]]], Any]:
+    """Return a ``json`` ``object_pairs_hook`` that raises ``error`` naming
+    the first key repeated in a JSON object (#532), and otherwise hands the
+    object to the caller's own hook."""
+
+    def hook(pairs: list[tuple[str, Any]]) -> Any:
+        obj = dict(pairs)
+        if len(obj) < len(pairs):
+            counts = Counter(key for key, _ in pairs)
+            key = next(key for key, count in counts.items() if count > 1)
+            raise error(f"the key {key!r} is repeated in a JSON object")
+        if object_pairs_hook is not None:
+            return object_pairs_hook(pairs)
+        return object_hook(obj) if object_hook is not None else obj
+
+    return hook
 
 
 class _JSONPrefixMap:
@@ -170,7 +177,7 @@ def _add_memberships(
     identifier: OptionalID,
     attributes: dict[QualifiedNameCandidate, Any],
     other_attributes: list[AttributePair],
-    members: Sequence[QualifiedName | None],
+    members: Sequence[QualifiedName],
 ) -> None:
     """Add one ``hadMember`` record per member to ``bundle``.
 
