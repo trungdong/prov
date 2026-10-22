@@ -15,7 +15,6 @@ from collections.abc import Callable, Sequence
 from typing import Any
 
 from prov import Error
-from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.identifier import Namespace, QualifiedName
 from prov.model import AttributePair, OptionalID, ProvBundle, QualifiedNameCandidate
@@ -66,23 +65,6 @@ def _repeated_key_hook(
         return object_hook(obj) if object_hook is not None else obj
 
     return hook
-
-
-def _warn_rejection(
-    detail: str,
-    rec_id: str | None = None,
-    attr_name: str | None = None,
-    *,
-    issue: int,
-    kind: _Kind = "record",
-) -> None:
-    """Warn that 3.3.0 rejects the value ``detail`` describes."""
-    warn(
-        future_rejection_message(
-            _position(rec_id, attr_name, kind) + detail, issue=issue
-        ),
-        ProvFutureRejectionWarning,
-    )
 
 
 class _JSONPrefixMap:
@@ -195,7 +177,7 @@ def _add_memberships(
     identifier: OptionalID,
     attributes: dict[QualifiedNameCandidate, Any],
     other_attributes: list[AttributePair],
-    members: Sequence[QualifiedName | None],
+    members: Sequence[QualifiedName],
 ) -> None:
     """Add one ``hadMember`` record per member to ``bundle``.
 
