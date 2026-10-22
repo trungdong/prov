@@ -4,14 +4,28 @@ Three sets: the examples of the PROV-N and PROV-DM Recommendations (strict
 grammar, and round-trip through our writer), ProvToolbox's own PROV-N test
 documents (default profile), and the PROV-N that ProvToolbox's writer
 produced from the shared test corpus, compared for equality with the
-PROV-JSON fixture of the same name (the interoperability claim)."""
+PROV-JSON fixture of the same name (the interoperability claim).
+
+Each set has a table of files it leaves out, with the reason per file, and
+one test that proves the exclusion still holds: an excluded example or
+document still fails to parse, and a listed corpus file still differs from
+its fixture. A file that starts to pass is removed from its table and from
+the README."""
+
+from __future__ import annotations
 
 import warnings
+from collections.abc import Collection
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from prov.model import ProvDocument, ProvWarning
+from prov.serializers.provn_lexer import ProvNSyntaxError
+
+if TYPE_CHECKING:
+    from _pytest.mark import ParameterSet
 
 CORPUS = Path(__file__).parent / "provn"
 JSON_FIXTURES = Path(__file__).parent / "json"
@@ -328,44 +342,71 @@ def _files(subdir: str) -> list[Path]:
     return sorted((CORPUS / subdir).glob("*.provn"))
 
 
-def _param(subdir: str, excluded: dict[str, str] | None = None):
-    params = []
-    for path in _files(subdir):
-        marks = []
-        if excluded and path.name in excluded:
-            marks.append(pytest.mark.xfail(strict=True, reason=excluded[path.name]))
-        params.append(pytest.param(path, id=path.name, marks=marks))
-    return params
+def _params(subdir: str, excluded: Collection[str]) -> list[ParameterSet]:
+    return [
+        pytest.param(path, id=path.name)
+        for path in _files(subdir)
+        if path.name not in excluded
+    ]
+
+
+def _read(path: Path, profile: str = "default") -> ProvDocument:
+    return ProvDocument.deserialize(str(path), format="provn", profile=profile)
+
+
+def _fixture(path: Path) -> ProvDocument:
+    return ProvDocument.deserialize(
+        str(JSON_FIXTURES / f"{path.stem}.json"), format="json"
+    )
+
+
+SPEC_EXAMPLES = {
+    path.name: path for path in _files("spec/prov-n") + _files("spec/prov-dm")
+}
 
 
 @pytest.mark.parametrize(
     "path",
-    _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
-    + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
+    _params("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
+    + _params("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
-def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
+def test_spec_examples_parse_strictly_and_round_trip(path: Path) -> None:
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
-        document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
+        document = _read(path, "strict")
         reloaded = ProvDocument.deserialize(
             content=document.get_provn(strict=True), format="provn", profile="strict"
         )
     assert reloaded == document
 
 
-@pytest.mark.parametrize("path", _param("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))
-def test_provtoolbox_documents_parse(path) -> None:
-    document = ProvDocument.deserialize(str(path), format="provn")
+def test_excluded_spec_examples_still_fail_to_parse() -> None:
+    for name in EXCLUDED_SPEC_EXAMPLES:
+        with pytest.raises(ProvNSyntaxError):
+            _ = _read(SPEC_EXAMPLES[name], "strict")
+
+
+@pytest.mark.parametrize("path", _params("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))
+def test_provtoolbox_documents_parse(path: Path) -> None:
+    document = _read(path)
     assert document.get_records() or document.has_bundles()
 
 
-@pytest.mark.parametrize("path", _param("provtoolbox-corpus", KNOWN_DIFFERENCES))
-def test_provtoolbox_corpus_equals_json_fixture(path) -> None:
-    expected = ProvDocument.deserialize(
-        str(JSON_FIXTURES / f"{path.stem}.json"), format="json"
-    )
-    document = ProvDocument.deserialize(str(path), format="provn")
-    assert document == expected
+def test_excluded_provtoolbox_documents_still_fail_to_parse() -> None:
+    for name in EXCLUDED_PROVTOOLBOX_DOCUMENTS:
+        with pytest.raises(ProvNSyntaxError):
+            _ = _read(CORPUS / "provtoolbox" / name)
+
+
+@pytest.mark.parametrize("path", _params("provtoolbox-corpus", KNOWN_DIFFERENCES))
+def test_provtoolbox_corpus_equals_json_fixture(path: Path) -> None:
+    assert _read(path) == _fixture(path)
+
+
+def test_known_differences_still_differ_from_the_json_fixture() -> None:
+    for name in KNOWN_DIFFERENCES:
+        path = CORPUS / "provtoolbox-corpus" / name
+        assert _read(path) != _fixture(path), name
 
 
 def test_every_json_fixture_has_a_counterpart_or_is_listed() -> None:
