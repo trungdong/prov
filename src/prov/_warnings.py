@@ -1,4 +1,4 @@
-"""``ProvWarning``, its 3.3.0 subclass and the helpers that emit them.
+"""``ProvWarning``, the 3.2.3 subclass kept for its filters, and the ``warn`` helper.
 
 All live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
 can emit them without importing :mod:`prov.model` and creating a cycle;
@@ -26,33 +26,13 @@ class ProvWarning(Warning):
 
 
 class ProvFutureRejectionWarning(ProvWarning):
-    r"""Input that ``prov`` 3.2.x reads but 3.3.0 rejects or reads differently.
+    """The warning ``prov`` 3.2.3 raised for input that 3.3.0 rejects or reads differently.
 
-    ``prov`` still reads the input as before. Turn this class into an error,
-    for example with ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
-    to find every such input without failing on any other :class:`ProvWarning`.
-    Each message ends with the issue that tracks its 3.3.0 rule, such as
-    ``(#529)``, so a ``message=`` filter can silence one issue. Write it as
-    ``r"(?s).*\(#529\)$"``, since ``(?s)`` lets the pattern match a message
-    that spans lines.
+    3.3.0 never raises it: each such input is an error where it is read, or is
+    read as the warning said. The class stays so that a filter written for
+    3.2.3, such as ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
+    keeps working. 4.0 removes it.
     """
-
-
-def future_rejection_message(
-    detail: str, outcome: str = "reject this", *, issue: int
-) -> str:
-    """Return ``detail`` followed by the clause every 3.3.0 warning ends with.
-
-    Args:
-        detail: What was found, starting with its position where the
-            format has one.
-        outcome: What 3.3.0 does instead, completing ``"prov 3.3.0 will"``.
-        issue: Number of the GitHub issue that tracks the 3.3.0 rule.
-
-    Returns:
-        For example ``"<detail>. prov 3.3.0 will reject this (#529)"``.
-    """
-    return f"{detail}. prov 3.3.0 will {outcome} (#{issue})"
 
 
 def external_stacklevel(skip: int = 1) -> int:

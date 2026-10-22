@@ -1,7 +1,6 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-from contextvars import ContextVar
 from typing import Any, Final
 
 __author__ = "Trung Dong Huynh"
@@ -91,11 +90,6 @@ _PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
     "[" + re.escape(_PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE) + "]"
 )
 
-# False while Namespace._adopt() copies a name that was checked when first built.
-_check_local_parts: ContextVar[bool] = ContextVar(
-    "prov_check_local_parts", default=True
-)
-
 
 def _reject_unwritable_local_part(localpart: str, uri: str, qname: str) -> None:
     """Raise for a local part PROV-N can write only by percent-encoding it.
@@ -104,11 +98,9 @@ def _reject_unwritable_local_part(localpart: str, uri: str, qname: str) -> None:
     holds one (#524); ``__init__`` and ``__setstate__`` both check.
     """
     # An ASCII identifier, the usual local part, needs no regex.
-    if (
-        not (localpart.isascii() and localpart.isidentifier())
-        and _check_local_parts.get()
-        and _PROVN_LOCAL_PERCENT_ENCODED.search(localpart)
-    ):
+    if not (
+        localpart.isascii() and localpart.isidentifier()
+    ) and _PROVN_LOCAL_PERCENT_ENCODED.search(localpart):
         # Imported here, as provn_bare_representation does: prov.model imports
         # this module.
         from prov.model.records import ProvExceptionInvalidQualifiedName
@@ -442,21 +434,6 @@ class Namespace:
         object.__setattr__(self, "_prefix", state["_prefix"])
         object.__setattr__(self, "_uri", state["_uri"])
         object.__setattr__(self, "_cache", {})
-
-    def _adopt(self, qname: QualifiedName) -> QualifiedName:
-        """Return ``qname``'s local part in this namespace, without a second check.
-
-        ``qname`` was checked when it was built, so the copy a bundle makes in
-        its own namespace does not repeat the warning.
-        """
-        localpart = qname.localpart
-        if localpart in self._cache:
-            return self._cache[localpart]
-        token = _check_local_parts.set(False)
-        try:
-            return self[localpart]
-        finally:
-            _check_local_parts.reset(token)
 
     def __getitem__(self, localpart: str) -> QualifiedName:
         if localpart in self._cache:

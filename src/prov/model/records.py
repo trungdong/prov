@@ -110,7 +110,6 @@ from prov.model._values import (
     _LANGTAG,
     XSD_DATETIME_PATTERN,
     _offset_beyond_xsd_bound,
-    _rebuild,
     no_prov_form_detail,
     python_value_form,
     time_offset_detail,
@@ -758,11 +757,8 @@ class ProvRecord:
 
     def copy(self) -> ProvRecord:
         """Return an exact copy of this record."""
-        return _rebuild(
-            PROV_REC_CLS[self.get_type()],
-            self._bundle,
-            self.identifier,
-            self.attributes,
+        return PROV_REC_CLS[self.get_type()](
+            self._bundle, self.identifier, self.attributes
         )
 
     def get_type(self) -> QualifiedName:

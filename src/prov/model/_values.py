@@ -18,8 +18,7 @@ import reprlib
 import sys
 import uuid
 from collections.abc import Callable
-from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from prov.constants import (
     XSD,
@@ -54,23 +53,6 @@ def _offset_beyond_xsd_bound(value: datetime.datetime) -> bool:
     """Whether ``value``'s timezone offset lies outside xsd:dateTime's ±14:00."""
     offset = value.utcoffset()
     return offset is not None and abs(offset) > _XSD_MAX_OFFSET
-
-
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-
-# True while a record is rebuilt from one already asserted, so the 3.3.0
-# warnings about its values fire once, when they are first asserted.
-_rebuilding: ContextVar[bool] = ContextVar("prov_rebuilding", default=False)
-
-
-def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
-    """Return ``make(*args, **kwargs)``, which rebuilds records already asserted."""
-    token = _rebuilding.set(True)
-    try:
-        return make(*args, **kwargs)
-    finally:
-        _rebuilding.reset(token)
 
 
 def _decimal_text(value: decimal.Decimal) -> str | None:
