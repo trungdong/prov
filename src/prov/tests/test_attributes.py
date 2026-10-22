@@ -1,21 +1,11 @@
-"""Pytest-native shared attribute round-trip tests.
+"""Shared attribute round-trip tests.
 
-Migrated from the ``TestAttributesBase`` mixin (``attributes.py``): the 28
-single-type-attribute cases collapse into one parametrized function (node ids
-``attr-0``..``attr-7``, ``attr-9``..``attr-27`` -- ``attr-8``, the
-``xsd:decimal`` case, is isolated below), plus the multi-attribute and
-multi-value-attribute cases. Each runs once per target in
-``SHARED_TARGETS``. The legacy mixin remains for the not-yet-migrated
-``test_dot.py``; both share ``ATTRIBUTE_VALUES``.
-
-The multi-attribute cases were RDF-xfailed for #218 (a superset of #77,
-decimal comparison, and #89, typed/untyped string): with both fixed, the
-``xsd:decimal`` value was the only one in ``ATTRIBUTE_VALUES`` that did not
-survive an RDF round trip, so these two reproductions now pass and run
-under the plain module-wide ``fmt`` fixture like everything else here. #218
-is now fixed in full: ``test_examples.py``'s ``datatypes`` example, which
-hit a distinct RDF multi-datatype fidelity loss (``xsd:double`` precision),
-now round-trips through RDF too.
+The ``ATTRIBUTE_VALUES`` corpus (``attribute_values.py``) runs once per target
+in ``SHARED_TARGETS``: each value alone on ``prov:type`` (node ids ``attr-N``,
+with the ``xsd:decimal`` case, index 8, as its own test), every value as a
+separate attribute of one entity, and every value on ``prov:value`` of one
+entity. The tests after the corpus cover values the corpus cannot hold, each
+saying why.
 """
 
 import datetime

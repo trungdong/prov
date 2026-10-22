@@ -109,7 +109,7 @@ def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     ``bundle.unified()`` raises ``ProvUnificationError`` because two relations
     share an identifier but disagree on a formal attribute (the "scruffy"
     pattern -- see
-    test_statements.py's RDF_SCRUFFY_SKIP cases for the same shape).
+    test_statements.py's test_scruffy_relation for the same shape).
 
     Previously exercised incidentally by the pre-migration dot suite
     rendering all 185 shared statement/attribute documents (one of which was
