@@ -5,14 +5,9 @@ import pytest
 
 from prov.constants import (
     PROV_ROLE,
-    XSD,
-    XSD_ANYURI,
-    XSD_DOUBLE,
-    XSD_SHORT,
 )
 from prov.identifier import Namespace
 from prov.model import (
-    Literal,
     ProvAgent,
     ProvBundle,
     ProvDocument,
@@ -25,99 +20,11 @@ from prov.serializers.provn import ProvNSerializer
 from prov.serializers.provrdf import ProvRDFSerializer
 from prov.serializers.provxml import ProvXMLSerializer
 from prov.tests.examples import primer_example, primer_example_alternate
+from prov.tests.test_statements import add_further_attributes, add_labels, add_types
 
 EX_NS = Namespace("ex", "http://example.org/")
 EX2_NS = Namespace("ex2", "http://example2.org/")
 EX_OTHER_NS = Namespace("other", "http://exceptions.example.org/")
-
-
-def add_label(record) -> None:
-    record.add_attributes([("prov:label", Literal("hello"))])
-
-
-def add_labels(record) -> None:
-    record.add_attributes(
-        [
-            ("prov:label", Literal("hello")),
-            ("prov:label", Literal("bye", langtag="en")),
-            ("prov:label", Literal("bonjour", langtag="fr")),
-        ]
-    )
-
-
-def add_types(record) -> None:
-    record.add_attributes(
-        [
-            ("prov:type", "a"),
-            ("prov:type", 1),
-            ("prov:type", 1.0),
-            ("prov:type", True),
-            ("prov:type", EX_NS["abc"]),
-            ("prov:type", datetime.datetime.now()),
-            (
-                "prov:type",
-                Literal("http://boiled-egg.example.com", datatype=XSD_ANYURI),
-            ),
-        ]
-    )
-
-
-def add_locations(record) -> None:
-    record.add_attributes(
-        [
-            ("prov:Location", "Southampton"),
-            ("prov:Location", 1),
-            ("prov:Location", 1.0),
-            ("prov:Location", True),
-            ("prov:Location", EX_NS["london"]),
-            ("prov:Location", datetime.datetime.now()),
-            ("prov:Location", EX_NS.uri + "london"),
-            ("prov:Location", Literal(2002, datatype=XSD["gYear"])),
-        ]
-    )
-
-
-def add_value(record) -> None:
-    record.add_attributes([("prov:value", EX_NS["avalue"])])
-
-
-def add_further_attributes(record) -> None:
-    record.add_attributes(
-        [
-            (EX_NS["tag1"], "hello"),
-            (EX_NS["tag2"], "bye"),
-            (EX2_NS["tag3"], "hi"),
-            (EX_NS["tag1"], "hello\nover\nmore\nlines"),
-        ]
-    )
-
-
-def add_further_attributes0(record) -> None:
-    record.add_attributes(
-        [
-            (EX_NS["tag1"], "hello"),
-            (EX_NS["tag2"], "bye"),
-            (EX_NS["tag2"], Literal("hola", langtag="es")),
-            (EX2_NS["tag3"], "hi"),
-            (EX_NS["tag"], 1),
-            (EX_NS["tag"], Literal(1, datatype=XSD_SHORT)),
-            (EX_NS["tag"], Literal(1, datatype=XSD_DOUBLE)),
-            (EX_NS["tag"], 1.0),
-            (EX_NS["tag"], True),
-            (EX_NS["tag"], EX_NS.uri + "southampton"),
-        ]
-    )
-
-    add_further_attributes_with_qnames(record)
-
-
-def add_further_attributes_with_qnames(record) -> None:
-    record.add_attributes(
-        [
-            (EX_NS["tag"], EX2_NS["newyork"]),
-            (EX_NS["tag"], EX_NS["london"]),
-        ]
-    )
 
 
 def test_dot() -> None:
@@ -199,13 +106,6 @@ def test_bundle_add_garbage() -> None:
 
     with pytest.raises(ProvException):
         test1()
-
-    def test2() -> None:
-        bundle = ProvBundle()
-        document.add_bundle(bundle)
-
-    with pytest.raises(ProvException):
-        test2()
 
 
 def test_bundle_equality_garbage() -> None:

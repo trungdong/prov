@@ -20,9 +20,10 @@ outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``)
   cases, all keyed on something other than the record identifier and hence
   outside ``unified()``'s documented scope — they belong to the opt-in
   validation engine, issue #62);
-- three ``bundle-*`` files cannot be parsed at all — prov's PROV-XML
-  deserializer rejects them with ``ProvXMLException`` (issue #254) — and are
-  skipped as parse failures.
+- three ``bundle-*`` files cannot be parsed at all, because they wrap bundle
+  contents in ProvToolbox's ``<prov:bundle>`` where PROV-XML defines
+  ``<prov:bundleContent>`` (the corpus README), and are skipped as parse
+  failures.
 
 None of the 153 vendored ProvToolbox files exercise the type compatibility
 checks: the corpus's fail-cases are all same-type/same-relation conflicts or
@@ -60,8 +61,12 @@ Authority: planning/specs/2026-07-10-unification-gap-analysis.md and
 umbrella issue #253.
 """
 
+from __future__ import annotations
+
 import datetime
+from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -69,12 +74,14 @@ pytest.importorskip("lxml")
 
 from prov.model import ProvDocument, ProvUnificationError
 
+if TYPE_CHECKING:
+    from _pytest.mark import ParameterSet
+
 CORPUS = Path(__file__).parent / "unification" / "constraints"
 
-# prov's PROV-XML deserializer rejects these with ProvXMLException
-# (_extract_attributes, provxml.py) because they wrap bundle contents in
-# ProvToolbox's <prov:bundle> container instead of the XSD's
-# <prov:bundleContent> — issue #254, recorded in the gap analysis.
+# prov's PROV-XML deserializer rejects these with ProvXMLException because
+# they wrap bundle contents in ProvToolbox's <prov:bundle> container instead
+# of the XSD's <prov:bundleContent>; see unification/constraints/README.md.
 PARSE_FAILURES = {
     "bundle-fail1.xml",
     "bundle-success1.xml",
@@ -126,13 +133,13 @@ UNIFICATION_REJECTS = dict.fromkeys(
 }
 
 
-def _n_records(document):
-    return len(document.get_records()) + sum(
-        len(b.get_records()) for b in document.bundles
+def _n_records(document: ProvDocument) -> int:
+    return len(list(document.get_records())) + sum(
+        len(list(b.get_records())) for b in document.bundles
     )
 
 
-def _expected_unified_count(document):
+def _expected_unified_count(document: ProvDocument) -> int:
     # The exact record count _unified_records() produces, computed from the
     # pre-merge document: per scope (toplevel and each bundle), identified
     # records collapse to one per distinct identifier (regardless of record
@@ -147,15 +154,14 @@ def _expected_unified_count(document):
     return total
 
 
-def _cases():
+def _cases() -> Iterator[ParameterSet]:
     for xml_path in sorted(CORPUS.glob("*.xml")):
         marks = []
         if xml_path.name in PARSE_FAILURES:
             marks.append(
                 pytest.mark.skip(
-                    reason="prov cannot parse: ProvToolbox's <prov:bundle> "
-                    "dialect is rejected with ProvXMLException (crash fixed "
-                    "under #254) — recorded in the gap analysis"
+                    reason="ProvToolbox's <prov:bundle> wrapper is not PROV-XML's "
+                    "<prov:bundleContent>; see unification/constraints/README.md"
                 )
             )
         yield pytest.param(xml_path, id=xml_path.stem, marks=marks)
@@ -172,7 +178,7 @@ def test_corpus_inventory() -> None:
 
 
 @pytest.mark.parametrize("xml_path", list(_cases()))
-def test_unified_corpus_characterization(xml_path) -> None:
+def test_unified_corpus_characterization(xml_path: Path) -> None:
     with open(xml_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if xml_path.name in UNIFICATION_REJECTS:
@@ -228,7 +234,7 @@ W3C_OUT_OF_SCOPE_REASONS = {
 }
 
 
-def _w3c_cases():
+def _w3c_cases() -> Iterator[ParameterSet]:
     for provx_path in sorted(CORPUS.glob("type-*.provx")):
         yield pytest.param(provx_path, id=provx_path.stem)
 
@@ -247,7 +253,7 @@ def test_w3c_corpus_inventory() -> None:
 
 
 @pytest.mark.parametrize("provx_path", list(_w3c_cases()))
-def test_w3c_type_compatibility_characterization(provx_path) -> None:
+def test_w3c_type_compatibility_characterization(provx_path: Path) -> None:
     with open(provx_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
     if provx_path.name in W3C_RAISES:
@@ -314,7 +320,7 @@ def test_uniqueness_constraints_on_other_keys_are_out_of_scope() -> None:
     doc.generation("e1", "a1", identifier="gen1")
     doc.generation("e1", "a1", identifier="gen1-other")
     unified = doc.unified()
-    assert len(unified.get_records()) == 4  # nothing merged, nothing rejected
+    assert len(list(unified.get_records())) == 4  # nothing merged, nothing rejected
 
 
 def test_compatible_partial_information_merges_like_the_spec_example() -> None:
@@ -328,7 +334,7 @@ def test_compatible_partial_information_merges_like_the_spec_example() -> None:
     doc.activity("a", startTime="2011-11-16T16:00:00", other_attributes={"ex:a": 1})
     doc.activity("a", endTime="2011-11-16T18:00:00", other_attributes={"ex:b": 2})
     unified = doc.unified()
-    records = unified.get_records()
+    records = list(unified.get_records())
     assert len(records) == 1
     assert (
         records[0].get_provn()
@@ -355,7 +361,7 @@ def test_document_unified_scopes_unification_per_bundle() -> None:
 
     unified = doc.unified()
 
-    assert len(unified.get_records()) == 1  # top level untouched by bundles
+    assert len(list(unified.get_records())) == 1  # top level untouched by bundles
     bundles = {str(b.identifier): b for b in unified.bundles}
     assert set(bundles) == {"b1", "b2"}
     # b1's two same-id records merged within b1 only (label set union).

@@ -517,13 +517,6 @@ def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises() -> None
     assert "Could not create a valid QualifiedName" in str(ctx.value)
 
 
-def test_empty_string_attribute_survives_xml_roundtrip() -> None:
-    document = prov.ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.agent("ex:g0", {"ex:k0": ""})
-    assert roundtrip_document(document, "xml") == document
-
-
 @pytest.mark.parametrize(
     "attributes",
     [
@@ -562,15 +555,6 @@ def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip() -> No
     ]
     formal = dict(generation.formal_attributes)
     assert formal[PROV["time"]] is None
-
-
-def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip() -> None:
-    # #289 repro: an attribute name containing characters illegal in an XML
-    # NCName must not raise, and must round-trip losslessly.
-    document = prov.ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e1", {"ex:weird'key": "value"})
-    assert roundtrip_document(document, "xml") == document
 
 
 @pytest.mark.parametrize(

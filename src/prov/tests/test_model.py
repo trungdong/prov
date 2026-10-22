@@ -10,6 +10,7 @@ import logging
 import os
 import shutil
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -41,32 +42,14 @@ EX_URI = "http://www.example.org/"
 EX2_URI = "http://www.example2.org/"
 
 
-def test_loading_all_json() -> None:
-    json_path = os.path.dirname(os.path.abspath(__file__)) + "/json/"
-    fails = []
-    for filename in os.listdir(json_path):
-        if filename.endswith(".json"):
-            with open(json_path + filename) as json_file:
-                try:
-                    g1 = ProvDocument.deserialize(json_file)
-                    json_str = g1.serialize(indent=4)
-                    g2 = ProvDocument.deserialize(content=json_str)
-                    assert g1 == g2, (
-                        f"Round-trip JSON encoding/decoding failed:  {filename}."
-                    )
-                except Exception:  # intentionally broad to catch any failure
-                    fails.append(filename)
+JSON_FIXTURES = sorted((Path(__file__).parent / "json").glob("*.json"))
 
-    # Code for debugging the failed tests: reload the failed files so a real
-    # failure (not silently swallowed by the broad except above) is reported.
-    for filename in fails:
-        filepath = json_path + filename
-        with open(filepath) as json_file:
-            logger.info("Loading %s...", filepath)
-            g1 = ProvDocument.deserialize(json_file)
-            json_str = g1.serialize(indent=4)
-            g2 = ProvDocument.deserialize(content=json_str)
-            assert g1 == g2, f"Round-trip JSON encoding/decoding failed:  {filename}."
+
+@pytest.mark.parametrize("path", JSON_FIXTURES, ids=lambda path: path.name)
+def test_json_fixture_round_trips(path) -> None:
+    with path.open() as stream:
+        document = ProvDocument.deserialize(stream)
+    assert ProvDocument.deserialize(content=document.serialize(indent=4)) == document
 
 
 def test_flattening() -> None:
