@@ -6,8 +6,10 @@ import pytest
 from prov.identifier import Namespace, QualifiedName
 from prov.model import Literal, ProvDocument, ProvException
 
+from .conftest import Roundtrip
 
-def document_with_n_bundles_having_default_namespace(n):
+
+def document_with_n_bundles_having_default_namespace(n: int) -> ProvDocument:
     prov_doc = ProvDocument()
     prov_doc.add_namespace("ex", "http://www.example.org/")
     for i in range(n):
@@ -18,7 +20,7 @@ def document_with_n_bundles_having_default_namespace(n):
     return prov_doc
 
 
-def test_namespace_inheritance(roundtrip) -> None:
+def test_namespace_inheritance(roundtrip: Roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.add_namespace("ex", "http://www.example.org/")
     bundle = prov_doc.bundle("ex:bundle")
@@ -27,7 +29,7 @@ def test_namespace_inheritance(roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_default_namespace_inheritance(roundtrip) -> None:
+def test_default_namespace_inheritance(roundtrip: Roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.set_default_namespace("http://www.example.org/")
     bundle = prov_doc.bundle("bundle")
@@ -36,28 +38,28 @@ def test_default_namespace_inheritance(roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_flattening_1_bundle_with_default_namespace(roundtrip) -> None:
+def test_flattening_1_bundle_with_default_namespace(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_2_bundles_with_default_namespace(roundtrip) -> None:
+def test_flattening_2_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(2)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_3_bundles_with_default_namespace(roundtrip) -> None:
+def test_flattening_3_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(3)
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_1_bundle_with_default_namespaces(roundtrip) -> None:
+def test_flattening_1_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
     roundtrip(prov_doc.flattened())
 
 
-def test_flattening_2_bundle_with_default_namespaces(roundtrip) -> None:
+def test_flattening_2_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(2)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
     roundtrip(prov_doc.flattened())
@@ -84,25 +86,33 @@ def document_with_default_namespace() -> ProvDocument:
     return prov_doc
 
 
-def test_default_namespace_colon_local_part_as_record_identifier(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_record_identifier(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.entity(DEFAULT_NS["a:b"])
     roundtrip(prov_doc)
 
 
-def test_default_namespace_colon_local_part_as_attribute_name(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_attribute_name(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.entity(DEFAULT_NS["e"], {DEFAULT_NS["a:b"]: "v"})
     roundtrip(prov_doc)
 
 
-def test_default_namespace_colon_local_part_as_formal_value(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_formal_value(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.wasGeneratedBy(DEFAULT_NS["e"], DEFAULT_NS["a:b"])
     roundtrip(prov_doc)
 
 
-def test_default_namespace_colon_local_part_as_attribute_value(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_attribute_value(
+    roundtrip: Roundtrip,
+) -> None:
     # PROV-JSONLD writes a prov:type value as a bare string and any other
     # attribute's value as a value object
     prov_doc = document_with_default_namespace()
@@ -138,7 +148,9 @@ def test_default_namespace_colon_local_part_as_attribute_value(roundtrip) -> Non
         ),
     ],
 )
-def test_default_namespace_colon_local_part_as_literal_datatype(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_literal_datatype(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.entity(
         DEFAULT_NS["e"], {DEFAULT_NS["attr"]: Literal("1", DEFAULT_NS["a:b"])}
@@ -146,7 +158,9 @@ def test_default_namespace_colon_local_part_as_literal_datatype(roundtrip) -> No
     roundtrip(prov_doc)
 
 
-def test_default_namespace_colon_local_part_as_bundle_identifier(roundtrip) -> None:
+def test_default_namespace_colon_local_part_as_bundle_identifier(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     bundle = prov_doc.bundle(DEFAULT_NS["a:b"])
     bundle.entity(DEFAULT_NS["c:d"])
@@ -172,7 +186,7 @@ def test_default_namespace_colon_local_part_as_bundle_identifier(roundtrip) -> N
     ],
 )
 def test_default_namespace_colon_local_part_in_a_bundle_default_namespace(
-    roundtrip,
+    roundtrip: Roundtrip,
 ) -> None:
     # the bundle identifier, in the document's default namespace, takes the
     # document's prefix for it
@@ -186,7 +200,7 @@ def test_default_namespace_colon_local_part_in_a_bundle_default_namespace(
 
 
 def test_default_namespace_colon_local_part_reuses_a_prefix_for_the_iri(
-    roundtrip,
+    roundtrip: Roundtrip,
 ) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.add_namespace("d", DEFAULT_NS.uri)
@@ -194,7 +208,7 @@ def test_default_namespace_colon_local_part_reuses_a_prefix_for_the_iri(
     roundtrip(prov_doc)
 
 
-def test_prefix_named_default(roundtrip) -> None:
+def test_prefix_named_default(roundtrip: Roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     prov_doc.entity(
@@ -208,7 +222,7 @@ def test_prefix_named_default(roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_prefix_named_default_in_bundles(roundtrip) -> None:
+def test_prefix_named_default_in_bundles(roundtrip: Roundtrip) -> None:
     prov_doc = ProvDocument()
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     bundle = prov_doc.bundle(DEFAULT_PREFIX_NS["b1"])
@@ -223,7 +237,7 @@ def test_prefix_named_default_in_bundles(roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_generated_prefixes_avoid_prefixes_in_use(roundtrip) -> None:
+def test_generated_prefixes_avoid_prefixes_in_use(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     default_1 = prov_doc.add_namespace("default_1", "http://x.example/")
@@ -233,7 +247,9 @@ def test_generated_prefixes_avoid_prefixes_in_use(roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_generated_prefixes_avoid_prefixes_declared_in_a_bundle(roundtrip) -> None:
+def test_generated_prefixes_avoid_prefixes_declared_in_a_bundle(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     prov_doc.entity(DEFAULT_PREFIX_NS["e"])

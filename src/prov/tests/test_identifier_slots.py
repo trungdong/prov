@@ -7,6 +7,8 @@ import pickle
 import subprocess
 import sys
 import weakref
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -25,21 +27,21 @@ OBJECTS = [
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_no_instance_dict(obj) -> None:
+def test_no_instance_dict(obj: Any) -> None:
     assert not hasattr(obj, "__dict__")
     with pytest.raises(AttributeError):
         obj.undeclared = 1
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_copy_preserves_equality(obj) -> None:
+def test_copy_preserves_equality(obj: object) -> None:
     assert copy.copy(obj) == obj
     assert copy.deepcopy(obj) == obj
 
 
 @pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_pickle_round_trips_under_every_protocol(obj, protocol) -> None:
+def test_pickle_round_trips_under_every_protocol(obj: object, protocol: int) -> None:
     # Round-trips a value created immediately above, not external input.
     loaded = pickle.loads(pickle.dumps(obj, protocol=protocol))  # nosec B301 - nosemgrep
     assert loaded == obj
@@ -47,7 +49,7 @@ def test_pickle_round_trips_under_every_protocol(obj, protocol) -> None:
 
 
 def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     # The hash is process-specific (str hashing is seeded), so a pickle must
     # not carry it. Produce the pickle under a different seed and look the
@@ -116,7 +118,9 @@ def test_setstate_accepts_a_pre_3_2_dict_state() -> None:
     ],
     ids=lambda v: getattr(v, "__name__", ""),
 )
-def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots) -> None:
+def test_setstate_accepts_the_3_2_0_slotted_state(
+    cls: Any, slots: dict[str, object]
+) -> None:
     # 3.2.0 had __slots__ without __getstate__, so its pickles carry the
     # (dict_state, slot_state) tuple Python builds for slotted objects.
     obj = cls.__new__(cls)
@@ -132,7 +136,7 @@ def test_setstate_accepts_the_3_2_0_slotted_state(cls, slots) -> None:
 
 
 @pytest.mark.parametrize("obj", OBJECTS, ids=lambda o: type(o).__name__)
-def test_weak_references_are_supported(obj) -> None:
+def test_weak_references_are_supported(obj: object) -> None:
     assert weakref.ref(obj)() is obj
 
 

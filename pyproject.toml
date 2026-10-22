@@ -204,14 +204,12 @@ strict = true
 [[tool.mypy.overrides]]
 module = [
     "prov.tests.test_attribute_merging",
-    "prov.tests.test_attributes",
     "prov.tests.test_chaining",
     "prov.tests.test_cli_smoke",
     "prov.tests.test_datetime_parsing",
     "prov.tests.test_dot",
     "prov.tests.test_extras",
     "prov.tests.test_graphs",
-    "prov.tests.test_identifier_slots",
     "prov.tests.test_jsonld",
     "prov.tests.test_jsonld_schema",
     "prov.tests.test_jsonld_semantics",
@@ -222,7 +220,6 @@ module = [
     "prov.tests.test_provn_escaping",
     "prov.tests.test_provn_lexer",
     "prov.tests.test_provn_profiles",
-    "prov.tests.test_qnames",
     "prov.tests.test_rdf",
     "prov.tests.test_read",
     "prov.tests.test_scripts",
