@@ -2,8 +2,7 @@
 
 from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
-from collections.abc import Iterable
-from typing import cast
+from collections.abc import Iterable, Mapping
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -28,7 +27,7 @@ class NamespaceManager(dict[str, Namespace]):
         """Initialise the namespace manager.
 
         Args:
-            namespaces: Optional namespaces to add, as a ``{prefix: uri}`` dict
+            namespaces: Optional namespaces to add, as a ``{prefix: uri}`` mapping
                 or an iterable of :class:`~prov.identifier.Namespace`
                 (default: ``None``).
             default: Optional default namespace URI (default: ``None``).
@@ -167,19 +166,13 @@ class NamespaceManager(dict[str, Namespace]):
         """Add multiple namespaces into this manager.
 
         Args:
-            namespaces: The namespaces to add, as a ``{prefix: uri}`` dict or an
-                iterable of :class:`~prov.identifier.Namespace`.
+            namespaces: The namespaces to add, as a ``{prefix: uri}`` mapping
+                or an iterable of :class:`~prov.identifier.Namespace`.
         """
-        if isinstance(namespaces, dict):
-            # expecting a dictionary of {prefix: uri},
-            # convert it to a list of Namespace
-            namespaces = [
-                Namespace(prefix, uri)
-                for prefix, uri in cast("dict[str, str]", namespaces).items()
-            ]
-        if namespaces:
-            for ns in namespaces:
-                self.add_namespace(ns)
+        if isinstance(namespaces, Mapping):
+            namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
+        for ns in namespaces:
+            self.add_namespace(ns)
 
     def valid_qualified_name(
         self, qname: QualifiedNameCandidate

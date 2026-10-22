@@ -8,6 +8,7 @@ joins the override list in ``pyproject.toml``.
 import io
 from collections.abc import ValuesView
 from pathlib import Path
+from types import MappingProxyType
 from typing import assert_type
 
 import pytest
@@ -126,3 +127,22 @@ def test_chaining_methods_keep_the_subclass_type() -> None:
     tracked = Tracked(document, document.valid_qualified_name("ex:t"))
     assert_type(tracked.wasGeneratedBy(activity), Tracked)
     assert isinstance(tracked.wasGeneratedBy(activity), Tracked)
+
+
+def test_namespace_arguments_accept_any_mapping() -> None:
+    mapping = MappingProxyType({"ex": "http://example.org/"})
+
+    document = ProvDocument(namespaces=mapping)
+    assert [ns.prefix for ns in document.get_registered_namespaces()] == ["ex"]
+
+    bundle = ProvBundle(namespaces=mapping)
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex"]
+
+    document._namespaces.add_namespaces(
+        MappingProxyType({"ex2": "http://example.org/2/"})
+    )
+    assert {ns.prefix for ns in document.get_registered_namespaces()} == {"ex", "ex2"}
+
+    document._namespaces.add_namespaces({})
+    document._namespaces.add_namespaces([])
+    assert {ns.prefix for ns in document.get_registered_namespaces()} == {"ex", "ex2"}

@@ -401,7 +401,7 @@ class ProvBundle:
                 (default: ``None``).
             identifier: Optional identifier of the bundle (default: ``None``).
             namespaces: Optional namespaces to register, as a ``{prefix: uri}``
-                dict or an iterable of :class:`~prov.identifier.Namespace`
+                mapping or an iterable of :class:`~prov.identifier.Namespace`
                 (default: ``None``).
             document: Optional parent document for the bundle (default:
                 ``None``).
@@ -1761,7 +1761,7 @@ class ProvDocument(ProvBundle):
             records: Optional iterable of records to add to the document
                 (default: ``None``).
             namespaces: Optional namespaces to register, as a ``{prefix: uri}``
-                dict or an iterable of :class:`~prov.identifier.Namespace`
+                mapping or an iterable of :class:`~prov.identifier.Namespace`
                 (default: ``None``).
         """
         ProvBundle.__init__(

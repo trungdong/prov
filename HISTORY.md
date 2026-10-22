@@ -193,6 +193,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
 
+### Fixes
+
+- `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and `add_namespaces()` accept
+  any mapping of prefix to IRI, not only a `dict`. A `MappingProxyType` was iterated as bare
+  prefix strings and raised `AttributeError`
+  ([#492](https://github.com/trungdong/prov/issues/492))
+
 ### Project
 
 - `prov` requires Python 3.11 or later. Python 3.10 reached its end of life on

@@ -16,6 +16,7 @@ from collections.abc import (
     Callable,
     Iterable,
     Iterator,
+    Mapping,
     MutableSet,
     Sequence,
     Set as AbstractSet,
@@ -137,7 +138,7 @@ UsageRef: typing.TypeAlias = Union["ProvUsage", QualifiedNameCandidate]
 NameValuePair: typing.TypeAlias = tuple[QualifiedName, Any]
 AttributePair: typing.TypeAlias = tuple[QualifiedNameCandidate, Any]
 DatetimeOrStr: typing.TypeAlias = datetime.datetime | str
-NSCollection: typing.TypeAlias = dict[str, str] | Iterable[Namespace]
+NSCollection: typing.TypeAlias = Mapping[str, str] | Iterable[Namespace]
 PathLike: typing.TypeAlias = str | bytes | os.PathLike[str]
 StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 
