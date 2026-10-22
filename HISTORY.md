@@ -204,6 +204,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   in `prov.model._values`, called at assertion and by the PROV-N, PROV-JSON and
   PROV-JSONLD readers. Nothing changes in what `prov` accepts, warns about or
   writes ([#587](https://github.com/trungdong/prov/issues/587))
+- `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
+  written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
+  record or an adopted name from warning a second time are gone with the warnings
+  ([#588](https://github.com/trungdong/prov/issues/588),
+  [#590](https://github.com/trungdong/prov/issues/590))
 
 ## 3.2.3 (2026-10-19)
 

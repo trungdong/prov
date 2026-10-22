@@ -19,6 +19,16 @@ Two things are worth knowing before you start, because neither is obvious from t
 Both publish jobs use PyPI Trusted Publishing through the `testpypi` and `pypi` GitHub
 environments — there are no API tokens to rotate.
 
+## The `gh` token and the `workflow` scope
+
+A `gh pr merge` of a PR that touches `.github/workflows/` fails with "the base branch
+policy prohibits the merge" when the `gh` token lacks the `workflow` scope; the merge
+REST API reports the missing scope as a 403, and the message is wrong about the cause.
+Fix it once with `gh auth refresh -h github.com -s workflow`, or merge in the web UI. A
+release hits this on the feedstock's bump PR when the bot's rerender touches the
+feedstock's workflows, and on the main repository on any PR that edits `CI.yml`, such as
+one that raises the Python floor.
+
 ## 1. Pre-flight
 
 Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
@@ -213,10 +223,7 @@ The bot supplies the version, sha256 and build number and re-renders. Review the
 dependencies: conda has no extras, so by convention the recipe stays full-featured and
 mirrors the `rdf`/`xml`/`dot`/`graph` extras as hard dependencies.
 
-**Known trap:** if the bot's rerender touched `.github/workflows/`, `gh pr merge` fails
-with "the base branch policy prohibits the merge". That message is wrong. The real cause
-is a `gh` token without the `workflow` scope, which the merge REST API reports as a 403.
-Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
+If the bot's rerender touched `.github/workflows/`, see "The `gh` token and the `workflow` scope" above before merging.
 
 ## 7. Close out
 
@@ -225,6 +232,45 @@ Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
   still open when 3.1.1 was cut.
 - Confirm <https://pypi.org/project/prov/> and the conda-forge feed both show the new
   version.
+
+## Raising the Python floor
+
+Done once per interpreter end of life, in its own PR, first in the release's series so
+that every later PR builds on the new floor. 3.3.0 raised it from 3.10 to 3.11. The
+places that name the floor:
+
+- `pyproject.toml`: `requires-python`, the classifier line for the dropped version,
+  ruff's `target-version` and mypy's `python_version`; then `uv lock`, and
+  `ruff check --fix src/ benchmarks/` with a review of what the `UP` rules rewrite.
+- `.github/workflows/CI.yml`: the matrix and the Coveralls `carryforward` list.
+- The interpreter loops in `Makefile`, `CLAUDE.md`, `CONTRIBUTING.md` and this runbook.
+- `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
+- `SECURITY.md`, which says what each supported line requires, in the release PR.
+- `main`'s branch protection, which requires the dropped version's `pytest` check until
+  the PR that removes it from the matrix is about to merge.
+
+Code that worked around the old interpreter goes in the same PR, with its tests.
+
+On conda-forge, the recipe inherits the global pin and has no floor of its own, so add
+`{% set python_min = "3.11" %}` at the top of `recipe/meta.yaml` on the bot's bump PR
+and rerender; the bot bumps the version, not the floor.
+
+After publishing, two checks beyond section 5:
+
+```bash
+curl -s https://pypi.org/pypi/prov/X.Y.Z/json | python3 -c "
+import json,sys; print(json.load(sys.stdin)['info']['requires_python'])"
+```
+
+must print the new floor (`>=3.11`), and on an interpreter below it
+
+```bash
+uv venv --python 3.10 .v310 && uv pip install --python .v310/bin/python prov==X.Y.Z
+```
+
+must fail, because the release's `requires-python` excludes that interpreter. An
+unpinned `pip install prov` there installs the last release that supported it, which is
+what the floor change intends.
 
 ## Releasing from the `2.x` maintenance branch
 
