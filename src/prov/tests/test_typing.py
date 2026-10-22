@@ -13,6 +13,7 @@ from typing import assert_type
 import pytest
 
 from prov.model import (
+    ProvActivity,
     ProvAgent,
     ProvBundle,
     ProvDocument,
@@ -106,3 +107,22 @@ def test_element_identifier_is_a_qualified_name_and_a_relation_may_lack_one() ->
     generation = document.wasGeneratedBy("ex:e", "ex:a")
     assert_type(generation.identifier, QualifiedName | None)
     assert generation.identifier is None
+
+
+def test_chaining_methods_keep_the_subclass_type() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    entity = document.entity("ex:e")
+    activity = document.activity("ex:a")
+    agent = document.agent("ex:ag")
+
+    assert_type(entity.wasGeneratedBy(activity).wasAttributedTo(agent), ProvEntity)
+    assert_type(activity.used(entity).wasAssociatedWith(agent), ProvActivity)
+    assert_type(agent.actedOnBehalfOf(agent), ProvAgent)
+
+    class Tracked(ProvEntity):
+        pass
+
+    tracked = Tracked(document, document.valid_qualified_name("ex:t"))
+    assert_type(tracked.wasGeneratedBy(activity), Tracked)
+    assert isinstance(tracked.wasGeneratedBy(activity), Tracked)
