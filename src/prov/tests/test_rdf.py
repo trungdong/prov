@@ -458,12 +458,13 @@ def test_decode_scruffy_relations_raise_documented_limitation(
 ) -> None:
     # #217: all five relation families with a qualified PROV-O form --
     # generation/usage/start/end/invalidation -- share the same permanent
-    # representational limitation (docs/reference/conformance.md), and the
-    # 14 skipped round-trip cases in test_statements.py cover exactly this
-    # shape for each of them. Build the scruffy construct with prov's own
-    # model and serializer (rather than hand-authoring PROV-O, as the
-    # single-family test above does) so this test tracks what prov itself
-    # actually emits for each family, not a guess at it.
+    # representational limitation (docs/reference/conformance.md), and
+    # test_statements.py's scruffy round trips build this shape for each of
+    # them and leave out the rdf target because of it. Build the scruffy
+    # construct with prov's own model and serializer (rather than
+    # hand-authoring PROV-O, as the single-family test above does) so this
+    # test tracks what prov itself actually emits for each family, not a
+    # guess at it.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1")
