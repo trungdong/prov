@@ -1,6 +1,6 @@
 """Guards the public API surface for the 2.x line.
 
-Two different questions are answered here:
+Three different questions are answered here:
 
 - ``test_names_importable`` checks *intent*: a curated allowlist of the names
   that are load-bearing public API and must stay importable from their
@@ -12,11 +12,17 @@ Two different questions are answered here:
   ``prov.model`` location and then deletes the submodule attributes,
   deliberately freezing ``dir(prov.model)`` to the pre-split namespace; this
   test is what actually holds that freeze in place.
+- ``test_mypy_override_list_only_shrinks`` checks that the mypy override list
+  in ``pyproject.toml`` equals a frozen snapshot, so the list only shrinks.
 """
 
 import importlib
 import importlib.util
 import io
+import tomllib
+from pathlib import Path
+
+import pytest
 
 import prov.model
 import prov.serializers
@@ -352,3 +358,42 @@ def test_round_trip_each_format() -> None:
         stream.seek(0)
         round_tripped = ProvDocument.deserialize(source=stream, format=fmt)
         assert document == round_tripped, fmt
+
+
+MYPY_OVERRIDE_LIST = [
+    "prov.tests.test_attribute_merging",
+    "prov.tests.test_chaining",
+    "prov.tests.test_cli_smoke",
+    "prov.tests.test_datetime_parsing",
+    "prov.tests.test_dot",
+    "prov.tests.test_extras",
+    "prov.tests.test_graphs",
+    "prov.tests.test_jsonld",
+    "prov.tests.test_model",
+    "prov.tests.test_namespace_cache",
+    "prov.tests.test_numeric_typing",
+    "prov.tests.test_provn",
+    "prov.tests.test_provn_escaping",
+    "prov.tests.test_provn_lexer",
+    "prov.tests.test_provn_profiles",
+    "prov.tests.test_rdf",
+    "prov.tests.test_read",
+    "prov.tests.test_scripts",
+    "prov.tests.test_statements",
+    "prov.tests.test_xml",
+]
+"""The test modules still outside ``mypy --strict`` (#494).
+
+The list only shrinks. A PR that makes a module pass deletes its name here and
+in ``pyproject.toml`` in the same commit; a new module never joins.
+"""
+
+
+def test_mypy_override_list_only_shrinks() -> None:
+    pyproject = Path(__file__).resolve().parents[3] / "pyproject.toml"
+    if not pyproject.is_file():
+        pytest.skip("pyproject.toml is not part of the installed package")
+    overrides = tomllib.loads(pyproject.read_text())["tool"]["mypy"]["overrides"]
+    assert len(overrides) == 1
+    assert overrides[0]["ignore_errors"] is True
+    assert overrides[0]["module"] == MYPY_OVERRIDE_LIST

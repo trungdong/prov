@@ -61,7 +61,9 @@ codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 mypy checks the tests under the same strict configuration as the library. Test modules that
 do not pass yet are listed in the `[[tool.mypy.overrides]]` block in `pyproject.toml` with
 `ignore_errors = true`. The list only shrinks. A PR that makes a module pass deletes its
-name, a new test module never joins the list, and the block goes when the list is empty.
+name from the block and from `MYPY_OVERRIDE_LIST` in `src/prov/tests/test_public_api.py`, and
+`test_mypy_override_list_only_shrinks` fails if the two differ. A new test module never joins
+the list. The PR that empties the list deletes the block, the snapshot and that test.
 
 Codacy's Cloud gate blocks a PR on a single finding of any severity, including markdownlint
 on Markdown files, so run the local analyser on every changed file before pushing. Coveralls

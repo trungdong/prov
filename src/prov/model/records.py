@@ -16,6 +16,7 @@ from collections.abc import (
     Callable,
     Iterable,
     Iterator,
+    Mapping,
     MutableSet,
     Sequence,
     Set as AbstractSet,
@@ -26,6 +27,7 @@ from typing import (
     Any,
     Final,
     Protocol,
+    Self,
     TypeVar,
     Union,
     cast,
@@ -136,7 +138,7 @@ UsageRef: typing.TypeAlias = Union["ProvUsage", QualifiedNameCandidate]
 NameValuePair: typing.TypeAlias = tuple[QualifiedName, Any]
 AttributePair: typing.TypeAlias = tuple[QualifiedNameCandidate, Any]
 DatetimeOrStr: typing.TypeAlias = datetime.datetime | str
-NSCollection: typing.TypeAlias = dict[str, str] | Iterable[Namespace]
+NSCollection: typing.TypeAlias = Mapping[str, str] | Iterable[Namespace]
 PathLike: typing.TypeAlias = str | bytes | os.PathLike[str]
 StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 
@@ -1228,6 +1230,8 @@ class ProvRecord:
 class ProvElement(ProvRecord):
     """Provenance Element (nodes in the provenance graph)."""
 
+    _identifier: QualifiedName
+
     def __init__(
         self,
         bundle: ProvBundle,
@@ -1239,6 +1243,11 @@ class ProvElement(ProvRecord):
             raise ProvElementIdentifierRequired()
 
         super().__init__(bundle, identifier, attributes)
+
+    @property
+    def identifier(self) -> QualifiedName:
+        """The element's identifier. Every element has one."""
+        return self._identifier
 
     def is_element(self) -> bool:
         """Return ``True`` if the record is an element, ``False`` otherwise."""
@@ -1274,7 +1283,7 @@ class ProvEntity(ProvElement):
         activity: ActivityRef | None = None,
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new generation record to this entity.
 
         Args:
@@ -1297,7 +1306,7 @@ class ProvEntity(ProvElement):
         activity: ActivityRef | None,
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new invalidation record for this entity.
 
         Args:
@@ -1322,7 +1331,7 @@ class ProvEntity(ProvElement):
         generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new derivation record for this entity from a used entity.
 
         Args:
@@ -1346,7 +1355,7 @@ class ProvEntity(ProvElement):
 
     def wasAttributedTo(
         self, agent: AgentRef, attributes: RecordAttributesArg | None = None
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new attribution record between this entity and an agent.
 
         Args:
@@ -1361,7 +1370,7 @@ class ProvEntity(ProvElement):
         self._bundle.attribution(self, agent, other_attributes=attributes)
         return self
 
-    def alternateOf(self, alternate2: EntityRef) -> ProvEntity:
+    def alternateOf(self, alternate2: EntityRef) -> Self:
         """Create a new alternate record between this and another entity.
 
         Args:
@@ -1373,7 +1382,7 @@ class ProvEntity(ProvElement):
         self._bundle.alternate(self, alternate2)
         return self
 
-    def specializationOf(self, generalEntity: EntityRef) -> ProvEntity:
+    def specializationOf(self, generalEntity: EntityRef) -> Self:
         """Create a new specialisation record for this from a general entity.
 
         Args:
@@ -1385,7 +1394,7 @@ class ProvEntity(ProvElement):
         self._bundle.specialization(self, generalEntity)
         return self
 
-    def hadMember(self, entity: EntityRef) -> ProvEntity:
+    def hadMember(self, entity: EntityRef) -> Self:
         """Create a new membership record adding an entity to this collection.
 
         Args:
@@ -1405,7 +1414,7 @@ class ProvEntity(ProvElement):
         generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new revision record for this entity from a used entity.
 
         Args:
@@ -1434,7 +1443,7 @@ class ProvEntity(ProvElement):
         generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new quotation record for this entity from a quoted entity.
 
         Args:
@@ -1463,7 +1472,7 @@ class ProvEntity(ProvElement):
         generation: GenerationRef | None = None,
         usage: UsageRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new primary-source record for this entity.
 
         Args:
@@ -1485,7 +1494,7 @@ class ProvEntity(ProvElement):
         )
         return self
 
-    def mentionOf(self, generalEntity: EntityRef, bundle: EntityRef) -> ProvEntity:
+    def mentionOf(self, generalEntity: EntityRef, bundle: EntityRef) -> Self:
         """Create a new mention record of this entity from a general entity.
 
         Args:
@@ -1504,7 +1513,7 @@ class ProvEntity(ProvElement):
         self,
         influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvEntity:
+    ) -> Self:
         """Create a new influence record on this entity by an influencer.
 
         Args:
@@ -1566,7 +1575,7 @@ class ProvActivity(ProvElement):
         entity: EntityRef,
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new usage record for this activity.
 
         Args:
@@ -1587,7 +1596,7 @@ class ProvActivity(ProvElement):
 
     def wasInformedBy(
         self, informant: ActivityRef, attributes: RecordAttributesArg | None = None
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new communication record for this activity.
 
         Args:
@@ -1607,7 +1616,7 @@ class ProvActivity(ProvElement):
         starter: ActivityRef | None = None,
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new start record for this activity.
 
         The activity did not exist before being started by the trigger.
@@ -1636,7 +1645,7 @@ class ProvActivity(ProvElement):
         ender: ActivityRef | None = None,
         time: DatetimeOrStr | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new end record for this activity.
 
         Args:
@@ -1662,7 +1671,7 @@ class ProvActivity(ProvElement):
         agent: AgentRef,
         plan: EntityRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new association record for this activity.
 
         Args:
@@ -1683,7 +1692,7 @@ class ProvActivity(ProvElement):
         self,
         influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvActivity:
+    ) -> Self:
         """Create a new influence record on this activity by an influencer.
 
         Args:
@@ -1785,7 +1794,7 @@ class ProvAgent(ProvElement):
         responsible: AgentRef,
         activity: ActivityRef | None = None,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvAgent:
+    ) -> Self:
         """Create a new delegation record on behalf of this agent.
 
         Args:
@@ -1808,7 +1817,7 @@ class ProvAgent(ProvElement):
         self,
         influencer: InfluencerRef,
         attributes: RecordAttributesArg | None = None,
-    ) -> ProvAgent:
+    ) -> Self:
         """Create a new influence record on this agent by an influencer.
 
         Args:

@@ -14,13 +14,15 @@ selected in ``conftest.py`` via ``HYPOTHESIS_PROFILE`` (CI uses the bounded
 import pytest
 from hypothesis import assume, given
 
+from prov.model import ProvDocument
+
 from .conftest import ROUNDTRIP_FORMATS, contains_mention, roundtrip_document
 from .strategies import prov_documents
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 @given(doc=prov_documents())
-def test_generated_document_roundtrips(doc, fmt) -> None:
+def test_generated_document_roundtrips(doc: ProvDocument, fmt: str) -> None:
     """A generated document equals itself after a serialize/deserialize cycle."""
     # PROV-JSONLD defines no Mention term (documented limitation, see
     # docs/reference/conformance.md) — mention-bearing documents only apply

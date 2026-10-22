@@ -162,6 +162,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvJSONException` is not a `ProvException`, so code that handles both catches
   `prov.Error`
   ([#551](https://github.com/trungdong/prov/issues/551))
+- `get_records()` with a class or a tuple of classes returns a list, as `get_records()` with
+  no argument always did, where it returned a one-shot iterator.
+  `next(document.get_records(ProvEntity))` raises `TypeError`, so write
+  `next(iter(...))`, and an empty result is now falsy
+  ([#491](https://github.com/trungdong/prov/issues/491))
 
 ### Output changes
 
@@ -189,6 +194,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
 
+### Fixes
+
+- `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
+  `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
+  `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
+  ([#492](https://github.com/trungdong/prov/issues/492))
+
 ### Project
 
 - `prov` requires Python 3.11 or later. Python 3.10 reached its end of life on
@@ -209,6 +221,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   record or an adopted name from warning a second time are gone with the warnings
   ([#588](https://github.com/trungdong/prov/issues/588),
   [#590](https://github.com/trungdong/prov/issues/590))
+- Public return types match the runtime: `get_records()` returns a list in both branches and
+  narrows to the class it filters by, `bundles` is a sized view, `serialize()` returns `str`
+  without a destination and `None` with one, an element's `identifier` is never `None`, and
+  the chaining methods on entities, activities and agents return `Self`. A subclass that
+  overrides one of these with the looser type is reported by mypy
+  ([#491](https://github.com/trungdong/prov/issues/491))
+- The test modules not yet checked under `mypy --strict` are listed in `pyproject.toml`,
+  eighteen fewer than in 3.2.3, and a test fails if the list changes without the test's
+  snapshot ([#494](https://github.com/trungdong/prov/issues/494))
 
 ## 3.2.3 (2026-10-19)
 

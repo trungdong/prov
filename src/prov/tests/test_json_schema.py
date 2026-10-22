@@ -9,23 +9,30 @@ section 3.2.
 """
 
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 jsonschema = pytest.importorskip("jsonschema")
 
+from prov.model import ProvDocument  # noqa: E402
 from prov.tests import examples  # noqa: E402
+
+if TYPE_CHECKING:
+    from jsonschema.protocols import Validator  # type: ignore[import-untyped]
 
 SCHEMA_PATH = Path(__file__).parent / "schemas" / "prov-json.schema.json"
 
 
 @pytest.fixture(scope="module")
-def prov_json_validator():
+def prov_json_validator() -> "Validator":
     schema = json.loads(SCHEMA_PATH.read_text())
     validator_cls = jsonschema.validators.validator_for(schema)
     validator_cls.check_schema(schema)
-    return validator_cls(schema)
+    validator: Validator = validator_cls(schema)
+    return validator
 
 
 @pytest.mark.parametrize(
@@ -33,7 +40,8 @@ def prov_json_validator():
     [pytest.param(fn, id=name) for name, fn in examples.tests],
 )
 def test_example_documents_validate_against_prov_json_schema(
-    prov_json_validator, make_document
+    prov_json_validator: "Validator",
+    make_document: Callable[[], ProvDocument],
 ) -> None:
     container = json.loads(make_document().serialize(format="json"))
     errors = sorted(prov_json_validator.iter_errors(container), key=str)
