@@ -3,7 +3,7 @@
 import datetime
 import io
 import json
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
@@ -33,6 +33,7 @@ from prov.serializers._json_common import (
     _JSONPrefixMap,
     _Kind,
     _position,
+    _repeated_key_hook,
     _warn_rejection,
 )
 
@@ -119,9 +120,6 @@ class ProvJSONSerializer(Serializer):
         """Deserialize a `PROV-JSON <https://openprovenance.org/prov-json/>`_
         stream into a :class:`~prov.model.ProvDocument`.
 
-        A key repeated in a JSON object warns with
-        :class:`~prov.model.ProvFutureRejectionWarning`; the last value is used.
-
         Args:
             stream: Input data; binary streams are decoded as UTF-8 first.
             **args: Extra keyword arguments passed through to
@@ -129,44 +127,23 @@ class ProvJSONSerializer(Serializer):
 
         Returns:
             The deserialized :class:`~prov.model.ProvDocument`.
+
+        Raises:
+            ProvJSONException: If a key is repeated in a JSON object (#532), or
+                if the document holds a construct the reader rejects; see
+                :func:`decode_json_container`.
         """
         if not _is_text_stream(stream):
-            buf = io.StringIO(stream.read().decode("utf-8"))
-            stream = buf
-        repeated: list[str] = []
+            stream = io.StringIO(stream.read().decode("utf-8"))
         hook = _repeated_key_hook(
-            repeated, args.pop("object_hook", None), args.pop("object_pairs_hook", None)
+            ProvJSONException,
+            args.pop("object_hook", None),
+            args.pop("object_pairs_hook", None),
         )
         container = json.load(stream, object_pairs_hook=hook, **args)
-        for key in repeated:
-            _warn_rejection(
-                f"the key {key!r} is repeated in a JSON object; the last value is used",
-                issue=532,
-            )
-        # Decoded here, not in json.load(), so that a warning names the caller's line.
         document = ProvDocument()
         decode_json_document(container, document)
         return document
-
-
-def _repeated_key_hook(
-    repeated: list[str],
-    object_hook: Callable[[dict[str, Any]], Any] | None,
-    object_pairs_hook: Callable[[list[tuple[str, Any]]], Any] | None,
-) -> Callable[[list[tuple[str, Any]]], Any]:
-    """Return a ``json`` ``object_pairs_hook`` that records each repeated key
-    in ``repeated`` and then hands the object to the caller's own hook."""
-
-    def hook(pairs: list[tuple[str, Any]]) -> Any:
-        obj = dict(pairs)
-        if len(obj) < len(pairs):
-            counts = Counter(key for key, _ in pairs)
-            repeated.extend(key for key, count in counts.items() if count > 1)
-        if object_pairs_hook is not None:
-            return object_pairs_hook(pairs)
-        return object_hook(obj) if object_hook is not None else obj
-
-    return hook
 
 
 class ProvJSONEncoder(json.JSONEncoder):
@@ -192,7 +169,7 @@ class ProvJSONEncoder(json.JSONEncoder):
 class ProvJSONDecoder(json.JSONDecoder):
     """``json.JSONDecoder`` that decodes PROV-JSON into a :class:`~prov.model.ProvDocument`.
 
-    Used directly with :func:`json.loads`, it does not warn about repeated keys;
+    Used directly with :func:`json.loads`, it does not check for repeated keys;
     :meth:`ProvJSONSerializer.deserialize` does.
     """
 
