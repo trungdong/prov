@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import shutil
+import tempfile
 
 import pytest
 
@@ -16,6 +17,7 @@ from prov.constants import PROV, PROV_INTERNATIONALIZEDSTRING, XSD
 from prov.identifier import Namespace
 from prov.model import (
     PROV_TYPE,
+    PROV_VALUE,
     Literal,
     NamespaceManager,
     ProvBundle,
@@ -735,6 +737,42 @@ def test_deserialize_without_source_or_content_raises_type_error() -> None:
         ProvDocument.deserialize()
 
 
+def test_serialize_writes_to_named_temporary_file(doc, tmp_path, monkeypatch) -> None:
+    # #240: a writable that is not an io.IOBase, such as NamedTemporaryFile's
+    # wrapper, is a stream, not a path.
+    monkeypatch.chdir(tmp_path)  # any junk repr-named file would land here
+    doc.entity("ex:e1")
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".json", dir=tmp_path, delete=False
+    ) as stream:
+        doc.serialize(stream, format="json")
+        name = stream.name
+    assert ProvDocument.deserialize(name, format="json") == doc
+    junk = [p for p in os.listdir(tmp_path) if p.startswith("<")]
+    assert junk == []
+
+
+def test_deserialize_reads_from_named_temporary_file(doc, tmp_path) -> None:
+    # #240, the read side: any object with read() is accepted as a stream.
+    doc.entity("ex:e1")
+    with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", dir=tmp_path) as stream:
+        stream.write(doc.serialize(format="json"))
+        stream.flush()
+        stream.seek(0)
+        assert ProvDocument.deserialize(stream, format="json") == doc
+
+
+def test_serialize_xml_to_text_mode_named_temporary_file(doc, tmp_path) -> None:
+    # #240 as filed: a text-mode NamedTemporaryFile and format="xml", which
+    # also needs the serializer to recognise the wrapper as a text stream.
+    pytest.importorskip("lxml")
+    doc.entity("ex:e1")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".xml", dir=tmp_path) as stream:
+        doc.serialize(stream, format="xml")
+        stream.flush()
+        assert ProvDocument.deserialize(stream.name, format="xml") == doc
+
+
 # The following cover ProvDocument.__eq__'s bundle-comparison early-outs and
 # unified()'s no-bundles loop (planning/test-gap-checklist.md, T13 item under
 # model.py).
@@ -896,3 +934,33 @@ def test_add_record_override_runs_once_per_record() -> None:
 
     counting.update(document)
     assert counting.added == 2
+
+
+# PROV-DM marks these inputs non-conformant and prov accepts them: a scruffy
+# statement is legal at assertion, and validation is opt-in (#257, #62).
+
+
+def test_multiple_prov_value_attributes_accepted(doc) -> None:
+    # PROV-DM 5.7.2.5 allows prov:value at most once
+    entity = doc.entity("ex:e1", {PROV_VALUE: 1})
+    entity.add_attributes({PROV_VALUE: 2})
+    assert entity.value == {1, 2}
+
+
+def test_non_string_prov_label_accepted(doc) -> None:
+    # PROV-DM 5.7.2.1 requires prov:label to be a string
+    entity = doc.entity("ex:e1", {"prov:label": 42})
+    assert entity.label == "42"
+
+
+def test_mandatory_formal_attribute_none_silently_dropped(doc) -> None:
+    # PROV-DM 5.1.3 requires a generated entity; a None value is skipped
+    record = doc.generation(None)  # type: ignore[arg-type]
+    assert record.get_provn() == "wasGeneratedBy(-, -, -)"
+
+
+def test_at_least_one_of_rule_not_enforced(doc) -> None:
+    # PROV-DM 5.1.3: at least one of id, activity, time, attributes must be
+    # present alongside the entity
+    record = doc.generation("ex:e1")
+    assert record.get_provn() == "wasGeneratedBy(ex:e1, -, -)"

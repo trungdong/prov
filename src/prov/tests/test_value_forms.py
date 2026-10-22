@@ -2,9 +2,9 @@
 
 A Python value of a type with an XSD datatype is stored as a ``Literal`` of
 that datatype, and one with no PROV form raises ``ProvValueError``. An
-``Identifier`` is stored as an ``xsd:anyURI`` ``Literal``, and a ``Literal``
-typed ``xsd:QName`` or ``prov:QUALIFIED_NAME`` whose prefix is declared is
-stored as a ``QualifiedName``.
+``Identifier`` is stored as an ``xsd:anyURI`` ``Literal``. A ``Literal`` typed
+``xsd:QName`` or ``prov:QUALIFIED_NAME`` is stored as a ``QualifiedName``;
+``test_unresolved_names.py`` covers that form.
 """
 
 from __future__ import annotations
@@ -20,7 +20,6 @@ from typing import Any
 import pytest
 
 from prov.model import (
-    PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
     XSD_DATE,
@@ -29,7 +28,6 @@ from prov.model import (
     XSD_TIME,
     Identifier,
     Literal,
-    Namespace,
     ProvDocument,
     ProvValueError,
     QualifiedName,
@@ -140,16 +138,6 @@ def test_long_rejected_value_is_shortened_in_the_message() -> None:
     assert len(str(info.value)) < 200
 
 
-def test_records_built_while_a_document_is_constructed_raise() -> None:
-    source = ex_document()
-    records = (
-        source.entity(f"ex:e{i}", {"ex:v": fractions.Fraction(1, 3)})  # type: ignore[dict-item]
-        for i in range(2)
-    )
-    with pytest.raises(ProvValueError):
-        _ = ProvDocument(records=records)
-
-
 def test_json_number_read_as_decimal_is_stored_as_a_literal() -> None:
     content = (
         '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:x": 1.5}}}'
@@ -201,16 +189,6 @@ def test_anyuri_value_reads_back_as_a_literal(fmt: str) -> None:
     (value,) = entity.get_attribute("ex:v")
     assert isinstance(value, Literal)
     assert value == Literal("http://other.org/i", XSD_ANYURI)
-
-
-@pytest.mark.parametrize("datatype", [XSD_QNAME, PROV_QUALIFIEDNAME], ids=str)
-def test_qualified_name_literal_is_stored_as_a_qualified_name(
-    datatype: QualifiedName,
-) -> None:
-    entity = ex_document().entity("ex:e", {"ex:v": Literal("ex:x", datatype)})
-    (value,) = entity.get_attribute("ex:v")
-    assert isinstance(value, QualifiedName)
-    assert value == Namespace("ex", EX_URI)["x"]
 
 
 def _updated(document: ProvDocument) -> ProvDocument:

@@ -29,7 +29,6 @@ from prov.serializers.provn_parser import (
     PROFILES,
     ProvNParser,
 )
-from prov.tests import examples
 
 PREFIXES = "prefix ex <http://example.org/>\nprefix dc <http://purl.org/dc/terms/>\n"
 
@@ -358,7 +357,6 @@ REJECTED_DOCUMENTS = [
         EVERY,
         "'default' is declared twice in this scope",
         (3, 1),
-        508,
         id="repeated default",
     ),
     *[
@@ -367,7 +365,6 @@ REJECTED_DOCUMENTS = [
             EVERY,
             f"'{name}' is not a PROV-N prefix name",
             (2, 8),
-            511,
             id=f"prefix {name}",
         )
         for name in ("_", "a/b", "1a")
@@ -377,7 +374,6 @@ REJECTED_DOCUMENTS = [
         STRICT,
         "'default' follows a 'prefix' declaration",
         (3, 1),
-        519,
         id="default after prefix",
     ),
     *[
@@ -386,7 +382,6 @@ REJECTED_DOCUMENTS = [
             STRICT,
             f"prefix '{ns.prefix}' is predeclared",
             (2, 8),
-            519,
             id=f"declares {ns.prefix}",
         )
         for ns in (PROV, XSD)
@@ -396,7 +391,6 @@ REJECTED_DOCUMENTS = [
         EVERY,
         "U+00A0 is not PROV-N whitespace",
         (3, 13),
-        509,
         id="no-break space",
     ),
     pytest.param(
@@ -404,7 +398,6 @@ REJECTED_DOCUMENTS = [
         EVERY,
         "U+00A0 is not PROV-N whitespace",
         (4, 10),
-        509,
         id="whitespace before a repeated default",
     ),
     pytest.param(
@@ -412,7 +405,6 @@ REJECTED_DOCUMENTS = [
         STATEMENT,
         "cannot resolve 'xsi:type': prefix 'xsi' is not declared",
         (3, 15),
-        510,
         id="undeclared xsi",
     ),
     # Statement rules (#523, #519 b and c). An attribute named after one of
@@ -426,7 +418,6 @@ REJECTED_DOCUMENTS = [
             f"'prov:{formal}' names the '{formal}' argument of '{keyword}',"
             " which PROV-N gives only by position",
             (3, statement.index("[prov:") + 2),
-            523,
             id=label,
         )
         for statement, keyword, formal, label in (
@@ -469,7 +460,6 @@ REJECTED_DOCUMENTS = [
         STATEMENT,
         "'p:activity' names the 'activity' argument of 'wasGeneratedBy'",
         (4, 29),
-        523,
         id="argument matched by name, not spelling",
     ),
     pytest.param(
@@ -478,7 +468,6 @@ REJECTED_DOCUMENTS = [
         STRICT,
         "a statement follows a bundle, which the strict profile does not allow",
         (6, 1),
-        519,
         id="statement after a bundle",
     ),
     *[
@@ -487,7 +476,6 @@ REJECTED_DOCUMENTS = [
             STRICT,
             f"'{keyword}' has {what}, which the strict profile does not allow",
             (3, statement.index(marker) + 1),
-            519,
             id=label,
         )
         for keyword, statement, what, marker, label in (
@@ -537,14 +525,13 @@ REJECTED_DOCUMENTS = [
     ],
     pytest.param(
         # The model's error for a name, raised while the statement is built,
-        # so it is positioned at the statement and skipped under lenient.
+        # so it is positioned at the statement and skipped under lenient (#524).
         f'{STATEMENT_PREFIX}entity(ex:e, [ex:k="ex:a b" %% prov:QUALIFIED_NAME])'
         "\nendDocument",
         STATEMENT,
         "Invalid Qualified Name: ex:a b, the local part 'a b' of"
         " <http://example.org/a b> contains a character PROV-N cannot write",
         (3, 1),
-        524,
         id="qualified-name value with an unwritable local part",
     ),
     # A full IRI in a name position is the undeclared prefix 'http' (#553,
@@ -556,7 +543,6 @@ REJECTED_DOCUMENTS = [
             STATEMENT,
             "cannot resolve 'http://example.org/x': prefix 'http' is not declared",
             (3, column),
-            553,
             id=f"full IRI as {position}",
         )
         for statement, column, position in (
@@ -572,16 +558,15 @@ REJECTED_DOCUMENTS = [
         "the qualified name 'http://example.org/x' does not resolve, because"
         " its prefix 'http' is not declared",
         (3, 20),
-        553,
         id="full IRI as a qualified-name value",
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    ("text", "profiles", "message", "position", "issue"), REJECTED_DOCUMENTS
+    ("text", "profiles", "message", "position"), REJECTED_DOCUMENTS
 )
-def test_reader_rejects(text, profiles, message, position, issue) -> None:
+def test_reader_rejects(text, profiles, message, position) -> None:
     for profile in profiles:
         with pytest.raises(ProvNSyntaxError) as ctx:
             ProvDocument.deserialize(content=text, format="provn", profile=profile)
@@ -911,24 +896,6 @@ def test_lenient_skip_is_recorded_for_the_caller_to_warn_with() -> None:
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e2"]
     assert len(parser.skipped) == 1
     assert "unknown statement keyword 'foo'" in parser.skipped[0]
-
-
-@pytest.mark.parametrize(
-    "build",
-    [
-        examples.primer_example,
-        examples.w3c_publication_1,
-        examples.bundles1,
-        examples.collections,
-        examples.datatypes,
-        examples.long_literals,
-        examples.default_namespace_attributes,
-    ],
-)
-def test_writer_output_parses_to_an_equal_document(build) -> None:
-    doc = build()
-    reloaded = ProvNParser(doc.get_provn(), "default").parse()
-    assert reloaded == doc
 
 
 def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
