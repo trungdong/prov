@@ -162,6 +162,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvJSONException` is not a `ProvException`, so code that handles both catches
   `prov.Error`
   ([#551](https://github.com/trungdong/prov/issues/551))
+- `get_records(cls)` returns a list, as `get_records()` with no argument always did, where
+  it returned a one-shot iterator. Code that consumed the result once and relied on it being
+  exhausted can wrap it in `iter()`
+  ([#491](https://github.com/trungdong/prov/issues/491))
 
 ### Output changes
 

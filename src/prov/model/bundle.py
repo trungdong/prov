@@ -10,8 +10,8 @@ import re
 import shutil
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable
-from typing import Any, cast
+from collections.abc import Iterable, ValuesView
+from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
 from prov import serializers
@@ -381,6 +381,9 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecor
     return merged_records
 
 
+_R = TypeVar("_R", bound=ProvRecord)
+
+
 class ProvBundle:
     """PROV Bundle"""
 
@@ -536,9 +539,20 @@ class ProvBundle:
         else:
             raise ProvExceptionInvalidQualifiedName(identifier)
 
+    @overload
+    def get_records(self, class_or_type_or_tuple: None = None) -> list[ProvRecord]: ...
+
+    @overload
+    def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
+
+    @overload
     def get_records(
-        self, class_or_type_or_tuple: type | tuple[type] | None = None
-    ) -> Iterable[ProvRecord]:
+        self, class_or_type_or_tuple: tuple[type, ...]
+    ) -> list[ProvRecord]: ...
+
+    def get_records(
+        self, class_or_type_or_tuple: type | tuple[type, ...] | None = None
+    ) -> list[Any]:
         """Return the bundle's records, optionally filtered by type.
 
         Args:
@@ -547,14 +561,15 @@ class ProvBundle:
                 (default: ``None``, meaning all records).
 
         Returns:
-            The matching :class:`ProvRecord` objects (a list when unfiltered,
-            otherwise a filter iterator).
+            A new list of the matching :class:`ProvRecord` objects.
         """
-        results = list(self._records)  # make a (shallow) copy of the record list
         if class_or_type_or_tuple:
-            return filter(lambda rec: isinstance(rec, class_or_type_or_tuple), results)
-        else:
-            return results
+            return [
+                record
+                for record in self._records
+                if isinstance(record, class_or_type_or_tuple)
+            ]
+        return list(self._records)
 
     def get_record(self, identifier: QualifiedNameCandidate) -> list[ProvRecord]:
         """Return all records matching a given identifier.
@@ -583,7 +598,7 @@ class ProvBundle:
         return False
 
     @property
-    def bundles(self) -> Iterable[ProvBundle]:
+    def bundles(self) -> ValuesView[ProvBundle]:
         """The bundles contained in this object.
 
         Raises:
@@ -1788,7 +1803,7 @@ class ProvDocument(ProvBundle):
         return len(self._bundles) > 0
 
     @property
-    def bundles(self) -> Iterable[ProvBundle]:
+    def bundles(self) -> ValuesView[ProvBundle]:
         """The bundles contained in this document."""
         return self._bundles.values()
 
