@@ -223,7 +223,8 @@ The bot supplies the version, sha256 and build number and re-renders. Review the
 dependencies: conda has no extras, so by convention the recipe stays full-featured and
 mirrors the `rdf`/`xml`/`dot`/`graph` extras as hard dependencies.
 
-If the bot's rerender touched `.github/workflows/`, see "The `gh` token and the `workflow` scope" above before merging.
+If the bot's rerender touched `.github/workflows/`, see "The `gh` token and the
+`workflow` scope" above before merging.
 
 ## 7. Close out
 
@@ -235,25 +236,30 @@ If the bot's rerender touched `.github/workflows/`, see "The `gh` token and the 
 
 ## Raising the Python floor
 
-Done once per interpreter end of life, in its own PR, first in the release's series so
-that every later PR builds on the new floor. 3.3.0 raised it from 3.10 to 3.11. The
-places that name the floor:
+Raise the floor once per interpreter end of life, in its own PR, first in the release's
+series, so that every later PR builds on the new floor. 3.3.0 raised it from 3.10 to
+3.11. The places that name the floor:
 
 - `pyproject.toml`: `requires-python`, the classifier line for the dropped version,
-  ruff's `target-version` and mypy's `python_version`; then `uv lock`, and
-  `ruff check --fix src/ benchmarks/` with a review of what the `UP` rules rewrite.
+  ruff's `target-version` and the comment on its `UP` rules, and mypy's
+  `python_version`; then `uv lock`, and `ruff check --fix src/ benchmarks/` with a
+  review of what the `UP` rules rewrite.
+- `pyrightconfig.json`: `pythonVersion`.
 - `.github/workflows/CI.yml`: the matrix and the Coveralls `carryforward` list.
-- The interpreter loops in `Makefile`, `CLAUDE.md`, `CONTRIBUTING.md` and this runbook.
+- The interpreter loops in `Makefile`, `CLAUDE.md`, `CONTRIBUTING.md` and this runbook,
+  and the sentence in `CONTRIBUTING.md` on the versions a pull request must pass on.
 - `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
+- `ROADMAP.md`'s support-policy paragraph, in the release PR.
 - `SECURITY.md`, which says what each supported line requires, in the release PR.
 - `main`'s branch protection, which requires the dropped version's `pytest` check until
   the PR that removes it from the matrix is about to merge.
 
 Code that worked around the old interpreter goes in the same PR, with its tests.
 
-On conda-forge, the recipe inherits the global pin and has no floor of its own, so add
-`{% set python_min = "3.11" %}` at the top of `recipe/meta.yaml` on the bot's bump PR
-and rerender; the bot bumps the version, not the floor.
+On conda-forge, the bot's bump PR changes the version, not the floor. On that PR, set
+`{% set python_min = "X.Y" %}` at the top of `recipe/meta.yaml` to the new floor and
+rerender. 3.3.0 added the line; until then the recipe inherited conda-forge's global
+pin.
 
 After publishing, two checks beyond section 5:
 

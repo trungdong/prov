@@ -1,20 +1,21 @@
 # Prepare for prov 3.3.0
 
 `prov` 3.3.0 rejects some input that 3.2.x read, and reads a few other inputs
-differently. This guide lists each error, the input that causes it and what to write
-instead. On `prov` 3.2.3, the same page at
+differently. This guide lists each error and warning, the input that causes it and what
+to write instead. On `prov` 3.2.3, the same page at
 <https://prov.readthedocs.io/en/3.2.3/howto/prepare-for-3-3.html> describes the warnings
-that release raises for the same inputs.
+that release raises for most of the same inputs.
 
 ## On 3.2.3, turn the warnings into errors first
 
-`prov` 3.2.3 warns about each input this page lists with a
+`prov` 3.2.3 warns about most of the inputs this page lists with a
 {py:class}`~prov.model.ProvFutureRejectionWarning`, a subclass of
-{py:class}`~prov.model.ProvWarning`, and still reads it as before. To find every such
-input in your documents and code before upgrading, run 3.2.3 with that class turned into
-an error. An `error` filter on the subclass raises at the first such message and leaves
-the other `ProvWarning`s alone, such as the statements the `lenient` PROV-N profile
-skips.
+{py:class}`~prov.model.ProvWarning`, and still reads them as before. To find those
+inputs in your documents and code before upgrading, run 3.2.3 with that class turned
+into an error. The sections below name the inputs 3.2.3 read without a warning, which
+the filter cannot find. An `error` filter on the subclass raises at the first such
+message and leaves the other `ProvWarning`s alone, such as the statements the `lenient`
+PROV-N profile skips.
 
 When running pytest:
 
@@ -48,12 +49,12 @@ the upgrade and can then be removed. 4.0 removes the class.
 
 ## Read the message
 
-A message from a reader starts with the position of the input: the line and column in
-PROV-N, or the record identifier and attribute name in PROV-JSON. A message about a
-language tag, a local part, a Python value or a time offset beyond ±14:00 comes from the
-model, wherever the value was read or built, so it names the value instead. So does a
-message about a qualified-name value built in code or read from PROV-JSONLD or RDF. A
-message from `unified()` starts with the identifier of the records it cannot merge.
+A message from a reader starts with the position of the input, which is the line and
+column in PROV-N, or the record identifier and attribute name in PROV-JSON. A message
+about a language tag, a local part, a Python value or a time offset beyond ±14:00 comes
+from the model, wherever the value was read or built, so it names the value instead. So
+does a message about a qualified-name value built in code or read from PROV-JSONLD or
+RDF. A message from `unified()` names the identifier of the records it cannot merge.
 
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects with its own `ProvJSONException`, `ProvJSONLDException` or
