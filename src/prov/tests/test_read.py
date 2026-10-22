@@ -360,7 +360,7 @@ def test_read_explicit_format_nonexistent_path_warns_raw_content_hint() -> None:
 def test_read_explicit_format_valid_raw_content_emits_no_warning(document) -> None:
     content = document.serialize(format="json")
     with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvWarning)
+        warnings.simplefilter("error")
         assert prov.read(content, format="json") == document
 
 
@@ -416,7 +416,7 @@ def test_auto_detection_forwards_rdf_options(document) -> None:
 def test_unknown_option_for_an_explicit_format_is_a_clear_type_error(document) -> None:
     text = document.serialize(format="json")
     with warnings.catch_warnings():
-        warnings.simplefilter("error", ProvWarning)
+        warnings.simplefilter("error")
         with pytest.raises(
             TypeError, match="'json' deserializer accepts no option 'profile'"
         ):
