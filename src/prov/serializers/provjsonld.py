@@ -753,7 +753,10 @@ class ProvJSONLDSerializer(Serializer):
             "parse_constant",
         }
     )
-    """The :func:`json.load` options :meth:`deserialize` forwards."""
+    """The :func:`json.load` options :meth:`deserialize` forwards.
+
+    ``object_hook`` and ``object_pairs_hook`` receive each object after the
+    check for repeated keys."""
 
     def serialize(self, stream: io.IOBase, **args: Any) -> None:
         """Serialize ``self.document`` to `PROV-JSONLD <https://www.w3.org/submissions/prov-jsonld/>`_.

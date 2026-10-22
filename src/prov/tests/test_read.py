@@ -192,8 +192,9 @@ def test_read_empty_string_raises_type_error() -> None:
 
 def test_read_garbage_content_raises_type_error() -> None:
     # A str that is not an existing file path is treated as raw content.
-    with pytest.raises(TypeError):
-        prov.read("no/such/file.json")
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read("no/such/file.json")
+    assert ctx.value.__cause__ is None
 
 
 # -- a rejected input reports the reader's error as the TypeError's cause ----
@@ -248,9 +249,11 @@ def test_read_auto_detect_chains_the_readers_error(
     assert re.search(match, str(ctx.value.__cause__))
 
 
-def test_read_auto_detect_chains_nothing_for_unrecognised_content() -> None:
+def test_read_auto_detect_chains_nothing_for_an_error_of_another_type() -> None:
+    # A truncated document fails in the JSON parser, before the PROV-JSON
+    # reader raises an error of its own.
     with pytest.raises(TypeError) as ctx:
-        _ = prov.read("no/such/file.json")
+        _ = prov.read('{"prefix": {"ex": "http://example.org/"}, "entity": ')
     assert ctx.value.__cause__ is None
 
 

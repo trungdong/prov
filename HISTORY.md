@@ -126,8 +126,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#532](https://github.com/trungdong/prov/issues/532))
 - `prov.read()` without `format=` raises its `TypeError` from the error of the reader the
   content's first character names, when that reader is PROV-JSON, PROV-JSONLD or PROV-N
-  and rejected the input, so the traceback shows the rule and its position. Pass `format=`
-  to get that error on its own
+  and rejected the input with its own `ProvJSONException`, `ProvJSONLDException` or
+  `ProvNSyntaxError`, so the traceback shows the rule and its position. An error from the
+  model, such as the one for an undeclared prefix in PROV-JSONLD, is not chained. Pass
+  `format=` to get either error on its own
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`
   gains a `detail` attribute and prints it after the name
@@ -153,6 +155,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `ProvNParser` no longer has a `warnings` attribute; the PROV-N reader raises where 3.2.3
   recorded a message
   ([#586](https://github.com/trungdong/prov/issues/586))
+- `prov.serializers.provjson.valid_qualified_name(bundle, value)` is removed;
+  `bundle.valid_qualified_name(value)`, which it called, does the same
 - The PROV-JSON reader raises a `ProvJSONException` naming the record and attribute for a
   record key or attribute name whose prefix is not declared, where 3.2.x raised the
   model's `ProvElementIdentifierRequired` or `ProvExceptionInvalidQualifiedName`.

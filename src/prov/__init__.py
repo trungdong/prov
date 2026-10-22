@@ -69,9 +69,10 @@ def _head(
     stream: IO[Any] | None,
     start_pos: int | None,
 ) -> str | None:
-    """The first 4096 characters of the input, for naming the reader whose
-    error ``_detect_and_parse`` chains, or ``None`` when a non-seekable
-    stream was consumed or the input cannot be read again."""
+    """The first 4096 characters of the input (4096 bytes decoded as UTF-8
+    for bytes content, a binary stream or a path), for naming the reader
+    whose error ``_detect_and_parse`` chains, or ``None`` when a
+    non-seekable stream was consumed or the input cannot be read again."""
     try:
         if content is not None:
             head: str | bytes = content[:4096]
@@ -139,14 +140,14 @@ def _detect_and_parse(
 
     # Failed-candidate diagnostics (e.g. rdflib's "does not look like a
     # valid URI" logger warnings) are noise by definition here: every
-    # candidate's exception is swallowed below, and only the rejection of the
-    # reader the content names is chained as the TypeError's cause. Raise
-    # rdflib's logger level for the duration of auto-detection only -- the explicit-format
-    # path in read() is unaffected and still shows real diagnostics. Note
-    # this mutation is process-global and not thread-safe: two concurrent
-    # auto-detecting read() calls can race on the level, but the impact is
-    # bounded to transient log noise, so a Filter/thread-local would be
-    # more machinery than warranted.
+    # candidate's exception is swallowed below, and only the rejection of
+    # the reader the content names is chained as the TypeError's cause.
+    # Raise rdflib's logger level for the duration of auto-detection only
+    # -- the explicit-format path in read() is unaffected and still shows
+    # real diagnostics. Note this mutation is process-global and not
+    # thread-safe: two concurrent auto-detecting read() calls can race on
+    # the level, but the impact is bounded to transient log noise, so a
+    # Filter/thread-local would be more machinery than warranted.
     rdflib_term_logger = logging.getLogger("rdflib.term")
     previous_level = rdflib_term_logger.level
     rdflib_term_logger.setLevel(logging.ERROR)
@@ -182,7 +183,7 @@ def _detect_and_parse(
                     document = ProvDocument.deserialize(
                         source=src, content=content, format=format, **candidate_kwargs
                     )
-                except Exception as exc:  # nosec B112 - nosemgrep
+                except Exception as exc:  # nosemgrep
                     # Any failure from a candidate deserializer means "not
                     # this format"; the error is kept for the cause below.
                     errors[format] = exc

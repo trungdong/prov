@@ -53,9 +53,11 @@ wherever the value was read or built, so it names the value instead. So does a
 message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
 A message from `unified()` starts with the identifier of the records it merges.
 
-With `prov.read()` and no `format=`, a rejected PROV-JSON, PROV-JSONLD or PROV-N input
-raises `TypeError`, whose `__cause__` is the reader's error with the rule and its
-position. Pass `format=` to see the rule on its own.
+With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
+reader rejects with its own `ProvJSONException`, `ProvJSONLDException` or
+`ProvNSyntaxError` raises `TypeError`, whose `__cause__` is that error with the rule and
+its position. An error from the model, such as the one for an undeclared prefix in
+PROV-JSONLD, is not chained. Pass `format=` to see the rule on its own.
 
 A PROV-N read emits its messages in three groups: the model's messages, as the
 parse runs, then the reader's messages about whitespace, then the reader's other

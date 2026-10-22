@@ -402,7 +402,7 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             keyword; if a record's content is not a JSON object or a list of
             JSON objects; or for any record key, attribute name or value the
             reader rejects. The how-to (``docs/howto/prepare-for-3-3.md``)
-            lists each error with its message.
+            lists the errors 3.3.0 adds, with their messages.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -495,8 +495,8 @@ def _decode_record_instance(
     Raises:
         ProvJSONException: For an attribute name, a formal attribute value, a
             member or an attribute value the reader rejects; the how-to
-            (``docs/howto/prepare-for-3-3.md``) lists each error with its
-            message.
+            (``docs/howto/prepare-for-3-3.md``) lists the errors 3.3.0 adds,
+            with their messages.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []

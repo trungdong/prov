@@ -266,6 +266,14 @@ def test_caller_object_pairs_hook_still_sees_every_pair() -> None:
     _ = prov.read(text, format="json", object_pairs_hook=object_pairs_hook)
     assert [("ex:k", "a")] in seen
 
+    seen.clear()
+    repeated = f'{{{_PREFIX}, "entity": {{"ex:e": {{"ex:k": "a", "ex:k": "b"}}}}}}'
+    with pytest.raises(
+        ProvJSONException, match=r"^the key 'ex:k' is repeated in a JSON object$"
+    ):
+        _ = prov.read(repeated, format="json", object_pairs_hook=object_pairs_hook)
+    assert [("ex:k", "a"), ("ex:k", "b")] not in seen
+
 
 def test_json_decoder_decodes_a_document() -> None:
     text = _json({"entity": {"ex:e": {"ex:k": "a"}}})
