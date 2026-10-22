@@ -1,11 +1,9 @@
 """Shared attribute-value corpus for the attribute round-trip tests.
 
-`ATTRIBUTE_VALUES` is the canonical list of datatypes exercised by
-``test_attributes.py`` (pytest-native) and by the legacy
-``TestAttributesBase`` mixin (still consumed by the not-yet-migrated
-xml/rdf/dot modules). Keep the entries and their order stable: some tests
-(e.g. ``test_attributes.py``, ``test_xml_schema.py``) reference individual
-values by index (e.g. index 8 is the ``xsd:decimal`` case).
+``ATTRIBUTE_VALUES`` is the list of datatypes ``test_attributes.py`` feeds
+through every target. Keep the entries and their order stable: some tests
+(``test_attributes.py``, ``test_xml_schema.py``) reference values by index,
+and index 8 is the ``xsd:decimal`` case.
 """
 
 import datetime

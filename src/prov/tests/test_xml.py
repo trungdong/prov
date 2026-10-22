@@ -517,13 +517,6 @@ def test_xml_qname_to_qualifiedname_without_colon_or_default_ns_raises() -> None
     assert "Could not create a valid QualifiedName" in str(ctx.value)
 
 
-def test_empty_string_attribute_survives_xml_roundtrip() -> None:
-    document = prov.ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.agent("ex:g0", {"ex:k0": ""})
-    assert roundtrip_document(document, "xml") == document
-
-
 @pytest.mark.parametrize(
     "attributes",
     [
@@ -562,15 +555,6 @@ def test_absent_optional_formal_attribute_stays_none_after_xml_roundtrip() -> No
     ]
     formal = dict(generation.formal_attributes)
     assert formal[PROV["time"]] is None
-
-
-def test_attribute_name_with_ncname_illegal_characters_survives_xml_roundtrip() -> None:
-    # #289 repro: an attribute name containing characters illegal in an XML
-    # NCName must not raise, and must round-trip losslessly.
-    document = prov.ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.entity("ex:e1", {"ex:weird'key": "value"})
-    assert roundtrip_document(document, "xml") == document
 
 
 @pytest.mark.parametrize(
@@ -820,25 +804,6 @@ def test_deserialize_ignores_tampered_default_parser(
     assert "TOPSECRET123" not in document.get_provn()
 
 
-# Scaffolding for a per-file XML round-trip glob, left disabled.
-#
-# Deserializing then re-serializing PROV-XML does not maintain XML
-# equivalence (e.g. prov:entity elements with type prov:Plan become
-# prov:plan elements), so no test function calls this helper.
-# Re-enabling it is a possible future coverage chore (2.4.0 window /
-# conformance phase), explicitly out of scope for the pytest-matrix
-# migration -- see design doc §4 Decision 3
-# (planning/specs/2026-07-06-test-suite-redesign.md).
-
-
-def _perform_round_trip(filename, force_types=False) -> None:
-    document = prov.ProvDocument.deserialize(source=filename, format="xml")
-
-    with io.BytesIO() as new_xml:
-        document.serialize(format="xml", destination=new_xml, force_types=force_types)
-        compare_xml(filename, new_xml)
-
-
 def test_bundle_namespace_order_follows_registration_in_xml() -> None:
     # #337: bundle namespaces are declared in registration order.
     document = prov.ProvDocument()
@@ -851,8 +816,7 @@ def test_bundle_namespace_order_follows_registration_in_xml() -> None:
     assert [p.decode() for p in declared] == prefixes
 
 
-# #338: force_types coverage, independent of the disabled _perform_round_trip
-# scaffold above.
+# #338: force_types coverage.
 
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
 FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/prov#"}

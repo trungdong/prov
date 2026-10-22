@@ -1,10 +1,5 @@
-"""Pytest-native shared qualified-name / namespace round-trip tests.
-
-Migrated from the ``TestQualifiedNamesBase`` mixin (``qnames.py``): each test
-method becomes a module-level function taking the ``roundtrip`` fixture, run
-once per target in ``SHARED_TARGETS``. The legacy mixin remains for the
-not-yet-migrated xml/rdf/dot modules.
-"""
+"""Shared qualified-name and namespace round-trip tests, run once per target
+in ``SHARED_TARGETS``."""
 
 import pytest
 

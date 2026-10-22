@@ -1,30 +1,28 @@
-"""Pytest-native shared example round-trip test.
+"""Shared example round-trip test: every canonical document of ``examples.py``
+through every target in ``SHARED_TARGETS``."""
 
-Migrated from the ``TestExamplesBase`` mixin (in ``test_model.py``): a single
-function loops over the canonical ``examples.tests`` documents and round-trips
-each, run once per target in ``SHARED_TARGETS``. It is kept as one looping node
-per target (not expanded per example) to preserve the collected-count parity
-baseline; per-example isolation is a deferred improvement. The legacy mixin
-remains for the not-yet-migrated ``test_dot.py``.
-"""
+from collections.abc import Callable
 
 import pytest
 
+from prov.model import ProvDocument
 from prov.serializers.provjsonld import ProvJSONLDException
 from prov.tests import examples
 
-from .conftest import contains_mention
+from .conftest import Roundtrip, contains_mention
+
+EXAMPLES = [pytest.param(build, id=name) for name, build in examples.tests]
 
 
-def test_all_examples(roundtrip, fmt) -> None:
-    for _name, build in examples.tests:
-        document = build()
-        # PROV-JSONLD defines no Mention term (permanent, documented
-        # limitation, like the test_mention_1/test_mention_2 cases in
-        # test_statements.py — see docs/reference/conformance.md), so a
-        # mention-bearing example is expected to raise rather than round-trip.
-        if fmt == "jsonld" and contains_mention(document):
-            with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
-                roundtrip(document)
-            continue
-        roundtrip(document)
+@pytest.mark.parametrize("build", EXAMPLES)
+def test_example_round_trips(
+    roundtrip: Roundtrip, fmt: str, build: Callable[[], ProvDocument]
+) -> None:
+    document = build()
+    # PROV-JSONLD defines no Mention term (docs/reference/conformance.md), so
+    # a mention-bearing example raises rather than round-trips.
+    if fmt == "jsonld" and contains_mention(document):
+        with pytest.raises(ProvJSONLDException, match=r"[Mm]ention"):
+            _ = roundtrip(document)
+        return
+    roundtrip(document)

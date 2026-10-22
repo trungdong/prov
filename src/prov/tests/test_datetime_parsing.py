@@ -126,6 +126,12 @@ def test_factory_rejects_bad_time_with_prov_exception() -> None:
         document.activity("ex:a1", startTime="not a date")
 
 
+def test_factory_accepts_the_hour_24_form() -> None:
+    # #237: xsd:dateTime's end-of-day form reads as the next midnight.
+    activity = ex_document().activity("ex:a1", startTime="2011-11-16T24:00:00")
+    assert activity.get_startTime() == datetime.datetime(2011, 11, 17, 0, 0)
+
+
 def test_time_attributes_accept_a_typed_datetime_literal() -> None:
     document = ex_document()
     activity = document.activity(

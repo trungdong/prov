@@ -1,9 +1,11 @@
 import datetime
+from collections.abc import Callable
+from typing import Any
 
 from prov.model import PROV, XSD_ANYURI, Literal, Namespace, ProvDocument
 
 
-def primer_example():
+def primer_example() -> ProvDocument:
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/primer.pn
     # ===========================================================================
     # document
@@ -134,7 +136,7 @@ def primer_example():
     return g
 
 
-def primer_example_alternate():
+def primer_example_alternate() -> ProvDocument:
     g = ProvDocument(
         namespaces={
             "ex": "http://example/",
@@ -204,7 +206,7 @@ def primer_example_alternate():
     return g
 
 
-def w3c_publication_1():
+def w3c_publication_1() -> ProvDocument:
     # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/w3c-publication1.prov-asn
     # ===========================================================================
     # bundle
@@ -289,7 +291,7 @@ def w3c_publication_1():
     return g
 
 
-def w3c_publication_2():
+def w3c_publication_2() -> ProvDocument:
     # https://github.com/lucmoreau/ProvToolbox/blob/master/asn/src/test/resources/prov/w3c-publication2.prov-asn
     # ===========================================================================
     # bundle
@@ -364,7 +366,7 @@ def w3c_publication_2():
     return g
 
 
-def bundles1():
+def bundles1() -> ProvDocument:
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles1.provn
     # ===============================================================================
     # document
@@ -421,7 +423,7 @@ def bundles1():
     return g
 
 
-def bundles2():
+def bundles2() -> ProvDocument:
     # https://github.com/lucmoreau/ProvToolbox/blob/master/prov-n/src/test/resources/prov/bundles2.provn
     # ===========================================================================
     # document
@@ -479,7 +481,7 @@ def bundles2():
     return g
 
 
-def collections():
+def collections() -> ProvDocument:
     g = ProvDocument()
     ex = Namespace("ex", "http://example.org/")
 
@@ -490,12 +492,12 @@ def collections():
     return g
 
 
-def datatypes():
+def datatypes() -> ProvDocument:
     g = ProvDocument()
     ex = Namespace("ex", "http://example.org/")
     g.add_namespace(ex)
 
-    attributes = {
+    attributes: dict[str, Any] = {
         "ex:int": 100,
         "ex:float": 100.123456,
         "ex:long": 123456789000,
@@ -515,7 +517,7 @@ Line3"""
     return g
 
 
-def long_literals():
+def long_literals() -> ProvDocument:
     g = ProvDocument()
 
     long_uri = (
@@ -538,7 +540,7 @@ def long_literals():
     return g
 
 
-def default_namespace_attributes():
+def default_namespace_attributes() -> ProvDocument:
     # A document whose attributes live in the default namespace (JSON-LD
     # "@vocab"), including local parts that collide with PROV-JSONLD's
     # reserved bare terms ("type", "entity" -- see RESERVED_BARE_TERMS in
@@ -554,7 +556,7 @@ def default_namespace_attributes():
     return g
 
 
-tests = [
+tests: list[tuple[str, Callable[[], ProvDocument]]] = [
     ("Bundle1", bundles1),
     ("Bundle2", bundles2),
     ("Primer", primer_example),

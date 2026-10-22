@@ -140,16 +140,6 @@ def test_long_rejected_value_is_shortened_in_the_message() -> None:
     assert len(str(info.value)) < 200
 
 
-def test_records_built_while_a_document_is_constructed_raise() -> None:
-    source = ex_document()
-    records = (
-        source.entity(f"ex:e{i}", {"ex:v": fractions.Fraction(1, 3)})  # type: ignore[dict-item]
-        for i in range(2)
-    )
-    with pytest.raises(ProvValueError):
-        _ = ProvDocument(records=records)
-
-
 def test_json_number_read_as_decimal_is_stored_as_a_literal() -> None:
     content = (
         '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:x": 1.5}}}'

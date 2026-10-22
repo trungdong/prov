@@ -1,15 +1,15 @@
-"""Pytest-native shared scaffolding for the round-trip test matrix.
+"""Shared scaffolding for the round-trip test matrix.
 
-This replaces the old ``RoundTripTestCase``/``do_tests`` inheritance
-machinery. Each shared test (in ``test_statements.py``, ``test_attributes.py``,
+Each shared test (``test_statements.py``, ``test_attributes.py``,
 ``test_qnames.py``, ``test_examples.py``) builds a document and hands it to
-the ``roundtrip`` fixture, which is parametrized over ``SHARED_TARGETS`` so
-every case runs once per serialization format AND once under the
-non-serializing ``model`` target.
+the ``roundtrip`` fixture, which is parametrised over ``SHARED_TARGETS`` so
+every case runs once per serialisation format and once under the
+non-serialising ``model`` target.
 """
 
 import io
 import os
+from collections.abc import Callable
 
 import pytest
 from hypothesis import settings
@@ -34,9 +34,11 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld", "provn")
 # The full target axis: the round-trip formats PLUS a "model" target that
 # constructs the document, exercises PROV-N generation, and checks the
-# self-equality invariant WITHOUT serialization. The model axis preserves the
-# coverage the old RoundTripModelTest provided.
+# self-equality invariant WITHOUT serialization.
 SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)
+# What the ``roundtrip`` fixture returns: a check that a document survives
+# the current target and returns what came back.
+Roundtrip = Callable[[ProvDocument], ProvDocument]
 
 
 def contains_mention(doc: ProvDocument) -> bool:
@@ -62,18 +64,19 @@ def roundtrip_document(doc: ProvDocument, fmt: str) -> ProvDocument:
 
 
 @pytest.fixture(params=SHARED_TARGETS)
-def fmt(request):
+def fmt(request: pytest.FixtureRequest) -> str:
     """The target under test — "model" or a serialization format.
 
     Parametrizes every shared statement/attribute/qname/example case, so each
     runs once per round-trip format AND once under the non-serializing model
     target.
     """
-    return request.param
+    target: str = request.param
+    return target
 
 
 @pytest.fixture
-def roundtrip(fmt):
+def roundtrip(fmt: str) -> Roundtrip:
     """Return a ``_check(doc)`` callable that asserts ``doc`` survives its target.
 
     For a serialization format: serialize -> deserialize -> ``doc == reloaded``.
@@ -127,7 +130,9 @@ def add_ordered_namespaces(container: ProvBundle) -> list[str]:
     return list(ORDERED_NAMESPACE_PREFIXES)
 
 
-def pytest_assertrepr_compare(config, op, left, right):
+def pytest_assertrepr_compare(
+    config: pytest.Config, op: str, left: object, right: object
+) -> list[str] | None:
     """Readable diff for ``assert doc == reloaded`` on two ProvDocuments."""
     if op != "==" or not (
         isinstance(left, ProvDocument) and isinstance(right, ProvDocument)

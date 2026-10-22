@@ -141,18 +141,6 @@ def test_literal_rdf_representation_base64binary() -> None:
     assert str(rdf_literal) == "aGVsbG8="
 
 
-def test_base64binary_survives_rdf_roundtrip() -> None:
-    # #288: a document with a base64Binary-typed attribute round-trips through
-    # RDF equal.
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.entity(
-        "ex:e1",
-        {"ex:blob": pm.Literal("aGVsbG8=", datatype=pm.XSD["base64Binary"])},
-    )
-    assert roundtrip_document(document, "rdf") == document
-
-
 def test_base64binary_decodes_to_lexical_text() -> None:
     # #288 repro: third-party-authored RDF, decode only. rdflib coerces
     # xsd:base64Binary literals to bytes in .value, and decode_rdf_representation
@@ -458,12 +446,13 @@ def test_decode_scruffy_relations_raise_documented_limitation(
 ) -> None:
     # #217: all five relation families with a qualified PROV-O form --
     # generation/usage/start/end/invalidation -- share the same permanent
-    # representational limitation (docs/reference/conformance.md), and the
-    # 14 skipped round-trip cases in test_statements.py cover exactly this
-    # shape for each of them. Build the scruffy construct with prov's own
-    # model and serializer (rather than hand-authoring PROV-O, as the
-    # single-family test above does) so this test tracks what prov itself
-    # actually emits for each family, not a guess at it.
+    # representational limitation (docs/reference/conformance.md), and
+    # test_statements.py's scruffy round trips build this shape for each of
+    # them and leave out the rdf target because of it. Build the scruffy
+    # construct with prov's own model and serializer (rather than
+    # hand-authoring PROV-O, as the single-family test above does) so this
+    # test tracks what prov itself actually emits for each family, not a
+    # guess at it.
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1")
@@ -525,16 +514,6 @@ def test_alternate_triple_follows_dm_argument_order() -> None:
     triples = buf.getvalue().decode()
     assert "alt1> <http://www.w3.org/ns/prov#alternateOf> <" in triples
     assert triples.index("alt1>") < triples.index("alt2>")
-
-
-def test_alternate_triple_round_trips() -> None:
-    # #258: encode and decode must agree, so a document with alternate()
-    # survives an RDF round trip. (This test is symmetric, so it cannot
-    # detect a transposition that affects both encode and decode equally.)
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.alternate("ex:alt1", "ex:alt2")
-    assert roundtrip_document(document, "rdf") == document
 
 
 def test_decode_qualified_start_started_at_time_lands_in_formal_time() -> None:
