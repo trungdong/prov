@@ -9,8 +9,10 @@ Audit authority: planning/specs/2026-07-10-conformance-audit-findings.md
 section 3.1.
 """
 
+from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +21,9 @@ etree = pytest.importorskip("lxml.etree")
 from prov.model import ProvDocument  # noqa: E402
 from prov.tests import examples  # noqa: E402
 from prov.tests.attribute_values import ATTRIBUTE_VALUES, EX_NS  # noqa: E402
+
+if TYPE_CHECKING:
+    from lxml.etree import XMLSchema
 
 SCHEMA_DIR = Path(__file__).parent / "schemas"
 
@@ -75,11 +80,12 @@ _ATTRIBUTE_VALUE_MARKS = {
 
 
 @pytest.fixture(scope="module")
-def prov_xml_schema():
-    return etree.XMLSchema(etree.parse(str(SCHEMA_DIR / "prov.xsd")))
+def prov_xml_schema() -> "XMLSchema":
+    schema: XMLSchema = etree.XMLSchema(etree.parse(str(SCHEMA_DIR / "prov.xsd")))
+    return schema
 
 
-def _validate(schema, document) -> None:
+def _validate(schema: "XMLSchema", document: ProvDocument) -> None:
     xml_bytes = document.serialize(format="xml").encode("utf-8")
     schema.assert_(etree.parse(BytesIO(xml_bytes)))
 
@@ -92,7 +98,7 @@ def _validate(schema, document) -> None:
     ],
 )
 def test_example_documents_validate_against_prov_xsd(
-    prov_xml_schema, make_document
+    prov_xml_schema: "XMLSchema", make_document: Callable[[], ProvDocument]
 ) -> None:
     _validate(prov_xml_schema, make_document())
 
@@ -104,7 +110,9 @@ def test_example_documents_validate_against_prov_xsd(
         for i in range(len(ATTRIBUTE_VALUES))
     ],
 )
-def test_attribute_values_validate_against_prov_xsd(prov_xml_schema, index) -> None:
+def test_attribute_values_validate_against_prov_xsd(
+    prov_xml_schema: "XMLSchema", index: int
+) -> None:
     document = ProvDocument()
     document.entity(EX_NS["et"], {"prov:type": ATTRIBUTE_VALUES[index]})
     _validate(prov_xml_schema, document)

@@ -11,7 +11,7 @@ import decimal
 import io
 import json
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import pytest
@@ -192,7 +192,9 @@ def _qualified_names(bundle: ProvBundle) -> Iterator[object]:
     [make_doc for _, make_doc in examples.tests],
     ids=[name for name, _ in examples.tests],
 )
-def test_prefix_map_leaves_other_documents_unchanged(make_doc, default_keys) -> None:
+def test_prefix_map_leaves_other_documents_unchanged(
+    make_doc: Callable[[], ProvDocument], default_keys: tuple[str, ...]
+) -> None:
     # The JSON writers' output differs from 3.2.2's only through the prefix
     # map: if it declares the namespaces as 3.2.2 did and writes every name as
     # str(name), the output is byte for byte the same.
@@ -217,7 +219,9 @@ def test_prefix_map_leaves_other_documents_unchanged(make_doc, default_keys) -> 
 def test_encode_json_container_builds_its_own_prefix_map() -> None:
     document = ProvDocument()
     document.set_default_namespace("http://d.example/")
-    document.entity(document.get_default_namespace()["a:b"])
+    default = document.get_default_namespace()
+    assert default is not None
+    document.entity(default["a:b"])
     container = encode_json_container(document)
     assert container["prefix"] == {
         "default": "http://d.example/",
