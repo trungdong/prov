@@ -11,13 +11,16 @@ Fixtures for `test_provn_corpus.py`. Three sets:
 
 ## Specification examples that do not parse
 
-Each of these is either not a complete PROV-N statement, or a statement the formal grammar
-rejects even though the Recommendation's prose presents it as valid. Listed in
-`EXCLUDED_SPEC_EXAMPLES`.
+Each of these is not a complete PROV-N statement, is a statement the formal grammar rejects
+even though the Recommendation's prose presents it as valid, or uses a prefix in a
+qualified-name value without declaring it, which `prov` rejects
+([#516](https://github.com/trungdong/prov/issues/516)). Listed in `EXCLUDED_SPEC_EXAMPLES`.
 
 - `prov-n-example-16.provn` - the sixth `wasGeneratedBy` variant reuses `tr:WD-prov-dm-20111215`
   as its time argument, which is not a dateTime; a copy-paste artefact in the Recommendation's
   own text
+- `prov-n-example-34.provn`, `prov-n-example-35.provn` - a qualified-name value uses a prefix
+  the example does not declare
 - `prov-n-example-37.provn` - `wasAssociatedWith(ex:a1, ex:ag1)` gives the agent without the
   paired plan; production [20] requires them together
 - `prov-n-example-51.provn` - a `prefix` declaration before the `default` declaration;
@@ -45,6 +48,9 @@ rejects even though the Recommendation's prose presents it as valid. Listed in
   closing `]`
 - `prov-dm-example-24.provn` - `wasAssociatedWith` and `wasGeneratedBy` give only the
   activity/entity without the paired plan or time
+- `prov-dm-example-27.provn`, `prov-dm-example-31.provn`, `prov-dm-example-61.provn`,
+  `prov-dm-example-62.provn` - a qualified-name value uses a prefix the example does not
+  declare
 - `prov-dm-example-34.provn`, `prov-dm-example-52.provn` - `wasAssociatedWith` gives only the
   activity and agent without the paired plan
 - `prov-dm-example-42.provn` - statements after the bundle; production [1] puts every

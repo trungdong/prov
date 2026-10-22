@@ -1,4 +1,4 @@
-"""The 3.3.0 warning class, its message helper and the PROV-N channel."""
+"""The 3.3.0 warning class and its message helper."""
 
 import json
 import warnings
@@ -8,7 +8,6 @@ import pytest
 import prov.model
 from prov._warnings import collect_warnings, future_rejection_message, warn
 from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
-from prov.serializers.provn_parser import ProvNParser
 
 from .conftest import no_future_rejection
 
@@ -59,28 +58,6 @@ def test_ignoring_one_issue_by_message_leaves_the_others_raising() -> None:
 
 
 PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
-
-
-def test_provn_parser_warnings_reach_the_caller(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    original = ProvNParser.parse
-
-    def parse_and_warn(self: ProvNParser) -> ProvDocument:
-        document = original(self)
-        self.warnings.append(
-            future_rejection_message("line 3, column 3: probe", issue=509)
-        )
-        return document
-
-    monkeypatch.setattr(ProvNParser, "parse", parse_and_warn)
-    with pytest.warns(ProvFutureRejectionWarning) as record:
-        ProvDocument.deserialize(content=PROVN, format="provn")
-    future = [w for w in record if issubclass(w.category, ProvFutureRejectionWarning)]
-    assert [str(w.message) for w in future] == [
-        "line 3, column 3: probe. prov 3.3.0 will reject this (#509)"
-    ]
-    assert future[0].filename == __file__
 
 
 def test_provn_document_without_messages_emits_no_future_rejection() -> None:

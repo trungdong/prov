@@ -12,11 +12,9 @@ import prov
 from prov.constants import PROV
 from prov.model import (
     XSD_ANYURI,
-    XSD_QNAME,
     Literal,
     Namespace,
     ProvDocument,
-    ProvFutureRejectionWarning,
     ProvMembership,
     ProvWarning,
 )
@@ -24,10 +22,7 @@ from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
     ProvJSONLDSerializer,
-    decode_jsonld_value,
 )
-
-from .conftest import no_future_rejection
 
 EX_URI = "http://example.org/"
 FIXTURE_DIR = Path(__file__).parent / "jsonld"
@@ -655,56 +650,33 @@ def test_deserialize_value_object_without_value_raises() -> None:
         ),
     ],
 )
-def test_deserialize_iri_value_does_not_warn(
+def test_deserialize_iri_value_is_the_qualified_name(
     key: str, value: str | dict[str, str]
 ) -> None:
-    # An @id, or a compactable bare full IRI under an @id-typed term, does not warn.
-    with no_future_rejection():
-        doc = ProvDocument.deserialize(
-            content=_entity_with(key, [value]), format="jsonld"
-        )
+    # An @id, or a compactable bare full IRI under an @id-typed term, is the name.
+    doc = ProvDocument.deserialize(content=_entity_with(key, [value]), format="jsonld")
     (entity,) = doc.get_records()
     (read,) = [v for _, v in entity.extra_attributes]
     assert read == doc.valid_qualified_name("ex:thing")
 
 
-def test_decode_jsonld_value_without_an_attribute_does_not_warn() -> None:
-    value = {"@value": EX_URI + "thing", "@type": "xsd:QName"}
-    with no_future_rejection():
-        read = decode_jsonld_value(value, _new_doc(), "ex:ref")
-    assert str(read) == "ex:thing"
-
-
-@pytest.mark.parametrize(
-    ("text", "reason"),
-    [
-        pytest.param(
-            "http://other.org/x", "its prefix 'http' is not declared", id="full-iri"
-        ),
-        pytest.param("zz:x", "its prefix 'zz' is not declared", id="undeclared"),
-    ],
-)
-def test_deserialize_unresolvable_bare_string_under_id_typed_term_warns(
-    text: str, reason: str
+@pytest.mark.parametrize("text", ["http://other.org/x", "zz:x"])
+def test_deserialize_bare_string_under_id_typed_term_outside_every_namespace_is_an_anyuri_literal(
+    text: str,
 ) -> None:
-    # No declared namespace compacts it, so it is kept as a Literal (#516).
-    with pytest.warns(ProvFutureRejectionWarning) as caught:
-        doc = ProvDocument.deserialize(
-            content=_entity_with("type", [text]), format="jsonld"
-        )
-    assert [str(w.message) for w in caught] == [
-        f"the qualified name {text!r} of prov:type does not resolve, because"
-        f" {reason}; it is kept as a Literal. prov 3.3.0 will reject this (#516)"
-    ]
-    assert [w.filename for w in caught] == [__file__]
+    # The context marks the term's values as IRIs, so a string no declared
+    # namespace compacts is an IRI, as a node reference is (#516).
+    doc = ProvDocument.deserialize(
+        content=_entity_with("type", [text]), format="jsonld"
+    )
     (entity,) = doc.get_records()
     (value,) = [v for _, v in entity.extra_attributes]
-    assert value == Literal(text, XSD_QNAME)
+    assert value == Literal(text, XSD_ANYURI)
 
 
-def test_deserialize_node_reference_outside_every_namespace_does_not_warn() -> None:
-    with no_future_rejection():
-        ProvDocument.deserialize(
-            content=_entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
-            format="jsonld",
-        )
+def test_deserialize_node_reference_outside_every_namespace_reads() -> None:
+    document = ProvDocument.deserialize(
+        content=_entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
+        format="jsonld",
+    )
+    assert list(document.get_records())

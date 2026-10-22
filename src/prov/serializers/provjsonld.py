@@ -24,12 +24,10 @@ from prov.constants import (
     PROV_MEMBERSHIP,
     PROV_MENTION,
     PROV_N_MAP,
-    PROV_QUALIFIEDNAME,
     PROV_ROLE,
     PROV_TYPE,
     PROV_VALUE,
     XSD_ANYURI,
-    XSD_QNAME,
 )
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
@@ -45,7 +43,6 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model._values import _warn_unresolved_name
 from prov.model.records import (
     _xsd_datetime_text,
     _xsd_double_text,
@@ -464,54 +461,47 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
-def decode_jsonld_value(
-    value: Any, bundle: ProvBundle, term: str, *, attr: QualifiedName | None = None
-) -> Any:
+def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
     """Decode one member of a non-formal attribute's value array.
 
-    Mirrors :func:`~prov.serializers.provjson.decode_json_representation`'s
-    #168/#238 behaviour: a qualified-name value whose prefix has no in-scope
-    namespace is kept as an opaque :class:`~prov.model.Literal` rather than
-    dropped. A node reference no namespace compacts is an IRI, so it is kept
-    as an ``xsd:anyURI`` :class:`~prov.model.Literal`.
+    A bare string under an ``@id``-typed term (see :data:`ID_TYPED_TERMS`)
+    and a ``{"@id": ...}`` node reference are IRIs: the
+    :class:`~prov.identifier.QualifiedName` when a declared namespace
+    compacts the IRI, an ``xsd:anyURI`` :class:`~prov.model.Literal`
+    otherwise. A bare string under any other term is the text. A value
+    object is a language-tagged or datatyped :class:`~prov.model.Literal`,
+    which the model resolves when its datatype is ``xsd:QName`` or
+    ``prov:QUALIFIED_NAME`` (#168, #238), or the text when it has no type.
 
     Args:
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
             reference or a ``{"@value": ..., ...}`` value object.
-        bundle: Bundle used to resolve any qualified-name value.
+        bundle: Bundle used to resolve an IRI or a datatype.
         term: The unprefixed JSON-LD term ``value`` was read from (e.g.
             ``"type"``, ``"ex:price"``), used to decide how a bare string is
             interpreted.
-        attr: The attribute ``value`` belongs to, named in the warning for a
-            typed qualified-name value that resolves only by compacting a
-            full IRI. Without it, that value does not warn.
-
-    Returns:
-        The resolved :class:`~prov.identifier.QualifiedName` for a bare
-        string under an ``@id``-typed term (see :data:`ID_TYPED_TERMS`), a
-        node reference under any term, or an
-        ``xsd:QName``/``prov:QUALIFIED_NAME``-typed value object; an
-        ``xsd:anyURI`` :class:`~prov.model.Literal` for a node reference no
-        namespace compacts; a language-tagged or datatyped
-        :class:`~prov.model.Literal`; or the plain decoded text, which is
-        what a bare string under any other term is.
 
     Raises:
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
             object, if a node reference has keys other than ``"@id"`` or an
-            empty ``"@id"``, or
-            if a value object is missing its required ``"@value"`` key.
+            empty ``"@id"``, or if a value object is missing its required
+            ``"@value"`` key.
     """
     if isinstance(value, str):
-        if term in ID_TYPED_TERMS:
-            resolved = bundle.valid_qualified_name(value)
-            return resolved if resolved is not None else Literal(value, XSD_QNAME)
-        return value
-    value = _expect_object(value, f"A value of {term!r}")
-    if "@id" in value:
+        if term not in ID_TYPED_TERMS:
+            return value
+        text = value
+    else:
+        value = _expect_object(value, f"A value of {term!r}")
+        if "@id" not in value:
+            return _decode_value_object(value, bundle, term)
         text = _decode_node_reference(value, term)
-        resolved = bundle.valid_qualified_name(text)
-        return resolved if resolved is not None else Literal(text, XSD_ANYURI)
+    resolved = bundle.valid_qualified_name(text)
+    return resolved if resolved is not None else Literal(text, XSD_ANYURI)
+
+
+def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -> Any:
+    """Decode a ``{"@value": ...}`` object into a ``Literal`` or its text."""
     try:
         text = value["@value"]
     except KeyError as exc:
@@ -524,16 +514,7 @@ def decode_jsonld_value(
     datatype_str = value.get("@type")
     if datatype_str is None:
         return text
-    datatype = bundle.valid_qualified_name(datatype_str)
-    if datatype in (XSD_QNAME, PROV_QUALIFIEDNAME):
-        resolved = bundle.valid_qualified_name(text)
-        if resolved is None:
-            # The model warns about the Literal.
-            return Literal(text, datatype)
-        if attr is not None:
-            _warn_unresolved_name(bundle, attr, Literal(text, datatype), resolved)
-        return resolved
-    return Literal(text, datatype)
+    return Literal(text, bundle.valid_qualified_name(datatype_str))
 
 
 def _decode_formal_qname(
@@ -658,7 +639,7 @@ def _decode_statement_attributes(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            (qname, decode_jsonld_value(v, bundle, term, attr=qname)) for v in value
+            (qname, decode_jsonld_value(v, bundle, term)) for v in value
         )
     return attributes, other_attributes, members
 

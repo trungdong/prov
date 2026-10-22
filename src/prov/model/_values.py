@@ -2,9 +2,10 @@
 
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
-the model does not hold as it is, and :func:`_warn_unresolved_name` for a
-typed literal. This module imports nothing from :mod:`prov.model.records`, so
-it returns text and datatypes and the caller builds the ``Literal`` or raises.
+the model does not hold as it is, and :func:`unresolved_name_detail` for a
+literal typed as a qualified name. This module imports nothing from
+:mod:`prov.model.records`, so it returns text and datatypes and the caller
+builds the ``Literal`` or raises.
 """
 
 from __future__ import annotations
@@ -16,19 +17,15 @@ import re
 import reprlib
 import sys
 import uuid
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
-from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
-    PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
     XSD_DATE,
     XSD_DECIMAL,
-    XSD_QNAME,
     XSD_TIME,
 )
 from prov.identifier import QualifiedName
@@ -74,23 +71,6 @@ def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
         return make(*args, **kwargs)
     finally:
         _rebuilding.reset(token)
-
-
-# True while a reader that warns about unresolvable qualified-name values
-# itself builds records, so the model does not warn about them again.
-_reader_checks_names: ContextVar[bool] = ContextVar(
-    "prov_reader_checks_names", default=False
-)
-
-
-@contextmanager
-def _reader_checking_names() -> Iterator[None]:
-    """Build records inside a reader that checks its qualified-name values."""
-    token = _reader_checks_names.set(True)
-    try:
-        yield
-    finally:
-        _reader_checks_names.reset(token)
 
 
 def _decimal_text(value: decimal.Decimal) -> str | None:
@@ -180,68 +160,20 @@ def no_prov_form_detail(attr: QualifiedName, value: object) -> str:
     return f"the value {_value_repr.repr(value)} of {attr} has type {name}, which has no PROV form"
 
 
-class _TypedText(Protocol):
-    """The datatype and text of a ``Literal``."""
-
-    @property
-    def datatype(self) -> QualifiedName | None: ...
-
-    @property
-    def value(self) -> str: ...
-
-
 def unresolved_name_detail(
-    bundle: ProvBundle,
-    text: str,
-    resolved: QualifiedName | None,
-    *,
-    attr: QualifiedName | None = None,
-    outcome: str = "it is kept as a Literal",
-    compaction_issue: int = 553,
-) -> tuple[str, int] | None:
-    """Return the 3.3.0 message and issue for ``text`` when it does not resolve
-    by its prefix in ``bundle``, or ``None`` when it does (#516, #551, #553).
+    bundle: ProvBundle, text: str, *, attr: QualifiedName | None = None
+) -> str | None:
+    """Why the qualified name ``text`` does not resolve by its prefix in
+    ``bundle``, or ``None`` when it does (#516, #551, #553).
 
-    ``resolved`` is what prov reads the text as today by compacting an IRI,
-    cited as ``compaction_issue``, or ``None`` when the text stays as it is,
-    which ``outcome`` describes. ``attr`` names the attribute after the text.
-    The caller emits the detail through its own channel, with its position.
+    ``attr`` names the attribute after the text. The caller raises its own
+    error with the sentence, adding the position where its format has one.
     """
     reason = bundle._unresolved_reason(text)
     if reason is None:
         return None
     of_attr = f" of {attr}" if attr is not None else ""
-    if resolved is not None:
-        today, issue = f"it reads as {resolved}", compaction_issue
-    else:
-        today, issue = outcome, 516
-    return (
-        f"the qualified name {text!r}{of_attr} does not resolve, because {reason};"
-        f" {today}",
-        issue,
-    )
-
-
-def _warn_unresolved_name(
-    bundle: ProvBundle, attr: QualifiedName, literal: _TypedText, value: object
-) -> None:
-    """Warn that ``literal``, typed as a qualified name, does not resolve by its
-    prefix (#516, #553); ``value`` is what it converted to."""
-    if (
-        _reader_checks_names.get()
-        or _rebuilding.get()
-        or literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
-    ):
-        return
-    found = unresolved_name_detail(
-        bundle,
-        literal.value,
-        value if isinstance(value, QualifiedName) else None,
-        attr=attr,
-    )
-    if found is not None:
-        detail, issue = found
-        warn(future_rejection_message(detail, issue=issue), ProvFutureRejectionWarning)
+    return f"the qualified name {text!r}{of_attr} does not resolve, because {reason}"
 
 
 def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:

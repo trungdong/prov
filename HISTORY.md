@@ -56,20 +56,41 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `Decimal` that is `NaN` or infinite, or a `time` whose offset is not a whole number of
   minutes or is beyond ±14:00, has no lexical form and is rejected too
   ([#482](https://github.com/trungdong/prov/issues/482))
+- A qualified-name value whose prefix is not declared, or that is a full IRI, such as
+  `'zz:x'` in PROV-N when no `zz` prefix is declared, or the full IRI
+  `{"$": "http://example.org/x", "type": "xsd:QName"}` in PROV-JSON, raises a
+  `ProvNSyntaxError` at the value, a `ProvJSONException` naming the record and
+  attribute, or, from code, PROV-JSONLD or RDF, a `ProvExceptionInvalidQualifiedName`
+  naming the attribute where the value is asserted. The PROV-JSON reader rejects a record
+  key, a bundle key, a formal attribute value or a `hadMember` member the same way, where
+  3.2.3 compacted a full IRI or dropped a value it could not resolve. Every reader
+  resolves a qualified name by its prefix in scope and never by matching a declared
+  namespace IRI against the text, so `http://example.org/x` is the prefix `http`, and a
+  prefix the document declares is found from a bundle before the bundle's own namespaces
+  could compact the text. The `lenient` PROV-N profile skips the statement with a
+  `ProvWarning` and emits nothing else about it
+  ([#516](https://github.com/trungdong/prov/issues/516),
+  [#551](https://github.com/trungdong/prov/issues/551),
+  [#553](https://github.com/trungdong/prov/issues/553),
+  [#599](https://github.com/trungdong/prov/issues/599),
+  [#586](https://github.com/trungdong/prov/issues/586)). A bare string under `type`,
+  `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
+  stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
+  `xsd:QName` `Literal` and said 3.3.0 would reject it
 
 ### Changes with no prior warning
 
-- `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code,
-  PROV-JSON or PROV-JSONLD needs a declaration like any other prefix. Without one, the
-  model raises `ProvExceptionInvalidQualifiedName` for an attribute name and
-  `ProvElementIdentifierRequired` for an identifier. PROV-JSON and PROV-JSONLD that 3.2.x
-  wrote with `xsi:` names have no `xsi` entry in their prefix map, so add one before
+- `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code, PROV-JSON
+  or PROV-JSONLD needs a declaration like any other prefix. Without one, the PROV-JSON
+  reader raises a `ProvJSONException` naming the record and attribute, and in code and
+  PROV-JSONLD the model raises `ProvExceptionInvalidQualifiedName` for an attribute name
+  and `ProvElementIdentifierRequired` for an identifier. PROV-JSON and PROV-JSONLD that
+  3.2.x wrote with `xsi:` names have no `xsi` entry in their prefix map, so add one before
   reading them with 3.3.0. A `QualifiedName` built from `prov.constants.XSI` declares
   itself when it is asserted. `prov.model.DEFAULT_NAMESPACES` no longer has an `xsi` key.
   PROV-XML still writes and reads `xsi:type` as before, and its writer raises
   `ProvXMLException` for a document that binds `xsi` to another IRI, which 3.2.x renamed
-  to `xsi_1`
-  ([#510](https://github.com/trungdong/prov/issues/510))
+  to `xsi_1` ([#510](https://github.com/trungdong/prov/issues/510))
 - A Python `datetime` with a timezone offset beyond ±14:00 is rejected as the value of
   any attribute, not only as a time of the statement, because no writer could emit it as
   an `xsd:dateTime`. 3.2.3 warned only in a time position
@@ -95,9 +116,25 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored
   as a `QualifiedName` in every path. 3.2.x kept an `xsd:QName` literal opaque in code and
   when read from PROV-N or RDF, so a document read through PROV-JSON compared unequal to
-  the same document read through PROV-N. One whose prefix is not declared is kept as a
-  `Literal`
+  the same document read through PROV-N
   ([#526](https://github.com/trungdong/prov/issues/526))
+- A full IRI as a PROV-N identifier, formal argument, attribute name or datatype, or as a
+  PROV-JSON attribute name, is the prefix `http` and is rejected unless a prefix named
+  `http` is declared, where 3.2.x read it as a name in a declared namespace the IRI starts
+  with. A PROV-JSON relation key that is empty, or has no prefix when no default namespace
+  is declared, is rejected, where 3.2.x read an anonymous relation. In code, a plain
+  string given as an identifier, such as `bundle.entity("http://example.org/e1")`, still
+  compacts
+  ([#599](https://github.com/trungdong/prov/issues/599))
+- `ProvNParser` no longer has a `warnings` attribute; the PROV-N reader raises where 3.2.3
+  recorded a message
+  ([#586](https://github.com/trungdong/prov/issues/586))
+- The PROV-JSON reader raises a `ProvJSONException` naming the record and attribute for a
+  record key or attribute name whose prefix is not declared, where 3.2.x raised the
+  model's `ProvElementIdentifierRequired` or `ProvExceptionInvalidQualifiedName`.
+  `ProvJSONException` is not a `ProvException`, so code that handles both catches
+  `prov.Error`
+  ([#551](https://github.com/trungdong/prov/issues/551))
 
 ### Output changes
 

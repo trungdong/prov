@@ -200,15 +200,15 @@ statement's own arguments are errors.
 - Attribute values follow the 2026-10-14 revision of the PROV-JSONLD schema
   ([openprov/prov-jsonld#7](https://github.com/openprov/prov-jsonld/issues/7)). A node
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
-  string is a qualified name under `type`, `location` and `role`, which the context
-  coerces to `@id`, and a string under any other attribute. A node reference whose IRI no
-  declared namespace compacts is stored as an `xsd:anyURI` `Literal`. A node reference
-  with a key other than `@id`, or with an empty `@id`, raises `ProvJSONLDException`. From
-  3.3.0 `prov` writes a qualified name under any attribute other than `type`, `location`
-  and `role` as a node reference. It still reads an `xsd:QName` or `prov:QUALIFIED_NAME`
-  value object, the form 3.2.x wrote, as a qualified name, although a JSON-LD processor
-  reads that as a typed literal. The schema's `label` production admits only strings, so a
-  qualified name under `prov:label` does not validate in either form.
+  string is an IRI under `type`, `location` and `role`, which the context coerces to `@id`,
+  and a string under any other attribute. A node reference, or a bare string under those
+  three terms, whose IRI no declared namespace compacts is stored as an `xsd:anyURI`
+  `Literal`. A node reference with a key other than `@id`, or with an empty `@id`, raises
+  `ProvJSONLDException`. From 3.3.0 `prov` writes a qualified name under any attribute other
+  than `type`, `location` and `role` as a node reference. It still reads an `xsd:QName` or
+  `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a qualified name, although a
+  JSON-LD processor reads that as a typed literal. The schema's `label` production admits
+  only strings, so a qualified name under `prov:label` does not validate in either form.
 
 ### PROV-O
 
@@ -228,7 +228,7 @@ The [PROV-N conformance corpus](https://github.com/trungdong/prov/tree/main/src/
 
 | Set | Profile | Files | Result |
 | --- | --- | --- | --- |
-| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 98 parse and round-trip through the writer. 29 are excluded because the Recommendation's prose presents them as PROV-N but the grammar rejects them: fragments missing a paired argument, bare literals, ellipses, a copy-paste `dateTime` error, a `prefix` before the `default` declaration, statements after a bundle, and the PROV-Dictionary and extensibility syntax. |
+| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 92 parse and round-trip through the writer. 35 are excluded: 29 because the Recommendation's prose presents them as PROV-N but the grammar rejects them: fragments missing a paired argument, bare literals, ellipses, a copy-paste `dateTime` error, a `prefix` before the `default` declaration, statements after a bundle, and the PROV-Dictionary and extensibility syntax; and 6 because a qualified-name value uses a prefix the example does not declare ([#516](https://github.com/trungdong/prov/issues/516)). |
 | ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 4 parse. 5 are excluded: bare local names with no default namespace, the PROV-Dictionary set-of-pairs literal, and a bare IRI as a datatype. |
 | PROV-N that ProvToolbox's writer produced from the shared test corpus, compared with the PROV-JSON fixture of the same name | `default` | 388 | 229 equal. 159 differ for reasons in ProvToolbox's 2023 generator, not in `prov`: 80 embed a wall-clock timestamp, 79 carry a datatype list that no longer matches the fixture. |
 

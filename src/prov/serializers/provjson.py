@@ -21,7 +21,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model._values import _reader_checking_names, unresolved_name_detail
+from prov.model._values import unresolved_name_detail
 from prov.model.records import (
     _xsd_datetime_text,
     _xsd_double_text,
@@ -422,7 +422,7 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     for bundle_id, bundle_content in bundles.items():
         bundle = ProvBundle(document=document)
         decode_json_container(bundle_content, bundle)
-        _check_record_key(bundle, bundle_id, "bundle")
+        _check_name(bundle, bundle_id, bundle_id, kind="bundle")
         document.add_bundle(bundle, bundle.valid_qualified_name(bundle_id))
 
 
@@ -443,26 +443,25 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
         ProvJSONException: If ``jc`` is not a JSON object; if its
             ``"prefix"`` value (when present) is not a JSON object; if a key
             other than ``"prefix"`` is not a recognised PROV-N record-type
-            keyword; if a record-type's value is not a JSON object mapping
-            record identifiers to content; if a record's content is not a
-            JSON object or a list of JSON objects; if a non-formal
-            attribute's typed-literal representation is missing its required
-            ``"$"`` key (see :func:`decode_json_representation`); if a
-            formal (QualifiedName- or literal-valued) attribute has more
-            than one value, other than the members of ``hadMember``; if a
-            formal attribute is written as an empty JSON array; or if a time
-            attribute's value is neither a string nor an ``xsd:dateTime``
-            value object with a well-formed ``"$"``.
+            keyword; if a record key does not resolve by its prefix in scope
+            (a blank node ``_:…`` is not checked); if a record-type's value
+            is not a JSON object mapping record identifiers to content; if a
+            record's content is not a JSON object or a list of JSON objects;
+            if a non-formal attribute's typed-literal representation is
+            missing its required ``"$"`` key (see
+            :func:`decode_json_representation`); if a formal (QualifiedName-
+            or literal-valued) attribute has more than one value, other than
+            the members of ``hadMember``; if a formal attribute is written as
+            an empty JSON array; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
         _decode_namespaces(jc, bundle)
 
-    # The reader warns about its own qualified-name values, with their
-    # position, so the model does not warn about them again.
-    with _reader_checking_names():
-        for rec_type_str in jc:
-            _decode_record_group(jc, rec_type_str, bundle)
+    for rec_type_str in jc:
+        _decode_record_group(jc, rec_type_str, bundle)
 
 
 def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
@@ -523,7 +522,8 @@ def _decode_record_group(
     records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
     for rec_id, content in records_by_id.items():
         elements = _json_record_elements(content, rec_type_str, rec_id)
-        _check_record_key(bundle, rec_id)
+        if not (isinstance(rec_id, str) and rec_id.startswith("_:")):
+            _check_name(bundle, rec_id, rec_id)
         for element in elements:
             _decode_record_instance(rec_type, rec_id, element, bundle)
 
@@ -545,24 +545,25 @@ def _decode_record_instance(
             record per member, to.
 
     Raises:
-        ProvJSONException: If a non-formal attribute's typed-literal
-            representation is missing its required ``"$"`` key; if a
-            formal attribute has more than one value, other than the
-            members of ``hadMember``; if a formal attribute is written as an
-            empty JSON array; or if a time attribute's value is neither a
-            string nor an ``xsd:dateTime`` value object with a well-formed
-            ``"$"``.
+        ProvJSONException: If an attribute name, a formal attribute value or
+            a member does not resolve by its prefix in scope; if a non-formal
+            attribute's typed-literal representation is missing its required
+            ``"$"`` key; if a formal attribute has more than one value, other
+            than the members of ``hadMember``; if a formal attribute is
+            written as an empty JSON array; or if a time attribute's value is
+            neither a string nor an ``xsd:dateTime`` value object with a
+            well-formed ``"$"``.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     members: list[QualifiedName | None] | None = None
     is_membership = rec_type == PROV_MEMBERSHIP
     for attr_name, values in element.items():
-        attr: QualifiedName = (
-            PROV_ATTRIBUTES_ID_MAP[attr_name]
-            if attr_name in PROV_ATTRIBUTES_ID_MAP
-            else bundle.mandatory_valid_qname(attr_name)
-        )
+        if attr_name in PROV_ATTRIBUTES_ID_MAP:
+            attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
+        else:
+            _check_name(bundle, attr_name, rec_id, attr_name)
+            attr = bundle.mandatory_valid_qname(attr_name)
         if attr in PROV_ATTRIBUTES:
             if is_membership and attr == PROV_ATTR_ENTITY:
                 members = _decode_members(rec_id, attr_name, values, bundle)
@@ -601,11 +602,12 @@ def _decode_members(
         bundle: Bundle used to resolve the members' qualified names.
 
     Returns:
-        The resolved members, in the order written. A member that does not
-        resolve is ``None``, with a warning.
+        The resolved members, in the order written. A null or non-string
+        member is ``None``, with a warning.
 
     Raises:
-        ProvJSONException: If ``values`` is an empty JSON array.
+        ProvJSONException: If ``values`` is an empty JSON array; or if a
+            string member does not resolve by its prefix in scope.
     """
     if not isinstance(values, list):
         return [_decode_name(bundle, values, rec_id, attr_name)]
@@ -640,9 +642,10 @@ def _decode_formal_attribute(
 
     Raises:
         ProvJSONException: If ``values`` is an empty JSON array or a JSON
-            array with more than one value; or if a time attribute's value is
-            neither a string nor an ``xsd:dateTime`` value object with a
-            well-formed ``"$"``.
+            array with more than one value; if a value does not resolve by
+            its prefix in scope; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     if isinstance(values, list):
         if not values:
@@ -671,11 +674,10 @@ def _decode_name(
 ) -> QualifiedName | None:
     """Resolve the qualified name a formal attribute or a member refers to.
 
-    A value that is not a string, and a string that does not resolve, are
-    dropped with a warning. A string that resolves only by compacting an IRI
-    warns too.
+    A value that is not a string, and a null, are dropped with a warning. A
+    string that does not resolve by its prefix in scope is rejected.
     """
-    resolved = valid_qualified_name(bundle, value)
+    _check_name(bundle, value, rec_id, attr_name)
     if value is None:
         _warn_rejection(
             "the value is null and is dropped", rec_id, attr_name, issue=528
@@ -687,47 +689,25 @@ def _decode_name(
             attr_name,
             issue=597,
         )
-    else:
-        _warn_unresolved_name(
-            bundle, value, resolved, rec_id, attr_name, outcome="it is dropped"
-        )
-    return resolved
+    return valid_qualified_name(bundle, value)
 
 
-def _check_record_key(bundle: ProvBundle, key: str, kind: _Kind = "record") -> None:
-    """Warn when the record or bundle key ``key`` resolves only by compacting an
-    IRI (#551); ``kind`` is ``"record"`` or ``"bundle"``."""
-    if (
-        isinstance(key, str)
-        # Check the common cases first, a prefix this bundle declares and a
-        # relation's blank node identifier, which has no namespace.
-        and not bundle._declares_prefix(prefix := key.partition(":")[0])
-        and prefix != "_"
-        and (resolved := bundle.valid_qualified_name(key)) is not None
-    ):
-        _warn_unresolved_name(bundle, key, resolved, key, kind=kind)
-
-
-def _warn_unresolved_name(
+def _check_name(
     bundle: ProvBundle,
-    text: str,
-    resolved: QualifiedName | None,
+    text: Any,
     rec_id: str | None,
     attr_name: str | None = None,
     *,
-    outcome: str = "it is kept as a Literal",
     kind: _Kind = "record",
 ) -> None:
-    """Warn, with the value's position, when the qualified name ``text`` does
-    not resolve by its prefix (#516, #551); ``resolved`` is what it reads as
-    today by compacting an IRI, or ``None``, in which case ``outcome`` says
-    what happens to it."""
-    found = unresolved_name_detail(
-        bundle, text, resolved, outcome=outcome, compaction_issue=551
-    )
-    if found is not None:
-        detail, issue = found
-        _warn_rejection(detail, rec_id, attr_name, issue=issue, kind=kind)
+    """Raise, with the position, when the qualified name ``text`` does not
+    resolve by its prefix in scope (#516, #551, #599); ``kind`` is ``"record"``
+    or ``"bundle"``. A ``text`` that is not a string is left to the model."""
+    if not isinstance(text, str):
+        return
+    detail = unresolved_name_detail(bundle, text)
+    if detail is not None:
+        raise ProvJSONException(_position(rec_id, attr_name, kind) + detail)
 
 
 def _decode_time(
@@ -900,7 +880,7 @@ def decode_json_representation(
     with :class:`~prov.model.ProvFutureRejectionWarning` about a key other
     than ``"$"``, ``"type"`` and ``"lang"``, a ``"$"`` that is not a string
     and a ``"type"`` that does not resolve. A qualified-name value that does
-    not resolve by its prefix warns the same way and is read as before.
+    not resolve by its prefix in scope is rejected.
 
     Args:
         literal: Either a ``{"$": ..., "type": ..., "lang": ...}`` dict (the
@@ -914,34 +894,29 @@ def decode_json_representation(
             known. Used only to name the record in warning messages.
 
     Returns:
-        A resolved :class:`~prov.identifier.QualifiedName` for ``xsd:QName``
-        or (legacy) ``prov:QUALIFIED_NAME`` values whose prefix is in scope,
-        an opaque :class:`~prov.model.Literal` if it is not, a
-        :class:`~prov.model.Literal` for other typed values, or ``literal``
-        unchanged if it was not a dict (conversion of plain Python types
-        happens later, when the value is added to a record).
+        A :class:`~prov.model.Literal` for a value object (the model resolves
+        one typed ``xsd:QName`` or ``prov:QUALIFIED_NAME`` when the value is
+        added to a record), or ``literal`` unchanged if it was not a dict
+        (conversion of plain Python types happens later, when the value is
+        added to a record).
 
     Raises:
         ProvJSONException: If ``literal`` is a dict (the complex/typed
-            representation) missing its required ``"$"`` (value) key.
+            representation) missing its required ``"$"`` (value) key, or if a
+            qualified-name value does not resolve by its prefix in scope.
     """
     if not isinstance(literal, dict):
         # simple type, just return it
         return literal
     value, datatype = _check_value_object(literal, bundle, attr_name, rec_id)
     langtag = literal.get("lang", None)
-    if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+    if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME) and langtag is None:
         # #168: xsd:QName is the submission's type for QualifiedName
         # values; prov:QUALIFIED_NAME is accepted for documents produced
-        # by 2.x. If the value's prefix has no in-scope namespace, keep
-        # it as an opaque Literal rather than dropping it (#238).
-        resolved = valid_qualified_name(bundle, value)
-        # A value with a "lang" is no qualified name, and the model logs
-        # that it overrides its datatype. A "$" that is not a string was
-        # already reported.
-        if langtag is None and isinstance(value, str):
-            _warn_unresolved_name(bundle, value, resolved, rec_id, attr_name)
-        return resolved if resolved is not None else Literal(value, datatype, langtag)
+        # by 2.x. The model stores the Literal as the QualifiedName; one
+        # that does not resolve is rejected here, with its position. A "$"
+        # that is not a string was already reported.
+        _check_name(bundle, value, rec_id, attr_name)
     # The literal of standard Python types is not converted here. It is
     # converted when added to a record by _auto_literal_conversion().
     return Literal(value, datatype, langtag)

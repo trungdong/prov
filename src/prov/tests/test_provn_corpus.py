@@ -10,22 +10,31 @@ from pathlib import Path
 
 import pytest
 
-from prov.model import ProvDocument, ProvFutureRejectionWarning
+from prov.model import ProvDocument
 
 from .conftest import no_future_rejection
 
 CORPUS = Path(__file__).parent / "provn"
 JSON_FIXTURES = Path(__file__).parent / "json"
 
-# Specification examples that are not complete statements, or that the
-# formal grammar rejects even though the Recommendation's prose presents
-# them as valid; keep this list in step with provn/README.md.
+# The specifications use a prefix in a qualified-name value without declaring
+# it; prov rejects the value (#516), and the examples are not normative.
+_UNDECLARED_VALUE_PREFIX = (
+    "a qualified-name value uses a prefix the example does not declare (#516)"
+)
+
+# Specification examples that are not complete statements, that the formal
+# grammar rejects even though the Recommendation's prose presents them as valid,
+# or that use an undeclared prefix in a value; keep this list in step with
+# provn/README.md.
 EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-n-example-16.provn": (
         "the sixth wasGeneratedBy variant reuses tr:WD-prov-dm-20111215 as its "
         "time argument, which is not a dateTime; a copy-paste artefact in the "
         "Recommendation's own text"
     ),
+    "prov-n-example-34.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-n-example-35.provn": _UNDECLARED_VALUE_PREFIX,
     "prov-n-example-37.provn": (
         "wasAssociatedWith(ex:a1, ex:ag1) gives the agent without the paired "
         "plan; production [20] requires them together"
@@ -75,6 +84,8 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
         "wasAssociatedWith and wasGeneratedBy give only the activity/entity "
         "without the paired plan or time"
     ),
+    "prov-dm-example-27.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-31.provn": _UNDECLARED_VALUE_PREFIX,
     "prov-dm-example-34.provn": (
         "wasAssociatedWith gives only the activity and agent without the paired plan"
     ),
@@ -93,23 +104,9 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
     "prov-dm-example-57.provn": "a list of bare literals, not a statement",
     "prov-dm-example-58.provn": "a bare typed-literal pair, not a statement",
     "prov-dm-example-59.provn": "a bare qualified-name literal, not a statement",
-    "prov-dm-example-63.provn": "used gives only the activity and entity without the paired time",
-}
-
-_UNDECLARED_VALUE_PREFIX = "does not resolve, because its prefix '.*' is not declared"
-
-# Recommendation examples that the strict profile reads with a 3.3.0 warning
-# (#516, a qualified-name value whose prefix is not declared). The examples
-# are not normative, so the grammar wins.
-STRICT_WARNING_EXAMPLES: dict[str, str] = {
-    # The specifications use these prefixes in a qualified-name value
-    # without declaring them (#516).
-    "prov-n-example-34.provn": _UNDECLARED_VALUE_PREFIX,
-    "prov-n-example-35.provn": _UNDECLARED_VALUE_PREFIX,
-    "prov-dm-example-27.provn": _UNDECLARED_VALUE_PREFIX,
-    "prov-dm-example-31.provn": _UNDECLARED_VALUE_PREFIX,
     "prov-dm-example-61.provn": _UNDECLARED_VALUE_PREFIX,
     "prov-dm-example-62.provn": _UNDECLARED_VALUE_PREFIX,
+    "prov-dm-example-63.provn": "used gives only the activity and entity without the paired time",
 }
 
 # ProvToolbox-written documents that legitimately differ from our JSON
@@ -342,28 +339,18 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     return params
 
 
-def _read_strict(expected, **source) -> ProvDocument:
-    """Read PROV-N with the strict profile, warning as ``expected`` matches, or
-    not at all if it is ``None``."""
-    if expected is None:
-        return ProvDocument.deserialize(format="provn", profile="strict", **source)
-    with pytest.warns(ProvFutureRejectionWarning, match=expected):
-        return ProvDocument.deserialize(format="provn", profile="strict", **source)
-
-
 @pytest.mark.parametrize(
     "path",
     _param("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
     + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
 def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
-    expected = STRICT_WARNING_EXAMPLES.get(path.name)
-    # prov writes an undeclared prefix back as it read it.
-    rewritten = expected if expected == _UNDECLARED_VALUE_PREFIX else None
     with no_future_rejection():
-        document = _read_strict(expected, source=str(path))
-        reloaded = _read_strict(rewritten, content=document.get_provn(strict=True))
-        assert reloaded == document
+        document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
+        reloaded = ProvDocument.deserialize(
+            content=document.get_provn(strict=True), format="provn", profile="strict"
+        )
+    assert reloaded == document
 
 
 @pytest.mark.parametrize("path", _param("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))
