@@ -203,7 +203,6 @@ strict = true
 # that makes a module pass deletes its name, and a new test module never joins.
 [[tool.mypy.overrides]]
 module = [
-    "prov.tests.strategies",
     "prov.tests.test_attribute_merging",
     "prov.tests.test_attributes",
     "prov.tests.test_chaining",

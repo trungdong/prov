@@ -21,6 +21,7 @@ import string
 from datetime import UTC, datetime
 
 from hypothesis import strategies as st
+from hypothesis.strategies import DrawFn
 
 from prov.identifier import Namespace
 from prov.model import ProvBundle, ProvDocument
@@ -94,7 +95,7 @@ attr_values = st.one_of(
 )
 
 
-def _attribute_dict(draw) -> list[tuple[str, object]]:
+def _attribute_dict(draw: DrawFn) -> list[tuple[str, object]]:
     """Draw a list of ``(ex:<key>, value)`` other-attribute pairs.
 
     A key may be drawn more than once, each occurrence with an independently
@@ -110,7 +111,7 @@ def _attribute_dict(draw) -> list[tuple[str, object]]:
     return pairs
 
 
-def _draw_ids(draw, tag: str) -> list[str]:
+def _draw_ids(draw: DrawFn, tag: str) -> list[str]:
     """Draw a list of unique element identifiers with a role-specific prefix.
 
     Prefixing by role (``e``/``a``/``g``) keeps entity, activity and agent
@@ -130,7 +131,7 @@ _rel_time = st.one_of(
 )
 
 
-def _populate(draw, container: ProvBundle) -> list[str]:
+def _populate(draw: DrawFn, container: ProvBundle) -> list[str]:
     """Add elements and relations to ``container`` (a document or a bundle).
 
     Returns the entity identifiers drawn for ``container`` so the caller can
@@ -255,7 +256,7 @@ def _populate(draw, container: ProvBundle) -> list[str]:
 
 
 @st.composite
-def prov_documents(draw) -> ProvDocument:
+def prov_documents(draw: DrawFn) -> ProvDocument:
     """Generate a valid PROV document for round-trip property testing."""
     doc = ProvDocument()
     for prefix, uri in NAMESPACES.items():
