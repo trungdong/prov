@@ -5,7 +5,7 @@ import io
 from typing import Any
 
 from prov._warnings import warn
-from prov.model import ProvDocument, ProvFutureRejectionWarning
+from prov.model import ProvDocument
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import PROFILES, ProvNParser
@@ -71,11 +71,9 @@ class ProvNSerializer(Serializer):
             content = bytes(content).decode("utf-8")
         parser = ProvNParser(content, profile)
         document = parser.parse()
-        # Warned here, not inside the parser, so every message -- document-level
-        # or inside a bundle alike -- is attributed to the caller of
-        # ProvDocument.deserialize().
+        # Warned here, not inside the parser, so every skipped statement,
+        # document-level or inside a bundle alike, is attributed to the caller
+        # of ProvDocument.deserialize().
         for message in parser.skipped:
             warn(message)
-        for message in parser.warnings:
-            warn(message, ProvFutureRejectionWarning)
         return document

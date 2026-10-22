@@ -29,7 +29,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from prov._warnings import future_rejection_message
 from prov.constants import (
     _PROV_N_BARE_RELATIONS,
     PROV,
@@ -66,7 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.model._values import _reader_checking_names, unresolved_name_detail
+from prov.model._values import unresolved_name_detail
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,
@@ -147,10 +146,6 @@ class ProvNParser:
         skipped: Messages for the statements the ``lenient`` profile
             skipped, in source order; empty for every other profile. Read
             after :meth:`parse` returns.
-        warnings: Messages for input that ``prov`` 3.3.0 rejects or reads
-            differently, each built by
-            :func:`prov._warnings.future_rejection_message`, in source
-            order. Read after :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
@@ -161,7 +156,6 @@ class ProvNParser:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
         self.profile = profile
         self.skipped: list[str] = []
-        self.warnings: list[str] = []
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
@@ -275,12 +269,6 @@ class ProvNParser:
 
     def parse(self) -> ProvDocument:
         """Parse the whole input and return the document."""
-        # The parser warns about its own qualified-name values, with their
-        # position, so the model does not warn about them again.
-        with _reader_checking_names():
-            return self._parse()
-
-    def _parse(self) -> ProvDocument:
         self._tokens = list(tokenize(self._text))
         self._pos = 0
         self._depth = 0
@@ -381,14 +369,6 @@ class ProvNParser:
                 " not allow declaring it",
                 token,
             )
-
-    def _future(self, detail: str, token: Token, *, issue: int) -> None:
-        """Record a message for input that 3.3.0 rejects or reads differently."""
-        self.warnings.append(
-            future_rejection_message(
-                f"line {token.line}, column {token.column}: {detail}", issue=issue
-            )
-        )
 
     def _apply_declarations(
         self, target: ProvBundle, namespaces: list[Namespace], default: str | None
@@ -708,19 +688,10 @@ class ProvNParser:
 
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
         prefix, local = token.value
-        if prefix:
-            qname = bundle.valid_qualified_name(f"{prefix}:{local}")
-            if qname is None:
-                raise self._error(
-                    f"cannot resolve {token.text!r}: prefix '{prefix}' is not declared",
-                    token,
-                )
-            return qname
-        if ":" in local:
+        if not prefix and ":" in local:
             # An escaped colon inside a bare (unprefixed) local part would be
-            # mis-split by valid_qualified_name()'s string-based prefix
-            # lookup, so this one shape still resolves against the default
-            # namespace directly.
+            # mis-split by the string-based prefix lookup below, so this one
+            # shape resolves against the default namespace directly.
             default = _default_namespace(bundle)
             if default is None:
                 raise self._error(
@@ -728,12 +699,17 @@ class ProvNParser:
                     token,
                 )
             return default[local]
-        qname = bundle.valid_qualified_name(local)
-        if qname is None:
-            raise self._error(
-                f"cannot resolve {token.text!r}: no default namespace declared", token
+        # A name resolves by its prefix in scope, never by compacting an IRI
+        # (#553, #599), so http://example.org/e is the undeclared prefix 'http'.
+        text = f"{prefix}:{local}" if prefix else local
+        if bundle._unresolved_reason(text) is not None:
+            why = (
+                f"prefix '{prefix}' is not declared"
+                if prefix
+                else "no default namespace declared"
             )
-        return qname
+            raise self._error(f"cannot resolve {token.text!r}: {why}", token)
+        return bundle.mandatory_valid_qname(text)
 
     # -- attributes and literals -----------------------------------------------
 
@@ -769,7 +745,8 @@ class ProvNParser:
                     TokenKind.NAME, "a datatype"
                 )
                 datatype = self._resolve(datatype_token, bundle)
-                self._check_typed_name_value(token, datatype, bundle)
+                if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+                    self._check_name_value(token.value, token, bundle)
                 return Literal(token.value, datatype)
             return token.value
         if token.kind is TokenKind.INT:
@@ -790,38 +767,13 @@ class ProvNParser:
                     )
                 return default[local]
             text = f"{prefix}:{local}" if prefix else local
-            qname = bundle.valid_qualified_name(text)
-            self._check_name_value(text, token, bundle, qname)
-            # An unresolvable prefix stays an opaque literal, as it does when
-            # decoded from PROV-JSON.
-            return qname if qname is not None else Literal(text, PROV_QUALIFIEDNAME)
+            self._check_name_value(text, token, bundle)
+            return bundle.mandatory_valid_qname(text)
         raise self._error(f"expected a literal value, found {self._found()}")
 
-    def _check_typed_name_value(
-        self, token: Token, datatype: QualifiedName, bundle: ProvBundle
-    ) -> None:
-        """Check the text of the string ``token`` when ``datatype`` is a
-        qualified-name datatype."""
-        if (
-            datatype in (PROV_QUALIFIEDNAME, XSD_QNAME)
-            and bundle._unresolved_reason(token.value) is not None
-        ):
-            # The model resolves both datatypes, compacting an IRI if it must;
-            # the parser reports a text that does not resolve by its prefix.
-            resolved = bundle.valid_qualified_name(token.value)
-            self._check_name_value(token.value, token, bundle, resolved)
-
-    def _check_name_value(
-        self,
-        text: str,
-        token: Token,
-        bundle: ProvBundle,
-        resolved: QualifiedName | None,
-    ) -> None:
-        """Record a 3.3.0 message at ``token`` when the qualified-name value
-        ``text`` does not resolve by its prefix (#516, #553); ``resolved`` is
-        what the model reads it as today, or ``None`` when it keeps the text
-        as a Literal."""
+    def _check_name_value(self, text: str, token: Token, bundle: ProvBundle) -> None:
+        """Reject the qualified-name value ``text`` at ``token`` when it does
+        not resolve by its prefix (#516, #553)."""
         detail = unresolved_name_detail(bundle, text)
         if detail is not None:
-            self._future(detail, token, issue=516)
+            raise self._error(detail, token)
