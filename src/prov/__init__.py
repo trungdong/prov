@@ -106,12 +106,12 @@ def _rejection_cause(
         return None
     text = head.lstrip()
     if text.startswith("{"):
-        format = "jsonld" if '"@context"' in head or '"@graph"' in head else "json"
+        name = "jsonld" if '"@context"' in head or '"@graph"' in head else "json"
     elif text.startswith("document"):
-        format = "provn"
+        name = "provn"
     else:
         return None
-    error = errors.get(format)
+    error = errors.get(name)
     positioned = (ProvJSONException, ProvJSONLDException, ProvNSyntaxError)
     return error if isinstance(error, positioned) else None
 
