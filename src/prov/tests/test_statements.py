@@ -1380,15 +1380,11 @@ def test_scruffy_relation(roundtrip, family, tags, endpoints, activities) -> Non
     document = new_document()
     factory = getattr(document, family)
     arguments = [EX_NS[name] for name in _SCRUFFY_ARGUMENTS[family]]
-    relations = []
     for i, time in enumerate((datetime.datetime.now(), _TIME_2012)):
         extra = {_SCRUFFY_ENDPOINT[family]: EX_NS[endpoints[i]]} if endpoints else {}
-        relations.append(
-            factory(*arguments, identifier=EX_NS["gen1"], time=time, **extra)
-        )
-    if tags:
-        for relation, tag in zip(relations, tags, strict=True):
-            relation.add_attributes([(EX_NS["tag2"], tag)])
+        relation = factory(*arguments, identifier=EX_NS["gen1"], time=time, **extra)
+        if tags:
+            relation.add_attributes([(EX_NS["tag2"], tags[i])])
     document.entity(identifier=EX_NS["e1"])
     document.activity(identifier=EX_NS["a1"])
     for name in activities:
