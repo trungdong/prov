@@ -219,8 +219,9 @@ statement's own arguments are errors.
 
 `prov.read()` detects the format from the content and forwards each reader's own options
 (`profile` for PROV-N; `rdf_format`, `relation_mapper` and `predicate_mapper` for PROV-O;
-the `json.load` hooks for PROV-JSON and PROV-JSONLD). An option a format does not accept
-raises `TypeError` naming the format.
+the `json.load` hooks for PROV-JSON and PROV-JSONLD, which receive each object after the
+check for repeated keys). An option a format does not accept raises `TypeError` naming the
+format.
 
 ## Corpus evidence
 

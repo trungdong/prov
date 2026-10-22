@@ -77,6 +77,23 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
   stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
   `xsd:QName` `Literal` and said 3.3.0 would reject it
+- In PROV-JSON, a `ProvJSONException` naming the record and attribute for a `null`
+  attribute value, formal attribute or `hadMember` member
+  ([#528](https://github.com/trungdong/prov/issues/528)); a formal attribute or member
+  that is not a string ([#597](https://github.com/trungdong/prov/issues/597)); a formal
+  attribute other than the members of `hadMember` written as an array of any length, one
+  error where 3.2.x raised two, for an empty array and for an array of several values
+  ([#531](https://github.com/trungdong/prov/issues/531)); a value object with a key other
+  than `$`, `type` and `lang`, or with a `$` that is not a string, except an integer typed
+  `xsd:int` or `xsd:long` or a number with a fraction or exponent typed `xsd:double` with
+  no `lang`, which `prov` 2.x wrote and which still reads
+  ([#529](https://github.com/trungdong/prov/issues/529)); a `type` that is not a string or
+  whose prefix is not declared, with or without a `lang`, under the qualified-name rule
+  above ([#552](https://github.com/trungdong/prov/issues/552)); and a time given as a
+  string that is not an `xsd:dateTime`, with the message the reader already gave a value
+  object ([#555](https://github.com/trungdong/prov/issues/555)). A key repeated in a JSON
+  object raises `ProvJSONException` naming the key only, because Python's JSON parser
+  reports no position ([#532](https://github.com/trungdong/prov/issues/532))
 
 ### Changes with no prior warning
 
@@ -104,6 +121,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   because it padded the fraction before parsing; that padding went when 3.3.0 dropped
   Python 3.10
   ([#513](https://github.com/trungdong/prov/issues/513))
+- The PROV-JSONLD reader raises `ProvJSONLDException` for a key repeated in a JSON object,
+  where 3.2.x kept the last value without a message
+  ([#532](https://github.com/trungdong/prov/issues/532))
+- `prov.read()` without `format=` raises its `TypeError` from the error of the reader the
+  content's first character names, when that reader is PROV-JSON, PROV-JSONLD or PROV-N
+  and rejected the input, so the traceback shows the rule and its position. Pass `format=`
+  to get that error on its own
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`
   gains a `detail` attribute and prints it after the name
@@ -119,12 +143,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the same document read through PROV-N
   ([#526](https://github.com/trungdong/prov/issues/526))
 - A full IRI as a PROV-N identifier, formal argument, attribute name or datatype, or as a
-  PROV-JSON attribute name, is the prefix `http` and is rejected unless a prefix named
-  `http` is declared, where 3.2.x read it as a name in a declared namespace the IRI starts
-  with. A PROV-JSON relation key that is empty, or has no prefix when no default namespace
-  is declared, is rejected, where 3.2.x read an anonymous relation. In code, a plain
-  string given as an identifier, such as `bundle.entity("http://example.org/e1")`, still
-  compacts
+  PROV-JSON attribute name or datatype, is the prefix `http` and is rejected unless a
+  prefix named `http` is declared, where 3.2.x read it as a name in a declared namespace
+  the IRI starts with. A PROV-JSON relation key that is empty, or has no prefix when no
+  default namespace is declared, is rejected, where 3.2.x read an anonymous relation. In
+  code, a plain string given as an identifier, such as
+  `bundle.entity("http://example.org/e1")`, still compacts
   ([#599](https://github.com/trungdong/prov/issues/599))
 - `ProvNParser` no longer has a `warnings` attribute; the PROV-N reader raises where 3.2.3
   recorded a message

@@ -53,6 +53,10 @@ wherever the value was read or built, so it names the value instead. So does a
 message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
 A message from `unified()` starts with the identifier of the records it merges.
 
+With `prov.read()` and no `format=`, a rejected PROV-JSON, PROV-JSONLD or PROV-N input
+raises `TypeError`, whose `__cause__` is the reader's error with the rule and its
+position. Pass `format=` to see the rule on its own.
+
 A PROV-N read emits its messages in three groups: the model's messages, as the
 parse runs, then the reader's messages about whitespace, then the reader's other
 messages. The reader's messages wait until the parse ends, so a read that fails
@@ -305,38 +309,33 @@ document as asserted, without merging any records.
 
 ## PROV-JSON
 
-| Warning | Issue | Example | Write instead |
+`prov` 3.3.0 raises `ProvJSONException` for each of these. The message starts with the
+record identifier and the attribute name, as in `record 'ex:g', attribute 'prov:entity':
+the value is written as an array`; a repeated key names only the key, because Python's
+JSON parser reports no position for it.
+
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the key '…' is repeated in a JSON object` | [#532](https://github.com/trungdong/prov/issues/532) | `{"ex:k": "a", "ex:k": "b"}` | One key. For an attribute with several values, an array, `"ex:k": ["a", "b"]`. |
-| `'…' is not an xsd:dateTime and is dropped` | [#555](https://github.com/trungdong/prov/issues/555) | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
-| `the value is written as an array` | [#531](https://github.com/trungdong/prov/issues/531) | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. |
-| `the value is null and is dropped` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null`, or `"prov:activity": null` | No attribute. A null `prov:time`, `prov:startTime` or `prov:endTime` already raises `ProvJSONException`. |
-| `the value is …, not a qualified name, and is dropped` | [#597](https://github.com/trungdong/prov/issues/597) | `"prov:activity": 5` | A qualified name, as in `"prov:activity": "ex:a"`, or no attribute. |
+| `expected an xsd:dateTime, found '…'` | [#555](https://github.com/trungdong/prov/issues/555) | `"prov:startTime": "2011-11-16"` | A full `xsd:dateTime`, such as `"2011-11-16T00:00:00"`, or no time. |
+| `the value is written as an array` | [#531](https://github.com/trungdong/prov/issues/531) | `"prov:entity": ["ex:e"]` | The value, `"prov:entity": "ex:e"`. The members of `hadMember` are an array by design. |
+| `the value is null` | [#528](https://github.com/trungdong/prov/issues/528) | `"ex:k": null`, or `"prov:activity": null` | No attribute. |
+| `the value is …, not a qualified name` | [#597](https://github.com/trungdong/prov/issues/597) | `"prov:activity": 5` | A qualified name, as in `"prov:activity": "ex:a"`, or no attribute. |
 | `the value object has the unknown key '…'` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": "1", "datatype": "xsd:int"}` | Only `$`, `type` and `lang`, as in `{"$": "1", "type": "xsd:int"}`. |
 | `the value object's "$" is …, not a string` | [#529](https://github.com/trungdong/prov/issues/529) | `{"$": 1}` | A string, as in `{"$": "1", "type": "xsd:int"}`. |
-| `the datatype '…' does not resolve and is dropped` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
+| `the value object's "type" is …, not a string` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": 5}` | A qualified name, as in `{"$": "1", "type": "xsd:int"}`. |
+| `the qualified name '…' does not resolve, because its prefix '…' is not declared` | [#552](https://github.com/trungdong/prov/issues/552) | `{"$": "1", "type": "foo:int"}` with no `foo` prefix | A declared prefix, such as `xsd:int`, or a `foo` entry in `"prefix"`. |
 
-`prov` 3.2.x reads a `$` that is not a string as its string form, so `{"$": null}`
-reads as the string `"None"`.
+A number in `$` typed the way `prov` 2.x and earlier wrote it still reads. That is an
+integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
+`xsd:double`, in a value object with no `lang`, so `{"$": 1, "type": "xsd:int"}` and
+`{"$": 1.5, "type": "xsd:double"}` read as they did.
 
-When a datatype does not resolve, `prov` 3.2.x reads the value as a string, or as
-a language-tagged string when it has a `lang`.
+The error for a value that is not a qualified name covers a `hadMember` member and a
+formal attribute other than a time. A time written as a value object goes through the
+value-object checks first, so an unknown key, a `$` or `type` that is not a string, or
+an undeclared datatype gives the message in the table; a value object of any other
+datatype, or with a `lang`, is not an `xsd:dateTime`.
 
-A number in `$` typed the way `prov` 2.x and earlier wrote it does not warn. That
-is an integer as `xsd:int` or `xsd:long`, or a number with a fraction or exponent as
-`xsd:double`, in a value object with no `lang`.
-`{"$": 1, "type": "xsd:int"}` and `{"$": 1.5, "type": "xsd:double"}` read in 3.3.0 as
-they do now.
-
-The warning for a value that is not a qualified name covers a `hadMember` member
-and a formal attribute other than a time. A time that is neither a string nor an
-`xsd:dateTime` value object already raises `ProvJSONException`.
-
-The repeated-key warning names only the key, because Python's JSON parser
-reports no position for it.
-
-Every other message starts with the record identifier and the attribute name,
-as in `record 'ex:g', attribute 'prov:entity': the value is written as an array`.
-A record key has no attribute, so its message starts with `record 'ex:g'` and a
-colon. A bundle key starts with `bundle 'ex:b'` and a colon. The members of
-`hadMember` are an array by design, so the array itself does not warn.
+A record key has no attribute, so its message starts with `record 'ex:g'` and a colon.
+A bundle key starts with `bundle 'ex:b'` and a colon.
