@@ -226,6 +226,50 @@ Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 - Confirm <https://pypi.org/project/prov/> and the conda-forge feed both show the new
   version.
 
+## Raising the Python floor
+
+Raise the floor once per interpreter end of life, in its own PR, first in the release's
+series, so that every later PR builds on the new floor. 3.3.0 raised it from 3.10 to
+3.11. The places that name the floor:
+
+- `pyproject.toml`: `requires-python`, the classifier line for the dropped version,
+  ruff's `target-version` and the comment on its `UP` rules, and mypy's
+  `python_version`; then `uv lock`, and `ruff check --fix src/ benchmarks/` with a
+  review of what the `UP` rules rewrite.
+- `pyrightconfig.json`: `pythonVersion`.
+- `.github/workflows/CI.yml`: the matrix and the Coveralls `carryforward` list.
+- The interpreter loops in `Makefile`, `CLAUDE.md`, `CONTRIBUTING.md` and this runbook,
+  and the sentence in `CONTRIBUTING.md` on the versions a pull request must pass on.
+- `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
+- `ROADMAP.md`'s support-policy paragraph, in the release PR.
+- `SECURITY.md`, which says what each supported line requires, in the release PR.
+- `main`'s branch protection, which requires the dropped version's `pytest` check until
+  the PR that removes it from the matrix is about to merge.
+
+Code that worked around the old interpreter goes in the same PR, with its tests.
+
+On conda-forge, the bot's bump PR changes the version, not the floor. On that PR, set
+`{% set python_min = "X.Y" %}` at the top of `recipe/meta.yaml` to the new floor and
+rerender. 3.3.0 added the line; until then the recipe inherited conda-forge's global
+pin.
+
+After publishing, two checks beyond section 5:
+
+```bash
+curl -s https://pypi.org/pypi/prov/X.Y.Z/json | python3 -c "
+import json,sys; print(json.load(sys.stdin)['info']['requires_python'])"
+```
+
+must print the new floor (`>=3.11`), and on an interpreter below it
+
+```bash
+uv venv --python 3.10 .v310 && uv pip install --python .v310/bin/python prov==X.Y.Z
+```
+
+must fail, because the release's `requires-python` excludes that interpreter. An
+unpinned `pip install prov` there installs the last release that supported it, which is
+what the floor change intends.
+
 ## Releasing from the `2.x` maintenance branch
 
 The steps above assume `main`. A back-port release cut from `2.x` follows the same shape,

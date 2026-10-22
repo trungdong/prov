@@ -6,13 +6,12 @@ documents (default profile), and the PROV-N that ProvToolbox's writer
 produced from the shared test corpus, compared for equality with the
 PROV-JSON fixture of the same name (the interoperability claim)."""
 
+import warnings
 from pathlib import Path
 
 import pytest
 
-from prov.model import ProvDocument
-
-from .conftest import no_future_rejection
+from prov.model import ProvDocument, ProvWarning
 
 CORPUS = Path(__file__).parent / "provn"
 JSON_FIXTURES = Path(__file__).parent / "json"
@@ -345,7 +344,8 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
 def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
-    with no_future_rejection():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
         document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
         reloaded = ProvDocument.deserialize(
             content=document.get_provn(strict=True), format="provn", profile="strict"

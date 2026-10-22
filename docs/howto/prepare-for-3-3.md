@@ -1,87 +1,26 @@
 # Prepare for prov 3.3.0
 
-`prov` 3.3.0 rejects some input that 3.2.x reads, and reads a few other inputs
-differently. From 3.2.3, `prov` warns about each such input with a
-{py:class}`~prov.model.ProvFutureRejectionWarning` where it reads the input, and
-still reads it as before. This guide shows how to find every such input in your
-documents and code.
-
-## Turn the warnings into errors
-
-`ProvFutureRejectionWarning` is a subclass of {py:class}`~prov.model.ProvWarning`.
-An `error` filter on the subclass raises at the first such message and leaves the
-other `ProvWarning`s alone, such as the statements the `lenient` PROV-N profile
-skips.
-
-When running pytest:
-
-```bash
-pytest -W error::prov.model.ProvFutureRejectionWarning
-```
-
-In a pytest configuration:
-
-```toml
-[tool.pytest.ini_options]
-filterwarnings = ["error::prov.model.ProvFutureRejectionWarning"]
-```
-
-In code:
-
-```python
-import warnings
-
-from prov.model import ProvFutureRejectionWarning
-
-warnings.simplefilter("error", ProvFutureRejectionWarning)
-```
-
-Python's own `-W` option and the `PYTHONWARNINGS` environment variable cannot
-name this class, because Python reads them before it can import `prov`. Use
-pytest's option, a pytest configuration or a filter in code instead.
-
-`prov` 3.3.0 keeps the class, so these filters keep working after the upgrade.
+`prov` 3.3.0 rejects some input that 3.2.x read, and reads a few other inputs
+differently. This guide lists each error and warning, the input that causes it and what
+to write instead. On `prov` 3.2.3, the same page at
+<https://prov.readthedocs.io/en/3.2.3/howto/prepare-for-3-3.html> describes the warnings
+that release raises for most of these inputs, and how to turn them into errors to find
+them before upgrading.
 
 ## Read the message
 
-Each message ends with what 3.3.0 does instead and the number of the GitHub issue
-that tracks the rule, such as "prov 3.3.0 will reject this (#529)". A message from a
-reader starts with the position of the input: the line and column in PROV-N, or the
-record identifier and attribute name in PROV-JSON. A message about a language tag, a
-local part, a Python value or a time offset beyond ±14:00 comes from the model,
-wherever the value was read or built, so it names the value instead. So does a
-message about a qualified-name value built in code or read from PROV-JSONLD or RDF.
-A message from `unified()` starts with the identifier of the records it merges.
+A message from a reader starts with the position of the input, which is the line and
+column in PROV-N, or the record identifier and attribute name in PROV-JSON. A message
+about a language tag, a local part, a Python value or a time offset beyond ±14:00 comes
+from the model, wherever the value was read or built, so it names the value instead. So
+does a message about a qualified-name value built in code or read from PROV-JSONLD or
+RDF. A message from `unified()` names the identifier of the records it cannot merge.
 
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects with its own `ProvJSONException`, `ProvJSONLDException` or
 `ProvNSyntaxError` raises `TypeError`, whose `__cause__` is that error with the rule and
 its position. An error from the model, such as the one for an undeclared prefix in
 PROV-JSONLD, is not chained. Pass `format=` to see the rule on its own.
-
-A PROV-N read emits its messages in three groups: the model's messages, as the
-parse runs, then the reader's messages about whitespace, then the reader's other
-messages. The reader's messages wait until the parse ends, so a read that fails
-with `ProvNSyntaxError` emits none of them. The messages therefore do not follow
-the order of the input, and under an `error` filter the first one raised may not
-be the first problem in the file.
-
-A filter on the issue number silences every case that issue tracks and leaves
-every other case an error. Python tries the filter added last first, so add the
-`ignore` filter after the `error` filter. A message that names a value can contain
-a line break, so start the pattern with `(?s)`, which makes `.` match a line break
-too. This example ignores the cases that issue #529 tracks.
-
-```python
-import warnings
-
-from prov.model import ProvFutureRejectionWarning
-
-warnings.simplefilter("error", ProvFutureRejectionWarning)
-warnings.filterwarnings(
-    "ignore", message=r"(?s).*\(#529\)$", category=ProvFutureRejectionWarning
-)
-```
 
 ## PROV-N declarations
 

@@ -14,8 +14,8 @@ from unittest import mock
 import pytest
 
 import prov
-from prov._warnings import collect_warnings, future_rejection_message, warn as prov_warn
-from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
+from prov._warnings import collect_warnings, warn as prov_warn
+from prov.model import ProvDocument, ProvWarning
 from prov.serializers import DoNotExist
 from prov.serializers.provjson import ProvJSONException, ProvJSONSerializer
 from prov.serializers.provjsonld import ProvJSONLDException
@@ -469,23 +469,29 @@ def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path) -> None:
 # -- warnings during auto-detection ----------------------------------------
 
 _PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
-_PROBE = future_rejection_message("probe", issue=509)
+_PROBE = "probe"
+
+
+class _ProbeWarning(ProvWarning):
+    """A non-default category, so the tests see it kept through collection."""
+
+
 _provn_deserialize = ProvNSerializer.deserialize
 
 
 def _warns_then_fails(self, stream, **kwargs) -> NoReturn:
-    prov_warn("from a failed candidate", ProvFutureRejectionWarning)
+    prov_warn("from a failed candidate")
     raise ValueError("not this format")
 
 
 def _warns_then_returns_empty(self, stream, **kwargs) -> ProvDocument:
-    prov_warn("from an empty candidate", ProvFutureRejectionWarning)
+    prov_warn("from an empty candidate")
     return ProvDocument()
 
 
 def _provn_warns(self, stream, **kwargs) -> ProvDocument:
     document = _provn_deserialize(self, stream, **kwargs)
-    prov_warn(_PROBE, ProvFutureRejectionWarning)
+    prov_warn(_PROBE, _ProbeWarning)
     return document
 
 
@@ -530,9 +536,10 @@ def test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller() -> Non
     ):
         warnings.simplefilter("always")
         prov.read(_PROVN)
-    future = [w for w in caught if issubclass(w.category, ProvFutureRejectionWarning)]
-    assert [str(w.message) for w in future] == [_PROBE]
-    assert future[0].filename == __file__
+    emitted = [w for w in caught if issubclass(w.category, ProvWarning)]
+    assert [str(w.message) for w in emitted] == [_PROBE]
+    assert emitted[0].category is _ProbeWarning
+    assert emitted[0].filename == __file__
 
 
 def test_read_auto_detect_keeps_the_once_per_location_record() -> None:
@@ -555,8 +562,8 @@ def test_read_auto_detect_raises_the_winners_warning_under_an_error_filter() -> 
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
         warnings.catch_warnings(),
     ):
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
-        with pytest.raises(ProvFutureRejectionWarning, match="probe"):
+        warnings.simplefilter("error", ProvWarning)
+        with pytest.raises(ProvWarning, match="probe"):
             prov.read(_PROVN)
 
 
@@ -567,7 +574,7 @@ def test_read_auto_detect_ignores_a_failed_candidates_warning_under_an_error_fil
         mock.patch.object(ProvJSONSerializer, "deserialize", _warns_then_fails),
         warnings.catch_warnings(),
     ):
-        warnings.simplefilter("error", ProvFutureRejectionWarning)
+        warnings.simplefilter("error", ProvWarning)
         document = prov.read(_PROVN)
     assert _identifiers(document) == ["ex:e1"]
 
@@ -577,10 +584,8 @@ def test_read_auto_detect_emits_under_the_callers_module_name() -> None:
         mock.patch.object(ProvNSerializer, "deserialize", _provn_warns),
         warnings.catch_warnings(),
     ):
-        warnings.filterwarnings(
-            "error", category=ProvFutureRejectionWarning, module=__name__
-        )
-        with pytest.raises(ProvFutureRejectionWarning, match="probe"):
+        warnings.filterwarnings("error", category=ProvWarning, module=__name__)
+        with pytest.raises(ProvWarning, match="probe"):
             prov.read(_PROVN)
 
 
@@ -590,4 +595,4 @@ def test_read_auto_detect_inside_a_collection_adds_to_it() -> None:
         collect_warnings() as collected,
     ):
         prov.read(_PROVN)
-    assert collected == [(_PROBE, ProvFutureRejectionWarning)]
+    assert collected == [(_PROBE, _ProbeWarning)]

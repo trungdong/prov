@@ -141,8 +141,6 @@ def test_long_rejected_value_is_shortened_in_the_message() -> None:
 
 
 def test_records_built_while_a_document_is_constructed_raise() -> None:
-    # The raise is not swallowed by the rebuild guard a document holds while
-    # it adds records.
     source = ex_document()
     records = (
         source.entity(f"ex:e{i}", {"ex:v": fractions.Fraction(1, 3)})  # type: ignore[dict-item]
