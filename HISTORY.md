@@ -196,9 +196,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 ### Fixes
 
-- `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and `NamespaceManager.add_namespaces()` accept
-  any mapping of prefix to IRI, not only a `dict`. A `MappingProxyType` was iterated as bare
-  prefix strings and raised `AttributeError`
+- `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
+  `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
+  `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
   ([#492](https://github.com/trungdong/prov/issues/492))
 
 ### Project
