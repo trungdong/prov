@@ -804,25 +804,6 @@ def test_deserialize_ignores_tampered_default_parser(
     assert "TOPSECRET123" not in document.get_provn()
 
 
-# Scaffolding for a per-file XML round-trip glob, left disabled.
-#
-# Deserializing then re-serializing PROV-XML does not maintain XML
-# equivalence (e.g. prov:entity elements with type prov:Plan become
-# prov:plan elements), so no test function calls this helper.
-# Re-enabling it is a possible future coverage chore (2.4.0 window /
-# conformance phase), explicitly out of scope for the pytest-matrix
-# migration -- see design doc §4 Decision 3
-# (planning/specs/2026-07-06-test-suite-redesign.md).
-
-
-def _perform_round_trip(filename, force_types=False) -> None:
-    document = prov.ProvDocument.deserialize(source=filename, format="xml")
-
-    with io.BytesIO() as new_xml:
-        document.serialize(format="xml", destination=new_xml, force_types=force_types)
-        compare_xml(filename, new_xml)
-
-
 def test_bundle_namespace_order_follows_registration_in_xml() -> None:
     # #337: bundle namespaces are declared in registration order.
     document = prov.ProvDocument()
@@ -835,8 +816,7 @@ def test_bundle_namespace_order_follows_registration_in_xml() -> None:
     assert [p.decode() for p in declared] == prefixes
 
 
-# #338: force_types coverage, independent of the disabled _perform_round_trip
-# scaffold above.
+# #338: force_types coverage.
 
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
 FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/prov#"}

@@ -120,16 +120,15 @@ Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
   xfail that's new, gone, or unexplained by your own change is a regression worth investigating;
   one that matches an existing `reason=` tied to a tracked issue is routine.
 - Known-lossy cases are permanent, documented limitations — don't "fix" them. RDF's PROV-O gap
-  (`docs/reference/conformance.md`, #217) and PROV-JSONLD's missing Mention term (#248) are each
-  marked via `@pytest.mark.parametrize("fmt", [...])` on only the affected `fmt` param, in
-  `test_statements.py`.
+  (`docs/reference/conformance.md`, #217) and PROV-JSONLD's missing Mention term (#248) each
+  leave the affected target out of the scruffy or mention round trips in `test_statements.py`
+  (`SCRUFFY_TARGETS`, `MENTION_TARGETS`); `test_rdf.py` and `test_jsonld.py` assert the raise.
 - Shared coverage (`test_statements.py`, `test_attributes.py`, `test_qnames.py`,
   `test_examples.py`) runs once per target via the `roundtrip` fixture. `examples.py` (canonical
   example documents) and `attribute_values.py` (datatype corpus; order significant — some tests
   reference individual values by index) feed those and several other modules.
 - `test_json.py`/`test_xml.py`/`test_rdf.py`/`test_jsonld.py` keep only format-specific tests
-  (encoder internals, error paths, `find_diff`, fixture-dir round-trips). `test_xml.py`'s
-  disabled `_perform_round_trip` glob scaffold is intentional (design doc §4).
+  (encoder internals, error paths, `find_diff`, fixture-dir round-trips).
 - `strategies.py`/`test_property_roundtrip.py` — Hypothesis round-trip property over
   `ROUNDTRIP_FORMATS`; known-lossy constructs excluded at generation time with issue refs.
 - `fixtures/written-by-3.2.3/` is written only by its `generate.py` under the published
