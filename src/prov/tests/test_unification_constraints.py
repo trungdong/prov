@@ -7,13 +7,11 @@ types (see the compatibility table in ``prov.model.bundle``). Observed
 outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``):
 
 - fail-cases whose same-identifier records carry *conflicting concrete* formal
-  attribute values are rejected with the documented ``ProvUnificationError``
-  (``UNIFICATION_REJECTS`` below);
-- fail-cases that pair an absent non-expandable formal (an association's
+  attribute values, or pair an absent non-expandable formal (an association's
   plan, a derivation's activity, or the generation or usage of a derivation
-  with no activity) with a present one still merge, with a
-  ``ProvFutureRejectionWarning``, because 3.3.0 rejects them (#547)
-  (``ABSENT_NONE_WARNINGS`` below);
+  with no activity) with a present one (#547), are rejected with the
+  documented ``ProvUnificationError`` (``UNIFICATION_REJECTS`` below maps
+  each file to its message);
 - every other fail-case still merges (placeholder-vs-concrete conflicts in
   other positions, which the model cannot represent, so an absent formal
   attribute there is an existential that unifies with any concrete value) or
@@ -69,9 +67,7 @@ import pytest
 
 pytest.importorskip("lxml")
 
-from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvUnificationError
-
-from .conftest import no_future_rejection
+from prov.model import ProvDocument, ProvUnificationError
 
 CORPUS = Path(__file__).parent / "unification" / "constraints"
 
@@ -85,49 +81,48 @@ PARSE_FAILURES = {
     "bundle-success2.xml",
 }
 
-# Fail-cases rejected by term unification: their same-identifier records carry
-# two *different concrete* values for the same formal attribute, so the records
-# cannot be merged.
-UNIFICATION_REJECTS = {
-    "association-fail1.xml",
-    "association-fail2.xml",
-    "association-fail3.xml",
-    "delegation-fail1.xml",
-    "delegation-fail2.xml",
-    "delegation-fail3.xml",
-    "end-fail1.xml",
-    "end-fail2.xml",
-    "end-fail3.xml",
-    "end-fail5.xml",
-    "generation-fail2.xml",
-    "generation-fail3.xml",
-    "generation-fail4.xml",
-    "invalidation-fail2.xml",
-    "invalidation-fail3.xml",
-    "invalidation-fail4.xml",
-    "start-fail1.xml",
-    "start-fail2.xml",
-    "start-fail3.xml",
-    "start-fail5.xml",
-    "start-fail6.xml",
-    "start-fail8.xml",
-    "usage-fail2.xml",
-    "usage-fail3.xml",
-    "usage-fail4.xml",
-}
-
-
-# Fail-cases whose same-identifier records pair an absent non-expandable formal
-# (PROV-CONSTRAINTS Table 3) with a present one, mapped to the attribute the
-# warning names: the first such position in PROV-DM order. unified() still
-# merges them and warns; 3.3.0 raises (#547).
-ABSENT_NONE_WARNINGS = {
-    "association-fail4.xml": "prov:plan",
-    "association-fail5.xml": "prov:plan",
-    "derivation-fail1.xml": "prov:activity",
-    "derivation-fail2.xml": "prov:activity",
-    "derivation-fail3.xml": "prov:activity",
-    "derivation-fail4.xml": "prov:activity",
+# Fail-cases unified() rejects, each mapped to a fragment of the
+# ProvUnificationError's message. Either two same-identifier records carry
+# two *different concrete* values for the same formal attribute, or one has a
+# value in a non-expandable position (PROV-CONSTRAINTS Table 3) where the
+# other has none, which means "none" there and unifies only with none (#547);
+# the message names the first such position in PROV-DM order.
+UNIFICATION_REJECTS = dict.fromkeys(
+    [
+        "association-fail1.xml",
+        "association-fail2.xml",
+        "association-fail3.xml",
+        "delegation-fail1.xml",
+        "delegation-fail2.xml",
+        "delegation-fail3.xml",
+        "end-fail1.xml",
+        "end-fail2.xml",
+        "end-fail3.xml",
+        "end-fail5.xml",
+        "generation-fail2.xml",
+        "generation-fail3.xml",
+        "generation-fail4.xml",
+        "invalidation-fail2.xml",
+        "invalidation-fail3.xml",
+        "invalidation-fail4.xml",
+        "start-fail1.xml",
+        "start-fail2.xml",
+        "start-fail3.xml",
+        "start-fail5.xml",
+        "start-fail6.xml",
+        "start-fail8.xml",
+        "usage-fail2.xml",
+        "usage-fail3.xml",
+        "usage-fail4.xml",
+    ],
+    "has conflicting values",
+) | {
+    "association-fail4.xml": "an absent prov:plan means none",
+    "association-fail5.xml": "an absent prov:plan means none",
+    "derivation-fail1.xml": "an absent prov:activity means none",
+    "derivation-fail2.xml": "an absent prov:activity means none",
+    "derivation-fail3.xml": "an absent prov:activity means none",
+    "derivation-fail4.xml": "an absent prov:activity means none",
 }
 
 
@@ -154,7 +149,6 @@ def _expected_unified_count(document):
 
 def _cases():
     for xml_path in sorted(CORPUS.glob("*.xml")):
-        expected = "success" if "-success" in xml_path.stem else "fail"
         marks = []
         if xml_path.name in PARSE_FAILURES:
             marks.append(
@@ -164,7 +158,7 @@ def _cases():
                     "under #254) — recorded in the gap analysis"
                 )
             )
-        yield pytest.param(xml_path, expected, id=xml_path.stem, marks=marks)
+        yield pytest.param(xml_path, id=xml_path.stem, marks=marks)
 
 
 def test_corpus_inventory() -> None:
@@ -173,60 +167,32 @@ def test_corpus_inventory() -> None:
     files = {p.name for p in CORPUS.glob("*.xml")}
     assert len(files) == 153
     assert files >= PARSE_FAILURES
-    assert files >= UNIFICATION_REJECTS
-    assert files >= set(ABSENT_NONE_WARNINGS)
-    assert not UNIFICATION_REJECTS & set(ABSENT_NONE_WARNINGS)
+    assert files >= set(UNIFICATION_REJECTS)
     assert all("-fail" in name for name in UNIFICATION_REJECTS)
-    assert all("-fail" in name for name in ABSENT_NONE_WARNINGS)
 
 
-@pytest.mark.parametrize("xml_path, expected", list(_cases()))
-def test_unified_corpus_characterization(xml_path, expected) -> None:
+@pytest.mark.parametrize("xml_path", list(_cases()))
+def test_unified_corpus_characterization(xml_path) -> None:
     with open(xml_path, "rb") as f:
         document = ProvDocument.deserialize(f, format="xml")
-    if expected == "success":
-        # Valid instances all unify without complaint, and the result is
-        # exactly the identifier-keyed union (verified for the whole corpus:
-        # the observed count matches the formula for all 125 non-raising
-        # cases). Note this is NOT always the spec's normal form: anonymous
-        # records that Constraints 24-27 would fold into an identified one
-        # stay separate (gap analysis section 3.4).
-        with no_future_rejection():
-            unified = document.unified()
-        assert _n_records(unified) == _expected_unified_count(document)
-    elif xml_path.name in UNIFICATION_REJECTS:
-        # Invalid instance rejected by term unification: two same-identifier
-        # records disagree on a formal attribute's concrete value. Every
-        # rejection in this group goes through the same code path
-        # (_unify_same_type_group's conflicting-values branch), whose message
-        # continues "... has conflicting values ..." -- distinct from the
-        # type-compatibility rejection's "... incompatible types ..." (none
-        # of these 153 ProvToolbox cases exercise that path; see the module
-        # docstring).
-        with (
-            no_future_rejection(),
-            pytest.raises(ProvUnificationError, match="has conflicting"),
+    if xml_path.name in UNIFICATION_REJECTS:
+        # Every rejection goes through _unify_same_type_group: the
+        # conflicting-values branch, or _check_non_expandable after the merge.
+        # None of these 153 ProvToolbox cases reaches the type-compatibility
+        # rejection ("... incompatible types ..."; see the module docstring).
+        with pytest.raises(
+            ProvUnificationError, match=UNIFICATION_REJECTS[xml_path.name]
         ):
-            document.unified()
-    elif xml_path.name in ABSENT_NONE_WARNINGS:
-        # Invalid instance that 3.3.0 rejects: an absent non-expandable formal
-        # meets a present one. unified() still merges, and warns.
-        attr_name = ABSENT_NONE_WARNINGS[xml_path.name]
-        with pytest.warns(
-            ProvFutureRejectionWarning, match=f"an absent {attr_name} means none"
-        ) as record:
-            unified = document.unified()
-        assert (
-            sum(issubclass(w.category, ProvFutureRejectionWarning) for w in record) == 1
-        )
-        assert _n_records(unified) == _expected_unified_count(document)
+            _ = document.unified()
     else:
-        # Invalid instance ("fail" per the corpus label) that unified()
-        # nevertheless accepts, producing the plain identifier-keyed union —
-        # these fail on constraints outside unified()'s documented scope
-        # (see the module docstring).
-        with no_future_rejection():
-            unified = document.unified()
+        # Every other instance, valid or not, unifies to exactly the
+        # identifier-keyed union (verified for the whole corpus: the observed
+        # count matches the formula for every non-raising case). That is NOT
+        # always the spec's normal form: anonymous records that Constraints
+        # 24-27 would fold into an identified one stay separate (gap analysis
+        # section 3.4), and a fail-case outside unified()'s documented scope
+        # passes through (module docstring).
+        unified = document.unified()
         assert _n_records(unified) == _expected_unified_count(document)
 
 
@@ -316,25 +282,6 @@ def test_conflicting_start_times_fail_to_unify() -> None:
     assert "a1" in message
     assert repr(datetime.datetime(2011, 11, 16, 16, 0)) in message
     assert repr(datetime.datetime(2012, 1, 1, 0, 0)) in message
-
-
-def test_placeholder_vs_concrete_plan_merges() -> None:
-    # PROV-CONSTRAINTS §4: the placeholder - is a constant; it unifies only
-    # with itself or an existential variable, never with a concrete value.
-    # Corpus analogue association-fail4: wasAssociatedWith(assoc1; a1, ag1,
-    # ex:pl1) + wasAssociatedWith(assoc1; a1, ag1, -) must FAIL to merge.
-    # The plan is non-expandable, so an absent plan can only be -. 3.2.3
-    # still merges it with the concrete plan and warns, and 3.3.0 raises
-    # (#547).
-    doc = ProvDocument()
-    doc.set_default_namespace("http://example.org/")
-    doc.association("a1", agent="ag1", plan="pl1", identifier="assoc1")
-    doc.association("a1", agent="ag1", identifier="assoc1")
-    with pytest.warns(ProvFutureRejectionWarning, match="prov:plan means none"):
-        unified = doc.unified()
-    records = unified.get_records()
-    assert len(records) == 1
-    assert records[0].get_provn() == "wasAssociatedWith(assoc1; a1, ag1, pl1)"
 
 
 def test_entity_and_activity_sharing_an_id_raises() -> None:
