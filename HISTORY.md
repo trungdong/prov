@@ -220,6 +220,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   record or an adopted name from warning a second time are gone with the warnings
   ([#588](https://github.com/trungdong/prov/issues/588),
   [#590](https://github.com/trungdong/prov/issues/590))
+- Public return types match the runtime: `get_records()` returns a list in both branches and
+  narrows to the class it filters by, `bundles` is a sized view, `serialize()` returns `str`
+  without a destination and `None` with one, an element's `identifier` is never `None`, and
+  the chaining methods on entities, activities and agents return `Self`. A subclass that
+  overrides one of these with the looser type is reported by mypy
+  ([#491](https://github.com/trungdong/prov/issues/491)). The test modules still outside
+  `mypy --strict` are listed once in `pyproject.toml`, eighteen fewer than in 3.2.3, and a test
+  pins the list so it only shrinks ([#494](https://github.com/trungdong/prov/issues/494))
 
 ## 3.2.3 (2026-10-19)
 
