@@ -4,8 +4,7 @@ The ``ATTRIBUTE_VALUES`` corpus (``attribute_values.py``) runs once per target
 in ``SHARED_TARGETS``: each value alone on ``prov:type`` (node ids ``attr-N``,
 with the ``xsd:decimal`` case, index 8, as its own test), every value as a
 separate attribute of one entity, and every value on ``prov:value`` of one
-entity. The tests after the corpus cover values the corpus cannot hold, each
-saying why.
+entity. The tests after the corpus cover values the corpus cannot hold.
 """
 
 import datetime
