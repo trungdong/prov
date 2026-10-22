@@ -1240,6 +1240,11 @@ class ProvElement(ProvRecord):
 
         super().__init__(bundle, identifier, attributes)
 
+    @property
+    def identifier(self) -> QualifiedName:
+        """The element's identifier. Every element has one."""
+        return cast(QualifiedName, self._identifier)
+
     def is_element(self) -> bool:
         """Return ``True`` if the record is an element, ``False`` otherwise."""
         return True

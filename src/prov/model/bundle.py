@@ -1977,6 +1977,21 @@ class ProvDocument(ProvBundle):
         return b
 
     # Serializing and deserializing
+    @overload
+    def serialize(
+        self, destination: None = None, format: str = "json", **args: Any
+    ) -> str: ...
+
+    @overload
+    def serialize(
+        self, destination: StreamOrPath, format: str = "json", **args: Any
+    ) -> None: ...
+
+    @overload
+    def serialize(
+        self, destination: StreamOrPath | None, format: str = "json", **args: Any
+    ) -> str | None: ...
+
     def serialize(
         self,
         destination: StreamOrPath | None = None,

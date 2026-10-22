@@ -5,7 +5,9 @@ behaviour next to them. This module is strict from its first commit and never
 joins the override list in ``pyproject.toml``.
 """
 
+import io
 from collections.abc import ValuesView
+from pathlib import Path
 from typing import assert_type
 
 import pytest
@@ -17,6 +19,8 @@ from prov.model import (
     ProvEntity,
     ProvException,
     ProvRecord,
+    QualifiedName,
+    StreamOrPath,
 )
 from prov.tests.examples import primer_example
 
@@ -63,3 +67,42 @@ def test_plain_bundle_has_no_bundles() -> None:
     bundle = ProvBundle()
     with pytest.raises(ProvException):
         _ = bundle.bundles
+
+
+def _no_destination() -> StreamOrPath | None:
+    # A call, not an assignment: mypy narrows a variable assigned None to None,
+    # which would select the first overload instead of the union one.
+    return None
+
+
+def test_serialize_returns_str_without_a_destination_and_none_with_one(
+    tmp_path: Path,
+) -> None:
+    document = primer_example()
+    text = document.serialize(format="provn")
+    assert_type(text, str)
+    assert "entity(" in text
+
+    stream = io.StringIO()
+    assert_type(document.serialize(stream, format="json"), None)
+    assert stream.getvalue().startswith("{")
+
+    path = tmp_path / "primer.json"
+    assert_type(document.serialize(path), None)
+    assert path.read_text().startswith("{")
+
+    result = document.serialize(_no_destination(), format="provn")
+    assert_type(result, str | None)
+    assert result == text
+
+
+def test_element_identifier_is_a_qualified_name_and_a_relation_may_lack_one() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    entity = document.entity("ex:e")
+    assert_type(entity.identifier, QualifiedName)
+    assert entity.identifier.uri == "http://example.org/e"
+
+    generation = document.wasGeneratedBy("ex:e", "ex:a")
+    assert_type(generation.identifier, QualifiedName | None)
+    assert generation.identifier is None
