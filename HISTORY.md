@@ -77,23 +77,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
   stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
   `xsd:QName` `Literal` and said 3.3.0 would reject it
-- In PROV-JSON, a `ProvJSONException` naming the record and attribute for a `null`
-  attribute value, formal attribute or `hadMember` member
-  ([#528](https://github.com/trungdong/prov/issues/528)); a formal attribute or member
-  that is not a string ([#597](https://github.com/trungdong/prov/issues/597)); a formal
-  attribute other than the members of `hadMember` written as an array of any length, one
-  error where 3.2.x raised two, for an empty array and for an array of several values
-  ([#531](https://github.com/trungdong/prov/issues/531)); a value object with a key other
-  than `$`, `type` and `lang`, or with a `$` that is not a string, except an integer typed
-  `xsd:int` or `xsd:long` or a number with a fraction or exponent typed `xsd:double` with
-  no `lang`, which `prov` 2.x wrote and which still reads
-  ([#529](https://github.com/trungdong/prov/issues/529)); a `type` that is not a string or
-  whose prefix is not declared, with or without a `lang`, under the qualified-name rule
-  above ([#552](https://github.com/trungdong/prov/issues/552)); and a time given as a
-  string that is not an `xsd:dateTime`, with the message the reader already gave a value
-  object ([#555](https://github.com/trungdong/prov/issues/555)). A key repeated in a JSON
-  object raises `ProvJSONException` naming the key only, because Python's JSON parser
-  reports no position ([#532](https://github.com/trungdong/prov/issues/532))
+- In PROV-JSON, a `ProvJSONException` naming the record and attribute for a `null` value
+  ([#528](https://github.com/trungdong/prov/issues/528)), a formal attribute or member
+  that is not a string ([#597](https://github.com/trungdong/prov/issues/597)), a formal
+  attribute written as an array ([#531](https://github.com/trungdong/prov/issues/531)), a
+  value object with an unknown key or a `$` that is not a string
+  ([#529](https://github.com/trungdong/prov/issues/529)), a `type` that is not a string or
+  does not resolve ([#552](https://github.com/trungdong/prov/issues/552)), or a time string
+  that is not an `xsd:dateTime` ([#555](https://github.com/trungdong/prov/issues/555)). A
+  repeated key raises naming the key only, because Python's JSON parser reports no position
+  ([#532](https://github.com/trungdong/prov/issues/532)). A number in `$` typed as `prov`
+  2.x wrote it, `xsd:int`, `xsd:long` or `xsd:double` with no `lang`, still reads
 
 ### Changes with no prior warning
 
@@ -124,12 +118,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-JSONLD reader raises `ProvJSONLDException` for a key repeated in a JSON object,
   where 3.2.x kept the last value without a message
   ([#532](https://github.com/trungdong/prov/issues/532))
-- `prov.read()` without `format=` raises its `TypeError` from the error of the reader the
-  content's first character names, when that reader is PROV-JSON, PROV-JSONLD or PROV-N
-  and rejected the input with its own `ProvJSONException`, `ProvJSONLDException` or
-  `ProvNSyntaxError`, so the traceback shows the rule and its position. An error from the
-  model, such as the one for an undeclared prefix in PROV-JSONLD, is not chained. Pass
-  `format=` to get either error on its own
+- `prov.read()` without `format=` raises its `TypeError` from the `ProvJSONException`,
+  `ProvJSONLDException` or `ProvNSyntaxError` of the reader the content's first character
+  names, so the traceback shows the rule and its position. Pass `format=` to get that
+  error on its own
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`
   gains a `detail` attribute and prints it after the name
