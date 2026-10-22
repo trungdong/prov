@@ -34,8 +34,7 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld", "provn")
 # The full target axis: the round-trip formats PLUS a "model" target that
 # constructs the document, exercises PROV-N generation, and checks the
-# self-equality invariant WITHOUT serialization. The model axis preserves the
-# coverage the old RoundTripModelTest provided.
+# self-equality invariant WITHOUT serialization.
 SHARED_TARGETS = ("model", *ROUNDTRIP_FORMATS)
 # What the ``roundtrip`` fixture returns: a check that a document survives
 # the current target and returns what came back.
