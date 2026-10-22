@@ -1,6 +1,6 @@
 """Guards the public API surface for the 2.x line.
 
-Two different questions are answered here:
+Three different questions are answered here:
 
 - ``test_names_importable`` checks *intent*: a curated allowlist of the names
   that are load-bearing public API and must stay importable from their
@@ -12,6 +12,8 @@ Two different questions are answered here:
   ``prov.model`` location and then deletes the submodule attributes,
   deliberately freezing ``dir(prov.model)`` to the pre-split namespace; this
   test is what actually holds that freeze in place.
+- ``test_mypy_override_list_only_shrinks`` checks that the mypy override list
+  in ``pyproject.toml`` equals a frozen snapshot, so the list only shrinks.
 """
 
 import importlib

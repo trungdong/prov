@@ -14,6 +14,7 @@ from typing import assert_type
 import pytest
 
 from prov.model import (
+    NamespaceManager,
     ProvActivity,
     ProvAgent,
     ProvBundle,
@@ -138,11 +139,10 @@ def test_namespace_arguments_accept_any_mapping() -> None:
     bundle = ProvBundle(namespaces=mapping)
     assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex"]
 
-    document._namespaces.add_namespaces(
-        MappingProxyType({"ex2": "http://example.org/2/"})
-    )
-    assert {ns.prefix for ns in document.get_registered_namespaces()} == {"ex", "ex2"}
+    manager = NamespaceManager(mapping)
+    manager.add_namespaces(MappingProxyType({"ex2": "http://example.org/2/"}))
+    assert {ns.prefix for ns in manager.get_registered_namespaces()} == {"ex", "ex2"}
 
-    document._namespaces.add_namespaces({})
-    document._namespaces.add_namespaces([])
-    assert {ns.prefix for ns in document.get_registered_namespaces()} == {"ex", "ex2"}
+    manager.add_namespaces({})
+    manager.add_namespaces([])
+    assert {ns.prefix for ns in manager.get_registered_namespaces()} == {"ex", "ex2"}

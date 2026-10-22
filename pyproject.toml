@@ -200,7 +200,8 @@ python_version = "3.11"
 strict = true
 
 # Test modules that do not yet pass strict mypy. The list only shrinks. A PR
-# that makes a module pass deletes its name, and a new test module never joins.
+# that makes a module pass deletes its name here and from MYPY_OVERRIDE_LIST in
+# src/prov/tests/test_public_api.py, and a new test module never joins.
 [[tool.mypy.overrides]]
 module = [
     "prov.tests.test_attribute_merging",
