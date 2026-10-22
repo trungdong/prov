@@ -19,16 +19,6 @@ Two things are worth knowing before you start, because neither is obvious from t
 Both publish jobs use PyPI Trusted Publishing through the `testpypi` and `pypi` GitHub
 environments — there are no API tokens to rotate.
 
-## The `gh` token and the `workflow` scope
-
-A `gh pr merge` of a PR that touches `.github/workflows/` fails with "the base branch
-policy prohibits the merge" when the `gh` token lacks the `workflow` scope; the merge
-REST API reports the missing scope as a 403, and the message is wrong about the cause.
-Fix it once with `gh auth refresh -h github.com -s workflow`, or merge in the web UI. A
-release hits this on the feedstock's bump PR when the bot's rerender touches the
-feedstock's workflows, and on the main repository on any PR that edits `CI.yml`, such as
-one that raises the Python floor.
-
 ## 1. Pre-flight
 
 Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
@@ -223,8 +213,10 @@ The bot supplies the version, sha256 and build number and re-renders. Review the
 dependencies: conda has no extras, so by convention the recipe stays full-featured and
 mirrors the `rdf`/`xml`/`dot`/`graph` extras as hard dependencies.
 
-If the bot's rerender touched `.github/workflows/`, see "The `gh` token and the
-`workflow` scope" above before merging.
+**Known trap:** if the bot's rerender touched `.github/workflows/`, `gh pr merge` fails
+with "the base branch policy prohibits the merge". That message is wrong. The real cause
+is a `gh` token without the `workflow` scope, which the merge REST API reports as a 403.
+Fix with `gh auth refresh -h github.com -s workflow`, or merge in the web UI.
 
 ## 7. Close out
 

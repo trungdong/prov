@@ -4,48 +4,8 @@
 differently. This guide lists each error and warning, the input that causes it and what
 to write instead. On `prov` 3.2.3, the same page at
 <https://prov.readthedocs.io/en/3.2.3/howto/prepare-for-3-3.html> describes the warnings
-that release raises for most of the same inputs.
-
-## On 3.2.3, turn the warnings into errors first
-
-`prov` 3.2.3 warns about most of the inputs this page lists with a
-{py:class}`~prov.model.ProvFutureRejectionWarning`, a subclass of
-{py:class}`~prov.model.ProvWarning`, and still reads them as before. To find those
-inputs in your documents and code before upgrading, run 3.2.3 with that class turned
-into an error. The sections below name the inputs 3.2.3 read without a warning, which
-the filter cannot find. An `error` filter on the subclass raises at the first such
-message and leaves the other `ProvWarning`s alone, such as the statements the `lenient`
-PROV-N profile skips.
-
-When running pytest:
-
-```bash
-pytest -W error::prov.model.ProvFutureRejectionWarning
-```
-
-In a pytest configuration:
-
-```toml
-[tool.pytest.ini_options]
-filterwarnings = ["error::prov.model.ProvFutureRejectionWarning"]
-```
-
-In code:
-
-```python
-import warnings
-
-from prov.model import ProvFutureRejectionWarning
-
-warnings.simplefilter("error", ProvFutureRejectionWarning)
-```
-
-Python's own `-W` option and the `PYTHONWARNINGS` environment variable cannot
-name this class, because Python reads them before it can import `prov`. Use
-pytest's option, a pytest configuration or a filter in code instead.
-
-`prov` 3.3.0 keeps the class and never raises it, so these filters keep working after
-the upgrade and can then be removed. 4.0 removes the class.
+that release raises for most of these inputs, and how to turn them into errors to find
+them before upgrading.
 
 ## Read the message
 
