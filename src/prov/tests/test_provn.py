@@ -30,7 +30,6 @@ from prov.serializers.provn_parser import (
     ProvNParser,
 )
 from prov.tests import examples
-from prov.tests.conftest import no_future_rejection
 
 PREFIXES = "prefix ex <http://example.org/>\nprefix dc <http://purl.org/dc/terms/>\n"
 
@@ -637,7 +636,8 @@ ACCEPTED_DECLARATIONS = [
 @pytest.mark.parametrize(("declarations", "profiles"), ACCEPTED_DECLARATIONS)
 def test_reader_accepts_declarations(declarations, profiles) -> None:
     for profile in profiles:
-        with no_future_rejection():
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", ProvWarning)
             ProvDocument.deserialize(
                 content=f"document\n{declarations}endDocument",
                 format="provn",
