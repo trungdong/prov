@@ -109,14 +109,7 @@ def test_unresolvable_unification_falls_back_to_original_bundle() -> None:
     ``bundle.unified()`` raises ``ProvUnificationError`` because two relations
     share an identifier but disagree on a formal attribute (the "scruffy"
     pattern -- see
-    test_statements.py's test_scruffy_relation for the same shape).
-
-    Previously exercised incidentally by the pre-migration dot suite
-    rendering all 185 shared statement/attribute documents (one of which was
-    scruffy); reducing the dot render-smoke to the 8 canonical examples
-    (design doc §3) dropped that incidental coverage, so this test restores
-    it directly (coverage report -m showed src/prov/dot.py:443-446 newly
-    uncovered after the reduction)."""
+    test_statements.py's test_scruffy_relation for the same shape)."""
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity(identifier="ex:e1")
