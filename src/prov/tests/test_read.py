@@ -6,6 +6,7 @@ import json
 import locale
 import logging
 import pathlib
+import re
 import warnings
 from typing import NoReturn
 from unittest import mock
@@ -16,8 +17,10 @@ import prov
 from prov._warnings import collect_warnings, future_rejection_message, warn as prov_warn
 from prov.model import ProvDocument, ProvFutureRejectionWarning, ProvWarning
 from prov.serializers import DoNotExist
-from prov.serializers.provjson import ProvJSONSerializer
+from prov.serializers.provjson import ProvJSONException, ProvJSONSerializer
+from prov.serializers.provjsonld import ProvJSONLDException
 from prov.serializers.provn import ProvNSerializer
+from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provrdf import ProvRDFSerializer
 from prov.serializers.provxml import ProvXMLSerializer
 from prov.tests.examples import primer_example
@@ -138,6 +141,7 @@ def test_read_auto_detect_swallows_any_deserializer_error() -> None:
     ):
         prov.read(io.StringIO("garbage"))
     assert "specify the format" in str(ctx.value)
+    assert ctx.value.__cause__ is None
 
 
 # -- raw-content strings/bytes (not a file path) ----------------------------
@@ -190,6 +194,87 @@ def test_read_garbage_content_raises_type_error() -> None:
     # A str that is not an existing file path is treated as raw content.
     with pytest.raises(TypeError):
         prov.read("no/such/file.json")
+
+
+# -- a rejected input reports the reader's error as the TypeError's cause ----
+
+_JSON_NULL = (
+    '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:k": null}}}'
+)
+_JSONLD_UNKNOWN_TYPE = '{"@context": [], "@graph": [{"@type": "Frobnication"}]}'
+_PROVN_UNDECLARED = "document\n  prefix ex <http://example.org/>\n  entity(ex:e, [ex:k='zz:x'])\nendDocument"
+
+
+def _source(kind: str, content: str, tmp_path: pathlib.Path) -> object:
+    if kind == "content":
+        return content
+    if kind == "text-stream":
+        return io.StringIO(content)
+    if kind == "bytes-stream":
+        return io.BytesIO(content.encode("utf-8"))
+    path = tmp_path / "rejected.txt"
+    path.write_text(content, encoding="utf-8")
+    return str(path)
+
+
+@pytest.mark.parametrize("kind", ["content", "text-stream", "bytes-stream", "path"])
+@pytest.mark.parametrize(
+    ("content", "cause", "match"),
+    [
+        pytest.param(
+            _JSON_NULL,
+            ProvJSONException,
+            "^record 'ex:e', attribute 'ex:k': the value is null$",
+            id="json",
+        ),
+        pytest.param(
+            _JSONLD_UNKNOWN_TYPE, ProvJSONLDException, "Frobnication", id="jsonld"
+        ),
+        pytest.param(
+            _PROVN_UNDECLARED,
+            ProvNSyntaxError,
+            "^line 3, column \\d+: the qualified name 'zz:x' does not resolve, "
+            "because its prefix 'zz' is not declared$",
+            id="provn",
+        ),
+    ],
+)
+def test_read_auto_detect_chains_the_readers_error(
+    kind: str, content: str, cause: type[Exception], match: str, tmp_path: pathlib.Path
+) -> None:
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read(_source(kind, content, tmp_path))
+    assert isinstance(ctx.value.__cause__, cause)
+    assert re.search(match, str(ctx.value.__cause__))
+
+
+def test_read_auto_detect_chains_nothing_for_unrecognised_content() -> None:
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read("no/such/file.json")
+    assert ctx.value.__cause__ is None
+
+
+def test_read_auto_detect_chains_nothing_for_xml() -> None:
+    # The PROV-XML reader raises no error of its own that names a position.
+    text = (
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#">'
+        '<prov:entity prov:id="zz:e"/></prov:document>'
+    )
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read(text)
+    assert ctx.value.__cause__ is None
+
+
+def test_read_auto_detect_chains_nothing_from_a_consumed_stream() -> None:
+    # A non-seekable stream is consumed by the first candidate, so the content
+    # that would name the reader is gone.
+    class NotSeekable(io.StringIO):
+        def seekable(self) -> bool:
+            return False
+
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read(NotSeekable(_PROVN_UNDECLARED))
+    assert ctx.value.__cause__ is None
 
 
 # -- Fix A: seekable streams are rewound between auto-detect attempts ------
