@@ -270,19 +270,18 @@ class NamespaceManager(dict[str, Namespace]):
                 dn_namespace = Namespace("dn", namespace.uri)
                 dn_namespace = self.add_namespace(dn_namespace)
                 new_qname = dn_namespace[qname.localpart]
-        elif prefix in self and self[prefix] == namespace:
-            # No need to add the namespace
-            existing_ns = self[prefix]
+        else:
+            existing_ns = self.get(prefix)
             if existing_ns is namespace:
                 return qname
-            else:
+            if existing_ns is not None and existing_ns == namespace:
                 # reuse the existing namespace
                 new_qname = existing_ns[qname.localpart]
-        else:
-            # Do not reuse the namespace object, making an identical copy
-            ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
-            # minting the same Qualified Name from the namespace's copy
-            new_qname = ns[qname.localpart]
+            else:
+                # Do not reuse the namespace object, making an identical copy
+                ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
+                # minting the same Qualified Name from the namespace's copy
+                new_qname = ns[qname.localpart]
         # returning the new qname
         return new_qname
 
