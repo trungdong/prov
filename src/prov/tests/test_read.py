@@ -470,6 +470,12 @@ def test_deserialize_path_reads_utf8_regardless_of_locale(tmp_path) -> None:
 
 _PROVN = "document\n  prefix ex <http://example.org/>\n  entity(ex:e1)\nendDocument"
 _PROBE = "probe"
+
+
+class _ProbeWarning(ProvWarning):
+    """A non-default category, so the tests see it kept through collection."""
+
+
 _provn_deserialize = ProvNSerializer.deserialize
 
 
@@ -485,7 +491,7 @@ def _warns_then_returns_empty(self, stream, **kwargs) -> ProvDocument:
 
 def _provn_warns(self, stream, **kwargs) -> ProvDocument:
     document = _provn_deserialize(self, stream, **kwargs)
-    prov_warn(_PROBE)
+    prov_warn(_PROBE, _ProbeWarning)
     return document
 
 
@@ -532,6 +538,7 @@ def test_read_auto_detect_emits_the_winners_warnings_once_at_the_caller() -> Non
         prov.read(_PROVN)
     emitted = [w for w in caught if issubclass(w.category, ProvWarning)]
     assert [str(w.message) for w in emitted] == [_PROBE]
+    assert emitted[0].category is _ProbeWarning
     assert emitted[0].filename == __file__
 
 
@@ -588,4 +595,4 @@ def test_read_auto_detect_inside_a_collection_adds_to_it() -> None:
         collect_warnings() as collected,
     ):
         prov.read(_PROVN)
-    assert collected == [(_PROBE, ProvWarning)]
+    assert collected == [(_PROBE, _ProbeWarning)]

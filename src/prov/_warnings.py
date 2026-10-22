@@ -1,7 +1,5 @@
 """``ProvWarning``, the 3.2.3 subclass kept for its filters, and the ``warn`` helper.
 
-All live here, not in :mod:`prov.model.records`, so that :mod:`prov.identifier`
-can emit them without importing :mod:`prov.model` and creating a cycle;
 :mod:`prov.model` re-exports both warning classes under their public names.
 The module also holds the :func:`warn` helper every serializer uses.
 
@@ -28,10 +26,11 @@ class ProvWarning(Warning):
 class ProvFutureRejectionWarning(ProvWarning):
     """The warning ``prov`` 3.2.3 raised for input that 3.3.0 rejects or reads differently.
 
-    3.3.0 never raises it: each such input is an error where it is read, or is
-    read as the warning said. The class stays so that a filter written for
-    3.2.3, such as ``warnings.simplefilter("error", ProvFutureRejectionWarning)``,
-    keeps working. 4.0 removes it.
+    3.3.0 never raises it, because each such input is now an error where it is
+    read, or is read as the warning said. The class stays so that a filter
+    written for 3.2.3, such as
+    ``warnings.simplefilter("error", ProvFutureRejectionWarning)``, keeps
+    working. 4.0 removes it.
     """
 
 

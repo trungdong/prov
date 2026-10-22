@@ -147,7 +147,7 @@ def pytest_assertrepr_compare(config, op, left, right):
     ]
 
 
-#  Helpers for the tests of the warnings prov 3.2.3 emits.
+#  Helpers for the tests of the checks at assertion.
 EX_URI = "http://example.org/"
 
 
