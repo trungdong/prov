@@ -17,19 +17,15 @@ import re
 import reprlib
 import sys
 import uuid
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
-from prov._warnings import ProvFutureRejectionWarning, future_rejection_message, warn
 from prov.constants import (
-    PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
     XSD_DATE,
     XSD_DECIMAL,
-    XSD_QNAME,
     XSD_TIME,
 )
 from prov.identifier import QualifiedName
@@ -75,23 +71,6 @@ def _rebuild(make: Callable[_P, _R], *args: _P.args, **kwargs: _P.kwargs) -> _R:
         return make(*args, **kwargs)
     finally:
         _rebuilding.reset(token)
-
-
-# True while a reader that warns about unresolvable qualified-name values
-# itself builds records, so the model does not warn about them again.
-_reader_checks_names: ContextVar[bool] = ContextVar(
-    "prov_reader_checks_names", default=False
-)
-
-
-@contextmanager
-def _reader_checking_names() -> Iterator[None]:
-    """Build records inside a reader that checks its qualified-name values."""
-    token = _reader_checks_names.set(True)
-    try:
-        yield
-    finally:
-        _reader_checks_names.reset(token)
 
 
 def _decimal_text(value: decimal.Decimal) -> str | None:
@@ -181,16 +160,6 @@ def no_prov_form_detail(attr: QualifiedName, value: object) -> str:
     return f"the value {_value_repr.repr(value)} of {attr} has type {name}, which has no PROV form"
 
 
-class _TypedText(Protocol):
-    """The datatype and text of a ``Literal``."""
-
-    @property
-    def datatype(self) -> QualifiedName | None: ...
-
-    @property
-    def value(self) -> str: ...
-
-
 def unresolved_name_detail(
     bundle: ProvBundle, text: str, *, attr: QualifiedName | None = None
 ) -> str | None:
@@ -205,22 +174,6 @@ def unresolved_name_detail(
         return None
     of_attr = f" of {attr}" if attr is not None else ""
     return f"the qualified name {text!r}{of_attr} does not resolve, because {reason}"
-
-
-def _warn_unresolved_name(
-    bundle: ProvBundle, attr: QualifiedName, literal: _TypedText, _value: object
-) -> None:
-    """Warn that ``literal``, typed as a qualified name, does not resolve by its
-    prefix (#516, #553); ``_value`` is what it converted to."""
-    if (
-        _reader_checks_names.get()
-        or _rebuilding.get()
-        or literal.datatype not in (PROV_QUALIFIEDNAME, XSD_QNAME)
-    ):
-        return
-    detail = unresolved_name_detail(bundle, literal.value, attr=attr)
-    if detail is not None:
-        warn(future_rejection_message(detail, issue=516), ProvFutureRejectionWarning)
 
 
 def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:
