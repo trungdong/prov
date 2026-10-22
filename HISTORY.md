@@ -115,18 +115,25 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored
   as a `QualifiedName` in every path. 3.2.x kept an `xsd:QName` literal opaque in code and
   when read from PROV-N or RDF, so a document read through PROV-JSON compared unequal to
-  the same document read through PROV-N. One whose prefix is not declared is kept as a
-  `Literal`
+  the same document read through PROV-N
   ([#526](https://github.com/trungdong/prov/issues/526))
 - A full IRI as a PROV-N identifier, formal argument, attribute name or datatype, or as a
   PROV-JSON attribute name, is the prefix `http` and is rejected unless a prefix named
   `http` is declared, where 3.2.x read it as a name in a declared namespace the IRI starts
-  with. A PROV-JSON relation key with no prefix and no default namespace is rejected,
-  where 3.2.x read an anonymous relation. In code, a plain string given as an identifier,
-  such as `bundle.entity("http://example.org/e1")`, still compacts
+  with. A PROV-JSON relation key that is empty, or has no prefix when no default namespace
+  is declared, is rejected, where 3.2.x read an anonymous relation. In code, a plain
+  string given as an identifier, such as `bundle.entity("http://example.org/e1")`, still
+  compacts
   ([#599](https://github.com/trungdong/prov/issues/599))
 - `ProvNParser` no longer has a `warnings` attribute; the PROV-N reader raises where 3.2.3
   recorded a message
+  ([#586](https://github.com/trungdong/prov/issues/586))
+- The PROV-JSON reader raises a `ProvJSONException` naming the record and attribute for a
+  record key or attribute name whose prefix is not declared, where 3.2.x raised the
+  model's `ProvElementIdentifierRequired` or `ProvExceptionInvalidQualifiedName`.
+  `ProvJSONException` is not a `ProvException`, so code that handles both catches
+  `prov.Error`
+  ([#551](https://github.com/trungdong/prov/issues/551))
 
 ### Output changes
 
