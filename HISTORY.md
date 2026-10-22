@@ -89,8 +89,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#532](https://github.com/trungdong/prov/issues/532)). A number in `$` typed as `prov`
   2.x wrote it, `xsd:int`, `xsd:long` or `xsd:double` with no `lang`, still reads
 - Two records of one type that share an identifier where one has a value in a
-  non-expandable position, the plan of an association, the activity of a derivation, or
-  the generation or usage of a derivation that names no activity, and the other has
+  non-expandable position (the plan of an association, the activity of a derivation, or
+  the generation or usage of a derivation that names no activity) and the other has
   none, a `ProvUnificationError` from `unified()` naming the identifier and the position,
   where 3.2.3 merged the records and kept the value. `prov_to_graph()` raises with it;
   `prov_to_dot()` draws the document as asserted

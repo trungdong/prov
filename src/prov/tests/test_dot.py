@@ -5,6 +5,7 @@ Created on Aug 13, 2015
 """
 
 import datetime
+import warnings
 
 import pytest
 
@@ -286,8 +287,6 @@ def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site() -> N
 
 
 def test_complete_relation_draws_without_warning() -> None:
-    import warnings
-
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1")
@@ -299,13 +298,11 @@ def test_complete_relation_draws_without_warning() -> None:
 
 
 def test_prov_to_dot_draws_a_document_unified_rejects_as_asserted() -> None:
-    import warnings
-
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
-    with pytest.raises(ProvUnificationError):
+    with pytest.raises(ProvUnificationError, match="an absent prov:plan means none"):
         _ = document.unified()
     with warnings.catch_warnings():
         warnings.simplefilter("error")

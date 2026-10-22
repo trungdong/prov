@@ -279,9 +279,9 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     ``_check_non_expandable`` raises once the merged record is built, so a
     conflict elsewhere in the records raises first. Non-formal ("extra")
     attributes are unioned. The merged record is newly constructed from the
-    unified formal attributes, so no *formal-attribute* conflict is ever routed through
-    :meth:`ProvRecord.add_attributes`' single-value guard -- a conflict between
-    two records' *extra* attributes still is, since those are reasserted
+    unified formal attributes, so no *formal-attribute* conflict is ever routed
+    through :meth:`ProvRecord.add_attributes`' single-value guard -- a conflict
+    between two records' *extra* attributes still is, since those are reasserted
     through the merged record's constructor unchanged.
 
     Args:
@@ -293,7 +293,8 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
 
     Raises:
         ProvUnificationError: If two of the records hold different concrete
-            values for the same formal attribute.
+            values for the same formal attribute, or an absent value in a
+            non-expandable position where another holds a concrete one.
     """
     first_record = records[0]
     record_type = first_record.get_type()
@@ -357,9 +358,11 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecor
 
     Raises:
         ProvUnificationError: If two records of the same type hold different
-            concrete values for the same formal attribute, or if the group
-            spans two base record types that PROV-CONSTRAINTS' impossibility
-            constraints (53/54/55) forbid combining under one identifier.
+            concrete values for the same formal attribute, or an absent value
+            in a non-expandable position where another holds a concrete one,
+            or if the group spans two base record types that PROV-CONSTRAINTS'
+            impossibility constraints (53/54/55) forbid combining under one
+            identifier.
     """
     identifier = records[0].identifier
     groups: dict[QualifiedName, list[ProvRecord]] = defaultdict(list)
@@ -1847,8 +1850,9 @@ class ProvDocument(ProvBundle):
         Raises:
             ProvUnificationError: If two records sharing an identifier within
                 the same scope hold different concrete values for the same
-                formal attribute, or have incompatible types (see
-                :meth:`ProvBundle.unified`).
+                formal attribute, or an absent value in a non-expandable
+                position where another holds a concrete one, or have
+                incompatible types (see :meth:`ProvBundle.unified`).
         """
         document = ProvDocument(self._unified_records())
         document._namespaces = self._namespaces

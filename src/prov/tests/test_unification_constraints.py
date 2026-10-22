@@ -12,7 +12,7 @@ outcomes over the vendored ProvToolbox/W3C corpus (``unification/constraints/``)
   with no activity) with a present one (#547), are rejected with the
   documented ``ProvUnificationError`` (``UNIFICATION_REJECTS`` below maps
   each file to its message);
-- every other fail-case still merges (placeholder-vs-concrete conflicts in
+- every other fail-case merges (placeholder-vs-concrete conflicts in
   other positions, which the model cannot represent, so an absent formal
   attribute there is an existential that unifies with any concrete value) or
   passes through untouched
@@ -163,7 +163,7 @@ def _cases():
 
 def test_corpus_inventory() -> None:
     # Guard against the vendored corpus being truncated or renamed: 153 files,
-    # and the behaviour sets above must keep referring to real fail-cases.
+    # and the rejection table above must keep referring to real fail-cases.
     files = {p.name for p in CORPUS.glob("*.xml")}
     assert len(files) == 153
     assert files >= PARSE_FAILURES

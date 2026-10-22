@@ -299,7 +299,7 @@ usually unifies with any value. PROV-CONSTRAINTS makes a few positions non-expan
 where an absent value means "none" and unifies only with another absent value. They are
 the plan of an association, the activity of a derivation, and the generation and usage
 of a derivation that names no activity. `wasRevisionOf`, `wasQuotedFrom` and
-`hadPrimarySource` are derivations and follow the same rule. `prov` 3.2.x merged an
+`hadPrimarySource` are derivations and follow the same rule. `prov` 3.2.3 merged an
 absent value in one of these positions with a present one, kept the present value and
 warned.
 
