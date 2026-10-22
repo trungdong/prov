@@ -62,8 +62,8 @@ Files are named `<category>-successN.xml` / `<category>-failN.xml`:
 `prov`'s `unified()` rejects only some of the fail-cases. The module
 docstring of `test_unification_constraints.py` says which, and why. Six of them
 (`association-fail4`, `-fail5` and `derivation-fail1` to `-fail4`) pair an
-absent non-expandable formal with a present one; `unified()` merges those with
-a `ProvFutureRejectionWarning`, and 3.3.0 rejects them
+absent non-expandable formal with a present one, and `unified()` rejects them
+with a `ProvUnificationError`
 ([#547](https://github.com/trungdong/prov/issues/547)).
 
 ## Local quirks

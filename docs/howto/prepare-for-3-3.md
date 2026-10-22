@@ -285,29 +285,29 @@ such a file before reading it with 3.3.0.
 
 ## Unification
 
-| Warning | Issue | Example | Write instead |
+`prov` 3.3.0 raises {py:class}`~prov.model.ProvUnificationError` for each of these. The
+message starts with the identifier of the records that do not unify.
+
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `ex:assoc: an absent prov:plan means none, so it does not unify with ex:p; unified() merges the records and keeps ex:p. prov 3.3.0 will raise ProvUnificationError (#547)` | [#547](https://github.com/trungdong/prov/issues/547) | `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` and `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` | The same plan on every record with that identifier, or a plan on none of them. |
-| `ex:d: an absent prov:activity means none, so it does not unify with ex:a; …` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same activity on every record with that identifier, or an activity on none of them. |
-| `ex:d: an absent prov:generation on a derivation with no activity means none, so it does not unify with ex:g; …` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, ex:g, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same generation on every record with that identifier, or the activity of the derivation on each. The same holds for `prov:usage`. |
+| `ex:assoc: an absent prov:plan means none, so it does not unify with ex:p` | [#547](https://github.com/trungdong/prov/issues/547) | `wasAssociatedWith(ex:assoc; ex:a, ex:ag, ex:p)` and `wasAssociatedWith(ex:assoc; ex:a, ex:ag, -)` | The same plan on every record with that identifier, or a plan on none of them. |
+| `ex:d: an absent prov:activity means none, so it does not unify with ex:a` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, -, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same activity on every record with that identifier, or an activity on none of them. |
+| `ex:d: an absent prov:generation on a derivation with no activity means none, so it does not unify with ex:g` | [#547](https://github.com/trungdong/prov/issues/547) | `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, ex:g, -)` and `wasDerivedFrom(ex:d; ex:e2, ex:e1, -, -, -)` | The same generation on every record with that identifier, or the activity of the derivation on each. The same holds for `prov:usage`. |
 
-`unified()` merges records that share an identifier, and an absent formal
-attribute usually unifies with any value. PROV-CONSTRAINTS makes a few positions
-non-expandable, where an absent value means "none" and unifies only with another
-absent value. They are the plan of an association, the activity of a
-derivation, and the generation and usage of a derivation that names no
-activity. `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource` are
-derivations and follow the same rule. In 3.2.x `unified()` still merges an
-absent value in one of these positions with a present one and keeps the present
-value. 3.3.0 raises {py:class}`~prov.model.ProvUnificationError`.
+`unified()` merges records that share an identifier, and an absent formal attribute
+usually unifies with any value. PROV-CONSTRAINTS makes a few positions non-expandable,
+where an absent value means "none" and unifies only with another absent value. They are
+the plan of an association, the activity of a derivation, and the generation and usage
+of a derivation that names no activity. `wasRevisionOf`, `wasQuotedFrom` and
+`hadPrimarySource` are derivations and follow the same rule. `prov` 3.2.3 merged an
+absent value in one of these positions with a present one, kept the present value and
+warned.
 
-`unified()` warns once for each set of records of one type that share an
-identifier, at the first such position in the order of the statement's
-arguments, which is where 3.3.0 raises.
+`unified()` raises for the first such position in the order of the statement's
+arguments. A conflict between two present values, in any position, raises first.
 
-`prov_to_graph()` and `prov_to_dot()` call `unified()`, so they warn about the
-same documents. In 3.3.0 `prov_to_graph()` raises, and `prov_to_dot()` draws the
-document as asserted, without merging any records.
+`prov_to_graph()` calls `unified()`, so it raises for the same documents. `prov_to_dot()`
+draws such a document as asserted, without merging any records.
 
 ## PROV-JSON
 

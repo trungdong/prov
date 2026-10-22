@@ -10,7 +10,7 @@ from prov.model import (
     ProvActivity,
     ProvDocument,
     ProvEntity,
-    ProvFutureRejectionWarning,
+    ProvUnificationError,
     ProvWarning,
 )
 from prov.tests.examples import primer_example, tests
@@ -157,16 +157,10 @@ def test_equal_memberships_sharing_an_identifier_give_two_edges(document) -> Non
     assert prov_to_graph(document).number_of_edges() == 2
 
 
-def test_absent_plan_against_a_plan_warns_at_the_prov_to_graph_call_site() -> None:
-    # prov_to_graph() unifies first, so the #547 warning fires through it and
-    # names this module, not a frame inside prov.
+def test_prov_to_graph_raises_when_unified_does() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
-    with pytest.warns(
-        ProvFutureRejectionWarning, match="prov:plan means none"
-    ) as record:
-        prov_to_graph(document)
-    assert len(record) == 1
-    assert record[0].filename == __file__
+    with pytest.raises(ProvUnificationError, match="an absent prov:plan means none"):
+        _ = prov_to_graph(document)

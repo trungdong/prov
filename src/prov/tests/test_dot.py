@@ -5,13 +5,14 @@ Created on Aug 13, 2015
 """
 
 import datetime
+import warnings
 
 import pytest
 
 pydot = pytest.importorskip("pydot")
 
 from prov.dot import htlm_link_if_uri, prov_to_dot
-from prov.model import Identifier, ProvDocument, ProvFutureRejectionWarning
+from prov.model import Identifier, ProvDocument, ProvUnificationError
 from prov.tests import examples
 
 MIN_SVG_SIZE = 850
@@ -286,8 +287,6 @@ def test_unset_endpoint_inside_a_bundle_reports_the_prov_to_dot_call_site() -> N
 
 
 def test_complete_relation_draws_without_warning() -> None:
-    import warnings
-
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e1")
@@ -298,16 +297,15 @@ def test_complete_relation_draws_without_warning() -> None:
         prov_to_dot(document)
 
 
-def test_absent_plan_against_a_plan_warns_at_the_prov_to_dot_call_site() -> None:
-    # prov_to_dot() unifies each bundle first, so the #547 warning fires
-    # through it and names this module, not a frame inside prov.
+def test_prov_to_dot_draws_a_document_unified_rejects_as_asserted() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     document.association("ex:a1", agent="ex:ag1", identifier="ex:assoc1")
     document.association("ex:a1", agent="ex:ag1", plan="ex:pl1", identifier="ex:assoc1")
-    with pytest.warns(
-        ProvFutureRejectionWarning, match="prov:plan means none"
-    ) as record:
-        prov_to_dot(document)
-    assert len(record) == 1
-    assert record[0].filename == __file__
+    with pytest.raises(ProvUnificationError, match="an absent prov:plan means none"):
+        _ = document.unified()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        dot = prov_to_dot(document)
+    # Nothing is merged, so both associations are drawn.
+    assert dot.to_string().count("label=wasAssociatedWith") == 2
