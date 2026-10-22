@@ -261,6 +261,8 @@ class NamespaceManager(dict[str, Namespace]):
                 # part in URI compaction or ":local" resolution)
                 self._set_default(namespace, register=False)
                 return qname  # no change, return the original
+            elif self._default is namespace:
+                return qname
             elif self._default == namespace:
                 # the same default namespace is defined
                 new_qname = self._default[qname.localpart]

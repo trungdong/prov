@@ -96,10 +96,11 @@ class AnonymousIDGenerator:
             The cached or newly minted blank-node identifier string for
             ``obj``.
         """
-        if obj not in self._cache:
+        anon_id = self._cache.get(obj)
+        if anon_id is None:
             self._count += 1
-            self._cache[obj] = f"_:{local_prefix}{self._count}"
-        return self._cache[obj]
+            anon_id = self._cache[obj] = f"_:{local_prefix}{self._count}"
+        return anon_id
 
 
 _XSD_GYEAR_RE = re.compile(r"^(-?\d{4,})(?:Z|[+-]\d{2}:\d{2})?$")
