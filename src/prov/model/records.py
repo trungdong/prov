@@ -1230,6 +1230,8 @@ class ProvRecord:
 class ProvElement(ProvRecord):
     """Provenance Element (nodes in the provenance graph)."""
 
+    _identifier: QualifiedName
+
     def __init__(
         self,
         bundle: ProvBundle,
@@ -1245,7 +1247,7 @@ class ProvElement(ProvRecord):
     @property
     def identifier(self) -> QualifiedName:
         """The element's identifier. Every element has one."""
-        return cast(QualifiedName, self._identifier)
+        return self._identifier
 
     def is_element(self) -> bool:
         """Return ``True`` if the record is an element, ``False`` otherwise."""

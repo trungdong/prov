@@ -540,14 +540,11 @@ class ProvBundle:
             raise ProvExceptionInvalidQualifiedName(identifier)
 
     @overload
-    def get_records(self, class_or_type_or_tuple: None = None) -> list[ProvRecord]: ...
-
-    @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
 
     @overload
     def get_records(
-        self, class_or_type_or_tuple: tuple[type, ...]
+        self, class_or_type_or_tuple: tuple[type, ...] | None = None
     ) -> list[ProvRecord]: ...
 
     def get_records(
