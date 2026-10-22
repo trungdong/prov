@@ -111,10 +111,10 @@ from prov.model._values import (
     XSD_DATETIME_PATTERN,
     _offset_beyond_xsd_bound,
     _rebuild,
-    _warn_unresolved_name,
     no_prov_form_detail,
     python_value_form,
     time_offset_detail,
+    unresolved_name_detail,
 )
 
 if TYPE_CHECKING:
@@ -896,8 +896,8 @@ class ProvRecord:
         return set(self._attributes[PROV_VALUE])
 
     # Handling attributes
-    def _auto_literal_conversion(self, literal: Any) -> Any:
-        # The form a non-formal attribute value takes at assertion.
+    def _auto_literal_conversion(self, literal: Any, attr: QualifiedName) -> Any:
+        # The form a non-formal attribute value of `attr` takes at assertion.
 
         if isinstance(literal, ProvRecord):
             # Use the QName of the record as the literal
@@ -909,16 +909,17 @@ class ProvRecord:
             return self._bundle.valid_qualified_name(literal)
         elif isinstance(literal, Literal) and literal.has_no_langtag():
             if literal.datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-                # A qualified-name literal that resolves in this record's
-                # bundle is the QualifiedName; one that does not is kept as
-                # written until it is rejected (#516).
-                resolved = self._bundle.valid_qualified_name(literal.value)
-                return resolved if resolved is not None else literal
+                # A qualified-name literal resolves by its prefix in this
+                # record's bundle, never by compacting an IRI (#516, #553).
+                detail = unresolved_name_detail(self._bundle, literal.value, attr=attr)
+                if detail is not None:
+                    raise ProvExceptionInvalidQualifiedName(literal.value, detail)
+                return self._bundle.mandatory_valid_qname(literal.value)
             if literal.datatype:
                 return self._convert_typed_literal(literal, literal.datatype)
             # A literal with no datatype nor langtag defined
             # try auto-converting the value
-            value = self._auto_literal_conversion(literal.value)
+            value = self._auto_literal_conversion(literal.value, attr)
             if value is not None:
                 return value
         elif isinstance(literal, Identifier):
@@ -997,12 +998,13 @@ class ProvRecord:
         elif attr in PROV_ATTRIBUTE_LITERALS:
             value = self._coerce_time(attr, original_value)
         else:
-            value = self._auto_literal_conversion(original_value)
-            if type(value) not in _PLAIN_VALUE_TYPES:
-                if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
-                    value = self._literal_for_python_value(attr, value)
-            elif isinstance(original_value, Literal):
-                _warn_unresolved_name(self._bundle, attr, original_value, value)
+            value = self._auto_literal_conversion(original_value, attr)
+            if (
+                type(value) not in _PLAIN_VALUE_TYPES
+                and value is not None
+                and not isinstance(value, _PLAIN_VALUE_BASES)
+            ):
+                value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
             # In any position, because no writer could emit it as an
@@ -1095,7 +1097,8 @@ class ProvRecord:
 
         Raises:
             ProvExceptionInvalidQualifiedName: If an attribute name cannot be
-                resolved to a valid qualified name.
+                resolved to a valid qualified name, or a value typed as a
+                qualified name does not resolve by its prefix (#516).
             ProvException: If a value is invalid for its attribute, or a
                 second, different value is supplied for a single-valued
                 (non-collection) attribute.

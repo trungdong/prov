@@ -722,12 +722,9 @@ def _warn_unresolved_name(
     not resolve by its prefix (#516, #551); ``resolved`` is what it reads as
     today by compacting an IRI, or ``None``, in which case ``outcome`` says
     what happens to it."""
-    found = unresolved_name_detail(
-        bundle, text, resolved, outcome=outcome, compaction_issue=551
-    )
-    if found is not None:
-        detail, issue = found
-        _warn_rejection(detail, rec_id, attr_name, issue=issue, kind=kind)
+    detail = unresolved_name_detail(bundle, text)
+    if detail is not None:
+        _warn_rejection(detail, rec_id, attr_name, issue=516, kind=kind)
 
 
 def _decode_time(

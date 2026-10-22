@@ -188,8 +188,9 @@ class NamespaceManager(dict[str, Namespace]):
 
         Registers the namespace of the resolved name if it was not registered
         already. Where the identifier is a string or :class:`Identifier`, an
-        attempt is made to expand a known prefix or compact a known namespace
-        URI, delegating to the parent manager if all local attempts fail.
+        attempt is made to expand a prefix declared here, or, when no enclosing
+        scope declares the prefix, to compact a known namespace URI, delegating
+        to the parent manager if all local attempts fail.
 
         Args:
             qname: The candidate to resolve, as a
@@ -294,19 +295,31 @@ class NamespaceManager(dict[str, Namespace]):
         if prefix in self._prefix_renamed_map:
             #  return a new QualifiedName
             return self._prefix_renamed_map[prefix][local_part]
-        else:
-            #  assuming it is a URI (with the first part as its scheme)
-            #  check if the URI can be compacted by any of the registered namespaces
-            for namespace in self.values():
-                if str_value.startswith(namespace.uri):
-                    local = str_value[len(namespace.uri) :]
-                    if not local and not namespace.prefix:
-                        # The URI is the default namespace itself; a bare
-                        # empty local name has no PROV-N spelling, so it is
-                        # not a qualified name here.
-                        continue
-                    return namespace[local]
+        if self.parent is not None and self.parent._prefix_in_scope(prefix):
+            # An enclosing scope declares the prefix and resolves the name;
+            # compacting it here would read it as another name (#599).
+            return None
+        #  assuming it is a URI (with the first part as its scheme)
+        #  check if the URI can be compacted by any of the registered namespaces
+        for namespace in self.values():
+            if str_value.startswith(namespace.uri):
+                local = str_value[len(namespace.uri) :]
+                if not local and not namespace.prefix:
+                    # The URI is the default namespace itself; a bare
+                    # empty local name has no PROV-N spelling, so it is
+                    # not a qualified name here.
+                    continue
+                return namespace[local]
         return None
+
+    def _prefix_in_scope(self, prefix: str) -> bool:
+        """Whether this manager or an enclosing one declares ``prefix``."""
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            if prefix in manager or prefix in manager._prefix_renamed_map:
+                return True
+            manager = manager.parent
+        return False
 
     def _unresolved_reason(self, text: str) -> str | None:
         """Return why ``text`` resolves to no qualified name by its prefix alone.
@@ -318,16 +331,15 @@ class NamespaceManager(dict[str, Namespace]):
         if not text:
             return "it is empty"
         prefix, colon, _ = text.partition(":")
+        if colon:
+            if self._prefix_in_scope(prefix):
+                return None
+            return f"its prefix {prefix!r} is not declared"
         manager: NamespaceManager | None = self
         while manager is not None:
-            if colon:
-                if prefix in manager or prefix in manager._prefix_renamed_map:
-                    return None
-            elif manager._default is not None:
+            if manager._default is not None:
                 return None
             manager = manager.parent
-        if colon:
-            return f"its prefix {prefix!r} is not declared"
         return "it has no prefix and no default namespace is declared"
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:

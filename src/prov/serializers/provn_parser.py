@@ -822,7 +822,6 @@ class ProvNParser:
         ``text`` does not resolve by its prefix (#516, #553); ``resolved`` is
         what the model reads it as today, or ``None`` when it keeps the text
         as a Literal."""
-        found = unresolved_name_detail(bundle, text, resolved)
-        if found is not None:
-            detail, issue = found
-            self._future(detail, token, issue=issue)
+        detail = unresolved_name_detail(bundle, text)
+        if detail is not None:
+            self._future(detail, token, issue=516)
