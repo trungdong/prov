@@ -686,19 +686,24 @@ class ProvNParser:
             return resolved
         return f"{prefix}:{local}" if prefix else local
 
+    def _resolve_escaped_colon(self, token: Token, bundle: ProvBundle) -> QualifiedName:
+        """Resolve a bare local part that holds an escaped colon.
+
+        The string-based prefix lookup would mis-split it, so this one shape
+        resolves against the default namespace directly.
+        """
+        default = _default_namespace(bundle)
+        if default is None:
+            raise self._error(
+                f"cannot resolve {token.text!r}: no default namespace declared",
+                token,
+            )
+        return default[token.value[1]]
+
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
         prefix, local = token.value
         if not prefix and ":" in local:
-            # An escaped colon inside a bare (unprefixed) local part would be
-            # mis-split by the string-based prefix lookup below, so this one
-            # shape resolves against the default namespace directly.
-            default = _default_namespace(bundle)
-            if default is None:
-                raise self._error(
-                    f"cannot resolve {token.text!r}: no default namespace declared",
-                    token,
-                )
-            return default[local]
+            return self._resolve_escaped_colon(token, bundle)
         # A name resolves by its prefix in scope, never by compacting an IRI
         # (#553, #599), so http://example.org/e is the undeclared prefix 'http'.
         text = f"{prefix}:{local}" if prefix else local
@@ -755,17 +760,7 @@ class ProvNParser:
             self._advance()
             prefix, local = token.value
             if not prefix and ":" in local:
-                # Mirrors _resolve()'s bare-local branch: an escaped colon
-                # inside an unprefixed local part would otherwise be
-                # mis-split by valid_qualified_name()'s string-based prefix
-                # lookup below.
-                default = _default_namespace(bundle)
-                if default is None:
-                    raise self._error(
-                        f"cannot resolve {token.text!r}: no default namespace declared",
-                        token,
-                    )
-                return default[local]
+                return self._resolve_escaped_colon(token, bundle)
             text = f"{prefix}:{local}" if prefix else local
             self._check_name_value(text, token, bundle)
             return bundle.mandatory_valid_qname(text)
