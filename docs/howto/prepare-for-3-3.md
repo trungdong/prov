@@ -219,11 +219,11 @@ warn about this.
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
-| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, attribute name, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
 | `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
 | `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
 | `cannot resolve 'http://example.org/e': prefix 'http' is not declared` | [#599](https://github.com/trungdong/prov/issues/599) | `entity(http://example.org/e)` in PROV-N, or the IRI as a formal argument, an attribute name or a datatype | The qualified name, `ex:e`. |
-| `the qualified name 'g1' does not resolve, because it has no prefix and no default namespace is declared` | [#599](https://github.com/trungdong/prov/issues/599) | `"wasGeneratedBy": {"g1": {…}}` in PROV-JSON with no `default` entry, or `"http://example.org/k"` as an attribute name | A prefixed key, or `_:g1` for a relation with no identifier; a prefixed attribute name. |
+| `the qualified name 'g1' does not resolve, because it has no prefix and no default namespace is declared` | [#599](https://github.com/trungdong/prov/issues/599) | `"wasGeneratedBy": {"g1": {…}}` in PROV-JSON with no `default` entry | A prefixed key, or `_:g1` for a relation with no identifier. |
 
 In PROV-N the error is a `ProvNSyntaxError` at the value or the name, and the `lenient`
 profile skips the statement with a `ProvWarning`. In PROV-JSON it is a `ProvJSONException`
@@ -269,9 +269,9 @@ declared.
 | `Invalid Qualified Name: xsi:type` | [#510](https://github.com/trungdong/prov/issues/510) | `doc.entity("ex:e", {"xsi:type": "ex:T"})` in code, or an `"xsi:type"` key in PROV-JSONLD, with no `xsi` prefix declared; in PROV-JSON the reader rejects the key with the record and attribute, as in "Qualified names" | A declaration, such as `doc.add_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")` or an `xsi` entry in `"prefix"` in PROV-JSON, or a name built from `prov.constants.XSI`. |
 | `PROV-XML binds the prefix 'xsi' to <http://www.w3.org/2001/XMLSchema-instance>, but the document binds it to <…>` | [#510](https://github.com/trungdong/prov/issues/510) | `prefix xsi <http://other/>` in PROV-N, written to PROV-XML | Another prefix for that namespace. |
 
-An `xsi:` identifier with no declaration raises `ProvElementIdentifierRequired`
-instead. PROV-XML documents are unchanged, because the PROV-XML codec reads and writes
-`xsi:type` itself.
+An `xsi:` identifier with no declaration raises `ProvElementIdentifierRequired` instead in
+code and PROV-JSONLD. PROV-XML documents are unchanged, because the PROV-XML codec reads
+and writes `xsi:type` itself.
 
 `prov` 3.2.x writes `xsi:` names to PROV-JSON and PROV-JSONLD without an `xsi` entry in
 the prefix map, so add an `xsi` entry for `http://www.w3.org/2001/XMLSchema-instance` to
