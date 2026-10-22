@@ -216,52 +216,49 @@ warn about this.
 
 ## Qualified names
 
-| Warning | Issue | Example | Write instead |
+| Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
-| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared; it reads as ex:x` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
-| `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared; it is kept as a Literal` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
-| `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared; it is dropped` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k='zz:x']` in PROV-N, `{"$": "zz:x", "type": "xsd:QName"}` in PROV-JSON, or `Literal("zz:x", XSD_QNAME)` in code, with no `zz` prefix | A declared prefix, such as `prefix zz <http://example.org/zz/>` in PROV-N or a `zz` entry in `"prefix"` in PROV-JSON. |
+| `the qualified name 'http://example.org/x' does not resolve, because its prefix 'http' is not declared` | [#553](https://github.com/trungdong/prov/issues/553), or [#551](https://github.com/trungdong/prov/issues/551) in PROV-JSON | `[ex:k="http://example.org/x" %% prov:QUALIFIED_NAME]` in PROV-N, `{"@value": "http://example.org/x", "@type": "xsd:QName"}` in PROV-JSONLD, or `"http://example.org/x"` as a PROV-JSON record key, formal attribute, `hadMember` member or bundle key | The qualified name, `ex:x`. |
+| `the qualified name 'not a name' does not resolve, because it has no prefix and no default namespace is declared` | [#516](https://github.com/trungdong/prov/issues/516) | `[ex:k="not a name" %% prov:QUALIFIED_NAME]` | A qualified name with a declared prefix, or a string if the value is not a name. |
+| `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
+| `cannot resolve 'http://example.org/e': prefix 'http' is not declared` | [#599](https://github.com/trungdong/prov/issues/599) | `entity(http://example.org/e)` in PROV-N, or the IRI as a formal argument, an attribute name or a datatype | The qualified name, `ex:e`. |
+| `the qualified name 'g1' does not resolve, because it has no prefix and no default namespace is declared` | [#599](https://github.com/trungdong/prov/issues/599) | `"wasGeneratedBy": {"g1": {…}}` in PROV-JSON with no `default` entry, or `"http://example.org/k"` as an attribute name | A prefixed key, or `_:g1` for a relation with no identifier; a prefixed attribute name. |
 
-A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and
-so does `'zz:x'` in PROV-N. 3.3.0 splits its text at the first `:` and looks the
-prefix up in the declarations in scope. `prov` 3.2.x keeps a value whose prefix
-is not declared as a `Literal`. It also reads a full IRI typed
-`prov:QUALIFIED_NAME`, or written `'…'` in PROV-N, as a name in a declared
-namespace that the IRI starts with, so `http://example.org/x` reads as `ex:x`.
-3.3.0 reads that text as the prefix `http` and rejects it, unless a prefix named
-`http` is declared.
+In PROV-N the error is a `ProvNSyntaxError` at the value or the name, and the `lenient`
+profile skips the statement with a `ProvWarning`. In PROV-JSON it is a `ProvJSONException`
+that names the record and the attribute. From code, PROV-JSONLD or RDF it is a
+`ProvExceptionInvalidQualifiedName` raised where the value is asserted, which names the
+attribute after the value: `Invalid Qualified Name: zz:x, the qualified name 'zz:x' of
+ex:k does not resolve, because its prefix 'zz' is not declared`.
 
-A value typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a
-`QualifiedName` in 3.3.0, in code and from every format, so PROV-N writes it as `'ex:x'`
-where it wrote `"ex:x" %% xsd:QName`, RDF writes the IRI where it wrote
-`"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where it wrote an `xsd:QName`
-value object. 3.2.3 kept an `xsd:QName` value opaque in code and when read from PROV-N or
-RDF, and did not warn.
+A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and so does
+`'zz:x'` in PROV-N. `prov` splits its text at the first `:` and looks the prefix up in the
+declarations in scope, the bundle's and then the document's, and never matches a declared
+namespace IRI against the text. So `http://example.org/x` is the prefix `http`, rejected
+unless a prefix named `http` is declared, and a prefix the document declares is found from
+a bundle before the bundle's own namespaces could compact the text. A value whose prefix
+is declared is stored as a `QualifiedName`, in code and from every format. `prov` 3.2.x
+kept a value whose prefix was not declared as a `Literal`, and read a full IRI as a name in
+a declared namespace the IRI starts with. The last two rows are positions 3.2.3 read
+without a warning.
 
-A formal attribute is one of the record's arguments in PROV-N, such as
-`prov:entity` or `prov:activity`. The PROV-JSON reader applies the same rule to a
-record key, a formal attribute value other than a time, a `hadMember` member and a
-bundle key that is a full IRI. It also warns when it drops a formal attribute
-value or a `hadMember` member that does not resolve, such as
-`"prov:activity": "zz:a"`.
+A formal attribute is one of the record's arguments in PROV-N, such as `prov:entity` or
+`prov:activity`. The PROV-JSON reader applies the same rule to a record key, a bundle key,
+an attribute name, a formal attribute value other than a time and a `hadMember` member.
+3.2.3 dropped a formal attribute value or a `hadMember` member that did not resolve, with a
+warning.
 
-The PROV-JSONLD reader warns about an `xsd:QName` or `prov:QUALIFIED_NAME` value
-object that holds a full IRI. The message uses the model's wording and has no
-position. The PROV-JSONLD context marks the values of `type`, `role` and
-`location` as IRIs, so a bare full IRI there that starts with a declared namespace
-IRI does not warn. One that starts with no declared namespace IRI is kept as a
-`Literal` and warns under #516, as does a name with an undeclared prefix. A
-`{"@id": …}` node reference stays an IRI and does not warn.
-
-The PROV-N and PROV-JSON readers warn with the position of the value, and the
-model does not warn again. The model warns about a value built in code or read
-from another format when the value is first asserted, and names the attribute
-after the value, as in `the qualified name 'zz:x' of ex:k does not resolve`.
+In PROV-JSONLD, the context marks the values of `type`, `role` and `location` as IRIs, so
+a bare string there is an IRI, as a `{"@id": …}` node reference is: one a declared
+namespace compacts is the qualified name, and one no namespace compacts is stored as an
+`xsd:anyURI` `Literal`. 3.2.3 kept that string as an `xsd:QName` `Literal` and warned that
+3.3.0 would reject it. An `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full
+IRI or an undeclared prefix is rejected by the model, with no position.
 
 In code, a plain string given as an identifier, such as
-`bundle.entity("http://example.org/e1")`, still compacts in 3.3.0, and does not
-warn.
+`bundle.entity("http://example.org/e1")`, still compacts when no prefix named `http` is
+declared.
 
 ## The `xsi` prefix
 
@@ -269,7 +266,7 @@ warn.
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `Invalid Qualified Name: xsi:type` | [#510](https://github.com/trungdong/prov/issues/510) | `doc.entity("ex:e", {"xsi:type": "ex:T"})` in code, or an `"xsi:type"` key in PROV-JSON or PROV-JSONLD, with no `xsi` prefix declared | A declaration, such as `doc.add_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")` or an `xsi` entry in `"prefix"` in PROV-JSON, or a name built from `prov.constants.XSI`. |
+| `Invalid Qualified Name: xsi:type` | [#510](https://github.com/trungdong/prov/issues/510) | `doc.entity("ex:e", {"xsi:type": "ex:T"})` in code, or an `"xsi:type"` key in PROV-JSONLD, with no `xsi` prefix declared; in PROV-JSON the reader rejects the key with the record and attribute, as in "Qualified names" | A declaration, such as `doc.add_namespace("xsi", "http://www.w3.org/2001/XMLSchema-instance")` or an `xsi` entry in `"prefix"` in PROV-JSON, or a name built from `prov.constants.XSI`. |
 | `PROV-XML binds the prefix 'xsi' to <http://www.w3.org/2001/XMLSchema-instance>, but the document binds it to <…>` | [#510](https://github.com/trungdong/prov/issues/510) | `prefix xsi <http://other/>` in PROV-N, written to PROV-XML | Another prefix for that namespace. |
 
 An `xsi:` identifier with no declaration raises `ProvElementIdentifierRequired`

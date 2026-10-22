@@ -56,6 +56,26 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `Decimal` that is `NaN` or infinite, or a `time` whose offset is not a whole number of
   minutes or is beyond ±14:00, has no lexical form and is rejected too
   ([#482](https://github.com/trungdong/prov/issues/482))
+- A qualified-name value whose prefix is not declared, or that is a full IRI, such as
+  `'zz:x'` in PROV-N or `{"$": "http://example.org/x", "type": "xsd:QName"}` in PROV-JSON,
+  a `ProvNSyntaxError` at the value, a `ProvJSONException` naming the record and
+  attribute, or, from code, PROV-JSONLD or RDF, a `ProvExceptionInvalidQualifiedName`
+  naming the attribute where the value is asserted. The PROV-JSON reader rejects a record
+  key, a bundle key, a formal attribute value or a `hadMember` member the same way, where
+  3.2.3 compacted a full IRI or dropped a value it could not resolve. Every reader
+  resolves a name by its prefix in scope and never by matching a declared namespace IRI
+  against the text, so `http://example.org/x` is the prefix `http`, and a prefix the
+  document declares is found from a bundle before the bundle's own namespaces could
+  compact the text. The `lenient` PROV-N profile skips the statement with a `ProvWarning`
+  and emits nothing else about it
+  ([#516](https://github.com/trungdong/prov/issues/516),
+  [#551](https://github.com/trungdong/prov/issues/551),
+  [#553](https://github.com/trungdong/prov/issues/553),
+  [#599](https://github.com/trungdong/prov/issues/599),
+  [#586](https://github.com/trungdong/prov/issues/586)). A bare string under `type`,
+  `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
+  stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
+  `xsd:QName` `Literal` and said 3.3.0 would reject it
 
 ### Changes with no prior warning
 
@@ -98,6 +118,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the same document read through PROV-N. One whose prefix is not declared is kept as a
   `Literal`
   ([#526](https://github.com/trungdong/prov/issues/526))
+- A full IRI as a PROV-N identifier, formal argument, attribute name or datatype, or as a
+  PROV-JSON attribute name, is the undeclared prefix `http` and is rejected, where 3.2.x
+  read it as a name in a declared namespace the IRI starts with. A PROV-JSON relation key
+  with no prefix and no default namespace is rejected, where 3.2.x read an anonymous
+  relation. In code, a plain string given as an identifier, such as
+  `bundle.entity("http://example.org/e1")`, still compacts
+  ([#599](https://github.com/trungdong/prov/issues/599))
+- `ProvNParser` no longer has a `warnings` attribute; the PROV-N reader raises where 3.2.3
+  recorded a message
 
 ### Output changes
 
