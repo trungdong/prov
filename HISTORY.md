@@ -57,8 +57,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   minutes or is beyond ±14:00, has no lexical form and is rejected too
   ([#482](https://github.com/trungdong/prov/issues/482))
 - A qualified-name value whose prefix is not declared, or that is a full IRI, such as
-  `'zz:x'` in PROV-N or `{"$": "http://example.org/x", "type": "xsd:QName"}` in PROV-JSON,
-  raises a `ProvNSyntaxError` at the value, a `ProvJSONException` naming the record and
+  `'zz:x'` in PROV-N when no `zz` prefix is declared, or the full IRI
+  `{"$": "http://example.org/x", "type": "xsd:QName"}` in PROV-JSON, raises a
+  `ProvNSyntaxError` at the value, a `ProvJSONException` naming the record and
   attribute, or, from code, PROV-JSONLD or RDF, a `ProvExceptionInvalidQualifiedName`
   naming the attribute where the value is asserted. The PROV-JSON reader rejects a record
   key, a bundle key, a formal attribute value or a `hadMember` member the same way, where
