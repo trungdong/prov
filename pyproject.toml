@@ -211,8 +211,6 @@ module = [
     "prov.tests.test_extras",
     "prov.tests.test_graphs",
     "prov.tests.test_jsonld",
-    "prov.tests.test_jsonld_schema",
-    "prov.tests.test_jsonld_semantics",
     "prov.tests.test_model",
     "prov.tests.test_namespace_cache",
     "prov.tests.test_numeric_typing",

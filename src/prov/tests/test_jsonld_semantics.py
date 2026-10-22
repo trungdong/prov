@@ -13,7 +13,7 @@ import json
 from typing import Any
 
 import pytest
-from pyld import jsonld
+from pyld import jsonld  # type: ignore[import-untyped]
 from rdflib import RDF, Dataset, URIRef
 
 from prov.model import Literal, ProvDocument
@@ -43,7 +43,9 @@ def _offline_container(document: ProvDocument, context: str) -> dict[str, Any]:
     Returns:
         The parsed container with every ``@context`` entry an object.
     """
-    container = json.loads(document.serialize(format="jsonld", context=context))
+    container: dict[str, Any] = json.loads(
+        document.serialize(format="jsonld", context=context)
+    )
     container["@context"] = [
         item if isinstance(item, dict) else load_vendored_context()
         for item in container["@context"]
@@ -74,7 +76,7 @@ def _flatten(document: ProvDocument, context: str) -> dict[str, dict[str, Any]]:
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_entity_and_generation(context) -> None:
+def test_expansion_entity_and_generation(context: str) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -97,7 +99,7 @@ def test_expansion_entity_and_generation(context) -> None:
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_language_tagged_label(context) -> None:
+def test_expansion_language_tagged_label(context: str) -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1", (("prov:label", Literal("bonjour", langtag="fr")),))
@@ -110,7 +112,9 @@ def test_expansion_language_tagged_label(context) -> None:
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_expansion_default_namespace_ids_resolve_against_vocab_uri(context) -> None:
+def test_expansion_default_namespace_ids_resolve_against_vocab_uri(
+    context: str,
+) -> None:
     # Regression test: a document with a default namespace emits bare local
     # names ("e1", not "ex:e1") for its identifiers. JSON-LD's "@vocab"
     # governs bare property terms and bare "@type" values, but NOT "@id"
@@ -175,7 +179,7 @@ def _triples_about(dataset: Dataset, subject: URIRef) -> set[tuple[Any, Any, Any
 
 
 @pytest.mark.parametrize("context", CONTEXT_MODES)
-def test_issue_545_node_triples_match_the_rdf_writer(context) -> None:
+def test_issue_545_node_triples_match_the_rdf_writer(context: str) -> None:
     # The whole graphs differ by design. The submission context writes every
     # relation in its qualified PROV-O form (prov:qualifiedGeneration with a
     # blank node), while the RDF writer writes an unidentified relation in its
