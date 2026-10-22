@@ -609,6 +609,22 @@ REJECTED_NAMES = [
         id="formal attribute full IRI",
     ),
     pytest.param(
+        {
+            "wasGeneratedBy": {
+                "ex:r": {
+                    "prov:entity": "ex:e",
+                    "prov:activity": "http://example.org/a b",
+                }
+            }
+        },
+        _unresolved(
+            "record 'ex:r', attribute 'prov:activity'",
+            "http://example.org/a b",
+            _FULL_IRI,
+        ),
+        id="formal attribute full IRI with a space",
+    ),
+    pytest.param(
         {"wasGeneratedBy": {"ex:r": {"prov:entity": "ex:e", "prov:activity": "zz:a"}}},
         _unresolved("record 'ex:r', attribute 'prov:activity'", "zz:a", _UNDECLARED),
         id="formal attribute undeclared",

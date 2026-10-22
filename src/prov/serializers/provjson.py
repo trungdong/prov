@@ -445,16 +445,16 @@ def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             other than ``"prefix"`` is not a recognised PROV-N record-type
             keyword; if a record key does not resolve by its prefix in scope
             (a blank node ``_:…`` is not checked); if a record-type's value
-            is not a JSON object mapping
-            record identifiers to content; if a record's content is not a
-            JSON object or a list of JSON objects; if a non-formal
-            attribute's typed-literal representation is missing its required
-            ``"$"`` key (see :func:`decode_json_representation`); if a
-            formal (QualifiedName- or literal-valued) attribute has more
-            than one value, other than the members of ``hadMember``; if a
-            formal attribute is written as an empty JSON array; or if a time
-            attribute's value is neither a string nor an ``xsd:dateTime``
-            value object with a well-formed ``"$"``.
+            is not a JSON object mapping record identifiers to content; if a
+            record's content is not a JSON object or a list of JSON objects;
+            if a non-formal attribute's typed-literal representation is
+            missing its required ``"$"`` key (see
+            :func:`decode_json_representation`); if a formal (QualifiedName-
+            or literal-valued) attribute has more than one value, other than
+            the members of ``hadMember``; if a formal attribute is written as
+            an empty JSON array; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     _expect_json_object(jc, "A PROV-JSON container")
     if "prefix" in jc:
@@ -548,12 +548,11 @@ def _decode_record_instance(
         ProvJSONException: If an attribute name, a formal attribute value or
             a member does not resolve by its prefix in scope; if a non-formal
             attribute's typed-literal representation is missing its required
-            ``"$"`` key; if a
-            formal attribute has more than one value, other than the
-            members of ``hadMember``; if a formal attribute is written as an
-            empty JSON array; or if a time attribute's value is neither a
-            string nor an ``xsd:dateTime`` value object with a well-formed
-            ``"$"``.
+            ``"$"`` key; if a formal attribute has more than one value, other
+            than the members of ``hadMember``; if a formal attribute is
+            written as an empty JSON array; or if a time attribute's value is
+            neither a string nor an ``xsd:dateTime`` value object with a
+            well-formed ``"$"``.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
@@ -603,11 +602,12 @@ def _decode_members(
         bundle: Bundle used to resolve the members' qualified names.
 
     Returns:
-        The resolved members, in the order written. A member that does not
-        resolve is ``None``, with a warning.
+        The resolved members, in the order written. A null or non-string
+        member is ``None``, with a warning.
 
     Raises:
-        ProvJSONException: If ``values`` is an empty JSON array.
+        ProvJSONException: If ``values`` is an empty JSON array; or if a
+            string member does not resolve by its prefix in scope.
     """
     if not isinstance(values, list):
         return [_decode_name(bundle, values, rec_id, attr_name)]
@@ -642,9 +642,10 @@ def _decode_formal_attribute(
 
     Raises:
         ProvJSONException: If ``values`` is an empty JSON array or a JSON
-            array with more than one value; or if a time attribute's value is
-            neither a string nor an ``xsd:dateTime`` value object with a
-            well-formed ``"$"``.
+            array with more than one value; if a value does not resolve by
+            its prefix in scope; or if a time attribute's value is neither a
+            string nor an ``xsd:dateTime`` value object with a well-formed
+            ``"$"``.
     """
     if isinstance(values, list):
         if not values:
@@ -676,7 +677,7 @@ def _decode_name(
     A value that is not a string, and a null, are dropped with a warning. A
     string that does not resolve by its prefix in scope is rejected.
     """
-    resolved = valid_qualified_name(bundle, value)
+    _check_name(bundle, value, rec_id, attr_name)
     if value is None:
         _warn_rejection(
             "the value is null and is dropped", rec_id, attr_name, issue=528
@@ -688,9 +689,7 @@ def _decode_name(
             attr_name,
             issue=597,
         )
-    else:
-        _check_name(bundle, value, rec_id, attr_name)
-    return resolved
+    return valid_qualified_name(bundle, value)
 
 
 def _check_name(
