@@ -110,3 +110,12 @@ def test_add_namespace_with_known_uri_clears_the_resolve_cache() -> None:
     second = doc.valid_qualified_name("a:bc")
     assert second == expected
     assert second.uri == "a:bbc"
+
+
+def test_a_name_whose_namespace_is_registered_here_is_returned_as_is() -> None:
+    manager = NamespaceManager({"ex": "http://example.org/"}, default="http://d.org/")
+    prefixed = manager.valid_qualified_name("ex:e1")
+    plain = manager.valid_qualified_name("e1")
+    assert prefixed is not None and plain is not None
+    assert manager.valid_qualified_name(prefixed) is prefixed
+    assert manager.valid_qualified_name(plain) is plain

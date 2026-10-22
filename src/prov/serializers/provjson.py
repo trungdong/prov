@@ -68,10 +68,11 @@ class AnonymousIDGenerator:
         Returns:
             The cached or newly minted blank-node identifier for ``obj``.
         """
-        if obj not in self._cache:
+        anon_id = self._cache.get(obj)
+        if anon_id is None:
             self._count += 1
-            self._cache[obj] = Identifier(f"_:{local_prefix}{self._count}")
-        return self._cache[obj]
+            anon_id = self._cache[obj] = Identifier(f"_:{local_prefix}{self._count}")
+        return anon_id
 
 
 class ProvJSONSerializer(Serializer):
