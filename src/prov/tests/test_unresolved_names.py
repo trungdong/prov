@@ -265,6 +265,14 @@ def _read_jsonld(text: str, datatype: QualifiedName) -> None:
     ProvDocument.deserialize(content=source, format="jsonld")
 
 
+def _read_rdf(text: str, datatype: QualifiedName) -> None:
+    source = (
+        f"@prefix ex: <{EX}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        f"ex:e a prov:Entity ; ex:k {json.dumps(text)}^^<{datatype.uri}> .\n"
+    )
+    ProvDocument.deserialize(content=source, format="rdf", rdf_format="turtle")
+
+
 # Each channel: its reader, the error it raises, what starts the message
 # ("{text}" is the rejected text) and whether the attribute is named after it.
 _CHANNELS: dict[
@@ -285,6 +293,12 @@ _CHANNELS: dict[
     ),
     "jsonld": (
         _read_jsonld,
+        ProvExceptionInvalidQualifiedName,
+        "Invalid Qualified Name: {text}, ",
+        " of ex:k",
+    ),
+    "rdf": (
+        _read_rdf,
         ProvExceptionInvalidQualifiedName,
         "Invalid Qualified Name: {text}, ",
         " of ex:k",

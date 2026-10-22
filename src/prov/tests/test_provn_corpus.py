@@ -12,6 +12,8 @@ import pytest
 
 from prov.model import ProvDocument
 
+from .conftest import no_future_rejection
+
 CORPUS = Path(__file__).parent / "provn"
 JSON_FIXTURES = Path(__file__).parent / "json"
 
@@ -343,10 +345,11 @@ def _param(subdir: str, excluded: dict[str, str] | None = None):
     + _param("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
 def test_spec_examples_parse_strictly_and_round_trip(path) -> None:
-    document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
-    reloaded = ProvDocument.deserialize(
-        content=document.get_provn(strict=True), format="provn", profile="strict"
-    )
+    with no_future_rejection():
+        document = ProvDocument.deserialize(str(path), format="provn", profile="strict")
+        reloaded = ProvDocument.deserialize(
+            content=document.get_provn(strict=True), format="provn", profile="strict"
+        )
     assert reloaded == document
 
 

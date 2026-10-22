@@ -507,8 +507,7 @@ def test_had_member_array_without_a_collection_reads() -> None:
 
 
 def test_had_member_members_resolve_alike() -> None:
-    # Every member resolves as the first one does. A null later in the array
-    # raised KeyError; it warns until 3.3.0 rejects it (#528).
+    # Every member resolves as the first one does; a null member warns (#528).
     def members(entities: list[str | None]) -> list[set[Any]]:
         text = _json(
             {
