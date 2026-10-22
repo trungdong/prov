@@ -685,8 +685,9 @@ class ProvExceptionInvalidQualifiedName(ProvException):
 class ProvUnificationError(ProvException):
     """Raised by :meth:`ProvBundle.unified` when records sharing an
     identifier cannot be merged under PROV-CONSTRAINTS term unification
-    (two different concrete values for the same formal attribute, or
-    records of incompatible types).
+    (two different concrete values for the same formal attribute, an absent
+    value in a non-expandable position against a present one, or records of
+    incompatible types).
     """
 
 
