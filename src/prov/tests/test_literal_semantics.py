@@ -241,7 +241,7 @@ def _single_value(document: ProvDocument) -> object:
     return value
 
 
-@pytest.mark.parametrize(("literal", "via_rdf"), KEPT_TEXT, ids=lambda x: str(x))
+@pytest.mark.parametrize(("literal", "via_rdf"), KEPT_TEXT, ids=str)
 def test_non_canonical_text_is_kept_and_compares_by_value(
     literal: Literal, via_rdf: object
 ) -> None:
