@@ -1,8 +1,9 @@
 """Shared qualified-name and namespace round-trip tests, run once per target
 in ``SHARED_TARGETS``."""
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +18,9 @@ from .test_provn_corpus import (
     EXCLUDED_PROVTOOLBOX_DOCUMENTS,
     EXCLUDED_SPEC_EXAMPLES,
 )
+
+if TYPE_CHECKING:
+    from _pytest.mark import ParameterSet
 
 
 def document_with_n_bundles_having_default_namespace(n: int) -> ProvDocument:
@@ -290,16 +294,23 @@ def _provn_corpus_files() -> list[Path]:
     return sorted(path for path in CORPUS.rglob("*.provn") if path.name not in excluded)
 
 
-def _corpus_documents() -> Iterator[ProvDocument]:
-    for _, build in examples.tests:
-        yield build()
-    yield attribute_values_document()
+def _corpus_sources() -> "Iterator[ParameterSet]":
+    for name, build in examples.tests:
+        yield pytest.param(build, id=name)
+    yield pytest.param(attribute_values_document, id="attribute_values")
     for path in _provn_corpus_files():
-        yield ProvDocument.deserialize(str(path), format="provn")
+        yield pytest.param(path, id=path.name)
 
 
-@pytest.mark.parametrize("document", list(_corpus_documents()), ids=repr)
-def test_lookup_agrees_with_valid_qualified_name(document: ProvDocument) -> None:
+@pytest.mark.parametrize("source", list(_corpus_sources()))
+def test_lookup_agrees_with_valid_qualified_name(
+    source: Path | Callable[[], ProvDocument],
+) -> None:
+    document = (
+        ProvDocument.deserialize(str(source), format="provn")
+        if isinstance(source, Path)
+        else source()
+    )
     # Spec 3, 3.4: the reader's one-walk resolution and the model's resolver
     # give the same object for every name a document holds.
     scopes: list[ProvBundle] = [document, *document.bundles]

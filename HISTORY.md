@@ -308,8 +308,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   writes ([#587](https://github.com/trungdong/prov/issues/587))
 - The PROV-N and PROV-JSON readers resolve a qualified name in one walk of the
   declarations in scope, `NamespaceManager.lookup()`, where each checked the prefix and
-  then resolved the text in two. Nothing changes in what either reader accepts or
-  rejects, except that a name under the blank-node prefix `_` is rejected with a sentence
+  then resolved the text in two. Nothing changes in what either reader or the model
+  accepts or rejects, except that a name under the blank-node prefix `_` is rejected with a sentence
   that says the prefix is reserved, and `:` alone is rejected as empty
   ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter

@@ -472,7 +472,7 @@ def _decode_record_group(
     for rec_id, content in records_by_id.items():
         elements = _json_record_elements(content, rec_type_str, rec_id)
         identifier = (
-            rec_id if rec_id.startswith("_:") else _resolve_name(bundle, rec_id, rec_id)
+            None if rec_id.startswith("_:") else _resolve_name(bundle, rec_id, rec_id)
         )
         for element in elements:
             _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
@@ -481,7 +481,7 @@ def _decode_record_group(
 def _decode_record_instance(
     rec_type: QualifiedName,
     rec_id: str,
-    identifier: QualifiedName | str,
+    identifier: QualifiedName | None,
     element: dict[str, Any],
     bundle: ProvBundle,
 ) -> None:
@@ -490,8 +490,8 @@ def _decode_record_instance(
     Args:
         rec_type: The record's PROV-N record type.
         rec_id: The record's identifier string, for messages.
-        identifier: The record's identifier, resolved, or ``rec_id`` itself
-            for a blank-node identifier.
+        identifier: The record's identifier, resolved, or ``None`` for a
+            blank-node identifier.
         element: The instance's raw attribute dict, as produced by
             :func:`_json_record_elements`.
         bundle: Bundle to add the decoded record, or one ``hadMember``
