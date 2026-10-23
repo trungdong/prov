@@ -50,6 +50,7 @@ and the explanation section covers the concepts behind it.
    whats-new-3
    upgrading-3.0
    contributing
+   development
    authors
    history
    changelog-archive
