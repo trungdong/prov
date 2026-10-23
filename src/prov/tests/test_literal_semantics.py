@@ -19,7 +19,7 @@ from prov.constants import (
     XSD_INTEGER,
     XSD_LONG,
 )
-from prov.model import Literal, ProvDocument, ProvValueError
+from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.tests.conftest import roundtrip_document
 
 
@@ -307,6 +307,6 @@ def test_second_spelling_of_a_held_value_is_not_added() -> None:
     ids=str,
 )
 def test_literal_spells_a_python_value_in_xsd_form(
-    value: object, datatype: object, text: str
+    value: object, datatype: QualifiedName | None, text: str
 ) -> None:
-    assert Literal(value, datatype).value == text  # type: ignore[arg-type]
+    assert Literal(value, datatype).value == text

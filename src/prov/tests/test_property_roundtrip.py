@@ -11,6 +11,8 @@ selected in ``conftest.py`` via ``HYPOTHESIS_PROFILE`` (CI uses the bounded
 ``ci`` profile).
 """
 
+import re
+
 import pytest
 from hypothesis import assume, given
 
@@ -24,7 +26,7 @@ def _has_exponent_decimal(document: ProvDocument) -> bool:
     return any(
         isinstance(value, Literal)
         and value.datatype == XSD_DECIMAL
-        and ("e" in value.value or "E" in value.value)
+        and re.search(r"[0-9][eE]", value.value)
         for record in document.get_records()
         for _, value in record.attributes
     )

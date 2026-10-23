@@ -356,7 +356,7 @@ class _DecodeState:
             remains at the end could not be converted.
         anonymous: The subjects that are blank nodes typed as a relation. A
             blank node names nothing, so their records get no identifier;
-            an element's blank-node label is kept, as before.
+            an element's blank-node label is its identifier.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)

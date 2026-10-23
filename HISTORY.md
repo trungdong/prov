@@ -168,22 +168,28 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `next(iter(...))`, and an empty result is now falsy
   ([#491](https://github.com/trungdong/prov/issues/491))
 - Two attribute values are the same value when they have the same datatype and the same
-  value in that datatype's value space, so `"05" %% xsd:int` and `5`, `"1" %% xsd:boolean`
-  and `true`, `"1e0" %% xsd:double` and `1.0`, and `"1.0"` and `"1.00"` as `xsd:decimal`
-  are one value each in a record, in `==` and in `hash()`, where 3.2.3 compared every
-  datatype but `xsd:decimal` by its text. The rule covers `xsd:boolean`, `xsd:decimal`,
-  `xsd:double`, `xsd:float` and `xsd:integer` with its subtypes; every other datatype
-  compares by text. A text outside the datatype's lexical space, such as
-  `"1e1" %% xsd:decimal` or `"True" %% xsd:boolean`, has no value and compares as text,
-  `"sNaN"` no longer reaches `Decimal()`, and the caller's decimal context no longer
-  changes the result. A `NaN` is one value with itself. A typed literal whose text is not
-  the canonical spelling of its value, such as `"05" %% xsd:int` or
-  `"1" %% xsd:boolean`, is kept as a `Literal` with its text and written back as it was
-  read by every format but PROV-O, where 3.2.3 read it as the Python value and wrote `5`
-  or `true`, and reads an exponent-form `xsd:decimal` such as `"1e1"`, outside the lexical
-  space, as its decimal value where every other format keeps the text; `get_attribute()`
-  returns the `Literal` for it. `Literal(True).value` is
-  `"true"`, `Literal(float("inf")).value` is `"INF"` and
+  value in that datatype's value space, for `xsd:boolean`, `xsd:decimal`, `xsd:double`,
+  `xsd:float` and `xsd:integer` with its subtypes; every other datatype compares by text.
+  `Literal("05", XSD_INT) == Literal("5", XSD_INT)` is `True` with equal hashes, where
+  3.2.3 compared every `Literal` but `xsd:decimal` by its text, and `"+5"` and `"5"` as
+  `xsd:long`, `"05"` and `"5"` as `xsd:integer` or `xsd:short`, and `"1e0"` and `"1.0E0"`
+  as `xsd:float` are one value in a record where 3.2.3 held two. 3.2.3 already read
+  `"05" %% xsd:int`, `"1" %% xsd:boolean` and `"1e0" %% xsd:double` as the Python values
+  `5`, `True` and `1.0`, so records holding those were equal before. A text outside the
+  datatype's lexical space has no value and compares as text: `"1e1" %% xsd:decimal` no
+  longer equals `"10" %% xsd:decimal`, `"sNaN"` no longer reaches `Decimal()`, and the
+  caller's decimal context no longer changes the result. A `NaN` is one value with itself,
+  so a record holding one equals its copy, where 3.2.3 found no match. A typed literal
+  whose text is not the canonical spelling of its value, such as `"05" %% xsd:int` or
+  `"1" %% xsd:boolean`, is kept as a `Literal` with its text, still equals the Python value
+  in a record, and is written back as it was read by every format but PROV-O, where 3.2.3
+  read the Python value and wrote `5` or `true`; `get_attribute()` returns the `Literal`
+  for it. PROV-O also reads an exponent-form `xsd:decimal` such as `"1e1"`, outside the
+  lexical space, as its decimal value where every other format keeps the text. A text that
+  Python accepts and XSD does not, such as `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"`
+  as `xsd:double`, or `" 5"` and `"1_000"` as `xsd:int`, which 3.2.3 read as `True`,
+  `inf`, `5` and `1000`, now stays a `Literal` and compares as text.
+  `Literal(True).value` is `"true"`, `Literal(float("inf")).value` is `"INF"` and
   `Literal(1e16, XSD_DECIMAL).value` is `"10000000000000000"`, where 3.2.3 stored
   `"True"`, `"inf"` and `"1e+16"`
   ([#527](https://github.com/trungdong/prov/issues/527),
@@ -199,8 +205,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A record without an identifier is no longer equal to a record with one. `==` on records
   compares the type, the identifier and the attributes from both sides, so `a == b` now
   implies `hash(a) == hash(b)` and a record found in a set by `==` is found by hash.
-  `prov-compare` applies the same `==`, so two documents that differ only in a relation's
-  identifier now exit with `1` ([#525](https://github.com/trungdong/prov/issues/525))
+  `prov-compare` applies the same `==`, so two documents that differ only in whether a
+  relation carries an identifier now exit with `1`
+  ([#525](https://github.com/trungdong/prov/issues/525))
 - Two documents are equal only when they hold the same bundles. A document with a bundle
   the other lacks compares unequal from either side, where 3.2.3 reported `a == b` and
   `b != a`. A `ProvBundle` and a `ProvDocument` are never equal

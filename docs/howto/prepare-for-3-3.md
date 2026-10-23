@@ -259,9 +259,10 @@ in a set or asserts the type `get_attribute()` returns may see a different resul
 |---|---|---|
 | A relation without an identifier and the same relation with one | equal when the anonymous one is on the left | never equal ([#525](https://github.com/trungdong/prov/issues/525)) |
 | A document and a copy with an extra bundle | equal from the left, unequal from the right | unequal from either side |
-| A `ProvBundle` and a `ProvDocument` holding the same records | equal from the bundle's side | never equal |
-| `"05" %% xsd:int` and `5`; `"1" %% xsd:boolean` and `true`; `"1e0" %% xsd:double` and `1.0` | two values | one value ([#527](https://github.com/trungdong/prov/issues/527)) |
-| `"1e1"`, `"NaN"` or `"Infinity"` as `xsd:decimal` | compared through `Decimal()` in the caller's context | outside the lexical space, compared as text ([#593](https://github.com/trungdong/prov/issues/593), [#594](https://github.com/trungdong/prov/issues/594), [#595](https://github.com/trungdong/prov/issues/595)) |
+| `Literal("05", XSD_INT)` and `Literal("5", XSD_INT)`; `"+5"` and `"5"` as `xsd:long`; `"05"` and `"5"` as `xsd:integer` or `xsd:short`; `"1e0"` and `"1.0E0"` as `xsd:float` | two values | one value ([#527](https://github.com/trungdong/prov/issues/527)) |
+| `"1e1"` and `"10"` as `xsd:decimal` | one value, through `Decimal()` in the caller's context | two values: `"1e1"` is outside the lexical space and compares as text ([#593](https://github.com/trungdong/prov/issues/593), [#594](https://github.com/trungdong/prov/issues/594), [#595](https://github.com/trungdong/prov/issues/595)) |
+| `NaN` and `NaN` as `xsd:double`, in a record | two values | one value |
+| `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `" 5"` or `"1_000"` as `xsd:int` | read as `True`, `inf`, `5`, `1000` | kept as a `Literal` with its text, which compares as text |
 | `get_attribute()` on `"05" %% xsd:int` or `"1" %% xsd:boolean` | `5`, `True` | `Literal("05", XSD_INT)`, `Literal("1", XSD_BOOLEAN)`; PROV-O still reads `5` and `True` |
 | `Literal(True).value`, `Literal(float("inf")).value` | `"True"`, `"inf"` | `"true"`, `"INF"` |
 | A PROV-O relation written as a blank node, under a default namespace | identifier from the blank node's label | no identifier |
@@ -272,7 +273,7 @@ Two attribute values are the same value when they have the same datatype and the
 value in that datatype's value space. `xsd:boolean`, `xsd:decimal`, `xsd:double`,
 `xsd:float` and `xsd:integer` with its subtypes have a value space here; every other
 datatype compares by text, and a text outside its datatype's lexical space compares as
-text. A `NaN` is one value with itself. A plain Python value takes the datatype the writers
+text. A `NaN` is one value with itself. A bundle and a document are never equal, from either side. A plain Python value takes the datatype the writers
 give it, so `5` and `"5" %% xsd:long` stay two values. `hash()` follows `==` on records and
 literals. `prov-compare` applies the same `==`, so its exit code changes for the same
 documents.
