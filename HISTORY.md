@@ -290,7 +290,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no
-  `prefix zz`, which no reader read back
+  `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows the rule a
+  name does: it takes the `dn` prefix when the document's default differs, and becomes the
+  document's default when it has none
   ([#615](https://github.com/trungdong/prov/issues/615))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's

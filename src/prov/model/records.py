@@ -918,7 +918,7 @@ class ProvRecord:
     def _literal_in_scope(self, literal: Literal) -> Literal:
         """``literal`` with its datatype as this record's bundle holds it,
         so the namespace is declared (#615); rebuilt only when the bundle
-        renames the prefix."""
+        gives the datatype another prefix."""
         datatype = literal.datatype
         if datatype is None:
             return literal

@@ -373,5 +373,21 @@ def test_literal_in_scope_returns_built_in_datatypes_unchanged() -> None:
     record = doc.entity("ex:e")
     tagged = Literal("chat", langtag="fr")
     typed = Literal("1", XSD_INT)
+    # The caller never passes a langtag literal; this pins the direct call.
     assert record._literal_in_scope(tagged) is tagged
     assert record._literal_in_scope(typed) is typed
+
+
+def test_literal_datatype_in_a_foreign_default_takes_the_dn_prefix() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    record = doc.entity(
+        "e", {"a": Literal("1", Namespace("", "http://other.org/")["t"])}
+    )
+    (value,) = record.get_attribute("a")
+    assert isinstance(value, Literal) and value.datatype is not None
+    assert value.datatype.namespace.prefix == "dn"
+    assert value.datatype.uri == "http://other.org/t"
+    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
+    content = doc.serialize(format="provn")
+    assert ProvDocument.deserialize(content=content, format="provn") == doc
