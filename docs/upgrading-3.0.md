@@ -14,9 +14,8 @@ matter for most users:
    calls `unified()` internally, so it can raise too. `prov_to_dot()` catches the error and
    renders the document without unifying it.
 
-Both were signposted from 2.4.0 with a runtime warning, which every later 2.x release also
-carries. **If your test suite ran clean under 2.4.0 or later with
-`-W error::DeprecationWarning -W error::FutureWarning`, neither change affects your code.**
+Both were signposted from 2.4.0 with a runtime warning. **If your test suite ran clean under
+2.4.0 or later with `-W error::DeprecationWarning -W error::FutureWarning`, neither affects you.**
 
 ## Install the extras you need
 
