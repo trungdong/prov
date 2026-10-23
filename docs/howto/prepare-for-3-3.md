@@ -77,6 +77,7 @@ The strict writer drops what the strict reader rejects:
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
 | `… has a timezone offset beyond ±14:00` | [#513](https://github.com/trungdong/prov/issues/513) | `activity(ex:a, 2012-01-01T00:00:00+15:00, -)`, or `datetime(2012, 1, 1, tzinfo=timezone(timedelta(hours=15)))` as any attribute value | The same instant with an offset from -14:00 to +14:00, such as `2011-12-31T23:00:00+14:00`. |
+| `invalid xsd:dateTime '…'`, `expected an xsd:dateTime, found '…'` or `… is not an xsd:dateTime` | [#514](https://github.com/trungdong/prov/issues/514) | `used(ex:a, ex:e, 2012-12-03T21:08:16.1234567Z)` | At most six fractional digits, `2012-12-03T21:08:16.123456Z`. 3.2.3 truncated the fraction to microseconds without a message. A typed `xsd:dateTime` value of an ordinary attribute keeps the `Literal`. PROV-O reads it truncated to microseconds. |
 
 The error is a `ProvValueError` where the time is asserted, from any format or from
 code, for every time of a statement and for a Python `datetime` as the value of any
@@ -247,6 +248,34 @@ arguments. A conflict between two present values, in any position, raises first.
 
 `prov_to_graph()` calls `unified()`, so it raises for the same documents. `prov_to_dot()`
 draws such a document as asserted, without merging any records.
+
+## Equality
+
+`==` on records, bundles, documents and `Literal` values follows one rule in 3.3.0, and
+3.2.3 did not warn about any of these changes. Code that compares documents, holds records
+in a set or asserts the type `get_attribute()` returns may see a different result.
+
+| Compared | 3.2.3 | 3.3.0 |
+|---|---|---|
+| A relation without an identifier and the same relation with one | equal when the anonymous one is on the left | never equal ([#525](https://github.com/trungdong/prov/issues/525)) |
+| A document and a copy with an extra bundle | equal from the left, unequal from the right | unequal from either side |
+| A `ProvBundle` and a `ProvDocument` holding the same records | equal from the bundle's side | never equal |
+| `"05" %% xsd:int` and `5`; `"1" %% xsd:boolean` and `true`; `"1e0" %% xsd:double` and `1.0` | two values | one value ([#527](https://github.com/trungdong/prov/issues/527)) |
+| `"1e1"`, `"NaN"` or `"Infinity"` as `xsd:decimal` | compared through `Decimal()` in the caller's context | outside the lexical space, compared as text ([#593](https://github.com/trungdong/prov/issues/593), [#594](https://github.com/trungdong/prov/issues/594), [#595](https://github.com/trungdong/prov/issues/595)) |
+| `get_attribute()` on `"05" %% xsd:int` or `"1" %% xsd:boolean` | `5`, `True` | `Literal("05", XSD_INT)`, `Literal("1", XSD_BOOLEAN)`; PROV-O still reads `5` and `True` |
+| `Literal(True).value`, `Literal(float("inf")).value` | `"True"`, `"inf"` | `"true"`, `"INF"` |
+| A PROV-O relation written as a blank node, under a default namespace | identifier from the blank node's label | no identifier |
+| `unified()` on two equal statements, such as two `hadMember(ex:m; ex:c, ex:e)` | both kept | one kept ([#548](https://github.com/trungdong/prov/issues/548), [#124](https://github.com/trungdong/prov/issues/124)) |
+| `get_records(ProvEntity)` | a one-shot iterator | a list, so write `next(iter(...))` ([#491](https://github.com/trungdong/prov/issues/491)) |
+
+Two attribute values are the same value when they have the same datatype and the same
+value in that datatype's value space. `xsd:boolean`, `xsd:decimal`, `xsd:double`,
+`xsd:float` and `xsd:integer` with its subtypes have a value space here; every other
+datatype compares by text, and a text outside its datatype's lexical space compares as
+text. A `NaN` is one value with itself. A plain Python value takes the datatype the writers
+give it, so `5` and `"5" %% xsd:long` stay two values. `hash()` follows `==` on records and
+literals. `prov-compare` applies the same `==`, so its exit code changes for the same
+documents.
 
 ## PROV-JSON
 

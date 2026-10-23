@@ -125,7 +125,22 @@ classes.
 .. autoclass:: prov.model.NamespaceManager
    :members:
    :show-inheritance:
+```
 
+### Equality
+
+Records compare by type, identifier and attributes; a record without an identifier equals
+only a record without one. Two attribute values are the same value when they have the same
+datatype and the same value in that datatype's value space. `xsd:boolean`, `xsd:decimal`,
+`xsd:double`, `xsd:float` and `xsd:integer` with its subtypes have a value space here,
+every other datatype compares by text, and a text outside its datatype's lexical space
+compares as text. A plain Python value takes the datatype the writers give it, so `5` and
+`Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are two. A
+`NaN` is one value with itself. `hash()` follows `==` on records and literals. Bundles
+compare as sets of records, documents also by their bundles, and a bundle never equals a
+document.
+
+```{eval-rst}
 .. autoclass:: prov.model.Literal
    :members:
    :show-inheritance:
