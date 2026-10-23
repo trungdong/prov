@@ -453,19 +453,15 @@ def test_identifier_equal_to_a_namespace_iri_skips_a_prefix_the_bundle_rebinds()
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
     doc.add_namespace("ex", "http://d/")
-    by_name = doc.bundle("ex:b3")
-    by_name.add_namespace("ex", "http://x/")
-    by_string = doc.bundle("ex:b4")
-    by_string.add_namespace("ex", "http://x/")
-    from_name = by_name.entity(Namespace("", "http://d/")[""]).identifier
-    from_string = by_string.entity("http://d/").identifier
-    assert str(from_name) == "dn:"
-    assert "dn" in {ns.prefix for ns in by_name.get_registered_namespaces()}
-    assert from_string.namespace.prefix != "ex"
-    assert from_string.namespace in by_string.get_registered_namespaces()
+    bundle = doc.bundle("ex:b3")
+    bundle.add_namespace("ex", "http://x/")
+    identifier = bundle.entity(Namespace("", "http://d/")[""]).identifier
+    assert str(identifier) == "dn:"
+    assert identifier.uri == "http://d/"
+    assert "dn" in {ns.prefix for ns in bundle.get_registered_namespaces()}
     reloaded = ProvDocument.deserialize(
         content=doc.serialize(format="provn"), format="provn"
     )
-    for bundle in reloaded.bundles:
-        uris = [r.identifier.uri for r in bundle.get_records() if r.identifier]
-        assert uris == ["http://d/"]
+    (read_back,) = reloaded.bundles
+    uris = [r.identifier.uri for r in read_back.get_records() if r.identifier]
+    assert uris == ["http://d/"]

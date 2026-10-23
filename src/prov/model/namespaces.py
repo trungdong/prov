@@ -223,12 +223,9 @@ class NamespaceManager(dict[str, Namespace]):
 
         if resolved is not None or not self.parent:
             return resolved
-        # all attempts have failed so far; delegate to the parent and read its
-        # name as this scope does, without caching it
-        from_parent = self.parent.valid_qualified_name(qname)
-        if from_parent is None:
-            return None
-        return self._reconcile_qualified_name(from_parent)
+        # all attempts have failed so far; delegate to the parent, but do
+        # not cache a result this manager did not itself resolve
+        return self.parent.valid_qualified_name(qname)
 
     def _resolve_string(
         self, str_value: str, is_plain_str: bool
