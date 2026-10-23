@@ -209,6 +209,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov_to_graph()` and `prov_to_dot()` draw one edge where 3.2.3 drew two
   ([#548](https://github.com/trungdong/prov/issues/548),
   [#124](https://github.com/trungdong/prov/issues/124))
+- An `xsd:dateTime` with more than six fractional digits is no longer read.
+  `parse_xsd_datetime` returns `None` for it, so a time of a statement is rejected as a
+  time outside the lexical form is: `ProvNSyntaxError` at the token, `ProvJSONException`
+  or `ProvJSONLDException` naming the attribute, `ProvException` from code or from PROV-XML
+  and PROV-O. A typed `xsd:dateTime` value of an ordinary attribute keeps the `Literal`
+  with its text. 3.2.3 truncated the fraction to microseconds without a message. The
+  PROV-JSONLD reader raises `ProvJSONLDException` for a formal time it cannot parse, where
+  3.2.3 read the statement without the time. PROV-O is the exception: rdflib truncates
+  the fraction to microseconds before `prov` reads the text, so such a time reads as the
+  truncated `datetime` in both positions, as the conformance page records
+  ([#514](https://github.com/trungdong/prov/issues/514))
 
 ### Output changes
 

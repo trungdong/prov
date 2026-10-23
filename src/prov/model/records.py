@@ -149,6 +149,8 @@ StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 # Data Types
 _XSD_DATETIME_RE = re.compile(XSD_DATETIME_PATTERN)
 _XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
+# A datetime holds microseconds; a longer fraction has no value here (#514).
+_XSD_LONG_FRACTION_RE = re.compile(r"\.[0-9]{7,}")
 
 
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
@@ -172,11 +174,12 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
     Accepts the ``xsd:dateTime`` lexical space (XSD 1.1 section 3.3.7) and
-    nothing else: a date, ``T``, a time with optional fractional seconds,
+    nothing else: a date, ``T``, a time with up to six fractional digits,
     and ``Z`` or an ``hh:mm`` offset. The hour-24 end-of-day form maps to
     00:00:00 of the following day, per the XSD value space. Text in another
-    ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, and a bare
-    ``xsd:date`` are not accepted.
+    ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, a bare
+    ``xsd:date``, and a fraction of more than six digits, which a
+    :class:`datetime.datetime` cannot hold, are not accepted (#514).
 
     Args:
         value: The date/time string to parse.
@@ -186,7 +189,7 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
         could not be parsed.
     """
     text = value.strip()
-    if not _XSD_DATETIME_RE.fullmatch(text):
+    if not _XSD_DATETIME_RE.fullmatch(text) or _XSD_LONG_FRACTION_RE.search(text):
         return None
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
@@ -390,7 +393,8 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
 
 def _canonical_text(value: Any) -> str | None:
     """The spelling the writers give a parsed value, or ``None`` for a
-    datetime, whose text is never kept (spec 2, 3.3)."""
+    datetime: a datetime's text is never kept; #514 and the datetime type
+    own it."""
     return None if isinstance(value, datetime.datetime) else _literal_text(value, None)
 
 

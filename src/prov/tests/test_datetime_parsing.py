@@ -15,6 +15,9 @@ from prov.model import (
     ProvWarning,
     parse_xsd_datetime,
 )
+from prov.serializers.provjson import ProvJSONException
+from prov.serializers.provjsonld import ProvJSONLDException
+from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document
 
 UTC = datetime.UTC
@@ -40,14 +43,10 @@ UTC = datetime.UTC
                 tzinfo=datetime.timezone(datetime.timedelta(hours=5, minutes=30)),
             ),
         ),
-        # fractional seconds of any length; digits past the sixth are truncated
+        # fractional seconds of one to six digits
         (
             "2012-12-03T21:08:16.68Z",
             datetime.datetime(2012, 12, 3, 21, 8, 16, 680000, tzinfo=UTC),
-        ),
-        (
-            "2012-12-03T21:08:16.1234567Z",
-            datetime.datetime(2012, 12, 3, 21, 8, 16, 123456, tzinfo=UTC),
         ),
         (
             "2012-12-03T21:08:16.1Z",
@@ -56,19 +55,6 @@ UTC = datetime.UTC
         (
             "2012-12-03T21:08:16.1234",
             datetime.datetime(2012, 12, 3, 21, 8, 16, 123400),
-        ),
-        (
-            "2012-12-03T21:08:16.999999999+01:00",
-            datetime.datetime(
-                2012,
-                12,
-                3,
-                21,
-                8,
-                16,
-                999999,
-                tzinfo=datetime.timezone(datetime.timedelta(hours=1)),
-            ),
         ),
         # xsd:dateTime end-of-day form maps to 00:00:00 of the next day
         ("2011-11-16T24:00:00", datetime.datetime(2011, 11, 17, 0, 0)),
@@ -113,6 +99,8 @@ def test_parse_xsd_datetime_accepts(text, expected) -> None:
         "2012-12-03T21:08:16+0100",  # offset without a colon
         "2012-12-03T21:08:16.5 +01:00",  # space before the offset
         "2012-01-01T00:00:00+14:00:30",  # seconds in the offset
+        "2012-12-03T21:08:16.1234567Z",  # a seventh fractional digit, which a datetime cannot hold (#514)
+        "2012-12-03T21:08:16.999999999+01:00",  # nine fractional digits (#514)
     ],
 )
 def test_parse_xsd_datetime_rejects(text) -> None:
@@ -287,3 +275,65 @@ def test_every_reader_keeps_a_typed_time_beyond_the_bound_as_a_literal(fmt) -> N
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
         assert ProvDocument.deserialize(content=text, format=fmt) == document
+
+
+# Each reader reports a fraction beyond six digits as it reports a time outside
+# the lexical form (#514, the #513 precedent).
+# PROV-O is the one format that cannot reject or keep the text; see
+# test_prov_o_truncates_a_fraction_beyond_six_digits.
+TEXT_FORMATS = tuple(fmt for fmt in ROUNDTRIP_FORMATS if fmt != "rdf")
+_FRACTION_ERRORS = {
+    "json": ProvJSONException,
+    "xml": ProvException,
+    "jsonld": ProvJSONLDException,
+    "provn": ProvNSyntaxError,
+}
+
+
+@pytest.mark.parametrize("fmt", TEXT_FORMATS)
+def test_every_reader_rejects_a_fraction_beyond_six_digits(fmt) -> None:
+    text = _written_with(
+        fmt,
+        lambda d: d.activity("ex:a1", startTime="2012-01-01T00:00:00.123456Z"),
+        ".123456",
+        ".1234567",
+    )
+    with pytest.raises(_FRACTION_ERRORS[fmt]):
+        ProvDocument.deserialize(content=text, format=fmt)
+
+
+@pytest.mark.parametrize("fmt", TEXT_FORMATS)
+def test_every_reader_keeps_a_typed_time_with_a_long_fraction_as_a_literal(fmt) -> None:
+    document = ex_document()
+    document.entity(
+        "ex:e1", {"ex:t": Literal("2011-11-16T16:05:33.1234567Z", XSD_DATETIME)}
+    )
+    text = document.serialize(format=fmt)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
+        assert ProvDocument.deserialize(content=text, format=fmt) == document
+
+
+def test_prov_o_truncates_a_fraction_beyond_six_digits() -> None:
+    # rdflib normalises a literal when it builds it (NORMALIZE_LITERALS), so
+    # the PROV-O reader never sees the seventh digit: a time of a statement
+    # reads truncated to microseconds, and a typed attribute value reads as
+    # the truncated datetime, where every other format rejects the first and
+    # keeps the second as a Literal (#514; conformance caveat C10).
+    truncated = datetime.datetime(2012, 1, 1, 0, 0, 0, 123456, tzinfo=UTC)
+    text = _written_with(
+        "rdf",
+        lambda d: d.activity("ex:a1", startTime="2012-01-01T00:00:00.123456Z"),
+        ".123456",
+        ".1234567",
+    )
+    (activity,) = ProvDocument.deserialize(content=text, format="rdf").get_records()
+    assert activity.get_startTime() == truncated
+    document = ex_document()
+    document.entity(
+        "ex:e1", {"ex:t": Literal("2012-01-01T00:00:00.1234567Z", XSD_DATETIME)}
+    )
+    (entity,) = ProvDocument.deserialize(
+        content=document.serialize(format="rdf"), format="rdf"
+    ).get_records()
+    assert entity.get_attribute("ex:t") == {truncated}
