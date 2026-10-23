@@ -6,7 +6,6 @@ import datetime
 import decimal
 import io
 import logging
-import math
 import os
 import re
 import typing
@@ -111,12 +110,12 @@ from prov.identifier import (
 )
 from prov.model._values import (
     _LANGTAG,
-    NAN_KEY,
     XSD_DATETIME_PATTERN,
     _decimal_text,
     _offset_beyond_xsd_bound,
     _xsd_datetime_text,
     canonical_xsd_datatype as canonical_xsd_datatype,  # re-exported through prov.model
+    key_slot,
     no_prov_form_detail,
     python_value_form,
     time_offset_detail,
@@ -230,10 +229,20 @@ DATATYPE_PARSERS = {
 }
 
 
+def _datetime_value(text: str) -> datetime.datetime | None:
+    """The ``datetime`` ``text`` denotes, or ``None`` when it has none. No
+    xsd:dateTime has an offset beyond ±14:00, so such a text has no value and
+    stays as written (#513)."""
+    value = parse_xsd_datetime(text)
+    return None if value is None or _offset_beyond_xsd_bound(value) else value
+
+
 # Mappings for XSD datatypes to Python standard types
 SupportedXSDParsedTypes: typing.TypeAlias = (
     str | datetime.datetime | float | int | bool | None
 )
+
+
 XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedTypes]] = {
     XSD_STRING: str,
     XSD_DOUBLE: float,
@@ -430,7 +439,10 @@ class Literal:
                 (``INF``, ``-INF``, ``NaN`` or its ``repr()``; the decimal text
                 when ``datatype`` is ``xsd:decimal``), a ``Decimal`` in its
                 plain form, a ``datetime`` in ISO 8601 form, anything else
-                through ``str()``.
+                through ``str()``. A ``Literal`` holds the text its caller gave it,
+                however it was spelled, so ``Literal(Decimal("NaN"), XSD_DECIMAL)``
+                is the ill-formed text ``NaN``, which compares as text; only a
+                plain Python value given to a record must have a PROV form (#482).
             datatype: The qualified name of the value's datatype (default:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
@@ -498,7 +510,11 @@ class Literal:
         tags are case-insensitive; the stored tag keeps its case)."""
         value = xsd_value(self._datatype, self._value)
         langtag = self._langtag.casefold() if self._langtag is not None else None
-        return (self._datatype, self._value if value is None else value, langtag)
+        return (
+            self._datatype,
+            self._value if value is None else key_slot(value),
+            langtag,
+        )
 
     @property
     def value(self) -> str:
@@ -557,7 +573,7 @@ def _value_key(value: Any) -> ValueKey:
     if isinstance(value, int):
         return (canonical_xsd_datatype(value), value, None)
     if isinstance(value, float):
-        return (XSD_DOUBLE, NAN_KEY if math.isnan(value) else value, None)
+        return (XSD_DOUBLE, key_slot(value), None)
     return (type(value), value, None)
 
 
@@ -899,39 +915,23 @@ class ProvRecord:
 
     @staticmethod
     def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:
-        """The Python value of a typed literal whose text is its canonical
-        spelling, or the literal where it keeps its asserted form or its
-        spelling."""
-        # Match the JSON decoding's literal conversion. #522: a lexical form
-        # outside the datatype's lexical space keeps the Literal.
-        try:
-            value = parse_xsd_types(literal.value, datatype)
-        except (ValueError, OverflowError):
-            return literal
-        if value is None:
-            return literal
-        # #235: only collapse the integer family when it is lossless, i.e.
-        # the asserted datatype is the one `prov` would itself infer for the
-        # parsed value. Otherwise, keep the Literal so its asserted datatype
-        # survives serialization (e.g. Literal("42", XSD_LONG)).
-        if (
-            datatype in (XSD_LONG, XSD_INT, XSD_INTEGER)
-            and canonical_xsd_datatype(value) != datatype
+        """The Python value of a typed literal whose text is the canonical
+        spelling of a plain value, or the literal: a text outside the
+        datatype's lexical space (#522), a datatype other than the one prov
+        writes for the value (#235), a spelling that is not the canonical one
+        (#527) and a datatype with no plain form keep the Literal."""
+        text = literal.value
+        if datatype == XSD_STRING:
+            return text
+        if datatype == XSD_DATETIME:
+            return _datetime_value(text) or literal
+        value = xsd_value(datatype, text)
+        if isinstance(value, (bool, int, float)) and python_value_form(value) == (
+            text,
+            datatype,
         ):
-            return literal
-        # No xsd:dateTime has an offset beyond ±14:00, so the text has no
-        # datetime value and stays as written (#513).
-        if isinstance(value, datetime.datetime) and _offset_beyond_xsd_bound(value):
-            return literal
-        # A text that is not the canonical spelling of its value keeps its
-        # Literal, so it is written back as read; it compares by value (#527).
-        # A datetime's text is never kept: #514 and the datetime type own it.
-        if (
-            not isinstance(value, datetime.datetime)
-            and _literal_text(value, None) != literal.value
-        ):
-            return literal
-        return value
+            return value
+        return literal
 
     @staticmethod
     def _literal_for_python_value(attr: QualifiedName, value: Any) -> Literal:

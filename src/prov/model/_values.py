@@ -99,6 +99,12 @@ _XSD_INTEGER_BOUNDS: dict[QualifiedName, tuple[int | None, int | None]] = {
 NAN_KEY = "NaN"
 
 
+def key_slot(value: object) -> object:
+    """``value`` as it sits in a value key: :data:`NAN_KEY` for a float NaN,
+    so a NaN is one value with itself, else the value."""
+    return NAN_KEY if isinstance(value, float) and math.isnan(value) else value
+
+
 def _integer_value(datatype: QualifiedName, text: str) -> int | None:
     if not _XSD_INTEGER_RE.fullmatch(text):
         return None
@@ -120,11 +126,8 @@ def _decimal_value(text: str) -> decimal.Decimal | None:
     return decimal.Decimal(text) if _XSD_DECIMAL_RE.fullmatch(text) else None
 
 
-def _double_value(text: str) -> float | str | None:
-    if not _XSD_DOUBLE_RE.fullmatch(text):
-        return None
-    value = float(text)
-    return NAN_KEY if math.isnan(value) else value
+def _double_value(text: str) -> float | None:
+    return float(text) if _XSD_DOUBLE_RE.fullmatch(text) else None
 
 
 _XSD_VALUES: dict[QualifiedName, Callable[[str], object | None]] = {
@@ -146,7 +149,7 @@ def xsd_value(datatype: QualifiedName | None, text: str) -> object | None:
     ``xsd:integer`` with its twelve subtypes (XSD 1.1 Part 2). ``None`` for
     every other datatype and for a text outside the datatype's lexical space
     or the subtype's range; such a literal compares as text (#527, #593,
-    #594, #595). A NaN is :data:`NAN_KEY`, so it is one value with itself.
+    #594, #595). A NaN is a ``float`` NaN; :func:`key_slot` gives it its key.
     """
     to_value = _XSD_VALUES.get(datatype) if datatype is not None else None
     return None if to_value is None else to_value(text)
