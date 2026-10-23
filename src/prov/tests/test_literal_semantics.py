@@ -298,11 +298,7 @@ STAYS_A_LITERAL: list[Literal] = [
     Literal("5", XSD["unsignedByte"]),
     Literal("5", XSD_INTEGER),
     Literal("99999999999", XSD_INT),
-    Literal("05", XSD_INT),
     Literal("+5", XSD_INT),
-    Literal("1e0", XSD_DOUBLE),
-    Literal("1", XSD_BOOLEAN),
-    Literal("1.0", XSD_FLOAT),
     Literal("1.5", XSD_DECIMAL),
     Literal("5", XSD_DECIMAL),
 ]

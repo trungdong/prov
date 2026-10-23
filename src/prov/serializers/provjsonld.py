@@ -179,12 +179,12 @@ def encode_jsonld_value(
         if value.langtag:
             return {"@value": value.value, "@language": value.langtag}
         return {"@value": value.value, "@type": qname_text(value.datatype)}
+    if isinstance(value, str):
+        return {"@value": value}
     form = python_value_form(value)
     if form is None or form[0] is None:
         return {"@value": str(value)}
     text, datatype = form
-    if isinstance(value, str):
-        return {"@value": text}
     return {"@value": text, "@type": str(datatype)}
 
 

@@ -699,10 +699,12 @@ def encode_json_representation(
         # values as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0
         # choice) remains accepted on input for backward compatibility.
         return {"$": qname_text(value), "type": str(XSD_QNAME)}
+    if isinstance(value, (str, bool)):
+        # JSON-native
+        return value
     form = python_value_form(value)
-    if form is None or form[0] is None or isinstance(value, (str, bool)):
-        # str and bool are JSON-native; anything with no PROV form is passed
-        # through as it is
+    if form is None or form[0] is None:
+        # no PROV form, or no lexical form: passed through as it is
         return value
     text, datatype = form
     # int/float/datetime: the submission's typedLiteral schema requires a string "$"

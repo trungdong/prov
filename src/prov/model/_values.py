@@ -248,18 +248,13 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
     return value.isoformat()
 
 
-def _integer_form(value: object) -> tuple[str, QualifiedName]:
-    # Every int that is not a bool has a canonical datatype; XSD_INTEGER is
-    # the fallback the type checker needs, never reached.
-    return int.__repr__(value), canonical_xsd_datatype(value) or XSD_INTEGER
-
-
 # How prov spells a Python value, in lookup order: the plain types first
 # (bool before int, datetime before date, because each is a subtype of the
 # next), then the types stored as a typed Literal (#482). Each row gives the
 # datatype and the function that writes the lexical form, or None when this
-# value has none; an int's datatype depends on its magnitude, so its row
-# holds xsd:int and python_value_form asks canonical_xsd_datatype.
+# value has none. An int's datatype depends on its magnitude, which
+# canonical_xsd_datatype gives; it returns None for every other row's type
+# except a float's xsd:double, which equals the row.
 _PROV_FORMS: tuple[
     tuple[type | tuple[type, ...], QualifiedName, Callable[[Any], str | None]], ...
 ] = (
@@ -300,9 +295,7 @@ def python_value_form(value: object) -> tuple[str | None, QualifiedName] | None:
     """
     for types, datatype, text in _PROV_FORMS:
         if isinstance(value, types):
-            if types is int:
-                return _integer_form(value)
-            return text(value), datatype
+            return text(value), canonical_xsd_datatype(value) or datatype
     return None
 
 

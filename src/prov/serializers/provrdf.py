@@ -104,8 +104,8 @@ class AnonymousIDGenerator:
 _XSD_GYEAR_RE = re.compile(r"^(-?\d{4,})(?:Z|[+-]\d{2}:\d{2})?$")
 _XSD_GYEARMONTH_RE = re.compile(r"^(-?\d{4,})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$")
 
-# The RDF datatype of a plain Python value the writer types explicitly;
-# ints are typed by magnitude through python_value_form() (#256)
+# The writer types plain values through ``python_value_form``; the map is kept
+# for code that reads it.
 LITERAL_XSDTYPE_MAP = {
     float: XSD["double"],
     # boolean, string values are supported natively by PROV-RDF: str falls
@@ -544,20 +544,23 @@ class ProvRDFSerializer(Serializer):
             return literal_rdf_representation(value)
         if isinstance(value, pm.QualifiedName):
             return URIRef(value.uri)
+        if isinstance(value, (str, bool)):
+            # native rdflib literals
+            return RDFLiteral(value)
         form = python_value_form(value)
-        if form is None or form[0] is None or isinstance(value, (str, bool)):
-            # str and bool are native rdflib literals; anything with no PROV
-            # form is handed to rdflib as it is
+        if form is None or form[0] is None:
+            # no PROV form, or no lexical form: handed to rdflib as it is
             return RDFLiteral(value)
         text, datatype = form
-        if isinstance(value, float):
+        rdf_datatype: URIRef = XSD[datatype.localpart]
+        if datatype == XSD_DOUBLE:
             # The full-precision lexical form, which skips rdflib's
             # bare-double abbreviation on output (#225); normalize=False keeps
             # it from being rewritten to Python's str() ('inf', 'nan').
             return _FullPrecisionDoubleLiteral(
-                text, datatype=LITERAL_XSDTYPE_MAP[float], normalize=False
+                text, datatype=rdf_datatype, normalize=False
             )
-        return RDFLiteral(text, datatype=XSD[datatype.localpart])
+        return RDFLiteral(text, datatype=rdf_datatype)
 
     def _resolve_predicate_key(
         self, pred: URIRef | pm.QualifiedName, graph: Graph

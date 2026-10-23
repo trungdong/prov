@@ -111,7 +111,6 @@ from prov.identifier import (
 from prov.model._values import (
     _LANGTAG,
     XSD_DATETIME_PATTERN,
-    _decimal_text,
     _offset_beyond_xsd_bound,
     _xsd_datetime_text,
     canonical_xsd_datatype as canonical_xsd_datatype,  # re-exported through prov.model
@@ -350,20 +349,19 @@ class TypedValueSet(MutableSet[Any]):
 
 def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
-    ``bool``, ``float`` or ``datetime`` in the XSD form ``python_value_form``
-    gives it (the decimal text for a ``float`` as ``xsd:decimal``), a
-    ``Decimal`` in its plain form, anything else through ``str()``. A
-    ``Decimal`` with no plain form (non-finite, or longer than the
-    interpreter's digit limit) keeps ``str()``, a text outside the lexical
-    space, because a ``Literal`` holds the text its caller gave it."""
+    ``bool``, ``float``, ``Decimal`` or ``datetime`` in the XSD form
+    ``python_value_form`` gives it (the decimal text for a ``float`` as
+    ``xsd:decimal``), anything else through ``str()``. A ``Decimal`` with no
+    plain form (non-finite, or longer than the interpreter's digit limit)
+    keeps ``str()``, a text outside the lexical space, because a ``Literal``
+    holds the text its caller gave it."""
     if isinstance(value, float) and datatype == XSD_DECIMAL:
         value = decimal.Decimal(float.__repr__(value))
-    if isinstance(value, decimal.Decimal):
-        return _decimal_text(value) or str(value)
-    if isinstance(value, (bool, float, datetime.datetime)):
+    if isinstance(value, (bool, float, decimal.Decimal, datetime.datetime)):
         form = python_value_form(value)
         if form is not None and (text := form[0]) is not None:
             return text
+    # Other types keep str(): a Literal built from them holds that text.
     return str(value)
 
 
