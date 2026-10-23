@@ -1,6 +1,6 @@
 # Unification gap analysis — `unified()` vs PROV-CONSTRAINTS (roadmap step 30b)
 
-**Status:** Complete (audited 2026-07-11, branch `audit/unification-constraints`).
+**Status:** Complete; shipped in 3.0.0 (audited 2026-07-11, branch `audit/unification-constraints`).
 **Authority for:** the 3.0 `unified()` reimplementation (roadmap step 36b).
 **Umbrella issue:** [#253](https://github.com/trungdong/prov/issues/253).
 **Characterization tests:** `src/prov/tests/test_unification_constraints.py` over the

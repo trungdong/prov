@@ -1,5 +1,8 @@
 # Public documentation review
 
+**Date:** 2026-09-10
+**Status:** Complete; shipped in 3.1.1
+
 Review of every published page for accuracy, cross-page consistency and readability.
 Scope is the Sphinx site content plus README, CONTRIBUTING, SECURITY, HISTORY (facts only),
 LICENSE and the two CLI script headers. Docstrings, `planning/`, `ROADMAP.md`,
@@ -7,25 +10,10 @@ LICENSE and the two CLI script headers. Docstrings, `planning/`, `ROADMAP.md`,
 
 ## Canonical statements
 
-Every page that states one of these facts states it this way.
-
-| Fact | Canonical statement |
-|---|---|
-| Python | 3.10 or later. CPython 3.10 to 3.14 and PyPy 3.11 are tested. 3.10 is dropped in the first release after 2026-10-31. |
-| Runtime dependencies | None. Every third-party package sits behind an extra. |
-| Extras | `rdf` (rdflib), `xml` (lxml), `dot` (pydot, networkx), `graph` (networkx), `plot` (matplotlib, pydot, networkx). |
-| `plot()` | Needs `prov[plot]`. |
-| Graphviz | The `dot` extra also needs a local Graphviz binary. |
-| Formats | `json` (default), `xml`, `rdf`, `provn` (write-only), `jsonld`. |
-| Auto-detect order | `json`, `rdf`, `provn`, `xml`, `jsonld`. |
-| Support policy | 3.x receives all fixes. 2.x receives security fixes only; 2.5.3 was the last back-port release. Before 2.0 nothing. |
-| Next release | 3.2.0 adds a PROV-N parser (#122). |
-| `prov-convert` | Input is always PROV-JSON. Output is `json`, `xml`, `rdf`, `jsonld`, `provn` or any Graphviz format. |
-| `prov-compare` | Either file may be in any registered format. |
-| Copyright | 2026 in LICENSE, `docs/conf.py` and both CLI script headers. |
-| Repository links | `https://`, branch `main`. |
-| Unpublished repo docs | Link with a full GitHub URL, never a relative path. |
-| Example import | `import prov.model as pm`. |
+The table of canonical statements that stood here was removed on 2026-10-23, because it
+went out of date at every release. Section 3 of
+[the documentation restructure spec](2026-10-23-docs-restructure-design.md) holds the
+rules every documentation PR applies.
 
 ## Defects found and fixed
 

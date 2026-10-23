@@ -10,7 +10,8 @@ treat the public API with care.
 ## Roadmap and planning
 
 `ROADMAP.md` is the release plan and current status — check it rather than assuming from
-memory of past work. Design specs live under `planning/specs/` and are committed.
+memory of past work. Design specs live under `planning/specs/` and are committed;
+`planning/README.md` says how to read them (a historical record, status lines kept current).
 Implementation plans and their `*.tasks.json` execution state live under
 `planning/plans/`, which is gitignored: plans are local working files and are never
 committed. Neither goes in `docs/`. Durable rules:
@@ -115,7 +116,7 @@ auto-detection, extras, tests). The rules below are what an agent must not break
 ## Tests (`src/prov/tests/`)
 
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
-`unittest.TestCase`. Design authority: `planning/specs/2026-07-06-test-suite-redesign.md`.
+`unittest.TestCase`.
 
 - No fixed pass/skip/xfail count is tracked here — it drifts every time a test is added and
   isn't CI-enforced. Instead, compare `uv run pytest -q -rsx` against the prior run: a skip or

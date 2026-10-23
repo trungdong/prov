@@ -1,7 +1,7 @@
 # prov Test-Suite Redesign — Design
 
 **Date:** 2026-07-06
-**Status:** Maintainer-reviewed; decisions incorporated (2026-07-06). Authority for Tasks 10–12.
+**Status:** Complete; shipped in 2.4.0. Decisions incorporated 2026-07-06.
 All three open questions resolved (see end): keep the 185 model self-tests as a `model` axis;
 scruffy cases → `skip` (#217); fidelity cases → strict `xfail` (#77/#218); disabled XML
 file-globs stay disabled.

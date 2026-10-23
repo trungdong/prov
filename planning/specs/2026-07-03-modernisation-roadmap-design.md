@@ -1,7 +1,7 @@
 # prov Modernisation & Hardening Roadmap — Design
 
 **Date:** 2026-07-03
-**Status:** Approved design, pending implementation planning
+**Status:** Complete; shipped in 2.2.0 to 3.2.0 (Phases 1 to 5b)
 **Scope:** Modernise and harden the `prov` package (tooling, typing, tests, docs, standards conformance) plus known bug fixes, followed by new serialization features: a PROV-JSONLD serializer (Phase 5) and a PROV-N parser (Phase 5b). Spec-conformant unification per PROV-CONSTRAINTS is in scope (audited in Phase 3.5, reimplemented in 3.0 — steps 30b/36b). Other large features (PROV-Dictionary, a full PROV-CONSTRAINTS validation engine) are out of scope, tracked as a separate post-3.0 features backlog.
 
 ## Context
