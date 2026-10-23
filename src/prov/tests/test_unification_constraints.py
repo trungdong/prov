@@ -140,17 +140,16 @@ def _n_records(document: ProvDocument) -> int:
 
 
 def _expected_unified_count(document: ProvDocument) -> int:
-    # The exact record count _unified_records() produces, computed from the
-    # pre-merge document: per scope (toplevel and each bundle), identified
-    # records collapse to one per distinct identifier (regardless of record
-    # type), while anonymous records never enter _id_map and ALL pass through
-    # unchanged — not even exact duplicates are deduplicated.
+    # The record count _unified_records() produces, from the pre-merge
+    # document: per scope (top level and each bundle), identified records
+    # collapse to one per distinct identifier, and anonymous records to one
+    # per distinct record, since unified() keeps each record once (#548).
     total = 0
     for scope in (document, *document.bundles):
         records = scope.get_records()
         identified = {r.identifier for r in records if r.identifier is not None}
-        anonymous = sum(1 for r in records if r.identifier is None)
-        total += len(identified) + anonymous
+        anonymous = {r for r in records if r.identifier is None}
+        total += len(identified) + len(anonymous)
     return total
 
 

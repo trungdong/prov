@@ -146,15 +146,14 @@ def test_ignores_edges_whose_relation_is_not_a_prov_record() -> None:
     assert list(prov_doc.get_records()) == []
 
 
-def test_equal_memberships_sharing_an_identifier_give_two_edges(document) -> None:
-    # unified() leaves hadMember out of the merge by identifier (#530), so two
-    # equal memberships with one identifier stay two edges.
+def test_equal_memberships_sharing_an_identifier_give_one_edge(document) -> None:
+    # unified() keeps one of two equal memberships (#548), so one edge is drawn.
     document.entity("ex:c")
     document.entity("ex:e")
     attributes = {PROV_ATTR_COLLECTION: "ex:c", PROV_ATTR_ENTITY: "ex:e"}
     for _ in range(2):
         document.new_record(PROV_MEMBERSHIP, "ex:m", attributes)
-    assert prov_to_graph(document).number_of_edges() == 2
+    assert prov_to_graph(document).number_of_edges() == 1
 
 
 def test_prov_to_graph_raises_when_unified_does() -> None:

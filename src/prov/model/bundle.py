@@ -726,13 +726,15 @@ class ProvBundle:
 
     # Transformations
     def _unified_records(self) -> list[ProvRecord]:
-        """Returns a list of unified records."""
-        merged_records = {}
-        for _identifier, records in self._id_map.items():
+        """The records with same-identifier groups merged and each record
+        kept once, in the order of the first occurrence."""
+        merged_records: dict[ProvRecord, ProvRecord] = {}
+        for records in self._id_map.values():
             if len(records) > 1:
-                # more than one record having the same identifier: unify them,
-                # per base record type (usually one type, but PROV-CONSTRAINTS
-                # permits an id to carry more than one, e.g. agent + entity)
+                # Unify per base record type (usually one type, but
+                # PROV-CONSTRAINTS permits an identifier to carry more than
+                # one, e.g. agent + entity). PROV-DM and PROV-Links give the
+                # keyless relations no identifier to merge on.
                 keyed = [
                     record
                     for record in records
@@ -740,22 +742,12 @@ class ProvBundle:
                 ]
                 if len(keyed) > 1:
                     merged_records.update(_unify_record_group(keyed))
-        if not merged_records:
-            # No merging done, just return the list of original records
-            return list(self._records)
-
-        added_merged_records = set()
-        unified_records = []
-        for record in self._records:
-            if record in merged_records:
-                merged = merged_records[record]
-                if merged not in added_merged_records:
-                    unified_records.append(merged)
-                    added_merged_records.add(merged)
-            else:
-                # add the original record
-                unified_records.append(record)
-        return unified_records
+        # dict.fromkeys keeps the first of equal records, by == and hash (#548).
+        return list(
+            dict.fromkeys(
+                merged_records.get(record, record) for record in self._records
+            )
+        )
 
     def unified(self) -> ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
@@ -775,11 +767,13 @@ class ProvBundle:
         positions of PROV-CONSTRAINTS Table 3 (the plan of an association,
         the activity of a derivation, and the generation and usage of a
         derivation with no activity) an absent value means "none" and does
-        not unify with a concrete value. Records with a unique
-        identifier, or no identifier, pass through unchanged. So do
-        ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
-        records, even when several share an identifier, since PROV-DM and
-        PROV-Links give these relations no identifier to merge on.
+        not unify with a concrete value. Records with a unique identifier, or
+        none, are not merged, and neither are ``alternateOf``,
+        ``specializationOf``, ``mentionOf`` and ``hadMember`` records that
+        share an identifier, since PROV-DM and PROV-Links give these relations
+        no identifier to merge on. After the merge each record is kept once: a
+        record equal to an earlier one is dropped and the earlier one keeps its
+        position (#548).
 
         This is not the specification's full normalization: the uniqueness
         constraints keyed on something other than the record identifier

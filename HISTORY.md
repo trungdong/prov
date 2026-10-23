@@ -202,6 +202,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - Two documents are equal only when they hold the same bundles. A document with a bundle
   the other lacks compares unequal from either side, where 3.2.3 reported `a == b` and
   `b != a`. A `ProvBundle` and a `ProvDocument` are never equal
+- `unified()` keeps each record once. A record equal to an earlier one, by the `==` of this
+  release, is dropped and the earlier one keeps its position, for records of every kind, so
+  two equal `hadMember` statements that share an identifier, or two equal anonymous `used`
+  statements, become one. 3.2.3 kept both and said 3.3.0 would deduplicate.
+  `prov_to_graph()` and `prov_to_dot()` draw one edge where 3.2.3 drew two
+  ([#548](https://github.com/trungdong/prov/issues/548),
+  [#124](https://github.com/trungdong/prov/issues/124))
 
 ### Output changes
 
