@@ -13,7 +13,7 @@ The W3C defines provenance as
 > a record that describes the people, institutions, entities, and activities involved in
 > producing, influencing, or delivering a piece of data or a thing.
 >
-> [PROV-DM](https://www.w3.org/TR/prov-dm/)
+> [PROV-DM](https://www.w3.org/TR/prov-dm/#introduction)
 
 In practice that is a record of where something came from. It names the entities involved
 in producing it, the activities that acted on those entities, the agents responsible, and
@@ -31,15 +31,15 @@ the same thing, and both are valid PROV. This matters for unification and flatte
 
 Everything in PROV is built from three kinds of thing, which PROV-DM defines:
 
-- An **entity** is "a physical, digital, conceptual, or other kind of thing with some fixed
+- An [**entity**](https://www.w3.org/TR/prov-dm/#term-entity) is "a physical, digital, conceptual, or other kind of thing with some fixed
   aspects", such as a file, a document, a dataset or a physical object. In `prov` an entity
   is a {py:class}`~prov.model.ProvEntity`, created with
   {py:meth}`~prov.model.ProvBundle.entity`.
-- An **activity** is "something that occurs over a period of time and acts upon or with
+- An [**activity**](https://www.w3.org/TR/prov-dm/#term-Activity) is "something that occurs over a period of time and acts upon or with
   entities", such as running a program, editing a document or publishing a report. It is a
   {py:class}`~prov.model.ProvActivity`, created with
   {py:meth}`~prov.model.ProvBundle.activity`.
-- An **agent** is "something that bears some form of responsibility for an activity taking
+- An [**agent**](https://www.w3.org/TR/prov-dm/#term-agent) is "something that bears some form of responsibility for an activity taking
   place, for the existence of an entity, or for another agent's activity", such as a person,
   an organisation or a piece of software. It is a {py:class}`~prov.model.ProvAgent`, created
   with {py:meth}`~prov.model.ProvBundle.agent`.
@@ -111,14 +111,14 @@ Plan entity subtype used with associations. These are not separate classes or fa
 `prov`. You express them by adding a `prov:type` attribute whose value is the predefined
 qualified name, for example `agent("ag", {pm.PROV_TYPE: pm.PROV["Person"]})`. The value
 must be a qualified name. A plain string such as `"prov:Person"` is stored and serialized
-as that literal string. Under PROV-DM such a string does not denote the predefined
-type.
+as that literal string. Under [PROV-DM's `prov:type`](https://www.w3.org/TR/prov-dm/#term-attribute-type) such a
+string does not denote the predefined type.
 
 ### Component 4: Bundles
 
 PROV-DM defines a **bundle** as "a named set of provenance descriptions, and is itself an
 entity, so allowing provenance of provenance to be expressed"
-([PROV-DM](https://www.w3.org/TR/prov-dm/)). A bundle lets you attribute a body of
+([PROV-DM](https://www.w3.org/TR/prov-dm/#term-bundle)). A bundle lets you attribute a body of
 PROV to whoever asserted it. In `prov` a bundle is a {py:class}`~prov.model.ProvBundle`,
 and a {py:class}`~prov.model.ProvDocument` is the top-level bundle that may contain named
 bundles.

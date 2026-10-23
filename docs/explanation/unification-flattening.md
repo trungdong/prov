@@ -140,7 +140,7 @@ incomplete, one piece at a time, and a later `unified()` call, if any, reconcile
 
 {py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
 document's top-level records and, independently, to each bundle. Nothing merges across a
-bundle boundary, as the specification requires.
+bundle boundary, as [PROV-CONSTRAINTS requires](https://www.w3.org/TR/prov-constraints/#bundle-constraints).
 
 `flattened().unified()` is a different, deliberate tool. `flattened()` has discarded the
 bundle structure, so `unified()` then merges same-identifier records across what used to
@@ -160,17 +160,18 @@ identifier, within these limits:
   qualified-name identifier and neither is one of the four relations above. Most relations
   are asserted without an identifier, so relations are almost never unified.
 - **Records of incompatible types raise; permitted overlaps stay separate.** Across types
-  sharing one identifier, `unified()` applies the specification's typing constraints. An
+  sharing one identifier, `unified()` applies the specification's
+  [impossibility constraints](https://www.w3.org/TR/prov-constraints/#impossibility-constraints). An
   `entity(x)` and an `activity(x)` raise {py:class}`~prov.model.ProvUnificationError`,
   because entities and activities are disjoint, while an `agent(x)` and an `entity(x)` are
   not and stay as two independently merged records.
 - **Absent means unknown, with exceptions.** PROV-N's explicit `-` placeholder is not
   represented, so an absent formal attribute behaves as an existential. In the positions
-  the specification makes non-expandable (the plan of an association, the activity of a
-  derivation, and the generation and usage of a derivation with no activity) an absent
-  value against a present one raises the same error.
-- **No inference.** The uniqueness constraints keyed on something other than the record
-  identifier (for example, that two generations of one entity by one activity are the same
+  the specification makes [non-expandable](https://www.w3.org/TR/prov-constraints/#optional-identifiers-and-attributes), the
+  plan of an association, the activity of a derivation, and the generation and usage of a
+  derivation with no activity, an absent value against a present one raises the same error.
+- **No inference.** The [uniqueness constraints](https://www.w3.org/TR/prov-constraints/#uniqueness-constraints) keyed on
+  something other than the record identifier (for example, that two generations of one entity by one activity are the same
   generation) are not applied, so `unified()` never concludes that two differently
   identified records denote the same thing.
 - **Not a validator.** `unified()` checks nothing unrelated to merging, such as event
