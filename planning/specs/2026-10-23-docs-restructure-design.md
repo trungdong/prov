@@ -218,6 +218,8 @@ historical, and these rules replace its "Canonical statements" table.
 - The example runs and prints the shown output.
 - `uv build` succeeds, and `twine check dist/*` passes if `twine` is available.
 - The README is no longer than it is now.
+  Measured at PR #643: 52 to 68 lines (19 removed, 30 added by the install section, the
+  example and its output); 230 to 200 words. Merged by the maintainer on 2026-10-23.
 
 ### D5. Conformance and explanation pages (E5, E6, E17)
 
