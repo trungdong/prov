@@ -1,7 +1,7 @@
 # PROV-JSONLD support (release 3.1.0) — design
 
 **Date:** 2026-08-07
-**Status:** Approved
+**Status:** Complete; shipped in 3.1.0
 **Roadmap context:** Phase 5, steps 40–44 of the
 [modernisation roadmap](2026-07-03-modernisation-roadmap-design.md); community summary in
 `ROADMAP.md` (3.1.0 row).

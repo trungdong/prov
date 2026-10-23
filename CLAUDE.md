@@ -115,7 +115,7 @@ auto-detection, extras, tests). The rules below are what an agent must not break
 ## Tests (`src/prov/tests/`)
 
 Pytest-native throughout: plain `assert`, module-level `test_*` functions, no
-`unittest.TestCase`. Design authority: `planning/specs/2026-07-06-test-suite-redesign.md`.
+`unittest.TestCase`.
 
 - No fixed pass/skip/xfail count is tracked here — it drifts every time a test is added and
   isn't CI-enforced. Instead, compare `uv run pytest -q -rsx` against the prior run: a skip or

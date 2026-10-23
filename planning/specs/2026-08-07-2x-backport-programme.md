@@ -1,7 +1,7 @@
 # Back-porting 3.x Bug Fixes to the 2.x Maintenance Line — Design
 
 **Date:** 2026-08-07
-**Status:** **Complete, 2026-08-08.** Stages 0–2 shipped (2.5.2, 2.5.3). Stage 3 was declined
+**Status:** Complete; shipped in 2.5.2 and 2.5.3 (closed 2026-08-08). Stage 3 was declined
 on the compatibility promise; see "Stage 3 outcome" at the end for what that means per item.
 The programme is closed — this document is now a record, not a work queue.
 **Scope:** Decides *which* fixes merged into `master` after the 2.5.1 tag are portable to

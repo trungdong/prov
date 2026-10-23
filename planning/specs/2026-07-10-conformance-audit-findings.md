@@ -1,6 +1,6 @@
 # Conformance audit findings — Phase 3.5 (roadmap steps 28–32)
 
-**Status:** Complete. Phase 3.5 closed 2026-07-11: the triage in section 6 was approved at
+**Status:** Complete; shipped in 2.5.0 and 3.0.0. Phase 3.5 closed 2026-07-11: the triage in section 6 was approved at
 the maintainer checkpoint on 2026-07-11 and applied on GitHub the same day (milestones and
 labels set, follow-up issues #256–#261 filed, phase summary posted on
 [#181](https://github.com/trungdong/prov/issues/181)).
