@@ -126,6 +126,16 @@ def test_prov_o_reads_an_exponent_decimal_as_a_value() -> None:
     assert value != Literal("1e1", XSD_DECIMAL)
 
 
+@pytest.mark.parametrize("text", ["NaN", "sNaN"])
+def test_prov_o_cannot_write_a_nan_decimal_beside_a_number(text: str) -> None:
+    # rdflib's Turtle serializer orders the values of one predicate, and a
+    # Decimal NaN has no order against a number (conformance caveat C11).
+    document = ex_document()
+    document.entity("ex:e", [("ex:v", Literal(text, XSD_DECIMAL)), ("ex:v", 0)])
+    with pytest.raises(decimal.InvalidOperation):
+        document.serialize(format="rdf")
+
+
 # A value prov rejects, and the end of its message after "the value ... of ex:v ".
 REJECTED: list[tuple[Any, str]] = [
     (fractions.Fraction(1, 3), "has type fractions.Fraction, which has no PROV form"),

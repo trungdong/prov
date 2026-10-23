@@ -22,11 +22,11 @@ from .conftest import ROUNDTRIP_FORMATS, contains_mention, roundtrip_document
 from .strategies import prov_documents, prov_record_pairs, prov_records
 
 
-def _has_exponent_decimal(document: ProvDocument) -> bool:
+def _has_decimal_text(document: ProvDocument, pattern: str) -> bool:
     return any(
         isinstance(value, Literal)
         and value.datatype == XSD_DECIMAL
-        and re.search(r"[0-9][eE]", value.value)
+        and re.search(pattern, value.value)
         for record in document.get_records()
         for _, value in record.attributes
     )
@@ -48,8 +48,9 @@ def test_generated_document_roundtrips(doc: ProvDocument, fmt: str) -> None:
 def test_generated_record_roundtrips(doc: ProvDocument, fmt: str) -> None:
     """A record holding typed literals in any spelling, identified or not, survives a round trip."""
     # rdflib rewrites an exponent-form xsd:decimal to its decimal text on read,
-    # turning an ill-formed text into a value (conformance caveat C10).
-    assume(fmt != "rdf" or not _has_exponent_decimal(doc))
+    # turning an ill-formed text into a value (conformance caveat C10), and
+    # raises when it orders a NaN decimal against a number on write (C11).
+    assume(fmt != "rdf" or not _has_decimal_text(doc, r"[0-9][eE]|NaN"))
     assert roundtrip_document(doc, fmt) == doc
 
 

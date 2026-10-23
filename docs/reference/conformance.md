@@ -160,6 +160,11 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
   reads as rdflib's decimal text and compares as the value `10`; and a numeric spelling such
   as `05` or `1e0` reads as the canonical one, which compares equal.
+- **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
+  one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
+  a `Decimal`, has no order against a number, so writing a record that holds such a text and
+  a numeric value under one attribute to PROV-O raises `decimal.InvalidOperation`. Every
+  other format writes it.
 
 ## Reading other producers' output
 
