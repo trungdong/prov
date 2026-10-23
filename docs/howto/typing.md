@@ -3,7 +3,7 @@
 `prov` ships inline type annotations and a `py.typed` marker, so mypy and pyright check
 your calls against them with no stub package. This guide covers the attribute arguments,
 `attributes` and `other_attributes`, which are where a strict checker most often
-objects. It describes `prov` 3.2.2 and later.
+objects.
 
 ## Pass attributes as a dict
 
@@ -68,21 +68,6 @@ document.entity("ex:filing", [(PROV_TYPE, "ex:Report"), (PROV_TYPE, "ex:Filing")
 
 The values in pairs are typed `Any`, so a checker does not examine them.
 
-A value whose static type is `Iterable[...]` or `Collection[...]` is reported, although it
-works at runtime. Wrap it in `list()`, or type it as a `Sequence`, a `Set` or an
-`Iterator`:
-
-```python
-from collections.abc import Iterable
-
-
-def review_attributes() -> Iterable[tuple[str, str]]:
-    yield ("ex:reviewer", "ex:alice")
-
-
-document.entity("ex:review", list(review_attributes()))
-```
-
 ## Values prov stores as a Literal
 
 A `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview`
@@ -102,4 +87,21 @@ document.entity(
         "ex:due": Literal("2026-10-31", XSD["date"]),
     },
 )
+```
+
+## Edge cases
+
+A value whose static type is `Iterable[...]` or `Collection[...]` is reported, although it
+works at runtime. Wrap it in `list()`, or type it as a `Sequence`, a `Set` or an
+`Iterator`:
+
+```python
+from collections.abc import Iterable
+
+
+def review_attributes() -> Iterable[tuple[str, str]]:
+    yield ("ex:reviewer", "ex:alice")
+
+
+document.entity("ex:review", list(review_attributes()))
 ```
