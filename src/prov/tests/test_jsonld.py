@@ -375,6 +375,26 @@ def test_roundtrip_context_embed_registers_no_extra_namespaces() -> None:
         ({"@context": [], "@graph": [{"@type": ["Entity"]}]}, "@type"),
         ({"@context": [], "@graph": {}}, "must be a JSON array; found dict"),
         (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [
+                    {
+                        "@type": "Activity",
+                        "@id": "ex:a",
+                        "startTime": "2012-01-01T00:00:00.1234567Z",
+                    }
+                ],
+            },
+            "'startTime' attribute of Activity is not an xsd:dateTime",
+        ),
+        (
+            {
+                "@context": [{"ex": "http://example.org/"}],
+                "@graph": [{"@type": "Activity", "@id": "ex:a", "startTime": 5}],
+            },
+            "'startTime' attribute of Activity is not an xsd:dateTime",
+        ),
+        (
             {"@context": [], "@graph": [{"@type": "Bundle"}]},
             'A Bundle requires an "@id"',
         ),

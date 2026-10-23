@@ -521,6 +521,17 @@ def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -
     return Literal(text, bundle.valid_qualified_name(datatype_str))
 
 
+def _decode_formal_time(value: Any, type_term: str, key: str) -> datetime.datetime:
+    """The time of a formal attribute, or ``ProvJSONLDException`` when
+    ``value`` is not an ``xsd:dateTime`` string (#514)."""
+    parsed = parse_xsd_datetime(value) if isinstance(value, str) else None
+    if parsed is None:
+        raise ProvJSONLDException(
+            f"The {key!r} attribute of {type_term} is not an xsd:dateTime: {value!r}"
+        )
+    return parsed
+
+
 def _decode_formal_qname(
     bundle: ProvBundle, value: Any, type_term: str, key: str
 ) -> QualifiedName:
@@ -608,7 +619,8 @@ def _decode_statement_attributes(
             (formal attributes take a single value, except a Membership's
             ``entity``, which may be a non-empty array) or cannot be
             resolved to a qualified name; or if a non-formal attribute's
-            value is not a JSON array.
+            value is not a JSON array; or if a formal time is not an
+            ``xsd:dateTime`` string.
     """
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
@@ -619,7 +631,7 @@ def _decode_statement_attributes(
         attr = formal_by_term.get(_strip_prov_prefix(key))
         if attr is not None and not isinstance(value, list):
             if attr in PROV_ATTRIBUTE_LITERALS:
-                attributes[attr] = parse_xsd_datetime(value)
+                attributes[attr] = _decode_formal_time(value, type_term, key)
             else:
                 attributes[attr] = _decode_formal_qname(bundle, value, type_term, key)
             continue

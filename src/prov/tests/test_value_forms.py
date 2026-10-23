@@ -23,8 +23,10 @@ from prov.model import (
     PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
+    XSD_BOOLEAN,
     XSD_DATE,
     XSD_DECIMAL,
+    XSD_INT,
     XSD_QNAME,
     XSD_TIME,
     Identifier,
@@ -106,6 +108,32 @@ def test_converted_values_round_trip(fmt: str) -> None:
         document.entity(f"ex:e{i}", {"ex:v": value})
     text = document.serialize(format=fmt)
     assert ProvDocument.deserialize(content=text, format=fmt) == document
+
+
+def test_prov_o_reads_an_exponent_decimal_as_a_value() -> None:
+    # rdflib normalises any decimal text that Python's Decimal() accepts when
+    # it parses a literal, so "1e1", outside xsd:decimal's lexical space and a
+    # text in every other format, comes back from PROV-O as rdflib's decimal
+    # text and compares as the value 10 (conformance caveat C10).
+    document = ex_document()
+    document.entity("ex:e", {"ex:v": Literal("1e1", XSD_DECIMAL)})
+    (entity,) = ProvDocument.deserialize(
+        content=document.serialize(format="rdf"), format="rdf"
+    ).get_records()
+    (value,) = entity.get_attribute("ex:v")
+    assert isinstance(value, Literal)
+    assert value == Literal("10", XSD_DECIMAL)
+    assert value != Literal("1e1", XSD_DECIMAL)
+
+
+@pytest.mark.parametrize("text", ["NaN", "sNaN"])
+def test_prov_o_cannot_write_a_nan_decimal_beside_a_number(text: str) -> None:
+    # rdflib's Turtle serializer orders the values of one predicate, and a
+    # Decimal NaN has no order against a number (conformance caveat C11).
+    document = ex_document()
+    document.entity("ex:e", [("ex:v", Literal(text, XSD_DECIMAL)), ("ex:v", 0)])
+    with pytest.raises(decimal.InvalidOperation):
+        document.serialize(format="rdf")
 
 
 # A value prov rejects, and the end of its message after "the value ... of ex:v ".
@@ -239,3 +267,25 @@ def test_qualified_name_value_under_a_bundle_prefix_keeps_its_namespace(
     rebuilt = rebuild(document)
     text = rebuilt.serialize(format="json")
     assert ProvDocument.deserialize(content=text, format="json") == rebuilt
+
+
+# A text outside its datatype's lexical space has no value: it is stored as
+# the Literal with its text and compares as text (#593, #594).
+ILL_FORMED: list[Literal] = [
+    Literal("sNaN", XSD_DECIMAL),
+    Literal("NaN", XSD_DECIMAL),
+    Literal("Infinity", XSD_DECIMAL),
+    Literal("1e1", XSD_DECIMAL),
+    Literal("True", XSD_BOOLEAN),
+    Literal("1.0", XSD_INT),
+]
+
+
+@pytest.mark.parametrize("literal", ILL_FORMED, ids=str)
+def test_ill_formed_text_is_stored_and_compared_as_text(literal: Literal) -> None:
+    entity = ex_document().entity("ex:e", {"ex:v": literal})
+    (stored,) = entity.get_attribute("ex:v")
+    assert isinstance(stored, Literal)
+    assert stored.value == literal.value
+    assert stored == literal
+    assert stored != Literal(literal.value + "0", literal.datatype)

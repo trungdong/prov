@@ -167,6 +167,72 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `next(document.get_records(ProvEntity))` raises `TypeError`, so write
   `next(iter(...))`, and an empty result is now falsy
   ([#491](https://github.com/trungdong/prov/issues/491))
+- Two attribute values are the same value when they have the same datatype and the same
+  value in that datatype's value space, for `xsd:boolean`, `xsd:decimal`, `xsd:double`,
+  `xsd:float` and `xsd:integer` with its subtypes; every other datatype compares by text.
+  An `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single
+  precision are two values.
+  `Literal("05", XSD_INT) == Literal("5", XSD_INT)` is `True` with equal hashes, where
+  3.2.3 compared every `Literal` but `xsd:decimal` by its text, and `"+5"` and `"5"` as
+  `xsd:long`, `"05"` and `"5"` as `xsd:integer` or `xsd:short`, and `"1e0"` and `"1.0E0"`
+  as `xsd:float` are one value in a record where 3.2.3 held two. 3.2.3 already read
+  `"05" %% xsd:int`, `"1" %% xsd:boolean` and `"1e0" %% xsd:double` as the Python values
+  `5`, `True` and `1.0`, so records holding those were equal before. A text outside the
+  datatype's lexical space has no value and compares as text: `"1e1" %% xsd:decimal` no
+  longer equals `"10" %% xsd:decimal`, `"sNaN"` no longer reaches `Decimal()`, and the
+  caller's decimal context no longer changes the result. A `NaN` is one value with itself,
+  so a record holding one equals its copy, where 3.2.3 found no match. A typed literal
+  whose text is not the canonical spelling of its value, such as `"05" %% xsd:int` or
+  `"1" %% xsd:boolean`, is kept as a `Literal` with its text, still equals the Python value
+  in a record, and is written back as it was read by every format but PROV-O, where 3.2.3
+  read the Python value and wrote `5` or `true`; `get_attribute()` returns the `Literal`
+  for it. PROV-O also reads an exponent-form `xsd:decimal` such as `"1e1"`, outside the
+  lexical space, as its decimal value where every other format keeps the text. A text that
+  Python accepts and XSD does not, such as `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"`
+  as `xsd:double`, or `" 5"` and `"1_000"` as `xsd:int`, which 3.2.3 read as `True`,
+  `inf`, `5` and `1000`, now stays a `Literal` and compares as text.
+  `Literal(True).value` is `"true"`, `Literal(float("inf")).value` is `"INF"`,
+  `Literal(1e16, XSD_DECIMAL).value` and `Literal(Decimal("1E+2"), XSD_DECIMAL).value`
+  are `"10000000000000000"` and `"100"`, and a `datetime` is spelled in ISO 8601 form
+  with a `T`, where 3.2.3 stored `"True"`, `"inf"`, `"1e+16"`, `"1E+2"` and a space
+  between the date and the time
+  ([#527](https://github.com/trungdong/prov/issues/527),
+  [#593](https://github.com/trungdong/prov/issues/593),
+  [#594](https://github.com/trungdong/prov/issues/594),
+  [#595](https://github.com/trungdong/prov/issues/595))
+- The PROV-O reader gives a relation whose subject is a blank node no identifier, where
+  3.2.3 used the blank node's label as the identifier, resolved in the default namespace
+  when the document declares one. `get_record()` on such a label finds nothing, PROV-N
+  written from the document shows the relation without an identifier, and `unified()` no
+  longer merges two such relations by their labels. An element written as a blank node
+  still takes its label as its identifier
+- A record without an identifier is no longer equal to a record with one. `==` on records
+  compares the type, the identifier and the attributes from both sides, so `a == b` now
+  implies `hash(a) == hash(b)` and a record found in a set by `==` is found by hash.
+  `prov-compare` applies the same `==`, so two documents that differ only in whether a
+  relation carries an identifier now exit with `1`
+  ([#525](https://github.com/trungdong/prov/issues/525))
+- Two documents are equal only when they hold the same bundles. A document with a bundle
+  the other lacks compares unequal from either side, where 3.2.3 reported `a == b` and
+  `b != a`. A `ProvBundle` and a `ProvDocument` are never equal
+- `unified()` keeps each record once. A record equal to an earlier one, by the `==` of this
+  release, is dropped and the earlier one keeps its position, for records of every kind, so
+  two equal `hadMember` statements that share an identifier, or two equal anonymous `used`
+  statements, become one. 3.2.3 kept both and said 3.3.0 would deduplicate.
+  `prov_to_graph()` and `prov_to_dot()` draw one edge where 3.2.3 drew two
+  ([#548](https://github.com/trungdong/prov/issues/548),
+  [#124](https://github.com/trungdong/prov/issues/124))
+- An `xsd:dateTime` with more than six fractional digits is no longer read.
+  `parse_xsd_datetime` returns `None` for it, so a time of a statement is rejected as a
+  time outside the lexical form is: `ProvNSyntaxError` at the token, `ProvJSONException`
+  or `ProvJSONLDException` naming the attribute, `ProvException` from code or from
+  PROV-XML. A typed `xsd:dateTime` value of an ordinary attribute keeps the `Literal`
+  with its text. 3.2.3 truncated the fraction to microseconds without a message. The
+  PROV-JSONLD reader raises `ProvJSONLDException` for a formal time it cannot parse, where
+  3.2.3 read the statement without the time. PROV-O is the exception: rdflib truncates
+  the fraction to microseconds before `prov` reads the text, so such a time reads as the
+  truncated `datetime` in both positions, as the conformance page records
+  ([#514](https://github.com/trungdong/prov/issues/514))
 
 ### Output changes
 

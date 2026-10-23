@@ -1,20 +1,29 @@
-"""Literal value-space semantics (3.0): #77 decimal, #259 langtag, #89 string form,
-and the language tags 3.3.0 rejects (#472)."""
+"""Literal value-space semantics: the one value key over the XSD 1.1 lexical
+table (#527, #593, #594, #595), the spellings a literal keeps and writes back,
+the XSD form of a Python value, and the language tags 3.3.0 rejects (#472)."""
 
+import datetime
+import decimal
 import io
 import re
 import warnings
 
 import pytest
 
-from prov.constants import PROV_INTERNATIONALIZEDSTRING, XSD_DECIMAL, XSD_INT
-from prov.model import Literal, ProvDocument, ProvValueError
-
-
-def _doc() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
+from prov.constants import (
+    PROV_INTERNATIONALIZEDSTRING,
+    XSD,
+    XSD_BOOLEAN,
+    XSD_DATETIME,
+    XSD_DECIMAL,
+    XSD_DOUBLE,
+    XSD_FLOAT,
+    XSD_INT,
+    XSD_INTEGER,
+    XSD_LONG,
+)
+from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
+from prov.tests.conftest import TEXT_FORMATS, ex_document, roundtrip_document
 
 
 def test_decimal_literals_compare_in_value_space() -> None:
@@ -32,9 +41,77 @@ def test_ill_formed_decimal_literals_compare_lexically() -> None:
     assert Literal("abc", XSD_DECIMAL) != Literal("abd", XSD_DECIMAL)
 
 
-def test_non_decimal_literals_compare_lexically() -> None:
-    # value-space comparison is decimal-only; other datatypes stay lexical.
-    assert Literal("1", XSD_INT) != Literal("01", XSD_INT)
+# One value each (XSD 1.1 Part 2, sections 3.3.2 to 3.3.5 and 3.4.x): two texts
+# in a datatype's lexical space that denote the same value in its value space
+# (#527, #593, #594, #595).
+SAME_VALUE: list[tuple[Literal, Literal]] = [
+    (Literal("5", XSD_INT), Literal("05", XSD_INT)),
+    (Literal("5", XSD_LONG), Literal("+5", XSD_LONG)),
+    (Literal("-5", XSD_INTEGER), Literal("-05", XSD_INTEGER)),
+    (Literal("255", XSD["unsignedByte"]), Literal("0255", XSD["unsignedByte"])),
+    (Literal("1", XSD_INT), Literal("0" * 64 + "1", XSD_INT)),
+    (Literal("1e0", XSD_FLOAT), Literal("1.0E0", XSD_FLOAT)),
+    (Literal("1.0", XSD_DOUBLE), Literal("1", XSD_DOUBLE)),
+    (Literal("INF", XSD_DOUBLE), Literal("+INF", XSD_DOUBLE)),
+    (Literal("INF", XSD_DOUBLE), Literal("1e999", XSD_DOUBLE)),
+    (Literal("NaN", XSD_DOUBLE), Literal("NaN", XSD_DOUBLE)),
+    (Literal("true", XSD_BOOLEAN), Literal("1", XSD_BOOLEAN)),
+    (Literal("false", XSD_BOOLEAN), Literal("0", XSD_BOOLEAN)),
+    (Literal("1.0", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
+    (Literal(".5", XSD_DECIMAL), Literal("0.50", XSD_DECIMAL)),
+    (Literal(decimal.Decimal("1E+2"), XSD_DECIMAL), Literal("100", XSD_DECIMAL)),
+]
+
+# Two values: a different asserted datatype (#235), a text outside the lexical
+# space or the subtype's range, which compares as text, or a different value.
+DIFFERENT_VALUE: list[tuple[Literal, Literal]] = [
+    (Literal("5", XSD_INT), Literal("5", XSD_LONG)),
+    (Literal("5", XSD_INT), Literal("5", XSD_INTEGER)),
+    (Literal("1", XSD_INT), Literal("1.0", XSD_DOUBLE)),
+    (Literal("256", XSD["unsignedByte"]), Literal("0256", XSD["unsignedByte"])),
+    (
+        Literal("-1", XSD["nonNegativeInteger"]),
+        Literal("-01", XSD["nonNegativeInteger"]),
+    ),
+    (Literal("TRUE", XSD_BOOLEAN), Literal("true", XSD_BOOLEAN)),
+    (Literal("nan", XSD_DOUBLE), Literal("NaN", XSD_DOUBLE)),
+    (Literal("1e1", XSD_DECIMAL), Literal("10", XSD_DECIMAL)),
+    (Literal("abc", XSD_INT), Literal("abd", XSD_INT)),
+    (Literal("1", XSD_INT), Literal("2", XSD_INT)),
+]
+
+
+@pytest.mark.parametrize(("left", "right"), SAME_VALUE, ids=str)
+def test_two_spellings_of_one_value_are_equal(left: Literal, right: Literal) -> None:
+    assert left == right
+    assert right == left
+    assert hash(left) == hash(right)
+
+
+@pytest.mark.parametrize(("left", "right"), DIFFERENT_VALUE, ids=str)
+def test_two_values_are_not_equal(left: Literal, right: Literal) -> None:
+    assert left != right
+    assert right != left
+
+
+def test_integer_text_beyond_the_digit_limit_compares_as_text() -> None:
+    # int() refuses a text longer than sys.get_int_max_str_digits(); the
+    # literal has no value and compares as text instead of raising.
+    text = "1" * 5000
+    assert Literal(text, XSD_INTEGER) == Literal(text, XSD_INTEGER)
+    assert Literal(text, XSD_INTEGER) != Literal(text + "1", XSD_INTEGER)
+
+
+def test_decimal_comparison_ignores_the_callers_context() -> None:
+    # #595: only text the grammar admits reaches Decimal(), whose construction
+    # from such text is exact in every context; #593: sNaN never reaches it.
+    with decimal.localcontext() as context:
+        context.prec = 1
+        context.traps[decimal.InvalidOperation] = False
+        assert Literal("1.0", XSD_DECIMAL) == Literal("1.00", XSD_DECIMAL)
+        assert hash(Literal("1.0", XSD_DECIMAL)) == hash(Literal("1.00", XSD_DECIMAL))
+        assert Literal("sNaN", XSD_DECIMAL) != Literal("NaN", XSD_DECIMAL)
+        assert Literal("sNaN", XSD_DECIMAL) == Literal("sNaN", XSD_DECIMAL)
 
 
 def test_langtag_comparison_is_case_insensitive() -> None:
@@ -46,7 +123,7 @@ def test_langtag_comparison_is_case_insensitive() -> None:
 
 def test_langtag_case_is_preserved_in_output() -> None:
     # #259 non-goal: the stored tag is not normalised -- output stays verbatim.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hello", langtag="EN")})
     content = document.serialize(format="json")
     assert content is not None
@@ -55,7 +132,7 @@ def test_langtag_case_is_preserved_in_output() -> None:
 
 def test_rdf_plain_string_emitted_without_xsd_string() -> None:
     # #89: one canonical form for string literals -- the plain literal.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": "hello"})
     buf = io.BytesIO()
     document.serialize(buf, format="rdf", rdf_format="nt11")
@@ -106,7 +183,7 @@ READERS = ["json", "xml", "jsonld"]
 def _written_with_tag(fmt: str, tag: str) -> str:
     # PROV-N cannot carry such a tag and PROV-O refuses to write one; the
     # other three write the tag as given, so the text is edited after writing.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     text = document.serialize(format=fmt)
     assert text is not None
@@ -123,7 +200,7 @@ def test_language_tag_raises_when_read(fmt: str) -> None:
 
 @pytest.mark.parametrize("fmt", READERS)
 def test_bcp47_language_tag_reads_without_warning(fmt: str) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     content = document.serialize(format=fmt)
     with warnings.catch_warnings():
@@ -139,3 +216,96 @@ def test_empty_json_lang_raises() -> None:
     )
     with pytest.raises(ProvValueError, match="is empty"):
         ProvDocument.deserialize(content=content, format="json")
+
+
+# A typed literal whose text is not the canonical spelling of its value keeps
+# its Literal and its text through the four text formats; PROV-O cannot keep
+# a spelling, so it reads back as the second column. Either way the document
+# compares equal, because records compare by value (#527).
+KEPT_TEXT: list[tuple[Literal, object]] = [
+    (Literal("05", XSD_INT), 5),
+    (Literal("+5", XSD_LONG), Literal("5", XSD_LONG)),
+    (Literal("1e0", XSD_DOUBLE), 1.0),
+    (Literal("1", XSD_BOOLEAN), True),
+    (Literal("1.00", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
+]
+
+
+def _single_value(document: ProvDocument) -> object:
+    (record,) = document.get_record("ex:e1")
+    (value,) = record.get_attribute("ex:a")
+    return value
+
+
+@pytest.mark.parametrize(("literal", "via_rdf"), KEPT_TEXT, ids=str)
+def test_non_canonical_text_is_kept_and_compares_by_value(
+    literal: Literal, via_rdf: object
+) -> None:
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": literal})
+    stored = _single_value(document)
+    assert isinstance(stored, Literal)
+    assert stored.value == literal.value
+    for fmt in TEXT_FORMATS:
+        back = roundtrip_document(document, fmt)
+        value = _single_value(back)
+        assert isinstance(value, Literal)
+        assert value.value == literal.value
+        assert back == document
+    back = roundtrip_document(document, "rdf")
+    assert _single_value(back) == via_rdf
+    assert back == document
+
+
+def test_canonical_text_collapses_to_the_python_value() -> None:
+    document = ex_document()
+    document.entity(
+        "ex:e1",
+        [
+            ("ex:a", Literal("5", XSD_INT)),
+            ("ex:b", Literal("true", XSD_BOOLEAN)),
+            ("ex:c", Literal("1.5", XSD_DOUBLE)),
+            ("ex:d", Literal("5000000000", XSD_LONG)),
+        ],
+    )
+    (record,) = document.get_record("ex:e1")
+    assert record.get_attribute("ex:a") == {5}
+    assert record.get_attribute("ex:b") == {True}
+    assert record.get_attribute("ex:c") == {1.5}
+    assert record.get_attribute("ex:d") == {5000000000}
+
+
+def test_second_spelling_of_a_held_value_is_not_added() -> None:
+    # The per-attribute set keys by value, so the first spelling is kept.
+    document = ex_document()
+    entity = document.entity("ex:e1", {"ex:a": Literal("05", XSD_INT)})
+    entity.add_attributes({"ex:a": 5})
+    assert len(entity.get_attribute("ex:a")) == 1
+    assert _single_value(document) == Literal("05", XSD_INT)
+
+
+# Literal(value) spells a Python value in XSD form (E7); 3.2.3 stored str(value).
+@pytest.mark.parametrize(
+    ("value", "datatype", "text"),
+    [
+        (True, XSD_BOOLEAN, "true"),
+        (False, None, "false"),
+        (float("inf"), XSD_DOUBLE, "INF"),
+        (float("-inf"), XSD_DOUBLE, "-INF"),
+        (float("nan"), None, "NaN"),
+        (1.5, XSD_DOUBLE, "1.5"),
+        (1e16, XSD_DOUBLE, "1e+16"),
+        (1e16, XSD_DECIMAL, "10000000000000000"),
+        (1.5, XSD_DECIMAL, "1.5"),
+        (decimal.Decimal("1E+2"), XSD_DECIMAL, "100"),
+        (decimal.Decimal("NaN"), XSD_DECIMAL, "NaN"),
+        (datetime.datetime(2012, 1, 1), XSD_DATETIME, "2012-01-01T00:00:00"),
+        (5, XSD_INT, "5"),
+        ("x", None, "x"),
+    ],
+    ids=str,
+)
+def test_literal_spells_a_python_value_in_xsd_form(
+    value: object, datatype: QualifiedName | None, text: str
+) -> None:
+    assert Literal(value, datatype).value == text

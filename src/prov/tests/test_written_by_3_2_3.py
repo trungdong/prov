@@ -61,6 +61,4 @@ def test_document_written_by_3_2_3_reads_equal(
     with path.open(encoding="utf-8") as stream:
         document = prov.read(stream, format=fmt)
     assert document is not None
-    # build() goes on the left: record equality ignores the identifier when the
-    # left-hand record has none (#525), and the RDF reader gives a qualified relation one.
-    assert build() == document
+    assert document == build()

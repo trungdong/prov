@@ -23,8 +23,9 @@ from datetime import UTC, datetime
 from hypothesis import strategies as st
 from hypothesis.strategies import DrawFn
 
+from prov.constants import XSD_BOOLEAN, XSD_DECIMAL, XSD_DOUBLE, XSD_INT, XSD_LONG
 from prov.identifier import Namespace
-from prov.model import ProvBundle, ProvDocument
+from prov.model import Literal, ProvBundle, ProvDocument
 
 # A small fixed set of namespaces registered on every generated document, so
 # documents exercise multi-namespace prefix handling (criterion 1).
@@ -92,6 +93,51 @@ attr_values = st.one_of(
     ),
     # QualifiedName values, drawn from the registered "ex" namespace.
     local_part.map(lambda s: EX_NS[s]),
+)
+
+
+# Typed literals over the datatypes prov compares in value space (#527):
+# well-formed text in a spelling that is not the canonical one, which the
+# model keeps as a Literal, and ill-formed text, which compares as text.
+_int32 = st.integers(min_value=-(2**31), max_value=2**31 - 1)
+_int64_only = st.integers(min_value=2**31, max_value=2**63 - 1)
+_finite_floats = st.floats(allow_nan=False, allow_infinity=False)
+_decimals = st.decimals(allow_nan=False, allow_infinity=False, places=2)
+
+
+def _padded(value: int) -> str:
+    return f"+{value}" if value >= 0 else f"-0{-value}"
+
+
+typed_literals = st.one_of(
+    _int32.map(lambda i: Literal(_padded(i), XSD_INT)),
+    _int32.map(lambda i: Literal(str(i), XSD_LONG)),
+    _int64_only.map(lambda i: Literal(f"0{i}", XSD_LONG)),
+    # 18 significant digits round-trip any double exactly.
+    _finite_floats.map(lambda f: Literal(f"{f:.17e}", XSD_DOUBLE)),
+    st.sampled_from(["1", "0", "true", "false"]).map(lambda t: Literal(t, XSD_BOOLEAN)),
+    _decimals.map(lambda d: Literal(f"{d:f}0", XSD_DECIMAL)),
+    st.sampled_from(["abc", "1e1", "NaN", "Infinity", "sNaN", "0x10", "True"]).map(
+        lambda t: Literal(t, XSD_DECIMAL)
+    ),
+    st.sampled_from(["abc", "1.0", "True", "1e0", "nan"]).map(
+        lambda t: Literal(t, XSD_INT)
+    ),
+)
+
+# The same value in two spellings: a plain Python value and a kept Literal, or
+# two Literals; an ill-formed text pairs with itself.
+same_value_pairs = st.one_of(
+    _int32.map(lambda i: (i, Literal(_padded(i), XSD_INT))),
+    _int64_only.map(lambda i: (i, Literal(f"0{i}", XSD_LONG))),
+    _finite_floats.map(lambda f: (f, Literal(f"{f:.17e}", XSD_DOUBLE))),
+    st.booleans().map(lambda b: (b, Literal("1" if b else "0", XSD_BOOLEAN))),
+    _decimals.map(
+        lambda d: (Literal(f"{d:f}", XSD_DECIMAL), Literal(f"{d:f}0", XSD_DECIMAL))
+    ),
+    st.sampled_from(["abc", "1e1", "NaN"]).map(
+        lambda t: (Literal(t, XSD_DECIMAL), Literal(t, XSD_DECIMAL))
+    ),
 )
 
 
@@ -280,3 +326,45 @@ def prov_documents(draw: DrawFn) -> ProvDocument:
                 doc.mention(specific, general, bundle_id)
 
     return doc
+
+
+def _new_document() -> ProvDocument:
+    document = ProvDocument()
+    for prefix, uri in NAMESPACES.items():
+        document.add_namespace(prefix, uri)
+    return document
+
+
+_relation_id = st.one_of(st.none(), local_part.map(lambda s: f"ex:g{s}"))
+
+
+@st.composite
+def prov_records(draw: DrawFn) -> ProvDocument:
+    """One entity with plain and typed-literal values, and one generation
+    that may carry an identifier (#525)."""
+    document = _new_document()
+    pairs: list[tuple[str, object]] = _attribute_dict(draw)
+    for key, literal in draw(
+        st.lists(st.tuples(local_part, typed_literals), max_size=3)
+    ):
+        pairs.append((f"ex:k{key}", literal))
+    document.entity("ex:e", pairs)
+    document.wasGeneratedBy("ex:e", "ex:a", identifier=draw(_relation_id))
+    return document
+
+
+@st.composite
+def prov_record_pairs(draw: DrawFn) -> tuple[ProvDocument, ProvDocument]:
+    """Two one-record documents whose attribute values are the same values in
+    two spellings, so they compare equal with equal hashes (#527)."""
+    pairs = draw(
+        st.lists(st.tuples(local_part, same_value_pairs), min_size=1, max_size=4)
+    )
+    identifier = draw(_relation_id)
+    documents = []
+    for side in (0, 1):
+        document = _new_document()
+        document.entity("ex:e", [(f"ex:k{key}", pair[side]) for key, pair in pairs])
+        document.wasGeneratedBy("ex:e", "ex:a", identifier=identifier)
+        documents.append(document)
+    return documents[0], documents[1]

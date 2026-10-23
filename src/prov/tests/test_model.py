@@ -805,22 +805,6 @@ def test_equal_when_same_records_added_in_different_order() -> None:
     assert d2 == d1
 
 
-def test_anonymous_relation_still_equals_identified_relation() -> None:
-    # ProvRecord.__eq__ skips the identifier check when *this* record has no
-    # identifier, while __hash__ includes it; the two records hash
-    # differently, so set equality fails and __eq__ must fall through to the
-    # record-by-record loop to find the match.
-    d1 = ProvDocument()
-    d1.set_default_namespace("http://example.org/")
-    d1.wasGeneratedBy("e1", "a1")
-
-    d2 = ProvDocument()
-    d2.set_default_namespace("http://example.org/")
-    d2.wasGeneratedBy("e1", "a1", identifier="g1")
-
-    assert d1 == d2
-
-
 def test_unified_with_no_bundles() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")

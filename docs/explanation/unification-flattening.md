@@ -95,10 +95,13 @@ constraints of the W3C specification. Position by position:
 
 The records' remaining ("extra") attributes are unioned onto the merged record. They are
 held in a set, so identical values are deduplicated while distinct values all accumulate.
-Records with a unique identifier, and records with no identifier at all, pass through
-untouched. So do `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records,
-even when several share an identifier. PROV-DM and PROV-Links give these four relations no
-identifier, so the specifications have nothing to merge them on.
+Records with a unique identifier, and records with no identifier, are not merged, and
+neither are `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records that
+share an identifier. PROV-DM and PROV-Links give these four relations no identifier, so the
+specifications have nothing to merge them on. After the merge, `unified()` keeps each
+record once: a record equal to an earlier one, by the library's `==`, is dropped and the
+earlier one keeps its position. Two anonymous `used` statements that differ in one
+attribute are two statements and both stay.
 
 `unified()` is the only place in `prov` that can raise over a same-identifier conflict.
 Building or asserting records with `bundle.entity(...)`, `bundle.activity(...)` and the

@@ -104,14 +104,14 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | --- | --- | --- |
 | String, with or without an explicit `xsd:string` | a string | ✓ in every format |
 | Language-tagged string | the tag as given; tags compare case-insensitively | ✓ C5 C6 |
-| Boolean | `xsd:boolean`, spelled `true` and `false`; the readers also accept `1` and `0` | ✓ |
+| Boolean | `xsd:boolean`, spelled `true` and `false`; `1` and `0` read as the same value and keep their text | ✓ |
 | Python `int` with no datatype | `xsd:int` when it fits 32 bits, else `xsd:long` when it fits 64, else `xsd:integer`; PROV-N writes `xsd:int` as a bare number | ✓ |
 | Integer with an asserted datatype (`xsd:long`, `xsd:short`, `xsd:unsignedByte`, ...) | the asserted datatype, never collapsed to a narrower one | ✓ |
 | `xsd:decimal` | as given; compared in value space, so `10`, `10.0` and `"10.00"` are one value | ✓ |
 | Python `float` | `xsd:double` at full precision | ✓ |
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
-| `xsd:dateTime` | the `xsd:dateTime` lexical form; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one stays a `Literal` | ✓ C7 |
-| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; datatypes other than `xsd:decimal` compare lexically, so `"1"` and `"01"` differ; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ |
+| `xsd:dateTime` | the `xsd:dateTime` lexical form with at most six fractional digits and a year from 1 to 9999; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one, a longer fraction or a year outside the range stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
+| `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` and the `xsd:integer` family compare in value space, so `"1"` and `"01"` as `xsd:int` are one value and a text outside the lexical space or the subtype's range compares as text; an `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single precision are two values; every other datatype compares as text; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
 | Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C9 |
 
 ## Caveats
@@ -151,6 +151,20 @@ The shared attribute corpus exercises every XSD type below in every format, on `
   ([#620](https://github.com/trungdong/prov/issues/620)).** rdflib rewrites the lexical
   form when it parses the literal, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`; the
   zero-duration row of the converted-value round trip is marked known-lossy for RDF.
+- **C10. Literals rdflib normalises on read.** rdflib rewrites some literal texts when it
+  parses them, before `prov` sees them, so PROV-O reads these differently from every other
+  format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such
+  a time reads as the truncated `datetime` where the other formats reject it as a time of a
+  statement and keep it as a `Literal` as an attribute value
+  ([#514](https://github.com/trungdong/prov/issues/514)); an `xsd:decimal` text in exponent
+  form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
+  reads as rdflib's decimal text and compares as the value `10`; and a numeric spelling such
+  as `05` or `1e0` reads as the canonical one, which compares equal.
+- **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
+  one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
+  a `Decimal`, has no order against a number, so writing a record that holds such a text and
+  a numeric value under one attribute to PROV-O raises `decimal.InvalidOperation`. Every
+  other format writes it.
 
 ## Reading other producers' output
 
@@ -215,6 +229,8 @@ statement's own arguments are errors.
 - An attribute predicate under a namespace declared neither in the document nor in the graph
   gets a minted prefix, with a `ProvWarning`.
 - Two relations sharing an identifier raise, as C1 describes.
+- A relation whose subject is a blank node reads with no identifier; an element's blank-node
+  label resolves in the default namespace.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options

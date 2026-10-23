@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from prov.constants import PROV, PROV_ALTERNATE, XSD, XSI
+from prov.constants import PROV, PROV_ALTERNATE, XSD, XSD_BOOLEAN, XSD_INT, XSI
 from prov.model import (
     PROV_REC_CLS,
     Literal,
@@ -125,7 +125,9 @@ def test_mention_maps_to_prov_mention() -> None:
         ("42", 42),
         ('"1" %% xsd:int', 1),
         ('"2.5" %% xsd:double', 2.5),
-        ('"1" %% xsd:boolean', True),
+        ('"true" %% xsd:boolean', True),
+        ('"1" %% xsd:boolean', Literal("1", XSD_BOOLEAN)),
+        ('"05" %% xsd:int', Literal("05", XSD_INT)),
         ('"5000000000" %% xsd:long', 5000000000),
         ("'ex:abc'", "QNAME"),
         ('"a place"@en', Literal("a place", langtag="en")),

@@ -199,11 +199,45 @@ def test_keyless_relations_sharing_an_identifier_are_not_merged(
     assert list(document.unified().get_records()) == list(document.get_records())
 
 
-def test_equal_keyless_relations_sharing_an_identifier_stay_two() -> None:
-    # Two equal memberships with one identifier stay two records until
-    # unified() deduplicates (#548).
-    document = _provn("hadMember(ex:m; ex:c, ex:e)", "hadMember(ex:m; ex:c, ex:e)")
-    assert len(list(document.unified().get_records())) == 2
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "hadMember(ex:m; ex:c, ex:e)",
+        "used(ex:a, ex:e, -)",
+        "used(ex:a, ex:e, -, [ex:k=1])",
+    ],
+)
+def test_a_repeated_statement_is_kept_once(statement: str) -> None:
+    # unified() drops a record equal to an earlier one, for every record kind:
+    # a keyless relation sharing an identifier and an anonymous relation alike
+    # (#548, #124).
+    document = _provn(statement, statement)
+    assert len(document.unified().get_records()) == 1
+
+
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        ("used(ex:a, ex:e, -, [ex:k=1])", "used(ex:a, ex:e, -, [ex:k=2])"),
+        ("used(ex:a, ex:e, -)", "used(ex:a, ex:e, 2011-11-16T16:00:00)"),
+        ("used(ex:a, ex:e, -)", "used(ex:u; ex:a, ex:e, -)"),
+    ],
+)
+def test_records_that_differ_stay_two(first: str, second: str) -> None:
+    # Two statements that differ in one attribute, in an absent formal or in
+    # the identifier are two statements.
+    assert len(_provn(first, second).unified().get_records()) == 2
+
+
+def test_the_first_of_equal_records_keeps_its_position() -> None:
+    document = _provn(
+        "used(ex:a, ex:e, -)",
+        "entity(ex:e)",
+        "used(ex:a, ex:e, -)",
+        "used(ex:u; ex:a, ex:e, -)",
+    )
+    records = document.unified().get_records()
+    assert [str(r.identifier) for r in records] == ["None", "ex:e", "ex:u"]
 
 
 def test_records_sharing_an_identifier_with_a_keyless_relation_still_merge() -> None:

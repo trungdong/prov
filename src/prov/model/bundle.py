@@ -4,7 +4,6 @@ from __future__ import annotations  # defer eval: ProvDocument used before it's 
 
 import io
 import itertools
-import logging
 import os
 import re
 import shutil
@@ -111,8 +110,6 @@ from prov.model.records import (
     _attribute_pairs,
     _ensure_datetime,
 )
-
-logger = logging.getLogger(__name__)
 
 _PROVN_IRI_FORBIDDEN = re.compile(r'[<>"{}|^`\\\x00-\x20]')
 
@@ -713,34 +710,14 @@ class ProvBundle:
         return provn_str
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvBundle):
-            return False
-        other_records = set(other.get_records())
-        this_records = set(self.get_records())
-        if len(this_records) != len(other_records):
-            return False
-        if this_records == other_records:
-            # The common case (e.g. after a round trip): every record has a
-            # hash-equal counterpart, settled in O(n).
-            return True
-        # ProvRecord.__eq__ is looser than ProvRecord.__hash__ (a record
-        # without an identifier equals one with, given the same type and
-        # attributes), so records that hash differently may still match.
-        for record_a in this_records:
-            #  Manually look for the record
-            found = False
-            for record_b in other_records:
-                if record_a == record_b:
-                    other_records.remove(record_b)
-                    found = True
-                    break
-            if not found:
-                logger.debug(
-                    "Equality (ProvBundle): Could not find this record: %s",
-                    str(record_a),
-                )
-                return False
-        return True
+        # Record equality agrees with record hashing, so one set comparison
+        # settles it; a bundle and a document are unequal here too, for a
+        # ProvBundle subclass that reaches this method first.
+        return (
+            isinstance(other, ProvBundle)
+            and self.is_document() == other.is_document()
+            and set(self.get_records()) == set(other.get_records())
+        )
 
     def __ne__(self, other: Any) -> bool:
         return not (self == other)
@@ -749,13 +726,15 @@ class ProvBundle:
 
     # Transformations
     def _unified_records(self) -> list[ProvRecord]:
-        """Returns a list of unified records."""
-        merged_records = {}
-        for _identifier, records in self._id_map.items():
+        """The records with same-identifier groups merged and each record
+        kept once, in the order of the first occurrence."""
+        merged_records: dict[ProvRecord, ProvRecord] = {}
+        for records in self._id_map.values():
             if len(records) > 1:
-                # more than one record having the same identifier: unify them,
-                # per base record type (usually one type, but PROV-CONSTRAINTS
-                # permits an id to carry more than one, e.g. agent + entity)
+                # Unify per base record type (usually one type, but
+                # PROV-CONSTRAINTS permits an identifier to carry more than
+                # one, e.g. agent + entity). PROV-DM and PROV-Links give the
+                # keyless relations no identifier to merge on.
                 keyed = [
                     record
                     for record in records
@@ -763,22 +742,13 @@ class ProvBundle:
                 ]
                 if len(keyed) > 1:
                     merged_records.update(_unify_record_group(keyed))
-        if not merged_records:
-            # No merging done, just return the list of original records
-            return list(self._records)
-
-        added_merged_records = set()
-        unified_records = []
-        for record in self._records:
-            if record in merged_records:
-                merged = merged_records[record]
-                if merged not in added_merged_records:
-                    unified_records.append(merged)
-                    added_merged_records.add(merged)
-            else:
-                # add the original record
-                unified_records.append(record)
-        return unified_records
+        records = (
+            [merged_records.get(record, record) for record in self._records]
+            if merged_records
+            else self._records
+        )
+        # dict.fromkeys keeps the first of equal records, by == and hash (#548).
+        return list(dict.fromkeys(records))
 
     def unified(self) -> ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
@@ -798,11 +768,13 @@ class ProvBundle:
         positions of PROV-CONSTRAINTS Table 3 (the plan of an association,
         the activity of a derivation, and the generation and usage of a
         derivation with no activity) an absent value means "none" and does
-        not unify with a concrete value. Records with a unique
-        identifier, or no identifier, pass through unchanged. So do
-        ``alternateOf``, ``specializationOf``, ``mentionOf`` and ``hadMember``
-        records, even when several share an identifier, since PROV-DM and
-        PROV-Links give these relations no identifier to merge on.
+        not unify with a concrete value. Records with a unique identifier, or
+        none, are not merged, and neither are ``alternateOf``,
+        ``specializationOf``, ``mentionOf`` and ``hadMember`` records that
+        share an identifier, since PROV-DM and PROV-Links give these relations
+        no identifier to merge on. After the merge each record is kept once: a
+        record equal to an earlier one is dropped and the earlier one keeps its
+        position (#548).
 
         This is not the specification's full normalization: the uniqueness
         constraints keyed on something other than the record identifier
@@ -1770,22 +1742,11 @@ class ProvDocument(ProvBundle):
         return "<ProvDocument>"
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvDocument):
-            return False
-        # Comparing the documents' content
-        if not super().__eq__(other):
-            return False
-
-        # Comparing the documents' bundles
-        for b_id, bundle in self._bundles.items():
-            if b_id not in other._bundles:
-                return False
-            other_bundle = other._bundles[b_id]
-            if bundle != other_bundle:
-                return False
-
-        # Everything is the same
-        return True
+        return (
+            isinstance(other, ProvDocument)
+            and self._bundles == other._bundles
+            and super().__eq__(other)
+        )
 
     def is_document(self) -> bool:
         """Return ``True`` if this is a document, ``False`` otherwise."""

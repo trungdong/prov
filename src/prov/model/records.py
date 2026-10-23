@@ -16,6 +16,7 @@ from collections.abc import (
     Callable,
     Iterable,
     Iterator,
+    KeysView,
     Mapping,
     MutableSet,
     Sequence,
@@ -110,12 +111,15 @@ from prov.identifier import (
 )
 from prov.model._values import (
     _LANGTAG,
+    NAN_KEY,
     XSD_DATETIME_PATTERN,
+    _decimal_text,
     _offset_beyond_xsd_bound,
     no_prov_form_detail,
     python_value_form,
     time_offset_detail,
     unresolved_name_detail,
+    xsd_value,
 )
 
 if TYPE_CHECKING:
@@ -146,6 +150,8 @@ StreamOrPath: typing.TypeAlias = io.IOBase | IO[Any] | PathLike
 # Data Types
 _XSD_DATETIME_RE = re.compile(XSD_DATETIME_PATTERN)
 _XSD_HOUR24_RE = re.compile(r"T24:00:00(\.0+)?(?=$|[Z+-])")
+# A datetime holds microseconds; a longer fraction has no value here (#514).
+_XSD_LONG_FRACTION_RE = re.compile(r"\.[0-9]{7,}")
 
 
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
@@ -169,11 +175,12 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
     """Parse an ``xsd:dateTime`` string into a :class:`datetime.datetime`.
 
     Accepts the ``xsd:dateTime`` lexical space (XSD 1.1 section 3.3.7) and
-    nothing else: a date, ``T``, a time with optional fractional seconds,
+    nothing else: a date, ``T``, a time with up to six fractional digits,
     and ``Z`` or an ``hh:mm`` offset. The hour-24 end-of-day form maps to
     00:00:00 of the following day, per the XSD value space. Text in another
-    ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, and a bare
-    ``xsd:date`` are not accepted.
+    ISO 8601 form, such as ``2012-12-03T21:08Z`` or a week date, a bare
+    ``xsd:date``, and a fraction of more than six digits, which a
+    :class:`datetime.datetime` cannot hold, are not accepted (#514).
 
     Args:
         value: The date/time string to parse.
@@ -183,7 +190,7 @@ def parse_xsd_datetime(value: str) -> datetime.datetime | None:
         could not be parsed.
     """
     text = value.strip()
-    if not _XSD_DATETIME_RE.fullmatch(text):
+    if not _XSD_DATETIME_RE.fullmatch(text) or _XSD_LONG_FRACTION_RE.search(text):
         return None
     end_of_day = _XSD_HOUR24_RE.search(text) is not None
     if end_of_day:
@@ -298,58 +305,57 @@ def first(a_set: Iterable[Any]) -> Any | None:
 
 
 class TypedValueSet(MutableSet[Any]):
-    """A set-like container that deduplicates by ``(type(value), value)``.
+    """A set-like container that keeps one value per :func:`_value_key`.
 
-    Backs each attribute's value collection on :class:`ProvRecord` (#34), as
-    an internal storage detail -- it is not part of the public API and is
-    not exported from :mod:`prov.model`. A plain :class:`set` cannot retain
-    both ``2`` and ``2.0``, or both ``1`` and ``True``, because its
-    membership test is value-based: ``2.0 in {2}`` is ``True`` (equal hash,
-    equal value), so ``{2}.add(2.0)`` silently does nothing -- whichever
-    value was inserted first wins and the other is lost. Keying on
-    ``(type(value), value)`` instead keeps values distinct across Python
-    types while leaving same-type dedup semantics (including
-    :class:`Literal`'s ``xsd:decimal`` value-space equality, #77) unchanged,
-    since two values of the same type still collide on the same key.
+    Backs each attribute's value collection on :class:`ProvRecord`; internal,
+    not exported from :mod:`prov.model`. A plain :class:`set` keys on Python
+    equality, so it cannot hold both ``2`` and ``2.0`` or both ``1`` and
+    ``True`` (#34). This container keys on the value key, the datatype and
+    the value in that datatype's value space: ``2`` and ``2.0`` are two
+    values, while ``5`` and ``Literal("05", XSD_INT)``, two ``xsd:decimal``
+    literals spelled differently (#77) and two tagged strings whose tags
+    differ in case (#259) are one each. The first value added for a key is
+    kept, as :meth:`ProvRecord.add_attributes`'s cardinality guard keeps the
+    first value it sees.
 
     The retained values are observable through :attr:`ProvRecord.attributes`
-    / :attr:`ProvRecord.extra_attributes` (plain ``(name, value)`` tuples,
-    one per retained value), record equality/hashing, and serialization.
+    and :attr:`ProvRecord.extra_attributes` (plain ``(name, value)`` tuples),
+    record equality and hashing, and serialization.
     :meth:`ProvRecord.get_attribute`, :meth:`ProvRecord.get_asserted_types`
-    and :attr:`ProvRecord.value` deliberately keep their 2.x return type
-    (a plain ``set``, built fresh from this container) instead of exposing
-    this class, so those three accessors re-collapse a Python-equal-but-
-    differently-typed pair in their *returned copy* even though the record's
-    own storage does not -- see ``docs/upgrading-3.0.md``. Compares equal to
-    a plain ``set``/``frozenset`` holding the same elements (via the
-    ``collections.abc.Set`` mixin), remains unhashable like a plain ``set``,
-    and iterates in insertion order.
+    and :attr:`ProvRecord.value` return a fresh plain ``set`` (their 2.x
+    type), so a pair this container keeps apart may collapse in that copy;
+    see ``docs/upgrading-3.0.md``. Compares equal to a plain ``set`` or
+    ``frozenset`` holding the same elements (the :class:`collections.abc.Set`
+    mixin), is unhashable like a plain ``set``, and iterates in insertion
+    order.
     """
 
     __slots__ = ("_index",)
 
     def __init__(self, iterable: Iterable[Any] = ()) -> None:
-        self._index: dict[tuple[type, Any], Any] = {}
+        self._index: dict[ValueKey, Any] = {}
         for value in iterable:
             self.add(value)
 
     def add(self, value: Any) -> None:
-        # setdefault, not assignment: matches plain set.add's first-wins
-        # semantics when an equal-typed, equal-valued item is re-added --
-        # the incumbent object is retained, the new one discarded. This
-        # matters for values that are __eq__-equal but not identical, such
-        # as two xsd:decimal Literals with different lexical forms (#77) or
-        # two langtag Literals differing only in tag case (#259); it also
-        # keeps this container's semantics consistent with
-        # ProvRecord.add_attributes()'s own cardinality guard, which keeps
-        # the first value seen and ignores a later "same value" one.
-        self._index.setdefault((type(value), value), value)
+        # setdefault keeps the incumbent for a key already held.
+        self._index.setdefault(_value_key(value), value)
 
     def discard(self, value: Any) -> None:
-        self._index.pop((type(value), value), None)
+        self._index.pop(_value_key(value), None)
 
     def __contains__(self, value: object) -> bool:
-        return (type(value), value) in self._index
+        return _value_key(value) in self._index
+
+    def value_keys(self) -> KeysView[ValueKey]:
+        """The value keys held, one per retained value."""
+        return self._index.keys()
+
+    def __setstate__(self, state: Any) -> None:
+        # A 3.2.x pickle keyed the index by (type, value); rebuild by value key.
+        self._index = {}
+        for value in _slot_state(state)["_index"].values():
+            self.add(value)
 
     def __iter__(self) -> Iterator[Any]:
         return iter(self._index.values())
@@ -379,6 +385,28 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
     if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
         value = value.astimezone(datetime.UTC)
     return value.isoformat()
+
+
+def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
+    """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
+    ``bool`` as ``true`` or ``false``, a ``float`` in the XSD form of its
+    datatype (the decimal text for ``xsd:decimal``, otherwise ``INF``,
+    ``-INF``, ``NaN`` or ``repr()``), a ``Decimal`` in its plain form, a
+    ``datetime`` in ISO 8601 form, anything else through ``str()``. A
+    ``Decimal`` with no plain form (non-finite, or longer than the
+    interpreter's digit limit) keeps ``str()``, a text outside the lexical
+    space."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float):
+        if datatype != XSD_DECIMAL:
+            return _xsd_double_text(value)
+        value = decimal.Decimal(repr(value))
+    if isinstance(value, decimal.Decimal):
+        return _decimal_text(value) or str(value)
+    if isinstance(value, datetime.datetime):
+        return _xsd_datetime_text(value)
+    return str(value)
 
 
 def encoding_provn_value(
@@ -455,7 +483,12 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value; it is stored as its string form.
+            value: The literal's value, stored as text: a ``str`` as given, a
+                ``bool`` as ``true`` or ``false``, a ``float`` in XSD form
+                (``INF``, ``-INF``, ``NaN`` or its ``repr()``; the decimal text
+                when ``datatype`` is ``xsd:decimal``), a ``Decimal`` in its
+                plain form, a ``datetime`` in ISO 8601 form, anything else
+                through ``str()``.
             datatype: The qualified name of the value's datatype (default:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
@@ -463,7 +496,7 @@ class Literal:
                 An empty tag, or a tag such as ``"en_US"`` that is not shaped
                 like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
-        self._value = str(value)  # value is always a string
+        self._value = _literal_text(value, datatype)
         _check_langtag(self._value, langtag)
         if langtag:
             if datatype is None:
@@ -508,51 +541,22 @@ class Literal:
         _check_langtag(self._value, self._langtag)
 
     def __eq__(self, other: Any) -> bool:
-        return (
-            (
-                self._comparison_value() == other._comparison_value()
-                and self._datatype == other.datatype
-                and self._comparison_langtag() == other._comparison_langtag()
-            )
-            if isinstance(other, Literal)
-            else False
-        )
+        return isinstance(other, Literal) and self._key() == other._key()
 
     def __ne__(self, other: Any) -> bool:
         return not (self == other)
 
     def __hash__(self) -> int:
-        return hash(
-            (self._comparison_value(), self._datatype, self._comparison_langtag())
-        )
+        return hash(self._key())
 
-    def _comparison_value(self) -> str | decimal.Decimal:
-        """The value to use for equality/hash: value-space for xsd:decimal (#77).
-
-        ``xsd:decimal`` denotes an arbitrary-precision decimal number, so
-        ``10``, ``10.0`` and ``"10.00"`` are the same value; falls back to
-        the stored lexical string (unaffected) if it is not a valid decimal.
-
-        Safe even though this only checks ``self``: ``__eq__``/``__hash__``
-        separately require ``self._datatype == other.datatype``, so a
-        ``Decimal`` from here is only ever compared against another
-        ``Decimal`` from an ``XSD_DECIMAL`` literal, never against a
-        lexical-string value from a different datatype.
-        """
-        if self._datatype == XSD_DECIMAL:
-            try:
-                return decimal.Decimal(self._value)
-            except decimal.InvalidOperation:
-                pass
-        return self._value
-
-    def _comparison_langtag(self) -> str | None:
-        """The language tag to use for equality/hash: case-folded (#259).
-
-        RDF 1.1 language tags are case-insensitive; the stored tag itself is
-        left untouched so serialized output preserves its original case.
-        """
-        return self._langtag.casefold() if self._langtag is not None else None
+    def _key(self) -> ValueKey:
+        """The value key (#527): the datatype; the value in its value space
+        when the datatype has one here and the text is in its lexical space,
+        otherwise the text; and the case-folded language tag (#259, RDF 1.1
+        tags are case-insensitive; the stored tag keeps its case)."""
+        value = xsd_value(self._datatype, self._value)
+        langtag = self._langtag.casefold() if self._langtag is not None else None
+        return (self._datatype, self._value if value is None else value, langtag)
 
     @property
     def value(self) -> str:
@@ -587,6 +591,33 @@ class Literal:
 CoercedAttributeValue: typing.TypeAlias = (
     QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
 )
+
+# The key two attribute values share when they are the same value: the
+# datatype (or the Python type of a value with no XSD form), the value in its
+# value space or the text when it has none, and the case-folded language tag.
+ValueKey: typing.TypeAlias = tuple[QualifiedName | type | None, object, str | None]
+
+
+def _value_key(value: Any) -> ValueKey:
+    """The key of an attribute value for equality, hashing and the
+    per-attribute value set (#527, #34).
+
+    A plain Python value takes the datatype the writers give it, so ``5`` and
+    ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
+    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34).
+    """
+    if isinstance(value, Literal):
+        return value._key()
+    if isinstance(value, str):
+        return (XSD_STRING, value, None)
+    if isinstance(value, bool):
+        return (XSD_BOOLEAN, value, None)
+    if isinstance(value, int):
+        return (canonical_xsd_datatype(value), value, None)
+    if isinstance(value, float):
+        return (XSD_DOUBLE, NAN_KEY if math.isnan(value) else value, None)
+    return (type(value), value, None)
+
 
 _K_co = TypeVar("_K_co", covariant=True)
 _V_co = TypeVar("_V_co", covariant=True)
@@ -739,19 +770,18 @@ class ProvRecord:
         if attributes:
             self.add_attributes(attributes)
 
-    def _typed_attributes(self) -> frozenset[tuple[QualifiedName, type, Any]]:
-        """``(name, type(value), value)`` triples, for equality and hashing.
+    def _typed_attributes(self) -> frozenset[tuple[QualifiedName, ValueKey]]:
+        """``(name, value key)`` pairs for equality and hashing (#527, #34).
 
-        :attr:`attributes` yields plain ``(name, value)`` tuples, and a
-        ``frozenset``/``set`` of *those* would re-collapse a Python-equal-
-        but-differently-typed pair like ``(attr, 2)`` and ``(attr, 2.0)`` --
-        tuple equality and hashing both fall through to their elements', and
-        ``2 == 2.0`` with equal hashes. Including each value's type in the
-        key keeps the distinction :class:`TypedValueSet` retains in storage
-        (#34) intact through comparison and hashing too.
+        Two records hold the same attributes when every name carries the same
+        values under :func:`_value_key`'s rule: the same datatype and the same
+        value in that datatype's value space, so ``5`` and ``Literal("05",
+        XSD_INT)`` match and ``2`` and ``2.0`` do not.
         """
         return frozenset(
-            (attr_name, type(value), value) for attr_name, value in self.attributes
+            (attr_name, key)
+            for attr_name, values in self._attributes.items()
+            for key in values.value_keys()
         )
 
     def __hash__(self) -> int:
@@ -931,8 +961,9 @@ class ProvRecord:
 
     @staticmethod
     def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:
-        """The Python value of a typed literal, or the literal where it keeps
-        its asserted form."""
+        """The Python value of a typed literal whose text is its canonical
+        spelling, or the literal where it keeps its asserted form or its
+        spelling."""
         # Match the JSON decoding's literal conversion. #522: a lexical form
         # outside the datatype's lexical space keeps the Literal.
         try:
@@ -953,6 +984,14 @@ class ProvRecord:
         # No xsd:dateTime has an offset beyond ±14:00, so the text has no
         # datetime value and stays as written (#513).
         if isinstance(value, datetime.datetime) and _offset_beyond_xsd_bound(value):
+            return literal
+        # A text that is not the canonical spelling of its value keeps its
+        # Literal, so it is written back as read; it compares by value (#527).
+        # A datetime's text is never kept: #514 and the datetime type own it.
+        if (
+            not isinstance(value, datetime.datetime)
+            and _literal_text(value, None) != literal.value
+        ):
             return literal
         return value
 
@@ -1125,14 +1164,12 @@ class ProvRecord:
                 self._store_attribute_value(attr, value, is_collection)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvRecord):
-            return False
-        if self.get_type() != other.get_type():
-            return False
-        if self._identifier and not (self._identifier == other._identifier):
-            return False
-
-        return self._typed_attributes() == other._typed_attributes()
+        return (
+            isinstance(other, ProvRecord)
+            and self.get_type() == other.get_type()
+            and self._identifier == other._identifier
+            and self._typed_attributes() == other._typed_attributes()
+        )
 
     def __str__(self) -> str:
         return self.get_provn()

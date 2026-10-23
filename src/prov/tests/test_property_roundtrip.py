@@ -11,13 +11,25 @@ selected in ``conftest.py`` via ``HYPOTHESIS_PROFILE`` (CI uses the bounded
 ``ci`` profile).
 """
 
+import re
+
 import pytest
 from hypothesis import assume, given
 
-from prov.model import ProvDocument
+from prov.model import XSD_DECIMAL, Literal, ProvDocument
 
 from .conftest import ROUNDTRIP_FORMATS, contains_mention, roundtrip_document
-from .strategies import prov_documents
+from .strategies import prov_documents, prov_record_pairs, prov_records
+
+
+def _has_decimal_text(document: ProvDocument, pattern: str) -> bool:
+    return any(
+        isinstance(value, Literal)
+        and value.datatype == XSD_DECIMAL
+        and re.search(pattern, value.value)
+        for record in document.get_records()
+        for _, value in record.attributes
+    )
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
@@ -29,3 +41,27 @@ def test_generated_document_roundtrips(doc: ProvDocument, fmt: str) -> None:
     # to the other formats.
     assume(fmt != "jsonld" or not contains_mention(doc))
     assert roundtrip_document(doc, fmt) == doc
+
+
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+@given(doc=prov_records())
+def test_generated_record_roundtrips(doc: ProvDocument, fmt: str) -> None:
+    """A record holding typed literals in any spelling, identified or not, survives a round trip."""
+    # rdflib rewrites an exponent-form xsd:decimal to its decimal text on read,
+    # turning an ill-formed text into a value (conformance caveat C10), and
+    # raises when it orders a NaN decimal against a number on write (C11).
+    assume(fmt != "rdf" or not _has_decimal_text(doc, r"[0-9][eE]|NaN"))
+    assert roundtrip_document(doc, fmt) == doc
+
+
+@given(pair=prov_record_pairs())
+def test_respelled_values_give_equal_records(
+    pair: tuple[ProvDocument, ProvDocument],
+) -> None:
+    """Two spellings of the same values give equal records from both sides, with equal hashes (#527)."""
+    left, right = pair
+    assert left == right
+    assert right == left
+    for a, b in zip(left.get_records(), right.get_records(), strict=True):
+        assert a == b
+        assert hash(a) == hash(b)
