@@ -434,8 +434,9 @@ how to turn the warnings into errors to check a corpus.
 
 - Python 3.15 is supported and tested in CI, so 3.2.x covers CPython 3.10 to 3.15 and
   PyPy 3.11. No code changes were needed (#542)
-- The benchmark check compares each change with its parent on one runner and fails on a
-  confirmed 10% slowdown; `benchmarks/ab.py` replaces the committed baseline
+- The non-blocking benchmark check compares each change with its parent on one runner and
+  fails on a confirmed 10% slowdown; `benchmarks/ab.py` replaces the committed baseline
+  (#496, #501)
 
 ## 3.2.2 (2026-09-18)
 
@@ -451,7 +452,7 @@ alias, `prov.model.AttributeValue`.
   names the values a dict may hold as `AttributeValue`: `str`, `int`, `float`, `bool`,
   `datetime`, `Identifier`, `QualifiedName`, `Literal`, `ProvRecord`, and `None`, which
   is skipped. The values in a list, tuple, set or iterator of pairs stay `Any`, as in
-  3.2.1. One case still needs an annotation under mypy. A dict that is built before the call
+  3.2.1. One case needs an annotation under mypy. A dict that is built before the call
   and holds values of more than one type, such as `{"ex:a": 1, "ex:b": "x"}`, is
   inferred as `dict[str, object]` and reported; annotate the variable as
   `dict[str, AttributeValue]`. Pyright accepts the call without the annotation

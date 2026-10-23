@@ -52,10 +52,10 @@ explanation, and the API reference is generated from the docstrings.
 
 For most code the upgrade needs no change. Two things can need attention. Install the
 extras your code uses, and expect `unified()` to raise on records it previously merged
-silently. {doc}`upgrading-3.0` lists every change, what triggers it, and what to do. A pin
-to an older release such as `prov==2.1.1` or `prov==1.5.1` predates the 3.x work and the
-current support policy; lift it to `prov>=3` and add the extras your code uses, and open
-an issue if the upgrade guide does not cover your case.
+silently. {doc}`upgrading-3.0` lists the changes that need action and points at the
+changelog for the rest. A pin to an older release such as `prov==2.1.1` or `prov==1.5.1`
+predates the 3.x work and the current support policy; lift it to `prov>=3`, and open an
+issue if the upgrade guide does not cover your case.
 
 ## The 2.x line
 

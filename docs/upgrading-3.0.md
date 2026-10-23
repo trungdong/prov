@@ -14,28 +14,42 @@ matter for most users:
    calls `unified()` internally, so it can raise too. `prov_to_dot()` catches the error and
    renders the document without unifying it.
 
-Both were signposted from 2.4.0 with a runtime warning. **If your test suite ran clean under
-2.4.0 or later with `-W error::DeprecationWarning -W error::FutureWarning`, neither affects you.**
+Both were signposted from 2.4.0 with a runtime warning, which every later 2.x release also
+carries. **If your test suite ran clean under 2.4.0 or later with
+`-W error::DeprecationWarning -W error::FutureWarning`, neither change affects your code.**
+
+Everything else is a set of narrow bug fixes, mostly to serializer output for edge cases,
+and one renamed type alias. Those could not be signposted by a warning, because they
+change the result of calls that already succeeded. Skim the table below for the ones that
+touch your code, or skip to [what's removed](#removed).
 
 ## Install the extras you need
 
+| If your code uses | Install |
+|---|---|
+| `prov.dot`, `prov_to_dot()` | `prov[dot]` |
+| `prov.graph`, `prov_to_graph()`, `graph_to_prov()` | `prov[graph]` |
+| The interactive display in `ProvBundle.plot()` or `ProvDocument.plot()` | `prov[plot]` |
+
 A plain `pip install prov` still gives you the core data model and the PROV-JSON, PROV-N
-and PROV-JSONLD serializers. {doc}`installation` lists the extra for everything else:
-`dot` for `prov.dot`, `graph` for `prov.graph`, `plot` for the interactive display in
-`plot()`, and `rdf` and `xml` for those formats.
+and PROV-JSONLD serializers. Extras combine, for example
+`pip install "prov[rdf,xml,dot,graph]"`. See {doc}`installation`.
 
 ## Dependency changes
 
-- **`python-dateutil` is dropped** for `datetime.fromisoformat()`. ISO 8601 timestamps are
-  unaffected; strings dateutil parsed permissively, such as `"Nov 7, 2011"` or a bare
-  `xsd:date`, are not, and an unparseable time argument raises `prov.model.ProvException`.
+- **`python-dateutil` is dropped** in favour of the standard library's
+  `datetime.fromisoformat()`. Typical ISO 8601 timestamps are unaffected. Non-standard
+  strings that dateutil parsed permissively, such as `"Nov 7, 2011"` or a bare `xsd:date`
+  like `"2011-11-16"`, are no longer accepted. An unparseable `time=`, `startTime=` or
+  `endTime=` factory argument now raises `prov.model.ProvException` instead of a raw
+  `dateutil` error.
 - **`rdflib` floor raised to 7.0.0.** Upgrade if you pin rdflib 6.x alongside `prov[rdf]`.
+  Output differences are limited to those rdflib 7 already introduced under 2.x.
 
 ## Bug fixes that change output or equality
 
-Everything else is narrow bug fixes, mostly to serializer output for edge cases, and one
-renamed type alias, each changing output or equality for inputs that already worked. Five
-need action:
+Each of these fixes a real bug, but each also changes output or equality for inputs that
+worked without error before, which is why they waited for 3.0. Five need action:
 
 | Issue | What changed | Action |
 |---|---|---|
@@ -45,14 +59,19 @@ need action:
 | [#228](https://github.com/trungdong/prov/issues/228) | Malformed PROV-JSON now raises `prov.serializers.provjson.ProvJSONException` instead of a raw `KeyError`, `AttributeError` or `TypeError`. | **Update exception handlers.** Catch `ProvJSONException` instead of the raw types around PROV-JSON deserialization. |
 | [#273](https://github.com/trungdong/prov/issues/273) | PROV-XML parsing now uses a hardened parser. External DTD entities no longer resolve, and affected values come back empty instead of expanded. | If you need to detect rather than neutralise entity use, reject documents containing `<!DOCTYPE` before deserializing. |
 
-The other fixes change what a serializer writes, or what a value decodes to, for inputs
-that already worked, without changing their meaning; the 3.0.0 section of the changelog
-lists each with its issue. Recheck any byte comparison of serialized output.
+The other fixes change what a serializer writes for inputs that already worked, and a few
+change what a value decodes to in Python: a `prov:QUALIFIED_NAME` literal becomes a
+`QualifiedName`, `xsd:base64Binary` decodes to its base64 text rather than a bytes repr, a
+qualified Start or End node's time becomes the relation's formal time, PROV-JSON's typed
+`$` value is always a string, and two inputs that raised `ValueError` now succeed. The
+3.0.0 section of the {doc}`changelog <history>` lists each with its issue. Recheck byte comparisons of serialized output, and code that
+reads those decoded values.
 
-**Documented limitation, not a fix.** Two same-identifier relations that disagree on a
-formal attribute still cannot round-trip through PROV-O, and decoding raises a chained error
-([#217](https://github.com/trungdong/prov/issues/217); caveat C1 on
-{doc}`reference/conformance`). Give such relations distinct identifiers if they must survive.
+**Documented limitation, not a fix.** Two same-identifier relations that differ in
+`prov:time` still cannot round-trip through PROV-O, because PROV-O names a relation by its
+identifier; decoding raises a clear, chained error (caveat C1 on
+{doc}`reference/conformance`, [#217](https://github.com/trungdong/prov/issues/217)). Give
+such relations distinct identifiers if they must survive an RDF round trip.
 
 ## `unified()` now enforces PROV-CONSTRAINTS
 
@@ -62,18 +81,28 @@ term unification; {doc}`explanation/unification-flattening` has the full model. 
 
 - **Two different concrete values for the same formal attribute raise
   `prov.model.ProvUnificationError`** instead of merging silently. A missing attribute
-  still unifies with any concrete value.
+  still unifies with any concrete value, as before.
 - Records sharing an identifier but of **incompatible types**, such as an entity and an
-  activity, raise the same error, naming both types. Overlaps the specification permits,
-  such as an agent that is also an entity, merge as separate, per-type records.
-- Each bundle unifies independently. Extra attributes keep their set-union behaviour.
+  activity, raise the same error, naming both types, instead of merging into whichever
+  record was asserted first. Overlaps the specification permits, such as an agent that is
+  also an entity, still merge as separate, per-type records.
+- Each bundle unifies independently. Nothing merges across a bundle boundary.
+- Non-formal ("extra") attributes keep their set-union behaviour.
+- [Uniqueness constraints](https://www.w3.org/TR/prov-constraints/#uniqueness-constraints)
+  not keyed on the record identifier are out of scope. They belong to the separate, opt-in
+  validation engine tracked as [#62](https://github.com/trungdong/prov/issues/62).
 
 `ProvUnificationError` subclasses `ProvException`, so an existing `except ProvException`
-handler keeps working. Building and serializing a document with these conflicts is still
-legal, because `prov` validates nothing at assertion or serialization time
-([#257](https://github.com/trungdong/prov/issues/257)). **Action:** where same-identifier
-records might disagree, catch `ProvUnificationError` around `unified()` and
-`prov_to_graph()`, or fix the document.
+handler around `unified()` keeps working. `prov_to_dot()` catches the error and falls back
+to rendering the non-unified bundle. `prov_to_graph()` lets it propagate. Building and
+serializing a document with these conflicts is still legal in 3.0, because `prov` performs
+no structural validation at assertion or serialization time by design
+([#257](https://github.com/trungdong/prov/issues/257)). Only calling `unified()` on such a
+document, or decoding its RDF form, raises.
+
+**Action:** if you call `unified()`, directly or through `prov_to_graph()`, on documents
+where same-identifier records might disagree on a formal attribute or type, catch
+`ProvUnificationError` or fix the document to avoid the conflict.
 
 (removed)=
 
@@ -82,8 +111,10 @@ records might disagree, catch `ProvUnificationError` around `unified()` and
 3.0 removes everything 2.4.0 marked deprecated. Nothing else is scheduled for removal.
 
 - The unconditional `pydot` and `networkx` dependencies, superseded by the `dot` and
-  `graph` extras; `import prov.dot` and `import prov.graph` raise `ModuleNotFoundError`.
+  `graph` extras above. `import prov.dot` and `import prov.graph` now raise
+  `ModuleNotFoundError` naming the extra to install.
 - `python-dateutil` as a runtime dependency, and the incidental `prov.model.dateutil`
   re-export that came from importing it.
-- `prov.model.GenrationRef`, the misspelled alias for the `generation` parameter of the
-  derivation factories, renamed `GenerationRef` with no alias kept for the old spelling.
+- `prov.model.GenrationRef`, the misspelled type alias used for the `generation` parameter
+  of `wasDerivedFrom()`, `wasRevisionOf()`, `wasQuotedFrom()` and `hadPrimarySource()`. It
+  is renamed `GenerationRef`, with no alias kept for the old spelling.
