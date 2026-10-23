@@ -347,7 +347,7 @@ class TypedValueSet(MutableSet[Any]):
     def __contains__(self, value: object) -> bool:
         return _value_key(value) in self._index
 
-    def keys(self) -> KeysView[ValueKey]:
+    def value_keys(self) -> KeysView[ValueKey]:
         """The value keys held, one per retained value."""
         return self._index.keys()
 
@@ -378,6 +378,15 @@ def _xsd_double_text(value: float) -> str:
     return float.__repr__(value)
 
 
+def _xsd_datetime_text(value: datetime.datetime) -> str:
+    """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
+    whole number of minutes (historical LMT offsets) is normalised to UTC."""
+    offset = value.utcoffset()
+    if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
+        value = value.astimezone(datetime.UTC)
+    return value.isoformat()
+
+
 def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
     ``bool`` as ``true`` or ``false``, a ``float`` in the XSD form of its
@@ -398,22 +407,6 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     if isinstance(value, datetime.datetime):
         return _xsd_datetime_text(value)
     return str(value)
-
-
-def _canonical_text(value: Any) -> str | None:
-    """The spelling the writers give a parsed value, or ``None`` for a
-    datetime: a datetime's text is never kept; #514 and the datetime type
-    own it."""
-    return None if isinstance(value, datetime.datetime) else _literal_text(value, None)
-
-
-def _xsd_datetime_text(value: datetime.datetime) -> str:
-    """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
-    whole number of minutes (historical LMT offsets) is normalised to UTC."""
-    offset = value.utcoffset()
-    if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
-        value = value.astimezone(datetime.UTC)
-    return value.isoformat()
 
 
 def encoding_provn_value(
@@ -599,6 +592,33 @@ CoercedAttributeValue: typing.TypeAlias = (
     QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
 )
 
+# The key two attribute values share when they are the same value: the
+# datatype (or the Python type of a value with no XSD form), the value in its
+# value space or the text when it has none, and the case-folded language tag.
+ValueKey: typing.TypeAlias = tuple[QualifiedName | type | None, object, str | None]
+
+
+def _value_key(value: Any) -> ValueKey:
+    """The key of an attribute value for equality, hashing and the
+    per-attribute value set (#527, #34).
+
+    A plain Python value takes the datatype the writers give it, so ``5`` and
+    ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
+    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34).
+    """
+    if isinstance(value, Literal):
+        return value._key()
+    if isinstance(value, str):
+        return (XSD_STRING, value, None)
+    if isinstance(value, bool):
+        return (XSD_BOOLEAN, value, None)
+    if isinstance(value, int):
+        return (canonical_xsd_datatype(value), value, None)
+    if isinstance(value, float):
+        return (XSD_DOUBLE, NAN_KEY if math.isnan(value) else value, None)
+    return (type(value), value, None)
+
+
 _K_co = TypeVar("_K_co", covariant=True)
 _V_co = TypeVar("_V_co", covariant=True)
 
@@ -668,33 +688,6 @@ class ProvValueError(ProvException, ValueError):
     A subclass of both :class:`ProvException` and :class:`ValueError`, so a
     caller can catch either.
     """
-
-
-# The key two attribute values share when they are the same value: the
-# datatype (or the Python type of a value with no XSD form), the value in its
-# value space or the text when it has none, and the case-folded language tag.
-ValueKey: typing.TypeAlias = tuple[QualifiedName | type | None, object, str | None]
-
-
-def _value_key(value: Any) -> ValueKey:
-    """The key of an attribute value for equality, hashing and the
-    per-attribute value set (#527, #34).
-
-    A plain Python value takes the datatype the writers give it, so ``5`` and
-    ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
-    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34).
-    """
-    if isinstance(value, Literal):
-        return value._key()
-    if isinstance(value, str):
-        return (XSD_STRING, value, None)
-    if isinstance(value, bool):
-        return (XSD_BOOLEAN, value, None)
-    if isinstance(value, int):
-        return (canonical_xsd_datatype(value), value, None)
-    if isinstance(value, float):
-        return (XSD_DOUBLE, NAN_KEY if math.isnan(value) else value, None)
-    return (type(value), value, None)
 
 
 class ProvExceptionInvalidQualifiedName(ProvException):
@@ -788,7 +781,7 @@ class ProvRecord:
         return frozenset(
             (attr_name, key)
             for attr_name, values in self._attributes.items()
-            for key in values.keys()  # noqa: SIM118 (the set iterates values)
+            for key in values.value_keys()
         )
 
     def __hash__(self) -> int:
@@ -994,8 +987,11 @@ class ProvRecord:
             return literal
         # A text that is not the canonical spelling of its value keeps its
         # Literal, so it is written back as read; it compares by value (#527).
-        canonical = _canonical_text(value)
-        if canonical is not None and canonical != literal.value:
+        # A datetime's text is never kept: #514 and the datetime type own it.
+        if (
+            not isinstance(value, datetime.datetime)
+            and _literal_text(value, None) != literal.value
+        ):
             return literal
         return value
 

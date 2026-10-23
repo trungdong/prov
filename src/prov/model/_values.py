@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import datetime
 import decimal
+import functools
 import math
 import re
 import reprlib
@@ -111,13 +112,10 @@ def _integer_value(datatype: QualifiedName, text: str) -> int | None:
 
 
 def _decimal_value(text: str) -> decimal.Decimal | None:
-    if not _XSD_DECIMAL_RE.fullmatch(text):
-        return None
-    # Construction from a text the grammar admits is exact in every context;
-    # the local context with the trap set is a guard (#593, #595).
-    with decimal.localcontext() as context:
-        context.traps[decimal.InvalidOperation] = True
-        return decimal.Decimal(text)
+    # Construction from a text the grammar admits is exact in every context
+    # and signals nothing, so the caller's context cannot change the result
+    # (#593, #595).
+    return decimal.Decimal(text) if _XSD_DECIMAL_RE.fullmatch(text) else None
 
 
 def _double_value(text: str) -> float | str | None:
@@ -125,6 +123,18 @@ def _double_value(text: str) -> float | str | None:
         return None
     value = float(text)
     return NAN_KEY if math.isnan(value) else value
+
+
+_XSD_VALUES: dict[QualifiedName, Callable[[str], object | None]] = {
+    **{
+        datatype: functools.partial(_integer_value, datatype)
+        for datatype in _XSD_INTEGER_BOUNDS
+    },
+    XSD_DECIMAL: _decimal_value,
+    XSD_DOUBLE: _double_value,
+    XSD_FLOAT: _double_value,
+    XSD_BOOLEAN: _XSD_BOOLEANS.get,
+}
 
 
 def xsd_value(datatype: QualifiedName | None, text: str) -> object | None:
@@ -136,15 +146,8 @@ def xsd_value(datatype: QualifiedName | None, text: str) -> object | None:
     or the subtype's range; such a literal compares as text (#527, #593,
     #594, #595). A NaN is :data:`NAN_KEY`, so it is one value with itself.
     """
-    if datatype in _XSD_INTEGER_BOUNDS:
-        return _integer_value(datatype, text)
-    if datatype == XSD_DECIMAL:
-        return _decimal_value(text)
-    if datatype in (XSD_DOUBLE, XSD_FLOAT):
-        return _double_value(text)
-    if datatype == XSD_BOOLEAN:
-        return _XSD_BOOLEANS.get(text)
-    return None
+    to_value = _XSD_VALUES.get(datatype) if datatype is not None else None
+    return None if to_value is None else to_value(text)
 
 
 _XSD_MAX_OFFSET = datetime.timedelta(hours=14)

@@ -18,7 +18,7 @@ from prov.model import (
 from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import ProvJSONLDException
 from prov.serializers.provn_lexer import ProvNSyntaxError
-from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document
+from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
 
 UTC = datetime.UTC
 
@@ -281,7 +281,6 @@ def test_every_reader_keeps_a_typed_time_beyond_the_bound_as_a_literal(fmt) -> N
 # the lexical form (#514, the #513 precedent).
 # PROV-O is the one format that cannot reject or keep the text; see
 # test_prov_o_truncates_a_fraction_beyond_six_digits.
-TEXT_FORMATS = tuple(fmt for fmt in ROUNDTRIP_FORMATS if fmt != "rdf")
 _FRACTION_ERRORS = {
     "json": ProvJSONException,
     "xml": ProvException,

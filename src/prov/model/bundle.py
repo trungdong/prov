@@ -742,12 +742,13 @@ class ProvBundle:
                 ]
                 if len(keyed) > 1:
                     merged_records.update(_unify_record_group(keyed))
-        # dict.fromkeys keeps the first of equal records, by == and hash (#548).
-        return list(
-            dict.fromkeys(
-                merged_records.get(record, record) for record in self._records
-            )
+        records = (
+            [merged_records.get(record, record) for record in self._records]
+            if merged_records
+            else self._records
         )
+        # dict.fromkeys keeps the first of equal records, by == and hash (#548).
+        return list(dict.fromkeys(records))
 
     def unified(self) -> ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
@@ -1743,11 +1744,8 @@ class ProvDocument(ProvBundle):
     def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, ProvDocument)
-            and self._bundles.keys() == other._bundles.keys()
+            and self._bundles == other._bundles
             and super().__eq__(other)
-            and all(
-                bundle == other._bundles[b_id] for b_id, bundle in self._bundles.items()
-            )
         )
 
     def is_document(self) -> bool:

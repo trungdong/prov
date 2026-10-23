@@ -957,12 +957,6 @@ def _document_with_bundles(*names):
     return document
 
 
-def _document_with_e1():
-    document = _ex()
-    document.entity("e1")
-    return document
-
-
 def _bundle_with_e1():
     bundle = _ex().bundle("b")
     bundle.entity("e1")
@@ -995,7 +989,9 @@ EQUALITY_PAIRS = [
         True,
         id="same-bundles",
     ),
-    pytest.param(_bundle_with_e1, _document_with_e1, False, id="bundle-vs-document"),
+    pytest.param(
+        _bundle_with_e1, _document_with_bundles, False, id="bundle-vs-document"
+    ),
     pytest.param(
         lambda: _with_value(5),
         lambda: _with_value(Literal("05", XSD["int"])),
@@ -1051,4 +1047,4 @@ def test_equality_is_symmetric_and_agrees_with_hashing(left, right, equal) -> No
 def test_bundle_equality_refuses_a_document() -> None:
     # Under == ProvDocument.__eq__ answers first; a ProvBundle subclass
     # compared with a document reaches ProvBundle.__eq__, which refuses it.
-    assert ProvBundle.__eq__(_bundle_with_e1(), _document_with_e1()) is False
+    assert ProvBundle.__eq__(_bundle_with_e1(), _document_with_bundles()) is False

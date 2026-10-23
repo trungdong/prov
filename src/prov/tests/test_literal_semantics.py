@@ -1,5 +1,6 @@
-"""Literal value-space semantics (3.0): #77 decimal, #259 langtag, #89 string form,
-and the language tags 3.3.0 rejects (#472)."""
+"""Literal value-space semantics: the one value key over the XSD 1.1 lexical
+table (#527, #593, #594, #595), the spellings a literal keeps and writes back,
+the XSD form of a Python value, and the language tags 3.3.0 rejects (#472)."""
 
 import datetime
 import decimal
@@ -22,13 +23,7 @@ from prov.constants import (
     XSD_LONG,
 )
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
-from prov.tests.conftest import roundtrip_document
-
-
-def _doc() -> ProvDocument:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    return document
+from prov.tests.conftest import TEXT_FORMATS, ex_document, roundtrip_document
 
 
 def test_decimal_literals_compare_in_value_space() -> None:
@@ -128,7 +123,7 @@ def test_langtag_comparison_is_case_insensitive() -> None:
 
 def test_langtag_case_is_preserved_in_output() -> None:
     # #259 non-goal: the stored tag is not normalised -- output stays verbatim.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hello", langtag="EN")})
     content = document.serialize(format="json")
     assert content is not None
@@ -137,7 +132,7 @@ def test_langtag_case_is_preserved_in_output() -> None:
 
 def test_rdf_plain_string_emitted_without_xsd_string() -> None:
     # #89: one canonical form for string literals -- the plain literal.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": "hello"})
     buf = io.BytesIO()
     document.serialize(buf, format="rdf", rdf_format="nt11")
@@ -188,7 +183,7 @@ READERS = ["json", "xml", "jsonld"]
 def _written_with_tag(fmt: str, tag: str) -> str:
     # PROV-N cannot carry such a tag and PROV-O refuses to write one; the
     # other three write the tag as given, so the text is edited after writing.
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     text = document.serialize(format=fmt)
     assert text is not None
@@ -205,7 +200,7 @@ def test_language_tag_raises_when_read(fmt: str) -> None:
 
 @pytest.mark.parametrize("fmt", READERS)
 def test_bcp47_language_tag_reads_without_warning(fmt: str) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": Literal("hi", langtag="en-US")})
     content = document.serialize(format=fmt)
     with warnings.catch_warnings():
@@ -235,8 +230,6 @@ KEPT_TEXT: list[tuple[Literal, object]] = [
     (Literal("1.00", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
 ]
 
-TEXT_FORMATS = ("json", "xml", "provn", "jsonld")
-
 
 def _single_value(document: ProvDocument) -> object:
     (record,) = document.get_record("ex:e1")
@@ -248,7 +241,7 @@ def _single_value(document: ProvDocument) -> object:
 def test_non_canonical_text_is_kept_and_compares_by_value(
     literal: Literal, via_rdf: object
 ) -> None:
-    document = _doc()
+    document = ex_document()
     document.entity("ex:e1", {"ex:a": literal})
     stored = _single_value(document)
     assert isinstance(stored, Literal)
@@ -265,7 +258,7 @@ def test_non_canonical_text_is_kept_and_compares_by_value(
 
 
 def test_canonical_text_collapses_to_the_python_value() -> None:
-    document = _doc()
+    document = ex_document()
     document.entity(
         "ex:e1",
         [
@@ -284,7 +277,7 @@ def test_canonical_text_collapses_to_the_python_value() -> None:
 
 def test_second_spelling_of_a_held_value_is_not_added() -> None:
     # The per-attribute set keys by value, so the first spelling is kept.
-    document = _doc()
+    document = ex_document()
     entity = document.entity("ex:e1", {"ex:a": Literal("05", XSD_INT)})
     entity.add_attributes({"ex:a": 5})
     assert len(entity.get_attribute("ex:a")) == 1

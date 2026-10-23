@@ -1494,7 +1494,8 @@ class ProvRDFSerializer(Serializer):
             ``prov:type`` attribute (true for a derivation subtype or an
             extra type on a blank node, and for any subject already typed).
         """
-        if not isinstance(stmt[0], BNode) and self.valid_identifier(subj) is None:
+        blank = isinstance(stmt[0], BNode)
+        if not blank and self.valid_identifier(subj) is None:
             # Register the subject's namespace (side effect) so a later
             # valid_identifier(subj) resolves; tolerates trailing PROV-N
             # metacharacters that compute_qname would refuse to split (#294).
@@ -1506,11 +1507,11 @@ class ProvRDFSerializer(Serializer):
             subtype.uri in cast(str, stmt[2]) for subtype in _DERIVATION_SUBTYPES
         )
         if subj in state.record_types or not (
-            prov_obj.uri == obj or isderivation or isinstance(stmt[0], BNode)
+            prov_obj.uri == obj or isderivation or blank
         ):
             return True
-        state.register(subj, prov_obj, blank=isinstance(stmt[0], BNode))
-        return (isinstance(stmt[0], BNode) or isderivation) and prov_obj.uri != obj
+        state.register(subj, prov_obj, blank=blank)
+        return (blank or isderivation) and prov_obj.uri != obj
 
     def _decode_triples(
         self,
