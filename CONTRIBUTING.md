@@ -75,6 +75,7 @@ a volunteer-driven project.
    uv run ruff check src/ benchmarks/
    uv run ruff format --check src/ benchmarks/
    codacy-analysis analyze --files <changed files>   # expect "0 issues found"
+   uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
    ```
 
    The first run downloads any interpreter you do not already have cached.
@@ -94,6 +95,9 @@ a volunteer-driven project.
    CI also runs an advisory `own-warnings` job, which fails if `prov` raises a
    `DeprecationWarning`, `PendingDeprecationWarning` or `FutureWarning` of its own on the
    newest interpreter.
+
+   The docs build runs with warnings as errors and every cross-reference checked, which
+   is what CI's `docs` job does.
 
 7. Commit and push your branch:
 

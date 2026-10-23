@@ -647,10 +647,6 @@ AttributeValue: typing.TypeAlias = Union[
     bytearray,
     memoryview,
 ]
-"""A value accepted for a record attribute, before coercion. An ``Identifier``
-is stored as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``,
-``time``, ``timedelta``, ``UUID``, ``bytes``, ``bytearray`` or ``memoryview``
-as a ``Literal`` of its XSD datatype (#482)."""
 
 # `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
 # member makes a dict literal's target ambiguous to mypy and breaks its

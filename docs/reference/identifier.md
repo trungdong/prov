@@ -10,6 +10,8 @@ an attribute value is stored as an `xsd:anyURI` {py:class}`~prov.model.Literal`.
 bundle and resolves prefixes during parsing and serialization.
 
 ```{eval-rst}
+.. py:module:: prov.identifier
+
 .. autoclass:: prov.identifier.Identifier
    :members:
    :show-inheritance:

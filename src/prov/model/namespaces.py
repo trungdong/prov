@@ -180,7 +180,7 @@ class NamespaceManager(dict[str, Namespace]):
         """Resolve an identifier to a valid qualified name.
 
         Registers the namespace of the resolved name if it was not registered
-        already. Where the identifier is a string or :class:`Identifier`, an
+        already. Where the identifier is a string or :class:`~prov.identifier.Identifier`, an
         attempt is made to expand a prefix declared here, or, when no enclosing
         scope declares the prefix, to compact a known namespace URI, delegating
         to the parent manager if all local attempts fail.

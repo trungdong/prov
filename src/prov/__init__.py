@@ -261,7 +261,9 @@ def read(
             the options it accepts (``deserialize_options``); with
             ``format`` given, an undeclared option raises ``TypeError``;
             with auto-detection, every candidate receives only the options
-            it declares.
+            it declares, because an undeclared option would raise ``TypeError``
+            from a reader that does not know it, which auto-detection could
+            not tell from "not this format".
 
     Returns:
         The deserialized :class:`~prov.model.ProvDocument`.

@@ -43,6 +43,60 @@ intersphinx_mapping = {
 }
 
 autodoc_member_order = "bysource"
+# Signatures name these aliases instead of expanding their unions; model.md documents
+# each. Every key is a prov.model name, which the patch below relies on.
+autodoc_type_aliases = {
+    name: name
+    for name in (
+        "AttributeValue",
+        "RecordAttributesArg",
+        "OptionalID",
+        "EntityRef",
+        "ActivityRef",
+        "AgentRef",
+        "InfluencerRef",
+        "GenerationRef",
+        "UsageRef",
+        "StreamOrPath",
+        "QualifiedNameCandidate",
+        "DatetimeOrStr",
+        "NSCollection",
+    )
+}
+# Defaults render as written in the source (``PROV_ENTITY``), not as a repr.
+autodoc_preserve_defaults = True
+
+# Sphinx's signature() unwraps an alias placeholder only when it is the whole
+# annotation; inside ``Alias | None`` the union keeps the bare placeholder, whose
+# class name is what the stringifier prints. Giving the placeholder a module and a
+# qualified name makes it print the alias. The patch goes when the floor reaches
+# Python 3.12 and the aliases become ``type`` statements, which Sphinx renders by name.
+from sphinx.util.inspect import TypeAliasForwardRef  # noqa: E402
+
+_forward_ref_init = TypeAliasForwardRef.__init__
+
+
+def _forward_ref_with_names(self: TypeAliasForwardRef, name: str) -> None:
+    _forward_ref_init(self, name)
+    self.__module__ = "prov.model"
+    self.__qualname__ = self.__name__ = name
+
+
+TypeAliasForwardRef.__init__ = _forward_ref_with_names
+
+# Every cross-reference must resolve; CI builds with -W -n.
+nitpicky = True
+nitpick_ignore = [
+    # Private protocol behind RecordAttributesArg; its documented annotation exposes it.
+    ("py:class", "prov.model.records._SupportsItems"),
+    # Type variable of ProvBundle.get_records(); not a public name.
+    ("py:class", "prov.model.bundle._R"),
+    # prov.graph annotates with the `nx` import alias, which intersphinx cannot map.
+    ("py:class", "nx.MultiDiGraph"),
+    # pydot publishes no Sphinx inventory.
+    ("py:class", "pydot.Dot"),
+    ("py:class", "pydot.core.Dot"),
+]
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
 

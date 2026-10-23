@@ -840,7 +840,7 @@ class ProvBundle:
 
         Args:
             record_type: The record type, one of the keys of
-                :data:`PROV_REC_CLS`.
+                :data:`~prov.model.PROV_REC_CLS`.
             identifier: The identifier for the new record (may be ``None`` for
                 relations).
             attributes: Formal attributes of the record, as a dict or a

@@ -217,7 +217,7 @@ and several of its serializations:
 
 - [PROV-DM](https://www.w3.org/TR/prov-dm/), the data model described on this page.
 - [PROV-N](https://www.w3.org/TR/prov-n/), the human-readable notation, produced by
-  {py:meth}`~prov.model.ProvDocument.get_provn` and used throughout these docs. `prov`
+  {py:meth}`~prov.model.ProvBundle.get_provn` and used throughout these docs. `prov`
   reads and writes PROV-N.
 - [PROV-O](https://www.w3.org/TR/prov-o/), the mapping of PROV-DM onto an OWL ontology for
   expression as RDF, handled by the `rdf` serializer.

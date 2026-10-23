@@ -26,7 +26,7 @@ document.add_namespace("ex", "http://example.org/")
 
 Now add an **entity**, the file whose provenance you are describing. Attributes are a list
 or dict of `(name, value)` pairs. A name is either a `prov:` constant such as
-{py:data}`prov.model.PROV_TYPE` or a prefixed name such as `ex:path`.
+{py:data}`~prov.constants.PROV_TYPE` or a prefixed name such as `ex:path`.
 
 ```python
 e2 = document.entity("e2", (
