@@ -104,14 +104,14 @@ class AnonymousIDGenerator:
 _XSD_GYEAR_RE = re.compile(r"^(-?\d{4,})(?:Z|[+-]\d{2}:\d{2})?$")
 _XSD_GYEARMONTH_RE = re.compile(r"^(-?\d{4,})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$")
 
-# Reverse map for prov.model.XSD_DATATYPE_PARSERS
+# The RDF datatype of a plain Python value the writer types explicitly;
+# ints are typed by magnitude through python_value_form() (#256)
 LITERAL_XSDTYPE_MAP = {
     float: XSD["double"],
     # boolean, string values are supported natively by PROV-RDF: str falls
     # through to a plain (undecorated) rdflib.Literal -- RDF 1.1 treats a
     # plain literal and an explicit xsd:string one as the same value, and
     # PROV-RDF now emits only the former as the canonical form (#89)
-    # int values are typed by magnitude, via python_value_form() (#256)
     # datetime values are converted separately
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
