@@ -761,8 +761,9 @@ def xml_qname_to_QualifiedName(
         if ns_uri == XML_XSD_URI:  # noqa: SIM108
             ns = XSD  # use the standard xsd namespace (i.e. with #)
         else:
-            # Deliberately not mapping PROV.uri to the canonical PROV namespace
-            # here, unlike the prefixed branch above.
+            # PROV's IRI is not mapped to the canonical PROV namespace here,
+            # unlike the prefixed branch above, so a default-namespace read
+            # serialises as it did under 2.x.
             ns = _namespace(namespaces, "", ns_uri)
         return ns[qname_str]
     # no default namespace

@@ -693,16 +693,16 @@ class ProvBundle:
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
 
+        On a bundle inside a document, called with no indentation, the output
+        also declares the document's default and prefixes the bundle does not
+        bind itself, so a bundle written alone reads.
+
         Args:
             _indent_level: Indentation level for nested bundles.
             strict: Write output that parses under the strict PROV-N
                 profile, as :meth:`ProvRecord.get_provn` describes, dropping
                 what ``alternateOf``, ``specializationOf`` and ``hadMember``
                 cannot carry there, with a warning each.
-
-        On a bundle inside a document, called with no indentation, the output
-        also declares the document's default and prefixes the bundle does not
-        bind itself, so a bundle written alone reads.
         """
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))

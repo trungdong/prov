@@ -953,4 +953,5 @@ def test_reader_builds_one_namespace_per_binding(
     monkeypatch.setattr(Namespace, "__init__", counting_init)
     back = prov.ProvDocument.deserialize(content=text, format="xml")
     assert back == document
+    assert constructed
     assert len(constructed) == len(set(constructed))

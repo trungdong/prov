@@ -261,16 +261,18 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#526](https://github.com/trungdong/prov/issues/526))
 - A bundle declares only the namespaces it binds itself. A name a bundle holds in a
   namespace its document declares, under the same prefix or as the same default, is the
-  document's name, so the PROV-N and PROV-JSON writers no longer repeat `prefix ex` inside
-  every bundle that uses it, a bundle no longer takes the document's default as its own,
-  and `bundle.get_registered_namespaces()` lists the bundle's own declarations only.
+  document's name, so the PROV-N, PROV-JSON and PROV-JSONLD writers no longer repeat
+  `prefix ex` (or its context entry) inside every bundle that uses it, a bundle no longer
+  takes the document's default as its own, and `bundle.get_registered_namespaces()` lists
+  the bundle's own declarations only.
   `ProvBundle.get_provn()` on a bundle taken from a document writes the document's
   declarations the bundle does not rebind, so the text reads on its own
   ([#449](https://github.com/trungdong/prov/issues/449))
 - A `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
-  does; every other value a document holds is written as before. Called directly with a value a record would have converted, such as a
-  `Decimal` or a `date`, `encoding_provn_value` and the other value encoders now spell the
-  typed form the record would hold rather than `str()` of the value
+  does; every other value a document holds is written as before. Called directly with a
+  value a record would have converted, such as a `Decimal` or a `date`,
+  `encoding_provn_value` and the other value encoders now spell the typed form the record
+  would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))
 
 ### Fixes
@@ -290,17 +292,18 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no
-  `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows the rule a
-  name does: it takes the `dn` prefix when the document's default differs, and becomes the
-  document's default when it has none
+  `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows
+  the rule a name does, so it takes the `dn` prefix when the document's default differs and
+  becomes the document's default when it has none
   ([#615](https://github.com/trungdong/prov/issues/615))
 - An identifier equal to a namespace IRI, such as `d.entity("http://example.org/")` under
-  the default namespace `http://example.org/`, is the qualified name `dn:` in a prefix
-  bound to that IRI, `dn` minted and declared when no prefix is, so every writer writes
-  it and every reader reads it back. 3.2.x raised `ProvElementIdentifierRequired` for
-  the string and accepted the `QualifiedName` only to fail at write time. PROV-XML's
-  `prov:id` admits no empty local part, so the written `prov:id="dn:"` is not schema-valid,
-  as no prefixed empty local part is ([#473](https://github.com/trungdong/prov/issues/473))
+  the default namespace `http://example.org/`, takes a prefix bound to that IRI, the one
+  already declared when there is one (for example `ex:`), else `dn:`, minted and declared.
+  Every writer writes it, and every reader but PROV-O reads it back with its prefix. 3.2.x
+  raised `ProvElementIdentifierRequired` for the string and accepted the `QualifiedName`
+  only to fail at write time. PROV-XML's `prov:id` admits no empty local part, so the
+  written `prov:id="dn:"` is not schema-valid, and neither is any other name with an empty
+  local part ([#473](https://github.com/trungdong/prov/issues/473))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
@@ -323,7 +326,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-N and PROV-JSON readers resolve a qualified name in one walk of the
   declarations in scope, `NamespaceManager.lookup()`, where each checked the prefix and
   then resolved the text in two, and the PROV-XML reader builds one `Namespace` per
-  declaration it meets rather than one per name. Nothing changes in what either reader or
+  declaration it meets rather than one per name. Nothing changes in what any reader or
   the model accepts or rejects, except that a name under the blank-node prefix `_` is
   rejected with a sentence that says the prefix is reserved, and `:` alone is rejected as
   empty ([#450](https://github.com/trungdong/prov/issues/450))

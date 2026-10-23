@@ -39,10 +39,9 @@ class NamespaceManager(dict[str, Namespace]):
         self.update(self._default_namespaces)
         self._namespaces: dict[str, Namespace] = {}
 
-        # Plain str -> QualifiedName this manager resolved. A compaction can
-        # cache a name minted in an outer scope's namespace. Cleared by every
-        # mutation that can change how a string resolves: add_namespace()
-        # clears it before the entry is written, and _set_default().
+        # Maps a plain string to the name this manager resolved, possibly one
+        # minted in an outer scope's namespace. add_namespace() and
+        # _set_default() clear it whenever a string could resolve differently.
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
