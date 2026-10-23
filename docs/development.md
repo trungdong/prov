@@ -1,7 +1,7 @@
 # Developer guide
 
-How `prov` is built inside, for anyone changing it. {doc}`explanation/architecture` gives
-the overview a user needs; {doc}`contributing` gives the process and the checks every pull
+This page describes how `prov` is built inside, for anyone changing it.
+{doc}`explanation/architecture` gives the overview a user needs; {doc}`contributing` gives the process and the checks every pull
 request must pass.
 
 ## The PROV-N parser

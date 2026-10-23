@@ -68,9 +68,9 @@ name from the block and from `MYPY_OVERRIDE_LIST` in `src/prov/tests/test_public
 `test_mypy_override_list_only_shrinks` fails if the two differ. A new test module never joins
 the list. The PR that empties the list deletes the block, the snapshot and that test.
 
-Codacy analyses every PR on GitHub but does not block a merge; the maintainer reviews its
-findings by hand and merges with none outstanding, markdownlint on Markdown files included,
-so run the local analyser on every changed file before pushing. Coveralls
+Codacy analyses every PR on GitHub, markdownlint on Markdown files included, but does not
+block a merge. The maintainer reviews its findings by hand and merges with none outstanding.
+Run the local analyser on every changed file before pushing. Coveralls
 is advisory as long as `uv run coverage report` stays above the 97% floor. CI also runs a
 non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning`,
 `PendingDeprecationWarning` or `FutureWarning` of its own on the newest interpreter

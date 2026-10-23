@@ -62,8 +62,7 @@ a volunteer-driven project.
    git checkout -b name-of-your-bugfix-or-feature
    ```
 
-6. Make your changes, then run the checks that every pull request must pass. This is
-   the canonical list; `CLAUDE.md` carries the same block for agents.
+6. Make your changes, then run the checks that every pull request must pass:
 
    ```bash
    # All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
@@ -78,9 +77,7 @@ a volunteer-driven project.
    codacy-analysis analyze --files <changed files>   # expect "0 issues found"
    ```
 
-   The first run downloads any interpreter you do not already have cached. `cpython3.11`
-   names the implementation, so uv does not reuse a PyPy 3.11 environment from an earlier
-   run.
+   The first run downloads any interpreter you do not already have cached.
 
    mypy checks the tests under the same strict settings as the library, so a new test
    module needs type annotations, including `-> None` on each test function. Older test
@@ -89,7 +86,8 @@ a volunteer-driven project.
    pass, delete its name.
 
    The last line runs the [Codacy CLI](https://github.com/codacy/codacy-analysis-cli) on
-   the files you changed, Markdown included; expect "0 issues found". Codacy also analyses
+   the files you changed, Markdown included. Install it once with
+   `npm install -g @codacy/analysis-cli`. Codacy also analyses
    every pull request on GitHub. That check does not block a merge. The maintainer reviews
    its findings and merges with none outstanding.
 

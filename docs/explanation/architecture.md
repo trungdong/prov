@@ -36,7 +36,7 @@ factory method per record type (`entity()`, `wasGeneratedBy()`, ...). A
 is the unit that serializes. Records are created through the bundle so that identifiers
 resolve against its namespaces. The bundle records every namespace a record mentions.
 
-Two transformations leave the original untouched. {py:meth}`~prov.model.ProvBundle.unified`
+Two transformations leave the original untouched. {py:meth}`~prov.model.ProvDocument.unified`
 merges records that share an identifier under the PROV-CONSTRAINTS rules and returns a new
 document. {py:meth}`~prov.model.ProvDocument.flattened` lifts bundle contents to the top
 level and returns a new document, or the document itself when it has no bundles. See
