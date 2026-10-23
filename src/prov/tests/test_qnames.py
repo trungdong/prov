@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from prov.constants import XSD_INT
 from prov.identifier import Namespace, QualifiedName
 from prov.model import Literal, ProvBundle, ProvDocument, ProvException
 
@@ -341,3 +342,36 @@ def test_lookup_corners() -> None:
     assert doc._lookup("", "a:b") == default["a:b"]
     assert bundle._lookup("ex", "z") is doc.valid_qualified_name("ex:z")
     assert list(bundle.get_registered_namespaces()) == []
+
+
+def test_literal_datatype_registers_its_namespace(roundtrip: Roundtrip) -> None:
+    # #615: a datatype in a namespace nothing declared is declared by every
+    # writer, because asserting the literal registers it.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e", {"ex:a": Literal("1", Namespace("zz", "http://zz.org/")["t"])})
+    assert {ns.prefix for ns in doc.get_registered_namespaces()} == {"ex", "zz"}
+    roundtrip(doc)
+
+
+def test_literal_datatype_follows_a_renamed_prefix(roundtrip: Roundtrip) -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.add_namespace("zz", "http://taken.org/")
+    record = doc.entity(
+        "ex:e", {"ex:a": Literal("1", Namespace("zz", "http://zz.org/")["t"])}
+    )
+    (value,) = record.get_attribute("ex:a")
+    assert isinstance(value, Literal)
+    assert value.datatype is not None and value.datatype.namespace.prefix == "zz_1"
+    roundtrip(doc)
+
+
+def test_literal_in_scope_returns_built_in_datatypes_unchanged() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    record = doc.entity("ex:e")
+    tagged = Literal("chat", langtag="fr")
+    typed = Literal("1", XSD_INT)
+    assert record._literal_in_scope(tagged) is tagged
+    assert record._literal_in_scope(typed) is typed

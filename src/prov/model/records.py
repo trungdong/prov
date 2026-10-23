@@ -896,7 +896,12 @@ class ProvRecord:
                     raise ProvExceptionInvalidQualifiedName(literal.value, name)
                 return name
             if literal.datatype:
-                return self._convert_typed_literal(literal, literal.datatype)
+                value = self._convert_typed_literal(literal, literal.datatype)
+                return (
+                    self._literal_in_scope(value)
+                    if isinstance(value, Literal)
+                    else value
+                )
             # A literal with no datatype nor langtag defined
             # try auto-converting the value
             value = self._auto_literal_conversion(literal.value, attr)
@@ -909,6 +914,18 @@ class ProvRecord:
 
         # No conversion possible, return the original value
         return literal
+
+    def _literal_in_scope(self, literal: Literal) -> Literal:
+        """``literal`` with its datatype as this record's bundle holds it,
+        so the namespace is declared (#615); rebuilt only when the bundle
+        renames the prefix."""
+        datatype = literal.datatype
+        if datatype is None:
+            return literal
+        held = self._bundle.mandatory_valid_qname(datatype)
+        if held.namespace == datatype.namespace:
+            return literal
+        return Literal(literal.value, held)
 
     @staticmethod
     def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:
