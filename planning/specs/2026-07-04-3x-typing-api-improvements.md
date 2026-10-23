@@ -1,7 +1,7 @@
 # 3.x API improvements surfaced by the Phase-2 typing work
 
-**Status:** Closed. Shipped: B2 and B3 in 3.0.0, the `AttributeValue` alias of A1 in
-3.2.2, F5 in 2.x. On `main` for 3.3.0, unreleased: A2 (`ProvValueError`), C3, C4, the
+**Status:** Closed. Shipped: B2, B3, F2 and F3 in 3.0.0, the `AttributeValue` alias of
+A1 in 3.2.2, F5 in 2.x. On `main` for 3.3.0, unreleased: A2 (`ProvValueError`), C3, C4, the
 `serialize()` overloads of D1 (the URL path still prints a warning instead of raising)
 and content sniffing in `prov.read()` for D2. Not done, and no open issue tracks them:
 A3, B1, C1, C2, C5, E1, E2, F1 and F4. Collected 2026-07-04 while making the codebase pass

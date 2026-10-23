@@ -10,7 +10,8 @@ treat the public API with care.
 ## Roadmap and planning
 
 `ROADMAP.md` is the release plan and current status — check it rather than assuming from
-memory of past work. Design specs live under `planning/specs/` and are committed.
+memory of past work. Design specs live under `planning/specs/` and are committed;
+`planning/README.md` says how to read them (a historical record, status lines kept current).
 Implementation plans and their `*.tasks.json` execution state live under
 `planning/plans/`, which is gitignored: plans are local working files and are never
 committed. Neither goes in `docs/`. Durable rules:
