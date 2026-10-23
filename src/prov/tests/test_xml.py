@@ -5,6 +5,7 @@ import inspect
 import io
 import os
 import re
+import sys
 import warnings
 
 import pytest
@@ -20,6 +21,7 @@ from prov.serializers.provxml import (
     _unescape_ncname_localpart,
     xml_qname_to_QualifiedName,
 )
+from prov.tests import examples
 from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
@@ -925,3 +927,30 @@ def test_xml_namespace_order_keeps_xsi_last_when_it_is_declared() -> None:
         return re.findall(r"xmlns:(\w+)=", document.serialize(format="xml"))
 
     assert prefixes(True) == prefixes(False) == ["ex", "prov", "xsd", "xsi"]
+
+
+def test_reader_builds_one_namespace_per_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Spec 3, 3.4: one Namespace per (prefix, uri) a read meets, so the
+    # per-namespace QualifiedName cache hits for repeated names.
+    default = etree.fromstring(f'<e xmlns="{PROV.uri}"/>')
+    assert xml_qname_to_QualifiedName(default, "entity").namespace == Namespace(
+        "", PROV.uri
+    )
+    document = examples.primer_example()
+    text = document.serialize(format="xml")
+    constructed: list[tuple[str, str]] = []
+    real_init = Namespace.__init__
+
+    def counting_init(self: Namespace, prefix: str, uri: str) -> None:
+        # Only the reader's constructions count; namespaces.py builds its own
+        # copy of each binding the model registers.
+        if sys._getframe(1).f_globals["__name__"] == ProvXMLSerializer.__module__:
+            constructed.append((prefix, uri))
+        real_init(self, prefix, uri)
+
+    monkeypatch.setattr(Namespace, "__init__", counting_init)
+    back = prov.ProvDocument.deserialize(content=text, format="xml")
+    assert back == document
+    assert len(constructed) == len(set(constructed))

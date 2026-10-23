@@ -322,10 +322,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   writes ([#587](https://github.com/trungdong/prov/issues/587))
 - The PROV-N and PROV-JSON readers resolve a qualified name in one walk of the
   declarations in scope, `NamespaceManager.lookup()`, where each checked the prefix and
-  then resolved the text in two. Nothing changes in what either reader or the model
-  accepts or rejects, except that a name under the blank-node prefix `_` is rejected with a sentence
-  that says the prefix is reserved, and `:` alone is rejected as empty
-  ([#450](https://github.com/trungdong/prov/issues/450))
+  then resolved the text in two, and the PROV-XML reader builds one `Namespace` per
+  declaration it meets rather than one per name. Nothing changes in what either reader or
+  the model accepts or rejects, except that a name under the blank-node prefix `_` is
+  rejected with a sentence that says the prefix is reserved, and `:` alone is rejected as
+  empty ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
   written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
   record or an adopted name from warning a second time are gone with the warnings
