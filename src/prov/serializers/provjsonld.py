@@ -149,11 +149,11 @@ def encode_jsonld_value(
     Args:
         value: Attribute value to encode: a
             :class:`~prov.identifier.QualifiedName`, a
-            :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-            a plain ``bool``,
-            ``str``, ``int``/``float`` (typed by
-            ``python_value_form``), or another plain
-            JSON-native value.
+            :class:`~prov.model.Literal`, a ``str``, or any other value with
+            an XSD form (``python_value_form``, e.g. a ``bool``, ``int``,
+            ``float``, ``Decimal``, ``date`` or :class:`datetime.datetime`),
+            which is written as a typed value object. A value with no form is
+            written as its ``str()``.
         term: The unprefixed JSON-LD term ``value`` is being encoded under
             (e.g. ``"type"``, ``"ex:price"``), used to decide whether a
             :class:`~prov.identifier.QualifiedName` value is emitted as a

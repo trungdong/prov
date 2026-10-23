@@ -524,9 +524,6 @@ def _infer_xsd_type(
 ) -> tuple[prov.identifier.QualifiedName | None, str]:
     """Infer an attribute's ``xsd`` datatype from its Python value.
 
-    The order of the checks is significant -- ``bool`` is a subclass of
-    ``int`` and must be tested first.
-
     Args:
         attr: The attribute's name.
         value: The attribute's value.

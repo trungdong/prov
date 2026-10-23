@@ -525,13 +525,15 @@ class ProvRDFSerializer(Serializer):
         """Encode a single attribute value to its RDF term representation.
 
         Args:
-            value: Attribute value to encode: a ``URIRef`` (returned as-is),
-                a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-                a :class:`~prov.identifier.QualifiedName`, a plain ``int``
-                (typed by magnitude via
-                ``python_value_form``), a type listed in
-                :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
-                to ``rdflib.Literal``.
+            value: Attribute value to encode. A ``URIRef`` is returned as-is,
+                and a :class:`~prov.model.Literal` or a
+                :class:`~prov.identifier.QualifiedName` maps to its RDF term.
+                A ``str`` or ``bool`` becomes a native ``rdflib.Literal``.
+                Any other value with an XSD form (``python_value_form``) is
+                written as a typed literal in that form, and a ``float`` (or
+                float subclass) as a full-precision ``xsd:double``. A value
+                with no PROV form, or no lexical form, is handed to
+                ``rdflib.Literal`` as it is.
 
         Returns:
             The RDF term (``URIRef`` or ``rdflib.Literal``) for ``value``.

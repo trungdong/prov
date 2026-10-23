@@ -677,11 +677,12 @@ def encode_json_representation(
     """Encode a single non-formal attribute value to its PROV-JSON representation.
 
     Args:
-        value: Attribute value to encode: a :class:`~prov.model.Literal`,
-            a :class:`datetime.datetime`, a
-            :class:`~prov.identifier.QualifiedName`, a plain ``int``/``float``
-            (typed by ``python_value_form``), or a
-            plain JSON-native value.
+        value: Attribute value to encode: a :class:`~prov.model.Literal`, a
+            :class:`~prov.identifier.QualifiedName`, a ``str`` or ``bool``
+            (JSON-native), or any other value with an XSD form
+            (``python_value_form``, e.g. an ``int``, ``float``, ``Decimal``,
+            ``date`` or :class:`datetime.datetime`), which is written as a
+            typed value object. A value with no form is passed through.
         qname_text: Writes a qualified name (the value or a literal's
             datatype); the container's ``_JSONPrefixMap.qname_text`` in
             :func:`encode_json_container`.

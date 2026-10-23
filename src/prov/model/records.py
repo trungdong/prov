@@ -241,8 +241,6 @@ def _datetime_value(text: str) -> datetime.datetime | None:
 SupportedXSDParsedTypes: typing.TypeAlias = (
     str | datetime.datetime | float | int | bool | None
 )
-
-
 XSD_DATATYPE_PARSERS: dict[QualifiedName, Callable[[str], SupportedXSDParsedTypes]] = {
     XSD_STRING: str,
     XSD_DOUBLE: float,
@@ -389,7 +387,7 @@ def encoding_provn_value(
         return _provn_string_literal(value)
     form = python_value_form(value)
     if form is None or (text := form[0]) is None:
-        return str(value)  # a qualified name as its prefix:local text
+        return str(value)  # a qualified name, or a value with no form
     datatype = form[1]
     if datatype == XSD_INT:
         return text  # bare INT_LITERAL is xsd:int sugar (PROV-N [60])
