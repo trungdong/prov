@@ -36,11 +36,10 @@ uv sync --extra rdf --extra xml --extra dot --extra graph --group bench
 Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers
 and `prov.dot`/`prov.graph`). CI's `docs` job builds with `-W -n`, so every warning and
 every unresolved cross-reference fails; `nitpick_ignore` in `docs/conf.py` lists the
-private names public annotations expose. A PR that touches a docstring or a page runs:
+private names public annotations expose. The build command is in the gates below.
 
 ```bash
 uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
-uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html
 ```
 
 `docs/dependencies.md` explains every dependency pin, including the `numpy<2.5` constraint
@@ -61,6 +60,7 @@ uv run mypy src                  # strict, library and tests; configured in pypr
 uv run ruff check src/ benchmarks/
 uv run ruff format --check src/ benchmarks/
 codacy-analysis analyze --files <changed files>   # expect "0 issues found"
+uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
 ```
 
 mypy checks the tests under the same strict configuration as the library. Test modules that

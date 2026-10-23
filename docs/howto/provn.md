@@ -79,7 +79,7 @@ parse too, so `lenient` skips it.
 
 ## Handle syntax errors
 
-A syntax error raises {py:class}`~prov.serializers.provn_lexer.ProvNSyntaxError`, which
+A syntax error raises {py:class}`~prov.serializers.provn.ProvNSyntaxError`, which
 carries the line, the column and what the parser expected:
 
 ```python

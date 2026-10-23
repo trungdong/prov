@@ -157,7 +157,7 @@ _XSD_LONG_FRACTION_RE = re.compile(r"\.[0-9]{7,}")
 def _ensure_datetime(value: DatetimeOrStr | None) -> datetime.datetime | None:
     """Coerce a value to a :class:`datetime.datetime`.
 
-    A string is parsed with :func:`~prov.model.parse_xsd_datetime`; a
+    A string is parsed with :func:`parse_xsd_datetime`; a
     :class:`~datetime.datetime` or ``None`` is returned unchanged.
 
     Raises:
@@ -307,7 +307,7 @@ def first(a_set: Iterable[Any]) -> Any | None:
 class TypedValueSet(MutableSet[Any]):
     """A set-like container that keeps one value per :func:`_value_key`.
 
-    Backs each attribute's value collection on :class:`~prov.model.ProvRecord`; internal,
+    Backs each attribute's value collection on :class:`ProvRecord`; internal,
     not exported from :mod:`prov.model`. A plain :class:`set` keys on Python
     equality, so it cannot hold both ``2`` and ``2.0`` or both ``1`` and
     ``True`` (#34). This container keys on the value key, the datatype and
@@ -647,10 +647,6 @@ AttributeValue: typing.TypeAlias = Union[
     bytearray,
     memoryview,
 ]
-"""A value accepted for a record attribute, before coercion. An ``Identifier``
-is stored as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``,
-``time``, ``timedelta``, ``UUID``, ``bytes``, ``bytearray`` or ``memoryview``
-as a ``Literal`` of its XSD datatype (#482)."""
 
 # `Iterable` is absent on purpose. A dict is itself an iterable, so an `Iterable`
 # member makes a dict literal's target ambiguous to mypy and breaks its

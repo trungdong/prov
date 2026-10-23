@@ -43,11 +43,8 @@ intersphinx_mapping = {
 }
 
 autodoc_member_order = "bysource"
-# Signatures name these prov.model aliases instead of expanding their unions; model.md
-# documents each. Sphinx 9.1 unwraps an alias placeholder only when it is the whole
-# annotation; inside ``Alias | None`` the placeholder prints as "TypeAliasForwardRef".
-# Giving the placeholder the alias's module and name makes the stringifier print the
-# alias.
+# Signatures name these aliases instead of expanding their unions; model.md documents
+# each. Every key is a prov.model name, which the patch below relies on.
 autodoc_type_aliases = {
     name: name
     for name in (
@@ -69,6 +66,11 @@ autodoc_type_aliases = {
 # Defaults render as written in the source (``PROV_ENTITY``), not as a repr.
 autodoc_preserve_defaults = True
 
+# Sphinx's signature() unwraps an alias placeholder only when it is the whole
+# annotation; inside ``Alias | None`` the union keeps the bare placeholder, whose
+# class name is what the stringifier prints. Giving the placeholder a module and a
+# qualified name makes it print the alias. The patch goes when the floor reaches
+# Python 3.12 and the aliases become ``type`` statements, which Sphinx renders by name.
 from sphinx.util.inspect import TypeAliasForwardRef  # noqa: E402
 
 _forward_ref_init = TypeAliasForwardRef.__init__
@@ -80,18 +82,15 @@ def _forward_ref_with_names(self: TypeAliasForwardRef, name: str) -> None:
     self.__qualname__ = self.__name__ = name
 
 
-TypeAliasForwardRef.__init__ = _forward_ref_with_names  # type: ignore[method-assign]
+TypeAliasForwardRef.__init__ = _forward_ref_with_names
 
 # Every cross-reference must resolve; CI builds with -W -n.
 nitpicky = True
 nitpick_ignore = [
-    # Private protocol behind RecordAttributesArg; a public annotation exposes it.
+    # Private protocol behind RecordAttributesArg; its documented annotation exposes it.
     ("py:class", "prov.model.records._SupportsItems"),
     # Type variable of ProvBundle.get_records(); not a public name.
     ("py:class", "prov.model.bundle._R"),
-    # Module table in prov.graph that the prov_to_graph docstring cites; graph.md
-    # documents the two functions only.
-    ("py:data", "INFERRED_ELEMENT_CLASS"),
     # prov.graph annotates with the `nx` import alias, which intersphinx cannot map.
     ("py:class", "nx.MultiDiGraph"),
     # pydot publishes no Sphinx inventory.

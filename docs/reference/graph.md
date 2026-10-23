@@ -11,4 +11,7 @@ provenance graph. It needs the `graph` extra. {doc}`../howto/networkx` has worke
 .. autofunction:: prov.graph.prov_to_graph
 
 .. autofunction:: prov.graph.graph_to_prov
+
+.. autodata:: prov.graph.INFERRED_ELEMENT_CLASS
+   :no-value:
 ```

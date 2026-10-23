@@ -1,13 +1,4 @@
-"""The PROV-DM/PROV-O vocabulary as module-level data.
-
-Defines one :class:`~prov.identifier.QualifiedName` constant per PROV record
-type and per formal attribute (``PROV_ENTITY``, ``PROV_ACTIVITY``,
-``PROV_ATTR_TIME``, ...), plus the lookup tables used to translate between
-those constants, PROV-N keywords, and the Python model classes:
-``PROV_N_MAP`` (record type to PROV-N keyword), ``PROV_BASE_CLS`` (record
-type to base record type), and the various ``PROV_ATTRIBUTE*``/
-``PROV_RECORD*`` sets and dicts consulted while parsing and serializing.
-"""
+"""The PROV vocabulary as module-level data: namespaces, qualified names and tables."""
 
 from prov.identifier import Namespace
 

@@ -152,16 +152,17 @@ by identifier, and a bundle never equals a document.
 
 ## Type aliases
 
-The names the signatures above use. {py:data}`~prov.model.AttributeValue` is the type of
-the values a dict of attributes may hold; {doc}`../howto/typing` shows how to use it when a
-type checker reports a call.
+The signatures above name these aliases. {py:data}`~prov.model.AttributeValue` is the type
+of the values a dict of attributes may hold; {doc}`../howto/typing` shows how to use it when
+a type checker reports a call.
 
 ```{eval-rst}
 .. autodata:: prov.model.AttributeValue
    :no-value:
 
-   A value accepted for a record attribute, before coercion: a record, a qualified name,
-   an ``Identifier``, a ``datetime``, a ``Literal``, or a Python value with an XSD datatype.
+   A value accepted for a record attribute, before coercion. An ``Identifier`` is stored
+   as an ``xsd:anyURI`` ``Literal``, and a ``Decimal``, ``date``, ``time``, ``timedelta``,
+   ``UUID``, ``bytes``, ``bytearray`` or ``memoryview`` as a ``Literal`` of its XSD datatype.
 
 .. autodata:: prov.model.RecordAttributesArg
    :no-value:
@@ -225,10 +226,15 @@ type checker reports a call.
    Namespaces to register: a mapping from prefix to URI, or ``Namespace`` objects.
 ```
 
-## Functions
+## Functions and tables
 
 ```{eval-rst}
 .. autofunction:: prov.model.parse_xsd_datetime
+
+.. py:data:: PROV_REC_CLS
+
+   Maps each record type to the class that represents it; the lookup
+   :meth:`~prov.model.ProvBundle.new_record` and the deserializers use.
 ```
 
 ## Exceptions

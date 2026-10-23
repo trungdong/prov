@@ -45,7 +45,7 @@ coverage:
 	open htmlcov/index.html
 
 docs:
-	uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -b html docs docs/_build/html
+	uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html
 	open docs/_build/html/index.html
 
 dist: clean
