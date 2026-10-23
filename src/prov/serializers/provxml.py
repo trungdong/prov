@@ -279,8 +279,10 @@ class ProvXMLSerializer(Serializer):
         Mutates ``bundle`` in place, adding one record per child element of
         ``xml_doc``; ``<prov:bundleContent>`` children are recursively
         deserialized into new named bundles added to ``bundle`` (which must
-        then be a :class:`~prov.model.ProvDocument`). A ``<prov:other>``
-        child (non-PROV information) is skipped with a warning.
+        then be a :class:`~prov.model.ProvDocument`). An ``xmlns`` on
+        ``xml_doc`` that differs from the enclosing default becomes
+        ``bundle``'s default namespace. A ``<prov:other>`` child
+        (non-PROV information) is skipped with a warning.
 
         Args:
             xml_doc: The etree element (document or bundle content) to read.
@@ -300,6 +302,10 @@ class ProvXMLSerializer(Serializer):
             UserWarning: For each ``<prov:other>`` child, which is otherwise
                 ignored.
         """
+
+        default = _own_default(xml_doc, bundle)
+        if default is not None:
+            bundle.set_default_namespace(default)
 
         for element in xml_doc:
             qname = etree.QName(element)
@@ -696,6 +702,18 @@ def _nested_reference(
         f"The reference element '{attr}' has no prov:ref attribute and no "
         "reference text."
     )
+
+
+def _own_default(
+    xml_doc: etree._Element,
+    bundle: prov.model.ProvDocument | prov.model.ProvBundle,
+) -> str | None:
+    """The ``xmlns`` of ``xml_doc`` when it differs from the default enclosing
+    ``bundle``, else ``None``."""
+    default = xml_doc.nsmap.get(None)
+    enclosing = bundle.document
+    inherited = None if enclosing is None else enclosing.default_ns_uri
+    return None if default == inherited else default
 
 
 def _namespace(

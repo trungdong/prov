@@ -470,6 +470,11 @@ def _decode_record_group(
         ) from exc
     records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
     for rec_id, content in records_by_id.items():
+        if not isinstance(rec_id, str):
+            raise ProvJSONException(
+                f"{_position(str(rec_id), None)}the record key is {_json_text(rec_id)}, "
+                "not a string"
+            )
         elements = _json_record_elements(content, rec_type_str, rec_id)
         identifier = (
             None if rec_id.startswith("_:") else _resolve_name(bundle, rec_id, rec_id)

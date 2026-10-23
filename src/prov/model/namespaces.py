@@ -97,10 +97,9 @@ class NamespaceManager(dict[str, Namespace]):
         """
         self._set_default(Namespace("", uri))
 
-    def _set_default(self, namespace: Namespace, register: bool = True) -> None:
+    def _set_default(self, namespace: Namespace) -> None:
         self._default = namespace
-        if register:
-            self[""] = namespace
+        self[""] = namespace
         self._resolve_cache.clear()
 
     def get_default_namespace(self) -> Namespace | None:
@@ -241,27 +240,27 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
-        # The name as this scope holds it: unchanged when a scope in reach
-        # binds its namespace (#449), else registered here, renamed when this
-        # scope binds the prefix to another IRI.
+        # The name as this scope holds it. The IRI of a default namespace has
+        # no spelling in it, so that name takes a prefix (#473). Otherwise the
+        # name is unchanged when a scope in reach binds its namespace (#449);
+        # a prefix-less name that no default in reach declares takes a prefix
+        # bound to its IRI; any other name is registered here under a prefix
+        # no scope in reach binds.
         namespace = qname.namespace
         prefix = namespace.prefix
         if not prefix and not qname.localpart:
-            # The IRI itself has no spelling in a default namespace (#473).
             return self._prefixed_namespace(namespace.uri)[""]
+        if self.get(prefix) is namespace:
+            return qname
         bound = self._binding_in_scope(prefix)
         if bound is namespace:
             return qname
         if bound == namespace:
             return bound[qname.localpart]
-        if prefix:
-            return self.add_namespace(Namespace(prefix, namespace.uri))[qname.localpart]
-        if self._default is None:
-            # No default anywhere in reach: adopt the one given, unregistered,
-            # so it takes no part in compaction or ":local" resolution.
-            self._set_default(namespace, register=False)
-            return qname
-        return self.add_namespace(Namespace("dn", namespace.uri))[qname.localpart]
+        if not prefix:
+            return self._prefixed_namespace(namespace.uri)[qname.localpart]
+        chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
+        return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
 
     def _resolve_prefixed_string(self, str_value: str) -> QualifiedName | None:
         #  check if the identifier contains a registered prefix
@@ -303,13 +302,11 @@ class NamespaceManager(dict[str, Namespace]):
             ):
                 return namespace
             manager = manager.parent
-        return self.add_namespace(Namespace("dn", uri))
+        return self.add_namespace(Namespace(self._unused_prefix_in_scope("dn"), uri))
 
     def _binding(self, prefix: str) -> Namespace | None:
         """The namespace this scope alone binds ``prefix`` to, the default
         for ``""``, or ``None``. A registered prefix wins over a renamed one."""
-        if not prefix:
-            return self._default
         return self.get(prefix) or self._prefix_renamed_map.get(prefix)
 
     def _binding_in_scope(self, prefix: str) -> Namespace | None:
@@ -321,6 +318,16 @@ class NamespaceManager(dict[str, Namespace]):
                 return namespace
             manager = manager.parent
         return None
+
+    def _unused_prefix_in_scope(self, prefix: str) -> str:
+        """``prefix`` when no scope in reach binds it, else the first
+        ``prefix_N`` none binds, so a namespace the model registers itself
+        never shadows a declared one."""
+        candidate, count = prefix, 1
+        while self._binding_in_scope(candidate) is not None:
+            candidate = f"{prefix}_{count}"
+            count += 1
+        return candidate
 
     def lookup(self, prefix: str, local: str) -> QualifiedName | None:
         """Resolve a name a reader has already split at its first ``:``.

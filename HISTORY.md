@@ -293,8 +293,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no
   `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows
-  the rule a name does, so it takes the `dn` prefix when the document's default differs and
-  becomes the document's default when it has none
+  the rule a name does, so it takes the prefix already bound to its IRI, or `dn`, when no
+  default in scope is that namespace
   ([#615](https://github.com/trungdong/prov/issues/615))
 - An identifier equal to a namespace IRI, such as `d.entity("http://example.org/")` under
   the default namespace `http://example.org/`, takes a prefix bound to that IRI, the one
@@ -304,6 +304,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   only to fail at write time. PROV-XML's `prov:id` admits no empty local part, so the
   written `prov:id="dn:"` is not schema-valid, and neither is any other name with an empty
   local part ([#473](https://github.com/trungdong/prov/issues/473))
+- A default namespace is set only by `set_default_namespace()`. A name in a namespace with
+  no prefix that no default in scope declares, such as `Namespace("", uri)["e"]` built in
+  code, a record copied by `update()` into a document that declares no default, or a name
+  under an `xmlns` declared on an inner element of a PROV-XML document, takes the prefix
+  already bound to its IRI, else `dn`, and is written `dn:e`. 3.2.x made that namespace the
+  document's default and wrote the name bare. `xmlns` on `prov:document` and on
+  `prov:bundleContent` is the scope's default, as before
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
@@ -329,7 +336,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   declaration it meets rather than one per name. Nothing changes in what any reader or
   the model accepts or rejects, except that a name under the blank-node prefix `_` is
   rejected with a sentence that says the prefix is reserved, and `:` alone is rejected as
-  empty ([#450](https://github.com/trungdong/prov/issues/450))
+  empty. `prov.serializers.provjson.decode_json_representation()` returns the resolved
+  `QualifiedName` for an `xsd:QName` or `prov:QUALIFIED_NAME` value object, where it
+  returned a `Literal` the record then resolved; records are unchanged
+  ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
   written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
   record or an adopted name from warning a second time are gone with the warnings

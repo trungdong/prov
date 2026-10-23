@@ -9,7 +9,7 @@ import re
 import shutil
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable, ValuesView
+from collections.abc import Iterable, Iterator, ValuesView
 from operator import attrgetter
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
@@ -79,6 +79,7 @@ from prov.model.records import (
     EntityRef,
     GenerationRef,
     InfluencerRef,
+    Literal,
     NameValuePair,
     NSCollection,
     OptionalID,
@@ -127,6 +128,23 @@ def _check_provn_iri(namespace: Namespace) -> None:
             f"{where} has URI <{namespace.uri}>, which PROV-N cannot write as an IRI: "
             'it contains a space, a control character or one of <>"{}|^`\\'
         )
+
+
+def _held_names(record: ProvRecord) -> Iterator[Any]:
+    """The identifier, attribute names and values of ``record``, a literal
+    standing for its datatype."""
+    yield record.identifier
+    for name, value in record.attributes:
+        yield name
+        yield value.datatype if isinstance(value, Literal) else value
+
+
+def _held_namespaces(records: Iterable[ProvRecord]) -> Iterator[Namespace]:
+    """The namespace of every qualified name the records hold."""
+    for record in records:
+        for item in _held_names(record):
+            if isinstance(item, QualifiedName):
+                yield item.namespace
 
 
 # PROV-CONSTRAINTS (https://www.w3.org/TR/prov-constraints/) type compatibility
@@ -457,6 +475,21 @@ class ProvBundle:
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
         return self._namespaces.get_default_namespace()
+
+    def _copy_default_from(self, source: ProvBundle) -> None:
+        default = source.get_default_namespace()
+        if default is not None:
+            self.set_default_namespace(default.uri)
+
+    def _declare_held_namespaces(self) -> None:
+        """Declare every namespace the records hold that this scope does not
+        bind, so a bundle moved to another document keeps its spellings."""
+        for namespace in dict.fromkeys(_held_namespaces(self._records)):
+            if self._namespaces._binding_in_scope(namespace.prefix) != namespace:
+                if namespace.prefix:
+                    self.add_namespace(namespace)
+                else:
+                    self.set_default_namespace(namespace.uri)
 
     def add_namespace(
         self, namespace_or_prefix: Namespace | str, uri: str | None = None
@@ -824,12 +857,14 @@ class ProvBundle:
                 where another holds a concrete one, or if two records sharing
                 an identifier have incompatible types.
         """
-        unified_records = self._unified_records()
         bundle = ProvBundle(
-            records=unified_records,
             identifier=self.identifier,
+            namespaces=list(self.get_registered_namespaces()),
             document=self._document,
         )
+        bundle._copy_default_from(self)
+        for record in self._unified_records():
+            bundle.add_record(record)
         return bundle
 
     def update(self, other: ProvBundle) -> None:
@@ -1818,7 +1853,8 @@ class ProvDocument(ProvBundle):
         """
         if self._bundles:
             # Creating a new document for all the records
-            new_doc = ProvDocument()
+            new_doc = ProvDocument(namespaces=list(self.get_registered_namespaces()))
+            new_doc._copy_default_from(self)
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
             )
@@ -1848,8 +1884,10 @@ class ProvDocument(ProvBundle):
                 position where another holds a concrete one, or have
                 incompatible types (see :meth:`ProvBundle.unified`).
         """
-        document = ProvDocument(self._unified_records())
-        document._namespaces = self._namespaces
+        document = ProvDocument(namespaces=list(self.get_registered_namespaces()))
+        document._copy_default_from(self)
+        for record in self._unified_records():
+            document.add_record(record)
         for bundle in self.bundles:
             unified_bundle = bundle.unified()
             document.add_bundle(unified_bundle)
@@ -1899,7 +1937,8 @@ class ProvDocument(ProvBundle):
 
         If a document (with no nested bundles) is passed, its records are copied
         into a fresh bundle. The bundle's identifier is normalised against this
-        document's namespaces.
+        document's namespaces. A bundle moved from another document declares
+        the namespaces its records hold that this document does not bind.
 
         Args:
             bundle: The :class:`ProvBundle` to add.
@@ -1923,6 +1962,7 @@ class ProvDocument(ProvBundle):
                 )
             # Make it a new ProvBundle
             new_bundle = ProvBundle(namespaces=list(bundle.get_registered_namespaces()))
+            new_bundle._copy_default_from(bundle)
             new_bundle.update(bundle)
             bundle = new_bundle
 
@@ -1934,6 +1974,8 @@ class ProvDocument(ProvBundle):
 
         # Link the bundle namespace manager to the document's
         bundle._namespaces.parent = self._namespaces
+        if bundle._document is not self:
+            bundle._declare_held_namespaces()
 
         valid_id = bundle.mandatory_valid_qname(identifier)
         # IMPORTANT: Rewriting the bundle identifier for consistency

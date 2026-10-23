@@ -332,18 +332,75 @@ def test_other_elements() -> None:
 
 def test_nested_default_namespace() -> None:
     """
-    Tests that a default namespace that is defined in a lower level tag is
-    written to a bundle.
+    Tests that an `xmlns` declared on an inner element is not the document's
+    default: the name it makes takes the `dn` prefix.
     """
     filename = os.path.join(DATA_PATH, "nested_default_namespace.xml")
     doc = prov.ProvDocument.deserialize(source=filename, format="xml")
 
-    ns = Namespace("", "http://example.org/0/")
-
     assert len(doc._records) == 1
-    assert doc.get_default_namespace() == ns
-    assert doc._records[0].identifier.namespace == ns
-    assert doc._records[0].identifier.localpart == "e001"
+    assert doc.get_default_namespace() is None
+    identifier = doc._records[0].identifier
+    assert identifier is not None
+    assert identifier.namespace.prefix == "dn"
+    assert identifier.uri == "http://example.org/0/e001"
+    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
+
+
+def test_xmlns_on_the_document_element_is_the_default_namespace() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns="http://example.org/0/">
+      <prov:entity prov:id="e001"/>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+
+    assert doc.get_default_namespace() == Namespace("", "http://example.org/0/")
+    identifier = doc._records[0].identifier
+    assert identifier is not None
+    assert identifier.namespace.prefix == ""
+    assert identifier.uri == "http://example.org/0/e001"
+
+
+def test_xmlns_on_bundle_content_is_the_bundle_default_namespace() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/ex/" xmlns="http://example.org/0/">
+      <prov:bundleContent prov:id="ex:b" xmlns="http://example.org/1/">
+        <prov:entity prov:id="e001"/>
+      </prov:bundleContent>
+      <prov:bundleContent prov:id="ex:c">
+        <prov:entity prov:id="e002"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    first_bundle, second_bundle = doc.bundles
+
+    assert doc.get_default_namespace() == Namespace("", "http://example.org/0/")
+    assert first_bundle.get_default_namespace() == Namespace(
+        "", "http://example.org/1/"
+    )
+    assert second_bundle.get_default_namespace() is None
+    assert first_bundle.get_records()[0].identifier.uri == "http://example.org/1/e001"
+    assert second_bundle.get_records()[0].identifier.uri == "http://example.org/0/e002"
+
+
+def test_a_prefix_redeclared_inside_bundle_content_does_not_shadow_the_document() -> (
+    None
+):
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/one/">
+      <prov:bundleContent prov:id="ex:b">
+        <prov:entity prov:id="ex:a"/>
+        <prov:entity prov:id="ex:c" xmlns:ex="http://example.org/two/"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+    first, second = (r.identifier for r in bundle.get_records())
+
+    assert first.uri == "http://example.org/one/a"
+    assert second.uri == "http://example.org/two/c"
+    assert second.namespace.prefix == "ex_1"
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex_1"]
 
 
 def test_redefining_namespaces() -> None:

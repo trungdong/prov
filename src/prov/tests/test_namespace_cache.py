@@ -33,28 +33,25 @@ def test_changing_the_default_clears_the_cache_and_re_resolves() -> None:
     assert second.uri == "http://two.org/e1"
 
 
-def test_implicit_default_from_a_prefixless_qualified_name_uses_the_setter() -> None:
+def test_a_prefixless_name_takes_dn_when_no_default_is_declared() -> None:
+    # Only set_default_namespace() sets a default, so the name is minted in dn.
     manager = NamespaceManager()
     qname = Namespace("", "http://implicit.org/")["e1"]
-    manager.valid_qualified_name(qname)
-    assert manager.get_default_namespace().uri == "http://implicit.org/"
-    # The implicit default is not registered under the "" prefix, so it
-    # does not take part in URI compaction or ":local" resolution.
+    assert str(manager.valid_qualified_name(qname)) == "dn:e1"
+    assert manager.get_default_namespace() is None
     assert "" not in manager
 
 
-def test_implicit_default_does_not_shadow_an_existing_prefix() -> None:
-    # Reviewer scenario: a document registers "ex", then a bundle adopts an
-    # unprefixed default namespace with the same URI. Before the fix,
-    # adopting the default also registered it under "", so URI compaction
-    # picked the bare local name instead of the "ex:" prefix, and ":local"
-    # resolved against the adopted default even though no default namespace
-    # was ever explicitly set on the bundle.
+def test_a_prefixless_name_takes_the_prefix_bound_to_its_iri() -> None:
+    # A bundle reads a prefix-less name through the prefix its document binds
+    # to the IRI, and registers nothing of its own.
     document = ProvDocument()
     document.add_namespace("ex", "http://ex/")
     bundle = document.bundle("ex:b")
-    bundle.valid_qualified_name(Namespace("", "http://ex/")["e"])
+    resolved = bundle.valid_qualified_name(Namespace("", "http://ex/")["e"])
 
+    assert str(resolved) == "ex:e"
+    assert list(bundle.get_registered_namespaces()) == []
     assert str(bundle.valid_qualified_name("http://ex/other")) == "ex:other"
     assert bundle.valid_qualified_name(":foo") is None
 

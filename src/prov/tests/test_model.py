@@ -903,6 +903,145 @@ def test_unified_bundle_registers_only_what_it_binds() -> None:
     assert list(unified.get_registered_namespaces()) == []
 
 
+def _read_back(document: ProvDocument, format: str) -> ProvDocument:
+    text = document.serialize(format=format)
+    return ProvDocument.deserialize(content=text, format=format)
+
+
+def test_a_prefix_less_name_is_minted_in_dn_and_sets_no_default() -> None:
+    manager = NamespaceManager()
+    name = manager.valid_qualified_name(Namespace("", "http://u.org/")["e1"])
+    assert name is not None
+    assert str(name) == "dn:e1"
+    assert manager.get_default_namespace() is None
+    assert "" not in manager
+    assert "dn" in manager
+
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://u.org/")
+    bundle = doc.bundle("ex:b")
+    read = bundle.valid_qualified_name(Namespace("", "http://u.org/")["e"])
+    assert read is not None
+    assert str(read) == "ex:e"
+    assert list(bundle.get_registered_namespaces()) == []
+
+    with_default = ProvDocument()
+    with_default.set_default_namespace("http://u.org/")
+    assert with_default._namespaces[""] is with_default.get_default_namespace()
+
+
+@pytest.mark.parametrize("format", ["json", "provn"])
+def test_a_namespace_a_bundle_registers_never_shadows_a_declared_prefix(
+    format: str,
+) -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://one.org/")
+    bundle = doc.bundle("ex:b")
+    bundle.entity("ex:a")
+    other = Namespace("ex", "http://two.org/")
+    second = bundle.entity(other["b"]).identifier
+
+    assert second is not None
+    assert second.namespace.prefix == "ex_1"
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex_1"]
+
+    (read_bundle,) = _read_back(doc, format).bundles
+    uris = {str(r.identifier.uri) for r in read_bundle.get_records()}
+    assert uris == {"http://one.org/a", "http://two.org/b"}
+
+    bundle.add_namespace("ex", "http://three.org/")
+    assert bundle._namespaces["ex"].uri == "http://three.org/"
+
+
+def test_an_identifier_equal_to_a_namespace_iri_skips_a_bound_dn() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("dn", "http://elsewhere.org/")
+    bundle = doc.bundle("dn:b")
+    first = bundle.entity("dn:a").identifier
+    iri = "http://iri.org/"
+    second = bundle.entity(Namespace("", iri)[""]).identifier
+
+    assert first is not None
+    assert first.uri == "http://elsewhere.org/a"
+    assert second is not None
+    assert second.namespace.prefix == "dn_1"
+    assert second.uri == iri
+
+
+def _document_with_default_and_a_bundle() -> ProvDocument:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("a")
+    doc.entity("ex:b")
+    bundle = doc.bundle("ex:bn")
+    bundle.entity("c")
+    return doc
+
+
+def _spellings(bundle: ProvBundle) -> list[tuple[str, str]]:
+    return [
+        (str(r.identifier), r.identifier.uri)
+        for r in bundle.get_records()
+        if r.identifier is not None
+    ]
+
+
+def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
+    doc = _document_with_default_and_a_bundle()
+    flat = doc.flattened()
+    assert [s for s, _ in _spellings(flat)] == ["a", "ex:b", "c"]
+    assert flat.get_default_namespace() == doc.get_default_namespace()
+
+    unified = doc.unified()
+    assert _spellings(unified) == _spellings(doc)
+    assert unified.get_default_namespace() == doc.get_default_namespace()
+    (unified_bundle,) = unified.bundles
+    assert _spellings(unified_bundle) == [("c", "http://d.org/c")]
+
+    standalone = ProvBundle()
+    standalone.set_default_namespace("http://s.org/")
+    standalone.entity("x")
+    assert _spellings(standalone.unified()) == [("x", "http://s.org/x")]
+    assert standalone.unified().get_default_namespace() == Namespace(
+        "", "http://s.org/"
+    )
+
+
+def test_add_bundle_keeps_spellings_and_declares_what_a_moved_bundle_holds() -> None:
+    source = _document_with_default_and_a_bundle()
+    target = ProvDocument()
+    target.add_namespace("tg", "http://b.org/")
+    as_document = source.flattened()
+    target.add_bundle(as_document, target.valid_qualified_name("tg:bn"))
+    (copied,) = target.bundles
+    assert [s for s, _ in _spellings(copied)] == ["a", "ex:b", "c"]
+    assert copied.get_default_namespace() == source.get_default_namespace()
+
+    moved_to = ProvDocument()
+    (bundle,) = source.bundles
+    moved_to.add_bundle(bundle)
+    assert moved_to.get_default_namespace() is None
+    assert _spellings(bundle) == [("c", "http://d.org/c")]
+    for format in ("json", "provn"):
+        assert _read_back(moved_to, format) == moved_to
+
+
+def test_update_into_a_document_without_a_default_gives_dn_names() -> None:
+    source = ProvDocument()
+    source.set_default_namespace("http://u.org/")
+    source.entity("e")
+    target = ProvDocument()
+    target.update(source)
+
+    (record,) = target.get_records()
+    assert record.identifier is not None
+    assert str(record.identifier) == "dn:e"
+    assert record.identifier.uri == "http://u.org/e"
+    assert target.get_default_namespace() is None
+    assert "dn" in {ns.prefix for ns in target.get_registered_namespaces()}
+
+
 def test_bundle_written_alone_declares_the_enclosing_namespaces() -> None:
     # N19: ProvBundle.get_provn() on a bundle inside a document declares
     # what the document binds and the bundle does not, so the text reads.

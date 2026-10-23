@@ -28,6 +28,7 @@ from prov.serializers.provjson import (
     ProvJSONDecoder,
     ProvJSONEncoder,
     ProvJSONException,
+    decode_json_container,
     decode_json_representation,
     encode_json_container,
 )
@@ -858,6 +859,12 @@ def test_reader_rejects(text: str, message: str) -> None:
     with pytest.raises(ProvJSONException) as ctx:
         _ = ProvDocument.deserialize(content=text, format="json")
     assert str(ctx.value) == message
+
+
+def test_container_rejects_a_record_key_that_is_not_a_string() -> None:
+    # A JSON object key is always a string, so only a Python dict reaches this.
+    with pytest.raises(ProvJSONException, match="the record key is 1, not a string"):
+        decode_json_container({"entity": {1: {}}}, ProvBundle())  # type: ignore[dict-item]
 
 
 @pytest.mark.parametrize(

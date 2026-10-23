@@ -181,7 +181,7 @@ def test_bare_identifier_with_escaped_colon_resolves_via_default() -> None:
     assert record.identifier.uri == "http://d.org/a:b"
 
 
-def test_bare_escaped_colon_name_in_bundle_does_not_adopt_the_enclosing_default() -> (
+def test_bare_escaped_colon_name_in_bundle_does_not_read_as_the_enclosing_default() -> (
     None
 ):
     # The bundle holds the document's name and declares nothing of its own.
