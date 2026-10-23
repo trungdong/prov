@@ -188,6 +188,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   [#593](https://github.com/trungdong/prov/issues/593),
   [#594](https://github.com/trungdong/prov/issues/594),
   [#595](https://github.com/trungdong/prov/issues/595))
+- The PROV-O reader gives a relation whose subject is a blank node no identifier, where
+  3.2.3 used the blank node's label as the identifier, resolved in the default namespace
+  when the document declares one. `get_record()` on such a label finds nothing, PROV-N
+  written from the document shows the relation without an identifier, and `unified()` no
+  longer merges two such relations by their labels. An element written as a blank node
+  still takes its label as its identifier
 
 ### Output changes
 

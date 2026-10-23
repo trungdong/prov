@@ -354,6 +354,9 @@ class _DecodeState:
         other_attributes: Per subject, the non-formal attributes gathered so
             far. Entries are removed as they are consumed, so whatever
             remains at the end could not be converted.
+        anonymous: The subjects that are blank nodes typed as a relation. A
+            blank node names nothing, so their records get no identifier;
+            an element's blank-node label is kept, as before.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)
@@ -364,16 +367,23 @@ class _DecodeState:
         default_factory=dict
     )
     other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
+    anonymous: set[str] = field(default_factory=set)
 
-    def register(self, subj: str, prov_obj: pm.QualifiedName) -> None:
+    def register(
+        self, subj: str, prov_obj: pm.QualifiedName, blank: bool = False
+    ) -> None:
         """Record ``subj``'s type and seed its empty formal-attribute slots.
 
         Args:
             subj: The subject being typed.
             prov_obj: The record type decoded for it.
+            blank: Whether the subject is a blank node; a blank-node relation
+                is emitted with no identifier.
         """
         self.record_types[subj] = prov_obj
         klass = pm.PROV_REC_CLS[prov_obj]
+        if blank and issubclass(klass, pm.ProvRelation):
+            self.anonymous.add(subj)
         self.formal_attributes[subj] = OrderedDict(
             [(key, None) for key in klass.FORMAL_ATTRIBUTES]
         )
@@ -1499,7 +1509,7 @@ class ProvRDFSerializer(Serializer):
             prov_obj.uri == obj or isderivation or isinstance(stmt[0], BNode)
         ):
             return True
-        state.register(subj, prov_obj)
+        state.register(subj, prov_obj, blank=isinstance(stmt[0], BNode))
         return (isinstance(stmt[0], BNode) or isderivation) and prov_obj.uri != obj
 
     def _decode_triples(
@@ -1690,7 +1700,9 @@ class ProvRDFSerializer(Serializer):
         """Add a record to ``bundle`` for every decoded subject.
 
         A subject whose formal attributes picked up more than one candidate
-        value yields one record per combination of those values.
+        value yields one record per combination of those values. A relation
+        whose subject is a blank node gets no identifier
+        (:attr:`_DecodeState.anonymous`).
 
         Args:
             bundle: Bundle to add the records to.
@@ -1714,6 +1726,7 @@ class ProvRDFSerializer(Serializer):
                 for qname, values in state.unique_sets[subj].items()
                 if values and len(values) > 1
             ]
+            identifier = None if subj in state.anonymous else subj
             try:
                 if items_to_walk:
                     for subset in list(walk(items_to_walk)):
@@ -1721,14 +1734,14 @@ class ProvRDFSerializer(Serializer):
                             state.formal_attributes[subj][prov_type] = value
                         bundle.new_record(
                             state.record_types[subj],
-                            subj,
+                            identifier,
                             state.formal_attributes[subj].items(),
                             attrs,
                         )
                 else:
                     bundle.new_record(
                         state.record_types[subj],
-                        subj,
+                        identifier,
                         state.formal_attributes[subj].items(),
                         attrs,
                     )

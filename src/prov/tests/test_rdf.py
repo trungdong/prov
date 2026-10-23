@@ -887,6 +887,7 @@ def test_legacy_qualified_delegation_without_influencer_still_parses() -> None:
 @pytest.mark.parametrize(
     "build",
     [
+        lambda d: d.used("ex:a1", "ex:e1", other_attributes={"ex:k": "v"}),
         lambda d: d.communication("ex:a2", "ex:a1", other_attributes={"ex:k": "v"}),
         lambda d: d.attribution("ex:e1", "ex:ag1", other_attributes={"ex:k": "v"}),
         lambda d: d.influence("ex:e2", "ex:e1", other_attributes={"ex:k": "v"}),
@@ -894,7 +895,7 @@ def test_legacy_qualified_delegation_without_influencer_still_parses() -> None:
             "ex:ag2", "ex:ag1", "ex:a", other_attributes={"ex:k": "v"}
         ),
     ],
-    ids=["communication", "attribution", "influence", "delegation"],
+    ids=["usage", "communication", "attribution", "influence", "delegation"],
 )
 def test_anonymous_qualified_relation_with_extra_attributes_round_trips(build) -> None:
     # #303: an anonymous (unidentified) Communication/Attribution/Influence
@@ -973,6 +974,34 @@ def test_anonymous_qualified_relation_without_extra_attributes_round_trips(
     roundtripped = roundtrip_document(document, "rdf")
     assert len(list(roundtripped.get_records())) == 1
     assert roundtripped == document
+
+
+def test_anonymous_relation_reads_anonymous_under_a_default_namespace() -> None:
+    # A blank node names nothing, so the record gets no identifier even when a
+    # default namespace could resolve its label (spec 2, 3.4).
+    document = ProvDocument()
+    document.set_default_namespace("http://example.org/")
+    document.used("a1", "e1", other_attributes={"k": "v"})
+    document.used("a2", "e2", other_attributes={"k": "v"})
+    document.wasGeneratedBy("e1", "a1", other_attributes={"k": "v"})
+    roundtripped = roundtrip_document(document, "rdf")
+    records = roundtripped.get_records()
+    assert len(records) == 3
+    assert all(record.identifier is None for record in records)
+    assert roundtripped == document
+
+
+def test_blank_node_element_still_takes_its_label_as_identifier() -> None:
+    # The rule is for relations. An element's blank-node label is still its
+    # identifier, so with no default namespace to resolve it the read fails
+    # as it did before (spec 2, 3.4).
+    turtle = (
+        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        "@prefix ex: <http://example.org/> .\n"
+        '[] a prov:Entity ; ex:k "v" .\n'
+    )
+    with pytest.raises(pm.ProvElementIdentifierRequired):
+        _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
 
 def test_find_diff_detects_single_triple_difference() -> None:
