@@ -16,10 +16,9 @@ from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
     DEFAULT_NAMESPACES,
     NameValuePair,
-    canonical_xsd_datatype,
     sorted_attributes,
 )
-from prov.model.records import _xsd_datetime_text, _xsd_double_text
+from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -466,6 +465,8 @@ def _encode_attribute_value(
         return _xsd_datetime_text(value)
     elif isinstance(value, float):
         return _xsd_double_text(value)
+    elif isinstance(value, int) and not isinstance(value, bool):
+        return int.__repr__(value)
     else:
         return str(value)
 
@@ -525,9 +526,6 @@ def _infer_xsd_type(
 ) -> tuple[prov.identifier.QualifiedName | None, str]:
     """Infer an attribute's ``xsd`` datatype from its Python value.
 
-    The order of the checks is significant -- ``bool`` is a subclass of
-    ``int`` and must be tested first.
-
     Args:
         attr: The attribute's name.
         value: The attribute's value.
@@ -535,29 +533,22 @@ def _infer_xsd_type(
 
     Returns:
         A ``(xsd_type, v)`` pair: the inferred datatype (``None`` if none
-        applies) and the value's string rendering, which the ``bool`` case
-        lower-cases.
+        applies) and the value's text in that datatype's lexical form, which
+        lower-cases a ``bool``.
     """
-    xsd_type = None
-    if isinstance(value, bool):
-        xsd_type = XSD_BOOLEAN
-        v = v.lower()
-    elif isinstance(value, str):
-        xsd_type = XSD_STRING
-    elif isinstance(value, float):
-        xsd_type = XSD_DOUBLE
-    elif isinstance(value, int):
-        # bool is handled above (isinstance(value, bool));
-        # ints are typed by magnitude (#244).
-        xsd_type = canonical_xsd_datatype(value)
-    elif isinstance(value, datetime.datetime):
+    form = python_value_form(value)
+    if form is None or (text := form[0]) is None:
+        return None, v
+    xsd_type = form[1]
+    if xsd_type == XSD_DATETIME and (
+        attr.namespace.prefix == "prov" and "time" in attr.localpart.lower()
+    ):
         # Exception of the exception, while technically still correct, do
         # not write XSD dateTime type for attributes in the PROV namespaces
         # as the type is already declared in the XSD and PROV XML also does
         # not specify it in the docs.
-        if attr.namespace.prefix != "prov" or "time" not in attr.localpart.lower():
-            xsd_type = XSD_DATETIME
-    return xsd_type, v
+        return None, v
+    return xsd_type, text
 
 
 def _extract_attributes(

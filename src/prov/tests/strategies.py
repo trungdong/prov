@@ -82,11 +82,10 @@ attr_values = st.one_of(
     # instead of the original bare int (#235's lossless-collapse rule).
     st.integers(min_value=-(2**31), max_value=2**31 - 1),
     st.booleans(),
-    # Floats. RDF now emits xsd:double values at full repr() precision (#225),
-    # matching JSON/XML, and every writer spells the infinities INF and -INF
-    # (#550), so any float but NaN round-trips cleanly. NaN is excluded
-    # because it is not equal to itself, so a round trip cannot compare it.
-    st.floats(allow_nan=False),
+    # Floats. Every writer spells the infinities INF and -INF and a NaN as
+    # NaN, and a NaN is one value with itself in a record (E5), so every
+    # float round-trips and compares.
+    st.floats(),
     # Timezone-aware UTC datetimes; PROV serialises these as xsd:dateTime.
     st.datetimes(min_value=datetime(1900, 1, 1), max_value=datetime(2100, 1, 1)).map(
         lambda dt: dt.replace(tzinfo=UTC)

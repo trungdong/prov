@@ -477,11 +477,10 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     # Regression: the #217 catch in _emit_decoded_records() must only
     # relabel the specific duplicate-formal-attribute failure above, not
     # every ProvException raised while building a record. This document has
-    # no duplication at all -- a single prov:activity triple pointing at a
-    # blank node (which cannot resolve to a valid QualifiedName) and a
-    # single prov:atTime triple -- so it must fail exactly as it does on
-    # master: a plain ProvExceptionInvalidQualifiedName, not the #217
-    # message.
+    # no duplication at all -- a single prov:activity triple whose object is
+    # a plain literal, which is not a qualified name, and a single
+    # prov:atTime triple -- so it must fail with a plain
+    # ProvExceptionInvalidQualifiedName, not the #217 message.
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -491,7 +490,7 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
         prov:qualifiedGeneration ex:gen1 .
 
     ex:gen1 a prov:Generation ;
-        prov:activity _:b1 ;
+        prov:activity "not a name" ;
         prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime .
     """
     with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
@@ -737,6 +736,18 @@ def test_float_precision_survives_rdf_roundtrip() -> None:
     document.add_namespace("ex", "http://example.org/")
     document.entity("ex:e0", {"ex:k0": value})
     assert roundtrip_document(document, "rdf") == document
+
+
+def test_float_subclass_is_written_as_a_float() -> None:
+    class Ratio(float):
+        pass
+
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e", {"ex:v": Ratio(0.1)})
+    assert '"0.1"^^<http://www.w3.org/2001/XMLSchema#double>' in document.serialize(
+        format="rdf", rdf_format="nt"
+    )
 
 
 def test_qualified_delegation_pair_survives_rdf_roundtrip() -> None:
@@ -1002,6 +1013,91 @@ def test_blank_node_element_still_takes_its_label_as_identifier() -> None:
     )
     with pytest.raises(pm.ProvElementIdentifierRequired):
         _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+
+_BLANK_OBJECT_PREFIXES = (
+    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+    "@prefix ex: <http://example.org/> .\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("predicate", "typed"),
+    [
+        ("hadGeneration", False),
+        ("hadUsage", False),
+        ("hadGeneration", True),
+    ],
+    ids=["hadGeneration", "hadUsage", "typed"],
+)
+def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) -> None:
+    # A blank node names no record (a relation it types reads anonymous), so
+    # the link has no form; the derivation reads without it (#639).
+    node_type = "prov:Generation" if predicate == "hadGeneration" else "prov:Usage"
+    turtle = _BLANK_OBJECT_PREFIXES + (
+        "ex:e2 a prov:Entity ; prov:qualifiedDerivation [ a prov:Derivation ;"
+        f" prov:entity ex:e1 ; prov:{predicate} _:g1 ] .\n"
+        "ex:e1 a prov:Entity .\n"
+    )
+    if typed:
+        turtle += f"_:g1 a {node_type} ; prov:activity ex:a .\nex:a a prov:Activity .\n"
+    message = (
+        f"an anonymous prov:Derivation: prov:{predicate} points at a blank node"
+        " that names no record"
+    )
+    with pytest.warns(pm.ProvWarning, match=message) as caught:
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    assert sum(issubclass(w.category, pm.ProvWarning) for w in caught) == 1
+    (derivation,) = document.get_records(pm.ProvDerivation)
+    assert derivation.get_attribute("prov:generation") == set()
+    assert derivation.get_attribute("prov:usage") == set()
+    assert {str(r.identifier) for r in document.get_records(pm.ProvEntity)} == {
+        "ex:e1",
+        "ex:e2",
+    }
+
+
+_ELEMENT_BLOCK = "_:p a prov:Plan, prov:Entity .\n"
+_AGENT_BLOCK = "ex:ag a prov:Agent .\n"
+_ASSOCIATION_BLOCK = (
+    "ex:a a prov:Activity ; prov:qualifiedAssociation [ a prov:Association ;"
+    " prov:agent ex:ag ; prov:hadPlan _:p ] .\n"
+)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        _ASSOCIATION_BLOCK + _AGENT_BLOCK + _ELEMENT_BLOCK,
+        _ELEMENT_BLOCK + _AGENT_BLOCK + _ASSOCIATION_BLOCK,
+    ],
+    ids=["element-last", "element-first"],
+)
+def test_blank_node_behind_an_element_is_the_elements_own_problem(body: str) -> None:
+    # A blank node that is an element's subject resolves as that element's
+    # identifier does, so under no default namespace the read raises the
+    # element's own error whichever record is emitted first, never the rdflib
+    # label (#639). The positive case, the element resolving under a default
+    # namespace, waits for the reader to read the default binding as the
+    # default.
+    with pytest.raises(pm.ProvElementIdentifierRequired):
+        _ = ProvDocument.deserialize(
+            content=_BLANK_OBJECT_PREFIXES + body, format="rdf", rdf_format="turtle"
+        )
+
+
+def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
+    turtle = _BLANK_OBJECT_PREFIXES + "ex:e a prov:Entity ; ex:ref _:x .\n"
+    with pytest.warns(
+        pm.ProvWarning, match="ex:e: ex:ref points at a blank node that names no record"
+    ):
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    (entity,) = document.get_records(pm.ProvEntity)
+    assert entity.get_attribute("ex:ref") == set()
 
 
 def test_find_diff_detects_single_triple_difference() -> None:

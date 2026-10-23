@@ -39,14 +39,10 @@ from prov.model import (
     ProvElement,
     ProvRecord,
     QualifiedNameCandidate,
-    canonical_xsd_datatype,
     first,
     parse_xsd_datetime,
 )
-from prov.model.records import (
-    _xsd_datetime_text,
-    _xsd_double_text,
-)
+from prov.model._values import _xsd_datetime_text, python_value_form
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
@@ -153,11 +149,11 @@ def encode_jsonld_value(
     Args:
         value: Attribute value to encode: a
             :class:`~prov.identifier.QualifiedName`, a
-            :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-            a plain ``bool``,
-            ``str``, ``int``/``float`` (typed by
-            :func:`~prov.model.canonical_xsd_datatype`), or another plain
-            JSON-native value.
+            :class:`~prov.model.Literal`, a ``str``, or any other value with
+            an XSD form (``python_value_form``, e.g. a ``bool``, ``int``,
+            ``float``, ``Decimal``, ``date`` or :class:`datetime.datetime`),
+            which is written as a typed value object. A value with no form is
+            written as its ``str()``.
         term: The unprefixed JSON-LD term ``value`` is being encoded under
             (e.g. ``"type"``, ``"ex:price"``), used to decide whether a
             :class:`~prov.identifier.QualifiedName` value is emitted as a
@@ -183,21 +179,13 @@ def encode_jsonld_value(
         if value.langtag:
             return {"@value": value.value, "@language": value.langtag}
         return {"@value": value.value, "@type": qname_text(value.datatype)}
-    if isinstance(value, datetime.datetime):
-        return {"@value": _xsd_datetime_text(value), "@type": "xsd:dateTime"}
-    if isinstance(value, bool):
-        return {"@value": "true" if value else "false", "@type": "xsd:boolean"}
     if isinstance(value, str):
         return {"@value": value}
-    datatype = canonical_xsd_datatype(value)
-    if datatype is not None:  # int / float, magnitude-aware (#244/#256)
-        return {
-            "@value": _xsd_double_text(value)
-            if isinstance(value, float)
-            else str(value),
-            "@type": str(datatype),
-        }
-    return {"@value": str(value)}
+    form = python_value_form(value)
+    if form is None or form[0] is None:
+        return {"@value": str(value)}
+    text, datatype = form
+    return {"@value": text, "@type": str(datatype)}
 
 
 def _encode_attribute_term(attr: QualifiedName, rec_type: QualifiedName) -> str:

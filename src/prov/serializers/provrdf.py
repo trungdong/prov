@@ -1,7 +1,6 @@
 """PROV-RDF serializers for ProvDocument"""
 
 import base64
-import datetime
 import io
 import re
 import typing
@@ -50,10 +49,9 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.model._values import _offset_beyond_xsd_bound
-from prov.model.records import (
-    _xsd_datetime_text,
-    _xsd_double_text,
+from prov.model._values import (
+    _offset_beyond_xsd_bound,
+    python_value_form,
 )
 from prov.serializers import Serializer, _is_text_stream
 
@@ -106,14 +104,14 @@ class AnonymousIDGenerator:
 _XSD_GYEAR_RE = re.compile(r"^(-?\d{4,})(?:Z|[+-]\d{2}:\d{2})?$")
 _XSD_GYEARMONTH_RE = re.compile(r"^(-?\d{4,})-(\d{2})(?:Z|[+-]\d{2}:\d{2})?$")
 
-# Reverse map for prov.model.XSD_DATATYPE_PARSERS
+# The writer types plain values through ``python_value_form``; the map is kept
+# for code that reads it.
 LITERAL_XSDTYPE_MAP = {
     float: XSD["double"],
     # boolean, string values are supported natively by PROV-RDF: str falls
     # through to a plain (undecorated) rdflib.Literal -- RDF 1.1 treats a
     # plain literal and an explicit xsd:string one as the same value, and
     # PROV-RDF now emits only the former as the canonical form (#89)
-    # int values are typed by magnitude, via canonical_xsd_datatype() (#256)
     # datetime values are converted separately
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
@@ -527,47 +525,42 @@ class ProvRDFSerializer(Serializer):
         """Encode a single attribute value to its RDF term representation.
 
         Args:
-            value: Attribute value to encode: a ``URIRef`` (returned as-is),
-                a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
-                a :class:`~prov.identifier.QualifiedName`, a plain ``int``
-                (typed by magnitude via
-                :func:`~prov.model.canonical_xsd_datatype`), a type listed in
-                :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
-                to ``rdflib.Literal``.
+            value: Attribute value to encode. A ``URIRef`` is returned as-is,
+                and a :class:`~prov.model.Literal` or a
+                :class:`~prov.identifier.QualifiedName` maps to its RDF term.
+                A ``str`` or ``bool`` becomes a native ``rdflib.Literal``.
+                Any other value with an XSD form (``python_value_form``) is
+                written as a typed literal in that form, and a ``float`` (or
+                float subclass) as a full-precision ``xsd:double``. A value
+                with no PROV form, or no lexical form, is handed to
+                ``rdflib.Literal`` as it is.
 
         Returns:
             The RDF term (``URIRef`` or ``rdflib.Literal``) for ``value``.
         """
         if isinstance(value, URIRef):
             return value
-        elif isinstance(value, pm.Literal):
+        if isinstance(value, pm.Literal):
             return literal_rdf_representation(value)
-        elif isinstance(value, datetime.datetime):
-            return RDFLiteral(_xsd_datetime_text(value), datatype=XSD["dateTime"])
-        elif isinstance(value, pm.QualifiedName):
+        if isinstance(value, pm.QualifiedName):
             return URIRef(value.uri)
-        elif (
-            isinstance(value, int)
-            and (xsd_datatype := pm.canonical_xsd_datatype(value)) is not None
-        ):
-            # bool is an int subtype but canonical_xsd_datatype(bool) is
-            # None, so bools fall through unaffected (#256).
-            return RDFLiteral(str(value), datatype=XSD[xsd_datatype.localpart])
-        elif type(value) in LITERAL_XSDTYPE_MAP:
-            # LITERAL_XSDTYPE_MAP maps only `float -> XSD["double"]` today, so
-            # the full-precision lexical form always applies here: a datatype
-            # that skips rdflib's precision-losing bare-double abbreviation
-            # (#225) on output.
-
-            # normalize=False: rdflib would otherwise rewrite the lexical
-            # form to Python's str() ('inf', 'nan').
-            return _FullPrecisionDoubleLiteral(
-                _xsd_double_text(value),
-                datatype=LITERAL_XSDTYPE_MAP[type(value)],
-                normalize=False,
-            )
-        else:
+        if isinstance(value, (str, bool)):
+            # native rdflib literals
             return RDFLiteral(value)
+        form = python_value_form(value)
+        if form is None or form[0] is None:
+            # no PROV form, or no lexical form: handed to rdflib as it is
+            return RDFLiteral(value)
+        text, datatype = form
+        rdf_datatype: URIRef = XSD[datatype.localpart]
+        if datatype == XSD_DOUBLE:
+            # The full-precision lexical form, which skips rdflib's
+            # bare-double abbreviation on output (#225); normalize=False keeps
+            # it from being rewritten to Python's str() ('inf', 'nan').
+            return _FullPrecisionDoubleLiteral(
+                text, datatype=rdf_datatype, normalize=False
+            )
+        return RDFLiteral(text, datatype=rdf_datatype)
 
     def _resolve_predicate_key(
         self, pred: URIRef | pm.QualifiedName, graph: Graph
@@ -1626,6 +1619,46 @@ class ProvRDFSerializer(Serializer):
                 return
         factory(subj, str(obj))
 
+    def _attribute_object(
+        self,
+        obj: Node,
+        obj1: Any,
+        state: "_DecodeState",
+        subj: str,
+        pred: URIRef,
+        graph: Graph,
+    ) -> Any:
+        """Return the value to store for an attribute's object.
+
+        ``obj1`` for anything but a blank node; the identifier of the element a
+        blank node is the subject of, resolved as the element's own label is;
+        ``None``, after a ``ProvWarning``, for a blank node that names no record,
+        one typed as nothing or as a relation, which reads anonymous (#639).
+
+        Raises:
+            ProvElementIdentifierRequired: If the blank node is an element's
+                subject and its label resolves in no namespace, as the
+                element itself raises.
+        """
+        if not isinstance(obj, BNode):
+            return obj1
+        key = str(obj)
+        if key not in state.record_types or key in state.anonymous:
+            subject = (
+                f"an anonymous {state.record_types[subj]}"
+                if subj in state.anonymous
+                else graph.namespace_manager.normalizeUri(URIRef(subj))
+            )
+            warn(
+                f"{subject}: {graph.namespace_manager.normalizeUri(pred)} points at"
+                " a blank node that names no record; the attribute is dropped"
+            )
+            return None
+        qname = self.valid_identifier(key)
+        if qname is None:
+            raise pm.ProvElementIdentifierRequired()
+        return qname
+
     def _decode_attribute_triple(
         self,
         graph: Graph,
@@ -1646,8 +1679,15 @@ class ProvRDFSerializer(Serializer):
             predicate_mapper: Maps PROV-O predicate URIRefs to formal
                 attribute QualifiedNames.
 
+        Warns:
+            ProvWarning: If ``obj`` is a blank node that names no record; the
+                attribute is dropped (#639).
+
         Raises:
             ValueError: If ``obj`` cannot be decoded to a usable value.
+            ProvElementIdentifierRequired: If ``obj`` is a blank node that is
+                an element's subject whose label resolves in no namespace
+                (see :meth:`_attribute_object`).
         """
         obj1 = self.decode_rdf_representation(obj, graph)
         if obj is not None and obj1 is None:
@@ -1678,7 +1718,17 @@ class ProvRDFSerializer(Serializer):
         # into `other_attributes` for those two predicates is "prov:time",
         # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
         # reconcile mechanism described here is otherwise unchanged.
-        if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
+        is_formal = str(pred_new) in [val.uri for val in state.formal_attributes[subj]]
+        if not is_formal and (
+            "qualified" in str(pred_new) or "asInBundle" in str(pred_new)
+        ):
+            # The qualification node's own link, carried by the relation's
+            # triples; nothing to store here.
+            return
+        obj1 = self._attribute_object(obj, obj1, state, subj, pred, graph)
+        if obj1 is None:
+            return
+        if is_formal:
             qname_key = self._resolve_predicate_key(pred_new, graph)
             state.formal_attributes[subj][qname_key] = obj1
             state.unique_sets[subj][qname_key].append(obj1)
@@ -1686,7 +1736,7 @@ class ProvRDFSerializer(Serializer):
                 # An ambiguous formal attribute is cleared here and resolved
                 # by walking every combination in _emit_decoded_records().
                 state.formal_attributes[subj][qname_key] = None
-        elif "qualified" not in str(pred_new) and "asInBundle" not in str(pred_new):
+        else:
             key: pm.QualifiedNameCandidate = pred_new
             if isinstance(pred_new, URIRef):
                 # Resolve against the graph's bindings so a key under a

@@ -64,7 +64,7 @@ from prov.model import (
     ProvWarning,
     sorted_attributes,
 )
-from prov.model.records import _xsd_datetime_text
+from prov.model._values import _xsd_datetime_text
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"

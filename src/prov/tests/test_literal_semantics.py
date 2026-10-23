@@ -4,7 +4,9 @@ the XSD form of a Python value, and the language tags 3.3.0 rejects (#472)."""
 
 import datetime
 import decimal
+import enum
 import io
+import math
 import re
 import warnings
 
@@ -226,6 +228,7 @@ KEPT_TEXT: list[tuple[Literal, object]] = [
     (Literal("05", XSD_INT), 5),
     (Literal("+5", XSD_LONG), Literal("5", XSD_LONG)),
     (Literal("1e0", XSD_DOUBLE), 1.0),
+    (Literal("1.0", XSD_FLOAT), Literal("1.0", XSD_FLOAT)),
     (Literal("1", XSD_BOOLEAN), True),
     (Literal("1.00", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
 ]
@@ -266,6 +269,7 @@ def test_canonical_text_collapses_to_the_python_value() -> None:
             ("ex:b", Literal("true", XSD_BOOLEAN)),
             ("ex:c", Literal("1.5", XSD_DOUBLE)),
             ("ex:d", Literal("5000000000", XSD_LONG)),
+            ("ex:e", Literal("INF", XSD_DOUBLE)),
         ],
     )
     (record,) = document.get_record("ex:e1")
@@ -273,6 +277,7 @@ def test_canonical_text_collapses_to_the_python_value() -> None:
     assert record.get_attribute("ex:b") == {True}
     assert record.get_attribute("ex:c") == {1.5}
     assert record.get_attribute("ex:d") == {5000000000}
+    assert record.get_attribute("ex:e") == {float("inf")}
 
 
 def test_second_spelling_of_a_held_value_is_not_added() -> None:
@@ -284,7 +289,83 @@ def test_second_spelling_of_a_held_value_is_not_added() -> None:
     assert _single_value(document) == Literal("05", XSD_INT)
 
 
-# Literal(value) spells a Python value in XSD form (E7); 3.2.3 stored str(value).
+# A typed literal that is not the canonical spelling of a plain value stays a
+# Literal: another datatype than the one prov writes for the value (#235), a
+# spelling that is not the canonical one (E6), a datatype with no plain form.
+STAYS_A_LITERAL: list[Literal] = [
+    Literal("5", XSD_LONG),
+    Literal("5", XSD["short"]),
+    Literal("5", XSD["unsignedByte"]),
+    Literal("5", XSD_INTEGER),
+    Literal("99999999999", XSD_INT),
+    Literal("+5", XSD_INT),
+    Literal("1.5", XSD_DECIMAL),
+    Literal("5", XSD_DECIMAL),
+]
+
+
+@pytest.mark.parametrize("literal", STAYS_A_LITERAL, ids=str)
+def test_typed_literal_that_is_not_a_canonical_plain_value_stays_a_literal(
+    literal: Literal,
+) -> None:
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": literal})
+    stored = _single_value(document)
+    assert isinstance(stored, Literal)
+    assert (stored.value, stored.datatype) == (literal.value, literal.datatype)
+
+
+def test_nan_collapses_and_is_one_value_with_itself() -> None:
+    # "NaN" %% xsd:double is the canonical spelling of a float NaN, so it
+    # collapses, and a NaN is identical to itself in a key (E5).
+    def build() -> ProvDocument:
+        document = ex_document()
+        document.entity("ex:e1", {"ex:a": Literal("NaN", XSD_DOUBLE)})
+        return document
+
+    stored = _single_value(build())
+    assert isinstance(stored, float) and math.isnan(stored)
+    assert build() == build()
+
+
+def test_a_literal_keeps_an_ill_formed_decimal_text_the_caller_gave() -> None:
+    # A Literal is the caller's text, however it was spelled; the plain value
+    # must have a PROV form prov chooses (#482).
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": Literal(decimal.Decimal("NaN"), XSD_DECIMAL)})
+    stored = _single_value(document)
+    assert stored == Literal("NaN", XSD_DECIMAL)
+    for fmt in TEXT_FORMATS:
+        back = roundtrip_document(document, fmt)
+        assert _single_value(back) == stored
+        assert back == document
+    with pytest.raises(ProvValueError, match="no xsd:decimal form"):
+        ex_document().entity("ex:e2", {"ex:a": decimal.Decimal("NaN")})
+
+
+# An ill-formed text compares as text and is kept by every text format; PROV-O
+# reads the value rdflib coerces it to on parse (C10).
+ILL_FORMED_VIA_RDF: list[tuple[Literal, object]] = [
+    (Literal("True", XSD_BOOLEAN), True),
+    (Literal("inf", XSD_DOUBLE), float("inf")),
+]
+
+
+@pytest.mark.parametrize(("literal", "via_rdf"), ILL_FORMED_VIA_RDF, ids=str)
+def test_ill_formed_text_reads_as_a_value_through_prov_o(
+    literal: Literal, via_rdf: object
+) -> None:
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": literal})
+    assert _single_value(document) == literal
+    for fmt in TEXT_FORMATS:
+        back = roundtrip_document(document, fmt)
+        assert _single_value(back) == literal
+        assert back == document
+    assert _single_value(roundtrip_document(document, "rdf")) == via_rdf
+
+
+# Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
     [
@@ -309,3 +390,31 @@ def test_literal_spells_a_python_value_in_xsd_form(
     value: object, datatype: QualifiedName | None, text: str
 ) -> None:
     assert Literal(value, datatype).value == text
+
+
+# An (int, Enum) mixin is an int whose str() is its member name, not its digits.
+class _Level(int, enum.Enum):
+    LOW = 5
+
+
+@pytest.mark.parametrize("fmt", TEXT_FORMATS)
+def test_int_subclass_is_written_as_its_digits(fmt: str) -> None:
+    document = ex_document()
+    document.entity("ex:e1", [("ex:a", _Level.LOW)])
+    with io.BytesIO() as stream:
+        document.serialize(destination=stream, format=fmt)
+        assert b"_Level" not in stream.getvalue()
+        assert b"LOW" not in stream.getvalue()
+    # PROV-XML types only exact int values, so a subclass reads back as its text.
+    value = _single_value(roundtrip_document(document, fmt))
+    assert str(value) == "5"
+    assert not isinstance(value, enum.Enum)
+
+
+class _OddFloat(float):
+    def __repr__(self) -> str:
+        return "odd"
+
+
+def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:
+    assert Literal(_OddFloat(0.1), XSD_DECIMAL).value == "0.1"

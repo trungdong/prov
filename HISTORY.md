@@ -259,6 +259,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
+- Nothing changes in what `prov` writes for the values a document holds, with one
+  exception: a `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as
+  a `float` does. Called directly with a value a record would have converted, such as a
+  `Decimal` or a `date`, `encoding_provn_value` and the other value encoders now spell the
+  typed form the record would hold rather than `str()` of the value
+  ([#589](https://github.com/trungdong/prov/issues/589))
 
 ### Fixes
 
@@ -266,6 +272,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
   ([#492](https://github.com/trungdong/prov/issues/492))
+- The PROV-O reader reads a derivation whose `prov:hadGeneration` or `prov:hadUsage` object
+  is a blank node, dropping the link with a `ProvWarning` that names the subject and the
+  predicate, where it raised `ProvExceptionInvalidQualifiedName` on rdflib's internal label.
+  The rule covers any attribute whose object is a blank node that names no record, which
+  read as the label text before. A blank node that is an element's subject resolves as that
+  element's identifier does and, with no default namespace, raises
+  `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
+  first ([#639](https://github.com/trungdong/prov/issues/639))
+- An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
+  mixin, is written as its digits by every writer, where every writer wrote the member's
+  name, which no reader read back.
 
 ### Project
 
@@ -296,6 +313,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The test modules not yet checked under `mypy --strict` are listed in `pyproject.toml`,
   eighteen fewer than in 3.2.3, and a test fails if the list changes without the test's
   snapshot ([#494](https://github.com/trungdong/prov/issues/494))
+- One function spells a plain Python value for every writer, so a `bool`, an `int`, a
+  `float` and a `datetime` are written by one rule rather than by each format's own, and
+  the same function decides whether a typed literal collapses to a Python value
+  ([#589](https://github.com/trungdong/prov/issues/589))
 
 ## 3.2.3 (2026-10-19)
 
