@@ -22,7 +22,11 @@ from prov.serializers.provxml import (
     xml_qname_to_QualifiedName,
 )
 from prov.tests import examples
-from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
+from prov.tests.conftest import (
+    add_ordered_namespaces,
+    default_namespace,
+    roundtrip_document,
+)
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")
@@ -354,7 +358,7 @@ def test_xmlns_on_the_document_element_is_the_default_namespace() -> None:
     </prov:document>"""
     doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
 
-    assert doc.get_default_namespace() == Namespace("", "http://example.org/0/")
+    assert doc.get_default_namespace() == default_namespace("http://example.org/0/")
     identifier = doc._records[0].identifier
     assert identifier is not None
     assert identifier.namespace.prefix == ""
@@ -374,9 +378,9 @@ def test_xmlns_on_bundle_content_is_the_bundle_default_namespace() -> None:
     doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
     first_bundle, second_bundle = doc.bundles
 
-    assert doc.get_default_namespace() == Namespace("", "http://example.org/0/")
-    assert first_bundle.get_default_namespace() == Namespace(
-        "", "http://example.org/1/"
+    assert doc.get_default_namespace() == default_namespace("http://example.org/0/")
+    assert first_bundle.get_default_namespace() == default_namespace(
+        "http://example.org/1/"
     )
     assert second_bundle.get_default_namespace() is None
     assert first_bundle.get_records()[0].identifier.uri == "http://example.org/1/e001"
@@ -992,9 +996,11 @@ def test_reader_builds_one_namespace_per_binding(
     # Spec 3, 3.4: one Namespace per (prefix, uri) a read meets, so the
     # per-namespace QualifiedName cache hits for repeated names.
     default = etree.fromstring(f'<e xmlns="{PROV.uri}"/>')
-    assert xml_qname_to_QualifiedName(default, "entity").namespace == Namespace(
-        "", PROV.uri
-    )
+    scope = prov.ProvDocument()
+    scope.set_default_namespace(PROV.uri)
+    assert xml_qname_to_QualifiedName(
+        default, "entity", scope=scope
+    ).namespace == default_namespace(PROV.uri)
     document = examples.primer_example()
     text = document.serialize(format="xml")
     constructed: list[tuple[str, str]] = []

@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model.records import NSCollection, QualifiedNameCandidate
+from prov.model.records import NSCollection, ProvException, QualifiedNameCandidate
 
 DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD}
 _DEFAULT_NAMESPACES_BY_URI = {ns.uri: ns for ns in DEFAULT_NAMESPACES.values()}
@@ -95,7 +95,7 @@ class NamespaceManager(dict[str, Namespace]):
         Args:
             uri: The URI of the default namespace.
         """
-        self._set_default(Namespace("", uri))
+        self._set_default(Namespace._default(uri))
 
     def _set_default(self, namespace: Namespace) -> None:
         self._default = namespace
@@ -119,7 +119,16 @@ class NamespaceManager(dict[str, Namespace]):
         Returns:
             The registered namespace, which may be the existing or renamed one
             rather than the argument.
+
+        Raises:
+            ProvException: If ``namespace`` is a default namespace, which only
+                :meth:`set_default_namespace` declares.
         """
+        if not namespace.prefix:
+            raise ProvException(
+                "a default namespace is set with set_default_namespace(), "
+                "not add_namespace()"
+            )
         if namespace in self.values():
             #  no need to do anything
             return namespace
@@ -166,6 +175,10 @@ class NamespaceManager(dict[str, Namespace]):
         Args:
             namespaces: The namespaces to add, as a ``{prefix: uri}`` mapping
                 or an iterable of :class:`~prov.identifier.Namespace`.
+
+        Raises:
+            ValueError: If a mapping has an empty prefix.
+            ProvException: If an iterable holds a default namespace.
         """
         if isinstance(namespaces, Mapping):
             namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]

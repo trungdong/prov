@@ -335,6 +335,11 @@ class QualifiedName(Identifier):
         return f"'{self.provn_bare_representation()}'"
 
 
+def _check_namespace_uri(uri: str) -> None:
+    if not uri or uri.isspace():
+        raise ValueError("Not a valid URI to create a namespace.")
+
+
 class Namespace:
     """PROV Namespace."""
 
@@ -350,17 +355,34 @@ class Namespace:
         """Create a namespace with the given prefix and URI.
 
         Args:
-            prefix: Short-hand prefix for the namespace.
+            prefix: Short-hand prefix for the namespace; required. A default
+                namespace is declared with ``set_default_namespace()``.
             uri: URI string for the namespace (cannot be blank).
 
         Raises:
-            ValueError: If ``uri`` is empty or contains only whitespace.
+            ValueError: If ``prefix`` is empty, or if ``uri`` is empty or
+                contains only whitespace.
         """
-        if not uri or uri.isspace():
-            raise ValueError("Not a valid URI to create a namespace.")
+        if not prefix:
+            raise ValueError(
+                "a namespace needs a prefix; a default namespace is set with "
+                "set_default_namespace()"
+            )
+        _check_namespace_uri(uri)
         self._prefix = prefix
         self._uri = uri
         self._cache: dict[str, QualifiedName] = {}
+
+    @classmethod
+    def _default(cls, uri: str) -> Namespace:
+        """The prefix-less namespace a scope's default declaration is held as;
+        built only by ``NamespaceManager.set_default_namespace``."""
+        _check_namespace_uri(uri)
+        namespace = cls.__new__(cls)
+        object.__setattr__(namespace, "_prefix", "")
+        object.__setattr__(namespace, "_uri", uri)
+        object.__setattr__(namespace, "_cache", {})
+        return namespace
 
     @property
     def uri(self) -> str:

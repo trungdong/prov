@@ -295,6 +295,27 @@ def test_default_namespace_survives_turtle_serialization() -> None:
     assert ":e1" in turtle
 
 
+def test_the_default_binding_reads_back_as_the_default_namespace() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://default.example/")
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("e1")
+    doc.entity("ex:e2")
+
+    turtle = doc.serialize(format="rdf", rdf_format="turtle")
+    reloaded = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    default = reloaded.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://default.example/"
+    assert "" not in {ns.prefix for ns in reloaded.get_registered_namespaces()}
+    provn = reloaded.get_provn()
+    assert "default <http://default.example/>" in provn
+    assert ProvDocument.deserialize(content=provn, format="provn") == reloaded
+
+
 def test_encode_container_reuses_a_provided_container() -> None:
     # encode_container()'s `container` parameter defaults to None
     # everywhere it is called internally; passing one explicitly (as an

@@ -636,10 +636,20 @@ class ProvRDFSerializer(Serializer):
                 best_prefix, best_uri = prefix, uri
         if best_prefix is None:
             return None
+        if not best_prefix:
+            return self._default_name(iri, best_uri)
         ns = self.document.add_namespace(  # type: ignore[union-attr]
             best_prefix, best_uri
         )
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _default_name(self, iri: str, uri: str) -> pm.QualifiedName | None:
+        """The name ``iri`` has in the document's default namespace when that
+        namespace is ``uri``, else ``None``."""
+        default = self.document.get_default_namespace()  # type: ignore[union-attr]
+        if default is None or default.uri != uri:
+            return None
+        return default[iri[len(uri) :]]
 
     def _resolve_iri(self, iri: str, graph: Graph) -> pm.QualifiedName:
         """Resolve an IRI to a QualifiedName, registering its namespace.
@@ -656,9 +666,12 @@ class ProvRDFSerializer(Serializer):
            ``graph`` that prefixes ``iri`` -- split there, reusing that
            prefix.
         2. Otherwise ``compute_qname``, preserving prefix-minting for ordinary
-           IRIs under no registered namespace.
+           IRIs under no registered namespace. A default binding (empty
+           prefix) names the IRI in the document's default namespace when
+           that namespace has the same URI.
         3. If ``compute_qname`` itself raises (a trailing metacharacter under
-           no known namespace -- the single-record case), split at the last
+           no known namespace -- the single-record case) or binds the IRI to a
+           default namespace the document does not hold, split at the last
            ``#`` or ``/`` and mint a namespace (the generated prefix is
            irrelevant: :class:`~prov.identifier.QualifiedName` equality is
            URI-based). An IRI with no ``#`` or ``/`` is genuinely unsplittable
@@ -686,6 +699,11 @@ class ProvRDFSerializer(Serializer):
             prefix, uri_ref, _local = graph.namespace_manager.compute_qname(iri)
             uri = str(uri_ref)
         except ValueError:
+            prefix = uri = ""
+        if not prefix:
+            qname = self._default_name(iri, uri)
+            if qname is not None:
+                return qname
             # 3. Trailing metacharacter under no known namespace (#294): split
             # at the last '#' or '/' ourselves. Any minted prefix works.
             sep = max(iri.rfind("#"), iri.rfind("/"))
@@ -1341,7 +1359,10 @@ class ProvRDFSerializer(Serializer):
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
         """
         for prefix, url in content.namespaces():
-            document.add_namespace(prefix, str(url))
+            if prefix:
+                document.add_namespace(prefix, str(url))
+            else:
+                document.set_default_namespace(str(url))
         if hasattr(content, "graphs"):
             for graph in content.graphs():
                 if (

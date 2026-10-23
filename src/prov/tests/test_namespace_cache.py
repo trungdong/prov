@@ -3,6 +3,8 @@
 from prov.identifier import Identifier, Namespace
 from prov.model import NamespaceManager, ProvDocument
 
+from .conftest import default_namespace
+
 
 def test_repeat_lookup_is_served_from_the_cache() -> None:
     manager = NamespaceManager({"ex": "http://example.org/"})
@@ -36,7 +38,7 @@ def test_changing_the_default_clears_the_cache_and_re_resolves() -> None:
 def test_a_prefixless_name_takes_dn_when_no_default_is_declared() -> None:
     # Only set_default_namespace() sets a default, so the name is minted in dn.
     manager = NamespaceManager()
-    qname = Namespace("", "http://implicit.org/")["e1"]
+    qname = default_namespace("http://implicit.org/")["e1"]
     assert str(manager.valid_qualified_name(qname)) == "dn:e1"
     assert manager.get_default_namespace() is None
     assert "" not in manager
@@ -48,7 +50,7 @@ def test_a_prefixless_name_takes_the_prefix_bound_to_its_iri() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://ex/")
     bundle = document.bundle("ex:b")
-    resolved = bundle.valid_qualified_name(Namespace("", "http://ex/")["e"])
+    resolved = bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
 
     assert str(resolved) == "ex:e"
     assert list(bundle.get_registered_namespaces()) == []

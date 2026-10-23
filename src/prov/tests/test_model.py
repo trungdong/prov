@@ -33,7 +33,7 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.tests import examples
-from prov.tests.conftest import add_ordered_namespaces
+from prov.tests.conftest import add_ordered_namespaces, default_namespace
 
 logger = logging.getLogger(__name__)
 
@@ -910,7 +910,7 @@ def _read_back(document: ProvDocument, format: str) -> ProvDocument:
 
 def test_a_prefix_less_name_is_minted_in_dn_and_sets_no_default() -> None:
     manager = NamespaceManager()
-    name = manager.valid_qualified_name(Namespace("", "http://u.org/")["e1"])
+    name = manager.valid_qualified_name(default_namespace("http://u.org/")["e1"])
     assert name is not None
     assert str(name) == "dn:e1"
     assert manager.get_default_namespace() is None
@@ -920,7 +920,7 @@ def test_a_prefix_less_name_is_minted_in_dn_and_sets_no_default() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://u.org/")
     bundle = doc.bundle("ex:b")
-    read = bundle.valid_qualified_name(Namespace("", "http://u.org/")["e"])
+    read = bundle.valid_qualified_name(default_namespace("http://u.org/")["e"])
     assert read is not None
     assert str(read) == "ex:e"
     assert list(bundle.get_registered_namespaces()) == []
@@ -928,6 +928,26 @@ def test_a_prefix_less_name_is_minted_in_dn_and_sets_no_default() -> None:
     with_default = ProvDocument()
     with_default.set_default_namespace("http://u.org/")
     assert with_default._namespaces[""] is with_default.get_default_namespace()
+
+
+def test_a_default_namespace_is_set_only_through_the_api() -> None:
+    with pytest.raises(ValueError, match="set_default_namespace"):
+        Namespace("", "http://x/")
+
+    declaring = ProvDocument()
+    declaring.set_default_namespace("http://x/")
+    default = declaring.get_default_namespace()
+    assert default is not None
+    other = ProvDocument()
+    with pytest.raises(ProvException, match="set_default_namespace"):
+        other.add_namespace(default)
+    manager = NamespaceManager()
+    with pytest.raises(ProvException, match="set_default_namespace"):
+        manager.add_namespace(default)
+    with pytest.raises(ValueError, match="set_default_namespace"):
+        manager.add_namespaces({"": "http://x/"})
+    assert other.get_default_namespace() is None
+    assert manager.get_default_namespace() is None
 
 
 @pytest.mark.parametrize("format", ["json", "provn"])
@@ -959,7 +979,7 @@ def test_an_identifier_equal_to_a_namespace_iri_skips_a_bound_dn() -> None:
     bundle = doc.bundle("dn:b")
     first = bundle.entity("dn:a").identifier
     iri = "http://iri.org/"
-    second = bundle.entity(Namespace("", iri)[""]).identifier
+    second = bundle.entity(default_namespace(iri)[""]).identifier
 
     assert first is not None
     assert first.uri == "http://elsewhere.org/a"
@@ -1003,8 +1023,8 @@ def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
     standalone.set_default_namespace("http://s.org/")
     standalone.entity("x")
     assert _spellings(standalone.unified()) == [("x", "http://s.org/x")]
-    assert standalone.unified().get_default_namespace() == Namespace(
-        "", "http://s.org/"
+    assert standalone.unified().get_default_namespace() == default_namespace(
+        "http://s.org/"
     )
 
 

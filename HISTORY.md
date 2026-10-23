@@ -95,6 +95,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   where 3.2.3 merged the records and kept the value. `prov_to_graph()` raises with it;
   `prov_to_dot()` draws the document as asserted
   ([#547](https://github.com/trungdong/prov/issues/547))
+- A namespace with no prefix, `Namespace("", uri)`, a `ValueError` when the object is built,
+  and `add_namespace()` given a default namespace object, a `ProvException`; both name
+  `set_default_namespace()`, the one way to declare a default. 3.2.x accepted the object
+  and made it the default of the first scope that met a name from it
 
 ### Changes with no prior warning
 
@@ -277,6 +281,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 ### Fixes
 
+- The PROV-O reader registers the default binding `@prefix :` as the document's default
+  namespace, where 3.2.x registered it as a namespace with an empty prefix that PROV-N
+  could not write
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
@@ -299,7 +306,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - An identifier equal to a namespace IRI, such as `d.entity("http://example.org/")` under
   the default namespace `http://example.org/`, takes a prefix bound to that IRI, the one
   already declared when there is one (for example `ex:`), else `dn:`, minted and declared.
-  Every writer writes it, and every reader but PROV-O reads it back with its prefix. 3.2.x
+  Every writer writes it, and every reader reads it back with its prefix. 3.2.x
   raised `ProvElementIdentifierRequired` for the string and accepted the `QualifiedName`
   only to fail at write time. PROV-XML's `prov:id` admits no empty local part, so the
   written `prov:id="dn:"` is not schema-valid, and neither is any other name with an empty
