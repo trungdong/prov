@@ -6,8 +6,8 @@ states what the current release conforms to; it was revised for 3.2.3.
 
 Summary:
 
-- Every PROV-DM concept round-trips through every format, with two permanent exceptions,
-  C1 and C2.
+- Every concept in the tables below round-trips through every format, with two permanent
+  exceptions, C1 and C2.
 - The values table says how literals behave.
 - Readers accept some output from other producers, listed under "Reading other producers'
   output".
@@ -214,7 +214,7 @@ format.
 
 ## Edge cases
 
-Each case below is rare, marked in the tables where it applies, and documented here once.
+A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no row covers.
 
 - **C3. PROV-XML escapes attribute names that are not NCNames.** A name may start with a digit
   or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
