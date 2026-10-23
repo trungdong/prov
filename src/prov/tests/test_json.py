@@ -411,6 +411,7 @@ _GENERATION = {"prov:entity": "ex:e"}
 _MEMBERSHIP = {"prov:collection": "ex:c"}
 _UNDECLARED = "its prefix 'zz' is not declared"
 _FULL_IRI = "its prefix 'http' is not declared"
+_BLANK_PREFIX = "its prefix '_' is reserved for blank nodes"
 _NO_PREFIX = "it has no prefix and no default namespace is declared"
 
 
@@ -823,6 +824,31 @@ REJECTED_DOCUMENTS = [
     pytest.param(_time(None), _T + "the value is null", id="time null"),
     pytest.param(
         _time(5), _T + "expected an xsd:dateTime, found 5", id="time bare number"
+    ),
+    pytest.param(
+        _json({"entity": {"ex:e": {"_:x": "v"}}}),
+        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
+        id="attribute name under the blank-node prefix",
+    ),
+    pytest.param(
+        json.dumps(
+            {
+                "prefix": {"ex": "http://example.org/", "_": "http://blank.org/"},
+                "entity": {"ex:e": {"_:x": "v"}},
+            }
+        ),
+        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
+        id="attribute name under a declared blank-node prefix",
+    ),
+    pytest.param(
+        json.dumps(
+            {
+                "prefix": {"default": "http://d.example.org/"},
+                "entity": {":": {}},
+            }
+        ),
+        _unresolved("record ':'", ":", "it is empty"),
+        id="record key of a colon alone under a default",
     ),
 ]
 

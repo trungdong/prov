@@ -307,25 +307,37 @@ class NamespaceManager(dict[str, Namespace]):
             manager = manager.parent
         return None
 
-    def _unresolved_reason(self, text: str) -> str | None:
-        """Return why ``text`` resolves to no qualified name by its prefix alone.
+    def lookup(self, prefix: str, local: str) -> QualifiedName | None:
+        """Resolve a name a reader has already split at its first ``:``.
 
-        Splits ``text`` at its first ``:`` and looks the prefix up in this
-        manager and its parents, with no IRI compaction. A text with no ``:``
-        needs a default namespace. Returns ``None`` when the text resolves.
+        The name is minted from the namespace the nearest scope binds
+        ``prefix`` to, the nearest default namespace for an empty prefix.
+        Nothing is compacted, registered or cached. ``("", "")`` and the
+        blank-node prefix ``_`` resolve to nothing whatever is declared.
+
+        Args:
+            prefix: The prefix before the first ``:``, ``""`` for none.
+            local: The local part after it.
+
+        Returns:
+            The :class:`~prov.identifier.QualifiedName`, or ``None`` when no
+            scope binds ``prefix``.
         """
-        if not text:
+        if prefix == "_" or (prefix, local) == ("", ""):
+            return None
+        namespace = self._binding_in_scope(prefix)
+        return None if namespace is None else namespace[local]
+
+    def _unresolved_reason(self, text: str) -> str:
+        """Why ``text`` resolves to no qualified name by its prefix, as the
+        clause after "because"; meaningful after :meth:`lookup` returned
+        ``None`` for the text's prefix and local part."""
+        if text in ("", ":"):
             return "it is empty"
-        prefix, colon, _ = text.partition(":")
-        if colon:
-            if self._binding_in_scope(prefix) is not None:
-                return None
-            return f"its prefix {prefix!r} is not declared"
-        manager: NamespaceManager | None = self
-        while manager is not None:
-            if manager._default is not None:
-                return None
-            manager = manager.parent
+        if text.startswith("_:"):
+            return "its prefix '_' is reserved for blank nodes"
+        if ":" in text:
+            return f"its prefix {text.partition(':')[0]!r} is not declared"
         return "it has no prefix and no default namespace is declared"
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:

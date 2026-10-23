@@ -23,7 +23,7 @@ from prov.model import (
 from prov.model._values import (
     _xsd_datetime_text,
     python_value_form,
-    unresolved_name_detail,
+    resolve_name,
 )
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers._json_common import (
@@ -378,8 +378,9 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     for bundle_id, bundle_content in bundles.items():
         bundle = ProvBundle(document=document)
         decode_json_container(bundle_content, bundle)
-        _check_name(bundle, bundle_id, bundle_id, kind="bundle")
-        document.add_bundle(bundle, bundle.valid_qualified_name(bundle_id))
+        document.add_bundle(
+            bundle, _resolve_name(bundle, bundle_id, bundle_id, kind="bundle")
+        )
 
 
 def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
@@ -470,15 +471,17 @@ def _decode_record_group(
     records_by_id = _expect_json_object(jc[rec_type_str], f"The {rec_type_str!r} value")
     for rec_id, content in records_by_id.items():
         elements = _json_record_elements(content, rec_type_str, rec_id)
-        if not (isinstance(rec_id, str) and rec_id.startswith("_:")):
-            _check_name(bundle, rec_id, rec_id)
+        identifier = (
+            rec_id if rec_id.startswith("_:") else _resolve_name(bundle, rec_id, rec_id)
+        )
         for element in elements:
-            _decode_record_instance(rec_type, rec_id, element, bundle)
+            _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
 
 
 def _decode_record_instance(
     rec_type: QualifiedName,
     rec_id: str,
+    identifier: QualifiedName | str,
     element: dict[str, Any],
     bundle: ProvBundle,
 ) -> None:
@@ -486,7 +489,9 @@ def _decode_record_instance(
 
     Args:
         rec_type: The record's PROV-N record type.
-        rec_id: The record's identifier string.
+        rec_id: The record's identifier string, for messages.
+        identifier: The record's identifier, resolved, or ``rec_id`` itself
+            for a blank-node identifier.
         element: The instance's raw attribute dict, as produced by
             :func:`_json_record_elements`.
         bundle: Bundle to add the decoded record, or one ``hadMember``
@@ -506,8 +511,7 @@ def _decode_record_instance(
         if attr_name in PROV_ATTRIBUTES_ID_MAP:
             attr: QualifiedName = PROV_ATTRIBUTES_ID_MAP[attr_name]
         else:
-            _check_name(bundle, attr_name, rec_id, attr_name)
-            attr = bundle.mandatory_valid_qname(attr_name)
+            attr = _resolve_name(bundle, attr_name, rec_id, attr_name)
         if attr in PROV_ATTRIBUTES:
             if is_membership and attr == PROV_ATTR_ENTITY:
                 members = _decode_members(rec_id, attr_name, values, bundle)
@@ -521,9 +525,9 @@ def _decode_record_instance(
                 for value in (values if isinstance(values, list) else [values])
             )
     if members is None:
-        bundle.new_record(rec_type, rec_id, attributes, other_attributes)
+        bundle.new_record(rec_type, identifier, attributes, other_attributes)
     else:
-        _add_memberships(bundle, rec_id, attributes, other_attributes, members)
+        _add_memberships(bundle, identifier, attributes, other_attributes, members)
 
 
 def _decode_members(
@@ -606,26 +610,24 @@ def _decode_name(
             f"{_position(rec_id, attr_name)}the value is {_json_text(value)}, "
             "not a qualified name"
         )
-    _check_name(bundle, value, rec_id, attr_name)
-    return bundle.mandatory_valid_qname(value)
+    return _resolve_name(bundle, value, rec_id, attr_name)
 
 
-def _check_name(
+def _resolve_name(
     bundle: ProvBundle,
-    text: Any,
+    text: str,
     rec_id: str | None,
     attr_name: str | None = None,
     *,
     kind: _Kind = "record",
-) -> None:
-    """Raise, with the position, when the qualified name ``text`` does not
-    resolve by its prefix in scope (#516, #551, #599); ``kind`` is ``"record"``
-    or ``"bundle"``. A ``text`` that is not a string is left to the model."""
-    if not isinstance(text, str):
-        return
-    detail = unresolved_name_detail(bundle, text)
-    if detail is not None:
-        raise ProvJSONException(_position(rec_id, attr_name, kind) + detail)
+) -> QualifiedName:
+    """The qualified name ``text`` resolves to by its prefix in scope, or a
+    positioned ``ProvJSONException`` (#516, #551, #599); ``kind`` is
+    ``"record"`` or ``"bundle"``."""
+    name = resolve_name(bundle, text)
+    if isinstance(name, str):
+        raise ProvJSONException(_position(rec_id, attr_name, kind) + name)
+    return name
 
 
 def _decode_time(
@@ -763,8 +765,7 @@ def _check_value_object(
                 f'{position}the value object\'s "type" is '
                 f"{_json_text(datatype_str)}, not a string"
             )
-        _check_name(bundle, datatype_str, rec_id, attr_name)
-        datatype = bundle.mandatory_valid_qname(datatype_str)
+        datatype = _resolve_name(bundle, datatype_str, rec_id, attr_name)
     legacy_types = _LEGACY_NUMBER_TYPES.get(type(value), ())
     if not isinstance(value, str) and (
         datatype not in legacy_types or "lang" in literal
@@ -795,9 +796,9 @@ def decode_json_representation(
             known. Used only to name the record in messages.
 
     Returns:
-        A :class:`~prov.model.Literal` for a value object (the model resolves
-        one typed ``xsd:QName`` or ``prov:QUALIFIED_NAME`` when the value is
-        added to a record), or ``literal`` unchanged if it was not a dict
+        A :class:`~prov.model.Literal` for a value object, the resolved
+        :class:`~prov.identifier.QualifiedName` for one typed ``xsd:QName``
+        or ``prov:QUALIFIED_NAME``, or ``literal`` unchanged if it was not a dict
         (conversion of plain Python types happens later, when the value is
         added to a record).
 
@@ -817,10 +818,10 @@ def decode_json_representation(
     if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME) and langtag is None:
         # #168: xsd:QName is the submission's type for QualifiedName
         # values; prov:QUALIFIED_NAME is accepted for documents produced
-        # by 2.x. The model stores the Literal as the QualifiedName; one
-        # that does not resolve is rejected here, with its position. The
-        # "$" is a string, checked above.
-        _check_name(bundle, value, rec_id, attr_name)
+        # by 2.x. The value is the QualifiedName itself; one that does not
+        # resolve is rejected here, with its position. The "$" is a string,
+        # checked above.
+        return _resolve_name(bundle, value, rec_id, attr_name)
     # The literal of standard Python types is not converted here. It is
     # converted when added to a record by _auto_literal_conversion().
     return Literal(value, datatype, langtag)

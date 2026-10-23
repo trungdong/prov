@@ -511,9 +511,13 @@ class ProvBundle:
         """
         return self._namespaces.valid_qualified_name(identifier)
 
-    def _unresolved_reason(self, text: str) -> str | None:
-        """Return why ``text`` resolves to no qualified name in this bundle by
-        its prefix alone, or ``None`` when it resolves."""
+    def _lookup(self, prefix: str, local: str) -> QualifiedName | None:
+        """Resolve a split name by its prefix in scope; see ``NamespaceManager.lookup``."""
+        return self._namespaces.lookup(prefix, local)
+
+    def _unresolved_reason(self, text: str) -> str:
+        """Why ``text`` does not resolve in this bundle by its prefix, after
+        :meth:`_lookup` returned ``None``."""
         return self._namespaces._unresolved_reason(text)
 
     def mandatory_valid_qname(

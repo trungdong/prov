@@ -117,8 +117,8 @@ from prov.model._values import (
     key_slot,
     no_prov_form_detail,
     python_value_form,
+    resolve_name,
     time_offset_detail,
-    unresolved_name_detail,
     xsd_value,
 )
 
@@ -891,10 +891,10 @@ class ProvRecord:
             if literal.datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
                 # A qualified-name literal resolves by its prefix in this
                 # record's bundle, never by compacting an IRI (#516, #553).
-                detail = unresolved_name_detail(self._bundle, literal.value, attr=attr)
-                if detail is not None:
-                    raise ProvExceptionInvalidQualifiedName(literal.value, detail)
-                return self._bundle.mandatory_valid_qname(literal.value)
+                name = resolve_name(self._bundle, literal.value, attr=attr)
+                if isinstance(name, str):
+                    raise ProvExceptionInvalidQualifiedName(literal.value, name)
+                return name
             if literal.datatype:
                 return self._convert_typed_literal(literal, literal.datatype)
             # A literal with no datatype nor langtag defined

@@ -2,7 +2,7 @@
 
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
-the model does not hold as it is, :func:`unresolved_name_detail` for a literal
+the model does not hold as it is, :func:`resolve_name` for a literal
 typed as a qualified name, and :func:`xsd_value` for the value a typed literal's
 text denotes. This module imports nothing from
 :mod:`prov.model.records`, so it returns text and datatypes and the caller
@@ -310,20 +310,30 @@ def no_prov_form_detail(attr: QualifiedName, value: object) -> str:
     return f"the value {_value_repr.repr(value)} of {attr} has type {name}, which has no PROV form"
 
 
-def unresolved_name_detail(
-    bundle: ProvBundle, text: str, *, attr: QualifiedName | None = None
-) -> str | None:
-    """Why the qualified name ``text`` does not resolve by its prefix in
-    ``bundle``, or ``None`` when it does (#516, #551, #553).
+def _split_name(text: str) -> tuple[str, str]:
+    """``text`` split at its first ``:`` into prefix and local part."""
+    prefix, colon, local = text.partition(":")
+    return (prefix, local) if colon else ("", text)
 
-    ``attr`` names the attribute after the text. The caller raises its own
-    error with the sentence, adding the position where its format has one.
+
+def resolve_name(
+    bundle: ProvBundle, text: str, *, attr: QualifiedName | None = None
+) -> QualifiedName | str:
+    """The qualified name ``text`` resolves to by its prefix in ``bundle``,
+    or the sentence saying why it does not (#516, #551, #553).
+
+    ``attr`` names the attribute after the text. A caller that gets a string
+    raises its own error with it, adding the position where its format has
+    one.
     """
-    reason = bundle._unresolved_reason(text)
-    if reason is None:
-        return None
+    qname = bundle._lookup(*_split_name(text))
+    if qname is not None:
+        return qname
     of_attr = f" of {attr}" if attr is not None else ""
-    return f"the qualified name {text!r}{of_attr} does not resolve, because {reason}"
+    return (
+        f"the qualified name {text!r}{of_attr} does not resolve,"
+        f" because {bundle._unresolved_reason(text)}"
+    )
 
 
 def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:

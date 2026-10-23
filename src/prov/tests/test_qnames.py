@@ -1,12 +1,22 @@
 """Shared qualified-name and namespace round-trip tests, run once per target
 in ``SHARED_TARGETS``."""
 
+from collections.abc import Iterator
+from pathlib import Path
+
 import pytest
 
 from prov.identifier import Namespace, QualifiedName
-from prov.model import Literal, ProvDocument, ProvException
+from prov.model import Literal, ProvBundle, ProvDocument, ProvException
 
+from . import examples
+from .attribute_values import document as attribute_values_document
 from .conftest import Roundtrip
+from .test_provn_corpus import (
+    CORPUS,
+    EXCLUDED_PROVTOOLBOX_DOCUMENTS,
+    EXCLUDED_SPEC_EXAMPLES,
+)
 
 
 def document_with_n_bundles_having_default_namespace(n: int) -> ProvDocument:
@@ -259,3 +269,64 @@ def test_generated_prefixes_avoid_prefixes_declared_in_a_bundle(
     bundle.entity("dn:f", {"default_1:attr": DEFAULT_PREFIX_NS["v"]})
     bundle.entity(DEFAULT_NS["c:d"])
     roundtrip(prov_doc)
+
+
+def _held_names(bundle: ProvBundle) -> Iterator[QualifiedName]:
+    if bundle.identifier is not None:
+        yield bundle.identifier
+    for record in bundle.get_records():
+        if record.identifier is not None:
+            yield record.identifier
+        for name, value in record.attributes:
+            yield name
+            if isinstance(value, QualifiedName):
+                yield value
+            elif isinstance(value, Literal) and value.datatype is not None:
+                yield value.datatype
+
+
+def _provn_corpus_files() -> list[Path]:
+    excluded = {*EXCLUDED_SPEC_EXAMPLES, *EXCLUDED_PROVTOOLBOX_DOCUMENTS}
+    return sorted(path for path in CORPUS.rglob("*.provn") if path.name not in excluded)
+
+
+def _corpus_documents() -> Iterator[ProvDocument]:
+    for _, build in examples.tests:
+        yield build()
+    yield attribute_values_document()
+    for path in _provn_corpus_files():
+        yield ProvDocument.deserialize(str(path), format="provn")
+
+
+@pytest.mark.parametrize("document", list(_corpus_documents()), ids=repr)
+def test_lookup_agrees_with_valid_qualified_name(document: ProvDocument) -> None:
+    # Spec 3, 3.4: the reader's one-walk resolution and the model's resolver
+    # give the same object for every name a document holds.
+    scopes: list[ProvBundle] = [document, *document.bundles]
+    for bundle in scopes:
+        for name in _held_names(bundle):
+            assert bundle._lookup(name.namespace.prefix, name.localpart) is name
+            if not name.namespace.prefix and ":" in name.localpart:
+                # A bare local part with a colon has no string form the
+                # resolver splits correctly; the lookup half covers it.
+                continue
+            resolved = bundle.valid_qualified_name(str(name))
+            assert resolved == name
+            assert resolved is not None and resolved.namespace is name.namespace
+
+
+def test_lookup_corners() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle("ex:b")
+    assert doc._lookup("", "") is None
+    assert doc._lookup("_", "x") is None
+    doc.add_namespace("_", "http://blank.org/")
+    assert doc._lookup("_", "x") is None
+    assert doc._lookup("zz", "x") is None
+    default = doc.get_default_namespace()
+    assert default is not None
+    assert doc._lookup("", "a:b") == default["a:b"]
+    assert bundle._lookup("ex", "z") is doc.valid_qualified_name("ex:z")
+    assert list(bundle.get_registered_namespaces()) == []

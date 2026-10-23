@@ -65,7 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.model._values import unresolved_name_detail
+from prov.model._values import resolve_name
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,
@@ -77,14 +77,6 @@ from prov.serializers.provn_lexer import (
 __all__ = ["PROFILES", "ProvNParser"]
 
 PROFILES = ("strict", "default", "lenient")
-
-
-def _default_namespace(bundle: ProvBundle) -> Namespace | None:
-    """The bundle's default namespace, falling back to its document's."""
-    default = bundle.get_default_namespace()
-    if default is None and bundle.document is not None:
-        default = bundle.document.get_default_namespace()
-    return default
 
 
 # keyword -> (record type, allowed argument counts after the identifier)
@@ -382,29 +374,12 @@ class ProvNParser:
         self._advance()  # 'bundle'
         id_token = self._identifier_token(inside_parens=False)
         namespaces, default = self._declarations()
-        # PROV-N 3.1.3: the bundle identifier is resolved with the bundle's
-        # own declarations. Only take the bundle-based resolution path when
-        # the identifier actually needs one of those declarations (a
-        # bundle-local prefix, or a bare name and the bundle sets its own
-        # default) -- document.add_bundle() then normalises the identifier
-        # against the bundle's own namespaces, not the document's, so a
-        # bundle-local prefix is never registered on the document. Otherwise
-        # resolve against the document directly, exactly as a bundle with no
-        # declarations of its own would, so a document-level prefix used for
-        # the identifier is not redundantly copied onto the bundle too.
-        prefix, _ = id_token.value
+        # PROV-N 3.1.3: the bundle identifier resolves with the bundle's own
+        # declarations first, then the document's.
+        bundle = ProvBundle(document=document)
+        self._apply_declarations(bundle, namespaces, default)
         try:
-            if (prefix and prefix in {ns.prefix for ns in namespaces}) or (
-                not prefix and default is not None
-            ):
-                bundle = ProvBundle(document=document)
-                self._apply_declarations(bundle, namespaces, default)
-                identifier = self._resolve(id_token, bundle)
-                document.add_bundle(bundle, identifier)
-            else:
-                identifier = self._resolve(id_token, document)
-                bundle = document.bundle(identifier)
-                self._apply_declarations(bundle, namespaces, default)
+            document.add_bundle(bundle, self._resolve(id_token, bundle))
         except ProvNSyntaxError:
             raise
         except ProvException as exc:
@@ -528,11 +503,11 @@ class ProvNParser:
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
         rec_type, arities, is_element = self._classify(keyword)
         self._expect(TokenKind.LPAREN)
-        identifier: QualifiedName | str | None = None
+        identifier: QualifiedName | None = None
         args: list[Token] = []
         if is_element:
             id_token = self._identifier_token()
-            identifier = self._identifier_text(id_token, bundle)
+            identifier = self._resolve(id_token, bundle)
         else:
             first = self._argument()
             if self._current.kind is TokenKind.SEMICOLON:
@@ -540,7 +515,7 @@ class ProvNParser:
                 if first.kind is TokenKind.MARKER:
                     identifier = None
                 elif first.kind is TokenKind.NAME:
-                    identifier = self._identifier_text(first, bundle)
+                    identifier = self._resolve(first, bundle)
                 else:
                     raise self._error("expected an identifier before ';'", first)
                 self._advance()
@@ -656,65 +631,19 @@ class ProvNParser:
             )
         return self._resolve(token, bundle)
 
-    def _identifier_text(self, token: Token, bundle: ProvBundle) -> QualifiedName | str:
-        """Validate an identifier and return its literal text where possible,
-        rather than a resolved ``QualifiedName``.
-
-        ``new_record()``/``document.bundle()`` call ``valid_qualified_name()``
-        on the identifier themselves; handing them an already-resolved
-        ``QualifiedName`` for a name delegated from a parent's default
-        namespace makes that call reconcile it onto this bundle as its OWN
-        default namespace, which the plain-string path does not do.
-        """
-        # Resolving here, even though the common case below discards
-        # ``resolved`` and returns plain text, validates the prefix and
-        # reports an unknown one at this token's position rather than at
-        # new_record()'s later, unpositioned resolution.
-        resolved = self._resolve(token, bundle)
-        prefix, local = token.value
-        if not prefix and ":" in local:
-            # An escaped colon in a bare local part can't be turned back
-            # into text without looking like a (wrong) prefixed name, so
-            # this one shape is passed on already resolved -- accepted,
-            # documented limitation: inside a bundle with no default of its
-            # own, this resolves against the enclosing document's default,
-            # and passing the already-resolved QualifiedName on to
-            # new_record() then makes the bundle adopt that default as its
-            # own (visible as an extra 'default <...>' line inside the
-            # bundle on re-serialisation), unlike a plain bare name, which
-            # goes through the string path and is not cached this way.
-            return resolved
-        return f"{prefix}:{local}" if prefix else local
-
-    def _resolve_escaped_colon(self, token: Token, bundle: ProvBundle) -> QualifiedName:
-        """Resolve a bare local part that holds an escaped colon.
-
-        The string-based prefix lookup would mis-split it, so this one shape
-        resolves against the default namespace directly.
-        """
-        default = _default_namespace(bundle)
-        if default is None:
-            raise self._error(
-                f"cannot resolve {token.text!r}: no default namespace declared",
-                token,
-            )
-        return default[token.value[1]]
-
     def _resolve(self, token: Token, bundle: ProvBundle) -> QualifiedName:
-        prefix, local = token.value
-        if not prefix and ":" in local:
-            return self._resolve_escaped_colon(token, bundle)
         # A name resolves by its prefix in scope, never by compacting an IRI
         # (#553, #599), so http://example.org/e is the undeclared prefix 'http'.
-        text = f"{prefix}:{local}" if prefix else local
-        if bundle._unresolved_reason(text) is not None:
+        prefix, local = token.value
+        qname = bundle._lookup(prefix, local)
+        if qname is None:
             why = (
                 f"prefix '{prefix}' is not declared"
                 if prefix
                 else "no default namespace declared"
             )
             raise self._error(f"cannot resolve {token.text!r}: {why}", token)
-        return bundle.mandatory_valid_qname(text)
+        return qname
 
     # -- attributes and literals -----------------------------------------------
 
@@ -751,24 +680,29 @@ class ProvNParser:
                 )
                 datatype = self._resolve(datatype_token, bundle)
                 if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-                    self._check_name_value(token.value, token, bundle)
+                    return self._resolve_name_value(token, bundle)
                 return Literal(token.value, datatype)
             return token.value
         if token.kind is TokenKind.INT:
             return self._advance().value
         if token.kind is TokenKind.QNAME_LITERAL:
             self._advance()
-            prefix, local = token.value
-            if not prefix and ":" in local:
-                return self._resolve_escaped_colon(token, bundle)
-            text = f"{prefix}:{local}" if prefix else local
-            self._check_name_value(text, token, bundle)
-            return bundle.mandatory_valid_qname(text)
+            return self._resolve_name_value(token, bundle)
         raise self._error(f"expected a literal value, found {self._found()}")
 
-    def _check_name_value(self, text: str, token: Token, bundle: ProvBundle) -> None:
-        """Reject the qualified-name value ``text`` at ``token`` when it does
-        not resolve by its prefix (#516, #553)."""
-        detail = unresolved_name_detail(bundle, text)
-        if detail is not None:
-            raise self._error(detail, token)
+    def _resolve_name_value(self, token: Token, bundle: ProvBundle) -> QualifiedName:
+        """The qualified-name value at ``token``: a lexed pair for a
+        ``'ex:x'`` literal, a string for ``"ex:x" %% xsd:QName``; rejected
+        at the token when it does not resolve by its prefix (#516, #553)."""
+        text = token.value
+        if isinstance(text, tuple):
+            prefix, local = text
+            if not prefix and ":" in local:
+                # An escaped colon has no text form the resolver would split
+                # correctly, so the token itself reports the failure.
+                return self._resolve(token, bundle)
+            text = f"{prefix}:{local}" if prefix else local
+        name = resolve_name(bundle, text)
+        if isinstance(name, str):
+            raise self._error(name, token)
+        return name
