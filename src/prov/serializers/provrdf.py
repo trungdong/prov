@@ -1614,6 +1614,41 @@ class ProvRDFSerializer(Serializer):
                 return
         factory(subj, str(obj))
 
+    def _attribute_object(
+        self,
+        obj: Node,
+        obj1: Any,
+        state: "_DecodeState",
+        subj: str,
+        pred: URIRef,
+        graph: Graph,
+    ) -> Any:
+        """Return the value to store for an attribute's object.
+
+        ``obj1`` for anything but a blank node; the identifier of the element a
+        blank node is the subject of, resolved as the element's own label is;
+        ``None``, after a ``ProvWarning``, for a blank node that names no record,
+        one typed as nothing or as a relation, which reads anonymous (#639).
+
+        Raises:
+            ProvElementIdentifierRequired: If the blank node is an element's
+                subject and its label resolves in no namespace, as the
+                element itself raises.
+        """
+        if not isinstance(obj, BNode):
+            return obj1
+        key = str(obj)
+        if key not in state.record_types or key in state.anonymous:
+            warn(
+                f"{subj}: {graph.namespace_manager.normalizeUri(pred)} points at a"
+                " blank node that names no record; the attribute is dropped"
+            )
+            return None
+        qname = self.valid_identifier(key)
+        if qname is None:
+            raise pm.ProvElementIdentifierRequired()
+        return qname
+
     def _decode_attribute_triple(
         self,
         graph: Graph,
@@ -1634,8 +1669,15 @@ class ProvRDFSerializer(Serializer):
             predicate_mapper: Maps PROV-O predicate URIRefs to formal
                 attribute QualifiedNames.
 
+        Warns:
+            ProvWarning: If ``obj`` is a blank node that names no record; the
+                attribute is dropped (#639).
+
         Raises:
             ValueError: If ``obj`` cannot be decoded to a usable value.
+            ProvElementIdentifierRequired: If ``obj`` is a blank node that is
+                an element's subject whose label resolves in no namespace
+                (see :meth:`_attribute_object`).
         """
         obj1 = self.decode_rdf_representation(obj, graph)
         if obj is not None and obj1 is None:
@@ -1666,7 +1708,17 @@ class ProvRDFSerializer(Serializer):
         # into `other_attributes` for those two predicates is "prov:time",
         # not "prov:startTime"/"prov:endTime" -- the fall-through-then-
         # reconcile mechanism described here is otherwise unchanged.
-        if str(pred_new) in [val.uri for val in state.formal_attributes[subj]]:
+        is_formal = str(pred_new) in [val.uri for val in state.formal_attributes[subj]]
+        if not is_formal and (
+            "qualified" in str(pred_new) or "asInBundle" in str(pred_new)
+        ):
+            # The qualification node's own link, carried by the relation's
+            # triples; nothing to store here.
+            return
+        obj1 = self._attribute_object(obj, obj1, state, subj, pred, graph)
+        if obj1 is None:
+            return
+        if is_formal:
             qname_key = self._resolve_predicate_key(pred_new, graph)
             state.formal_attributes[subj][qname_key] = obj1
             state.unique_sets[subj][qname_key].append(obj1)
@@ -1674,7 +1726,7 @@ class ProvRDFSerializer(Serializer):
                 # An ambiguous formal attribute is cleared here and resolved
                 # by walking every combination in _emit_decoded_records().
                 state.formal_attributes[subj][qname_key] = None
-        elif "qualified" not in str(pred_new) and "asInBundle" not in str(pred_new):
+        else:
             key: pm.QualifiedNameCandidate = pred_new
             if isinstance(pred_new, URIRef):
                 # Resolve against the graph's bindings so a key under a

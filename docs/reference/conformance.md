@@ -204,6 +204,10 @@ statement's own arguments are errors.
 - Two relations sharing an identifier raise, as C1 describes.
 - A relation whose subject is a blank node reads with no identifier; an element's blank-node
   label resolves in the default namespace.
+- An attribute whose object is a blank node that names no record, such as a
+  `prov:hadGeneration` pointing at an anonymous generation, is dropped with a `ProvWarning`
+  naming the subject and the predicate. A blank node that is an element's subject resolves as
+  that element's identifier does, so it needs the default namespace the element itself needs.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options

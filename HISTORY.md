@@ -266,6 +266,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
   ([#492](https://github.com/trungdong/prov/issues/492))
+- The PROV-O reader reads a derivation whose `prov:hadGeneration` or `prov:hadUsage` object
+  is a blank node, dropping the link with a `ProvWarning` that names the subject and the
+  predicate, where it raised `ProvExceptionInvalidQualifiedName` on rdflib's internal label.
+  The rule covers any attribute whose object is a blank node that names no record, which
+  read as the label text before. A blank node that is an element's subject resolves as that
+  element's identifier does and, with no default namespace, raises
+  `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
+  first ([#639](https://github.com/trungdong/prov/issues/639))
 
 ### Project
 
