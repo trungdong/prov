@@ -28,19 +28,19 @@ Two things are not obvious from the outside:
 
 - **The GitHub release is the trigger.** `.github/workflows/release.yml` runs its
   `publish-pypi` job on `release: types: [published]`. There is no separate "publish"
-  button and no manual `twine upload` — creating the GitHub release *is* how a version
+  button and no manual `twine upload`. Creating the GitHub release *is* how a version
   reaches PyPI.
 - **`workflow_dispatch` only ever reaches TestPyPI.** The same workflow's
   `publish-testpypi` job is gated on `github.event_name == 'workflow_dispatch'`, so a
   manual run is always a dry run. It cannot publish to PyPI by accident.
 
 Both publish jobs use PyPI Trusted Publishing through the `testpypi` and `pypi` GitHub
-environments — there are no API tokens to rotate.
+environments, so there are no API tokens to rotate.
 
 ## 1. Pre-flight
 
 Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
-rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the end first —
+rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the end first, since
 some of the steps below change.
 
 The gates every pull request passes, as `CONTRIBUTING.md` step 6 lists them:
@@ -93,11 +93,11 @@ The stamped files, in one commit:
 
 | File | Change |
 |---|---|
-| `src/prov/__init__.py` | `__version__ = "X.Y.Z"` — the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
+| `src/prov/__init__.py` | `__version__ = "X.Y.Z"`, the single source of truth; `pyproject.toml` reads it via `dynamic = ["version"]` and `docs/conf.py` imports it, so nothing else carries the number |
 | `HISTORY.md` | Date the heading: `## X.Y.Z (YYYY-MM-DD)`, matching the style of the entries below it |
 | `ROADMAP.md` | Move the release's row from **Next** to the top of **Released**, as `[X.Y.Z](…/releases/tag/X.Y.Z) \| YYYY-MM-DD \| theme`. An unplanned point release has no row under **Next**; add its row under **Released** directly |
-| `docs/reference/conformance.md` | Per-release revisit — the page states it is "revisited at every release"; verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
-| `CITATION.cff` | `version: "X.Y.Z"` — `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
+| `docs/reference/conformance.md` | Per-release revisit; the page states it is "revisited at every release"; verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
+| `CITATION.cff` | `version: "X.Y.Z"`; `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
 Also set the status line of each spec under `planning/specs/` that the release ships to
 "Complete; shipped in X.Y.Z", and its row in `planning/README.md` to "Complete" with the
@@ -110,7 +110,7 @@ ship a release whose front page never mentions its headline feature.
 
 ## 3. Release PR
 
-One PR, green CI before merge — the same rule as any other change. Two checks need
+One PR, green CI before merge, the same rule as any other change. Two checks need
 interpreting:
 
 - **Codacy reports, the maintainer decides.** Its GitHub check is not a required status
@@ -138,7 +138,7 @@ gh run watch <run-id> --repo trungdong/prov --exit-status
 curl -s https://test.pypi.org/pypi/prov/json | python3 -c "import json,sys; print(json.load(sys.stdin)['info']['version'])"
 ```
 
-Expect `publish-pypi` to be skipped in that run — that is the `if:` guard working. A second dry
+Expect `publish-pypi` to be skipped in that run; that is the `if:` guard working. A second dry
 run for the same version fails at `publish-testpypi` with `400 File already exists`, because
 TestPyPI never accepts a filename twice; judge a repeat by its `build` job, which is the part
 that matters.
@@ -190,7 +190,7 @@ If the install reports `no version of prov==X.Y.Z`, see Troubleshooting before r
 anything. Run these checks with `env -u VIRTUAL_ENV` in front of `uv`.
 
 Then exercise the release's headline feature through the installed package, not the
-checkout — that is what catches package-data that was never added to
+checkout; that is what catches package-data that was never added to
 `[tool.setuptools.package-data]`. A serializer that reads a vendored file at runtime works
 perfectly from a source tree and fails from a wheel.
 
@@ -284,7 +284,7 @@ explain it.
 
 **Not all of §2's stamped files apply.** Stamp `src/prov/__init__.py`, the `HISTORY.md`
 heading and `CITATION.cff` if the branch has one. `2.x` has no per-release row in
-`ROADMAP.md` — its table stops at the last release stamped before the branch diverged — and
+`ROADMAP.md`, since its table stops at the last release stamped before the branch diverged, and
 `docs/reference/conformance.md` carries no "revised for" sentence; confirm those two
 absences rather than assuming them, and if either has since gained the line, stamp it.
 
