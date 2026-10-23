@@ -1,10 +1,10 @@
 # Unification and flattening
 
 A document built up over time, or merged from several sources, describes one thing in
-several statements and splits facts across named bundles. `prov` offers two transformations
-that tidy this up, {py:meth}`~prov.model.ProvDocument.flattened` and
-{py:meth}`~prov.model.ProvBundle.unified`. This page explains each with a worked example
-and says how far `unified()` goes towards PROV-CONSTRAINTS normalization.
+several statements and splits facts across named bundles. Two transformations tidy this up,
+{py:meth}`~prov.model.ProvDocument.flattened` and {py:meth}`~prov.model.ProvBundle.unified`.
+This page explains each with an example and says how far `unified()` goes towards
+PROV-CONSTRAINTS normalization.
 
 Both transformations leave the original untouched. `unified()` returns a new document or
 bundle. `flattened()` returns a new document, or the document itself when it has no
@@ -143,10 +143,9 @@ document's top-level records and, independently, to each bundle. Nothing merges 
 bundle boundary, as [PROV-CONSTRAINTS requires](https://www.w3.org/TR/prov-constraints/#bundle-constraints).
 
 `flattened().unified()` is a different, deliberate tool. `flattened()` has discarded the
-bundle structure, so `unified()` then merges same-identifier records across what used to
-be bundle boundaries. No PROV-CONSTRAINTS rule licenses that, and two bundles asserting
-the same local name may describe different things. Use plain `document.unified()` when
-per-bundle scoping matters.
+bundle structure, so `unified()` then merges same-identifier records across former bundle
+boundaries, which no PROV-CONSTRAINTS rule licenses and which may conflate two bundles'
+unrelated uses of one local name. Use plain `document.unified()` when scoping matters.
 
 ### Relation to PROV-CONSTRAINTS
 
