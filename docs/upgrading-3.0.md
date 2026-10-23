@@ -27,17 +27,16 @@ and PROV-JSONLD serializers. {doc}`installation` lists the extra for everything 
 
 ## Dependency changes
 
-- **`python-dateutil` is dropped** for the standard library's `datetime.fromisoformat()`.
-  ISO 8601 timestamps are unaffected. Strings dateutil parsed permissively, such as
-  `"Nov 7, 2011"` or a bare `xsd:date`, are no longer accepted, and an unparseable `time=`,
-  `startTime=` or `endTime=` argument raises `prov.model.ProvException`.
+- **`python-dateutil` is dropped** for `datetime.fromisoformat()`. ISO 8601 timestamps are
+  unaffected; strings dateutil parsed permissively, such as `"Nov 7, 2011"` or a bare
+  `xsd:date`, are not, and an unparseable time argument raises `prov.model.ProvException`.
 - **`rdflib` floor raised to 7.0.0.** Upgrade if you pin rdflib 6.x alongside `prov[rdf]`.
 
 ## Bug fixes that change output or equality
 
-Everything else is a set of narrow bug fixes, mostly to serializer output for edge cases,
-and one renamed type alias. Each changes output or equality for inputs that worked without
-error before, which is why they waited for 3.0. Five need action:
+Everything else is narrow bug fixes, mostly to serializer output for edge cases, and one
+renamed type alias, each changing output or equality for inputs that already worked. Five
+need action:
 
 | Issue | What changed | Action |
 |---|---|---|
@@ -52,10 +51,9 @@ that already worked, without changing their meaning; the 3.0.0 section of the ch
 lists each with its issue. Recheck any byte comparison of serialized output.
 
 **Documented limitation, not a fix.** Two same-identifier relations that disagree on a
-formal attribute still cannot round-trip through PROV-O; decoding raises a clear, chained
-error (caveat C1 on {doc}`reference/conformance`,
-[#217](https://github.com/trungdong/prov/issues/217)). Give such relations distinct
-identifiers if they must survive an RDF round trip.
+formal attribute still cannot round-trip through PROV-O, and decoding raises a chained error
+([#217](https://github.com/trungdong/prov/issues/217); caveat C1 on
+{doc}`reference/conformance`). Give such relations distinct identifiers if they must survive.
 
 ## `unified()` now enforces PROV-CONSTRAINTS
 
@@ -85,10 +83,8 @@ records might disagree, catch `ProvUnificationError` around `unified()` and
 3.0 removes everything 2.4.0 marked deprecated. Nothing else is scheduled for removal.
 
 - The unconditional `pydot` and `networkx` dependencies, superseded by the `dot` and
-  `graph` extras above. `import prov.dot` and `import prov.graph` now raise
-  `ModuleNotFoundError` naming the extra to install.
+  `graph` extras; `import prov.dot` and `import prov.graph` raise `ModuleNotFoundError`.
 - `python-dateutil` as a runtime dependency, and the incidental `prov.model.dateutil`
   re-export that came from importing it.
-- `prov.model.GenrationRef`, the misspelled type alias used for the `generation` parameter
-  of `wasDerivedFrom()`, `wasRevisionOf()`, `wasQuotedFrom()` and `hadPrimarySource()`. It
-  is renamed `GenerationRef`, with no alias kept for the old spelling.
+- `prov.model.GenrationRef`, the misspelled alias for the `generation` parameter of the
+  derivation factories, renamed `GenerationRef` with no alias kept for the old spelling.
