@@ -1,16 +1,15 @@
 # Dependencies
 
-Why each runtime extra, dev-group and docs-group entry exists, and why it is pinned the
-way it is. Last checked 2026-09-10 against `pyproject.toml` and `uv.lock` at 3.1.1. Version
-numbers quoted here drift after that date, so check `pyproject.toml` before relying on
-them.
+Why each runtime extra and each dev, bench and docs group entry exists, and why it is
+pinned the way it is. Last checked 2026-10-23 against `pyproject.toml` and `uv.lock` on
+`main` after 3.2.3. Version numbers quoted here drift after that date, so check
+`pyproject.toml` before relying on them.
 
 ## Runtime dependencies
 
-`prov` has no unconditional runtime dependencies. `pydot` and `networkx` moved behind the
-`dot` and `graph` extras in 3.0.0, and `python-dateutil` was dropped in the same release in
-favour of `prov.model.parse_xsd_datetime()`, an `xsd:dateTime` parser built on the standard
-library's `datetime.fromisoformat()`.
+`prov` has no unconditional runtime dependencies. `pydot` and `networkx` sit behind the
+`dot` and `graph` extras, and `xsd:dateTime` parsing is `prov.model.parse_xsd_datetime()`,
+built on the standard library's `datetime.fromisoformat()`.
 
 ## Optional extras
 
@@ -27,23 +26,14 @@ used, not at `import prov` time.
 
 ### `rdf`
 
-The floor rose from 6.0.0 to 7.0.0 in 3.0.0. The serializer uses `rdflib.graph.Dataset` and
-`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7, and rdflib 6's accidental
-prefix-carrying behaviour is no longer supported. `Dataset(default_union=True)` reproduces
-the union-query semantics of the deprecated `ConjunctiveGraph` it replaced, so round-trip
-behaviour is unchanged. Under rdflib 7, bundle-local namespaces serialize as full IRIs
-rather than their original prefixes; round trips stay equivalent because `QualifiedName`
-equality is by IRI.
+The floor is 7.0.0 because the serializer uses `rdflib.graph.Dataset` and
+`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7. `Dataset(default_union=True)`
+gives the union-query semantics the deserializer relies on. The cap below 8 waits for
+rdflib's next major, which retires `Dataset` members the serializer still calls.
 
 The `rdflib-compat` CI job runs the RDF tests against both bounds, `==7.0.0` and the newest
-7.x. The main matrix uses the locked version.
-
-From rdflib 7.3.0 its own internals call deprecated `Dataset` members, so a
-`-W error::DeprecationWarning` run of the RDF tests fails on rdflib 7.3 and later even
-though `provrdf.py` calls no deprecated rdflib name in the encoding path. That is rdflib's
-migration debt, slated for its 8.0. The `own-warnings` CI job therefore counts only
-warnings attributed to `prov` modules. `encode_container()` still accepts a caller-supplied
-`Dataset` for API compatibility; that path's `.add()` calls trip the same rdflib warning.
+7.x. The main matrix uses the locked version. The `own-warnings` CI job counts only warnings
+attributed to `prov` modules, because rdflib's own internals raise deprecation warnings.
 
 ### `xml`
 
@@ -80,10 +70,17 @@ Never installed for end users.
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
 
-Removed from this group in 2.3.0: `bumpversion`, `setuptools`, `wheel` and `tox`. Build
-backend requirements live under `[build-system]`, and the interpreter matrix is run with
-`uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows. `sphinx` and `sphinx-rtd-theme`
-moved to the docs group below.
+Build backend requirements live under `[build-system]`, and the interpreter matrix is run
+with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
+
+## Bench dependency group
+
+`CLAUDE.md` tells agents to sync this group alongside the four extras, because
+`benchmarks/ab.py` and the benchmark suite under `benchmarks/` need it.
+
+| Package | Purpose |
+|---|---|
+| `pytest-benchmark>=5.1.0` | Times the benchmark suite; `benchmarks/ab.py` compares two versions of the library with it. |
 
 ## Docs dependency group
 
@@ -104,12 +101,10 @@ uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
 | `myst-parser` | Builds the `.md` sources; only the `colon_fence` and `deflist` extensions are enabled. |
 | `sphinx-copybutton` | A copy button on code blocks. |
 
-Sphinx was capped below 9 from 2.3.0 to 3.0.0 because Sphinx 9's autodoc called `repr()`
-on rdflib's `DefinedNamespaceMeta`, which raised `AttributeError` and crashed the build.
-rdflib 7.6.0 catches that error itself, so the cap was lifted for 3.0.0 after a clean
-`sphinx-build -W` against Sphinx 9. The lock file resolves Sphinx 9. If a similar autodoc
-crash appears on a future Sphinx major, rebuild with `-W` before assuming a new cap is
-needed.
+Sphinx has no cap. The lock file resolves Sphinx 9, and `docs/conf.py` carries a small
+patch for how its autodoc prints a type alias inside a union; the comment there says when
+it goes. If an autodoc crash appears on a future Sphinx major, rebuild with `-W` before
+assuming a cap is needed.
 
 ## `[tool.uv]` constraint
 
