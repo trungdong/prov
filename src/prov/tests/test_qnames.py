@@ -445,3 +445,27 @@ def test_identifier_equal_to_the_default_namespace_iri_avoids_a_taken_dn() -> No
 def test_a_bare_empty_local_name_still_has_no_provn_spelling() -> None:
     with pytest.raises(ProvException, match="empty local part"):
         Namespace("", DEFAULT_NS.uri)[""].provn_representation()
+
+
+def test_identifier_equal_to_a_namespace_iri_skips_a_prefix_the_bundle_rebinds() -> (
+    None
+):
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d/")
+    doc.add_namespace("ex", "http://d/")
+    by_name = doc.bundle("ex:b3")
+    by_name.add_namespace("ex", "http://x/")
+    by_string = doc.bundle("ex:b4")
+    by_string.add_namespace("ex", "http://x/")
+    from_name = by_name.entity(Namespace("", "http://d/")[""]).identifier
+    from_string = by_string.entity("http://d/").identifier
+    assert str(from_name) == "dn:"
+    assert "dn" in {ns.prefix for ns in by_name.get_registered_namespaces()}
+    assert from_string.namespace.prefix != "ex"
+    assert from_string.namespace in by_string.get_registered_namespaces()
+    reloaded = ProvDocument.deserialize(
+        content=doc.serialize(format="provn"), format="provn"
+    )
+    for bundle in reloaded.bundles:
+        uris = [r.identifier.uri for r in bundle.get_records() if r.identifier]
+        assert uris == ["http://d/"]

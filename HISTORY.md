@@ -300,7 +300,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   it and every reader reads it back. 3.2.x raised `ProvElementIdentifierRequired` for
   the string and accepted the `QualifiedName` only to fail at write time. PROV-XML's
   `prov:id` admits no empty local part, so the written `prov:id="dn:"` is not schema-valid,
-  as `ex:` was not ([#473](https://github.com/trungdong/prov/issues/473))
+  as no prefixed empty local part is ([#473](https://github.com/trungdong/prov/issues/473))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.

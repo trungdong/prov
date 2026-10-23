@@ -39,10 +39,10 @@ class NamespaceManager(dict[str, Namespace]):
         self.update(self._default_namespaces)
         self._namespaces: dict[str, Namespace] = {}
 
-        # Plain str -> QualifiedName this manager resolved itself, never a
-        # result obtained by delegating to a parent. Cleared by every
+        # Plain str -> QualifiedName this manager resolved. A compaction can
+        # cache a name minted in an outer scope's namespace. Cleared by every
         # mutation that can change how a string resolves: add_namespace()
-        # and _set_default().
+        # clears it before the entry is written, and _set_default().
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
@@ -223,9 +223,12 @@ class NamespaceManager(dict[str, Namespace]):
 
         if resolved is not None or not self.parent:
             return resolved
-        # all attempts have failed so far; delegate to the parent, but do
-        # not cache a result this manager did not itself resolve
-        return self.parent.valid_qualified_name(qname)
+        # all attempts have failed so far; delegate to the parent and read its
+        # name as this scope does, without caching it
+        from_parent = self.parent.valid_qualified_name(qname)
+        if from_parent is None:
+            return None
+        return self._reconcile_qualified_name(from_parent)
 
     def _resolve_string(
         self, str_value: str, is_plain_str: bool
@@ -292,12 +295,16 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def _prefixed_namespace(self, uri: str) -> Namespace:
-        """A namespace with a prefix bound to ``uri`` in scope, ``dn`` (or the
-        next free suffix) registered here when none is (#473)."""
+        """The nearest namespace bound to ``uri`` whose prefix this scope
+        reads the same way, ``dn`` (or the next free suffix) registered here
+        when there is none (#473)."""
         manager: NamespaceManager | None = self
         while manager is not None:
             namespace = manager._uri_map.get(uri)
-            if namespace is not None:
+            if (
+                namespace is not None
+                and self._binding_in_scope(namespace.prefix) is namespace
+            ):
                 return namespace
             manager = manager.parent
         return self.add_namespace(Namespace("dn", uri))
