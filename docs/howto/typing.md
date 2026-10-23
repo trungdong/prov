@@ -51,7 +51,7 @@ document.entity("ex:appendix", details)
 Pyright accepts the call without the annotation.
 
 `AttributeValue` covers `str`, `int`, `float`, `bool`, `datetime.datetime`,
-{py:class}`~prov.identifier.Identifier`, {py:class}`~prov.model.QualifiedName`,
+{py:class}`~prov.identifier.Identifier`, {py:class}`~prov.identifier.QualifiedName`,
 {py:class}`~prov.model.Literal`, any {py:class}`~prov.model.ProvRecord`, `None`, and the
 types `prov` stores as a `Literal`: `decimal.Decimal`, `datetime.date`, `datetime.time`,
 `datetime.timedelta`, `uuid.UUID`, `bytes`, `bytearray` and `memoryview`. A record stands

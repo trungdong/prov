@@ -99,7 +99,7 @@ uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
 
 | Package | Purpose |
 |---|---|
-| `sphinx>=8.1.3` | The documentation generator. |
+| `sphinx>=8.1.3` | The documentation generator. CI's `docs` job builds the site with `-W -n`, so a warning or an unresolved cross-reference fails the PR. |
 | `furo` | The HTML theme. Actively maintained, accessible defaults, native light and dark mode. |
 | `myst-parser` | Builds the `.md` sources; only the `colon_fence` and `deflist` extensions are enabled. |
 | `sphinx-copybutton` | A copy button on code blocks. |

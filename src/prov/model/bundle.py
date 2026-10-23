@@ -555,7 +555,7 @@ class ProvBundle:
                 (default: ``None``, meaning all records).
 
         Returns:
-            A new list of the matching :class:`ProvRecord` objects.
+            A new list of the matching :class:`~prov.model.ProvRecord` objects.
         """
         if class_or_type_or_tuple:
             return [
@@ -572,7 +572,7 @@ class ProvBundle:
             identifier: The record identifier to look up.
 
         Returns:
-            The matching :class:`ProvRecord` objects, or an empty list if the
+            The matching :class:`~prov.model.ProvRecord` objects, or an empty list if the
             identifier is invalid or unknown.
         """
         valid_id = self.valid_qualified_name(identifier)
@@ -671,7 +671,7 @@ class ProvBundle:
         Args:
             _indent_level: Indentation level for nested bundles.
             strict: Write output that parses under the strict PROV-N
-                profile, as :meth:`ProvRecord.get_provn` describes, dropping
+                profile, as :meth:`~prov.model.ProvRecord.get_provn` describes, dropping
                 what ``alternateOf``, ``specializationOf`` and ``hadMember``
                 cannot carry there, with a warning each.
         """
@@ -840,7 +840,7 @@ class ProvBundle:
 
         Args:
             record_type: The record type, one of the keys of
-                :data:`PROV_REC_CLS`.
+                ``PROV_REC_CLS``.
             identifier: The identifier for the new record (may be ``None`` for
                 relations).
             attributes: Formal attributes of the record, as a dict or a
@@ -849,7 +849,7 @@ class ProvBundle:
                 forms (default: ``None``).
 
         Returns:
-            The newly created and added :class:`ProvRecord`.
+            The newly created and added :class:`~prov.model.ProvRecord`.
         """
         attr_list: list[AttributePair] = []
         if attributes:
@@ -871,10 +871,10 @@ class ProvBundle:
         record is a new object, not ``record`` itself.
 
         Args:
-            record: The :class:`ProvRecord` to copy into the bundle.
+            record: The :class:`~prov.model.ProvRecord` to copy into the bundle.
 
         Returns:
-            The newly created :class:`ProvRecord` belonging to this bundle.
+            The newly created :class:`~prov.model.ProvRecord` belonging to this bundle.
         """
         return self.new_record(
             record.get_type(),

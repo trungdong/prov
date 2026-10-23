@@ -7,5 +7,7 @@ PDF. It needs the `dot` extra. {doc}`../howto/graphics` covers the Graphviz setu
 worked examples.
 
 ```{eval-rst}
+.. py:module:: prov.dot
+
 .. autofunction:: prov.dot.prov_to_dot
 ```

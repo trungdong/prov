@@ -34,11 +34,13 @@ uv sync --extra rdf --extra xml --extra dot --extra graph --group bench
 ```
 
 Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers
-and `prov.dot`/`prov.graph`):
+and `prov.dot`/`prov.graph`). CI's `docs` job builds with `-W -n`, so every warning and
+every unresolved cross-reference fails; `nitpick_ignore` in `docs/conf.py` lists the
+private names public annotations expose. A PR that touches a docstring or a page runs:
 
 ```bash
 uv sync --group docs --extra rdf --extra xml --extra dot --extra graph
-uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -b html docs docs/_build/html
+uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html
 ```
 
 `docs/dependencies.md` explains every dependency pin, including the `numpy<2.5` constraint

@@ -12,11 +12,32 @@ classes.
 ## Documents and bundles
 
 ```{eval-rst}
+.. py:module:: prov.model
+
 .. autoclass:: prov.model.ProvDocument
    :members:
    :show-inheritance:
 
 .. autoclass:: prov.model.ProvBundle
+   :members:
+   :show-inheritance:
+```
+
+## Records
+
+Every statement is a {py:class}`~prov.model.ProvRecord`. Elements and relations share its
+attribute, comparison and PROV-N methods, so those are documented once here.
+
+```{eval-rst}
+.. autoclass:: prov.model.ProvRecord
+   :members:
+   :show-inheritance:
+
+.. autoclass:: prov.model.ProvElement
+   :members:
+   :show-inheritance:
+
+.. autoclass:: prov.model.ProvRelation
    :members:
    :show-inheritance:
 ```
@@ -27,17 +48,14 @@ classes.
 .. autoclass:: prov.model.ProvEntity
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvActivity
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvAgent
    :members:
    :show-inheritance:
-   :inherited-members:
 ```
 
 ## Relations
@@ -46,77 +64,62 @@ classes.
 .. autoclass:: prov.model.ProvGeneration
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvUsage
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvCommunication
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvStart
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvEnd
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvInvalidation
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvDerivation
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvAttribution
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvAssociation
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvDelegation
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvInfluence
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvSpecialization
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvAlternate
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvMention
    :members:
    :show-inheritance:
-   :inherited-members:
 
 .. autoclass:: prov.model.ProvMembership
    :members:
    :show-inheritance:
-   :inherited-members:
 ```
 
 ## Namespaces and literals
@@ -149,12 +152,83 @@ by identifier, and a bundle never equals a document.
 
 ## Type aliases
 
-{py:data}`~prov.model.AttributeValue` is the type of the values a dict of attributes may
-hold. {doc}`../howto/typing` shows how to use it when a type checker reports a call.
+The names the signatures above use. {py:data}`~prov.model.AttributeValue` is the type of
+the values a dict of attributes may hold; {doc}`../howto/typing` shows how to use it when a
+type checker reports a call.
 
 ```{eval-rst}
 .. autodata:: prov.model.AttributeValue
    :no-value:
+
+   A value accepted for a record attribute, before coercion: a record, a qualified name,
+   an ``Identifier``, a ``datetime``, a ``Literal``, or a Python value with an XSD datatype.
+
+.. autodata:: prov.model.RecordAttributesArg
+   :no-value:
+
+   The attributes of a record: a mapping from attribute name to value, or pairs of name
+   and value in a sequence, a set or an iterator.
+
+.. autodata:: prov.model.OptionalID
+   :no-value:
+
+   An identifier as a qualified name, a string or an ``Identifier``, or ``None``.
+
+.. autodata:: prov.model.EntityRef
+   :no-value:
+
+   An entity, or its identifier as a qualified name, a string or an ``Identifier``.
+
+.. autodata:: prov.model.ActivityRef
+   :no-value:
+
+   An activity, or its identifier.
+
+.. autodata:: prov.model.AgentRef
+   :no-value:
+
+   An agent, or an entity or activity acting as one, or its identifier.
+
+.. autodata:: prov.model.InfluencerRef
+   :no-value:
+
+   Any element, or its identifier.
+
+.. autodata:: prov.model.GenerationRef
+   :no-value:
+
+   A generation record, or its identifier.
+
+.. autodata:: prov.model.UsageRef
+   :no-value:
+
+   A usage record, or its identifier.
+
+.. autodata:: prov.model.StreamOrPath
+   :no-value:
+
+   An open stream, or a path as a string, bytes or ``os.PathLike``.
+
+.. autodata:: prov.model.QualifiedNameCandidate
+   :no-value:
+
+   A qualified name, or a string or ``Identifier`` the bundle resolves to one.
+
+.. autodata:: prov.model.DatetimeOrStr
+   :no-value:
+
+   A ``datetime``, or an ``xsd:dateTime`` string parsed with :func:`~prov.model.parse_xsd_datetime`.
+
+.. autodata:: prov.model.NSCollection
+   :no-value:
+
+   Namespaces to register: a mapping from prefix to URI, or ``Namespace`` objects.
+```
+
+## Functions
+
+```{eval-rst}
+.. autofunction:: prov.model.parse_xsd_datetime
 ```
 
 ## Exceptions

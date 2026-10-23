@@ -10,6 +10,8 @@ its serializer class. The how-to guides ({doc}`../howto/provjson`,
 the registry and PROV-N's error type.
 
 ```{eval-rst}
+.. py:module:: prov.serializers
+
 .. autoclass:: prov.serializers.Serializer
    :members:
    :show-inheritance:
@@ -29,12 +31,7 @@ the registry and PROV-N's error type.
 {py:func}`prov.read` detects the format of a source by trying each registered
 deserializer in registry order, `json`, `rdf`, `provn`, `xml`, `jsonld`, and returning the
 first non-empty document. The order matters for a non-seekable stream, which only the
-first attempt can read. The {doc}`../howto/provjson` guide describes the error behaviour.
-With `format` given explicitly, keyword arguments such as `profile` pass straight through
-to that format's deserializer. During auto-detection, `read()` passes them only to the
-`provn` candidate, since a keyword such as `profile` would raise `TypeError` from a
-deserializer that does not understand it, which auto-detection cannot tell apart from "not
-this format".
+first attempt can read.
 
 ```{eval-rst}
 .. autofunction:: prov.read
@@ -43,7 +40,7 @@ this format".
 ## PROV-N errors
 
 ```{eval-rst}
-.. autoclass:: prov.serializers.provn_lexer.ProvNSyntaxError
+.. autoclass:: prov.serializers.provn.ProvNSyntaxError
    :members:
    :show-inheritance:
 ```
