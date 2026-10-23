@@ -30,7 +30,7 @@ for the two JSON formats.
 
 ## Read from a file, a string or a stream
 
-`source` takes a path or an open stream; `content` takes the text itself:
+`source` takes a path or an open stream; `content` takes the text itself, as `str` or `bytes`:
 
 ```python
 loaded = pm.ProvDocument.deserialize("document.json")  # a path
@@ -66,13 +66,15 @@ arguments such as `profile` reach each candidate that declares them.
 
 ## Formats
 
-| Format | `format=` | Extra | Read | Write | Usual extension | Media type |
-| --- | --- | --- | --- | --- | --- | --- |
-| [PROV-JSON](provjson) | `json` (default) | none | ✓ | ✓ | `.json` | `application/json` |
-| [PROV-JSONLD](provjsonld) | `jsonld` | none | ✓ | ✓ | `.jsonld` | `application/ld+json` |
-| [PROV-N](provn) | `provn` | none | ✓ | ✓ | `.provn` | `text/provenance-notation` |
-| [PROV-XML](provxml) | `xml` | `xml` | ✓ | ✓ | `.provx` | `application/provenance+xml` |
-| [PROV-O (RDF)](provo-rdf) | `rdf` | `rdf` | ✓ | ✓ | `.trig` by default | that of the RDF syntax, `application/trig` by default |
+Every format reads and writes.
+
+| Format | `format=` | Extra | Usual extension | Media type |
+| --- | --- | --- | --- | --- |
+| [PROV-JSON](provjson) | `json` (default) | none | `.json` | `application/json` |
+| [PROV-JSONLD](provjsonld) | `jsonld` | none | `.jsonld` | `application/ld+json` |
+| [PROV-N](provn) | `provn` | none | `.provn` | `text/provenance-notation` |
+| [PROV-XML](provxml) | `xml` | `xml` | `.provx` | `application/provenance+xml` |
+| [PROV-O (RDF)](provo-rdf) | `rdf` | `rdf` | `.trig` by default | that of the RDF syntax, `application/trig` by default |
 
 {doc}`../installation` lists the extras. `prov` dispatches on neither the extension nor
 the media type; they are conventions for other tools.
@@ -80,11 +82,14 @@ the media type; they are conventions for other tools.
 ## How errors surface
 
 Each reader raises its format's own exception for input it cannot represent:
-`ProvJSONException`, `ProvJSONLDException`, {py:class}`~prov.serializers.provn.ProvNSyntaxError`,
-`ProvXMLException`, and {py:class}`~prov.model.ProvException` for PROV-O. Input that is not
-well-formed in the underlying syntax raises the parsing library's own error first:
-`json.JSONDecodeError` for the two JSON formats, `lxml`'s `XMLSyntaxError` and `rdflib`'s
-`BadSyntax`.
+`prov.serializers.provjson.ProvJSONException`,
+`prov.serializers.provjsonld.ProvJSONLDException`,
+{py:class}`~prov.serializers.provn.ProvNSyntaxError`,
+`prov.serializers.provxml.ProvXMLException`, and {py:class}`~prov.model.ProvException` for
+PROV-O. Input that is not well-formed in the underlying syntax raises the parsing library's
+own error first: `json.JSONDecodeError` for the two JSON formats, `lxml`'s `XMLSyntaxError`,
+and the error of the rdflib parser for the chosen `rdf_format`, `BadSyntax` for TriG and
+Turtle.
 
 ```python
 try:

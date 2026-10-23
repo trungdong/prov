@@ -73,6 +73,7 @@ document.serialize(format="jsonld", context="embed")
 ## Limitations
 
 The submission defines no Mention term, so a document with a
-{py:class}`~prov.model.ProvMention` raises `ProvJSONLDException` on write and on read
+{py:class}`~prov.model.ProvMention` raises `prov.serializers.provjsonld.ProvJSONLDException`
+on write and on read
 ({doc}`../reference/conformance`, C2). The reader accepts the submission's compacted shape
 only, not expanded or flattened JSON-LD.

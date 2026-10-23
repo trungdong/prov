@@ -48,5 +48,6 @@ bundles.
 
 Two relations that share an identifier and differ in a formal attribute cannot round-trip,
 because PROV-O names a relation by its identifier; reading such RDF raises
-{py:class}`~prov.model.ProvException` ({doc}`../reference/conformance`, C1). The edge
-cases on that page, C9 to C11, cover literals that rdflib rewrites on read.
+{py:class}`~prov.model.ProvException` ({doc}`../reference/conformance`, C1). On the same
+page, C9 and C10 cover literals rdflib rewrites on read, and C11 a decimal `NaN` beside a
+number, which rdflib cannot write.

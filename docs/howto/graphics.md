@@ -91,10 +91,11 @@ dot_binary = prov_to_dot(document, show_nary=False)
 
 ## Plot in a notebook or window
 
-{py:meth}`~prov.model.ProvBundle.plot` renders the same graph through matplotlib. With no
-filename it opens an interactive window, or draws inline in a notebook; with one, it saves
-in the format the extension names. It takes the same display options as `prov_to_dot()`
-and needs the `plot` extra, which {doc}`../installation` lists.
+{py:meth}`~prov.model.ProvBundle.plot` draws the same graph. With no filename it shows the
+image through matplotlib, in an interactive window or inline in a notebook, which needs the
+`plot` extra that {doc}`../installation` lists. With a filename it writes the file through
+Graphviz, as `prov_to_dot()` does, in the format the extension names. It takes `show_nary`,
+`use_labels`, `show_element_attributes` and `show_relation_attributes`, and no `direction`.
 
 ```python
 document.plot("document.png", use_labels=True)

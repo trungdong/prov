@@ -39,8 +39,7 @@ assert provn_str == document.get_provn()
 ## Read a file or a string
 
 {py:meth}`~prov.model.ProvDocument.deserialize` with `format="provn"` parses PROV-N text,
-and {py:func}`prov.read` detects it because a PROV-N document starts with the `document`
-keyword ({doc}`read-write`). The parser reads the whole document into memory first, so
+and {py:func}`prov.read` detects it with no `format` argument ({doc}`read-write`). The parser reads the whole document into memory first, so
 memory grows with the number of statements.
 
 ```python
@@ -63,7 +62,9 @@ document = pm.ProvDocument.deserialize("document.provn", format="provn", profile
 ```
 
 Use `strict` to check that a document conforms to the Recommendation, `default` for
-files other tools wrote, and `lenient` to salvage what a damaged file still holds.
+files other tools wrote, and `lenient` to salvage what a damaged file still holds. A
+tokenisation error, such as an unterminated string, IRI or comment, and a duplicate prefix
+declaration raise in every profile.
 
 ## Handle syntax errors
 
