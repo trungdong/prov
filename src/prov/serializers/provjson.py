@@ -680,7 +680,7 @@ def encode_json_representation(
         value: Attribute value to encode: a :class:`~prov.model.Literal`,
             a :class:`datetime.datetime`, a
             :class:`~prov.identifier.QualifiedName`, a plain ``int``/``float``
-            (typed by :func:`~prov.model.canonical_xsd_datatype`), or a
+            (typed by ``python_value_form``), or a
             plain JSON-native value.
         qname_text: Writes a qualified name (the value or a literal's
             datatype); the container's ``_JSONPrefixMap.qname_text`` in
@@ -704,7 +704,7 @@ def encode_json_representation(
         # through as it is
         return value
     text, datatype = form
-    # int/float: the submission's typedLiteral schema requires a string "$"
+    # int/float/datetime: the submission's typedLiteral schema requires a string "$"
     # (#246); the datatype is magnitude-aware for ints (#244/#256)
     return {"$": text, "type": str(datatype)}
 

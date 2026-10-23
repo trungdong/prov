@@ -738,6 +738,18 @@ def test_float_precision_survives_rdf_roundtrip() -> None:
     assert roundtrip_document(document, "rdf") == document
 
 
+def test_float_subclass_is_written_as_a_float() -> None:
+    class Ratio(float):
+        pass
+
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e", {"ex:v": Ratio(0.1)})
+    assert '"0.1"^^<http://www.w3.org/2001/XMLSchema#double>' in document.serialize(
+        format="rdf", rdf_format="nt"
+    )
+
+
 def test_qualified_delegation_pair_survives_rdf_roundtrip() -> None:
     # #226: two qualified delegations sharing the same delegate and
     # qualifying activity but differing in responsible used to collapse
@@ -1029,7 +1041,11 @@ def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) ->
     )
     if typed:
         turtle += f"_:g1 a {node_type} ; prov:activity ex:a .\nex:a a prov:Activity .\n"
-    with pytest.warns(pm.ProvWarning, match=f"{predicate}.*names no record") as caught:
+    message = (
+        f"an anonymous prov:Derivation: prov:{predicate} points at a blank node"
+        " that names no record"
+    )
+    with pytest.warns(pm.ProvWarning, match=message) as caught:
         document = ProvDocument.deserialize(
             content=turtle, format="rdf", rdf_format="turtle"
         )
@@ -1074,7 +1090,9 @@ def test_blank_node_behind_an_element_is_the_elements_own_problem(body: str) -> 
 
 def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
     turtle = _BLANK_OBJECT_PREFIXES + "ex:e a prov:Entity ; ex:ref _:x .\n"
-    with pytest.warns(pm.ProvWarning, match="ex:ref.*names no record"):
+    with pytest.warns(
+        pm.ProvWarning, match="ex:e: ex:ref points at a blank node that names no record"
+    ):
         document = ProvDocument.deserialize(
             content=turtle, format="rdf", rdf_format="turtle"
         )

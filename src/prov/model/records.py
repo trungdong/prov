@@ -374,13 +374,16 @@ def encoding_provn_value(
 ) -> str:
     """Return the PROV-N literal representation of a Python value.
 
-    Strings are quoted (triple-quoted when they span multiple lines); dates
-    are rendered with their XSD datatype suffix and booleans as ``"true"``/``"false"``
-    with theirs. Floats are rendered as full-precision ``xsd:double`` (#251). Plain ints are typed by
-    magnitude: within +/-(2**31-1) they render as a bare ``INT_LITERAL`` (PROV-N
-    [60] sugar for ``xsd:int``); beyond that they carry an explicit
-    ``xsd:long``/``xsd:integer`` suffix (#249). Any other value is rendered
-    via :func:`str`, a qualified name as its ``prefix:local`` text.
+    A string is quoted (triple-quoted when it spans multiple lines). Any other
+    value that has a PROV form (a ``bool``, ``int``, ``float`` or
+    ``datetime``, or a ``Decimal``, ``date``, ``time``, ``timedelta``, ``UUID``
+    or bytes-like value) is written as ``"text" %% datatype``. Booleans render
+    as ``"true"``/``"false"``, and floats as full-precision ``xsd:double``
+    (#251). Plain ints are typed by magnitude: within +/-(2**31-1) they render
+    as a bare ``INT_LITERAL`` (PROV-N [60] sugar for ``xsd:int``); beyond that
+    they carry an explicit ``xsd:long``/``xsd:integer`` suffix (#249). A
+    qualified name, and any value with no PROV form or no lexical form, is
+    rendered via :func:`str`.
     """
     if isinstance(value, str):
         return _provn_string_literal(value)

@@ -529,7 +529,7 @@ class ProvRDFSerializer(Serializer):
                 a :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
                 a :class:`~prov.identifier.QualifiedName`, a plain ``int``
                 (typed by magnitude via
-                :func:`~prov.model.canonical_xsd_datatype`), a type listed in
+                ``python_value_form``), a type listed in
                 :data:`LITERAL_XSDTYPE_MAP`, or another value passed straight
                 to ``rdflib.Literal``.
 
@@ -1639,9 +1639,14 @@ class ProvRDFSerializer(Serializer):
             return obj1
         key = str(obj)
         if key not in state.record_types or key in state.anonymous:
+            subject = (
+                f"an anonymous {state.record_types[subj]}"
+                if subj in state.anonymous
+                else graph.namespace_manager.normalizeUri(URIRef(subj))
+            )
             warn(
-                f"{subj}: {graph.namespace_manager.normalizeUri(pred)} points at a"
-                " blank node that names no record; the attribute is dropped"
+                f"{subject}: {graph.namespace_manager.normalizeUri(pred)} points at"
+                " a blank node that names no record; the attribute is dropped"
             )
             return None
         qname = self.valid_identifier(key)

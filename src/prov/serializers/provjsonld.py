@@ -152,7 +152,7 @@ def encode_jsonld_value(
             :class:`~prov.model.Literal`, a :class:`datetime.datetime`,
             a plain ``bool``,
             ``str``, ``int``/``float`` (typed by
-            :func:`~prov.model.canonical_xsd_datatype`), or another plain
+            ``python_value_form``), or another plain
             JSON-native value.
         term: The unprefixed JSON-LD term ``value`` is being encoded under
             (e.g. ``"type"``, ``"ex:price"``), used to decide whether a

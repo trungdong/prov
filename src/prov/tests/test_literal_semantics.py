@@ -347,8 +347,7 @@ def test_a_literal_keeps_an_ill_formed_decimal_text_the_caller_gave() -> None:
 
 
 # An ill-formed text compares as text and is kept by every text format; PROV-O
-# reads the value rdflib coerces it to on parse (C10), where 3.2.3's reader
-# built Literal("True") and Literal("inf") from the same coercion.
+# reads the value rdflib coerces it to on parse (C10).
 ILL_FORMED_VIA_RDF: list[tuple[Literal, object]] = [
     (Literal("True", XSD_BOOLEAN), True),
     (Literal("inf", XSD_DOUBLE), float("inf")),
@@ -369,7 +368,7 @@ def test_ill_formed_text_reads_as_a_value_through_prov_o(
     assert _single_value(roundtrip_document(document, "rdf")) == via_rdf
 
 
-# Literal(value) spells a Python value in XSD form (E7); 3.2.3 stored str(value).
+# Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
     [

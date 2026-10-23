@@ -211,13 +211,9 @@ _INT64_MAX = 2**63 - 1
 def canonical_xsd_datatype(value: object) -> QualifiedName | None:
     """Return the XSD datatype `prov` asserts for a plain Python value.
 
-    This is the single source of truth for the serializers' reverse maps:
-    a typed ``Literal`` may be collapsed to a plain Python value only when
-    the value's canonical datatype equals the asserted one (a lossless
-    collapse), and serializers emit exactly this datatype for plain values.
-
-    Returns ``None`` for values that serialize natively (str, bool,
-    datetime: each format handles those itself).
+    A plain ``int`` gets ``xsd:int``, ``xsd:long`` or ``xsd:integer`` by
+    magnitude, and a ``float`` gets ``xsd:double``, as :func:`python_value_form`
+    gives them. Anything else returns ``None``.
     """
     if isinstance(value, bool):  # before int: bool is an int subtype
         return None

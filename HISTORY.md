@@ -307,7 +307,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - One function spells a plain Python value for every writer, so a `bool`, an `int`, a
   `float` and a `datetime` are written by one rule rather than by each format's own, and
   the same function decides whether a typed literal collapses to a Python value. Nothing
-  changes in what `prov` writes or reads
+  changes in what `prov` writes for the values a document holds, with one exception: a
+  `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
+  does. Called directly with a value a record would have converted, such as a `Decimal` or
+  a `date`, `encoding_provn_value` and the other value encoders now spell the typed form
+  the record would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))
 
 ## 3.2.3 (2026-10-19)
