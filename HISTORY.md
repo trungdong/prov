@@ -189,9 +189,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   Python accepts and XSD does not, such as `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"`
   as `xsd:double`, or `" 5"` and `"1_000"` as `xsd:int`, which 3.2.3 read as `True`,
   `inf`, `5` and `1000`, now stays a `Literal` and compares as text.
-  `Literal(True).value` is `"true"`, `Literal(float("inf")).value` is `"INF"` and
-  `Literal(1e16, XSD_DECIMAL).value` is `"10000000000000000"`, where 3.2.3 stored
-  `"True"`, `"inf"` and `"1e+16"`
+  `Literal(True).value` is `"true"`, `Literal(float("inf")).value` is `"INF"`,
+  `Literal(1e16, XSD_DECIMAL).value` and `Literal(Decimal("1E+2"), XSD_DECIMAL).value`
+  are `"10000000000000000"` and `"100"`, and a `datetime` is spelled in ISO 8601 form
+  with a `T`, where 3.2.3 stored `"True"`, `"inf"`, `"1e+16"`, `"1E+2"` and a space
+  between the date and the time
   ([#527](https://github.com/trungdong/prov/issues/527),
   [#593](https://github.com/trungdong/prov/issues/593),
   [#594](https://github.com/trungdong/prov/issues/594),

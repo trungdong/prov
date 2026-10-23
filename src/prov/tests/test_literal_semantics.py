@@ -1,6 +1,7 @@
 """Literal value-space semantics (3.0): #77 decimal, #259 langtag, #89 string form,
 and the language tags 3.3.0 rejects (#472)."""
 
+import datetime
 import decimal
 import io
 import re
@@ -12,6 +13,7 @@ from prov.constants import (
     PROV_INTERNATIONALIZEDSTRING,
     XSD,
     XSD_BOOLEAN,
+    XSD_DATETIME,
     XSD_DECIMAL,
     XSD_DOUBLE,
     XSD_FLOAT,
@@ -62,6 +64,7 @@ SAME_VALUE: list[tuple[Literal, Literal]] = [
     (Literal("false", XSD_BOOLEAN), Literal("0", XSD_BOOLEAN)),
     (Literal("1.0", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
     (Literal(".5", XSD_DECIMAL), Literal("0.50", XSD_DECIMAL)),
+    (Literal(decimal.Decimal("1E+2"), XSD_DECIMAL), Literal("100", XSD_DECIMAL)),
 ]
 
 # Two values: a different asserted datatype (#235), a text outside the lexical
@@ -301,6 +304,9 @@ def test_second_spelling_of_a_held_value_is_not_added() -> None:
         (1e16, XSD_DOUBLE, "1e+16"),
         (1e16, XSD_DECIMAL, "10000000000000000"),
         (1.5, XSD_DECIMAL, "1.5"),
+        (decimal.Decimal("1E+2"), XSD_DECIMAL, "100"),
+        (decimal.Decimal("NaN"), XSD_DECIMAL, "NaN"),
+        (datetime.datetime(2012, 1, 1), XSD_DATETIME, "2012-01-01T00:00:00"),
         (5, XSD_INT, "5"),
         ("x", None, "x"),
     ],

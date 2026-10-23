@@ -136,9 +136,9 @@ datatype and the same value in that datatype's value space. `xsd:boolean`, `xsd:
 every other datatype compares by text, and a text outside its datatype's lexical space
 compares as text. A plain Python value takes the datatype the writers give it, so `5` and
 `Literal("05", XSD_INT)` are one value and `5` and `Literal("5", XSD_LONG)` are two. A
-`NaN` is one value with itself. `hash()` follows `==` on records and literals. Bundles
-compare as sets of records, documents also by their bundles, and a bundle never equals a
-document.
+`NaN` is one value with itself. `hash()` follows `==` on records and literals. A bundle
+compares as a set of records, not by its identifier; a document also matches its bundles
+by identifier, and a bundle never equals a document.
 
 ```{eval-rst}
 .. autoclass:: prov.model.Literal

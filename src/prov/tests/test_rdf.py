@@ -978,7 +978,7 @@ def test_anonymous_qualified_relation_without_extra_attributes_round_trips(
 
 def test_anonymous_relation_reads_anonymous_under_a_default_namespace() -> None:
     # A blank node names nothing, so the record gets no identifier even when a
-    # default namespace could resolve its label (spec 2, 3.4).
+    # default namespace could resolve its label (#525).
     document = ProvDocument()
     document.set_default_namespace("http://example.org/")
     document.used("a1", "e1", other_attributes={"k": "v"})
@@ -994,7 +994,7 @@ def test_anonymous_relation_reads_anonymous_under_a_default_namespace() -> None:
 def test_blank_node_element_still_takes_its_label_as_identifier() -> None:
     # The rule is for relations. An element's blank-node label is still its
     # identifier, so with no default namespace to resolve it the read fails
-    # as it did before (spec 2, 3.4).
+    # as it did before (#525).
     turtle = (
         "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
         "@prefix ex: <http://example.org/> .\n"

@@ -96,9 +96,9 @@ attr_values = st.one_of(
 )
 
 
-# Typed literals over the datatypes prov compares in value space (spec 2,
-# 3.3): well-formed text in a spelling that is not the canonical one, which
-# the model keeps as a Literal, and ill-formed text, which compares as text.
+# Typed literals over the datatypes prov compares in value space (#527):
+# well-formed text in a spelling that is not the canonical one, which the
+# model keeps as a Literal, and ill-formed text, which compares as text.
 _int32 = st.integers(min_value=-(2**31), max_value=2**31 - 1)
 _int64_only = st.integers(min_value=2**31, max_value=2**63 - 1)
 _finite_floats = st.floats(allow_nan=False, allow_infinity=False)
@@ -341,7 +341,7 @@ _relation_id = st.one_of(st.none(), local_part.map(lambda s: f"ex:g{s}"))
 @st.composite
 def prov_records(draw: DrawFn) -> ProvDocument:
     """One entity with plain and typed-literal values, and one generation
-    that may carry an identifier (spec 2, section 6)."""
+    that may carry an identifier (#525)."""
     document = _new_document()
     pairs: list[tuple[str, object]] = _attribute_dict(draw)
     for key, literal in draw(

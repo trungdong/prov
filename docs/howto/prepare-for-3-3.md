@@ -264,19 +264,24 @@ in a set or asserts the type `get_attribute()` returns may see a different resul
 | `NaN` and `NaN` as `xsd:double`, in a record | two values | one value |
 | `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, `" 5"` or `"1_000"` as `xsd:int` | read as `True`, `inf`, `5`, `1000` | kept as a `Literal` with its text, which compares as text |
 | `get_attribute()` on `"05" %% xsd:int` or `"1" %% xsd:boolean` | `5`, `True` | `Literal("05", XSD_INT)`, `Literal("1", XSD_BOOLEAN)`; PROV-O still reads `5` and `True` |
-| `Literal(True).value`, `Literal(float("inf")).value` | `"True"`, `"inf"` | `"true"`, `"INF"` |
+| `Literal(True).value`, `Literal(float("inf")).value`, `Literal(Decimal("1E+2"), XSD_DECIMAL).value`, `Literal(datetime(2012, 1, 1), XSD_DATETIME).value` | `"True"`, `"inf"`, `"1E+2"`, `"2012-01-01 00:00:00"` | `"true"`, `"INF"`, `"100"`, `"2012-01-01T00:00:00"` |
 | A PROV-O relation written as a blank node, under a default namespace | identifier from the blank node's label | no identifier |
 | `unified()` on two equal statements, such as two `hadMember(ex:m; ex:c, ex:e)` | both kept | one kept ([#548](https://github.com/trungdong/prov/issues/548), [#124](https://github.com/trungdong/prov/issues/124)) |
-| `get_records(ProvEntity)` | a one-shot iterator | a list, so write `next(iter(...))` ([#491](https://github.com/trungdong/prov/issues/491)) |
 
 Two attribute values are the same value when they have the same datatype and the same
 value in that datatype's value space. `xsd:boolean`, `xsd:decimal`, `xsd:double`,
 `xsd:float` and `xsd:integer` with its subtypes have a value space here; every other
 datatype compares by text, and a text outside its datatype's lexical space compares as
-text. A `NaN` is one value with itself. A bundle and a document are never equal, from either side. A plain Python value takes the datatype the writers
-give it, so `5` and `"5" %% xsd:long` stay two values. `hash()` follows `==` on records and
+text. A `NaN` is one value with itself. A bundle compares as a set of records, not by its
+identifier; a document matches its bundles by identifier, and a bundle and a document are
+never equal, from either side. A plain Python value takes the datatype the writers give
+it, so `5` and `"5" %% xsd:long` stay two values. `hash()` follows `==` on records and
 literals. `prov-compare` applies the same `==`, so its exit code changes for the same
 documents.
+
+`get_records(ProvEntity)` returns a list where 3.2.3 returned a one-shot iterator
+([#491](https://github.com/trungdong/prov/issues/491)); write `next(iter(...))` to take
+the first record.
 
 ## PROV-JSON
 

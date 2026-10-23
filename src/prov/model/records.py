@@ -113,6 +113,7 @@ from prov.model._values import (
     _LANGTAG,
     NAN_KEY,
     XSD_DATETIME_PATTERN,
+    _decimal_text,
     _offset_beyond_xsd_bound,
     no_prov_form_detail,
     python_value_form,
@@ -381,13 +382,21 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
     ``bool`` as ``true`` or ``false``, a ``float`` in the XSD form of its
     datatype (the decimal text for ``xsd:decimal``, otherwise ``INF``,
-    ``-INF``, ``NaN`` or ``repr()``), anything else through ``str()``."""
+    ``-INF``, ``NaN`` or ``repr()``), a ``Decimal`` in its plain form, a
+    ``datetime`` in ISO 8601 form, anything else through ``str()``. A
+    ``Decimal`` with no plain form (non-finite, or longer than the
+    interpreter's digit limit) keeps ``str()``, a text outside the lexical
+    space."""
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, float):
-        if datatype == XSD_DECIMAL:
-            return format(decimal.Decimal(repr(value)), "f")
-        return _xsd_double_text(value)
+        if datatype != XSD_DECIMAL:
+            return _xsd_double_text(value)
+        value = decimal.Decimal(repr(value))
+    if isinstance(value, decimal.Decimal):
+        return _decimal_text(value) or str(value)
+    if isinstance(value, datetime.datetime):
+        return _xsd_datetime_text(value)
     return str(value)
 
 
@@ -484,8 +493,9 @@ class Literal:
             value: The literal's value, stored as text: a ``str`` as given, a
                 ``bool`` as ``true`` or ``false``, a ``float`` in XSD form
                 (``INF``, ``-INF``, ``NaN`` or its ``repr()``; the decimal text
-                when ``datatype`` is ``xsd:decimal``), anything else through
-                ``str()``.
+                when ``datatype`` is ``xsd:decimal``), a ``Decimal`` in its
+                plain form, a ``datetime`` in ISO 8601 form, anything else
+                through ``str()``.
             datatype: The qualified name of the value's datatype (default:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is

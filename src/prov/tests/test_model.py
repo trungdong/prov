@@ -933,7 +933,7 @@ def test_at_least_one_of_rule_not_enforced(doc) -> None:
     assert record.get_provn() == "wasGeneratedBy(ex:e1, -, -)"
 
 
-# Equality is symmetric and agrees with hashing (spec 2, section 6): each pair
+# Equality is symmetric and agrees with hashing (#525, #527): each pair
 # compares the same from both sides and, where equal, two records hash alike.
 def _ex() -> ProvDocument:
     document = ProvDocument()
