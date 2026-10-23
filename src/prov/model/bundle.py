@@ -711,7 +711,8 @@ class ProvBundle:
 
     def __eq__(self, other: Any) -> bool:
         # Record equality agrees with record hashing, so one set comparison
-        # settles it. A bundle and a document are never equal.
+        # settles it; a bundle and a document are unequal here too, for a
+        # ProvBundle subclass that reaches this method first.
         return (
             isinstance(other, ProvBundle)
             and self.is_document() == other.is_document()

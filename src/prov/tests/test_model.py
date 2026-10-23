@@ -1046,3 +1046,9 @@ def test_equality_is_symmetric_and_agrees_with_hashing(left, right, equal) -> No
     assert (b == a) is equal
     if equal and isinstance(a, ProvRecord):
         assert hash(a) == hash(b)
+
+
+def test_bundle_equality_refuses_a_document() -> None:
+    # Under == ProvDocument.__eq__ answers first; a ProvBundle subclass
+    # compared with a document reaches ProvBundle.__eq__, which refuses it.
+    assert ProvBundle.__eq__(_bundle_with_e1(), _document_with_e1()) is False
