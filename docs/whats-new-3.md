@@ -6,17 +6,8 @@ the 3.x line changed, what it costs to move, and why the pin can go.
 ## Nothing to install that you do not use
 
 3.0.0 removed every unconditional runtime dependency. `pip install prov` installs the
-library alone. Each capability that needs a third-party package is an extra:
-
-| Extra | Enables | Installs |
-|---|---|---|
-| `rdf` | PROV-O (RDF) serializer and deserializer | `rdflib` |
-| `xml` | PROV-XML serializer and deserializer | `lxml` |
-| `dot` | Graphviz export through `prov.dot` | `pydot`, `networkx` |
-| `graph` | NetworkX conversion through `prov.graph` | `networkx` |
-| `plot` | The interactive display in `ProvBundle.plot()` | `matplotlib`, `pydot`, `networkx` |
-
-PROV-JSON, PROV-N and PROV-JSONLD need no extra. See {doc}`installation`.
+library alone, with PROV-JSON, PROV-N and PROV-JSONLD. PROV-O, PROV-XML and the graph tools
+each sit behind an extra, which {doc}`installation` lists.
 
 ## Standards conformance, audited
 
@@ -51,12 +42,6 @@ select how much beyond the W3C grammar it accepts; the default reads what `prov`
 ProvToolbox write. PROV-N joins the shared round-trip test matrix, and a conformance corpus
 checks every example of the PROV-N and PROV-DM Recommendations. See {doc}`howto/provn`.
 
-3.2.0 also ships a benchmark suite with a non-blocking regression check in CI, and the
-first measured speed-ups from it. Namespace resolution is now cached per document, cutting
-PROV-O deserialisation time by about 9% and giving PROV-JSONLD and PROV-JSON a few percent
-each. Slimmer identifier and literal objects make construction, equality and unification a
-few percent faster, and PROV-N tokenising is faster after the simplify round.
-
 ## Typed and documented
 
 Every public name carries type hints and the package ships `py.typed`, so type checkers
@@ -67,20 +52,16 @@ explanation, and the API reference is generated from the docstrings.
 
 For most code the upgrade needs no change. Two things can need attention. Install the
 extras your code uses, and expect `unified()` to raise on records it previously merged
-silently. {doc}`upgrading-3.0` lists every change, what triggers it, and what to do.
+silently. {doc}`upgrading-3.0` lists every change, what triggers it, and what to do. A pin
+to an older release such as `prov==2.1.1` or `prov==1.5.1` predates the 3.x work and the
+current support policy; lift it to `prov>=3` and add the extras your code uses, and open
+an issue if the upgrade guide does not cover your case.
 
 ## The 2.x line
 
 The most recent 2.x release receives security fixes only. 2.5.3 was the last release to
 carry bug fixes back-ported from 3.x. See
 [SECURITY.md](https://github.com/trungdong/prov/blob/main/SECURITY.md).
-
-## If you pin `prov==2.1.1` or `prov==1.5.1`
-
-Both pins predate the 3.x work and fall outside the current support policy. 1.5.1
-predates the 2.x line, and 2.1.1 is an early 2.x release from before the modernisation
-work. Lift the pin to `prov>=3` and add the extras your code uses. Open an issue if the
-upgrade guide does not cover your case.
 
 ## What comes next
 
