@@ -346,6 +346,29 @@ def test_a_literal_keeps_an_ill_formed_decimal_text_the_caller_gave() -> None:
         ex_document().entity("ex:e2", {"ex:a": decimal.Decimal("NaN")})
 
 
+# An ill-formed text compares as text and is kept by every text format; PROV-O
+# reads the value rdflib coerces it to on parse (C10), where 3.2.3's reader
+# built Literal("True") and Literal("inf") from the same coercion.
+ILL_FORMED_VIA_RDF: list[tuple[Literal, object]] = [
+    (Literal("True", XSD_BOOLEAN), True),
+    (Literal("inf", XSD_DOUBLE), float("inf")),
+]
+
+
+@pytest.mark.parametrize(("literal", "via_rdf"), ILL_FORMED_VIA_RDF, ids=str)
+def test_ill_formed_text_reads_as_a_value_through_prov_o(
+    literal: Literal, via_rdf: object
+) -> None:
+    document = ex_document()
+    document.entity("ex:e1", {"ex:a": literal})
+    assert _single_value(document) == literal
+    for fmt in TEXT_FORMATS:
+        back = roundtrip_document(document, fmt)
+        assert _single_value(back) == literal
+        assert back == document
+    assert _single_value(roundtrip_document(document, "rdf")) == via_rdf
+
+
 # Literal(value) spells a Python value in XSD form (E7); 3.2.3 stored str(value).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
