@@ -283,6 +283,19 @@ def test_internal_storage_contains_and_discard_are_type_aware(doc) -> None:
     assert _typed(container) == {(int, 2)}
 
 
+def test_unpickled_value_set_from_an_earlier_release_is_rekeyed(doc) -> None:
+    # A 3.2.x pickle keys the index by (type, value); loading it rebuilds the
+    # keys by value, so membership and record equality hold.
+    entity = doc.entity("ex:e1", {"ex:v": 5})
+    container = entity._attributes[doc.valid_qualified_name("ex:v")]
+    cls = type(container)
+    restored = cls.__new__(cls)
+    restored.__setstate__((None, {"_index": {(int, 5): 5}}))
+    assert 5 in restored
+    assert list(restored) == [5]
+    assert restored == container
+
+
 def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> None:
     # ProvActivity.set_time() assigns straight into _attributes (not through
     # an accessor); confirm it still produces the internal type-aware

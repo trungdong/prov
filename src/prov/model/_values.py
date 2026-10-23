@@ -2,8 +2,9 @@
 
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
-the model does not hold as it is, and :func:`unresolved_name_detail` for a
-literal typed as a qualified name. This module imports nothing from
+the model does not hold as it is, :func:`unresolved_name_detail` for a literal
+typed as a qualified name, and :func:`xsd_value` for the value a typed literal's
+text denotes. This module imports nothing from
 :mod:`prov.model.records`, so it returns text and datatypes and the caller
 builds the ``Literal`` or raises.
 """
@@ -13,6 +14,7 @@ from __future__ import annotations
 import base64
 import datetime
 import decimal
+import math
 import re
 import reprlib
 import sys
@@ -23,9 +25,25 @@ from typing import TYPE_CHECKING, Any
 from prov.constants import (
     XSD,
     XSD_ANYURI,
+    XSD_BOOLEAN,
+    XSD_BYTE,
     XSD_DATE,
     XSD_DECIMAL,
+    XSD_DOUBLE,
+    XSD_FLOAT,
+    XSD_INT,
+    XSD_INTEGER,
+    XSD_LONG,
+    XSD_NEGATIVEINTEGER,
+    XSD_NONNEGATIVEINTEGER,
+    XSD_NONPOSITIVEINTEGER,
+    XSD_POSITIVEINTEGER,
+    XSD_SHORT,
     XSD_TIME,
+    XSD_UNSIGNEDBYTE,
+    XSD_UNSIGNEDINT,
+    XSD_UNSIGNEDLONG,
+    XSD_UNSIGNEDSHORT,
 )
 from prov.identifier import QualifiedName
 
@@ -44,6 +62,89 @@ XSD_DATETIME_PATTERN = (
     r"(?:\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2})?"
 )
 _LANGTAG = re.compile(LANGTAG_PATTERN)
+
+# The lexical spaces of the datatypes prov compares in value space (XSD 1.1
+# Part 2: 3.3.2 boolean, 3.3.3 decimal, 3.3.4 float, 3.3.5 double, 3.4.x the
+# integer family). A text outside them has no value and compares as text.
+_XSD_INTEGER_RE = re.compile(r"[+-]?[0-9]+")
+_XSD_DECIMAL_RE = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)")
+_XSD_DOUBLE_RE = re.compile(
+    r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[+-]?INF|NaN"
+)
+_XSD_BOOLEANS = {"true": True, "false": False, "1": True, "0": False}
+
+# xsd:integer and its twelve subtypes with their bounds; None is unbounded.
+_XSD_INTEGER_BOUNDS: dict[QualifiedName, tuple[int | None, int | None]] = {
+    XSD_INTEGER: (None, None),
+    XSD_LONG: (-(2**63), 2**63 - 1),
+    XSD_INT: (-(2**31), 2**31 - 1),
+    XSD_SHORT: (-(2**15), 2**15 - 1),
+    XSD_BYTE: (-(2**7), 2**7 - 1),
+    XSD_UNSIGNEDLONG: (0, 2**64 - 1),
+    XSD_UNSIGNEDINT: (0, 2**32 - 1),
+    XSD_UNSIGNEDSHORT: (0, 2**16 - 1),
+    XSD_UNSIGNEDBYTE: (0, 2**8 - 1),
+    XSD_NONNEGATIVEINTEGER: (0, None),
+    XSD_NONPOSITIVEINTEGER: (None, 0),
+    XSD_POSITIVEINTEGER: (1, None),
+    XSD_NEGATIVEINTEGER: (None, -1),
+}
+
+# A NaN is identical to itself (XSD 1.1 Part 2, 3.3.5, and PROV-CONSTRAINTS
+# 2.3: a PROV instance is a set of statements) while a float NaN is never
+# equal to itself, so this text stands in for it in a value key.
+NAN_KEY = "NaN"
+
+
+def _integer_value(datatype: QualifiedName, text: str) -> int | None:
+    if not _XSD_INTEGER_RE.fullmatch(text):
+        return None
+    try:
+        value = int(text)
+    except ValueError:
+        # Longer than sys.get_int_max_str_digits(): no value, compares as text.
+        return None
+    low, high = _XSD_INTEGER_BOUNDS[datatype]
+    if (low is not None and value < low) or (high is not None and value > high):
+        return None
+    return value
+
+
+def _decimal_value(text: str) -> decimal.Decimal | None:
+    if not _XSD_DECIMAL_RE.fullmatch(text):
+        return None
+    # Construction from a text the grammar admits is exact in every context;
+    # the local context with the trap set is a guard (#593, #595).
+    with decimal.localcontext() as context:
+        context.traps[decimal.InvalidOperation] = True
+        return decimal.Decimal(text)
+
+
+def _double_value(text: str) -> float | str | None:
+    if not _XSD_DOUBLE_RE.fullmatch(text):
+        return None
+    value = float(text)
+    return NAN_KEY if math.isnan(value) else value
+
+
+def xsd_value(datatype: QualifiedName | None, text: str) -> object | None:
+    """The value ``text`` denotes in ``datatype``'s value space, or ``None``.
+
+    Covers ``xsd:boolean``, ``xsd:decimal``, ``xsd:double``, ``xsd:float`` and
+    ``xsd:integer`` with its twelve subtypes (XSD 1.1 Part 2). ``None`` for
+    every other datatype and for a text outside the datatype's lexical space
+    or the subtype's range; such a literal compares as text (#527, #593,
+    #594, #595). A NaN is :data:`NAN_KEY`, so it is one value with itself.
+    """
+    if datatype in _XSD_INTEGER_BOUNDS:
+        return _integer_value(datatype, text)
+    if datatype == XSD_DECIMAL:
+        return _decimal_value(text)
+    if datatype in (XSD_DOUBLE, XSD_FLOAT):
+        return _double_value(text)
+    if datatype == XSD_BOOLEAN:
+        return _XSD_BOOLEANS.get(text)
+    return None
 
 
 _XSD_MAX_OFFSET = datetime.timedelta(hours=14)
