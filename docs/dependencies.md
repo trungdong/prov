@@ -27,9 +27,9 @@ used, not at `import prov` time.
 ### `rdf`
 
 The floor is 7.0.0 because the serializer uses `rdflib.graph.Dataset` and
-`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7. `Dataset(default_union=True)`
-gives the union-query semantics the deserializer relies on. The cap below 8 waits for
-rdflib's next major, which retires `Dataset` members the serializer still calls.
+`DATASET_DEFAULT_GRAPH_ID`, which do not exist before rdflib 7. The cap below 8 is
+precautionary: rdflib's next major is untested here, and the serializer already avoids the
+`Dataset` members rdflib has deprecated, so lifting it is a test run, not a rewrite.
 
 The `rdflib-compat` CI job runs the RDF tests against both bounds, `==7.0.0` and the newest
 7.x. The main matrix uses the locked version. The `own-warnings` CI job counts only warnings

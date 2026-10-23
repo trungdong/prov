@@ -10,9 +10,8 @@ Substitute the version being released for `X.Y.Z` throughout.
    `uv run python benchmarks/ab.py <previous tag> --python 3.12`, the suite-count
    comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
-   `docs/reference/conformance.md`, `CITATION.cff`; the status lines of the specs the
-   release ships and their rows in `planning/README.md`; `pyproject.toml` and `README.md`
-   if a serializer changed (§2).
+   `docs/reference/conformance.md`, `CITATION.cff`; the status lines and index rows of the
+   specs the release ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
 3. Release PR, green CI, Codacy findings reviewed, local coverage gate passing (§3).
 4. Publish: `gh workflow run release.yml` as the TestPyPI dry run, then
    `gh release create X.Y.Z` with notes from `HISTORY.md`, each followed by
@@ -42,7 +41,7 @@ environments — there are no API tokens to rotate.
 
 Run on the commit you intend to release, before stamping anything. Releasing from `2.x`
 rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the end first —
-four of the steps below change.
+some of the steps below change.
 
 The gates every pull request passes, as `CONTRIBUTING.md` step 6 lists them:
 
@@ -59,6 +58,11 @@ uv run ruff format --check src/ benchmarks/
 codacy-analysis analyze --files <changed files>   # expect "0 issues found"
 uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
 ```
+
+The interpreter loop leaves `.venv` on PyPy, where mypy cannot run; re-run it pinned,
+`uv run --python 3.13 --extra rdf --extra xml --extra dot --extra graph mypy src`. For the
+Codacy line, the changed files are those since the previous release:
+`git diff --name-only <previous tag>`.
 
 Then the checks only a release runs:
 
@@ -85,7 +89,7 @@ new baseline.
 
 ## 2. Stamp the release
 
-Five files, in one commit:
+The stamped files, in one commit:
 
 | File | Change |
 |---|---|
@@ -95,8 +99,9 @@ Five files, in one commit:
 | `docs/reference/conformance.md` | Per-release revisit — the page states it is "revisited at every release"; verify its claims still hold and update the "it was revised for X.Y.Z" sentence |
 | `CITATION.cff` | `version: "X.Y.Z"` — `src/prov/tests/test_citation.py` fails the suite if it disagrees with `prov.__version__` |
 
-Also set the status line of each spec under `planning/specs/` that the release ships, and
-its row in `planning/README.md`, to "Complete; shipped in X.Y.Z".
+Also set the status line of each spec under `planning/specs/` that the release ships to
+"Complete; shipped in X.Y.Z", and its row in `planning/README.md` to "Complete" with the
+release in the Release column.
 
 If the release adds or changes a serializer, check the parts of the packaging metadata that
 face users on PyPI: `pyproject.toml`'s `description` and `keywords`, and `README.md`'s
@@ -177,6 +182,8 @@ dependencies, and an ungated entry here means that contract has been broken.
 ```bash
 uv venv .v && uv pip install --python .v/bin/python prov==X.Y.Z
 .v/bin/python -c "import prov; print(prov.__version__)"
+# or, in one line
+env -u VIRTUAL_ENV uv run --with prov==X.Y.Z --no-project python -c "import prov; print(prov.__version__)"
 ```
 
 If the install reports `no version of prov==X.Y.Z`, see Troubleshooting before re-running
@@ -256,8 +263,11 @@ what the floor change intends.
 ## Releasing from the `2.x` maintenance branch
 
 The steps above assume `main`. A back-port release cut from `2.x` follows the same shape,
-with four deviations, established on earlier 2.x releases and expected to hold for any
+with these deviations, established on earlier 2.x releases and expected to hold for any
 later one.
+
+**No `benchmarks/` directory.** Run `ruff check` and `ruff format --check` on `src/` alone,
+and skip the `ab.py` comparison.
 
 **Only two extras exist.** `2.x` predates the extras split, so it has no `dot` or `graph`
 extra and errors out if you pass them. Every command in §1 that names four extras takes two
@@ -290,10 +300,11 @@ Each entry gives the symptom, the cause and the fix.
 
 - **`Error: Unauthorized` from `codacy`.** The CLI's stored token has expired. Re-login in a
   real terminal with `codacy login --token <token>`, never inside an agent session.
-- **A Codacy finding on the Cloud that the local analyser does not reproduce.** The Cloud
-  runs tools the local CLI lacks, such as Pylint and some Opengrep patterns, so
-  `codacy-analysis analyze --files <changed files>` can be clean while the check reports an
-  issue. Fix it if it is real; if it is a false positive, clear it with
+- **A Codacy finding on the Cloud that the local analyser does not reproduce.** The local
+  CLI skips a tool whose binary is not installed, Pylint and Lizard among them, so
+  `codacy-analysis analyze --files <changed files>` can be clean while the Cloud reports a
+  Pylint rule or a Lizard complexity threshold. Install the tool, or run the CLI with
+  `--install-dependencies`, and fix a real finding; clear a false positive with
   `codacy pr gh trungdong prov <PR#> -I <issue-id>` followed by
   `codacy pr gh trungdong prov <PR#> --reanalyze`, and the check turns green a minute or
   so later.
@@ -301,7 +312,7 @@ Each entry gives the symptom, the cause and the fix.
   `pull_request` event. `gh pr close <PR#> && gh pr reopen <PR#>` fires the `reopened` event
   and CI starts.
 - **A matrix job stalls in its "Setup Graphviz" step** for half an hour or more while its
-  siblings finish. The runner's package install hung. `gh run cancel <run-id>` and then
+  siblings finish. The cause is unknown. `gh run cancel <run-id>` and then
   `gh run rerun <run-id> --failed` repeats only the stalled job and keeps the green results.
 - **`no version of prov==X.Y.Z` after a release.** Two causes, neither a failed upload. uv
   caches index responses, so for several minutes it keeps insisting the version does not
@@ -318,10 +329,10 @@ Each entry gives the symptom, the cause and the fix.
 
   A genuine upload failure looks different: the metadata `curl` of §5 returns 404 rather
   than the new version, and the release workflow's `publish-pypi` job is red.
-- **The post-release check passes for the wrong code.** A `VIRTUAL_ENV` inherited from
-  another checkout makes `uv run --with prov==X.Y.Z --no-project` import that checkout's
-  `prov` instead of the published wheel, silently. Run the checks with `env -u VIRTUAL_ENV`
-  in front of `uv`.
+- **The one-line post-release check passes for the wrong code.** A `VIRTUAL_ENV` inherited
+  from another checkout makes `uv run --with prov==X.Y.Z --no-project` import that
+  checkout's `prov` instead of the published wheel, silently. Run it with
+  `env -u VIRTUAL_ENV` in front of `uv`, as §5 shows.
 - **"Running mypy on PyPy is not supported yet".** The interpreter loop left `.venv` on
   `pypy3.11`; that is the interpreter, not a type error. Re-run pinned:
   `uv run --python 3.13 --extra rdf --extra xml --extra dot --extra graph mypy src`.
