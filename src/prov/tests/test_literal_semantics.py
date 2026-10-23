@@ -20,6 +20,7 @@ from prov.constants import (
     XSD_LONG,
 )
 from prov.model import Literal, ProvDocument, ProvValueError
+from prov.tests.conftest import roundtrip_document
 
 
 def _doc() -> ProvDocument:
@@ -217,3 +218,95 @@ def test_empty_json_lang_raises() -> None:
     )
     with pytest.raises(ProvValueError, match="is empty"):
         ProvDocument.deserialize(content=content, format="json")
+
+
+# A typed literal whose text is not the canonical spelling of its value keeps
+# its Literal and its text through the four text formats; PROV-O cannot keep
+# a spelling, so it reads back as the second column. Either way the document
+# compares equal, because records compare by value (#527).
+KEPT_TEXT: list[tuple[Literal, object]] = [
+    (Literal("05", XSD_INT), 5),
+    (Literal("+5", XSD_LONG), Literal("5", XSD_LONG)),
+    (Literal("1e0", XSD_DOUBLE), 1.0),
+    (Literal("1", XSD_BOOLEAN), True),
+    (Literal("1.00", XSD_DECIMAL), Literal("1.00", XSD_DECIMAL)),
+]
+
+TEXT_FORMATS = ("json", "xml", "provn", "jsonld")
+
+
+def _single_value(document: ProvDocument) -> object:
+    (record,) = document.get_record("ex:e1")
+    (value,) = record.get_attribute("ex:a")
+    return value
+
+
+@pytest.mark.parametrize(("literal", "via_rdf"), KEPT_TEXT, ids=lambda x: str(x))
+def test_non_canonical_text_is_kept_and_compares_by_value(
+    literal: Literal, via_rdf: object
+) -> None:
+    document = _doc()
+    document.entity("ex:e1", {"ex:a": literal})
+    stored = _single_value(document)
+    assert isinstance(stored, Literal)
+    assert stored.value == literal.value
+    for fmt in TEXT_FORMATS:
+        back = roundtrip_document(document, fmt)
+        value = _single_value(back)
+        assert isinstance(value, Literal)
+        assert value.value == literal.value
+        assert back == document
+    back = roundtrip_document(document, "rdf")
+    assert _single_value(back) == via_rdf
+    assert back == document
+
+
+def test_canonical_text_collapses_to_the_python_value() -> None:
+    document = _doc()
+    document.entity(
+        "ex:e1",
+        [
+            ("ex:a", Literal("5", XSD_INT)),
+            ("ex:b", Literal("true", XSD_BOOLEAN)),
+            ("ex:c", Literal("1.5", XSD_DOUBLE)),
+            ("ex:d", Literal("5000000000", XSD_LONG)),
+        ],
+    )
+    (record,) = document.get_record("ex:e1")
+    assert record.get_attribute("ex:a") == {5}
+    assert record.get_attribute("ex:b") == {True}
+    assert record.get_attribute("ex:c") == {1.5}
+    assert record.get_attribute("ex:d") == {5000000000}
+
+
+def test_second_spelling_of_a_held_value_is_not_added() -> None:
+    # The per-attribute set keys by value, so the first spelling is kept.
+    document = _doc()
+    entity = document.entity("ex:e1", {"ex:a": Literal("05", XSD_INT)})
+    entity.add_attributes({"ex:a": 5})
+    assert len(entity.get_attribute("ex:a")) == 1
+    assert _single_value(document) == Literal("05", XSD_INT)
+
+
+# Literal(value) spells a Python value in XSD form (E7); 3.2.3 stored str(value).
+@pytest.mark.parametrize(
+    ("value", "datatype", "text"),
+    [
+        (True, XSD_BOOLEAN, "true"),
+        (False, None, "false"),
+        (float("inf"), XSD_DOUBLE, "INF"),
+        (float("-inf"), XSD_DOUBLE, "-INF"),
+        (float("nan"), None, "NaN"),
+        (1.5, XSD_DOUBLE, "1.5"),
+        (1e16, XSD_DOUBLE, "1e+16"),
+        (1e16, XSD_DECIMAL, "10000000000000000"),
+        (1.5, XSD_DECIMAL, "1.5"),
+        (5, XSD_INT, "5"),
+        ("x", None, "x"),
+    ],
+    ids=str,
+)
+def test_literal_spells_a_python_value_in_xsd_form(
+    value: object, datatype: object, text: str
+) -> None:
+    assert Literal(value, datatype).value == text  # type: ignore[arg-type]

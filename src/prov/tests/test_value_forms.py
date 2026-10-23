@@ -23,8 +23,10 @@ from prov.model import (
     PROV_QUALIFIEDNAME,
     XSD,
     XSD_ANYURI,
+    XSD_BOOLEAN,
     XSD_DATE,
     XSD_DECIMAL,
+    XSD_INT,
     XSD_QNAME,
     XSD_TIME,
     Identifier,
@@ -239,3 +241,25 @@ def test_qualified_name_value_under_a_bundle_prefix_keeps_its_namespace(
     rebuilt = rebuild(document)
     text = rebuilt.serialize(format="json")
     assert ProvDocument.deserialize(content=text, format="json") == rebuilt
+
+
+# A text outside its datatype's lexical space has no value: it is stored as
+# the Literal with its text and compares as text (#593, #594).
+ILL_FORMED: list[Literal] = [
+    Literal("sNaN", XSD_DECIMAL),
+    Literal("NaN", XSD_DECIMAL),
+    Literal("Infinity", XSD_DECIMAL),
+    Literal("1e1", XSD_DECIMAL),
+    Literal("True", XSD_BOOLEAN),
+    Literal("1.0", XSD_INT),
+]
+
+
+@pytest.mark.parametrize("literal", ILL_FORMED, ids=str)
+def test_ill_formed_text_is_stored_and_compared_as_text(literal: Literal) -> None:
+    entity = ex_document().entity("ex:e", {"ex:v": literal})
+    (stored,) = entity.get_attribute("ex:v")
+    assert isinstance(stored, Literal)
+    assert stored.value == literal.value
+    assert stored == literal
+    assert stored != Literal(literal.value + "0", literal.datatype)

@@ -167,6 +167,27 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `next(document.get_records(ProvEntity))` raises `TypeError`, so write
   `next(iter(...))`, and an empty result is now falsy
   ([#491](https://github.com/trungdong/prov/issues/491))
+- Two attribute values are the same value when they have the same datatype and the same
+  value in that datatype's value space, so `"05" %% xsd:int` and `5`, `"1" %% xsd:boolean`
+  and `true`, `"1e0" %% xsd:double` and `1.0`, and `"1.0"` and `"1.00"` as `xsd:decimal`
+  are one value each in a record, in `==` and in `hash()`, where 3.2.3 compared every
+  datatype but `xsd:decimal` by its text. The rule covers `xsd:boolean`, `xsd:decimal`,
+  `xsd:double`, `xsd:float` and `xsd:integer` with its subtypes; every other datatype
+  compares by text. A text outside the datatype's lexical space, such as
+  `"1e1" %% xsd:decimal` or `"True" %% xsd:boolean`, has no value and compares as text,
+  `"sNaN"` no longer reaches `Decimal()`, and the caller's decimal context no longer
+  changes the result. A `NaN` is one value with itself. A typed literal whose text is not
+  the canonical spelling of its value, such as `"05" %% xsd:int` or
+  `"1" %% xsd:boolean`, is kept as a `Literal` with its text and written back as it was
+  read by every format but PROV-O, where 3.2.3 read it as the Python value and wrote `5`
+  or `true`; `get_attribute()` returns the `Literal` for it. `Literal(True).value` is
+  `"true"`, `Literal(float("inf")).value` is `"INF"` and
+  `Literal(1e16, XSD_DECIMAL).value` is `"10000000000000000"`, where 3.2.3 stored
+  `"True"`, `"inf"` and `"1e+16"`
+  ([#527](https://github.com/trungdong/prov/issues/527),
+  [#593](https://github.com/trungdong/prov/issues/593),
+  [#594](https://github.com/trungdong/prov/issues/594),
+  [#595](https://github.com/trungdong/prov/issues/595))
 
 ### Output changes
 

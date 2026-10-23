@@ -94,6 +94,7 @@ from prov.constants import (
     XSD_ANYURI,
     XSD_BOOLEAN,
     XSD_DATETIME,
+    XSD_DECIMAL,
     XSD_DOUBLE,
     XSD_INT,
     XSD_INTEGER,
@@ -373,6 +374,26 @@ def _xsd_double_text(value: float) -> str:
     return float.__repr__(value)
 
 
+def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
+    """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
+    ``bool`` as ``true`` or ``false``, a ``float`` in the XSD form of its
+    datatype (the decimal text for ``xsd:decimal``, otherwise ``INF``,
+    ``-INF``, ``NaN`` or ``repr()``), anything else through ``str()``."""
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, float):
+        if datatype == XSD_DECIMAL:
+            return format(decimal.Decimal(repr(value)), "f")
+        return _xsd_double_text(value)
+    return str(value)
+
+
+def _canonical_text(value: Any) -> str | None:
+    """The spelling the writers give a parsed value, or ``None`` for a
+    datetime, whose text is never kept (spec 2, 3.3)."""
+    return None if isinstance(value, datetime.datetime) else _literal_text(value, None)
+
+
 def _xsd_datetime_text(value: datetime.datetime) -> str:
     """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
     whole number of minutes (historical LMT offsets) is normalised to UTC."""
@@ -456,7 +477,11 @@ class Literal:
         """Initialise the literal.
 
         Args:
-            value: The literal's value; it is stored as its string form.
+            value: The literal's value, stored as text: a ``str`` as given, a
+                ``bool`` as ``true`` or ``false``, a ``float`` in XSD form
+                (``INF``, ``-INF``, ``NaN`` or its ``repr()``; the decimal text
+                when ``datatype`` is ``xsd:decimal``), anything else through
+                ``str()``.
             datatype: The qualified name of the value's datatype (default:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
@@ -464,7 +489,7 @@ class Literal:
                 An empty tag, or a tag such as ``"en_US"`` that is not shaped
                 like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
-        self._value = str(value)  # value is always a string
+        self._value = _literal_text(value, datatype)
         _check_langtag(self._value, langtag)
         if langtag:
             if datatype is None:
@@ -929,8 +954,9 @@ class ProvRecord:
 
     @staticmethod
     def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:
-        """The Python value of a typed literal, or the literal where it keeps
-        its asserted form."""
+        """The Python value of a typed literal whose text is its canonical
+        spelling, or the literal where it keeps its asserted form or its
+        spelling."""
         # Match the JSON decoding's literal conversion. #522: a lexical form
         # outside the datatype's lexical space keeps the Literal.
         try:
@@ -951,6 +977,11 @@ class ProvRecord:
         # No xsd:dateTime has an offset beyond ±14:00, so the text has no
         # datetime value and stays as written (#513).
         if isinstance(value, datetime.datetime) and _offset_beyond_xsd_bound(value):
+            return literal
+        # A text that is not the canonical spelling of its value keeps its
+        # Literal, so it is written back as read; it compares by value (#527).
+        canonical = _canonical_text(value)
+        if canonical is not None and canonical != literal.value:
             return literal
         return value
 
