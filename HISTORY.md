@@ -296,6 +296,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The test modules not yet checked under `mypy --strict` are listed in `pyproject.toml`,
   eighteen fewer than in 3.2.3, and a test fails if the list changes without the test's
   snapshot ([#494](https://github.com/trungdong/prov/issues/494))
+- One function spells a plain Python value for every writer, so a `bool`, an `int`, a
+  `float` and a `datetime` are written by one rule rather than by each format's own, and
+  the same function decides whether a typed literal collapses to a Python value. Nothing
+  changes in what `prov` writes or reads
+  ([#589](https://github.com/trungdong/prov/issues/589))
 
 ## 3.2.3 (2026-10-19)
 

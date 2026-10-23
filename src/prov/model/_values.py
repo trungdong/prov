@@ -29,6 +29,7 @@ from prov.constants import (
     XSD_BOOLEAN,
     XSD_BYTE,
     XSD_DATE,
+    XSD_DATETIME,
     XSD_DECIMAL,
     XSD_DOUBLE,
     XSD_FLOAT,
@@ -40,6 +41,7 @@ from prov.constants import (
     XSD_NONPOSITIVEINTEGER,
     XSD_POSITIVEINTEGER,
     XSD_SHORT,
+    XSD_STRING,
     XSD_TIME,
     XSD_UNSIGNEDBYTE,
     XSD_UNSIGNEDINT,
@@ -199,12 +201,74 @@ def _duration_text(value: datetime.timedelta) -> str:
     return f"{sign}P{text or 'T0S'}"
 
 
-# The Python values prov stores as a typed Literal (#482), in lookup order, with
-# the function that writes the lexical form, or None when this value has none.
-# datetime.datetime is a date, but it is a plain value and never reaches here.
+_INT32_MAX = 2**31 - 1
+_INT64_MAX = 2**63 - 1
+
+
+def canonical_xsd_datatype(value: object) -> QualifiedName | None:
+    """Return the XSD datatype `prov` asserts for a plain Python value.
+
+    This is the single source of truth for the serializers' reverse maps:
+    a typed ``Literal`` may be collapsed to a plain Python value only when
+    the value's canonical datatype equals the asserted one (a lossless
+    collapse), and serializers emit exactly this datatype for plain values.
+
+    Returns ``None`` for values that serialize natively (str, bool,
+    datetime: each format handles those itself).
+    """
+    if isinstance(value, bool):  # before int: bool is an int subtype
+        return None
+    if isinstance(value, int):
+        if -_INT32_MAX - 1 <= value <= _INT32_MAX:
+            return XSD_INT
+        if -_INT64_MAX - 1 <= value <= _INT64_MAX:
+            return XSD_LONG
+        return XSD_INTEGER
+    if isinstance(value, float):
+        return XSD_DOUBLE
+    return None
+
+
+def _xsd_double_text(value: float) -> str:
+    """The xsd:double lexical form of a float: INF, -INF and NaN for the
+    non-finite values (XSD 1.1 Part 2, numericalSpecialRep), float's repr()
+    otherwise."""
+    if math.isnan(value):
+        return "NaN"
+    if math.isinf(value):
+        return "INF" if value > 0 else "-INF"
+    return float.__repr__(value)
+
+
+def _xsd_datetime_text(value: datetime.datetime) -> str:
+    """ISO 8601 text with an xsd:dateTime-legal zone: an offset that is not a
+    whole number of minutes (historical LMT offsets) is normalised to UTC."""
+    offset = value.utcoffset()
+    if offset is not None and (offset.total_seconds() % 60 or offset.microseconds):
+        value = value.astimezone(datetime.UTC)
+    return value.isoformat()
+
+
+def _integer_form(value: object) -> tuple[str, QualifiedName]:
+    # Every int that is not a bool has a canonical datatype; XSD_INTEGER is
+    # the fallback the type checker needs, never reached.
+    return str(value), canonical_xsd_datatype(value) or XSD_INTEGER
+
+
+# How prov spells a Python value, in lookup order: the plain types first
+# (bool before int, datetime before date, because each is a subtype of the
+# next), then the types stored as a typed Literal (#482). Each row gives the
+# datatype and the function that writes the lexical form, or None when this
+# value has none; an int's datatype depends on its magnitude, so its row
+# holds xsd:int and python_value_form asks canonical_xsd_datatype.
 _PROV_FORMS: tuple[
     tuple[type | tuple[type, ...], QualifiedName, Callable[[Any], str | None]], ...
 ] = (
+    (str, XSD_STRING, str),
+    (bool, XSD_BOOLEAN, lambda value: "true" if value else "false"),
+    (int, XSD_INT, str),
+    (float, XSD_DOUBLE, _xsd_double_text),
+    (datetime.datetime, XSD_DATETIME, _xsd_datetime_text),
     (decimal.Decimal, XSD_DECIMAL, _decimal_text),
     (datetime.date, XSD_DATE, datetime.date.isoformat),
     (datetime.time, XSD_TIME, _time_text),
@@ -224,13 +288,21 @@ _value_repr.maxother = _value_repr.maxstring = 80
 
 
 def python_value_form(value: object) -> tuple[str | None, QualifiedName] | None:
-    """The lexical text and XSD datatype prov stores ``value`` as (#482).
+    """The lexical text and XSD datatype prov spells ``value`` with.
 
-    ``None`` when its type has no PROV form; the text is ``None`` when the type
-    converts but this value has no lexical form, such as ``Decimal("NaN")``.
+    The five plain types spell as the writers write them: a ``str`` as given
+    with ``xsd:string``, a ``bool`` as ``true`` or ``false``, an ``int`` as
+    its digits with the datatype of :func:`canonical_xsd_datatype`, a
+    ``float`` in xsd:double form, a ``datetime`` in ISO 8601 form. A type
+    the model stores as a typed ``Literal`` (#482) spells in that datatype's
+    lexical form. ``None`` when the type has no PROV form; the text is
+    ``None`` when the type converts but this value has no lexical form, such
+    as ``Decimal("NaN")``.
     """
     for types, datatype, text in _PROV_FORMS:
         if isinstance(value, types):
+            if types is int:
+                return _integer_form(value)
             return text(value), datatype
     return None
 

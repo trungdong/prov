@@ -17,14 +17,13 @@ from prov.model import (
     ProvDocument,
     ProvRecord,
     QualifiedNameCandidate,
-    canonical_xsd_datatype,
     first,
     parse_xsd_datetime,
 )
-from prov.model._values import unresolved_name_detail
-from prov.model.records import (
+from prov.model._values import (
     _xsd_datetime_text,
-    _xsd_double_text,
+    python_value_form,
+    unresolved_name_detail,
 )
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers._json_common import (
@@ -694,22 +693,20 @@ def encode_json_representation(
     """
     if isinstance(value, Literal):
         return literal_json_representation(value, qname_text)
-    elif isinstance(value, datetime.datetime):
-        return {"$": _xsd_datetime_text(value), "type": "xsd:dateTime"}
-    elif isinstance(value, QualifiedName):
-        # #168: the PROV-JSON submission (§3.1.2) types QualifiedName values
-        # as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0 choice)
-        # remains accepted on input for backward compatibility.
+    if isinstance(value, QualifiedName):
+        # #168: the PROV-JSON submission (section 3.1.2) types QualifiedName
+        # values as xsd:QName; prov:QUALIFIED_NAME (this library's pre-3.0
+        # choice) remains accepted on input for backward compatibility.
         return {"$": qname_text(value), "type": str(XSD_QNAME)}
-    elif (datatype := canonical_xsd_datatype(value)) is not None:
-        # int/float: the submission's typedLiteral schema requires a string
-        # "$" (#246); the datatype is magnitude-aware for ints (#244/#256).
-        return {
-            "$": _xsd_double_text(value) if isinstance(value, float) else str(value),
-            "type": str(datatype),
-        }
-    else:
+    form = python_value_form(value)
+    if form is None or form[0] is None or isinstance(value, (str, bool)):
+        # str and bool are JSON-native; anything with no PROV form is passed
+        # through as it is
         return value
+    text, datatype = form
+    # int/float: the submission's typedLiteral schema requires a string "$"
+    # (#246); the datatype is magnitude-aware for ints (#244/#256)
+    return {"$": text, "type": str(datatype)}
 
 
 def _check_value_object(

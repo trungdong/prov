@@ -1,7 +1,6 @@
 """PROV-RDF serializers for ProvDocument"""
 
 import base64
-import datetime
 import io
 import re
 import typing
@@ -50,10 +49,9 @@ from prov.constants import (
     XSD_QNAME,
 )
 from prov.identifier import QualifiedName
-from prov.model._values import _offset_beyond_xsd_bound
-from prov.model.records import (
-    _xsd_datetime_text,
-    _xsd_double_text,
+from prov.model._values import (
+    _offset_beyond_xsd_bound,
+    python_value_form,
 )
 from prov.serializers import Serializer, _is_text_stream
 
@@ -113,7 +111,7 @@ LITERAL_XSDTYPE_MAP = {
     # through to a plain (undecorated) rdflib.Literal -- RDF 1.1 treats a
     # plain literal and an explicit xsd:string one as the same value, and
     # PROV-RDF now emits only the former as the canonical form (#89)
-    # int values are typed by magnitude, via canonical_xsd_datatype() (#256)
+    # int values are typed by magnitude, via python_value_form() (#256)
     # datetime values are converted separately
 }
 """Maps Python literal types to their RDF ``xsd:*`` datatype URIRef, for
@@ -540,34 +538,24 @@ class ProvRDFSerializer(Serializer):
         """
         if isinstance(value, URIRef):
             return value
-        elif isinstance(value, pm.Literal):
+        if isinstance(value, pm.Literal):
             return literal_rdf_representation(value)
-        elif isinstance(value, datetime.datetime):
-            return RDFLiteral(_xsd_datetime_text(value), datatype=XSD["dateTime"])
-        elif isinstance(value, pm.QualifiedName):
+        if isinstance(value, pm.QualifiedName):
             return URIRef(value.uri)
-        elif (
-            isinstance(value, int)
-            and (xsd_datatype := pm.canonical_xsd_datatype(value)) is not None
-        ):
-            # bool is an int subtype but canonical_xsd_datatype(bool) is
-            # None, so bools fall through unaffected (#256).
-            return RDFLiteral(str(value), datatype=XSD[xsd_datatype.localpart])
-        elif type(value) in LITERAL_XSDTYPE_MAP:
-            # LITERAL_XSDTYPE_MAP maps only `float -> XSD["double"]` today, so
-            # the full-precision lexical form always applies here: a datatype
-            # that skips rdflib's precision-losing bare-double abbreviation
-            # (#225) on output.
-
-            # normalize=False: rdflib would otherwise rewrite the lexical
-            # form to Python's str() ('inf', 'nan').
-            return _FullPrecisionDoubleLiteral(
-                _xsd_double_text(value),
-                datatype=LITERAL_XSDTYPE_MAP[type(value)],
-                normalize=False,
-            )
-        else:
+        form = python_value_form(value)
+        if form is None or form[0] is None or isinstance(value, (str, bool)):
+            # str and bool are native rdflib literals; anything with no PROV
+            # form is handed to rdflib as it is
             return RDFLiteral(value)
+        text, datatype = form
+        if isinstance(value, float):
+            # The full-precision lexical form, which skips rdflib's
+            # bare-double abbreviation on output (#225); normalize=False keeps
+            # it from being rewritten to Python's str() ('inf', 'nan').
+            return _FullPrecisionDoubleLiteral(
+                text, datatype=LITERAL_XSDTYPE_MAP[float], normalize=False
+            )
+        return RDFLiteral(text, datatype=XSD[datatype.localpart])
 
     def _resolve_predicate_key(
         self, pred: URIRef | pm.QualifiedName, graph: Graph
