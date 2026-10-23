@@ -251,7 +251,7 @@ def _xsd_datetime_text(value: datetime.datetime) -> str:
 def _integer_form(value: object) -> tuple[str, QualifiedName]:
     # Every int that is not a bool has a canonical datatype; XSD_INTEGER is
     # the fallback the type checker needs, never reached.
-    return str(value), canonical_xsd_datatype(value) or XSD_INTEGER
+    return int.__repr__(value), canonical_xsd_datatype(value) or XSD_INTEGER
 
 
 # How prov spells a Python value, in lookup order: the plain types first
@@ -265,7 +265,7 @@ _PROV_FORMS: tuple[
 ] = (
     (str, XSD_STRING, str),
     (bool, XSD_BOOLEAN, lambda value: "true" if value else "false"),
-    (int, XSD_INT, str),
+    (int, XSD_INT, int.__repr__),
     (float, XSD_DOUBLE, _xsd_double_text),
     (datetime.datetime, XSD_DATETIME, _xsd_datetime_text),
     (decimal.Decimal, XSD_DECIMAL, _decimal_text),

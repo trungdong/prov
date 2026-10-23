@@ -357,7 +357,7 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     interpreter's digit limit) keeps ``str()``, a text outside the lexical
     space, because a ``Literal`` holds the text its caller gave it."""
     if isinstance(value, float) and datatype == XSD_DECIMAL:
-        value = decimal.Decimal(repr(value))
+        value = decimal.Decimal(float.__repr__(value))
     if isinstance(value, decimal.Decimal):
         return _decimal_text(value) or str(value)
     if isinstance(value, (bool, float, datetime.datetime)):
@@ -367,17 +367,15 @@ def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
     return str(value)
 
 
-def encoding_provn_value(
-    value: str | datetime.datetime | float | bool | int | QualifiedName,
-) -> str:
+def encoding_provn_value(value: object) -> str:
     """Return the PROV-N literal representation of a Python value.
 
-    A string is quoted (triple-quoted when it spans multiple lines). Any other
+    A ``str`` is quoted (triple-quoted when it spans multiple lines). Any other
     value that has a PROV form (a ``bool``, ``int``, ``float`` or
     ``datetime``, or a ``Decimal``, ``date``, ``time``, ``timedelta``, ``UUID``
-    or bytes-like value) is written as ``"text" %% datatype``. Booleans render
-    as ``"true"``/``"false"``, and floats as full-precision ``xsd:double``
-    (#251). Plain ints are typed by magnitude: within +/-(2**31-1) they render
+    or bytes-like value) is written as ``"text" %% datatype``, except an
+    ``xsd:int``, which is a bare ``INT_LITERAL``. Booleans render as
+    ``"true"``/``"false"``, and floats as full-precision ``xsd:double`` (#251). Plain ints are typed by magnitude: within +/-(2**31-1) they render
     as a bare ``INT_LITERAL`` (PROV-N [60] sugar for ``xsd:int``); beyond that
     they carry an explicit ``xsd:long``/``xsd:integer`` suffix (#249). A
     qualified name, and any value with no PROV form or no lexical form, is

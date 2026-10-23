@@ -259,6 +259,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
+- Nothing changes in what `prov` writes for the values a document holds, with one
+  exception: a `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as
+  a `float` does. Called directly with a value a record would have converted, such as a
+  `Decimal` or a `date`, `encoding_provn_value` and the other value encoders now spell the
+  typed form the record would hold rather than `str()` of the value
+  ([#589](https://github.com/trungdong/prov/issues/589))
 
 ### Fixes
 
@@ -274,6 +280,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   element's identifier does and, with no default namespace, raises
   `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
   first ([#639](https://github.com/trungdong/prov/issues/639))
+- An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
+  mixin, is written as its digits by every writer, where every writer wrote the member's
+  name, which no reader read back.
 
 ### Project
 
@@ -306,12 +315,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   snapshot ([#494](https://github.com/trungdong/prov/issues/494))
 - One function spells a plain Python value for every writer, so a `bool`, an `int`, a
   `float` and a `datetime` are written by one rule rather than by each format's own, and
-  the same function decides whether a typed literal collapses to a Python value. Nothing
-  changes in what `prov` writes for the values a document holds, with one exception: a
-  `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
-  does. Called directly with a value a record would have converted, such as a `Decimal` or
-  a `date`, `encoding_provn_value` and the other value encoders now spell the typed form
-  the record would hold rather than `str()` of the value
+  the same function decides whether a typed literal collapses to a Python value
   ([#589](https://github.com/trungdong/prov/issues/589))
 
 ## 3.2.3 (2026-10-19)

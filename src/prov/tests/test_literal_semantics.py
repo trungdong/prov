@@ -4,6 +4,7 @@ the XSD form of a Python value, and the language tags 3.3.0 rejects (#472)."""
 
 import datetime
 import decimal
+import enum
 import io
 import math
 import re
@@ -393,3 +394,31 @@ def test_literal_spells_a_python_value_in_xsd_form(
     value: object, datatype: QualifiedName | None, text: str
 ) -> None:
     assert Literal(value, datatype).value == text
+
+
+# An (int, Enum) mixin is an int whose str() is its member name, not its digits.
+class _Level(int, enum.Enum):
+    LOW = 5
+
+
+@pytest.mark.parametrize("fmt", TEXT_FORMATS)
+def test_int_subclass_is_written_as_its_digits(fmt: str) -> None:
+    document = ex_document()
+    document.entity("ex:e1", [("ex:a", _Level.LOW)])
+    with io.BytesIO() as stream:
+        document.serialize(destination=stream, format=fmt)
+        assert b"_Level" not in stream.getvalue()
+        assert b"LOW" not in stream.getvalue()
+    # PROV-XML types only exact int values, so a subclass reads back as its text.
+    value = _single_value(roundtrip_document(document, fmt))
+    assert str(value) == "5"
+    assert not isinstance(value, enum.Enum)
+
+
+class _OddFloat(float):
+    def __repr__(self) -> str:
+        return "odd"
+
+
+def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:
+    assert Literal(_OddFloat(0.1), XSD_DECIMAL).value == "0.1"

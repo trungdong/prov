@@ -465,6 +465,8 @@ def _encode_attribute_value(
         return _xsd_datetime_text(value)
     elif isinstance(value, float):
         return _xsd_double_text(value)
+    elif isinstance(value, int) and not isinstance(value, bool):
+        return int.__repr__(value)
     else:
         return str(value)
 
