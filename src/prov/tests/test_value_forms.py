@@ -110,6 +110,22 @@ def test_converted_values_round_trip(fmt: str) -> None:
     assert ProvDocument.deserialize(content=text, format=fmt) == document
 
 
+def test_prov_o_reads_an_exponent_decimal_as_a_value() -> None:
+    # rdflib normalises any decimal text that Python's Decimal() accepts when
+    # it parses a literal, so "1e1", outside xsd:decimal's lexical space and a
+    # text in every other format, comes back from PROV-O as rdflib's decimal
+    # text and compares as the value 10 (conformance caveat C10).
+    document = ex_document()
+    document.entity("ex:e", {"ex:v": Literal("1e1", XSD_DECIMAL)})
+    (entity,) = ProvDocument.deserialize(
+        content=document.serialize(format="rdf"), format="rdf"
+    ).get_records()
+    (value,) = entity.get_attribute("ex:v")
+    assert isinstance(value, Literal)
+    assert value == Literal("10", XSD_DECIMAL)
+    assert value != Literal("1e1", XSD_DECIMAL)
+
+
 # A value prov rejects, and the end of its message after "the value ... of ex:v ".
 REJECTED: list[tuple[Any, str]] = [
     (fractions.Fraction(1, 3), "has type fractions.Fraction, which has no PROV form"),
