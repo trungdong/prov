@@ -4,7 +4,6 @@ from __future__ import annotations  # defer eval: ProvDocument used before it's 
 
 import io
 import itertools
-import logging
 import os
 import re
 import shutil
@@ -111,8 +110,6 @@ from prov.model.records import (
     _attribute_pairs,
     _ensure_datetime,
 )
-
-logger = logging.getLogger(__name__)
 
 _PROVN_IRI_FORBIDDEN = re.compile(r'[<>"{}|^`\\\x00-\x20]')
 
@@ -713,34 +710,13 @@ class ProvBundle:
         return provn_str
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvBundle):
-            return False
-        other_records = set(other.get_records())
-        this_records = set(self.get_records())
-        if len(this_records) != len(other_records):
-            return False
-        if this_records == other_records:
-            # The common case (e.g. after a round trip): every record has a
-            # hash-equal counterpart, settled in O(n).
-            return True
-        # ProvRecord.__eq__ is looser than ProvRecord.__hash__ (a record
-        # without an identifier equals one with, given the same type and
-        # attributes), so records that hash differently may still match.
-        for record_a in this_records:
-            #  Manually look for the record
-            found = False
-            for record_b in other_records:
-                if record_a == record_b:
-                    other_records.remove(record_b)
-                    found = True
-                    break
-            if not found:
-                logger.debug(
-                    "Equality (ProvBundle): Could not find this record: %s",
-                    str(record_a),
-                )
-                return False
-        return True
+        # Record equality agrees with record hashing, so one set comparison
+        # settles it. A bundle and a document are never equal.
+        return (
+            isinstance(other, ProvBundle)
+            and self.is_document() == other.is_document()
+            and set(self.get_records()) == set(other.get_records())
+        )
 
     def __ne__(self, other: Any) -> bool:
         return not (self == other)
@@ -1770,22 +1746,14 @@ class ProvDocument(ProvBundle):
         return "<ProvDocument>"
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvDocument):
-            return False
-        # Comparing the documents' content
-        if not super().__eq__(other):
-            return False
-
-        # Comparing the documents' bundles
-        for b_id, bundle in self._bundles.items():
-            if b_id not in other._bundles:
-                return False
-            other_bundle = other._bundles[b_id]
-            if bundle != other_bundle:
-                return False
-
-        # Everything is the same
-        return True
+        return (
+            isinstance(other, ProvDocument)
+            and self._bundles.keys() == other._bundles.keys()
+            and super().__eq__(other)
+            and all(
+                bundle == other._bundles[b_id] for b_id, bundle in self._bundles.items()
+            )
+        )
 
     def is_document(self) -> bool:
         """Return ``True`` if this is a document, ``False`` otherwise."""

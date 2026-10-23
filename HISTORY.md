@@ -194,6 +194,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   written from the document shows the relation without an identifier, and `unified()` no
   longer merges two such relations by their labels. An element written as a blank node
   still takes its label as its identifier
+- A record without an identifier is no longer equal to a record with one. `==` on records
+  compares the type, the identifier and the attributes from both sides, so `a == b` now
+  implies `hash(a) == hash(b)` and a record found in a set by `==` is found by hash.
+  `prov-compare` applies the same `==`, so two documents that differ only in a relation's
+  identifier now exit with `1` ([#525](https://github.com/trungdong/prov/issues/525))
+- Two documents are equal only when they hold the same bundles. A document with a bundle
+  the other lacks compares unequal from either side, where 3.2.3 reported `a == b` and
+  `b != a`. A `ProvBundle` and a `ProvDocument` are never equal
 
 ### Output changes
 

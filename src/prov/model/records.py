@@ -1154,14 +1154,12 @@ class ProvRecord:
                 self._store_attribute_value(attr, value, is_collection)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ProvRecord):
-            return False
-        if self.get_type() != other.get_type():
-            return False
-        if self._identifier and not (self._identifier == other._identifier):
-            return False
-
-        return self._typed_attributes() == other._typed_attributes()
+        return (
+            isinstance(other, ProvRecord)
+            and self.get_type() == other.get_type()
+            and self._identifier == other._identifier
+            and self._typed_attributes() == other._typed_attributes()
+        )
 
     def __str__(self) -> str:
         return self.get_provn()

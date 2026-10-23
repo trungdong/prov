@@ -805,22 +805,6 @@ def test_equal_when_same_records_added_in_different_order() -> None:
     assert d2 == d1
 
 
-def test_anonymous_relation_still_equals_identified_relation() -> None:
-    # ProvRecord.__eq__ skips the identifier check when *this* record has no
-    # identifier, while __hash__ includes it; the two records hash
-    # differently, so set equality fails and __eq__ must fall through to the
-    # record-by-record loop to find the match.
-    d1 = ProvDocument()
-    d1.set_default_namespace("http://example.org/")
-    d1.wasGeneratedBy("e1", "a1")
-
-    d2 = ProvDocument()
-    d2.set_default_namespace("http://example.org/")
-    d2.wasGeneratedBy("e1", "a1", identifier="g1")
-
-    assert d1 == d2
-
-
 def test_unified_with_no_bundles() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
@@ -947,3 +931,118 @@ def test_at_least_one_of_rule_not_enforced(doc) -> None:
     # present alongside the entity
     record = doc.generation("ex:e1")
     assert record.get_provn() == "wasGeneratedBy(ex:e1, -, -)"
+
+
+# Equality is symmetric and agrees with hashing (spec 2, section 6): each pair
+# compares the same from both sides and, where equal, two records hash alike.
+def _ex() -> ProvDocument:
+    document = ProvDocument()
+    document.set_default_namespace("http://example.org/")
+    return document
+
+
+def _with_value(value):
+    return _ex().entity("e1", {"v": value})
+
+
+def _relation(identifier=None):
+    return _ex().wasGeneratedBy("e1", "a1", identifier=identifier)
+
+
+def _document_with_bundles(*names):
+    document = _ex()
+    document.entity("e1")
+    for name in names:
+        document.bundle(name)
+    return document
+
+
+def _document_with_e1():
+    document = _ex()
+    document.entity("e1")
+    return document
+
+
+def _bundle_with_e1():
+    bundle = _ex().bundle("b")
+    bundle.entity("e1")
+    return bundle
+
+
+EQUALITY_PAIRS = [
+    pytest.param(
+        _relation, lambda: _relation("g1"), False, id="anonymous-vs-identified"
+    ),
+    pytest.param(
+        lambda: _relation("g1"), lambda: _relation("g1"), True, id="identified"
+    ),
+    pytest.param(_relation, _relation, True, id="anonymous"),
+    pytest.param(
+        _document_with_bundles,
+        lambda: _document_with_bundles("b1"),
+        False,
+        id="extra-bundle",
+    ),
+    pytest.param(
+        lambda: _document_with_bundles("b1"),
+        lambda: _document_with_bundles("b2"),
+        False,
+        id="different-bundle-identifiers",
+    ),
+    pytest.param(
+        lambda: _document_with_bundles("b1", "b2"),
+        lambda: _document_with_bundles("b2", "b1"),
+        True,
+        id="same-bundles",
+    ),
+    pytest.param(_bundle_with_e1, _document_with_e1, False, id="bundle-vs-document"),
+    pytest.param(
+        lambda: _with_value(5),
+        lambda: _with_value(Literal("05", XSD["int"])),
+        True,
+        id="int",
+    ),
+    pytest.param(
+        lambda: _with_value(Literal("1e0", XSD["double"])),
+        lambda: _with_value(1.0),
+        True,
+        id="double",
+    ),
+    pytest.param(
+        lambda: _with_value(True),
+        lambda: _with_value(Literal("1", XSD["boolean"])),
+        True,
+        id="boolean",
+    ),
+    pytest.param(
+        lambda: _with_value(Literal("1.0", XSD["decimal"])),
+        lambda: _with_value(Literal("1.00", XSD["decimal"])),
+        True,
+        id="decimal",
+    ),
+    pytest.param(
+        lambda: _with_value(float("nan")),
+        lambda: _with_value(float("nan")),
+        True,
+        id="nan",
+    ),
+    pytest.param(lambda: _with_value(0.0), lambda: _with_value(-0.0), True, id="zero"),
+    pytest.param(
+        lambda: _with_value(5),
+        lambda: _with_value(Literal("5", XSD["long"])),
+        False,
+        id="int-vs-long",
+    ),
+    pytest.param(
+        lambda: _with_value(2), lambda: _with_value(2.0), False, id="int-vs-float"
+    ),
+]
+
+
+@pytest.mark.parametrize(("left", "right", "equal"), EQUALITY_PAIRS)
+def test_equality_is_symmetric_and_agrees_with_hashing(left, right, equal) -> None:
+    a, b = left(), right()
+    assert (a == b) is equal
+    assert (b == a) is equal
+    if equal and isinstance(a, ProvRecord):
+        assert hash(a) == hash(b)
