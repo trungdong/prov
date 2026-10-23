@@ -60,9 +60,9 @@ The parser accepts three dialects, selected with `profile`:
 
 | Profile | Accepts |
 | --- | --- |
-| `strict` | The W3C grammar only. Mention is written `prov:mentionOf`, as in the PROV-Links note. |
-| `default` | The grammar plus the bare `mentionOf` keyword that `prov` and ProvToolbox write. The Recommendation has no Mention production; PROV-Links spells it `prov:mentionOf`. |
-| `lenient` | As `default`. A statement that fails to parse is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column, and parsing resumes at the next statement. |
+| `strict` | The Recommendation grammar only, with at most one `default` declaration, before any `prefix` declaration, no declaration of `prov` or `xsd`, every statement before the first bundle, and no identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`. Mention is `prov:mentionOf`, as PROV-Links spells it, and `-` is not accepted where the grammar has a plain identifier. |
+| `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
+| `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. Extensibility expressions (`prefix:name(...)`) are skipped this way. |
 
 ```python
 document = pm.ProvDocument.deserialize("document.provn", format="provn", profile="strict")
