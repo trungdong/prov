@@ -1,7 +1,7 @@
 # Documentation restructure between specs 2 and 3
 
 **Date:** 2026-10-23
-**Status:** Approved; decisions Q1 to Q7 settled 2026-10-23
+**Status:** Complete; D1 to D8 merged on `main` 2026-10-23 (PRs #640 to #647), ships in 3.3.0
 **Written against:** `main` 5edd0ff, with every PR of 3.3.0 spec 2 merged
 **Scope:** Eight documentation PRs, D1 to D8. They land after spec 2 and before any spec 3
 PR. No library behaviour changes, apart from docstrings and the `#:` comments in

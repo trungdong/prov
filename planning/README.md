@@ -33,6 +33,6 @@ which is gitignored and never committed.
 | `specs/2026-10-13-release-3.2.3-design.md` | 2026-10-13 | 3.2.3 | Complete |
 | `specs/2026-10-20-release-3.3.0-design.md` | 2026-10-20 | 3.3.0 | In progress |
 | `specs/2026-10-22-release-3.3.0-spec2-equality-typing.md` | 2026-10-22 | 3.3.0 | In progress |
-| `specs/2026-10-23-docs-restructure-design.md` | 2026-10-23 | 3.3.0 | Approved; D1 to D8 in progress |
+| `specs/2026-10-23-docs-restructure-design.md` | 2026-10-23 | 3.3.0 | Complete; merged on `main` |
 | `triage/2026-07-behaviour-bugs.md` | 2026-07-03 | 3.0.0 | Complete; #34, #77 and #89 fixed |
 | `test-gap-checklist.md` | 2026-07-04 | 2.3.0 | Complete |
