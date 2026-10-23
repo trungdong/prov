@@ -157,6 +157,9 @@ of the values a dict of attributes may hold; {doc}`../howto/typing` shows how to
 a type checker reports a call.
 
 ```{eval-rst}
+.. The aliases are re-exports, and autodata reads an attribute docstring only from
+   the module named in the directive, so their descriptions live here.
+
 .. autodata:: prov.model.AttributeValue
    :no-value:
 
