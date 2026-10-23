@@ -592,10 +592,11 @@ def test_valid_qualified_name_rejects_blank_node_and_bad_types() -> None:
     assert nm.valid_qualified_name(12345) is None
 
 
-def test_default_namespace_uri_alone_is_not_an_empty_local_name() -> None:
+def test_default_namespace_uri_alone_takes_a_prefix() -> None:
+    # An IRI equal to the default namespace takes a prefix (#473).
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
-    assert doc.valid_qualified_name("http://d/") is None
+    assert str(doc.valid_qualified_name("http://d/")) == "dn:"
     assert doc.valid_qualified_name("http://d/e1").localpart == "e1"
     ex = doc.add_namespace("ex", "http://e/")
     # [52] allows a prefixed empty local part.

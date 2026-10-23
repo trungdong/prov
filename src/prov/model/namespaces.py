@@ -247,6 +247,9 @@ class NamespaceManager(dict[str, Namespace]):
         # scope binds the prefix to another IRI.
         namespace = qname.namespace
         prefix = namespace.prefix
+        if not prefix and not qname.localpart:
+            # The IRI itself has no spelling in a default namespace (#473).
+            return self._prefixed_namespace(namespace.uri)[""]
         bound = self._binding_in_scope(prefix)
         if bound is namespace:
             return qname
@@ -283,12 +286,21 @@ class NamespaceManager(dict[str, Namespace]):
             if str_value.startswith(namespace.uri):
                 local = str_value[len(namespace.uri) :]
                 if not local and not namespace.prefix:
-                    # The URI is the default namespace itself; a bare
-                    # empty local name has no PROV-N spelling, so it is
-                    # not a qualified name here.
-                    continue
+                    # the IRI itself; the name takes a prefix (#473)
+                    return self._reconcile_qualified_name(namespace[local])
                 return namespace[local]
         return None
+
+    def _prefixed_namespace(self, uri: str) -> Namespace:
+        """A namespace with a prefix bound to ``uri`` in scope, ``dn`` (or the
+        next free suffix) registered here when none is (#473)."""
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            namespace = manager._uri_map.get(uri)
+            if namespace is not None:
+                return namespace
+            manager = manager.parent
+        return self.add_namespace(Namespace("dn", uri))
 
     def _binding(self, prefix: str) -> Namespace | None:
         """The namespace this scope alone binds ``prefix`` to, the default

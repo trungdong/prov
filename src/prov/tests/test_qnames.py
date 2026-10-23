@@ -391,3 +391,57 @@ def test_literal_datatype_in_a_foreign_default_takes_the_dn_prefix() -> None:
     assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
     content = doc.serialize(format="provn")
     assert ProvDocument.deserialize(content=content, format="provn") == doc
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "model",
+        "json",
+        "xml",
+        "jsonld",
+        "provn",
+        pytest.param(
+            "rdf",
+            marks=pytest.mark.xfail(
+                strict=True,
+                reason="spec 3 section 6.3: the PROV-O reader registers the writer's "
+                "default binding as a prefix-less namespace, so dn is renamed away on "
+                "read; fixed with the third-party reader changes",
+            ),
+        ),
+    ],
+)
+def test_identifier_equal_to_the_default_namespace_iri(roundtrip: Roundtrip) -> None:
+    # #473: the name has no PROV-N spelling in the default namespace, so the
+    # model gives it a prefix bound to the same IRI at assertion.
+    doc = document_with_default_namespace()
+    for identifier in (DEFAULT_NS.uri, DEFAULT_NS[""]):
+        record = doc.entity(identifier)
+        assert record.identifier.namespace.prefix == "dn"
+        assert record.identifier.uri == DEFAULT_NS.uri
+    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
+    reloaded = roundtrip(doc)
+    for read_back in reloaded.get_records():
+        if read_back.identifier is not None:
+            assert read_back.identifier.namespace.prefix
+    reloaded.get_provn()
+
+
+def test_identifier_equal_to_the_default_namespace_iri_reuses_a_prefix() -> None:
+    doc = document_with_default_namespace()
+    doc.add_namespace("ex", DEFAULT_NS.uri)
+    assert str(doc.entity(DEFAULT_NS.uri).identifier) == "ex:"
+    assert str(doc.entity(DEFAULT_NS[""]).identifier) == "ex:"
+    assert "dn" not in {ns.prefix for ns in doc.get_registered_namespaces()}
+
+
+def test_identifier_equal_to_the_default_namespace_iri_avoids_a_taken_dn() -> None:
+    doc = document_with_default_namespace()
+    doc.add_namespace("dn", "http://dn.example/")
+    assert doc.entity(DEFAULT_NS.uri).identifier.namespace.prefix == "dn_1"
+
+
+def test_a_bare_empty_local_name_still_has_no_provn_spelling() -> None:
+    with pytest.raises(ProvException, match="empty local part"):
+        Namespace("", DEFAULT_NS.uri)[""].provn_representation()

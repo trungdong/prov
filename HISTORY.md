@@ -294,6 +294,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   name does: it takes the `dn` prefix when the document's default differs, and becomes the
   document's default when it has none
   ([#615](https://github.com/trungdong/prov/issues/615))
+- An identifier equal to a namespace IRI, such as `d.entity("http://example.org/")` under
+  the default namespace `http://example.org/`, is the qualified name `dn:` in a prefix
+  bound to that IRI, `dn` minted and declared when no prefix is, so every writer writes
+  it and every reader reads it back. 3.2.x raised `ProvElementIdentifierRequired` for
+  the string and accepted the `QualifiedName` only to fail at write time. PROV-XML's
+  `prov:id` admits no empty local part, so the written `prov:id="dn:"` is not schema-valid,
+  as `ex:` was not ([#473](https://github.com/trungdong/prov/issues/473))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
