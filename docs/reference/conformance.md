@@ -4,14 +4,13 @@
 serialisations of it: PROV-JSON, PROV-XML, PROV-O (RDF), PROV-JSONLD and PROV-N. This page
 states what the current release conforms to; it was revised for 3.2.3.
 
-The component tables answer two questions: is a PROV-DM concept implemented and how is it
-written, and does each format preserve it on a round trip. Every cell that is not a plain
-tick points at a numbered caveat. The values table does the same for literals. "Reading
-other producers' output" lists what each reader accepts beyond `prov`'s own output, with
-the reason for each allowance. "Corpus evidence" is the test record behind the PROV-N
-claims. Every cell is checked against the source and the shared test suite, not against the
-specification text alone; {doc}`../explanation/prov-dm` gives the background for the six
-components.
+Summary:
+
+- Every PROV-DM concept round-trips through every format, with two permanent exceptions,
+  C1 and C2.
+- The values table says how literals behave.
+- Readers accept some output from other producers, listed under "Reading other producers'
+  output".
 
 ## Reading the tables
 
@@ -114,7 +113,9 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` and the `xsd:integer` family compare in value space, so `"1"` and `"01"` as `xsd:int` are one value and a text outside the lexical space or the subtype's range compares as text; an `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single precision are two values; every other datatype compares as text; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
 | Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C9 |
 
-## Caveats
+## Permanent limitations
+
+Two constructs cannot round-trip, and no change is planned.
 
 - **C1. Two relations with the same identifier and different `prov:time` (PROV-O, permanent).**
   PROV-O names a relation by its identifier, so two asserted relations that share one and
@@ -125,46 +126,21 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises
   `prov.serializers.provjsonld.ProvJSONLDException` ([#248](https://github.com/trungdong/prov/issues/248)).
-- **C3. PROV-XML escapes attribute names that are not NCNames.** A name may start with a digit
-  or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
-  convention, and reversed on read ([#289](https://github.com/trungdong/prov/issues/289)). A third-party name that already looks like
-  an escape is therefore unescaped.
-- **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, cannot
-  be in a local part: `QualifiedName` rejects it when built, from any format or from code,
-  since the only PROV-N spelling would be a percent-encoding that reads back as a different
-  IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
-  must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
-  `.`); `prov` does not validate or rename one that is not.
-- **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
-  PROV-XML's `xml:lang=""` is rejected on read
-  ([#472](https://github.com/trungdong/prov/issues/472)).
-- **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
-  `Literal` is built, from any format or from code, so no writer meets one
-  ([#472](https://github.com/trungdong/prov/issues/472)).
-- **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
-  in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
-  the round trip compares equal; the original offset is not preserved.
+
+## Format notes
+
 - **C8. RDF's `json-ld` syntax is not PROV-JSONLD.** `rdf_format="json-ld"` is rdflib's
   generic JSON-LD writer over the PROV-O graph, with every PROV-O limitation. Use
   `format="jsonld"` for PROV-JSONLD.
-- **C9. An `xsd:duration` read from RDF is normalised
-  ([#620](https://github.com/trungdong/prov/issues/620)).** rdflib rewrites the lexical
-  form when it parses the literal, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`; the
-  zero-duration row of the converted-value round trip is marked known-lossy for RDF.
-- **C10. Literals rdflib normalises on read.** rdflib rewrites some literal texts when it
-  parses them, before `prov` sees them, so PROV-O reads these differently from every other
-  format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such
-  a time reads as the truncated `datetime` where the other formats reject it as a time of a
-  statement and keep it as a `Literal` as an attribute value
-  ([#514](https://github.com/trungdong/prov/issues/514)); an `xsd:decimal` text in exponent
-  form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
-  reads as rdflib's decimal text and compares as the value `10`; and a numeric spelling such
-  as `05` or `1e0` reads as the canonical one, which compares equal.
-- **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
-  one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
-  a `Decimal`, has no order against a number, so writing a record that holds such a text and
-  a numeric value under one attribute to PROV-O raises `decimal.InvalidOperation`. Every
-  other format writes it.
+
+## Not implemented
+
+- A bundle as a first-class entity of type `prov:Bundle` (PROV-DM §5.4.2), so the provenance
+  of a bundle itself cannot be asserted ([#261](https://github.com/trungdong/prov/issues/261)).
+- Factories for the agent subtypes and for `EmptyCollection`; add the `prov:type` through
+  `other_attributes` ([#260](https://github.com/trungdong/prov/issues/260)).
+- PROV-Dictionary ([#129](https://github.com/trungdong/prov/issues/129)).
+- PROV-CONSTRAINTS validation beyond what `unified()` checks ([#62](https://github.com/trungdong/prov/issues/62)).
 
 ## Reading other producers' output
 
@@ -174,11 +150,8 @@ departure from the Recommendations without one.
 
 ### PROV-N profiles
 
-| Profile | Accepts |
-| --- | --- |
-| `strict` | The Recommendation grammar only, with at most one `default` declaration, before any `prefix` declaration, no declaration of `prov` or `xsd`, every statement before the first bundle, and no identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`. Mention is `prov:mentionOf`, as PROV-Links spells it, and `-` is not accepted where the grammar has a plain identifier. |
-| `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
-| `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a `ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. Extensibility expressions (`prefix:name(...)`) are skipped this way. |
+{doc}`../howto/provn` lists what each of the three profiles, `strict`, `default` and
+`lenient`, accepts.
 
 No profile accepts the keywords `person`, `organization`, `softwareAgent`, `collection`,
 `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` or `hadPrimarySource`. They are
@@ -239,26 +212,59 @@ the `json.load` hooks for PROV-JSON and PROV-JSONLD, which receive each object a
 check for repeated keys). An option a format does not accept raises `TypeError` naming the
 format.
 
+## Edge cases
+
+Each case below is rare, marked in the tables where it applies, and documented here once.
+
+- **C3. PROV-XML escapes attribute names that are not NCNames.** A name may start with a digit
+  or contain `' ( ) , : ; [ ] =`; each illegal character is written as `_xHHHH_`, the OpenXML
+  convention, and reversed on read ([#289](https://github.com/trungdong/prov/issues/289)). A third-party name that already looks like
+  an escape is therefore unescaped.
+- **C4. PROV-N local parts.** A character `PN_LOCAL` cannot express, such as a space, cannot
+  be in a local part: `QualifiedName` rejects it when built, from any format or from code,
+  since the only PROV-N spelling would be a percent-encoding that reads back as a different
+  IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
+  must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
+  `.`); `prov` does not validate or rename one that is not.
+- **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
+  PROV-XML's `xml:lang=""` is rejected on read
+  ([#472](https://github.com/trungdong/prov/issues/472)).
+- **C6. Language tag that is not BCP 47.** A tag such as `en_US` is rejected when the
+  `Literal` is built, from any format or from code, so no writer meets one
+  ([#472](https://github.com/trungdong/prov/issues/472)).
+- **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
+  in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
+  the round trip compares equal; the original offset is not preserved.
+- **C9. An `xsd:duration` read from RDF is normalised
+  ([#620](https://github.com/trungdong/prov/issues/620)).** rdflib rewrites the lexical
+  form when it parses the literal, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`; the
+  zero-duration row of the converted-value round trip is marked known-lossy for RDF.
+- **C10. Literals rdflib normalises on read.** rdflib rewrites some literal texts when it
+  parses them, before `prov` sees them, so PROV-O reads these differently from every other
+  format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such
+  a time reads as the truncated `datetime` where the other formats reject it as a time of a
+  statement and keep it as a `Literal` as an attribute value
+  ([#514](https://github.com/trungdong/prov/issues/514)); an `xsd:decimal` text in exponent
+  form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
+  reads as rdflib's decimal text and compares as the value `10`; and a numeric spelling such
+  as `05` or `1e0` reads as the canonical one, which compares equal.
+- **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
+  one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
+  a `Decimal`, has no order against a number, so writing a record that holds such a text and
+  a numeric value under one attribute to PROV-O raises `decimal.InvalidOperation`. Every
+  other format writes it.
+
 ## Corpus evidence
 
 The [PROV-N conformance corpus](https://github.com/trungdong/prov/tree/main/src/prov/tests/provn) runs at every test run.
 
 | Set | Profile | Files | Result |
 | --- | --- | --- | --- |
-| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 92 parse and round-trip through the writer. 35 are excluded: 29 because the Recommendation's prose presents them as PROV-N but the grammar rejects them: fragments missing a paired argument, bare literals, ellipses, a copy-paste `dateTime` error, a `prefix` before the `default` declaration, statements after a bundle, and the PROV-Dictionary and extensibility syntax; and 6 because a qualified-name value uses a prefix the example does not declare ([#516](https://github.com/trungdong/prov/issues/516)). |
-| ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 4 parse. 5 are excluded: bare local names with no default namespace, the PROV-Dictionary set-of-pairs literal, and a bare IRI as a datatype. |
-| PROV-N that ProvToolbox's writer produced from the shared test corpus, compared with the PROV-JSON fixture of the same name | `default` | 388 | 229 equal. 159 differ for reasons in ProvToolbox's 2023 generator, not in `prov`: 80 embed a wall-clock timestamp, 79 carry a datatype list that no longer matches the fixture. |
+| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 92 parse and round-trip through the writer; 35 are excluded. |
+| ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 4 parse; 5 are excluded. |
+| PROV-N that ProvToolbox's writer produced from the shared test corpus, compared with the PROV-JSON fixture of the same name | `default` | 388 | 229 equal; 159 differ for reasons in the generator, not in `prov`. |
 
 The corpus README names every excluded or differing file with its reason.
-
-## Not implemented
-
-- A bundle as a first-class entity of type `prov:Bundle` (PROV-DM §5.4.2), so the provenance
-  of a bundle itself cannot be asserted ([#261](https://github.com/trungdong/prov/issues/261)).
-- Factories for the agent subtypes and for `EmptyCollection`; add the `prov:type` through
-  `other_attributes` ([#260](https://github.com/trungdong/prov/issues/260)).
-- PROV-Dictionary ([#129](https://github.com/trungdong/prov/issues/129)).
-- PROV-CONSTRAINTS validation beyond what `unified()` checks ([#62](https://github.com/trungdong/prov/issues/62)).
 
 ## Related pages
 

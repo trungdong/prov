@@ -1,28 +1,22 @@
 # Unification and flattening
 
-A PROV document is an account, a set of assertions someone makes about what happened. Real
-documents accumulate structure that is convenient to build but awkward to consume. The
-same entity may be described in two separate statements, or facts may be split across
-named bundles. `prov` offers two transformations that tidy this up,
-{py:meth}`~prov.model.ProvDocument.flattened` and
-{py:meth}`~prov.model.ProvBundle.unified`. This page explains what each does, shows a
-worked example of each, and says how far `unified()` goes towards the W3C specification's
-normalization.
+A document built up over time, or merged from several sources, describes one thing in
+several statements and splits facts across named bundles. `prov` offers two transformations
+that tidy this up, {py:meth}`~prov.model.ProvDocument.flattened` and
+{py:meth}`~prov.model.ProvBundle.unified`. This page explains each with a worked example
+and says how far `unified()` goes towards PROV-CONSTRAINTS normalization.
 
-Both transformations are non-destructive. They return a new document or bundle and leave
-the original untouched.
+Both transformations leave the original untouched. `unified()` returns a new document or
+bundle. `flattened()` returns a new document, or the document itself when it has no
+bundles.
 
 ## Flattening
 
-A {py:class}`~prov.model.ProvDocument` may contain named bundles, each holding its own
-records. {py:meth}`~prov.model.ProvDocument.flattened` produces a new document in which
-every record from every bundle has moved up to the top level, alongside the document's own
-records. The bundle structure is discarded. Only the statements survive.
-
-Flattening is a purely structural move. It does not merge, deduplicate or reconcile
-anything. If the same entity is described both in the document and inside a bundle, both
-statements end up side by side at the top level. If the document has no bundles,
-`flattened()` returns the document itself unchanged.
+{py:meth}`~prov.model.ProvDocument.flattened` produces a new document in which every
+record from every bundle has moved up to the top level, alongside the document's own
+records; the bundle structure is discarded. Flattening merges, deduplicates and
+reconciles nothing: an entity described both in the document and inside a bundle ends up
+as two statements side by side.
 
 ### Worked example
 
@@ -76,10 +70,8 @@ endDocument
 
 ## Unification
 
-{py:meth}`~prov.model.ProvBundle.unified` addresses a different kind of redundancy, the
-same thing described by more than one statement. When a document is built incrementally or
-merged from several sources, an entity or activity may be asserted several times, each
-assertion carrying a few attributes. Unification combines those into one record.
+{py:meth}`~prov.model.ProvBundle.unified` addresses the same thing described by more than
+one statement, each carrying a few attributes, and combines those into one record.
 
 ### What `unified()` does
 
@@ -88,68 +80,19 @@ merged record by term unification of those records' formal attributes, following
 constraints of the W3C specification. Position by position:
 
 - an absent formal attribute is an existential ("unknown") and unifies with anything,
-  except in the non-expandable positions described under the limits below;
+  except in the non-expandable positions described at the end of the page;
 - two equal concrete values unify to that value;
 - two different concrete values do not unify, and the merge raises
   {py:class}`~prov.model.ProvUnificationError`.
 
-The records' remaining ("extra") attributes are unioned onto the merged record. They are
-held in a set, so identical values are deduplicated while distinct values all accumulate.
-Records with a unique identifier, and records with no identifier, are not merged, and
-neither are `alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records that
-share an identifier. PROV-DM and PROV-Links give these four relations no identifier, so the
-specifications have nothing to merge them on. After the merge, `unified()` keeps each
-record once: a record equal to an earlier one, by the library's `==`, is dropped and the
-earlier one keeps its position. Two anonymous `used` statements that differ in one
-attribute are two statements and both stay.
-
-`unified()` is the only place in `prov` that can raise over a same-identifier conflict.
-Building or asserting records with `bundle.entity(...)`, `bundle.activity(...)` and the
-rest never checks for one, by design. PROV statements are legitimately asserted
-incomplete, one piece at a time, expecting a later `unified()` call, or none at all, to
-reconcile them. Validating a document without merging it is a separate, opt-in concern,
-tracked as [#62](https://github.com/trungdong/prov/issues/62).
-
-{py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
-document's top-level records and, independently, to each contained bundle. It preserves the
-bundle structure, unlike `flattened()`, and nothing merges across a bundle boundary, as
-§7.2 of the specification requires.
-{py:meth}`ProvBundle.unified() <prov.model.ProvBundle.unified>` does the same for a single
-bundle.
-
-`flattened().unified()` is a different, deliberate tool. `flattened()` has already
-discarded the bundle structure, so the following `unified()` sees one scope and merges
-same-identifier records across what used to be bundle boundaries. No PROV-CONSTRAINTS rule
-licenses that. It is a single-instance view for callers who want the broadest possible
-merge and accept that two bundles asserting the same local name might describe different
-real-world things. `prov` keeps this idiom working and exercises it in the test suite, but
-it sits outside PROV-CONSTRAINTS semantics. Use plain `document.unified()` when per-bundle
-scoping matters.
-
-Four limits apply:
-
-- **Only identifiers drive merging.** Two records merge if and only if they carry the same
-  qualified-name identifier and neither is one of the four relations above. Most PROV
-  relations are asserted without an identifier, so relations are almost never unified.
-- **Records of incompatible types raise; spec-permitted overlaps stay separate.** Term
-  unification applies within a group of records that share both an identifier and a base
-  record type. Across types sharing one identifier, `unified()` consults the
-  PROV-CONSTRAINTS type-compatibility rules (Constraints 53, 54 and 55). An `entity(x)` and
-  an `activity(x)` raise {py:class}`~prov.model.ProvUnificationError` naming both types,
-  because the specification makes entities and activities disjoint. An `agent(x)` and an
-  `entity(x)` are not disjoint under the specification, so `unified()` keeps them as two
-  separate, independently merged records.
-- **The placeholder `-` is not represented.** PROV-N distinguishes an omitted term from an
-  explicit `-`, which is a constant and unifies only with itself. `prov`'s model has no way
-  to express the latter, and every deserializer drops the distinction, so an absent formal
-  attribute behaves as an existential. PROV-CONSTRAINTS makes a few positions
-  non-expandable, where an absent value can only be `-`: the plan of an association, the
-  activity of a derivation, and the generation and usage of a derivation with no activity.
-  When `unified()` meets an absent value in one of these positions against a present
-  one, it raises {py:class}`~prov.model.ProvUnificationError`.
-- **No inference or key-based unification.** The model does not use PROV's keys (for
-  example, that an entity has at most one generation) to unify records that lack a shared
-  identifier, and it draws no new conclusions.
+The records' remaining ("extra") attributes are unioned onto the merged record, as a set,
+so identical values are deduplicated and distinct values all accumulate. Records with a
+unique identifier, and records with no identifier, are not merged, and neither are
+`alternateOf`, `specializationOf`, `mentionOf` and `hadMember` records that share one,
+since PROV-DM and PROV-Links give these four relations no identifier. After the merge,
+`unified()` keeps each record once: a record equal to an earlier one, by the library's
+`==`, is dropped and the earlier one keeps its position. Two anonymous `used` statements
+that differ in one attribute are two statements and both stay.
 
 ### Worked example
 
@@ -193,29 +136,44 @@ document
 endDocument
 ```
 
-### How this differs from the specification
+`unified()` is the only place in `prov` that can raise over a same-identifier conflict.
+Asserting records never checks for one, by design: PROV statements are asserted
+incomplete, one piece at a time, and a later `unified()` call, or none, reconciles them.
 
-The W3C [PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) Recommendation defines
-*normalization* as the combination of several inference and constraint rules. These are
-term unification driven by uniqueness constraints (keys), the merging of records that
-these rules force to be equal, and the rejection of documents that violate constraints
-such as type disjointness or event ordering. A conforming normalization can conclude that
-two differently written records denote the same thing, and can declare a document invalid.
+{py:meth}`ProvDocument.unified() <prov.model.ProvDocument.unified>` applies this to the
+document's top-level records and, independently, to each bundle. Nothing merges across a
+bundle boundary, as the specification requires.
 
-`prov`'s `unified()` implements the term-unification half of that picture, keyed on the
-record identifier. It rejects documents whose same-identifier, same-type records hold
-irreconcilable attribute values, or whose same-identifier records span types the
-specification makes disjoint. Two things it does not do:
+`flattened().unified()` is a different, deliberate tool: `flattened()` has discarded the
+bundle structure, so `unified()` then merges same-identifier records across what used to
+be bundle boundaries. No PROV-CONSTRAINTS rule licenses that, and two bundles asserting
+the same local name may describe different things. Use plain `document.unified()` when
+per-bundle scoping matters.
 
-- It does not perform the inference half. The uniqueness constraints keyed on something
-  other than the record identifier (Constraints 24 to 29, for example that two generations
-  of the same entity by the same activity must be the same generation) are not applied, so
-  `unified()` never concludes that two differently identified records denote the same
-  thing. Those belong to an opt-in validation engine, tracked as
-  [#62](https://github.com/trungdong/prov/issues/62).
-- It does not check constraints unrelated to merging, such as event ordering.
+### Relation to PROV-CONSTRAINTS
 
-So `unified()` is a normalization step, not a validator. Do not rely on it to certify that
-a document is valid PROV, or to reconcile records that do not already share an identifier.
-The [roadmap](https://github.com/trungdong/prov/blob/main/ROADMAP.md) shows where the
-validation engine sits among the planned releases.
+[PROV-CONSTRAINTS](https://www.w3.org/TR/prov-constraints/) defines normalization as term
+unification driven by uniqueness constraints, plus the rejection of documents that break
+constraints such as type disjointness or event ordering. `unified()` implements the
+term-unification part, keyed on the record identifier, within these limits:
+
+- **Only identifiers drive merging.** Two records merge if and only if they carry the same
+  qualified-name identifier and neither is one of the four relations above. Most relations
+  are asserted without an identifier, so relations are almost never unified.
+- **Records of incompatible types raise; permitted overlaps stay separate.** Across types
+  sharing one identifier, `unified()` applies the specification's typing constraints: an
+  `entity(x)` and an `activity(x)` raise {py:class}`~prov.model.ProvUnificationError`,
+  because entities and activities are disjoint, while an `agent(x)` and an `entity(x)` are
+  not and stay as two independently merged records. PROV-N's explicit `-` placeholder is
+  not represented, so an absent formal attribute behaves as an existential. In the
+  positions the specification makes non-expandable (the plan of an association, the
+  activity of a derivation, and the generation and usage of a derivation with no activity)
+  an absent value against a present one raises the same error.
+- **No inference.** The uniqueness constraints keyed on something other than the record
+  identifier (for example, that two generations of one entity by one activity are the same
+  generation) are not applied, so `unified()` never concludes that two differently
+  identified records denote the same thing.
+- **Not a validator.** `unified()` checks nothing unrelated to merging, such as event
+  ordering. Do not rely on it to certify that a document is valid PROV, or to reconcile
+  records that do not already share an identifier. Validation is a separate, opt-in
+  concern, tracked as [#62](https://github.com/trungdong/prov/issues/62).
