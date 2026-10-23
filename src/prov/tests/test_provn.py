@@ -181,13 +181,10 @@ def test_bare_identifier_with_escaped_colon_resolves_via_default() -> None:
     assert record.identifier.uri == "http://d.org/a:b"
 
 
-def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> None:
-    # Accepted, documented limitation: a bare local part with an escaped
-    # ':' can't go through the string-based resolution path (it would be
-    # mis-split at the colon), so it resolves eagerly against the document's
-    # default and, unlike a plain bare name, the bundle then adopts that
-    # default as its own on this path -- see the comment in
-    # ProvNParser._identifier_text().
+def test_bare_escaped_colon_name_in_bundle_does_not_adopt_the_enclosing_default() -> (
+    None
+):
+    # The bundle holds the document's name and declares nothing of its own.
     doc = parse(
         "bundle ex:b\n  entity(a\\:b)\nendBundle",
         prefixes="default <http://d.org/>\nprefix ex <http://example.org/>\n",
@@ -195,7 +192,7 @@ def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> Non
     (bundle,) = doc.bundles
     record = only_record(bundle)
     assert record.identifier.uri == "http://d.org/a:b"
-    assert bundle.get_default_namespace().uri == "http://d.org/"
+    assert bundle.get_default_namespace() is None
     reloaded = ProvDocument.deserialize(content=doc.get_provn(), format="provn")
     assert reloaded == doc
 

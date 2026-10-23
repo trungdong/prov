@@ -365,6 +365,37 @@ def test_had_member_members_resolve_alike() -> None:
     assert members(["ex:e1", "ex:e2"]) == members(["ex:e2", "ex:e1"])[::-1]
 
 
+def test_bundle_round_trip_copies_no_document_declaration() -> None:
+    # #449: the bundle's names are the document's; the writer declares
+    # nothing inside the bundle and the reader registers nothing on it.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.bundle("ex:b").entity("ex:e")
+    back = ProvDocument.deserialize(content=doc.serialize(format="json"), format="json")
+    (bundle,) = back.bundles
+    assert list(bundle.get_registered_namespaces()) == []
+    assert "prefix" not in json.loads(back.serialize(format="json"))["bundle"]["ex:b"]
+    assert back == doc
+
+
+def test_bundle_own_prefix_stays_on_the_bundle() -> None:
+    content = json.dumps(
+        {
+            "prefix": {"ex": "http://example.org/"},
+            "bundle": {
+                "ex:b1": {
+                    "prefix": {"bob": "http://bob.org/"},
+                    "entity": {"bob:e1": {}},
+                }
+            },
+        }
+    )
+    back = ProvDocument.deserialize(content=content, format="json")
+    (bundle,) = back.bundles
+    assert [n.prefix for n in back.get_registered_namespaces()] == ["ex"]
+    assert [n.prefix for n in bundle.get_registered_namespaces()] == ["bob"]
+
+
 # A qualified name the reader rejects because it does not resolve by its
 # prefix in scope (#516, #551, #599): the sections under the ex prefix and the
 # message of the ProvJSONException. The reader never compacts an IRI, so a

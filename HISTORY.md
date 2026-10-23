@@ -259,9 +259,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
-- Nothing changes in what `prov` writes for the values a document holds, with one
-  exception: a `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as
-  a `float` does. Called directly with a value a record would have converted, such as a
+- A bundle declares only the namespaces it binds itself. A name a bundle holds in a
+  namespace its document declares, under the same prefix or as the same default, is the
+  document's name, so the PROV-N and PROV-JSON writers no longer repeat `prefix ex` inside
+  every bundle that uses it, a bundle no longer takes the document's default as its own,
+  and `bundle.get_registered_namespaces()` lists the bundle's own declarations only.
+  `ProvBundle.get_provn()` on a bundle taken from a document writes the document's
+  declarations the bundle does not rebind, so the text reads on its own
+  ([#449](https://github.com/trungdong/prov/issues/449))
+- A `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
+  does; every other value a document holds is written as before. Called directly with a value a record would have converted, such as a
   `Decimal` or a `date`, `encoding_provn_value` and the other value encoders now spell the
   typed form the record would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))

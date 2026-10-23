@@ -863,6 +863,65 @@ def test_add_bundle_from_document_keeps_namespace_order() -> None:
     assert [ns.prefix for ns in bundle.get_registered_namespaces()] == prefixes
 
 
+def test_a_bundle_registers_only_what_it_binds() -> None:
+    # #449: a name an enclosing scope binds is that scope's name; the
+    # bundle copies a declaration only when it rebinds the prefix itself.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    ex = doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle("ex:b")
+    assert bundle.entity(ex["e"]).identifier is ex["e"]
+    assert bundle.entity(
+        doc.valid_qualified_name("f")
+    ).identifier is doc.valid_qualified_name("f")
+    assert bundle.add_record(doc.entity("ex:g")).identifier is ex["g"]
+    assert list(bundle.get_registered_namespaces()) == []
+    assert bundle.get_default_namespace() is None
+
+    rebinding = doc.bundle("ex:c")
+    rebinding.add_namespace("ex", "http://other.org/")
+    renamed = rebinding.entity(ex["e"]).identifier
+    assert renamed.namespace.prefix == "ex_1"
+    assert renamed.uri == ex["e"].uri
+
+    own_default = doc.bundle("ex:d")
+    own_default.set_default_namespace("http://other.org/")
+    minted = own_default.entity(doc.valid_qualified_name("f")).identifier
+    assert minted.namespace.prefix == "dn"
+    assert minted.uri == "http://d.org/f"
+
+
+def test_unified_bundle_registers_only_what_it_binds() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle("ex:b")
+    bundle.entity("ex:e")
+    bundle.entity("ex:e")
+    (unified,) = doc.unified().bundles
+    assert len(unified.get_records()) == 1
+    assert list(unified.get_registered_namespaces()) == []
+
+
+def test_bundle_written_alone_declares_the_enclosing_namespaces() -> None:
+    # N19: ProvBundle.get_provn() on a bundle inside a document declares
+    # what the document binds and the bundle does not, so the text reads.
+    doc = ProvDocument()
+    doc.set_default_namespace("http://d.org/")
+    doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle("ex:b")
+    bundle.add_namespace("own", "http://own.org/")
+    bundle.entity("ex:e", {"own:k": doc.valid_qualified_name("v")})
+    text = bundle.get_provn()
+    assert "default <http://d.org/>" in text
+    assert "prefix ex <http://example.org/>" in text
+    assert "prefix own <http://own.org/>" in text
+    reloaded = ProvDocument.deserialize(
+        content=f"document\n{text}\nendDocument", format="provn"
+    )
+    (back,) = reloaded.bundles
+    assert set(back.get_records()) == set(bundle.get_records())
+
+
 # #130: multi-valued attributes are written in insertion order. Attribute
 # values have been insertion-ordered since 3.0, so this pins the guarantee.
 

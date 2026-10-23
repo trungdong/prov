@@ -10,6 +10,7 @@ import shutil
 import tempfile
 from collections import defaultdict
 from collections.abc import Iterable, ValuesView
+from operator import attrgetter
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
@@ -665,6 +666,26 @@ class ProvBundle:
             lines.append("")
         return lines
 
+    def _enclosing_declarations(
+        self,
+        default_namespace: Namespace | None,
+        registered_namespaces: list[Namespace],
+    ) -> tuple[Namespace | None, list[Namespace]]:
+        """Add the document's default when the bundle has none, and the
+        document's prefixes the bundle does not rebind, so a bundle written
+        alone reads."""
+        own = set(map(attrgetter("prefix"), registered_namespaces))
+        enclosing = cast("ProvDocument", self._document)._namespaces
+        inherited = [
+            namespace
+            for namespace in enclosing.get_registered_namespaces()
+            if namespace.prefix not in own
+        ]
+        return (
+            default_namespace or enclosing.get_default_namespace(),
+            registered_namespaces + inherited,
+        )
+
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
 
@@ -674,6 +695,10 @@ class ProvBundle:
                 profile, as :meth:`ProvRecord.get_provn` describes, dropping
                 what ``alternateOf``, ``specializationOf`` and ``hadMember``
                 cannot carry there, with a warning each.
+
+        On a bundle inside a document, called with no indentation, the output
+        also declares the document's default and prefixes the bundle does not
+        bind itself, so a bundle written alone reads.
         """
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))
@@ -682,6 +707,10 @@ class ProvBundle:
         # otherwise, start the bundle
         default_namespace = self._namespaces.get_default_namespace()
         registered_namespaces = list(self._namespaces.get_registered_namespaces())
+        if _indent_level == 0 and self._document is not None:
+            default_namespace, registered_namespaces = self._enclosing_declarations(
+                default_namespace, registered_namespaces
+            )
         record_lines = [record.get_provn(strict=strict) for record in self._records]
         bundle_id, extra_prefix = self._provn_header_id(
             default_namespace, registered_namespaces
@@ -792,7 +821,11 @@ class ProvBundle:
                 an identifier have incompatible types.
         """
         unified_records = self._unified_records()
-        bundle = ProvBundle(records=unified_records, identifier=self.identifier)
+        bundle = ProvBundle(
+            records=unified_records,
+            identifier=self.identifier,
+            document=self._document,
+        )
         return bundle
 
     def update(self, other: ProvBundle) -> None:
