@@ -195,6 +195,9 @@ historical, and these rules replace its "Canonical statements" table.
 - `sphinx-build -W -n` is clean on a machine that can reach the intersphinx inventories.
 - The rendered `constants.html` lists `PROV_ENTITY`, `PROV_TYPE` and `XSD_STRING`.
 - The rendered `model.html` is under 12,000 words, and the PR body gives the number.
+  Measured at PR #642: 12,807 over the whole page, 3,700 of them signatures and the rest
+  docstring prose on 200 members, which D3 does not edit. Accepted by the maintainer on
+  2026-10-23.
 - `test_public_api.py` is unchanged.
 
 ### D4. README for someone deciding whether to use `prov` (E1)
