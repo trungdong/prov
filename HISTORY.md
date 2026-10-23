@@ -170,6 +170,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - Two attribute values are the same value when they have the same datatype and the same
   value in that datatype's value space, for `xsd:boolean`, `xsd:decimal`, `xsd:double`,
   `xsd:float` and `xsd:integer` with its subtypes; every other datatype compares by text.
+  An `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single
+  precision are two values.
   `Literal("05", XSD_INT) == Literal("5", XSD_INT)` is `True` with equal hashes, where
   3.2.3 compared every `Literal` but `xsd:decimal` by its text, and `"+5"` and `"5"` as
   `xsd:long`, `"05"` and `"5"` as `xsd:integer` or `xsd:short`, and `"1e0"` and `"1.0E0"`

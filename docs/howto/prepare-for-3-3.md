@@ -272,7 +272,8 @@ Two attribute values are the same value when they have the same datatype and the
 value in that datatype's value space. `xsd:boolean`, `xsd:decimal`, `xsd:double`,
 `xsd:float` and `xsd:integer` with its subtypes have a value space here; every other
 datatype compares by text, and a text outside its datatype's lexical space compares as
-text. A `NaN` is one value with itself. A bundle compares as a set of records, not by its
+text. An `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond
+single precision are two values. A `NaN` is one value with itself. A bundle compares as a set of records, not by its
 identifier; a document matches its bundles by identifier, and a bundle and a document are
 never equal, from either side. A plain Python value takes the datatype the writers give
 it, so `5` and `"5" %% xsd:long` stay two values. `hash()` follows `==` on records and
