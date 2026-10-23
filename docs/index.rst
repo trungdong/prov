@@ -15,6 +15,7 @@ and the explanation section covers the concepts behind it.
    :maxdepth: 1
    :caption: How-to guides
 
+   howto/read-write
    howto/provjson
    howto/provjsonld
    howto/provxml

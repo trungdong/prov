@@ -270,6 +270,6 @@ The corpus README names every excluded or differing file with its reason.
 
 {doc}`../explanation/unification-flattening` covers merge-time conformance, which the
 tables above do not. {doc}`../explanation/prov-dm` gives the background for each component,
-{doc}`model` is the class and method reference, and the how-to pages cover each format:
-{doc}`../howto/provn`, {doc}`../howto/provjson`, {doc}`../howto/provxml`,
+{doc}`model` is the class and method reference, {doc}`../howto/read-write` shows how to
+read and write in any format, and the how-to pages cover each format: {doc}`../howto/provn`, {doc}`../howto/provjson`, {doc}`../howto/provxml`,
 {doc}`../howto/provo-rdf`, {doc}`../howto/provjsonld`.

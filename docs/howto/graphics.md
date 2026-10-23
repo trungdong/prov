@@ -89,17 +89,15 @@ records an activity, usage and generation, draws every element by default. Set
 dot_binary = prov_to_dot(document, show_nary=False)
 ```
 
-## All together
+## Plot in a notebook or window
+
+{py:meth}`~prov.model.ProvBundle.plot` renders the same graph through matplotlib. With no
+filename it opens an interactive window, or draws inline in a notebook; with one, it saves
+in the format the extension names. It takes the same display options as `prov_to_dot()`
+and needs the `plot` extra, which {doc}`../installation` lists.
 
 ```python
-dot = prov_to_dot(
-    document,
-    show_nary=True,
-    use_labels=False,
-    direction="BT",
-    show_element_attributes=True,
-    show_relation_attributes=True,
-)
+document.plot("document.png", use_labels=True)
 ```
 
 {py:func}`prov.dot.prov_to_dot` documents every parameter.

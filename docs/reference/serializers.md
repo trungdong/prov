@@ -4,7 +4,8 @@
 {py:meth}`ProvDocument.serialize() <prov.model.ProvDocument.serialize>` and
 {py:meth}`ProvDocument.deserialize() <prov.model.ProvDocument.deserialize>`, and the
 registry that maps a format name (`"json"`, `"rdf"`, `"provn"`, `"xml"`, `"jsonld"`) to
-its serializer class. The how-to guides ({doc}`../howto/provjson`,
+its serializer class. {doc}`../howto/read-write` shows how to read and write in any
+format, and the format guides ({doc}`../howto/provjson`,
 {doc}`../howto/provxml`, {doc}`../howto/provo-rdf`, {doc}`../howto/provn`,
 {doc}`../howto/provjsonld`) show how to use each format. This page documents the interface,
 the registry and PROV-N's error type.
