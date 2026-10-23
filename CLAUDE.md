@@ -46,8 +46,10 @@ needed for `mypy --strict` (transitive via `types-networkx`/`matplotlib`).
 
 ## Gates every PR must pass
 
+`CONTRIBUTING.md` step 6 is the canonical list; change both together.
+
 ```bash
-# All supported interpreters (matches CI matrix). "cpython3.11" stops uv from
+# All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
 # reusing a PyPy 3.11 environment left by the previous run.
 for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
     uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
@@ -66,8 +68,9 @@ name from the block and from `MYPY_OVERRIDE_LIST` in `src/prov/tests/test_public
 `test_mypy_override_list_only_shrinks` fails if the two differ. A new test module never joins
 the list. The PR that empties the list deletes the block, the snapshot and that test.
 
-Codacy's Cloud gate blocks a PR on a single finding of any severity, including markdownlint
-on Markdown files, so run the local analyser on every changed file before pushing. Coveralls
+Codacy analyses every PR on GitHub, markdownlint on Markdown files included, but does not
+block a merge. The maintainer reviews its findings by hand and merges with none outstanding.
+Run the local analyser on every changed file before pushing. Coveralls
 is advisory as long as `uv run coverage report` stays above the 97% floor. CI also runs a
 non-blocking `own-warnings` job that fails if `prov` raises a `DeprecationWarning`,
 `PendingDeprecationWarning` or `FutureWarning` of its own on the newest interpreter
@@ -97,7 +100,9 @@ committed baseline. `benchmarks/README.md` has the details.
 ## Architecture
 
 `docs/explanation/architecture.md` is the overview (layers, object model, registry and
-auto-detection, extras, tests). The rules below are what an agent must not break.
+auto-detection, extras); `docs/development.md` holds the PROV-N parser internals, the
+serializer conventions and the test-suite layout. The rules below are what an agent must
+not break.
 
 - **Always import from `prov.model`, never from its submodules.** `prov/model/__init__.py`
   re-exports every public name at its historic location and deletes the submodule
@@ -108,8 +113,8 @@ auto-detection, extras, tests). The rules below are what an agent must not break
   `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and
   `test_read_auto_detect_with_broken_tell_degrades_to_no_rewind` pins `json` as the first
   format tried on a non-seekable stream.
-- New serializers follow the conventions in `docs/explanation/architecture.md` (Conventions
-  for serializers): one error type carrying position, grammar clauses cited on the code,
+- New serializers follow the conventions in `docs/development.md` (Conventions for
+  serializers): one error type carrying position, grammar clauses cited on the code,
   tables cross-checked against the model, records through `new_record()`, warnings emitted by
   the serializer.
 

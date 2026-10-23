@@ -62,29 +62,38 @@ a volunteer-driven project.
    git checkout -b name-of-your-bugfix-or-feature
    ```
 
-6. Make your changes, then run the tests on every supported interpreter:
+6. Make your changes, then run the checks that every pull request must pass:
 
    ```bash
-   for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break; done
-   ```
+   # All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
+   # reusing a PyPy 3.11 environment left by the previous run.
+   for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
+       uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
+   done
 
-   The first run downloads any interpreter you do not already have cached. `cpython3.11`
-   names the implementation, so uv does not reuse a PyPy 3.11 environment from an earlier
-   run.
-
-   Then run the static checks, which CI also runs:
-
-   ```bash
-   uv run mypy src
+   uv run mypy src                  # strict, library and tests; configured in pyproject.toml
    uv run ruff check src/ benchmarks/
    uv run ruff format --check src/ benchmarks/
+   codacy-analysis analyze --files <changed files>   # expect "0 issues found"
    ```
+
+   The first run downloads any interpreter you do not already have cached.
 
    mypy checks the tests under the same strict settings as the library, so a new test
    module needs type annotations, including `-> None` on each test function. Older test
    modules that do not pass yet are listed under `[[tool.mypy.overrides]]` in
    `pyproject.toml`. Do not add a module to that list. If your change makes a listed module
    pass, delete its name.
+
+   The last line runs the [Codacy CLI](https://github.com/codacy/codacy-analysis-cli) on
+   the files you changed, Markdown included. Install it once with
+   `npm install -g @codacy/analysis-cli`. Codacy also analyses
+   every pull request on GitHub. That check does not block a merge. The maintainer reviews
+   its findings and merges with none outstanding.
+
+   CI also runs an advisory `own-warnings` job, which fails if `prov` raises a
+   `DeprecationWarning`, `PendingDeprecationWarning` or `FutureWarning` of its own on the
+   newest interpreter.
 
 7. Commit and push your branch:
 
@@ -107,6 +116,7 @@ a volunteer-driven project.
    advisory and never blocks a merge. If it is red, or if your change is meant to alter
    speed, run `uv run python benchmarks/ab.py main --python 3.12` and put its table in the
    pull request. `benchmarks/README.md` describes the script.
+5. Add an entry to `HISTORY.md` under the unreleased version.
 
 ## Licensing
 
