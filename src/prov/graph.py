@@ -157,14 +157,11 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     a bundle is added to the new document; nodes without a bundle (e.g. bare
     nodes inferred by :func:`prov_to_graph`) are skipped. Every edge whose
     ``"relation"`` data is a :class:`~prov.model.ProvRecord` is likewise
-    added; edges without relation data are skipped.
+    added; edges without relation data are skipped. The new document declares
+    what the records' document declares, so their names keep their spelling.
 
     Args:
         g: The graph instance to convert.
-
-    The new document declares what the records' document declares, so their
-    names keep their spelling. :func:`prov_to_graph` works on documents, and
-    so does this function.
 
     Returns:
         A new :class:`~prov.model.ProvDocument` containing the elements and
@@ -184,14 +181,13 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
         for _, _, edge_data in g.edges(data=True)
         if isinstance(relation := edge_data.get("relation"), ProvRecord)
     ]
-    bundles = [r.bundle for r in (*elements, *relations) if r.bundle is not None]
+    records = [*elements, *relations]
+    source = next((r.bundle for r in records if r.bundle is not None), None)
     prov_doc = ProvDocument()
-    if bundles:
+    if source is not None:
         # the records' document; its declarations spell their names
-        prov_doc._copy_declarations_from(bundles[0].document or bundles[0])
-    for element in elements:
-        prov_doc.add_record(element)
-    for relation in relations:
-        prov_doc.add_record(relation)
+        prov_doc._copy_declarations_from(source.document or source)
+    for record in records:
+        prov_doc.add_record(record)
 
     return prov_doc
