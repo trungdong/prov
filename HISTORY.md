@@ -351,6 +351,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
+- A `Literal` built from a Python value stores `prov`'s spelling of the value, the text the
+  same value takes when it is asserted plainly: a `timedelta` as an `xsd:duration` such as
+  `P1DT30S`, a `UUID` as `urn:uuid:...`, a `bytes`, `bytearray` or `memoryview` in base64,
+  or in hex when the datatype is `xsd:hexBinary`, and a member of an `(int, Enum)` mixin as
+  its digits. 3.2.3 stored `str()` of the value, so
+  `Literal(timedelta(days=1, seconds=30), XSD["duration"]).value` was `'1 day, 0:00:30'`.
+  The datatype stays as given, so a value with no form in that datatype, such as bytes
+  under `xsd:duration`, stores the base64 text under `xsd:duration` and is not rejected
+  ([#656](https://github.com/trungdong/prov/issues/656))
 - The PROV-XML writer declares a bundle's own default namespace on its
   `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
   back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
