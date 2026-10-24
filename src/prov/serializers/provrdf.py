@@ -719,7 +719,7 @@ class ProvRDFSerializer(Serializer):
             raise ValueError(
                 f"Cannot split IRI {iri!r} into a namespace and a local "
                 "part: it contains no '#' or '/' separator."
-            ) from None
+            )
         ns = self.document.add_namespace("ns", iri[: sep + 1])  # type: ignore[union-attr]
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
 

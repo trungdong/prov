@@ -598,11 +598,13 @@ def test_valid_qualified_name_rejects_blank_node_and_bad_types() -> None:
 
 
 def test_default_namespace_uri_alone_is_rejected() -> None:
-    # An IRI equal to the default namespace has no spelling (#473).
+    # An IRI equal to the default namespace has no spelling, so asserting it
+    # is rejected (#473); looking it up is not.
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
+    assert doc.valid_qualified_name("http://d/") is None
     with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
-        doc.valid_qualified_name("http://d/")
+        doc.mandatory_valid_qname("http://d/")
     assert doc.valid_qualified_name("http://d/e1").localpart == "e1"
     ex = doc.add_namespace("ex", "http://e/")
     # [52] allows a prefixed empty local part.

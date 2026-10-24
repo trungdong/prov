@@ -263,11 +263,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 ### Output changes
 
 - The PROV-XML reader reads an `xmlns` on `prov:document` as the document's default
-  namespace even when no name uses it, so every writer declares it, as an unused `prefix`
-  declaration from any other format is. 3.2.x kept an `xmlns` only when a name used it.
-  Likewise the reader registers every `xmlns:*` declared on a `prov:bundleContent` on the
-  bundle, so `bundle.get_registered_namespaces()` lists them and the writers declare them
-  inside the bundle, where 3.2.x registered only those a name used
+  namespace even when no name uses it, so the PROV-JSON, PROV-JSONLD, PROV-N and PROV-XML
+  writers declare it, as an unused `prefix` declaration from any other format is. 3.2.x
+  kept an `xmlns` only when a name used it. Likewise the reader registers every `xmlns:*`
+  declared on a `prov:bundleContent` on the bundle, so
+  `bundle.get_registered_namespaces()` lists them and the writers declare them inside the
+  bundle, where 3.2.x registered only those a name used
 - The PROV-JSONLD writer writes a qualified name under any attribute other than
   `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
   the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
@@ -337,8 +338,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
 - The PROV-XML writer declares a bundle's own default namespace on its
-  `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read
-  them back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
+  `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
+  back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
 
 ### Project
 

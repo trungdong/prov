@@ -309,6 +309,39 @@ def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
         _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
+def test_deserialize_value_equal_to_the_vocab_iri_is_an_anyuri_literal() -> None:
+    text = json.dumps(
+        {
+            "@context": {"@vocab": EX_URI},
+            "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    (record,) = doc.get_records(ProvEntity)
+    ((_, value),) = record.extra_attributes
+    assert value == Literal(EX_URI, XSD_ANYURI)
+
+
+def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:
+    text = json.dumps(
+        {
+            "@context": {"@vocab": EX_URI},
+            "@graph": [{"@type": "Bundle", "@id": EX_URI, "@graph": []}],
+        }
+    )
+    with pytest.raises(ProvJSONLDException, match=r"@graph entry 0.*declare a prefix"):
+        _ = ProvDocument.deserialize(content=text, format="jsonld")
+
+
+def test_deserialize_empty_key_beside_a_null_vocab_declares_the_default() -> None:
+    context = {"": EX_URI, "@vocab": None}
+    text = json.dumps({"@context": context, "@graph": []})
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    default = doc.get_default_namespace()
+    assert default is not None
+    assert default.uri == EX_URI
+
+
 def test_deserialize_context_with_version_registers_namespace_prefixes() -> None:
     # "@version": 1.1 is a normal, common JSON-LD 1.1 context marker, not
     # unique to the vendored embedded submission context -- a namespace map

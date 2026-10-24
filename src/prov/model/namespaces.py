@@ -318,6 +318,10 @@ class NamespaceManager(dict[str, Namespace]):
             return self._spelled_by_prefix(qname)
         existing = self._uri_map.get(namespace.uri)
         if existing is not None:
+            if prefix not in self:
+                # the prefix the caller gave reads as the registered namespace
+                self._prefix_renamed_map.setdefault(prefix, existing)
+                self._resolve_cache.clear()
             return existing[qname.localpart]
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
         return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
@@ -328,7 +332,7 @@ class NamespaceManager(dict[str, Namespace]):
         uri = qname.namespace.uri
         manager: NamespaceManager | None = self
         while manager is not None:
-            namespace = manager._uri_map.get(uri)
+            namespace = manager.get_namespace(uri)
             if (
                 namespace is not None
                 and self._binding_in_scope(namespace.prefix) is namespace
@@ -361,11 +365,27 @@ class NamespaceManager(dict[str, Namespace]):
             local = str_value[len(namespace.uri) :]
             if str_value.startswith(namespace.uri) and (namespace.prefix or local):
                 return namespace[local]
-        if self._default is not None and str_value == self._default.uri:
-            raise ProvExceptionInvalidQualifiedName(
-                str_value, _default_iri_detail(str_value)
-            )
         return None
+
+    def reject_default_iri(self, text: str) -> None:
+        """Raise when ``text`` is the IRI of a default namespace in reach.
+
+        Called by the assertion paths after ``text`` resolved to nothing. The
+        IRI has no qualified-name form, so the model rejects it and mints no
+        prefix for it (#473).
+
+        Args:
+            text: The identifier text being asserted.
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
+                this manager's default or an enclosing one.
+        """
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            if manager._default is not None and text == manager._default.uri:
+                raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
+            manager = manager.parent
 
     def _binding(self, prefix: str) -> Namespace | None:
         """The namespace this scope alone binds ``prefix`` to, the default

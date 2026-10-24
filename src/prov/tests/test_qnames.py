@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from prov.constants import XSD_INT
+from prov.constants import PROV, XSD_INT
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
     Literal,
@@ -464,3 +464,62 @@ def test_a_bundle_default_bound_to_a_prefix_leaves_no_dn_alias() -> None:
     assert flat.valid_qualified_name("dn:x") is None
     assert flat._namespaces.lookup("dn", "x") is None
     assert flat._namespaces._unused_prefix_in_scope("dn") == "dn"
+
+
+def test_update_gives_a_new_bundle_the_declarations_of_its_source(
+    roundtrip: Roundtrip,
+) -> None:
+    source = ProvDocument()
+    source.add_namespace("ex", "http://ex.example/")
+    bundle = source.bundle("ex:b")
+    bundle.set_default_namespace("http://b.example/")
+    bundle.add_namespace("bb", "http://bb.example/")
+    bundle.entity("e")
+    bundle.entity("bb:f")
+
+    target = ProvDocument()
+    target.update(source)
+
+    (copied,) = target.bundles
+    default = copied.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://b.example/"
+    assert [ns.prefix for ns in copied.get_registered_namespaces()] == ["bb"]
+    assert target == source
+    roundtrip(target)
+
+
+def test_a_foreign_prefix_for_a_registered_iri_keeps_its_alias() -> None:
+    doc = ProvDocument()
+    bound = doc.add_namespace("ex", "http://a.example/")
+    doc.entity(Namespace("foo", "http://a.example/")["x"])
+
+    assert doc.valid_qualified_name("foo:y") == bound["y"]
+    assert doc._namespaces.lookup("foo", "y") == bound["y"]
+
+
+def test_a_bundle_default_in_the_built_in_prov_iri_flattens_as_prov() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://ex.example/")
+    bundle = doc.bundle("ex:b")
+    bundle.set_default_namespace(PROV.uri)
+    bundle.entity("e")
+
+    flat = doc.flattened()
+
+    assert [str(r.identifier) for r in flat.get_records()] == ["prov:e"]
+
+
+def test_a_bundle_default_flattens_under_the_prefix_the_bundle_binds_to_it() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://ex.example/")
+    bundle = doc.bundle("ex:b")
+    bundle.set_default_namespace("http://b.example/")
+    bundle.add_namespace("bb", "http://b.example/")
+    bundle.entity("bb:x")
+    bundle.entity("y")
+
+    flat = doc.flattened()
+
+    assert [str(r.identifier) for r in flat.get_records()] == ["bb:x", "bb:y"]
+    assert [ns.prefix for ns in flat.get_registered_namespaces()] == ["ex", "bb"]

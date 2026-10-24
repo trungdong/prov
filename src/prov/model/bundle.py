@@ -67,7 +67,7 @@ from prov.constants import (
     PROV_USAGE,
     PROV_VALUE,
 )
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -513,6 +513,12 @@ class ProvBundle:
         """Return the default namespace, or ``None`` if none is set."""
         return self._namespaces.get_default_namespace()
 
+    def _copy_declarations_from(self, source: ProvBundle) -> None:
+        """Declare ``source``'s registered namespaces and default here."""
+        for namespace in source.get_registered_namespaces():
+            self.add_namespace(namespace)
+        self._copy_default_from(source)
+
     def _copy_default_from(self, source: ProvBundle) -> None:
         """Make ``source``'s default namespace, if it has one, this scope's."""
         default = source.get_default_namespace()
@@ -544,7 +550,12 @@ class ProvBundle:
                 raise ProvException("Cannot add a namespace without a URI")
             namespace_or_prefix = Namespace(namespace_or_prefix, uri)
         prefix = namespace_or_prefix.prefix
-        if prefix and self._namespaces._binding(prefix) is None:
+        # no held name can use a prefix that no scope in reach binds
+        if (
+            prefix
+            and self._namespaces._binding(prefix) is None
+            and self._namespaces._binding_in_scope(prefix) is not None
+        ):
             self._refuse_changed_reading(prefix, namespace_or_prefix.uri)
         return self._namespaces.add_namespace(namespace_or_prefix)
 
@@ -599,11 +610,26 @@ class ProvBundle:
             ProvExceptionInvalidQualifiedName: If the identifier cannot be
                 resolved to a valid qualified name.
         """
-        valid_qname = self.valid_qualified_name(identifier)
+        valid_qname = self._asserted_name(identifier)
         if valid_qname is not None:
             return valid_qname
         else:
             raise ProvExceptionInvalidQualifiedName(identifier)
+
+    def _asserted_name(
+        self, identifier: QualifiedNameCandidate
+    ) -> QualifiedName | None:
+        """The name ``identifier`` resolves to as an identifier being asserted.
+
+        A string or IRI equal to the IRI of a default namespace in reach has no
+        qualified-name form and is rejected (#473); the readers resolve
+        through :meth:`valid_qualified_name` and keep their fallbacks.
+        """
+        name = self.valid_qualified_name(identifier)
+        if name is None and isinstance(identifier, (str, Identifier)):
+            text = identifier if isinstance(identifier, str) else identifier.uri
+            self._namespaces.reject_default_iri(text)
+        return name
 
     @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
@@ -908,9 +934,7 @@ class ProvBundle:
             attr_list.extend(_attribute_pairs(attributes))
         if other_attributes:
             attr_list.extend(_attribute_pairs(other_attributes))
-        record_identifier = (
-            self.valid_qualified_name(identifier) if identifier else None
-        )
+        record_identifier = self._asserted_name(identifier) if identifier else None
         new_record = PROV_REC_CLS[record_type](self, record_identifier, attr_list)
         self._add_record(new_record)
         return new_record
@@ -1835,7 +1859,7 @@ class ProvDocument(ProvBundle):
             # Creating a new document for all the records
             new_doc = ProvDocument(namespaces=list(self.get_registered_namespaces()))
             new_doc._copy_default_from(self)
-            new_doc._declare_prefixes_for_bundle_defaults(self)
+            new_doc._declare_prefixes_for_bundle_defaults(self.bundles)
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
             )
@@ -1853,20 +1877,28 @@ class ProvDocument(ProvBundle):
             if bundle._namespaces._binding(prefix) is None
         ]
 
-    def _declare_prefixes_for_bundle_defaults(self, source: ProvBundle) -> None:
-        """Declare a prefix for each default ``source``'s bundles have that
-        differs from this document's, so their bare names keep a spelling
-        here: the prefix already bound to the IRI, else ``dn`` or the next
-        free suffix."""
-        for bundle in source.bundles if source.is_document() else ():
+    def _declare_prefixes_for_bundle_defaults(
+        self, bundles: Iterable[ProvBundle]
+    ) -> None:
+        """Declare a prefix for each default ``bundles`` have that differs from
+        this document's, so their bare names keep a spelling here: a prefix
+        already bound to the IRI, else one the bundle binds to it, else ``dn``
+        or the next free suffix."""
+        for bundle in bundles:
             uri = bundle.default_ns_uri
             if (
-                uri is not None
-                and uri != self.default_ns_uri
-                and self._namespaces.get_namespace(uri) is None
+                uri is None
+                or uri == self.default_ns_uri
+                or self._namespaces.get_namespace(uri) is not None
             ):
-                prefix = self._namespaces._unused_prefix_in_scope("dn")
-                self.add_namespace(Namespace(prefix, uri))
+                continue
+            own = next(
+                (ns for ns in bundle.get_registered_namespaces() if ns.uri == uri),
+                None,
+            )
+            self.add_namespace(
+                own or Namespace(self._namespaces._unused_prefix_in_scope("dn"), uri)
+            )
 
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
@@ -1924,6 +1956,7 @@ class ProvDocument(ProvBundle):
                         self._bundles[bundle_id].update(bundle)
                     else:
                         new_bundle = self.bundle(bundle_id)
+                        new_bundle._copy_declarations_from(bundle)
                         new_bundle.update(bundle)
         else:
             raise ProvException(
@@ -2010,7 +2043,7 @@ class ProvDocument(ProvBundle):
             raise ProvException(
                 "An identifier is required. Cannot create an unnamed bundle."
             )
-        valid_id = self.valid_qualified_name(identifier)
+        valid_id = self._asserted_name(identifier)
         if valid_id is None:
             raise ProvException(f'The provided identifier "{identifier}" is not valid')
         if valid_id in self._bundles:

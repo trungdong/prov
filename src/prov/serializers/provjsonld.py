@@ -408,7 +408,8 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
         item = _expect_object(item, "A @context entry")
         if _is_embedded_submission_context(item):
             continue
-        if "" in item and "@vocab" in item and item[""] != item["@vocab"]:
+        empty, vocab = item.get(""), item.get("@vocab")
+        if isinstance(empty, str) and isinstance(vocab, str) and empty != vocab:
             raise ProvJSONLDException(
                 "A @context entry declares two different default namespaces, "
                 'under "@vocab" and ""'
@@ -729,7 +730,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         raise ProvJSONLDException(
             f'"@graph" must be a JSON array; found {type(graph).__name__}'
         )
-    for item in graph:
+    for position, item in enumerate(graph):
         item = _expect_object(item, "A @graph statement")
         type_term = item.get("@type")
         is_bundle = (
@@ -744,7 +745,13 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         _decode_context(item.get("@context", []), bundle)
         for stmt in item.get("@graph", []):
             decode_jsonld_statement(_expect_object(stmt, "A bundle statement"), bundle)
-        document.add_bundle(bundle, bundle.valid_qualified_name(item["@id"]))
+        bundle_id = bundle.valid_qualified_name(item["@id"])
+        if bundle_id is None:
+            raise ProvJSONLDException(
+                f'The "@id" {item["@id"]!r} of the Bundle in @graph entry '
+                f"{position} names no qualified name in scope; declare a prefix for it"
+            )
+        document.add_bundle(bundle, bundle_id)
 
 
 class ProvJSONLDSerializer(Serializer):

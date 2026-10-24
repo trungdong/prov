@@ -387,12 +387,15 @@ class ProvXMLSerializer(Serializer):
         default = _own_default(element, bundle)
         if default is not None:
             bundle.set_default_namespace(default)
-        for prefix, uri in _own_prefixes(element):
+        own_prefixes = _own_prefixes(element)
+        for prefix, uri in own_prefixes:
             bundle.add_namespace(_namespace(namespaces, prefix, uri))
         identifier = xml_qname_to_QualifiedName(
             element, rec_id, namespaces, scope=bundle
         )
-        if identifier.namespace.prefix:
+        if identifier.namespace.prefix and identifier.namespace.prefix not in (
+            prefix for prefix, _ in own_prefixes
+        ):
             # a prefix read from the document or an ancestor is the document's
             identifier = document.mandatory_valid_qname(identifier)
         document.add_bundle(bundle, identifier)
@@ -761,15 +764,22 @@ def _own_default(
     return None if default in (inherited, bundle.default_ns_uri) else default
 
 
+# PROV-XML spells the xsd namespace without its trailing "#" (see _build_nsmap).
+_BUILT_IN_URIS = frozenset({PROV.uri, XSD.uri, XML_XSD_URI, XSI.uri})
+
+
 def _own_prefixes(element: etree._Element) -> list[tuple[str, str]]:
     """The ``(prefix, uri)`` declarations made on ``element`` itself, leaving
-    out those inherited from its parent."""
+    out those inherited from its parent and the built-in ``xsd``, ``prov`` and
+    ``xsi`` namespaces."""
     parent = element.getparent()
     inherited = {} if parent is None else parent.nsmap
     return [
         (prefix, uri)
         for prefix, uri in element.nsmap.items()
-        if prefix is not None and inherited.get(prefix) != uri
+        if prefix is not None
+        and inherited.get(prefix) != uri
+        and uri not in _BUILT_IN_URIS
     ]
 
 

@@ -422,6 +422,40 @@ def test_a_prefix_declared_on_bundle_content_is_the_bundles_own(
     assert bundle.get_records()[0].identifier.uri == "http://example.org/two/a"
 
 
+def test_built_in_prefixes_on_bundle_content_are_not_the_bundles_own() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/ex/">
+      <prov:bundleContent prov:id="ex:b" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <prov:entity prov:id="ex:e"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+
+    assert list(bundle.get_registered_namespaces()) == []
+
+
+def test_a_bundle_id_under_a_prefix_of_its_own_stays_off_the_document() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#">
+      <prov:bundleContent prov:id="zz:b" xmlns:zz="http://zz.example/">
+        <prov:entity prov:id="zz:a"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+
+    assert list(doc.get_registered_namespaces()) == []
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["zz"]
+    assert bundle.identifier is not None
+    assert bundle.identifier.uri == "http://zz.example/b"
+    for fmt in ("provn", "json", "xml"):
+        assert (
+            prov.ProvDocument.deserialize(content=doc.serialize(format=fmt), format=fmt)
+            == doc
+        )
+
+
 def test_a_prefix_redeclared_inside_bundle_content_does_not_shadow_the_document() -> (
     None
 ):
