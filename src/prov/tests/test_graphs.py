@@ -44,22 +44,6 @@ def document():
     return d
 
 
-def test_round_trip_of_a_bundle_with_a_default_namespace_of_its_own() -> None:
-    document = ProvDocument()
-    document.set_default_namespace("http://d.example.org/")
-    document.add_namespace("ex", "http://ex.example.org/")
-    bundle = document.bundle("ex:b")
-    bundle.set_default_namespace("http://b.example.org/")
-    bundle.entity("e")
-
-    result = graph_to_prov(prov_to_graph(bundle))
-
-    declared = {ns.prefix: ns.uri for ns in result.get_registered_namespaces()}
-    assert declared["dn"] == "http://b.example.org/"
-    assert result.get_default_namespace() == document.get_default_namespace()
-    assert "entity(dn:e)" in result.get_provn()
-
-
 def test_round_trip_of_a_graph_of_inferred_endpoints_under_a_default() -> None:
     document = ProvDocument()
     document.set_default_namespace("http://d.example.org/")
@@ -69,22 +53,6 @@ def test_round_trip_of_a_graph_of_inferred_endpoints_under_a_default() -> None:
 
     assert result.get_default_namespace() == document.get_default_namespace()
     assert result == document.unified()
-
-
-def test_only_bundles_in_the_graph_get_a_prefix_for_their_default() -> None:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://ex.example.org/")
-    first = document.bundle("ex:b1")
-    first.set_default_namespace("http://b1.example.org/")
-    first.entity("e")
-    second = document.bundle("ex:b2")
-    second.set_default_namespace("http://b2.example.org/")
-    second.entity("f")
-
-    result = graph_to_prov(prov_to_graph(first))
-
-    declared = {ns.prefix: ns.uri for ns in result.get_registered_namespaces()}
-    assert declared == {"ex": "http://ex.example.org/", "dn": "http://b1.example.org/"}
 
 
 def test_relation_with_missing_end_is_skipped_with_warning(document) -> None:

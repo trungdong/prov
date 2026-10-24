@@ -136,28 +136,6 @@ class NamespaceManager(dict[str, Namespace]):
         """Return the default namespace, or ``None`` if none is set."""
         return self._default
 
-    def declarations_with_enclosing(self) -> tuple[Namespace | None, list[Namespace]]:
-        """Return this manager's declarations completed from its parent.
-
-        The default is the parent's when this manager has none, and the
-        registered namespaces gain the parent's whose prefix this manager
-        does not rebind, so the declarations read on their own.
-
-        Returns:
-            The default namespace, or ``None``, and the registered namespaces.
-        """
-        registered = list(self.get_registered_namespaces())
-        default = self._default
-        if self.parent is not None:
-            own = {namespace.prefix for namespace in registered}
-            registered += [
-                namespace
-                for namespace in self.parent.get_registered_namespaces()
-                if namespace.prefix not in own
-            ]
-            default = default or self.parent.get_default_namespace()
-        return default, registered
-
     def add_namespace(self, namespace: Namespace) -> Namespace:
         """Add a namespace, unless an equivalent one is already registered.
 

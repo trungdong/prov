@@ -179,6 +179,43 @@ def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
     )
 
 
+def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() -> None:
+    doc = _document_with_default_and_a_bundle()
+    doc.add_namespace("p", "http://doc-p.org/")
+    (bundle,) = doc.bundles
+    bundle.add_namespace("p", "http://bundle-p.org/")
+    bundle.entity("ex:d")
+    bundle.entity("p:e")
+    unified = bundle.unified()
+    assert unified.document is None
+    assert _spellings(unified) == _spellings(bundle)
+    assert unified.get_default_namespace() == doc.get_default_namespace()
+    assert sorted((n.prefix, n.uri) for n in unified.get_registered_namespaces()) == [
+        ("ex", "http://example.org/"),
+        ("p", "http://bundle-p.org/"),
+    ]
+    assert set(unified.get_records()) == set(bundle.get_records())
+
+    # an IRI both scopes bind keeps the document's prefix, as in 3.2.3
+    bundle.add_namespace("e2", "http://example.org/")
+    bundle.entity("e2:f")
+    unified = bundle.unified()
+    assert [s for s, _ in _spellings(unified)] == ["c", "ex:d", "p:e", "ex:f"]
+    assert str(unified.identifier) == "ex:bn"
+
+
+def test_a_bundle_unified_alone_declares_its_identifier_prefix() -> None:
+    # a prefix the bundle only renames is still the document's, so the copy declares it
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://V.org/")
+    bundle = doc.bundle("ex:bn")
+    bundle.add_namespace("a", "http://U.org/")
+    bundle.entity(Namespace("ex", "http://U.org/")["x"])
+    unified = bundle.unified()
+    assert sorted(n.prefix for n in unified.get_registered_namespaces()) == ["a", "ex"]
+    assert "prefix ex <http://V.org/>" in unified.get_provn()
+
+
 def test_add_bundle_keeps_the_spellings_of_a_document_argument() -> None:
     source = _document_with_default_and_a_bundle()
     target = ProvDocument()
@@ -282,26 +319,6 @@ def test_a_prefix_that_would_change_a_held_name_is_refused() -> None:
     # a prefix this scope itself binds is renamed, which changes no held name
     doc.entity("ex:z")
     assert doc.add_namespace("ex", "http://two.org/").prefix == "ex_1"
-
-
-def test_bundle_written_alone_declares_the_enclosing_namespaces() -> None:
-    # N19: ProvBundle.get_provn() on a bundle inside a document declares
-    # what the document binds and the bundle does not, so the text reads.
-    doc = ProvDocument()
-    doc.set_default_namespace("http://d.org/")
-    doc.add_namespace("ex", "http://example.org/")
-    bundle = doc.bundle("ex:b")
-    bundle.add_namespace("own", "http://own.org/")
-    bundle.entity("ex:e", {"own:k": doc.valid_qualified_name("v")})
-    text = bundle.get_provn()
-    assert "default <http://d.org/>" in text
-    assert "prefix ex <http://example.org/>" in text
-    assert "prefix own <http://own.org/>" in text
-    reloaded = ProvDocument.deserialize(
-        content=f"document\n{text}\nendDocument", format="provn"
-    )
-    (back,) = reloaded.bundles
-    assert set(back.get_records()) == set(bundle.get_records())
 
 
 def _held_names(bundle: ProvBundle) -> Iterator[QualifiedName]:

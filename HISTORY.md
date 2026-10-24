@@ -297,9 +297,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   document's name, so the PROV-N, PROV-JSON and PROV-JSONLD writers no longer repeat
   `prefix ex` (or its context entry) inside every bundle that uses it, a bundle no longer
   takes the document's default as its own, and `bundle.get_registered_namespaces()` lists
-  the bundle's own declarations only.
-  `ProvBundle.get_provn()` on a bundle taken from a document writes the document's
-  declarations the bundle does not rebind, so the text reads on its own
+  the bundle's own declarations only, and `ProvBundle.get_provn()` on a bundle taken from a
+  document writes those only, so the text reads inside its document. `ProvBundle.unified()`
+  returns a bundle that belongs to no document, as 3.2.x did, carrying the document's
+  declarations the bundle does not rebind; an IRI both scopes bind is spelled with the
+  document's prefix
   ([#449](https://github.com/trungdong/prov/issues/449))
 - A `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
   does; every other value a document holds is written as before. Called directly with a
