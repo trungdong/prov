@@ -78,9 +78,11 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
     <https://networkx.github.io/documentation/stable/reference/classes/multidigraph.html>`_
     instance of the `NetworkX <https://networkx.github.io/>`_ library.
 
-    The document is first :meth:`~prov.model.ProvBundle.unified` so that
-    records referring to the same real-world thing are merged before the
-    graph is built. Every PROV element becomes a graph node. Each relation
+    The document is :meth:`~prov.model.ProvDocument.flattened`, so the
+    records of every bundle are included, and then
+    :meth:`~prov.model.ProvDocument.unified`, so records that share an
+    identifier, in the document or across its bundles, are merged before
+    the graph is built. Every PROV element becomes a graph node. Each relation
     becomes an edge between the elements named in its first two formal
     attributes, with the relation record stored under the edge's
     ``"relation"`` attribute; if either of those two elements was not
@@ -99,7 +101,9 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
 
     Raises:
         ProvUnificationError: Propagated, unhandled, from
-            :meth:`~prov.model.ProvBundle.unified`.
+            :meth:`~prov.model.ProvDocument.unified`, when records that
+            share an identifier, in the document or across its bundles,
+            disagree.
 
     Warns:
         ProvWarning: For each relation skipped because one of its first two
@@ -108,7 +112,7 @@ def prov_to_graph(prov_document: ProvDocument) -> nx.MultiDiGraph[Any]:
             :data:`INFERRED_ELEMENT_CLASS` entry).
     """
     g: nx.MultiDiGraph[Any] = nx.MultiDiGraph()
-    unified = prov_document.unified()
+    unified = prov_document.flattened().unified()
     node_map: dict[QualifiedName | None, ProvRecord] = {}
     for element in unified.get_records(ProvElement):
         g.add_node(element)

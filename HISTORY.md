@@ -248,6 +248,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `prov_to_graph()` and `prov_to_dot()` draw one edge where 3.2.3 drew two
   ([#548](https://github.com/trungdong/prov/issues/548),
   [#124](https://github.com/trungdong/prov/issues/124))
+- `prov_to_graph()` flattens the document before it unifies it, so every element and
+  relation inside a bundle is a node or an edge, and records that share an identifier
+  across bundles merge under the unification rules. 3.2.3 unified the document and read
+  its top-level records only, so a document whose records were all inside bundles gave an
+  empty graph with no message. A document whose bundles disagree about a shared identifier
+  now raises `ProvUnificationError` from `prov_to_graph()`, where 3.2.3 dropped the
+  records. `graph_to_prov()` of such a graph returns the flattened document, with a
+  bundle's own default namespace declared under a prefix, `dn` unless a declared prefix
+  binds the IRI. `prov_to_dot()` is unchanged and draws bundles as asserted
+  ([#651](https://github.com/trungdong/prov/issues/651))
 - An `xsd:dateTime` with more than six fractional digits is no longer read.
   `parse_xsd_datetime` returns `None` for it, so a time of a statement is rejected as a
   time outside the lexical form is: `ProvNSyntaxError` at the token, `ProvJSONException`
