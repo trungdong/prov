@@ -991,34 +991,27 @@ def test_bytearray_stream_is_decoded() -> None:
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
 
 
-def test_bundle_in_document_default_with_its_own_default_round_trips() -> None:
+def test_bundle_named_under_a_prefix_with_its_own_default_round_trips() -> None:
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
-    b = d.bundle("b1")
+    ns = d.add_namespace("ex", "http://named.org/")
+    b = d.bundle(ns["b1"])
     b.set_default_namespace("http://bundle.org/")
     b.entity("e1")
     text = d.get_provn()
-    assert "bundle dn:b1" in text and "prefix dn <http://doc.org/>" in text
+    assert "bundle ex:b1" in text
     again = ProvDocument.deserialize(content=text, format="provn")
     assert again == d
     (bundle,) = again.bundles
-    assert bundle.identifier.uri == "http://doc.org/b1"
+    assert bundle.identifier.uri == "http://named.org/b1"
 
 
-def test_bundle_header_prefix_avoids_a_taken_dn_prefix() -> None:
-    # When the bundle already declares its own "dn" prefix for something
-    # else, the header's minted prefix falls back to "dn_1" instead of
-    # colliding with it.
+def test_bundle_named_in_the_document_default_cannot_declare_its_own() -> None:
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
     b = d.bundle("b1")
-    b.set_default_namespace("http://bundle.org/")
-    b.add_namespace("dn", "http://other.org/")
-    b.entity("e1")
-    text = d.get_provn()
-    assert "bundle dn_1:b1" in text
-    assert "prefix dn_1 <http://doc.org/>" in text
-    assert ProvDocument.deserialize(content=text, format="provn") == d
+    with pytest.raises(ProvException, match=r"holds b1.*read as http://bundle.org/b1"):
+        b.set_default_namespace("http://bundle.org/")
 
 
 def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:

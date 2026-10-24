@@ -166,7 +166,21 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
         A new :class:`~prov.model.ProvDocument` containing the elements and
         relations recovered from ``g``.
     """
-    prov_doc = ProvDocument()
+    source = next(
+        (
+            n.bundle
+            for n in g.nodes()
+            if isinstance(n, ProvRecord) and n.bundle is not None
+        ),
+        None,
+    )
+    if source is None:
+        prov_doc = ProvDocument()
+    else:
+        # the declarations the records' names are spelled with
+        source = source.document or source
+        prov_doc = ProvDocument(namespaces=list(source.get_registered_namespaces()))
+        prov_doc._copy_default_from(source)
     for n in g.nodes():
         if isinstance(n, ProvRecord) and n.bundle is not None:
             prov_doc.add_record(n)

@@ -99,6 +99,30 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   and `add_namespace()` given a default namespace object, a `ProvException`; both name
   `set_default_namespace()`, the one way to declare a default. 3.2.x accepted the object
   and made it the default of the first scope that met a name from it
+- A name in a default namespace asserted where no default namespace in scope is that
+  namespace, such as a record copied by `update()` into a document that declares another
+  default or none, or a document-default name asserted inside a bundle that declares its
+  own default, a `ProvExceptionInvalidQualifiedName` that names the IRI and asks for a
+  prefix; and an identifier equal to the default namespace IRI, such as
+  `d.entity("http://example.org/")` under that default, the same error. 3.2.x made the
+  namespace the scope's default in the first case, and in the second raised
+  `ProvElementIdentifierRequired` for the string and failed at write time for the
+  `QualifiedName` ([#473](https://github.com/trungdong/prov/issues/473))
+- `set_default_namespace()` or `add_namespace()` on a document or bundle that already holds
+  a name the declaration would change, such as a bundle named `e001` in the document's
+  default namespace that then declares its own default, a `ProvException` naming the name
+  and the IRI it would read as. 3.2.x accepted the declaration and the PROV-N writer gave
+  the name a `dn` prefix it declared inside the bundle
+- `add_bundle()` given a bundle that belongs to another document, a `ProvException`. A
+  bundle is not moved between documents; 3.2.x re-parented it and relied on the declarations
+  it had copied
+- `flattened()` on a document with a bundle that declares a default namespace other than
+  the document's, a `ProvException` that names the bundle and both namespaces and asks for
+  a prefix. 3.2.x wrote the bundle's bare names under a `dn` prefix it minted in the
+  flattened document
+- A bare name under an `xmlns` declared on an inner element of a PROV-XML document, a
+  `ProvXMLException` that names the name and the namespace. 3.2.x made that namespace the
+  default of the first scope that met it
 
 ### Changes with no prior warning
 
@@ -300,24 +324,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no
   `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows
-  the rule a name does, so it takes the prefix already bound to its IRI, or `dn`, when no
-  default in scope is that namespace
+  the rule a name does, so it is rejected when no default namespace in scope is that
+  namespace
   ([#615](https://github.com/trungdong/prov/issues/615))
-- An identifier equal to a namespace IRI, such as `d.entity("http://example.org/")` under
-  the default namespace `http://example.org/`, takes a prefix bound to that IRI, the one
-  already declared when there is one (for example `ex:`), else `dn:`, minted and declared.
-  Every writer writes it, and every reader reads it back with its prefix. 3.2.x
-  raised `ProvElementIdentifierRequired` for the string and accepted the `QualifiedName`
-  only to fail at write time. PROV-XML's `prov:id` admits no empty local part, so the
-  written `prov:id="dn:"` is not schema-valid, and neither is any other name with an empty
-  local part ([#473](https://github.com/trungdong/prov/issues/473))
-- A default namespace is set only by `set_default_namespace()`. A name in a namespace with
-  no prefix that no default in scope declares, such as `Namespace("", uri)["e"]` built in
-  code, a record copied by `update()` into a document that declares no default, or a name
-  under an `xmlns` declared on an inner element of a PROV-XML document, takes the prefix
-  already bound to its IRI, else `dn`, and is written `dn:e`. 3.2.x made that namespace the
-  document's default and wrote the name bare. `xmlns` on `prov:document` and on
-  `prov:bundleContent` is the scope's default, as before
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.

@@ -9,7 +9,13 @@ import pytest
 
 from prov.constants import XSD_INT
 from prov.identifier import Namespace, QualifiedName
-from prov.model import Literal, ProvBundle, ProvDocument, ProvException
+from prov.model import (
+    Literal,
+    ProvBundle,
+    ProvDocument,
+    ProvException,
+    ProvExceptionInvalidQualifiedName,
+)
 
 from . import examples
 from .attribute_values import document as attribute_values_document
@@ -53,30 +59,32 @@ def test_default_namespace_inheritance(roundtrip: Roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-def test_flattening_1_bundle_with_default_namespace(roundtrip: Roundtrip) -> None:
+@pytest.mark.parametrize("n", [1, 2, 3])
+@pytest.mark.parametrize("document_default", [None, "http://www.example.org/default/0"])
+def test_flattening_bundles_with_other_default_namespaces_is_rejected(
+    n: int, document_default: str | None
+) -> None:
+    # The flattened document has one default at most, and the model mints no
+    # prefix for a name in another.
+    prov_doc = document_with_n_bundles_having_default_namespace(n)
+    if document_default is not None:
+        prov_doc.set_default_namespace(document_default)
+    expected = "none" if document_default is None else f"<{document_default}>"
+    with pytest.raises(ProvException) as caught:
+        prov_doc.flattened()
+    assert str(caught.value) == (
+        "cannot flatten: bundle ex:bundle/1 declares default "
+        f"<http://www.example.org/default/1> while the document's is {expected}, "
+        "so its bare names have no spelling in the flat document; "
+        "declare a prefix for the namespace"
+    )
+
+
+def test_flattening_a_bundle_in_the_document_default_namespace(
+    roundtrip: Roundtrip,
+) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
-    roundtrip(prov_doc.flattened())
-
-
-def test_flattening_2_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(2)
-    roundtrip(prov_doc.flattened())
-
-
-def test_flattening_3_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(3)
-    roundtrip(prov_doc.flattened())
-
-
-def test_flattening_1_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(1)
-    prov_doc.set_default_namespace("http://www.example.org/default/0")
-    roundtrip(prov_doc.flattened())
-
-
-def test_flattening_2_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(2)
-    prov_doc.set_default_namespace("http://www.example.org/default/0")
+    prov_doc.set_default_namespace("http://www.example.org/default/1")
     roundtrip(prov_doc.flattened())
 
 
@@ -203,12 +211,13 @@ def test_default_namespace_colon_local_part_as_bundle_identifier(
 def test_default_namespace_colon_local_part_in_a_bundle_default_namespace(
     roundtrip: Roundtrip,
 ) -> None:
-    # the bundle identifier, in the document's default namespace, takes the
-    # document's prefix for it
+    # the bundle is named under a prefix, since a bundle named in the
+    # document's default cannot then declare a default of its own
     other_ns = default_namespace("http://other.example/")
     prov_doc = document_with_default_namespace()
     prov_doc.entity(DEFAULT_NS["a:b"])
-    bundle = prov_doc.bundle(DEFAULT_NS["b:c"])
+    named = prov_doc.add_namespace("ex", "http://ex.example/")
+    bundle = prov_doc.bundle(named["b:c"])
     bundle.set_default_namespace(other_ns.uri)
     bundle.entity(other_ns["c:d"])
     roundtrip(prov_doc)
@@ -256,8 +265,8 @@ def test_generated_prefixes_avoid_prefixes_in_use(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_default_namespace()
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     default_1 = prov_doc.add_namespace("default_1", "http://x.example/")
-    dn = prov_doc.add_namespace("dn", "http://dn.example/")
-    prov_doc.entity(DEFAULT_NS["a:b"], {DEFAULT_PREFIX_NS["attr"]: dn["v"]})
+    other = prov_doc.add_namespace("other", "http://other.example/")
+    prov_doc.entity(DEFAULT_NS["a:b"], {DEFAULT_PREFIX_NS["attr"]: other["v"]})
     prov_doc.entity(default_1["e"])
     roundtrip(prov_doc)
 
@@ -269,9 +278,9 @@ def test_generated_prefixes_avoid_prefixes_declared_in_a_bundle(
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     prov_doc.entity(DEFAULT_PREFIX_NS["e"])
     bundle = prov_doc.bundle(DEFAULT_NS["b:c"])
-    bundle.add_namespace("dn", "http://dn.example/")
+    bundle.add_namespace("other", "http://other.example/")
     bundle.add_namespace("default_1", "http://x.example/")
-    bundle.entity("dn:f", {"default_1:attr": DEFAULT_PREFIX_NS["v"]})
+    bundle.entity("other:f", {"default_1:attr": DEFAULT_PREFIX_NS["v"]})
     bundle.entity(DEFAULT_NS["c:d"])
     roundtrip(prov_doc)
 
@@ -378,60 +387,40 @@ def test_literal_in_scope_returns_built_in_datatypes_unchanged() -> None:
     assert record._literal_in_scope(typed) is typed
 
 
-def test_literal_datatype_in_a_foreign_default_takes_the_dn_prefix() -> None:
+def test_literal_datatype_in_a_foreign_default_is_rejected() -> None:
     doc = ProvDocument()
     doc.set_default_namespace("http://d.org/")
-    record = doc.entity(
-        "e", {"a": Literal("1", default_namespace("http://other.org/")["t"])}
+    datatype = default_namespace("http://other.org/")["t"]
+    with pytest.raises(ProvExceptionInvalidQualifiedName) as caught:
+        doc.entity("e", {"a": Literal("1", datatype)})
+    assert caught.value.detail == (
+        "the name 't' is in the default namespace http://other.org/, "
+        "which is not the default namespace in scope; declare a prefix for it"
     )
-    (value,) = record.get_attribute("a")
-    assert isinstance(value, Literal) and value.datatype is not None
-    assert value.datatype.namespace.prefix == "dn"
-    assert value.datatype.uri == "http://other.org/t"
-    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
-    content = doc.serialize(format="provn")
-    assert ProvDocument.deserialize(content=content, format="provn") == doc
 
 
-@pytest.mark.parametrize(
-    "fmt",
-    [
-        "model",
-        "json",
-        "xml",
-        "jsonld",
-        "provn",
-        "rdf",
-    ],
-)
-def test_identifier_equal_to_the_default_namespace_iri(roundtrip: Roundtrip) -> None:
-    # #473: the name has no PROV-N spelling in the default namespace, so the
-    # model gives it a prefix bound to the same IRI at assertion.
+def test_identifier_equal_to_the_default_namespace_iri_is_rejected() -> None:
+    # #473: the name has no spelling in the default namespace, and the model
+    # mints no prefix for it.
     doc = document_with_default_namespace()
-    for identifier in (DEFAULT_NS.uri, DEFAULT_NS[""]):
-        record = doc.entity(identifier)
-        assert record.identifier.namespace.prefix == "dn"
-        assert record.identifier.uri == DEFAULT_NS.uri
-    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
-    reloaded = roundtrip(doc)
-    for read_back in reloaded.get_records():
-        if read_back.identifier is not None:
-            assert read_back.identifier.namespace.prefix
-    reloaded.get_provn()
+    default = doc.get_default_namespace()
+    assert default is not None
+    for identifier in (DEFAULT_NS.uri, default[""]):
+        with pytest.raises(ProvExceptionInvalidQualifiedName) as caught:
+            doc.entity(identifier)
+        assert caught.value.detail == (
+            f"the IRI {DEFAULT_NS.uri} is the default namespace and has no "
+            "qualified-name form; declare a prefix for it"
+        )
+    assert list(doc.get_registered_namespaces()) == []
 
 
-def test_identifier_equal_to_the_default_namespace_iri_reuses_a_prefix() -> None:
+def test_identifier_equal_to_a_namespace_iri_under_a_prefix_is_that_prefix() -> None:
+    # Production [52] allows an empty local part after a prefix.
     doc = document_with_default_namespace()
-    doc.add_namespace("ex", DEFAULT_NS.uri)
+    ex = doc.add_namespace("ex", DEFAULT_NS.uri)
+    assert doc.entity(DEFAULT_NS.uri).identifier == ex[""]
     assert str(doc.entity(DEFAULT_NS.uri).identifier) == "ex:"
-    assert str(doc.entity(DEFAULT_NS[""]).identifier) == "ex:"
-    assert "dn" not in {ns.prefix for ns in doc.get_registered_namespaces()}
-
-
-def test_identifier_equal_to_the_default_namespace_iri_avoids_a_taken_dn() -> None:
-    doc = document_with_default_namespace()
-    doc.add_namespace("dn", "http://dn.example/")
-    assert doc.entity(DEFAULT_NS.uri).identifier.namespace.prefix == "dn_1"
 
 
 def test_a_bare_empty_local_name_still_has_no_provn_spelling() -> None:
@@ -439,21 +428,11 @@ def test_a_bare_empty_local_name_still_has_no_provn_spelling() -> None:
         default_namespace(DEFAULT_NS.uri)[""].provn_representation()
 
 
-def test_identifier_equal_to_a_namespace_iri_skips_a_prefix_the_bundle_rebinds() -> (
-    None
-):
+def test_identifier_equal_to_the_default_in_a_bundle_that_rebinds_the_prefix() -> None:
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
     doc.add_namespace("ex", "http://d/")
-    bundle = doc.bundle("ex:b3")
+    bundle = doc.bundle(doc.add_namespace("nm", "http://n/")["b3"])
     bundle.add_namespace("ex", "http://x/")
-    identifier = bundle.entity(default_namespace("http://d/")[""]).identifier
-    assert str(identifier) == "dn:"
-    assert identifier.uri == "http://d/"
-    assert "dn" in {ns.prefix for ns in bundle.get_registered_namespaces()}
-    reloaded = ProvDocument.deserialize(
-        content=doc.serialize(format="provn"), format="provn"
-    )
-    (read_back,) = reloaded.bundles
-    uris = [r.identifier.uri for r in read_back.get_records() if r.identifier]
-    assert uris == ["http://d/"]
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        bundle.entity(default_namespace("http://d/")[""])

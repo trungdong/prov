@@ -123,7 +123,7 @@ d.add_namespace("ex2", "http://example.org/2/")
 
 d.entity("e001")
 
-bundle = d.bundle("e001")
+bundle = d.bundle("ex1:b001")
 bundle.set_default_namespace("http://example.org/2/")
 bundle.entity("e001")
 
@@ -137,18 +137,16 @@ document
   prefix ex2 <http://example.org/2/>
 
   entity(e001)
-  bundle dn:e001
+  bundle ex1:b001
     default <http://example.org/2/>
-    prefix dn <http://example.org/0/>
 
     entity(e001)
   endBundle
 endDocument
 ```
 
-The bundle's identifier lives in the document's default namespace while the bundle declares
-its own default, so the writer gives that namespace the prefix `dn` inside the bundle; a bare
-`bundle e001` would be read as `http://example.org/2/e001`.
+The bundle declares its own default namespace, so `e001` inside it is
+`http://example.org/2/e001`, a different entity from the document's `e001`.
 
 ## Where next
 

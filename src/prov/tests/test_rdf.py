@@ -268,7 +268,9 @@ def test_bundle_local_prefix_collision_keeps_document_level_binding() -> None:
     # regardless of `override`) to avoid clobbering it.
     doc = ProvDocument()
     doc.add_namespace("coll", "http://document.example/")
-    bundle = doc.bundle("coll:bundle1")
+    doc.entity("coll:d1")
+    named = doc.add_namespace("nm", "http://named.example/")
+    bundle = doc.bundle(named["bundle1"])
     bundle.add_namespace("coll", "http://bundlelocal.example/")
     bundle.entity("coll:e1")
 

@@ -6,10 +6,30 @@ from collections.abc import Iterable, Mapping
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model.records import NSCollection, ProvException, QualifiedNameCandidate
+from prov.model.records import (
+    NSCollection,
+    ProvException,
+    ProvExceptionInvalidQualifiedName,
+    QualifiedNameCandidate,
+)
 
 DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD}
 _DEFAULT_NAMESPACES_BY_URI = {ns.uri: ns for ns in DEFAULT_NAMESPACES.values()}
+
+
+def _default_iri_detail(uri: str) -> str:
+    return (
+        f"the IRI {uri} is the default namespace and has no qualified-name form; "
+        "declare a prefix for it"
+    )
+
+
+def _undeclared_default_detail(qname: QualifiedName) -> str:
+    return (
+        f"the name '{qname.localpart}' is in the default namespace "
+        f"{qname.namespace.uri}, which is not the default namespace in scope; "
+        "declare a prefix for it"
+    )
 
 
 class NamespaceManager(dict[str, Namespace]):
@@ -253,16 +273,17 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
-        # The name as this scope holds it. The IRI of a default namespace has
-        # no spelling in it, so that name takes a prefix (#473). Otherwise the
-        # name is unchanged when a scope in reach binds its namespace (#449);
-        # a prefix-less name that no default in reach declares takes a prefix
-        # bound to its IRI; any other name is registered here under a prefix
-        # no scope in reach binds.
+        # The name as this scope holds it: unchanged when a scope in reach
+        # binds its namespace (#449); a name in a default namespace no scope
+        # in reach declares is rejected, as is the default IRI itself (#473);
+        # a prefixed foreign namespace is registered here under a prefix no
+        # scope in reach binds.
         namespace = qname.namespace
         prefix = namespace.prefix
         if not prefix and not qname.localpart:
-            return self._prefixed_namespace(namespace.uri)[""]
+            raise ProvExceptionInvalidQualifiedName(
+                qname, _default_iri_detail(namespace.uri)
+            )
         if self.get(prefix) is namespace:
             return qname
         bound = self._binding_in_scope(prefix)
@@ -271,7 +292,9 @@ class NamespaceManager(dict[str, Namespace]):
         if bound == namespace:
             return bound[qname.localpart]
         if not prefix:
-            return self._prefixed_namespace(namespace.uri)[qname.localpart]
+            raise ProvExceptionInvalidQualifiedName(
+                qname, _undeclared_default_detail(qname)
+            )
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
         return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
 
@@ -294,28 +317,14 @@ class NamespaceManager(dict[str, Namespace]):
         #  assuming it is a URI (with the first part as its scheme)
         #  check if the URI can be compacted by any of the registered namespaces
         for namespace in self.values():
-            if str_value.startswith(namespace.uri):
-                local = str_value[len(namespace.uri) :]
-                if not local and not namespace.prefix:
-                    # the IRI itself; the name takes a prefix (#473)
-                    return self._reconcile_qualified_name(namespace[local])
+            local = str_value[len(namespace.uri) :]
+            if str_value.startswith(namespace.uri) and (namespace.prefix or local):
                 return namespace[local]
+        if self._default is not None and str_value == self._default.uri:
+            raise ProvExceptionInvalidQualifiedName(
+                str_value, _default_iri_detail(str_value)
+            )
         return None
-
-    def _prefixed_namespace(self, uri: str) -> Namespace:
-        """The nearest namespace bound to ``uri`` whose prefix this scope
-        reads the same way, ``dn`` (or the next free suffix) registered here
-        when there is none (#473)."""
-        manager: NamespaceManager | None = self
-        while manager is not None:
-            namespace = manager._uri_map.get(uri)
-            if (
-                namespace is not None
-                and self._binding_in_scope(namespace.prefix) is namespace
-            ):
-                return namespace
-            manager = manager.parent
-        return self.add_namespace(Namespace(self._unused_prefix_in_scope("dn"), uri))
 
     def _binding(self, prefix: str) -> Namespace | None:
         """The namespace this scope alone binds ``prefix`` to, the default

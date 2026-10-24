@@ -337,18 +337,12 @@ def test_other_elements() -> None:
 def test_nested_default_namespace() -> None:
     """
     Tests that an `xmlns` declared on an inner element is not the document's
-    default: the name it makes takes the `dn` prefix.
+    default, so a bare name under it is rejected.
     """
     filename = os.path.join(DATA_PATH, "nested_default_namespace.xml")
-    doc = prov.ProvDocument.deserialize(source=filename, format="xml")
-
-    assert len(doc._records) == 1
-    assert doc.get_default_namespace() is None
-    identifier = doc._records[0].identifier
-    assert identifier is not None
-    assert identifier.namespace.prefix == "dn"
-    assert identifier.uri == "http://example.org/0/e001"
-    assert "dn" in {ns.prefix for ns in doc.get_registered_namespaces()}
+    with pytest.raises(ProvXMLException, match=r"http://example\.org/0/") as caught:
+        prov.ProvDocument.deserialize(source=filename, format="xml")
+    assert "e001" in str(caught.value)
 
 
 def test_xmlns_on_the_document_element_is_the_default_namespace() -> None:
@@ -404,7 +398,7 @@ def test_a_prefix_redeclared_inside_bundle_content_does_not_shadow_the_document(
     assert first.uri == "http://example.org/one/a"
     assert second.uri == "http://example.org/two/c"
     assert second.namespace.prefix == "ex_1"
-    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex_1"]
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex", "ex_1"]
 
 
 def test_redefining_namespaces() -> None:

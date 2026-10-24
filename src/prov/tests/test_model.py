@@ -35,6 +35,11 @@ from prov.model import (
 from prov.tests import examples
 from prov.tests.conftest import add_ordered_namespaces, default_namespace
 
+_UNDECLARED_DEFAULT = (
+    r"the name '\w+' is in the default namespace http://[\w.]+/, "
+    "which is not the default namespace in scope; declare a prefix for it"
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -592,11 +597,12 @@ def test_valid_qualified_name_rejects_blank_node_and_bad_types() -> None:
     assert nm.valid_qualified_name(12345) is None
 
 
-def test_default_namespace_uri_alone_takes_a_prefix() -> None:
-    # An IRI equal to the default namespace takes a prefix (#473).
+def test_default_namespace_uri_alone_is_rejected() -> None:
+    # An IRI equal to the default namespace has no spelling (#473).
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
-    assert str(doc.valid_qualified_name("http://d/")) == "dn:"
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        doc.valid_qualified_name("http://d/")
     assert doc.valid_qualified_name("http://d/e1").localpart == "e1"
     ex = doc.add_namespace("ex", "http://e/")
     # [52] allows a prefixed empty local part.
@@ -879,7 +885,8 @@ def test_a_bundle_registers_only_what_it_binds() -> None:
     assert list(bundle.get_registered_namespaces()) == []
     assert bundle.get_default_namespace() is None
 
-    rebinding = doc.bundle("ex:c")
+    nm = doc.add_namespace("nm", "http://named.org/")
+    rebinding = doc.bundle(nm["c"])
     rebinding.add_namespace("ex", "http://other.org/")
     renamed = rebinding.entity(ex["e"]).identifier
     assert renamed.namespace.prefix == "ex_1"
@@ -887,9 +894,8 @@ def test_a_bundle_registers_only_what_it_binds() -> None:
 
     own_default = doc.bundle("ex:d")
     own_default.set_default_namespace("http://other.org/")
-    minted = own_default.entity(doc.valid_qualified_name("f")).identifier
-    assert minted.namespace.prefix == "dn"
-    assert minted.uri == "http://d.org/f"
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match=_UNDECLARED_DEFAULT):
+        own_default.entity(doc.valid_qualified_name("f"))
 
 
 def test_unified_bundle_registers_only_what_it_binds() -> None:
@@ -908,22 +914,13 @@ def _read_back(document: ProvDocument, format: str) -> ProvDocument:
     return ProvDocument.deserialize(content=text, format=format)
 
 
-def test_a_prefix_less_name_is_minted_in_dn_and_sets_no_default() -> None:
+def test_a_prefix_less_name_is_rejected_and_sets_no_default() -> None:
     manager = NamespaceManager()
-    name = manager.valid_qualified_name(default_namespace("http://u.org/")["e1"])
-    assert name is not None
-    assert str(name) == "dn:e1"
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        manager.valid_qualified_name(default_namespace("http://u.org/")["e1"])
     assert manager.get_default_namespace() is None
     assert "" not in manager
-    assert "dn" in manager
-
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://u.org/")
-    bundle = doc.bundle("ex:b")
-    read = bundle.valid_qualified_name(default_namespace("http://u.org/")["e"])
-    assert read is not None
-    assert str(read) == "ex:e"
-    assert list(bundle.get_registered_namespaces()) == []
+    assert list(manager.get_registered_namespaces()) == []
 
     with_default = ProvDocument()
     with_default.set_default_namespace("http://u.org/")
@@ -969,23 +966,8 @@ def test_a_namespace_a_bundle_registers_never_shadows_a_declared_prefix(
     uris = {str(r.identifier.uri) for r in read_bundle.get_records()}
     assert uris == {"http://one.org/a", "http://two.org/b"}
 
-    bundle.add_namespace("ex", "http://three.org/")
-    assert bundle._namespaces["ex"].uri == "http://three.org/"
-
-
-def test_an_identifier_equal_to_a_namespace_iri_skips_a_bound_dn() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("dn", "http://elsewhere.org/")
-    bundle = doc.bundle("dn:b")
-    first = bundle.entity("dn:a").identifier
-    iri = "http://iri.org/"
-    second = bundle.entity(default_namespace(iri)[""]).identifier
-
-    assert first is not None
-    assert first.uri == "http://elsewhere.org/a"
-    assert second is not None
-    assert second.namespace.prefix == "dn_1"
-    assert second.uri == iri
+    with pytest.raises(ProvException, match=r"cannot declare prefix ex <http://three"):
+        bundle.add_namespace("ex", "http://three.org/")
 
 
 def _document_with_default_and_a_bundle() -> ProvDocument:
@@ -1028,7 +1010,7 @@ def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
     )
 
 
-def test_add_bundle_keeps_spellings_and_declares_what_a_moved_bundle_holds() -> None:
+def test_add_bundle_keeps_the_spellings_of_a_document_argument() -> None:
     source = _document_with_default_and_a_bundle()
     target = ProvDocument()
     target.add_namespace("tg", "http://b.org/")
@@ -1038,28 +1020,99 @@ def test_add_bundle_keeps_spellings_and_declares_what_a_moved_bundle_holds() -> 
     assert [s for s, _ in _spellings(copied)] == ["a", "ex:b", "c"]
     assert copied.get_default_namespace() == source.get_default_namespace()
 
-    moved_to = ProvDocument()
+
+def test_add_bundle_refuses_a_bundle_of_another_document() -> None:
+    source = _document_with_default_and_a_bundle()
     (bundle,) = source.bundles
-    moved_to.add_bundle(bundle)
-    assert moved_to.get_default_namespace() is None
+    target = ProvDocument()
+    with pytest.raises(ProvException, match="belongs to another document"):
+        target.add_bundle(bundle)
+    assert not target.has_bundles()
+    assert bundle.document is source
     assert _spellings(bundle) == [("c", "http://d.org/c")]
-    for format in ("json", "provn"):
-        assert _read_back(moved_to, format) == moved_to
+    assert list(source.bundles) == [bundle]
 
 
-def test_update_into_a_document_without_a_default_gives_dn_names() -> None:
+def test_update_into_a_document_without_a_default_is_rejected() -> None:
     source = ProvDocument()
     source.set_default_namespace("http://u.org/")
     source.entity("e")
     target = ProvDocument()
-    target.update(source)
-
-    (record,) = target.get_records()
-    assert record.identifier is not None
-    assert str(record.identifier) == "dn:e"
-    assert record.identifier.uri == "http://u.org/e"
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match=_UNDECLARED_DEFAULT):
+        target.update(source)
     assert target.get_default_namespace() is None
-    assert "dn" in {ns.prefix for ns in target.get_registered_namespaces()}
+
+
+def test_a_name_in_another_default_is_rejected_where_that_default_is_not_in_scope() -> (
+    None
+):
+    doc = ProvDocument()
+    doc.set_default_namespace("http://a/")
+    doc.add_namespace("ex", "http://example.org/")
+    name = doc.valid_qualified_name("e")
+
+    own_default = doc.bundle("ex:b")
+    own_default.set_default_namespace("http://b/")
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match=_UNDECLARED_DEFAULT):
+        own_default.entity(name)
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match=_UNDECLARED_DEFAULT):
+        own_default.entity("ex:x", {"ex:attr": Literal("v", datatype=name)})
+
+    no_default = doc.bundle("ex:c")
+    assert no_default.entity(name).identifier == name
+
+
+def test_a_default_that_would_change_a_held_name_is_refused() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://a/")
+    doc.add_namespace("ex", "http://example.org/")
+
+    named = doc.bundle("e001")
+    with pytest.raises(ProvException, match=r"holds e001.*read as http://b/e001"):
+        named.set_default_namespace("http://b/")
+    assert named.get_default_namespace() is None
+
+    holding = doc.bundle("ex:h")
+    holding.entity(doc.valid_qualified_name("f"))
+    with pytest.raises(ProvException, match=r"holds f.*read as http://b/f"):
+        holding.set_default_namespace("http://b/")
+
+    clean = doc.bundle("ex:k")
+    clean.set_default_namespace("http://b/")
+    assert clean.get_default_namespace() == default_namespace("http://b/")
+
+    doc.entity("a")
+    with pytest.raises(ProvException, match=r"holds a.*read as http://b/a"):
+        doc.set_default_namespace("http://b/")
+
+
+def test_a_document_declaration_is_refused_when_a_bundle_reads_through_it() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://a/")
+    ns = doc.add_namespace("ex", "http://example.org/")
+    bundle = doc.bundle(ns["b"])
+    bundle.entity("e")
+    with pytest.raises(ProvException, match=r"this bundle holds e.*read as http://b/e"):
+        doc.set_default_namespace("http://b/")
+    assert doc.get_default_namespace() == default_namespace("http://a/")
+
+
+def test_a_prefix_that_would_change_a_held_name_is_refused() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://one.org/")
+    bundle = doc.bundle("ex:b")
+    bundle.entity("ex:a")
+    with pytest.raises(ProvException, match=r"holds ex:b.*read as http://two.org/b"):
+        bundle.add_namespace("ex", "http://two.org/")
+    assert list(bundle.get_registered_namespaces()) == []
+
+    other = doc.bundle(doc.add_namespace("nm", "http://named.org/")["c"])
+    other.add_namespace("ex", "http://two.org/")
+    assert [ns.prefix for ns in other.get_registered_namespaces()] == ["ex"]
+
+    # a prefix this scope itself binds is renamed, which changes no held name
+    doc.entity("ex:z")
+    assert doc.add_namespace("ex", "http://two.org/").prefix == "ex_1"
 
 
 def test_bundle_written_alone_declares_the_enclosing_namespaces() -> None:

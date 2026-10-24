@@ -324,24 +324,18 @@ class ProvXMLSerializer(Serializer):
 
             id_tag = _ns_prov("id")
             rec_id = element.attrib.get(id_tag, None)
+
+            # Recursively read bundles.
+            if qname.localname == "bundleContent":
+                self._read_bundle_content(element, bundle, rec_id, namespaces)
+                continue
+
             # Try to make a qualified name out of it!
             prov_rec_id = (
                 xml_qname_to_QualifiedName(element, rec_id, namespaces, scope=bundle)
                 if rec_id is not None
                 else None
             )
-
-            # Recursively read bundles.
-            if qname.localname == "bundleContent":
-                if not isinstance(bundle, prov.model.ProvDocument):
-                    # Only a document may directly contain named bundles;
-                    # nested bundleContent would mean a bundle-within-a-bundle.
-                    raise AssertionError("bundleContent found outside a ProvDocument")
-                if prov_rec_id is None:
-                    raise AssertionError("bundleContent element has no id")
-                b = bundle.bundle(identifier=prov_rec_id)
-                self.deserialize_subtree(element, b, namespaces)
-                continue
 
             attributes = _extract_attributes(element, namespaces, bundle)
 
@@ -364,6 +358,34 @@ class ProvXMLSerializer(Serializer):
             if rec_type != q_prov_name:
                 rec.add_asserted_type(q_prov_name)
         return bundle
+
+    def _read_bundle_content(
+        self,
+        element: etree._Element,
+        document: prov.model.ProvDocument | prov.model.ProvBundle,
+        rec_id: str | None,
+        namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
+    ) -> None:
+        """Read a ``<prov:bundleContent>`` into a new bundle of ``document``.
+
+        The bundle takes its own ``xmlns`` as its default before its
+        ``prov:id`` is resolved, so the identifier reads in the bundle's scope.
+        """
+        if not isinstance(document, prov.model.ProvDocument):
+            # Only a document may directly contain named bundles;
+            # nested bundleContent would mean a bundle-within-a-bundle.
+            raise AssertionError("bundleContent found outside a ProvDocument")
+        if rec_id is None:
+            raise AssertionError("bundleContent element has no id")
+        bundle = prov.model.ProvBundle(document=document)
+        default = _own_default(element, bundle)
+        if default is not None:
+            bundle.set_default_namespace(default)
+        identifier = xml_qname_to_QualifiedName(
+            element, rec_id, namespaces, scope=bundle
+        )
+        document.add_bundle(bundle, identifier)
+        self.deserialize_subtree(element, bundle, namespaces)
 
     def _derive_record_label(
         self,
@@ -720,12 +742,12 @@ def _own_default(
     xml_doc: etree._Element,
     bundle: prov.model.ProvDocument | prov.model.ProvBundle,
 ) -> str | None:
-    """The ``xmlns`` of ``xml_doc`` when it differs from the default enclosing
-    ``bundle``, else ``None``."""
+    """The ``xmlns`` of ``xml_doc`` when it differs from the default in scope
+    at ``bundle``, else ``None``."""
     default = xml_doc.nsmap.get(None)
     enclosing = bundle.document
     inherited = None if enclosing is None else enclosing.default_ns_uri
-    return None if default == inherited else default
+    return None if default in (inherited, bundle.default_ns_uri) else default
 
 
 def _namespace(
@@ -760,7 +782,11 @@ def _bare_name(
     default = namespaces._binding_in_scope("")
     if default is not None and default.uri == ns_uri:
         return default[qname_str]
-    return namespaces._prefixed_namespace(ns_uri)[qname_str]
+    raise ProvXMLException(
+        f'the name "{qname_str}" is under an xmlns declaration ({ns_uri}) on an '
+        "element, which has no scope in PROV; declare the default on the "
+        "document or the bundle, or use a prefix"
+    )
 
 
 def xml_qname_to_QualifiedName(
@@ -781,7 +807,7 @@ def xml_qname_to_QualifiedName(
             creates a namespace per call.
         scope: The document or bundle a bare name resolves in; its default
             namespace names the bare name when it has the in-scope ``xmlns``
-            IRI, and any other ``xmlns`` IRI takes a prefix bound to it.
+            IRI.
 
     Returns:
         The resolved qualified name. The XSD and PROV namespaces are mapped
@@ -792,8 +818,9 @@ def xml_qname_to_QualifiedName(
 
     Raises:
         ProvXMLException: If ``qname_str`` has no recognized prefix and
-            ``element`` has no default namespace in scope, or ``scope`` is
-            ``None`` and the default namespace is not the XSD one.
+            ``element`` has no default namespace in scope, ``scope`` is
+            ``None`` and the default namespace is not the XSD one, or the
+            ``xmlns`` is not the default of ``scope``.
     """
     if ":" in qname_str:
         prefix, localpart = qname_str.split(":", 1)

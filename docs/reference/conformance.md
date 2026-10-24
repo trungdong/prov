@@ -175,10 +175,6 @@ statement's own arguments are errors.
 - `<prov:other>` elements and attributes the model cannot represent are skipped with a
   `ProvWarning`.
 - Names escaped as in C3 are unescaped.
-- A record whose identifier is a namespace IRI is written as `prov:id="dn:"` (or `ex:`
-  when a prefix is bound to the IRI), an `xs:QName` with an empty local part, which the
-  PROV-XML schema does not admit. `prov` reads it back; another consumer may reject it
-  ([#473](https://github.com/trungdong/prov/issues/473)).
 
 ### PROV-JSONLD
 
