@@ -256,9 +256,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   now raises `ProvUnificationError` from `prov_to_graph()`, where 3.2.3 dropped the
   records. `graph_to_prov()` of the graph of a document with bundles returns the flattened
   document, with a bundle's own default namespace declared under a prefix, as
-  `ProvDocument.flattened()` declares it. `prov_to_graph()` takes a document only, so
-  given a bundle it raises `AttributeError`, where 3.2.3 drew the bundle's own records;
-  pass the document. `prov_to_dot()` is unchanged and draws bundles as asserted
+  `ProvDocument.flattened()` declares it. `prov_to_graph()` takes a document only, where
+  3.2.3 also drew a bundle's own records; pass the bundle's document. `prov_to_dot()` is
+  unchanged and draws bundles as asserted
   ([#651](https://github.com/trungdong/prov/issues/651))
 - An `xsd:dateTime` with more than six fractional digits is no longer read.
   `parse_xsd_datetime` returns `None` for it, so a time of a statement is rejected as a

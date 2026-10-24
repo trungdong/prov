@@ -19,30 +19,27 @@ from prov.tests.examples import tests
 
 
 def _is_drawn(record: ProvRecord) -> bool:
-    """Whether ``prov_to_graph()`` keeps the record: every element, and a
-    relation whose first two formal attributes are both set."""
+    """An element, or a relation whose first two formal attributes are both set."""
     return not isinstance(record, ProvRelation) or all(
         value for _, value in record.formal_attributes[:2]
     )
 
 
 def test_simple_graph_conversion() -> None:
-    # The two bundle examples hold generations with no activity, at the top
-    # level and inside a bundle, which prov_to_graph() skips with a warning;
-    # every other record of the flattened, unified document comes back.
+    # prov_to_graph() skips, with a ProvWarning each, the relations _is_drawn
+    # rejects; every other record of the flattened, unified document comes back.
     for name, doc_func in tests:
         prov_org = doc_func()
-        expected = {
-            record
-            for record in prov_org.flattened().unified().get_records()
-            if _is_drawn(record)
-        }
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", ProvWarning)
+        records = prov_org.flattened().unified().get_records()
+        expected = {record for record in records if _is_drawn(record)}
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always", ProvWarning)
             prov_doc = graph_to_prov(prov_to_graph(prov_org))
         assert set(prov_doc.get_records()) == expected, (
             f"Round trip graph conversion for '{name}' failed."
         )
+        skips = [w for w in caught if issubclass(w.category, ProvWarning)]
+        assert len(skips) == len(records) - len(expected), name
 
 
 @pytest.fixture
@@ -181,7 +178,7 @@ def test_equal_memberships_sharing_an_identifier_give_one_edge(
     "in_bundles",
     [
         pytest.param(False, id="same-scope"),
-        # Each bundle unifies on its own; the flattened document does not (N28).
+        # Each bundle unifies on its own; the flattened document does not.
         pytest.param(True, id="two-bundles"),
     ],
 )
