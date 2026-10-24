@@ -2,14 +2,44 @@
 
 from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model.records import NSCollection, QualifiedNameCandidate
+from prov.model.records import (
+    NSCollection,
+    ProvException,
+    ProvExceptionInvalidQualifiedName,
+    QualifiedNameCandidate,
+)
 
 DEFAULT_NAMESPACES = {"prov": PROV, "xsd": XSD}
 _DEFAULT_NAMESPACES_BY_URI = {ns.uri: ns for ns in DEFAULT_NAMESPACES.values()}
+
+
+def _default_iri_detail(uri: str) -> str:
+    return (
+        f"the IRI {uri} is the default namespace and has no qualified-name form; "
+        "declare a prefix for it"
+    )
+
+
+def _undeclared_default_detail(qname: QualifiedName) -> str:
+    return (
+        f"the name '{qname.localpart}' is in the default namespace "
+        f"{qname.namespace.uri}, which is not the default namespace in scope; "
+        "declare a prefix for it"
+    )
+
+
+def _first_free(prefix: str, taken: Callable[[str], bool]) -> str:
+    """``prefix`` when ``taken`` rejects it, else the first ``prefix_N``
+    it rejects."""
+    candidate, count = prefix, 1
+    while taken(candidate):
+        candidate = f"{prefix}_{count}"
+        count += 1
+    return candidate
 
 
 class NamespaceManager(dict[str, Namespace]):
@@ -39,10 +69,9 @@ class NamespaceManager(dict[str, Namespace]):
         self.update(self._default_namespaces)
         self._namespaces: dict[str, Namespace] = {}
 
-        # Plain str -> QualifiedName this manager resolved itself, never a
-        # result obtained by delegating to a parent. Cleared by every
-        # mutation that can change how a string resolves: add_namespace()
-        # and _set_default().
+        # Maps a plain string to the name this manager resolved, possibly one
+        # minted in an outer scope's namespace. add_namespace() and
+        # _set_default() clear it whenever a string could resolve differently.
         self._resolve_cache: dict[str, QualifiedName] = {}
 
         if default is not None:
@@ -96,17 +125,38 @@ class NamespaceManager(dict[str, Namespace]):
         Args:
             uri: The URI of the default namespace.
         """
-        self._set_default(Namespace("", uri))
+        self._set_default(Namespace._default(uri))
 
-    def _set_default(self, namespace: Namespace, register: bool = True) -> None:
+    def _set_default(self, namespace: Namespace) -> None:
         self._default = namespace
-        if register:
-            self[""] = namespace
+        self[""] = namespace
         self._resolve_cache.clear()
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
         return self._default
+
+    def declarations_with_enclosing(self) -> tuple[Namespace | None, list[Namespace]]:
+        """Return this manager's declarations completed from its parent.
+
+        The default is the parent's when this manager has none, and the
+        registered namespaces gain the parent's whose prefix this manager
+        does not rebind, so the declarations read on their own.
+
+        Returns:
+            The default namespace, or ``None``, and the registered namespaces.
+        """
+        registered = list(self.get_registered_namespaces())
+        default = self._default
+        if self.parent is not None:
+            own = {namespace.prefix for namespace in registered}
+            registered += [
+                namespace
+                for namespace in self.parent.get_registered_namespaces()
+                if namespace.prefix not in own
+            ]
+            default = default or self.parent.get_default_namespace()
+        return default, registered
 
     def add_namespace(self, namespace: Namespace) -> Namespace:
         """Add a namespace, unless an equivalent one is already registered.
@@ -121,7 +171,16 @@ class NamespaceManager(dict[str, Namespace]):
         Returns:
             The registered namespace, which may be the existing or renamed one
             rather than the argument.
+
+        Raises:
+            ProvException: If ``namespace`` is a default namespace, which only
+                :meth:`set_default_namespace` declares.
         """
+        if not namespace.prefix:
+            raise ProvException(
+                "a default namespace is set with set_default_namespace(), "
+                "not add_namespace()"
+            )
         if namespace in self.values():
             #  no need to do anything
             return namespace
@@ -168,6 +227,10 @@ class NamespaceManager(dict[str, Namespace]):
         Args:
             namespaces: The namespaces to add, as a ``{prefix: uri}`` mapping
                 or an iterable of :class:`~prov.identifier.Namespace`.
+
+        Raises:
+            ValueError: If a mapping has an empty prefix.
+            ProvException: If an iterable holds a default namespace.
         """
         if isinstance(namespaces, Mapping):
             namespaces = [Namespace(prefix, uri) for prefix, uri in namespaces.items()]
@@ -242,98 +305,155 @@ class NamespaceManager(dict[str, Namespace]):
         return None
 
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
-        #  Register the namespace if it has not been registered before
+        # The name as this scope holds it: unchanged when a scope in reach
+        # binds its namespace (#449); a name in a default namespace no scope
+        # in reach declares takes a prefix in reach that is bound to its IRI
+        # and rejected without one, as is the default IRI itself (#473);
+        # a prefixed foreign namespace is registered here under a prefix no
+        # scope in reach binds.
         namespace = qname.namespace
         prefix = namespace.prefix
+        if not prefix and not qname.localpart:
+            raise ProvExceptionInvalidQualifiedName(
+                qname, _default_iri_detail(namespace.uri)
+            )
+        if self.get(prefix) is namespace:
+            # hot-path shortcut for a name this scope already holds
+            return qname
+        bound = self._binding_in_scope(prefix)
+        if bound is namespace:
+            return qname
+        if bound == namespace:
+            return bound[qname.localpart]
         if not prefix:
-            # the namespace is a default namespace
-            if self._default is None:
-                # no default namespace is defined, reuse the one given;
-                # this only sets _default, it does not register the
-                # namespace under "" (an adopted default must not take
-                # part in URI compaction or ":local" resolution)
-                self._set_default(namespace, register=False)
-                return qname  # no change, return the original
-            elif self._default is namespace:
-                return qname
-            elif self._default == namespace:
-                # the same default namespace is defined
-                new_qname = self._default[qname.localpart]
-            else:
-                # different default namespace,
-                # use the 'dn' prefix for the new namespace
-                dn_namespace = Namespace("dn", namespace.uri)
-                dn_namespace = self.add_namespace(dn_namespace)
-                new_qname = dn_namespace[qname.localpart]
-        else:
-            existing_ns = self.get(prefix)
-            if existing_ns is namespace:
-                return qname
-            if existing_ns is not None and existing_ns == namespace:
-                # reuse the existing namespace
-                new_qname = existing_ns[qname.localpart]
-            else:
-                # Do not reuse the namespace object, making an identical copy
-                ns = self.add_namespace(Namespace(namespace.prefix, namespace.uri))
-                # minting the same Qualified Name from the namespace's copy
-                new_qname = ns[qname.localpart]
-        # returning the new qname
-        return new_qname
+            return self._spelled_by_prefix(qname)
+        existing = self._uri_map.get(namespace.uri)
+        if existing is not None:
+            if prefix not in self:
+                # the prefix the caller gave reads as the registered namespace
+                self._prefix_renamed_map.setdefault(prefix, existing)
+                self._resolve_cache.clear()
+            return existing[qname.localpart]
+        chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
+        return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
+
+    def _spelled_by_prefix(self, qname: QualifiedName) -> QualifiedName:
+        """``qname`` under the nearest prefix in reach bound to its IRI that
+        this scope reads the same way; nothing is minted."""
+        uri = qname.namespace.uri
+        for manager in self._scopes():
+            namespace = manager.get_namespace(uri)
+            if (
+                namespace is not None
+                and self._binding_in_scope(namespace.prefix) is namespace
+            ):
+                return namespace[qname.localpart]
+        raise ProvExceptionInvalidQualifiedName(
+            qname, _undeclared_default_detail(qname)
+        )
 
     def _resolve_prefixed_string(self, str_value: str) -> QualifiedName | None:
         #  check if the identifier contains a registered prefix
         prefix, local_part = str_value.split(":", 1)
-        if prefix in self:
-            #  return a new QualifiedName
-            return self[prefix][local_part]
-        if prefix in self._prefix_renamed_map:
-            #  return a new QualifiedName
-            return self._prefix_renamed_map[prefix][local_part]
-        if self.parent is not None and self.parent._prefix_in_scope(prefix):
+        namespace = self._binding(prefix)
+        if namespace is not None:
+            return namespace[local_part]
+        if (
+            self.parent is not None
+            and self.parent._binding_in_scope(prefix) is not None
+        ):
             # An enclosing scope declares the prefix and resolves the name;
             # compacting it here would read it as another name (#599).
             return None
         #  assuming it is a URI (with the first part as its scheme)
         #  check if the URI can be compacted by any of the registered namespaces
         for namespace in self.values():
-            if str_value.startswith(namespace.uri):
-                local = str_value[len(namespace.uri) :]
-                if not local and not namespace.prefix:
-                    # The URI is the default namespace itself; a bare
-                    # empty local name has no PROV-N spelling, so it is
-                    # not a qualified name here.
-                    continue
+            local = str_value[len(namespace.uri) :]
+            if str_value.startswith(namespace.uri) and (namespace.prefix or local):
                 return namespace[local]
         return None
 
-    def _prefix_in_scope(self, prefix: str) -> bool:
-        """Whether this manager or an enclosing one declares ``prefix``."""
-        manager: NamespaceManager | None = self
-        while manager is not None:
-            if prefix in manager or prefix in manager._prefix_renamed_map:
-                return True
-            manager = manager.parent
-        return False
+    def reject_default_iri(self, text: str) -> None:
+        """Raise when ``text`` is the IRI of a default namespace in reach.
 
-    def _unresolved_reason(self, text: str) -> str | None:
-        """Return why ``text`` resolves to no qualified name by its prefix alone.
+        Called by the assertion paths after ``text`` resolved to nothing. The
+        IRI has no qualified-name form, so the model rejects it and mints no
+        prefix for it (#473).
 
-        Splits ``text`` at its first ``:`` and looks the prefix up in this
-        manager and its parents, with no IRI compaction. A text with no ``:``
-        needs a default namespace. Returns ``None`` when the text resolves.
+        Args:
+            text: The identifier text being asserted.
+
+        Raises:
+            ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
+                this manager's default or an enclosing one.
         """
-        if not text:
-            return "it is empty"
-        prefix, colon, _ = text.partition(":")
-        if colon:
-            if self._prefix_in_scope(prefix):
-                return None
-            return f"its prefix {prefix!r} is not declared"
+        for manager in self._scopes():
+            if manager._default is not None and text == manager._default.uri:
+                raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
+
+    def _scopes(self) -> Iterator[NamespaceManager]:
+        """This manager, then each of its ancestors."""
         manager: NamespaceManager | None = self
         while manager is not None:
-            if manager._default is not None:
-                return None
+            yield manager
             manager = manager.parent
+
+    def _binding(self, prefix: str) -> Namespace | None:
+        """The namespace this scope alone binds ``prefix`` to, the default
+        for ``""``, or ``None``. A registered prefix wins over a renamed one."""
+        return self.get(prefix) or self._prefix_renamed_map.get(prefix)
+
+    def _binding_in_scope(self, prefix: str) -> Namespace | None:
+        """The namespace the nearest scope binds ``prefix`` to, or ``None``."""
+        if self.parent is None:
+            return self._binding(prefix)
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            namespace = manager.get(prefix) or manager._prefix_renamed_map.get(prefix)
+            if namespace is not None:
+                return namespace
+            manager = manager.parent
+        return None
+
+    def _unused_prefix_in_scope(self, prefix: str) -> str:
+        """``prefix`` when no scope in reach binds it, else the first
+        ``prefix_N`` none binds, so a namespace the model registers itself
+        never shadows a declared one."""
+        return _first_free(prefix, lambda p: self._binding_in_scope(p) is not None)
+
+    def lookup(self, prefix: str, local: str) -> QualifiedName | None:
+        """Resolve a name a reader has already split at its first ``:``.
+
+        The name is minted from the namespace the nearest scope binds
+        ``prefix`` to, the nearest default namespace for an empty prefix.
+        Nothing is compacted, registered or cached. ``("", "")`` and the
+        blank-node prefix ``_`` resolve to nothing whatever is declared.
+
+        Args:
+            prefix: The prefix before the first ``:``, ``""`` for none.
+            local: The local part after it.
+
+        Returns:
+            The :class:`~prov.identifier.QualifiedName`, or ``None`` when no
+            scope binds ``prefix``.
+        """
+        if prefix == "_" or (prefix, local) == ("", ""):
+            return None
+        namespace = self._binding_in_scope(prefix)
+        return None if namespace is None else namespace[local]
+
+    def _unresolved_reason(self, prefix: str, local: str, colon: bool = False) -> str:
+        """Why the name split into ``prefix`` and ``local`` resolves to no
+        qualified name, as the clause after "because"; meaningful after
+        :meth:`lookup` returned ``None`` for the pair. ``colon`` says the
+        name was written with a ``:``, so an empty ``prefix`` is a declared
+        empty prefix and not the lack of one."""
+        if (prefix, local) == ("", ""):
+            return "it is empty"
+        if prefix == "_":
+            return "its prefix '_' is reserved for blank nodes"
+        if prefix or colon:
+            return f"its prefix {prefix!r} is not declared"
         return "it has no prefix and no default namespace is declared"
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:
@@ -354,12 +474,4 @@ class NamespaceManager(dict[str, Namespace]):
         return Identifier(f"_:{local_prefix}{self._anon_id_count}")
 
     def _get_unused_prefix(self, original_prefix: str) -> str:
-        if original_prefix not in self:
-            return original_prefix
-        count = 1
-        while True:
-            new_prefix = "_".join((original_prefix, str(count)))
-            if new_prefix in self:
-                count += 1
-            else:
-                return new_prefix
+        return _first_free(original_prefix, self.__contains__)

@@ -166,16 +166,25 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
         A new :class:`~prov.model.ProvDocument` containing the elements and
         relations recovered from ``g``.
     """
+    elements = [
+        n for n in g.nodes() if isinstance(n, ProvRecord) and n.bundle is not None
+    ]
+    relations = [
+        relation
+        for _, _, edge_data in g.edges(data=True)
+        if isinstance(relation := edge_data.get("relation"), ProvRecord)
+    ]
+    bundles = [r.bundle for r in (*elements, *relations) if r.bundle is not None]
     prov_doc = ProvDocument()
-    for n in g.nodes():
-        if isinstance(n, ProvRecord) and n.bundle is not None:
-            prov_doc.add_record(n)
-    for _, _, edge_data in g.edges(data=True):
-        try:
-            relation = edge_data["relation"]
-            if isinstance(relation, ProvRecord):
-                prov_doc.add_record(relation)
-        except KeyError:
-            pass
+    if bundles:
+        # the declarations the records' names are spelled with
+        source = bundles[0].document or bundles[0]
+        prov_doc._copy_declarations_from(source)
+        in_graph = {id(b): b for b in bundles if b.is_bundle()}
+        prov_doc._declare_prefixes_for_bundle_defaults(in_graph.values())
+    for element in elements:
+        prov_doc.add_record(element)
+    for relation in relations:
+        prov_doc.add_record(relation)
 
     return prov_doc

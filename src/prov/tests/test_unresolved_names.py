@@ -25,7 +25,7 @@ from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 from prov.serializers.provn_lexer import ProvNSyntaxError
 
-from .conftest import ex_document
+from .conftest import default_namespace, ex_document
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]
@@ -76,7 +76,7 @@ def _bare_name_with_a_default(literal: Literal) -> ProvRecord:
         pytest.param(
             Literal("x", PROV_QUALIFIEDNAME),
             _bare_name_with_a_default,
-            Namespace("", EX)["x"],
+            default_namespace(EX)["x"],
             id="bare name with a default",
         ),
         pytest.param(Literal("zz:x"), _in_the_document, "zz:x", id="untyped"),
@@ -107,7 +107,7 @@ def _provn(attributes: str, declarations: str = f"prefix ex <{EX}>\n") -> str:
         pytest.param(
             "'x'",
             f"prefix ex <{EX}>\ndefault <{EX}>\n",
-            Namespace("", EX)["x"],
+            default_namespace(EX)["x"],
             id="default",
         ),
         pytest.param(

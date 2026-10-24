@@ -386,7 +386,7 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     already known to this library via the built-in ``prov``/``xsd``
     namespaces) are skipped entirely. Every other object is treated as a
     namespace map: its string-valued entries are registered as prefixes
-    (``"@vocab"`` as the default namespace), and any dict-valued entries --
+    (``"@vocab"`` and ``""`` as the default namespace), and any dict-valued entries --
     third-party inline term definitions this library does not model -- are
     ignored individually rather than causing the whole object to be
     skipped. Every other JSON-LD keyword key (``@base``, ``@version``, ...)
@@ -397,7 +397,8 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
-            a JSON object.
+            a JSON object, or declares its default namespace under both
+            ``"@vocab"`` and ``""`` with different IRIs.
     """
     if not isinstance(context, list):
         context = [context]
@@ -407,8 +408,14 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
         item = _expect_object(item, "A @context entry")
         if _is_embedded_submission_context(item):
             continue
+        empty, vocab = item.get(""), item.get("@vocab")
+        if isinstance(empty, str) and isinstance(vocab, str) and empty != vocab:
+            raise ProvJSONLDException(
+                "A @context entry declares two different default namespaces, "
+                'under "@vocab" and ""'
+            )
         for prefix, value in item.items():
-            if prefix == "@vocab" and isinstance(value, str):
+            if prefix in ("@vocab", "") and isinstance(value, str):
                 bundle.set_default_namespace(value)
             elif not prefix.startswith("@") and isinstance(value, str):
                 bundle.add_namespace(Namespace(prefix, value))
@@ -723,7 +730,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         raise ProvJSONLDException(
             f'"@graph" must be a JSON array; found {type(graph).__name__}'
         )
-    for item in graph:
+    for position, item in enumerate(graph):
         item = _expect_object(item, "A @graph statement")
         type_term = item.get("@type")
         is_bundle = (
@@ -738,7 +745,13 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         _decode_context(item.get("@context", []), bundle)
         for stmt in item.get("@graph", []):
             decode_jsonld_statement(_expect_object(stmt, "A bundle statement"), bundle)
-        document.add_bundle(bundle, bundle.valid_qualified_name(item["@id"]))
+        bundle_id = bundle.valid_qualified_name(item["@id"])
+        if bundle_id is None:
+            raise ProvJSONLDException(
+                f'The "@id" {item["@id"]!r} of the Bundle in @graph entry '
+                f"{position} names no qualified name in scope; declare a prefix for it"
+            )
+        document.add_bundle(bundle, bundle_id)
 
 
 class ProvJSONLDSerializer(Serializer):

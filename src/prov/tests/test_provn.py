@@ -181,13 +181,10 @@ def test_bare_identifier_with_escaped_colon_resolves_via_default() -> None:
     assert record.identifier.uri == "http://d.org/a:b"
 
 
-def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> None:
-    # Accepted, documented limitation: a bare local part with an escaped
-    # ':' can't go through the string-based resolution path (it would be
-    # mis-split at the colon), so it resolves eagerly against the document's
-    # default and, unlike a plain bare name, the bundle then adopts that
-    # default as its own on this path -- see the comment in
-    # ProvNParser._identifier_text().
+def test_bare_escaped_colon_name_in_bundle_does_not_read_as_the_enclosing_default() -> (
+    None
+):
+    # The bundle holds the document's name and declares nothing of its own.
     doc = parse(
         "bundle ex:b\n  entity(a\\:b)\nendBundle",
         prefixes="default <http://d.org/>\nprefix ex <http://example.org/>\n",
@@ -195,7 +192,7 @@ def test_bare_escaped_colon_name_in_bundle_adopts_the_enclosing_default() -> Non
     (bundle,) = doc.bundles
     record = only_record(bundle)
     assert record.identifier.uri == "http://d.org/a:b"
-    assert bundle.get_default_namespace().uri == "http://d.org/"
+    assert bundle.get_default_namespace() is None
     reloaded = ProvDocument.deserialize(content=doc.get_provn(), format="provn")
     assert reloaded == doc
 
@@ -994,34 +991,27 @@ def test_bytearray_stream_is_decoded() -> None:
     assert [str(r.identifier) for r in doc.get_records()] == ["ex:e1"]
 
 
-def test_bundle_in_document_default_with_its_own_default_round_trips() -> None:
+def test_bundle_named_under_a_prefix_with_its_own_default_round_trips() -> None:
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
-    b = d.bundle("b1")
+    ns = d.add_namespace("ex", "http://named.org/")
+    b = d.bundle(ns["b1"])
     b.set_default_namespace("http://bundle.org/")
     b.entity("e1")
     text = d.get_provn()
-    assert "bundle dn:b1" in text and "prefix dn <http://doc.org/>" in text
+    assert "bundle ex:b1" in text
     again = ProvDocument.deserialize(content=text, format="provn")
     assert again == d
     (bundle,) = again.bundles
-    assert bundle.identifier.uri == "http://doc.org/b1"
+    assert bundle.identifier.uri == "http://named.org/b1"
 
 
-def test_bundle_header_prefix_avoids_a_taken_dn_prefix() -> None:
-    # When the bundle already declares its own "dn" prefix for something
-    # else, the header's minted prefix falls back to "dn_1" instead of
-    # colliding with it.
+def test_bundle_named_in_the_document_default_cannot_declare_its_own() -> None:
     d = ProvDocument()
     d.set_default_namespace("http://doc.org/")
     b = d.bundle("b1")
-    b.set_default_namespace("http://bundle.org/")
-    b.add_namespace("dn", "http://other.org/")
-    b.entity("e1")
-    text = d.get_provn()
-    assert "bundle dn_1:b1" in text
-    assert "prefix dn_1 <http://doc.org/>" in text
-    assert ProvDocument.deserialize(content=text, format="provn") == d
+    with pytest.raises(ProvException, match=r"holds b1.*read as http://bundle.org/b1"):
+        b.set_default_namespace("http://bundle.org/")
 
 
 def test_namespace_uri_that_is_not_an_iri_cannot_be_written() -> None:

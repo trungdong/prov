@@ -37,6 +37,7 @@ from prov import Error
 from prov._warnings import warn
 from prov.constants import (
     _PROV_N_BARE_RELATIONS,
+    PROV,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
@@ -90,6 +91,7 @@ from prov.constants import (
     PROV_TYPE,
     PROV_USAGE,
     PROV_VALUE,
+    XSD,
     XSD_ANYURI,
     XSD_BOOLEAN,
     XSD_DATETIME,
@@ -117,8 +119,8 @@ from prov.model._values import (
     key_slot,
     no_prov_form_detail,
     python_value_form,
+    resolve_name,
     time_offset_detail,
-    unresolved_name_detail,
     xsd_value,
 )
 
@@ -891,12 +893,17 @@ class ProvRecord:
             if literal.datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
                 # A qualified-name literal resolves by its prefix in this
                 # record's bundle, never by compacting an IRI (#516, #553).
-                detail = unresolved_name_detail(self._bundle, literal.value, attr=attr)
-                if detail is not None:
-                    raise ProvExceptionInvalidQualifiedName(literal.value, detail)
-                return self._bundle.mandatory_valid_qname(literal.value)
-            if literal.datatype:
-                return self._convert_typed_literal(literal, literal.datatype)
+                name = resolve_name(self._bundle, literal.value, attr=attr)
+                if isinstance(name, str):
+                    raise ProvExceptionInvalidQualifiedName(literal.value, name)
+                return name
+            if datatype := literal.datatype:
+                value = self._convert_typed_literal(literal, datatype)
+                return (
+                    self._literal_in_scope(value, datatype)
+                    if isinstance(value, Literal)
+                    else value
+                )
             # A literal with no datatype nor langtag defined
             # try auto-converting the value
             value = self._auto_literal_conversion(literal.value, attr)
@@ -909,6 +916,18 @@ class ProvRecord:
 
         # No conversion possible, return the original value
         return literal
+
+    def _literal_in_scope(self, literal: Literal, datatype: QualifiedName) -> Literal:
+        """``literal`` with its ``datatype`` as this record's bundle holds it,
+        so the namespace is declared (#615); rebuilt only when the bundle
+        gives the datatype another prefix. The built-in ``xsd`` and ``prov``
+        datatypes are held as they are."""
+        if datatype.namespace is XSD or datatype.namespace is PROV:
+            return literal
+        held = self._bundle.mandatory_valid_qname(datatype)
+        if held.namespace == datatype.namespace:
+            return literal
+        return Literal(literal.value, held)
 
     @staticmethod
     def _convert_typed_literal(literal: Literal, datatype: QualifiedName) -> Any:

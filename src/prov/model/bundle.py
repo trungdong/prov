@@ -9,7 +9,7 @@ import re
 import shutil
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable, ValuesView
+from collections.abc import Iterable, Iterator, ValuesView
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
@@ -67,7 +67,7 @@ from prov.constants import (
     PROV_USAGE,
     PROV_VALUE,
 )
-from prov.identifier import Namespace, QualifiedName, _provn_escape_local
+from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -78,6 +78,7 @@ from prov.model.records import (
     EntityRef,
     GenerationRef,
     InfluencerRef,
+    Literal,
     NameValuePair,
     NSCollection,
     OptionalID,
@@ -126,6 +127,29 @@ def _check_provn_iri(namespace: Namespace) -> None:
             f"{where} has URI <{namespace.uri}>, which PROV-N cannot write as an IRI: "
             'it contains a space, a control character or one of <>"{}|^`\\'
         )
+
+
+def _held_qualified_names(records: Iterable[ProvRecord]) -> Iterator[QualifiedName]:
+    """Every qualified name the records hold in their identifier, attribute
+    names and values, a literal standing for its datatype."""
+    for record in records:
+        items: list[Any] = [record.identifier]
+        for name, value in record.attributes:
+            items.append(name)
+            items.append(value.datatype if isinstance(value, Literal) else value)
+        for item in items:
+            if isinstance(item, QualifiedName):
+                yield item
+
+
+def _clashing_name(
+    names: Iterable[QualifiedName], prefix: str, uri: str
+) -> QualifiedName | None:
+    """The first of ``names`` in ``prefix`` whose IRI is not under ``uri``."""
+    return next(
+        (n for n in names if n.namespace.prefix == prefix and n.namespace.uri != uri),
+        None,
+    )
 
 
 # PROV-CONSTRAINTS (https://www.w3.org/TR/prov-constraints/) type compatibility
@@ -450,12 +474,52 @@ class ProvBundle:
 
         Args:
             uri: The URI of the default namespace.
+
+        Raises:
+            ProvException: If the bundle holds a name in the current default
+                namespace, which the new one would make another name.
         """
+        self._refuse_changed_reading("", uri)
         self._namespaces.set_default_namespace(uri)
+
+    def _held_here(self) -> Iterator[QualifiedName]:
+        """The qualified names this scope holds, its own identifier first."""
+        if self._identifier is not None:
+            yield self._identifier
+        yield from _held_qualified_names(self._records)
+
+    def _inheriting_bundles(self, prefix: str) -> list[ProvBundle]:
+        """The bundles that read ``prefix`` through this scope."""
+        return []
+
+    def _refuse_changed_reading(self, prefix: str, uri: str) -> None:
+        """Refuse a declaration that would change the IRI of a name this scope,
+        or a bundle reading through it, holds."""
+        for scope in [self, *self._inheriting_bundles(prefix)]:
+            clash = _clashing_name(scope._held_here(), prefix, uri)
+            if clash is not None:
+                what = f"prefix {prefix} <{uri}>" if prefix else f"default <{uri}>"
+                kind = "document" if scope.is_document() else "bundle"
+                raise ProvException(
+                    f"cannot declare {what}: this {kind} holds {clash}, "
+                    f"which would read as {uri}{clash.localpart}"
+                )
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
         return self._namespaces.get_default_namespace()
+
+    def _copy_declarations_from(self, source: ProvBundle) -> None:
+        """Declare ``source``'s registered namespaces and default here."""
+        for namespace in source.get_registered_namespaces():
+            self.add_namespace(namespace)
+        self._copy_default_from(source)
+
+    def _copy_default_from(self, source: ProvBundle) -> None:
+        """Make ``source``'s default namespace, if it has one, this scope's."""
+        default = source.get_default_namespace()
+        if default is not None:
+            self.set_default_namespace(default.uri)
 
     def add_namespace(
         self, namespace_or_prefix: Namespace | str, uri: str | None = None
@@ -472,17 +536,24 @@ class ProvBundle:
             The registered namespace (which may be an existing or renamed one).
 
         Raises:
-            ProvException: If a prefix string is given without a ``uri``.
+            ProvException: If a prefix string is given without a ``uri``, or
+                the prefix is not bound here but an enclosing scope binds it
+                and the bundle holds a name in that binding, which the new
+                namespace would make another name.
         """
-        if isinstance(namespace_or_prefix, Namespace):
-            return self._namespaces.add_namespace(namespace_or_prefix)
-        else:
-            if uri is not None:
-                return self._namespaces.add_namespace(
-                    Namespace(namespace_or_prefix, uri)
-                )
-            else:
+        if not isinstance(namespace_or_prefix, Namespace):
+            if uri is None:
                 raise ProvException("Cannot add a namespace without a URI")
+            namespace_or_prefix = Namespace(namespace_or_prefix, uri)
+        prefix = namespace_or_prefix.prefix
+        # no held name can use a prefix that no scope in reach binds
+        if (
+            prefix
+            and self._namespaces._binding(prefix) is None
+            and self._namespaces._binding_in_scope(prefix) is not None
+        ):
+            self._refuse_changed_reading(prefix, namespace_or_prefix.uri)
+        return self._namespaces.add_namespace(namespace_or_prefix)
 
     def get_registered_namespaces(self) -> Iterable[Namespace]:
         """Return all namespaces registered on the bundle.
@@ -510,10 +581,15 @@ class ProvBundle:
         """
         return self._namespaces.valid_qualified_name(identifier)
 
-    def _unresolved_reason(self, text: str) -> str | None:
-        """Return why ``text`` resolves to no qualified name in this bundle by
-        its prefix alone, or ``None`` when it resolves."""
-        return self._namespaces._unresolved_reason(text)
+    def _lookup(self, prefix: str, local: str) -> QualifiedName | None:
+        """Resolve a split name by its prefix in scope; see ``NamespaceManager.lookup``."""
+        return self._namespaces.lookup(prefix, local)
+
+    def _unresolved_reason(self, prefix: str, local: str, colon: bool = False) -> str:
+        """Why a split name does not resolve in this bundle by its prefix,
+        after :meth:`_lookup` returned ``None``; ``colon`` says it was
+        written with a ``:``."""
+        return self._namespaces._unresolved_reason(prefix, local, colon)
 
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate
@@ -530,11 +606,31 @@ class ProvBundle:
             ProvExceptionInvalidQualifiedName: If the identifier cannot be
                 resolved to a valid qualified name.
         """
-        valid_qname = self.valid_qualified_name(identifier)
-        if valid_qname is not None:
-            return valid_qname
-        else:
+        valid_qname = self._namespaces.valid_qualified_name(identifier)
+        if valid_qname is None:
+            self._reject_default_iri(identifier)
             raise ProvExceptionInvalidQualifiedName(identifier)
+        return valid_qname
+
+    def _asserted_name(
+        self, identifier: QualifiedNameCandidate
+    ) -> QualifiedName | None:
+        """The name ``identifier`` resolves to as an identifier being asserted.
+
+        A string or IRI equal to the IRI of a default namespace in reach has no
+        qualified-name form and is rejected (#473); the readers resolve
+        through :meth:`valid_qualified_name` and keep their fallbacks.
+        """
+        name = self._namespaces.valid_qualified_name(identifier)
+        if name is None:
+            self._reject_default_iri(identifier)
+        return name
+
+    def _reject_default_iri(self, identifier: QualifiedNameCandidate) -> None:
+        """Raise when ``identifier`` is the IRI of a default namespace in reach."""
+        if isinstance(identifier, (str, Identifier)):
+            text = identifier if isinstance(identifier, str) else identifier.uri
+            self._namespaces.reject_default_iri(text)
 
     @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
@@ -601,44 +697,17 @@ class ProvBundle:
         """
         raise ProvException("A PROV bundle does not contain sub-bundles")
 
-    def _provn_header_id(
-        self,
-        default_namespace: Namespace | None,
-        registered_namespaces: list[Namespace],
-    ) -> tuple[str, Namespace | None]:
-        """Return the bundle header's identifier text and, if needed, an
-        extra prefix declaration for its namespace.
-
-        A bare identifier in a namespace with no prefix would, on re-read,
-        resolve against the bundle's own default namespace (PROV-N 3.4.1)
-        rather than the namespace it was minted in. When those differ, this
-        mints a prefix for the identifier's namespace instead of writing the
-        identifier bare.
-        """
-        if self._identifier is None:
-            return "", None
-        id_namespace = self._identifier.namespace
-        if (
-            id_namespace.prefix
-            or default_namespace is None
-            or default_namespace.uri == id_namespace.uri
-        ):
-            return self._identifier.provn_bare_representation(), None
-        prefix = "dn"
-        taken = {ns.prefix for ns in registered_namespaces}
-        count = 1
-        while prefix in taken:
-            prefix = f"dn_{count}"
-            count += 1
-        extra_prefix = Namespace(prefix, id_namespace.uri)
-        localpart = _provn_escape_local(self._identifier.localpart)
-        return f"{prefix}:{localpart}", extra_prefix
+    def _provn_header(self) -> str:
+        """The ``document`` or ``bundle <id>`` line that opens the PROV-N text."""
+        if self.is_document():
+            return "document"
+        identifier = self._identifier
+        return f"bundle {identifier.provn_bare_representation() if identifier else ''}"
 
     def _provn_namespace_lines(
         self,
         default_namespace: Namespace | None,
         registered_namespaces: list[Namespace],
-        extra_prefix: Namespace | None,
     ) -> list[str]:
         """Return the header's ``default``/``prefix`` declaration lines.
 
@@ -647,10 +716,8 @@ class ProvBundle:
         assertions that follow, present only when there is at least one.
         """
         for namespace in (
-            ([default_namespace] if default_namespace else [])
-            + registered_namespaces
-            + ([extra_prefix] if extra_prefix else [])
-        ):
+            [default_namespace] if default_namespace else []
+        ) + registered_namespaces:
             _check_provn_iri(namespace)
 
         lines = [f"default <{default_namespace.uri}>"] if default_namespace else []
@@ -658,8 +725,6 @@ class ProvBundle:
             f"prefix {namespace.prefix} <{namespace.uri}>"
             for namespace in registered_namespaces
         )
-        if extra_prefix is not None:
-            lines.append(f"prefix {extra_prefix.prefix} <{extra_prefix.uri}>")
         if lines:
             #  a blank line between the prefixes and the assertions
             lines.append("")
@@ -667,6 +732,10 @@ class ProvBundle:
 
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
+
+        On a bundle inside a document, called with no indentation, the output
+        also declares the document's default and prefixes the bundle does not
+        bind itself, so a bundle written alone reads.
 
         Args:
             _indent_level: Indentation level for nested bundles.
@@ -680,17 +749,17 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        default_namespace = self._namespaces.get_default_namespace()
-        registered_namespaces = list(self._namespaces.get_registered_namespaces())
-        record_lines = [record.get_provn(strict=strict) for record in self._records]
-        bundle_id, extra_prefix = self._provn_header_id(
-            default_namespace, registered_namespaces
-        )
-        lines = ["document"] if self.is_document() else [f"bundle {bundle_id}"]
-        lines.extend(
-            self._provn_namespace_lines(
-                default_namespace, registered_namespaces, extra_prefix
+        if _indent_level == 0 and self._document is not None:
+            default_namespace, registered_namespaces = (
+                self._namespaces.declarations_with_enclosing()
             )
+        else:
+            default_namespace = self._namespaces.get_default_namespace()
+            registered_namespaces = list(self._namespaces.get_registered_namespaces())
+        record_lines = [record.get_provn(strict=strict) for record in self._records]
+        lines = [self._provn_header()]
+        lines.extend(
+            self._provn_namespace_lines(default_namespace, registered_namespaces)
         )
 
         #  adding all the records
@@ -791,8 +860,18 @@ class ProvBundle:
                 where another holds a concrete one, or if two records sharing
                 an identifier have incompatible types.
         """
-        unified_records = self._unified_records()
-        bundle = ProvBundle(records=unified_records, identifier=self.identifier)
+        return self._unified_copy(self._document)
+
+    def _unified_copy(self, document: ProvDocument | None) -> ProvBundle:
+        """The unified bundle, built inside ``document``."""
+        bundle = ProvBundle(
+            identifier=self.identifier,
+            namespaces=list(self.get_registered_namespaces()),
+            document=document,
+        )
+        bundle._copy_default_from(self)
+        for record in self._unified_records():
+            bundle.add_record(record)
         return bundle
 
     def update(self, other: ProvBundle) -> None:
@@ -856,9 +935,11 @@ class ProvBundle:
             attr_list.extend(_attribute_pairs(attributes))
         if other_attributes:
             attr_list.extend(_attribute_pairs(other_attributes))
-        record_identifier = (
-            self.valid_qualified_name(identifier) if identifier else None
-        )
+        record_identifier = None
+        if identifier:
+            record_identifier = self._namespaces.valid_qualified_name(identifier)
+            if record_identifier is None:
+                self._reject_default_iri(identifier)
         new_record = PROV_REC_CLS[record_type](self, record_identifier, attr_list)
         self._add_record(new_record)
         return new_record
@@ -1782,6 +1863,8 @@ class ProvDocument(ProvBundle):
         if self._bundles:
             # Creating a new document for all the records
             new_doc = ProvDocument()
+            new_doc._copy_declarations_from(self)
+            new_doc._declare_prefixes_for_bundle_defaults(self.bundles)
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
             )
@@ -1791,6 +1874,36 @@ class ProvDocument(ProvBundle):
         else:
             # returning the same document
             return self
+
+    def _inheriting_bundles(self, prefix: str) -> list[ProvBundle]:
+        return [
+            bundle
+            for bundle in self._bundles.values()
+            if bundle._namespaces._binding(prefix) is None
+        ]
+
+    def _declare_prefixes_for_bundle_defaults(
+        self, bundles: Iterable[ProvBundle]
+    ) -> None:
+        """Declare a prefix for each default ``bundles`` have that differs from
+        this document's, so their bare names keep a spelling here: a prefix
+        already bound to the IRI, else one the bundle binds to it, else ``dn``
+        or the next free suffix."""
+        for bundle in bundles:
+            uri = bundle.default_ns_uri
+            if (
+                uri is None
+                or uri == self.default_ns_uri
+                or self._namespaces.get_namespace(uri) is not None
+            ):
+                continue
+            own = next(
+                (ns for ns in bundle.get_registered_namespaces() if ns.uri == uri),
+                None,
+            )
+            self.add_namespace(
+                own or Namespace(self._namespaces._unused_prefix_in_scope("dn"), uri)
+            )
 
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
@@ -1811,11 +1924,12 @@ class ProvDocument(ProvBundle):
                 position where another holds a concrete one, or have
                 incompatible types (see :meth:`ProvBundle.unified`).
         """
-        document = ProvDocument(self._unified_records())
-        document._namespaces = self._namespaces
+        document = ProvDocument()
+        document._copy_declarations_from(self)
+        for record in self._unified_records():
+            document.add_record(record)
         for bundle in self.bundles:
-            unified_bundle = bundle.unified()
-            document.add_bundle(unified_bundle)
+            document.add_bundle(bundle._unified_copy(document))
         return document
 
     def update(self, other: ProvBundle) -> None:
@@ -1847,6 +1961,7 @@ class ProvDocument(ProvBundle):
                         self._bundles[bundle_id].update(bundle)
                     else:
                         new_bundle = self.bundle(bundle_id)
+                        new_bundle._copy_declarations_from(bundle)
                         new_bundle.update(bundle)
         else:
             raise ProvException(
@@ -1872,7 +1987,8 @@ class ProvDocument(ProvBundle):
         Raises:
             ProvException: If ``bundle`` is not a :class:`ProvBundle`, is a
                 document with nested bundles, has no usable identifier, or an
-                identifier collides with an existing bundle.
+                identifier collides with an existing bundle, or ``bundle``
+                already belongs to another document.
         """
         if not isinstance(bundle, ProvBundle):
             raise ProvException(
@@ -1885,9 +2001,16 @@ class ProvDocument(ProvBundle):
                     "Cannot add a document with nested bundles as a bundle."
                 )
             # Make it a new ProvBundle
-            new_bundle = ProvBundle(namespaces=list(bundle.get_registered_namespaces()))
+            new_bundle = ProvBundle()
+            new_bundle._copy_declarations_from(bundle)
             new_bundle.update(bundle)
             bundle = new_bundle
+
+        if bundle._document is not None and bundle._document is not self:
+            raise ProvException(
+                "the bundle belongs to another document; "
+                "a bundle is not moved between documents"
+            )
 
         if identifier is None:
             identifier = bundle.identifier
@@ -1925,7 +2048,7 @@ class ProvDocument(ProvBundle):
             raise ProvException(
                 "An identifier is required. Cannot create an unnamed bundle."
             )
-        valid_id = self.valid_qualified_name(identifier)
+        valid_id = self._asserted_name(identifier)
         if valid_id is None:
             raise ProvException(f'The provided identifier "{identifier}" is not valid')
         if valid_id in self._bundles:

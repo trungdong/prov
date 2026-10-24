@@ -35,6 +35,11 @@ from prov.model import (
 from prov.tests import examples
 from prov.tests.conftest import add_ordered_namespaces
 
+_UNDECLARED_DEFAULT = (
+    r"the name '\w+' is in the default namespace http://[\w.]+/, "
+    "which is not the default namespace in scope; declare a prefix for it"
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -592,10 +597,14 @@ def test_valid_qualified_name_rejects_blank_node_and_bad_types() -> None:
     assert nm.valid_qualified_name(12345) is None
 
 
-def test_default_namespace_uri_alone_is_not_an_empty_local_name() -> None:
+def test_default_namespace_uri_alone_is_rejected() -> None:
+    # An IRI equal to the default namespace has no spelling, so asserting it
+    # is rejected (#473); looking it up is not.
     doc = ProvDocument()
     doc.set_default_namespace("http://d/")
     assert doc.valid_qualified_name("http://d/") is None
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        doc.mandatory_valid_qname("http://d/")
     assert doc.valid_qualified_name("http://d/e1").localpart == "e1"
     ex = doc.add_namespace("ex", "http://e/")
     # [52] allows a prefixed empty local part.

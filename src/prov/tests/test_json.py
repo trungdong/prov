@@ -21,6 +21,7 @@ from prov.model import (
     Literal,
     ProvBundle,
     ProvDocument,
+    ProvEntity,
     ProvMembership,
 )
 from prov.serializers._json_common import _JSONPrefixMap
@@ -28,6 +29,7 @@ from prov.serializers.provjson import (
     ProvJSONDecoder,
     ProvJSONEncoder,
     ProvJSONException,
+    decode_json_container,
     decode_json_representation,
     encode_json_container,
 )
@@ -365,6 +367,37 @@ def test_had_member_members_resolve_alike() -> None:
     assert members(["ex:e1", "ex:e2"]) == members(["ex:e2", "ex:e1"])[::-1]
 
 
+def test_bundle_round_trip_copies_no_document_declaration() -> None:
+    # #449: the bundle's names are the document's; the writer declares
+    # nothing inside the bundle and the reader registers nothing on it.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.bundle("ex:b").entity("ex:e")
+    back = ProvDocument.deserialize(content=doc.serialize(format="json"), format="json")
+    (bundle,) = back.bundles
+    assert list(bundle.get_registered_namespaces()) == []
+    assert "prefix" not in json.loads(back.serialize(format="json"))["bundle"]["ex:b"]
+    assert back == doc
+
+
+def test_bundle_own_prefix_stays_on_the_bundle() -> None:
+    content = json.dumps(
+        {
+            "prefix": {"ex": "http://example.org/"},
+            "bundle": {
+                "ex:b1": {
+                    "prefix": {"bob": "http://bob.org/"},
+                    "entity": {"bob:e1": {}},
+                }
+            },
+        }
+    )
+    back = ProvDocument.deserialize(content=content, format="json")
+    (bundle,) = back.bundles
+    assert [n.prefix for n in back.get_registered_namespaces()] == ["ex"]
+    assert [n.prefix for n in bundle.get_registered_namespaces()] == ["bob"]
+
+
 # A qualified name the reader rejects because it does not resolve by its
 # prefix in scope (#516, #551, #599): the sections under the ex prefix and the
 # message of the ProvJSONException. The reader never compacts an IRI, so a
@@ -380,6 +413,7 @@ _GENERATION = {"prov:entity": "ex:e"}
 _MEMBERSHIP = {"prov:collection": "ex:c"}
 _UNDECLARED = "its prefix 'zz' is not declared"
 _FULL_IRI = "its prefix 'http' is not declared"
+_BLANK_PREFIX = "its prefix '_' is reserved for blank nodes"
 _NO_PREFIX = "it has no prefix and no default namespace is declared"
 
 
@@ -793,6 +827,36 @@ REJECTED_DOCUMENTS = [
     pytest.param(
         _time(5), _T + "expected an xsd:dateTime, found 5", id="time bare number"
     ),
+    pytest.param(
+        _json({"entity": {"ex:e": {"_:x": "v"}}}),
+        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
+        id="attribute name under the blank-node prefix",
+    ),
+    pytest.param(
+        json.dumps(
+            {
+                "prefix": {"ex": "http://example.org/", "_": "http://blank.org/"},
+                "entity": {"ex:e": {"_:x": "v"}},
+            }
+        ),
+        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
+        id="attribute name under a declared blank-node prefix",
+    ),
+    pytest.param(
+        json.dumps(
+            {
+                "prefix": {"default": "http://d.example.org/"},
+                "entity": {":": {}},
+            }
+        ),
+        _unresolved("record ':'", ":", "it is empty"),
+        id="record key of a colon alone under a default",
+    ),
+    pytest.param(
+        _json({"entity": {":x": {}}}),
+        _unresolved("record ':x'", ":x", "its prefix '' is not declared"),
+        id="record key with an explicit empty prefix and no default",
+    ),
 ]
 
 
@@ -801,6 +865,31 @@ def test_reader_rejects(text: str, message: str) -> None:
     with pytest.raises(ProvJSONException) as ctx:
         _ = ProvDocument.deserialize(content=text, format="json")
     assert str(ctx.value) == message
+
+
+def test_empty_prefix_declares_the_default_namespace() -> None:
+    document = _read('{"prefix": {"": "http://ex.org/"}, "entity": {"e": {}}}')
+    default = document.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://ex.org/"
+    (record,) = document.get_records(ProvEntity)
+    assert record.identifier == default["e"]
+
+
+def test_empty_prefix_and_default_key_agree_or_raise() -> None:
+    same = '{"prefix": {"": "http://ex.org/", "default": "http://ex.org/"}}'
+    default = _read(same).get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://ex.org/"
+    differing = '{"prefix": {"": "http://ex.org/", "default": "http://w.org/"}}'
+    with pytest.raises(ProvJSONException, match="two different default namespaces"):
+        _ = _read(differing)
+
+
+def test_container_rejects_a_record_key_that_is_not_a_string() -> None:
+    # A JSON object key is always a string, so only a Python dict reaches this.
+    with pytest.raises(ProvJSONException, match="the record key is 1, not a string"):
+        decode_json_container({"entity": {1: {}}}, ProvBundle())  # type: ignore[dict-item]
 
 
 @pytest.mark.parametrize(
