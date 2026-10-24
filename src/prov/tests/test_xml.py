@@ -5,6 +5,7 @@ import inspect
 import io
 import os
 import re
+import sys
 import warnings
 
 import pytest
@@ -20,7 +21,12 @@ from prov.serializers.provxml import (
     _unescape_ncname_localpart,
     xml_qname_to_QualifiedName,
 )
-from prov.tests.conftest import add_ordered_namespaces, roundtrip_document
+from prov.tests import examples
+from prov.tests.conftest import (
+    add_ordered_namespaces,
+    default_namespace,
+    roundtrip_document,
+)
 
 EX_NS = ("ex", "http://example.com/ns/ex#")
 EX_TR = ("tr", "http://example.com/ns/tr#")
@@ -330,18 +336,145 @@ def test_other_elements() -> None:
 
 def test_nested_default_namespace() -> None:
     """
-    Tests that a default namespace that is defined in a lower level tag is
-    written to a bundle.
+    An `xmlns` declared on an inner element is not the document's default,
+    so a bare name under it is rejected.
     """
     filename = os.path.join(DATA_PATH, "nested_default_namespace.xml")
-    doc = prov.ProvDocument.deserialize(source=filename, format="xml")
+    with pytest.raises(ProvXMLException, match=r"http://example\.org/0/") as caught:
+        prov.ProvDocument.deserialize(source=filename, format="xml")
+    assert "e001" in str(caught.value)
 
-    ns = Namespace("", "http://example.org/0/")
 
-    assert len(doc._records) == 1
-    assert doc.get_default_namespace() == ns
-    assert doc._records[0].identifier.namespace == ns
-    assert doc._records[0].identifier.localpart == "e001"
+def test_xmlns_on_the_document_element_is_the_default_namespace() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns="http://example.org/0/">
+      <prov:entity prov:id="e001"/>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+
+    assert doc.get_default_namespace() == default_namespace("http://example.org/0/")
+    identifier = doc._records[0].identifier
+    assert identifier is not None
+    assert identifier.namespace.prefix == ""
+    assert identifier.uri == "http://example.org/0/e001"
+
+
+def test_xmlns_on_bundle_content_is_the_bundle_default_namespace() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/ex/" xmlns="http://example.org/0/">
+      <prov:bundleContent prov:id="ex:b" xmlns="http://example.org/1/">
+        <prov:entity prov:id="e001"/>
+      </prov:bundleContent>
+      <prov:bundleContent prov:id="ex:c">
+        <prov:entity prov:id="e002"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    first_bundle, second_bundle = doc.bundles
+
+    assert doc.get_default_namespace() == default_namespace("http://example.org/0/")
+    assert first_bundle.get_default_namespace() == default_namespace(
+        "http://example.org/1/"
+    )
+    assert second_bundle.get_default_namespace() is None
+    assert first_bundle.get_records()[0].identifier.uri == "http://example.org/1/e001"
+    assert second_bundle.get_records()[0].identifier.uri == "http://example.org/0/e002"
+
+
+def test_a_bundle_default_namespace_survives_a_round_trip() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/ex/" xmlns="http://example.org/0/">
+      <prov:bundleContent prov:id="ex:b" xmlns="http://example.org/1/">
+        <prov:entity prov:id="e001"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    written = doc.serialize(format="xml")
+    again = prov.ProvDocument.deserialize(content=written, format="xml")
+    assert again == doc
+    (bundle,) = again.bundles
+    assert bundle.get_default_namespace() == default_namespace("http://example.org/1/")
+    assert bundle.get_records()[0].identifier.uri == "http://example.org/1/e001"
+
+
+@pytest.mark.parametrize("bundle_first", [True, False], ids=["before", "after"])
+def test_a_prefix_declared_on_bundle_content_is_the_bundles_own(
+    bundle_first: bool,
+) -> None:
+    bundle_xml = """<prov:bundleContent prov:id="b" xmlns:ex="http://example.org/two/">
+        <prov:entity prov:id="ex:a"/>
+      </prov:bundleContent>"""
+    entity_xml = '<prov:entity prov:id="ex:d"/>'
+    body = bundle_xml + entity_xml if bundle_first else entity_xml + bundle_xml
+    xml_string = f"""<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/one/" xmlns="http://example.org/0/">
+      {body}
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+
+    assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
+        "ex": "http://example.org/one/"
+    }
+    assert {ns.prefix: ns.uri for ns in bundle.get_registered_namespaces()} == {
+        "ex": "http://example.org/two/"
+    }
+    assert bundle.get_records()[0].identifier.uri == "http://example.org/two/a"
+
+
+def test_built_in_prefixes_on_bundle_content_are_not_the_bundles_own() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/ex/">
+      <prov:bundleContent prov:id="ex:b" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <prov:entity prov:id="ex:e"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+
+    assert list(bundle.get_registered_namespaces()) == []
+
+
+def test_a_bundle_id_under_a_prefix_of_its_own_stays_off_the_document() -> None:
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#">
+      <prov:bundleContent prov:id="zz:b" xmlns:zz="http://zz.example/">
+        <prov:entity prov:id="zz:a"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+
+    assert list(doc.get_registered_namespaces()) == []
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["zz"]
+    assert bundle.identifier is not None
+    assert bundle.identifier.uri == "http://zz.example/b"
+    for fmt in ("provn", "json", "xml"):
+        assert (
+            prov.ProvDocument.deserialize(content=doc.serialize(format=fmt), format=fmt)
+            == doc
+        )
+
+
+def test_a_prefix_redeclared_inside_bundle_content_does_not_shadow_the_document() -> (
+    None
+):
+    xml_string = """<prov:document xmlns:prov="http://www.w3.org/ns/prov#"
+        xmlns:ex="http://example.org/one/">
+      <prov:bundleContent prov:id="ex:b">
+        <prov:entity prov:id="ex:a"/>
+        <prov:entity prov:id="ex:c" xmlns:ex="http://example.org/two/"/>
+      </prov:bundleContent>
+    </prov:document>"""
+    doc = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (bundle,) = doc.bundles
+    first, second = (r.identifier for r in bundle.get_records())
+
+    assert first.uri == "http://example.org/one/a"
+    assert second.uri == "http://example.org/two/c"
+    assert second.namespace.prefix == "ex_1"
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex_1"]
+    assert [ns.prefix for ns in doc.get_registered_namespaces()] == ["ex"]
 
 
 def test_redefining_namespaces() -> None:
@@ -925,3 +1058,33 @@ def test_xml_namespace_order_keeps_xsi_last_when_it_is_declared() -> None:
         return re.findall(r"xmlns:(\w+)=", document.serialize(format="xml"))
 
     assert prefixes(True) == prefixes(False) == ["ex", "prov", "xsd", "xsi"]
+
+
+def test_reader_builds_one_namespace_per_binding(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Spec 3, 3.4: one Namespace per (prefix, uri) a read meets, so the
+    # per-namespace QualifiedName cache hits for repeated names.
+    default = etree.fromstring(f'<e xmlns="{PROV.uri}"/>')
+    scope = prov.ProvDocument()
+    scope.set_default_namespace(PROV.uri)
+    assert xml_qname_to_QualifiedName(
+        default, "entity", scope=scope
+    ).namespace == default_namespace(PROV.uri)
+    document = examples.primer_example()
+    text = document.serialize(format="xml")
+    constructed: list[tuple[str, str]] = []
+    real_init = Namespace.__init__
+
+    def counting_init(self: Namespace, prefix: str, uri: str) -> None:
+        # Only the reader's constructions count; namespaces.py builds its own
+        # copy of each binding the model registers.
+        if sys._getframe(1).f_globals["__name__"] == ProvXMLSerializer.__module__:
+            constructed.append((prefix, uri))
+        real_init(self, prefix, uri)
+
+    monkeypatch.setattr(Namespace, "__init__", counting_init)
+    back = prov.ProvDocument.deserialize(content=text, format="xml")
+    assert back == document
+    assert constructed
+    assert len(constructed) == len(set(constructed))

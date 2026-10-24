@@ -268,7 +268,9 @@ def test_bundle_local_prefix_collision_keeps_document_level_binding() -> None:
     # regardless of `override`) to avoid clobbering it.
     doc = ProvDocument()
     doc.add_namespace("coll", "http://document.example/")
-    bundle = doc.bundle("coll:bundle1")
+    doc.entity("coll:d1")
+    named = doc.add_namespace("nm", "http://named.example/")
+    bundle = doc.bundle(named["bundle1"])
     bundle.add_namespace("coll", "http://bundlelocal.example/")
     bundle.entity("coll:e1")
 
@@ -293,6 +295,27 @@ def test_default_namespace_survives_turtle_serialization() -> None:
 
     assert "@prefix : <http://default.example/> ." in turtle
     assert ":e1" in turtle
+
+
+def test_the_default_binding_reads_back_as_the_default_namespace() -> None:
+    doc = ProvDocument()
+    doc.set_default_namespace("http://default.example/")
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("e1")
+    doc.entity("ex:e2")
+
+    turtle = doc.serialize(format="rdf", rdf_format="turtle")
+    reloaded = ProvDocument.deserialize(
+        content=turtle, format="rdf", rdf_format="turtle"
+    )
+
+    default = reloaded.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://default.example/"
+    assert "" not in {ns.prefix for ns in reloaded.get_registered_namespaces()}
+    provn = reloaded.get_provn()
+    assert "default <http://default.example/>" in provn
+    assert ProvDocument.deserialize(content=provn, format="provn") == reloaded
 
 
 def test_encode_container_reuses_a_provided_container() -> None:
@@ -1476,3 +1499,38 @@ def test_non_finite_doubles_are_written_in_xsd_spelling(rdf_format) -> None:
     assert math.isinf(values["p"]) and values["p"] > 0
     assert math.isinf(values["n"]) and values["n"] < 0
     assert math.isnan(values["q"])
+
+
+_DEFAULT_IRI_PREAMBLE = """\
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix ex: <http://e.org/> .
+@prefix : <http://ex.org/> .
+"""
+
+
+def _read_with_default_iri(body: str, rdf_format: str = "turtle") -> ProvDocument:
+    # The PROV-O reader alone mints a prefix for an IRI equal to `@prefix :`.
+    return ProvDocument.deserialize(
+        content=_DEFAULT_IRI_PREAMBLE + body, format="rdf", rdf_format=rdf_format
+    )
+
+
+def test_object_equal_to_the_default_iri_is_read_and_kept() -> None:
+    doc = _read_with_default_iri("ex:e a prov:Entity ; ex:k : .\n")
+    (record,) = doc.get_records(pm.ProvEntity)
+    ((_, value),) = record.extra_attributes
+    assert value.uri == "http://ex.org/"
+
+
+def test_subject_equal_to_the_default_iri_is_read_and_kept() -> None:
+    doc = _read_with_default_iri(": a prov:Entity .\n")
+    (record,) = doc.get_records(pm.ProvEntity)
+    assert record.identifier is not None
+    assert record.identifier.uri == "http://ex.org/"
+
+
+def test_named_graph_equal_to_the_default_iri_is_read_and_kept() -> None:
+    doc = _read_with_default_iri(": { ex:e a prov:Entity . }\n", "trig")
+    (bundle,) = doc.bundles
+    assert bundle.identifier is not None
+    assert bundle.identifier.uri == "http://ex.org/"

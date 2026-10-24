@@ -14,6 +14,7 @@ from collections.abc import Callable
 import pytest
 from hypothesis import settings
 
+from prov.identifier import Namespace
 from prov.model import (
     ProvBundle,
     ProvDocument,
@@ -156,6 +157,16 @@ def pytest_assertrepr_compare(
 
 #  Helpers for the tests of the checks at assertion.
 EX_URI = "http://example.org/"
+
+
+def default_namespace(uri: str) -> Namespace:
+    """The default namespace a document holds once it declares ``uri``."""
+    document = ProvDocument()
+    document.set_default_namespace(uri)
+    namespace = document.get_default_namespace()
+    if namespace is None:
+        raise AssertionError("set_default_namespace() set no default")
+    return namespace
 
 
 def ex_document() -> ProvDocument:

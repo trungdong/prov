@@ -14,7 +14,7 @@ import pytest
 
 from prov.constants import XSD_INT
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model import Literal
+from prov.model import Literal, ProvDocument
 
 NS = Namespace("ex", "http://example.org/")
 OBJECTS = [
@@ -46,6 +46,20 @@ def test_pickle_round_trips_under_every_protocol(obj: object, protocol: int) -> 
     loaded = pickle.loads(pickle.dumps(obj, protocol=protocol))  # nosec B301 - nosemgrep
     assert loaded == obj
     assert hash(loaded) == hash(obj)
+
+
+@pytest.mark.parametrize("protocol", range(pickle.HIGHEST_PROTOCOL + 1))
+def test_a_pickled_default_namespace_loads_without_running_init(protocol: int) -> None:
+    document = ProvDocument()
+    document.set_default_namespace("http://d.example/")
+    document.entity("e")
+    # Round-trips a value created immediately above, not external input.
+    loaded = pickle.loads(pickle.dumps(document, protocol=protocol))  # nosec B301 - nosemgrep
+    default = loaded.get_default_namespace()
+    assert default is not None
+    assert (default.prefix, default.uri) == ("", "http://d.example/")
+    assert default == document.get_default_namespace()
+    assert loaded == document
 
 
 def test_unpickled_qualified_name_recomputes_its_hash_in_the_loading_process(

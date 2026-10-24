@@ -95,6 +95,32 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   where 3.2.3 merged the records and kept the value. `prov_to_graph()` raises with it;
   `prov_to_dot()` draws the document as asserted
   ([#547](https://github.com/trungdong/prov/issues/547))
+- A namespace with no prefix, `Namespace("", uri)`, a `ValueError` when the object is built,
+  and `add_namespace()` given a default namespace object, a `ProvException`; both name
+  `set_default_namespace()`, the one way to declare a default. 3.2.x accepted the object
+  and made it the default of the first scope that met a name from it
+- A name in a default namespace asserted where no default namespace in scope is that
+  namespace and no prefix in scope is bound to its IRI, such as a record copied by
+  `update()` into a document that declares another default or none, or a document-default
+  name asserted inside a bundle that declares its own default, a
+  `ProvExceptionInvalidQualifiedName` that names the IRI and asks for a prefix; and an
+  identifier equal to the default namespace IRI, such as `d.entity("http://example.org/")`
+  under that default, the same error. In the first case 3.2.x made the namespace the
+  scope's default when the scope had none, and wrote the name under a `dn` prefix it
+  minted when the scope had another default. In the second it raised
+  `ProvElementIdentifierRequired` for the string and failed at write time for the
+  `QualifiedName` ([#473](https://github.com/trungdong/prov/issues/473))
+- `set_default_namespace()` or `add_namespace()` on a document or bundle that already holds
+  a name the declaration would change, such as a bundle named `e001` in the document's
+  default namespace that then declares its own default, a `ProvException` naming the name
+  and the IRI it would read as. 3.2.x accepted the declaration and the PROV-N writer gave
+  the name a `dn` prefix it declared inside the bundle
+- `add_bundle()` given a bundle that belongs to another document, a `ProvException`. A
+  bundle is not moved between documents; 3.2.x re-parented it and relied on the declarations
+  it had copied
+- A bare name under an `xmlns` declared on an inner element of a PROV-XML document, a
+  `ProvXMLException` that names the name and the namespace. 3.2.x made that namespace the
+  default of the first scope that met it
 
 ### Changes with no prior warning
 
@@ -236,6 +262,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 ### Output changes
 
+- The PROV-XML reader reads an `xmlns` on `prov:document` as the document's default
+  namespace even when no name uses it, so the PROV-JSON, PROV-JSONLD, PROV-N and PROV-XML
+  writers declare it, as an unused `prefix` declaration from any other format is. 3.2.x
+  kept an `xmlns` only when a name used it. Likewise the reader registers every `xmlns:*`
+  declared on a `prov:bundleContent` on the bundle, so
+  `bundle.get_registered_namespaces()` lists them and the writers declare them inside the
+  bundle, where 3.2.x registered only those a name used
 - The PROV-JSONLD writer writes a qualified name under any attribute other than
   `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
   the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
@@ -259,15 +292,29 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `"ex:x"^^xsd:QName`, and PROV-JSONLD writes a node reference where 3.2.x wrote an
   `xsd:QName` value object, which is what PROV-O holds for a qualified name
   ([#526](https://github.com/trungdong/prov/issues/526))
-- Nothing changes in what `prov` writes for the values a document holds, with one
-  exception: a `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as
-  a `float` does. Called directly with a value a record would have converted, such as a
-  `Decimal` or a `date`, `encoding_provn_value` and the other value encoders now spell the
-  typed form the record would hold rather than `str()` of the value
+- A bundle declares only the namespaces it binds itself. A name a bundle holds in a
+  namespace its document declares, under the same prefix or as the same default, is the
+  document's name, so the PROV-N, PROV-JSON and PROV-JSONLD writers no longer repeat
+  `prefix ex` (or its context entry) inside every bundle that uses it, a bundle no longer
+  takes the document's default as its own, and `bundle.get_registered_namespaces()` lists
+  the bundle's own declarations only.
+  `ProvBundle.get_provn()` on a bundle taken from a document writes the document's
+  declarations the bundle does not rebind, so the text reads on its own
+  ([#449](https://github.com/trungdong/prov/issues/449))
+- A `float` subclass such as `numpy.float64` reaches PROV-O at full precision, as a `float`
+  does; every other value a document holds is written as before. Called directly with a
+  value a record would have converted, such as a `Decimal` or a `date`,
+  `encoding_provn_value` and the other value encoders now spell the typed form the record
+  would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))
 
 ### Fixes
 
+- The PROV-O reader registers the default binding `@prefix :` as the document's default
+  namespace, where 3.2.x registered it as a namespace with an empty prefix that PROV-N
+  could not write. The PROV-JSON and PROV-JSONLD readers do the same for a `""` entry in
+  the `prefix` object or an `@context` entry. An entry that disagrees with `default` or
+  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
@@ -280,9 +327,19 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   element's identifier does and, with no default namespace, raises
   `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
   first ([#639](https://github.com/trungdong/prov/issues/639))
+- A `Literal` whose datatype is in a namespace nothing declared, such as
+  `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
+  is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no
+  `prefix zz`, which no reader read back. A datatype in a namespace with no prefix follows
+  the rule a name does, so it is rejected when no default namespace in scope is that
+  namespace
+  ([#615](https://github.com/trungdong/prov/issues/615))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
+- The PROV-XML writer declares a bundle's own default namespace on its
+  `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
+  back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
 
 ### Project
 
@@ -299,6 +356,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   in `prov.model._values`, called at assertion and by the PROV-N, PROV-JSON and
   PROV-JSONLD readers. Nothing changes in what `prov` accepts, warns about or
   writes ([#587](https://github.com/trungdong/prov/issues/587))
+- The PROV-N and PROV-JSON readers resolve a qualified name in one walk of the
+  declarations in scope, `NamespaceManager.lookup()`, where each checked the prefix and
+  then resolved the text in two, and the PROV-XML reader builds one `Namespace` per
+  declaration it meets rather than one per name. Nothing changes in what any reader or
+  the model accepts or rejects, except that a name under the blank-node prefix `_` is
+  rejected with a sentence that says the prefix is reserved, and `:` alone is rejected as
+  empty. `prov.serializers.provjson.decode_json_representation()` returns the resolved
+  `QualifiedName` for an `xsd:QName` or `prov:QUALIFIED_NAME` value object, where it
+  returned a `Literal` the record then resolved; records are unchanged
+  ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
   written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
   record or an adopted name from warning a second time are gone with the warnings

@@ -1,7 +1,11 @@
 """The resolve-once cache in NamespaceManager and its invalidation."""
 
+import pytest
+
 from prov.identifier import Identifier, Namespace
-from prov.model import NamespaceManager, ProvDocument
+from prov.model import NamespaceManager, ProvDocument, ProvExceptionInvalidQualifiedName
+
+from .conftest import default_namespace
 
 
 def test_repeat_lookup_is_served_from_the_cache() -> None:
@@ -33,36 +37,46 @@ def test_changing_the_default_clears_the_cache_and_re_resolves() -> None:
     assert second.uri == "http://two.org/e1"
 
 
-def test_implicit_default_from_a_prefixless_qualified_name_uses_the_setter() -> None:
+def test_a_prefixless_name_is_rejected_when_no_default_is_declared() -> None:
+    # Only set_default_namespace() sets a default, and the model mints no prefix.
     manager = NamespaceManager()
-    qname = Namespace("", "http://implicit.org/")["e1"]
-    manager.valid_qualified_name(qname)
-    assert manager.get_default_namespace().uri == "http://implicit.org/"
-    # The implicit default is not registered under the "" prefix, so it
-    # does not take part in URI compaction or ":local" resolution.
+    qname = default_namespace("http://implicit.org/")["e1"]
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        manager.valid_qualified_name(qname)
+    assert manager.get_default_namespace() is None
     assert "" not in manager
+    assert list(manager.get_registered_namespaces()) == []
 
 
-def test_implicit_default_does_not_shadow_an_existing_prefix() -> None:
-    # Reviewer scenario: a document registers "ex", then a bundle adopts an
-    # unprefixed default namespace with the same URI. Before the fix,
-    # adopting the default also registered it under "", so URI compaction
-    # picked the bare local name instead of the "ex:" prefix, and ":local"
-    # resolved against the adopted default even though no default namespace
-    # was ever explicitly set on the bundle.
+def test_a_prefixless_name_takes_the_prefix_bound_to_its_iri() -> None:
+    # A bundle reads a prefix-less name through the prefix its document binds
+    # to the IRI, and registers nothing of its own.
     document = ProvDocument()
     document.add_namespace("ex", "http://ex/")
     bundle = document.bundle("ex:b")
-    bundle.valid_qualified_name(Namespace("", "http://ex/")["e"])
+    resolved = bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
 
+    assert str(resolved) == "ex:e"
+    assert list(bundle.get_registered_namespaces()) == []
     assert str(bundle.valid_qualified_name("http://ex/other")) == "ex:other"
     assert bundle.valid_qualified_name(":foo") is None
+
+
+def test_a_prefixless_name_is_rejected_when_the_bound_prefix_is_shadowed() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://ex/")
+    named = document.add_namespace("nm", "http://named.org/")
+    bundle = document.bundle(named["b"])
+    bundle.add_namespace("ex", "http://other/")
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
 
 
 def test_child_lookup_answered_by_parent_is_not_cached_in_the_child() -> None:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
-    bundle = document.bundle("ex:b")
+    named = document.add_namespace("nm", "http://named.org/")
+    bundle = document.bundle(named["b"])
     resolved = bundle.valid_qualified_name("ex:e1")
     assert resolved.uri == "http://example.org/e1"
     assert bundle._namespaces._resolve_cache == {}
@@ -84,7 +98,8 @@ def test_identifier_input_bypasses_the_cache() -> None:
 def test_parent_answered_resolution_is_not_cached_in_the_child() -> None:
     document = ProvDocument()
     document.set_default_namespace("http://one.org/")
-    bundle = document.bundle("http://one.org/b")
+    named = document.add_namespace("nm", "http://named.org/")
+    bundle = document.bundle(named["b"])
     resolved = bundle.valid_qualified_name("e1")
     assert resolved.uri == "http://one.org/e1"
     assert bundle._namespaces._resolve_cache == {}
