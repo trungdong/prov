@@ -165,7 +165,9 @@ def test_ignores_edges_whose_relation_is_not_a_prov_record() -> None:
     assert list(prov_doc.get_records()) == []
 
 
-def test_equal_memberships_sharing_an_identifier_give_one_edge(document) -> None:
+def test_equal_memberships_sharing_an_identifier_give_one_edge(
+    document: ProvDocument,
+) -> None:
     # unified() keeps one of two equal memberships (#548), so one edge is drawn.
     document.entity("ex:c")
     document.entity("ex:e")

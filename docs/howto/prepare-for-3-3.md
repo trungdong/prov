@@ -246,8 +246,9 @@ warned.
 `unified()` raises for the first such position in the order of the statement's
 arguments. A conflict between two present values, in any position, raises first.
 
-`prov_to_graph()` calls `unified()`, so it raises for the same documents. `prov_to_dot()`
-draws such a document as asserted, without merging any records.
+`prov_to_graph()` flattens the document and then calls `unified()`, so it raises for the
+same documents and for a document whose bundles disagree about a shared identifier.
+`prov_to_dot()` draws such a document as asserted, without merging any records.
 
 ## Equality
 

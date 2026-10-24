@@ -62,6 +62,6 @@ reloaded = graph_to_prov(g)
 assert reloaded == document
 ```
 
-A document with bundles comes back flattened: the records of the document and of every
+A document with bundles comes back flattened. The records of the document and of every
 bundle sit at the top level, and a bundle's own default namespace is declared under a
 prefix, as {py:meth}`~prov.model.ProvDocument.flattened` declares it.
