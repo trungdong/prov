@@ -2,7 +2,7 @@
 
 from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -30,6 +30,16 @@ def _undeclared_default_detail(qname: QualifiedName) -> str:
         f"{qname.namespace.uri}, which is not the default namespace in scope; "
         "declare a prefix for it"
     )
+
+
+def _first_free(prefix: str, taken: Callable[[str], bool]) -> str:
+    """``prefix`` when ``taken`` rejects it, else the first ``prefix_N``
+    it rejects."""
+    candidate, count = prefix, 1
+    while taken(candidate):
+        candidate = f"{prefix}_{count}"
+        count += 1
+    return candidate
 
 
 class NamespaceManager(dict[str, Namespace]):
@@ -308,6 +318,7 @@ class NamespaceManager(dict[str, Namespace]):
                 qname, _default_iri_detail(namespace.uri)
             )
         if self.get(prefix) is namespace:
+            # hot-path shortcut for a name this scope already holds
             return qname
         bound = self._binding_in_scope(prefix)
         if bound is namespace:
@@ -330,15 +341,13 @@ class NamespaceManager(dict[str, Namespace]):
         """``qname`` under the nearest prefix in reach bound to its IRI that
         this scope reads the same way; nothing is minted."""
         uri = qname.namespace.uri
-        manager: NamespaceManager | None = self
-        while manager is not None:
+        for manager in self._scopes():
             namespace = manager.get_namespace(uri)
             if (
                 namespace is not None
                 and self._binding_in_scope(namespace.prefix) is namespace
             ):
                 return namespace[qname.localpart]
-            manager = manager.parent
         raise ProvExceptionInvalidQualifiedName(
             qname, _undeclared_default_detail(qname)
         )
@@ -346,12 +355,9 @@ class NamespaceManager(dict[str, Namespace]):
     def _resolve_prefixed_string(self, str_value: str) -> QualifiedName | None:
         #  check if the identifier contains a registered prefix
         prefix, local_part = str_value.split(":", 1)
-        if prefix in self:
-            #  return a new QualifiedName
-            return self[prefix][local_part]
-        if prefix in self._prefix_renamed_map:
-            #  return a new QualifiedName
-            return self._prefix_renamed_map[prefix][local_part]
+        namespace = self._binding(prefix)
+        if namespace is not None:
+            return namespace[local_part]
         if (
             self.parent is not None
             and self.parent._binding_in_scope(prefix) is not None
@@ -381,10 +387,15 @@ class NamespaceManager(dict[str, Namespace]):
             ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
                 this manager's default or an enclosing one.
         """
-        manager: NamespaceManager | None = self
-        while manager is not None:
+        for manager in self._scopes():
             if manager._default is not None and text == manager._default.uri:
                 raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
+
+    def _scopes(self) -> Iterator[NamespaceManager]:
+        """This manager, then each of its ancestors."""
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            yield manager
             manager = manager.parent
 
     def _binding(self, prefix: str) -> Namespace | None:
@@ -394,9 +405,11 @@ class NamespaceManager(dict[str, Namespace]):
 
     def _binding_in_scope(self, prefix: str) -> Namespace | None:
         """The namespace the nearest scope binds ``prefix`` to, or ``None``."""
+        if self.parent is None:
+            return self._binding(prefix)
         manager: NamespaceManager | None = self
         while manager is not None:
-            namespace = manager._binding(prefix)
+            namespace = manager.get(prefix) or manager._prefix_renamed_map.get(prefix)
             if namespace is not None:
                 return namespace
             manager = manager.parent
@@ -406,11 +419,7 @@ class NamespaceManager(dict[str, Namespace]):
         """``prefix`` when no scope in reach binds it, else the first
         ``prefix_N`` none binds, so a namespace the model registers itself
         never shadows a declared one."""
-        candidate, count = prefix, 1
-        while self._binding_in_scope(candidate) is not None:
-            candidate = f"{prefix}_{count}"
-            count += 1
-        return candidate
+        return _first_free(prefix, lambda p: self._binding_in_scope(p) is not None)
 
     def lookup(self, prefix: str, local: str) -> QualifiedName | None:
         """Resolve a name a reader has already split at its first ``:``.
@@ -465,12 +474,4 @@ class NamespaceManager(dict[str, Namespace]):
         return Identifier(f"_:{local_prefix}{self._anon_id_count}")
 
     def _get_unused_prefix(self, original_prefix: str) -> str:
-        if original_prefix not in self:
-            return original_prefix
-        count = 1
-        while True:
-            new_prefix = "_".join((original_prefix, str(count)))
-            if new_prefix in self:
-                count += 1
-            else:
-                return new_prefix
+        return _first_free(original_prefix, self.__contains__)

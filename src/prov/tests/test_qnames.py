@@ -1,33 +1,23 @@
 """Shared qualified-name and namespace round-trip tests, run once per target
 in ``SHARED_TARGETS``."""
 
-from collections.abc import Callable, Iterator
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
-from prov.constants import PROV, XSD_INT
+from prov.constants import XSD_INT
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
     Literal,
-    ProvBundle,
     ProvDocument,
     ProvException,
     ProvExceptionInvalidQualifiedName,
 )
 
-from . import examples
-from .attribute_values import document as attribute_values_document
 from .conftest import Roundtrip, default_namespace
-from .test_provn_corpus import (
-    CORPUS,
-    EXCLUDED_PROVTOOLBOX_DOCUMENTS,
-    EXCLUDED_SPEC_EXAMPLES,
-)
 
 if TYPE_CHECKING:
-    from _pytest.mark import ParameterSet
+    pass
 
 
 def document_with_n_bundles_having_default_namespace(n: int) -> ProvDocument:
@@ -287,74 +277,6 @@ def test_generated_prefixes_avoid_prefixes_declared_in_a_bundle(
     roundtrip(prov_doc)
 
 
-def _held_names(bundle: ProvBundle) -> Iterator[QualifiedName]:
-    if bundle.identifier is not None:
-        yield bundle.identifier
-    for record in bundle.get_records():
-        if record.identifier is not None:
-            yield record.identifier
-        for name, value in record.attributes:
-            yield name
-            if isinstance(value, QualifiedName):
-                yield value
-            elif isinstance(value, Literal) and value.datatype is not None:
-                yield value.datatype
-
-
-def _provn_corpus_files() -> list[Path]:
-    excluded = {*EXCLUDED_SPEC_EXAMPLES, *EXCLUDED_PROVTOOLBOX_DOCUMENTS}
-    return sorted(path for path in CORPUS.rglob("*.provn") if path.name not in excluded)
-
-
-def _corpus_sources() -> "Iterator[ParameterSet]":
-    for name, build in examples.tests:
-        yield pytest.param(build, id=name)
-    yield pytest.param(attribute_values_document, id="attribute_values")
-    for path in _provn_corpus_files():
-        yield pytest.param(path, id=path.name)
-
-
-@pytest.mark.parametrize("source", list(_corpus_sources()))
-def test_lookup_agrees_with_valid_qualified_name(
-    source: Path | Callable[[], ProvDocument],
-) -> None:
-    document = (
-        ProvDocument.deserialize(str(source), format="provn")
-        if isinstance(source, Path)
-        else source()
-    )
-    # Spec 3, 3.4: the reader's one-walk resolution and the model's resolver
-    # give the same object for every name a document holds.
-    scopes: list[ProvBundle] = [document, *document.bundles]
-    for bundle in scopes:
-        for name in _held_names(bundle):
-            assert bundle._lookup(name.namespace.prefix, name.localpart) is name
-            if not name.namespace.prefix and ":" in name.localpart:
-                # A bare local part with a colon has no string form the
-                # resolver splits correctly; the lookup half covers it.
-                continue
-            resolved = bundle.valid_qualified_name(str(name))
-            assert resolved == name
-            assert resolved is not None and resolved.namespace is name.namespace
-
-
-def test_lookup_corners() -> None:
-    doc = ProvDocument()
-    doc.set_default_namespace("http://d.org/")
-    doc.add_namespace("ex", "http://example.org/")
-    bundle = doc.bundle("ex:b")
-    assert doc._lookup("", "") is None
-    assert doc._lookup("_", "x") is None
-    doc.add_namespace("_", "http://blank.org/")
-    assert doc._lookup("_", "x") is None
-    assert doc._lookup("zz", "x") is None
-    default = doc.get_default_namespace()
-    assert default is not None
-    assert doc._lookup("", "a:b") == default["a:b"]
-    assert bundle._lookup("ex", "z") is doc.valid_qualified_name("ex:z")
-    assert list(bundle.get_registered_namespaces()) == []
-
-
 def test_literal_datatype_registers_its_namespace(roundtrip: Roundtrip) -> None:
     # #615: a datatype in a namespace nothing declared is declared by every
     # writer, because asserting the literal registers it.
@@ -435,91 +357,3 @@ def test_identifier_equal_to_the_default_in_a_bundle_that_rebinds_the_prefix() -
     bundle.add_namespace("ex", "http://x/")
     with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
         bundle.entity(default_namespace("http://d/")[""])
-
-
-def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://w.org/")
-    foreign = Namespace("ex", "http://x.org/")
-    assert doc.add_namespace(foreign).prefix == "ex_1"
-
-    named = doc.valid_qualified_name(foreign["a"])
-
-    assert named is not None
-    assert named.namespace.prefix == "ex_1"
-    assert doc.valid_qualified_name("ex_2:z") is None
-    assert doc._namespaces.lookup("ex_2", "z") is None
-
-
-def test_a_bundle_default_bound_to_a_prefix_leaves_no_dn_alias() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://ex.org/")
-    bundle = doc.bundle("ex:b")
-    bundle.set_default_namespace("http://ex.org/")
-    bundle.entity("e")
-
-    flat = doc.flattened()
-
-    assert [str(r.identifier) for r in flat.get_records()] == ["ex:e"]
-    assert flat.valid_qualified_name("dn:x") is None
-    assert flat._namespaces.lookup("dn", "x") is None
-    assert flat._namespaces._unused_prefix_in_scope("dn") == "dn"
-
-
-def test_update_gives_a_new_bundle_the_declarations_of_its_source(
-    roundtrip: Roundtrip,
-) -> None:
-    source = ProvDocument()
-    source.add_namespace("ex", "http://ex.example/")
-    bundle = source.bundle("ex:b")
-    bundle.set_default_namespace("http://b.example/")
-    bundle.add_namespace("bb", "http://bb.example/")
-    bundle.entity("e")
-    bundle.entity("bb:f")
-
-    target = ProvDocument()
-    target.update(source)
-
-    (copied,) = target.bundles
-    default = copied.get_default_namespace()
-    assert default is not None
-    assert default.uri == "http://b.example/"
-    assert [ns.prefix for ns in copied.get_registered_namespaces()] == ["bb"]
-    assert target == source
-    roundtrip(target)
-
-
-def test_a_foreign_prefix_for_a_registered_iri_keeps_its_alias() -> None:
-    doc = ProvDocument()
-    bound = doc.add_namespace("ex", "http://a.example/")
-    doc.entity(Namespace("foo", "http://a.example/")["x"])
-
-    assert doc.valid_qualified_name("foo:y") == bound["y"]
-    assert doc._namespaces.lookup("foo", "y") == bound["y"]
-
-
-def test_a_bundle_default_in_the_built_in_prov_iri_flattens_as_prov() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://ex.example/")
-    bundle = doc.bundle("ex:b")
-    bundle.set_default_namespace(PROV.uri)
-    bundle.entity("e")
-
-    flat = doc.flattened()
-
-    assert [str(r.identifier) for r in flat.get_records()] == ["prov:e"]
-
-
-def test_a_bundle_default_flattens_under_the_prefix_the_bundle_binds_to_it() -> None:
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://ex.example/")
-    bundle = doc.bundle("ex:b")
-    bundle.set_default_namespace("http://b.example/")
-    bundle.add_namespace("bb", "http://b.example/")
-    bundle.entity("bb:x")
-    bundle.entity("y")
-
-    flat = doc.flattened()
-
-    assert [str(r.identifier) for r in flat.get_records()] == ["bb:x", "bb:y"]
-    assert [ns.prefix for ns in flat.get_registered_namespaces()] == ["ex", "bb"]

@@ -308,9 +308,7 @@ class ProvXMLSerializer(Serializer):
                 ignored.
         """
 
-        default = _own_default(xml_doc, bundle)
-        if default is not None:
-            bundle.set_default_namespace(default)
+        _adopt_own_default(xml_doc, bundle)
 
         for element in xml_doc:
             qname = etree.QName(element)
@@ -384,9 +382,7 @@ class ProvXMLSerializer(Serializer):
         if rec_id is None:
             raise AssertionError("bundleContent element has no id")
         bundle = prov.model.ProvBundle(document=document)
-        default = _own_default(element, bundle)
-        if default is not None:
-            bundle.set_default_namespace(default)
+        _adopt_own_default(element, bundle)
         own_prefixes = _own_prefixes(element)
         for prefix, uri in own_prefixes:
             bundle.add_namespace(_namespace(namespaces, prefix, uri))
@@ -752,16 +748,17 @@ def _nested_reference(
     )
 
 
-def _own_default(
-    xml_doc: etree._Element,
+def _adopt_own_default(
+    element: etree._Element,
     bundle: prov.model.ProvDocument | prov.model.ProvBundle,
-) -> str | None:
-    """The ``xmlns`` of ``xml_doc`` when it differs from the default in scope
-    at ``bundle``, else ``None``."""
-    default = xml_doc.nsmap.get(None)
+) -> None:
+    """Make the ``xmlns`` of ``element`` the default of ``bundle`` when it
+    differs from the default in scope at ``bundle``."""
+    default = element.nsmap.get(None)
     enclosing = bundle.document
     inherited = None if enclosing is None else enclosing.default_ns_uri
-    return None if default in (inherited, bundle.default_ns_uri) else default
+    if default is not None and default not in (inherited, bundle.default_ns_uri):
+        bundle.set_default_namespace(default)
 
 
 # PROV-XML spells the xsd namespace without its trailing "#" (see _build_nsmap).
@@ -811,8 +808,10 @@ def _bare_name(
         raise ProvXMLException(
             f'Could not create a valid QualifiedName for "{qname_str}"'
         )
-    namespaces = scope._namespaces
-    default = namespaces._binding_in_scope("")
+    enclosing = scope.document
+    default = scope.get_default_namespace() or (
+        None if enclosing is None else enclosing.get_default_namespace()
+    )
     if default is not None and default.uri == ns_uri:
         return default[qname_str]
     raise ProvXMLException(

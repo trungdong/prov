@@ -129,19 +129,15 @@ def _check_provn_iri(namespace: Namespace) -> None:
         )
 
 
-def _held_names(record: ProvRecord) -> Iterator[Any]:
-    """The identifier, attribute names and values of ``record``, a literal
-    standing for its datatype."""
-    yield record.identifier
-    for name, value in record.attributes:
-        yield name
-        yield value.datatype if isinstance(value, Literal) else value
-
-
 def _held_qualified_names(records: Iterable[ProvRecord]) -> Iterator[QualifiedName]:
-    """Every qualified name the records hold."""
+    """Every qualified name the records hold in their identifier, attribute
+    names and values, a literal standing for its datatype."""
     for record in records:
-        for item in _held_names(record):
+        items: list[Any] = [record.identifier]
+        for name, value in record.attributes:
+            items.append(name)
+            items.append(value.datatype if isinstance(value, Literal) else value)
+        for item in items:
             if isinstance(item, QualifiedName):
                 yield item
 
@@ -610,11 +606,11 @@ class ProvBundle:
             ProvExceptionInvalidQualifiedName: If the identifier cannot be
                 resolved to a valid qualified name.
         """
-        valid_qname = self._asserted_name(identifier)
-        if valid_qname is not None:
-            return valid_qname
-        else:
+        valid_qname = self._namespaces.valid_qualified_name(identifier)
+        if valid_qname is None:
+            self._reject_default_iri(identifier)
             raise ProvExceptionInvalidQualifiedName(identifier)
+        return valid_qname
 
     def _asserted_name(
         self, identifier: QualifiedNameCandidate
@@ -625,11 +621,16 @@ class ProvBundle:
         qualified-name form and is rejected (#473); the readers resolve
         through :meth:`valid_qualified_name` and keep their fallbacks.
         """
-        name = self.valid_qualified_name(identifier)
-        if name is None and isinstance(identifier, (str, Identifier)):
+        name = self._namespaces.valid_qualified_name(identifier)
+        if name is None:
+            self._reject_default_iri(identifier)
+        return name
+
+    def _reject_default_iri(self, identifier: QualifiedNameCandidate) -> None:
+        """Raise when ``identifier`` is the IRI of a default namespace in reach."""
+        if isinstance(identifier, (str, Identifier)):
             text = identifier if isinstance(identifier, str) else identifier.uri
             self._namespaces.reject_default_iri(text)
-        return name
 
     @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
@@ -934,7 +935,11 @@ class ProvBundle:
             attr_list.extend(_attribute_pairs(attributes))
         if other_attributes:
             attr_list.extend(_attribute_pairs(other_attributes))
-        record_identifier = self._asserted_name(identifier) if identifier else None
+        record_identifier = None
+        if identifier:
+            record_identifier = self._namespaces.valid_qualified_name(identifier)
+            if record_identifier is None:
+                self._reject_default_iri(identifier)
         new_record = PROV_REC_CLS[record_type](self, record_identifier, attr_list)
         self._add_record(new_record)
         return new_record
@@ -1857,8 +1862,8 @@ class ProvDocument(ProvBundle):
         """
         if self._bundles:
             # Creating a new document for all the records
-            new_doc = ProvDocument(namespaces=list(self.get_registered_namespaces()))
-            new_doc._copy_default_from(self)
+            new_doc = ProvDocument()
+            new_doc._copy_declarations_from(self)
             new_doc._declare_prefixes_for_bundle_defaults(self.bundles)
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
@@ -1919,8 +1924,8 @@ class ProvDocument(ProvBundle):
                 position where another holds a concrete one, or have
                 incompatible types (see :meth:`ProvBundle.unified`).
         """
-        document = ProvDocument(namespaces=list(self.get_registered_namespaces()))
-        document._copy_default_from(self)
+        document = ProvDocument()
+        document._copy_declarations_from(self)
         for record in self._unified_records():
             document.add_record(record)
         for bundle in self.bundles:
@@ -1996,8 +2001,8 @@ class ProvDocument(ProvBundle):
                     "Cannot add a document with nested bundles as a bundle."
                 )
             # Make it a new ProvBundle
-            new_bundle = ProvBundle(namespaces=list(bundle.get_registered_namespaces()))
-            new_bundle._copy_default_from(bundle)
+            new_bundle = ProvBundle()
+            new_bundle._copy_declarations_from(bundle)
             new_bundle.update(bundle)
             bundle = new_bundle
 

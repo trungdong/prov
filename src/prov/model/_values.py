@@ -327,15 +327,35 @@ def resolve_name(
     one.
     """
     prefix, local = _split_name(text)
+    return resolve_pair(bundle, prefix, local, colon=":" in text, shown=text, attr=attr)
+
+
+def resolve_pair(
+    bundle: ProvBundle,
+    prefix: str,
+    local: str,
+    *,
+    colon: bool = False,
+    shown: str | None = None,
+    attr: QualifiedName | None = None,
+) -> QualifiedName | str:
+    """The qualified name the pair ``prefix``, ``local`` resolves to in
+    ``bundle``, or the sentence saying why it does not.
+
+    ``colon`` tells whether the source text held a colon, ``shown`` is the
+    text the sentence quotes, and ``attr`` names the attribute after it.
+    """
     qname = bundle._lookup(prefix, local)
     if qname is not None:
         return qname
-    return unresolved_name_detail(
-        text, bundle._unresolved_reason(prefix, local, ":" in text), attr
+    if shown is None:
+        shown = f"{prefix}:{local}" if prefix else local
+    return _unresolved_name_detail(
+        shown, bundle._unresolved_reason(prefix, local, colon), attr
     )
 
 
-def unresolved_name_detail(
+def _unresolved_name_detail(
     text: str, reason: str, attr: QualifiedName | None = None
 ) -> str:
     """The sentence saying the name ``text`` of ``attr`` does not resolve,
