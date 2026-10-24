@@ -11,8 +11,8 @@ python -m pip install "prov[graph]"
 ## Document to graph
 
 {py:func}`~prov.graph.prov_to_graph` returns one node per element (entity, activity or
-agent) and one edge per relation. It unifies the document first, so records that share an
-identifier become one node:
+agent) and one edge per relation. It flattens the document, so the records inside bundles
+are included, then unifies it, so records that share an identifier become one node:
 
 ```python
 import prov.model as pm
@@ -61,3 +61,7 @@ from prov.graph import graph_to_prov
 reloaded = graph_to_prov(g)
 assert reloaded == document
 ```
+
+A document with bundles comes back flattened. The records of the document and of every
+bundle sit at the top level, and a bundle's own default namespace is declared under a
+prefix, as {py:meth}`~prov.model.ProvDocument.flattened` declares it.
