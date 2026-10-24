@@ -21,6 +21,7 @@ from prov.model import (
     Literal,
     ProvBundle,
     ProvDocument,
+    ProvEntity,
     ProvMembership,
 )
 from prov.serializers._json_common import _JSONPrefixMap
@@ -859,6 +860,25 @@ def test_reader_rejects(text: str, message: str) -> None:
     with pytest.raises(ProvJSONException) as ctx:
         _ = ProvDocument.deserialize(content=text, format="json")
     assert str(ctx.value) == message
+
+
+def test_empty_prefix_declares_the_default_namespace() -> None:
+    document = _read('{"prefix": {"": "http://ex.org/"}, "entity": {"e": {}}}')
+    default = document.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://ex.org/"
+    (record,) = document.get_records(ProvEntity)
+    assert record.identifier == default["e"]
+
+
+def test_empty_prefix_and_default_key_agree_or_raise() -> None:
+    same = '{"prefix": {"": "http://ex.org/", "default": "http://ex.org/"}}'
+    default = _read(same).get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://ex.org/"
+    differing = '{"prefix": {"": "http://ex.org/", "default": "http://w.org/"}}'
+    with pytest.raises(ProvJSONException, match="two different default namespaces"):
+        _ = _read(differing)
 
 
 def test_container_rejects_a_record_key_that_is_not_a_string() -> None:

@@ -672,10 +672,8 @@ class ProvRDFSerializer(Serializer):
         3. If ``compute_qname`` itself raises (a trailing metacharacter under
            no known namespace -- the single-record case) or binds the IRI to a
            default namespace the document does not hold, split at the last
-           ``#`` or ``/`` and mint a namespace (the generated prefix is
-           irrelevant: :class:`~prov.identifier.QualifiedName` equality is
-           URI-based). An IRI with no ``#`` or ``/`` is genuinely unsplittable
-           and raises a clear error naming it.
+           ``#`` or ``/`` and mint a namespace. An IRI with no ``#`` or ``/``
+           is genuinely unsplittable and raises a clear error naming it.
 
         Args:
             iri: The IRI to resolve.
@@ -697,23 +695,32 @@ class ProvRDFSerializer(Serializer):
         # 2. compute_qname for ordinary IRIs (mints a fresh prefix).
         try:
             prefix, uri_ref, _local = graph.namespace_manager.compute_qname(iri)
-            uri = str(uri_ref)
         except ValueError:
-            prefix = uri = ""
+            return self._split_at_separator(iri)
+        uri = str(uri_ref)
         if not prefix:
             qname = self._default_name(iri, uri)
-            if qname is not None:
-                return qname
-            # 3. Trailing metacharacter under no known namespace (#294): split
-            # at the last '#' or '/' ourselves. Any minted prefix works.
-            sep = max(iri.rfind("#"), iri.rfind("/"))
-            if sep < 0:
-                raise ValueError(
-                    f"Cannot split IRI {iri!r} into a namespace and a local "
-                    "part: it contains no '#' or '/' separator."
-                ) from None
-            prefix, uri = "ns", iri[: sep + 1]
+            return qname if qname is not None else self._split_at_separator(iri)
         ns = self.document.add_namespace(prefix, uri)
+        return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _split_at_separator(self, iri: str) -> pm.QualifiedName:
+        """Split ``iri`` at its last ``#`` or ``/`` and mint a namespace for
+        the part before it (#294).
+
+        The generated prefix is irrelevant, since
+        :class:`~prov.identifier.QualifiedName` equality is URI-based.
+
+        Raises:
+            ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
+        """
+        sep = max(iri.rfind("#"), iri.rfind("/"))
+        if sep < 0:
+            raise ValueError(
+                f"Cannot split IRI {iri!r} into a namespace and a local "
+                "part: it contains no '#' or '/' separator."
+            ) from None
+        ns = self.document.add_namespace("ns", iri[: sep + 1])  # type: ignore[union-attr]
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
 
     def decode_rdf_representation(self, literal: Any, graph: Graph) -> Any:

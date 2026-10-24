@@ -126,6 +126,28 @@ class NamespaceManager(dict[str, Namespace]):
         """Return the default namespace, or ``None`` if none is set."""
         return self._default
 
+    def declarations_with_enclosing(self) -> tuple[Namespace | None, list[Namespace]]:
+        """Return this manager's declarations completed from its parent.
+
+        The default is the parent's when this manager has none, and the
+        registered namespaces gain the parent's whose prefix this manager
+        does not rebind, so the declarations read on their own.
+
+        Returns:
+            The default namespace, or ``None``, and the registered namespaces.
+        """
+        registered = list(self.get_registered_namespaces())
+        default = self._default
+        if self.parent is not None:
+            own = {namespace.prefix for namespace in registered}
+            registered += [
+                namespace
+                for namespace in self.parent.get_registered_namespaces()
+                if namespace.prefix not in own
+            ]
+            default = default or self.parent.get_default_namespace()
+        return default, registered
+
     def add_namespace(self, namespace: Namespace) -> Namespace:
         """Add a namespace, unless an equivalent one is already registered.
 
@@ -294,6 +316,9 @@ class NamespaceManager(dict[str, Namespace]):
             return bound[qname.localpart]
         if not prefix:
             return self._spelled_by_prefix(qname)
+        existing = self._uri_map.get(namespace.uri)
+        if existing is not None:
+            return existing[qname.localpart]
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
         return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
 
@@ -388,16 +413,16 @@ class NamespaceManager(dict[str, Namespace]):
         namespace = self._binding_in_scope(prefix)
         return None if namespace is None else namespace[local]
 
-    def _unresolved_reason(self, text: str) -> str:
-        """Why ``text`` resolves to no qualified name by its prefix, as the
-        clause after "because"; meaningful after :meth:`lookup` returned
-        ``None`` for the text's prefix and local part."""
-        if text in ("", ":"):
+    def _unresolved_reason(self, prefix: str, local: str) -> str:
+        """Why the name split into ``prefix`` and ``local`` resolves to no
+        qualified name, as the clause after "because"; meaningful after
+        :meth:`lookup` returned ``None`` for the pair."""
+        if (prefix, local) == ("", ""):
             return "it is empty"
-        if text.startswith("_:"):
+        if prefix == "_":
             return "its prefix '_' is reserved for blank nodes"
-        if ":" in text:
-            return f"its prefix {text.partition(':')[0]!r} is not declared"
+        if prefix:
+            return f"its prefix {prefix!r} is not declared"
         return "it has no prefix and no default namespace is declared"
 
     def get_anonymous_identifier(self, local_prefix: str = "id") -> Identifier:

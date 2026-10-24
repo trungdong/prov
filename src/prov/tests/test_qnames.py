@@ -59,31 +59,42 @@ def test_default_namespace_inheritance(roundtrip: Roundtrip) -> None:
     roundtrip(prov_doc)
 
 
+def _flat_names(flat: ProvDocument) -> list[str]:
+    return [str(record.identifier) for record in flat.get_records()]
+
+
 def test_flattening_1_bundle_with_default_namespace(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(1)
-    roundtrip(prov_doc.flattened())
+    flat = document_with_n_bundles_having_default_namespace(1).flattened()
+    assert _flat_names(flat) == ["dn:e"]
+    roundtrip(flat)
 
 
 def test_flattening_2_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(2)
-    roundtrip(prov_doc.flattened())
+    flat = document_with_n_bundles_having_default_namespace(2).flattened()
+    assert _flat_names(flat) == ["dn:e", "dn_1:e"]
+    roundtrip(flat)
 
 
 def test_flattening_3_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
-    prov_doc = document_with_n_bundles_having_default_namespace(3)
-    roundtrip(prov_doc.flattened())
+    flat = document_with_n_bundles_having_default_namespace(3).flattened()
+    assert _flat_names(flat) == ["dn:e", "dn_1:e", "dn_2:e"]
+    roundtrip(flat)
 
 
 def test_flattening_1_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
-    roundtrip(prov_doc.flattened())
+    flat = prov_doc.flattened()
+    assert _flat_names(flat) == ["dn:e"]
+    roundtrip(flat)
 
 
 def test_flattening_2_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(2)
     prov_doc.set_default_namespace("http://www.example.org/default/0")
-    roundtrip(prov_doc.flattened())
+    flat = prov_doc.flattened()
+    assert _flat_names(flat) == ["dn:e", "dn_1:e"]
+    roundtrip(flat)
 
 
 def test_provn_cannot_write_an_empty_local_part_without_a_prefix() -> None:
@@ -193,14 +204,7 @@ def test_default_namespace_colon_local_part_as_bundle_identifier(
     [
         "model",
         "json",
-        pytest.param(
-            "xml",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="#572: PROV-XML does not write a bundle's own default "
-                "namespace, so the bundle's names read back in the document's",
-            ),
-        ),
+        "xml",
         "rdf",
         "jsonld",
         "provn",
@@ -378,11 +382,8 @@ def test_literal_in_scope_returns_built_in_datatypes_unchanged() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     record = doc.entity("ex:e")
-    tagged = Literal("chat", langtag="fr")
     typed = Literal("1", XSD_INT)
-    # The caller never passes a langtag literal; this pins the direct call.
-    assert record._literal_in_scope(tagged) is tagged
-    assert record._literal_in_scope(typed) is typed
+    assert record._literal_in_scope(typed, XSD_INT) is typed
 
 
 def test_literal_datatype_in_a_foreign_default_is_rejected() -> None:
@@ -434,3 +435,32 @@ def test_identifier_equal_to_the_default_in_a_bundle_that_rebinds_the_prefix() -
     bundle.add_namespace("ex", "http://x/")
     with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
         bundle.entity(default_namespace("http://d/")[""])
+
+
+def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://w.org/")
+    foreign = Namespace("ex", "http://x.org/")
+    assert doc.add_namespace(foreign).prefix == "ex_1"
+
+    named = doc.valid_qualified_name(foreign["a"])
+
+    assert named is not None
+    assert named.namespace.prefix == "ex_1"
+    assert doc.valid_qualified_name("ex_2:z") is None
+    assert doc._namespaces.lookup("ex_2", "z") is None
+
+
+def test_a_bundle_default_bound_to_a_prefix_leaves_no_dn_alias() -> None:
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://ex.org/")
+    bundle = doc.bundle("ex:b")
+    bundle.set_default_namespace("http://ex.org/")
+    bundle.entity("e")
+
+    flat = doc.flattened()
+
+    assert [str(r.identifier) for r in flat.get_records()] == ["ex:e"]
+    assert flat.valid_qualified_name("dn:x") is None
+    assert flat._namespaces.lookup("dn", "x") is None
+    assert flat._namespaces._unused_prefix_in_scope("dn") == "dn"

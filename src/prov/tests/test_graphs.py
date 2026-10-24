@@ -44,6 +44,22 @@ def document():
     return d
 
 
+def test_round_trip_of_a_bundle_with_a_default_namespace_of_its_own() -> None:
+    document = ProvDocument()
+    document.set_default_namespace("http://d.example.org/")
+    document.add_namespace("ex", "http://ex.example.org/")
+    bundle = document.bundle("ex:b")
+    bundle.set_default_namespace("http://b.example.org/")
+    bundle.entity("e")
+
+    result = graph_to_prov(prov_to_graph(bundle))
+
+    declared = {ns.prefix: ns.uri for ns in result.get_registered_namespaces()}
+    assert declared["dn"] == "http://b.example.org/"
+    assert result.get_default_namespace() == document.get_default_namespace()
+    assert "entity(dn:e)" in result.get_provn()
+
+
 def test_relation_with_missing_end_is_skipped_with_warning(document) -> None:
     # A generation record with no activity: one endpoint is None, so the
     # relation cannot become an edge. The drop is reported, not silent.

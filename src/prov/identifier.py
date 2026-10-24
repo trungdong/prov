@@ -336,6 +336,7 @@ class QualifiedName(Identifier):
 
 
 def _check_namespace_uri(uri: str) -> None:
+    """Raise ``ValueError`` unless ``uri`` is non-blank."""
     if not uri or uri.isspace():
         raise ValueError("Not a valid URI to create a namespace.")
 

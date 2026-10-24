@@ -37,6 +37,7 @@ from prov import Error
 from prov._warnings import warn
 from prov.constants import (
     _PROV_N_BARE_RELATIONS,
+    PROV,
     PROV_ACTIVITY,
     PROV_AGENT,
     PROV_ALTERNATE,
@@ -90,6 +91,7 @@ from prov.constants import (
     PROV_TYPE,
     PROV_USAGE,
     PROV_VALUE,
+    XSD,
     XSD_ANYURI,
     XSD_BOOLEAN,
     XSD_DATETIME,
@@ -895,10 +897,10 @@ class ProvRecord:
                 if isinstance(name, str):
                     raise ProvExceptionInvalidQualifiedName(literal.value, name)
                 return name
-            if literal.datatype:
-                value = self._convert_typed_literal(literal, literal.datatype)
+            if datatype := literal.datatype:
+                value = self._convert_typed_literal(literal, datatype)
                 return (
-                    self._literal_in_scope(value)
+                    self._literal_in_scope(value, datatype)
                     if isinstance(value, Literal)
                     else value
                 )
@@ -915,12 +917,12 @@ class ProvRecord:
         # No conversion possible, return the original value
         return literal
 
-    def _literal_in_scope(self, literal: Literal) -> Literal:
-        """``literal`` with its datatype as this record's bundle holds it,
+    def _literal_in_scope(self, literal: Literal, datatype: QualifiedName) -> Literal:
+        """``literal`` with its ``datatype`` as this record's bundle holds it,
         so the namespace is declared (#615); rebuilt only when the bundle
-        gives the datatype another prefix."""
-        datatype = literal.datatype
-        if datatype is None:
+        gives the datatype another prefix. The built-in ``xsd`` and ``prov``
+        datatypes are held as they are."""
+        if datatype.namespace is XSD or datatype.namespace is PROV:
             return literal
         held = self._bundle.mandatory_valid_qname(datatype)
         if held.namespace == datatype.namespace:

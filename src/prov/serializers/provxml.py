@@ -168,7 +168,8 @@ class ProvXMLSerializer(Serializer):
         Insertion order is significant: lxml emits namespace declarations in
         the order of the mapping, so the registered namespaces of
         ``self.document`` come first, then its default namespace (under the
-        ``None`` key), then ``bundle``'s own namespaces, then
+        ``None`` key), replaced by ``bundle``'s own default where it has one,
+        then ``bundle``'s own namespaces, then
         :data:`~prov.model.DEFAULT_NAMESPACES` and ``xsi``.
 
         Args:
@@ -184,6 +185,10 @@ class ProvXMLSerializer(Serializer):
         if self.document._namespaces._default:  # type: ignore[union-attr]
             # TODO: Check if the below works as expected.
             nsmap[None] = self.document._namespaces._default.uri  # type: ignore[union-attr, index]
+        own_default = bundle.get_default_namespace()
+        if own_default is not None:
+            # a bundle's own default replaces the document's on its element
+            nsmap[None] = own_default.uri  # type: ignore[index]
         for namespace in bundle.get_registered_namespaces():
             if namespace not in nsmap:
                 nsmap[namespace.prefix] = namespace.uri
@@ -368,8 +373,9 @@ class ProvXMLSerializer(Serializer):
     ) -> None:
         """Read a ``<prov:bundleContent>`` into a new bundle of ``document``.
 
-        The bundle takes its own ``xmlns`` as its default before its
-        ``prov:id`` is resolved, so the identifier reads in the bundle's scope.
+        The bundle takes its own ``xmlns`` as its default, and the prefixes
+        declared on the element as its own namespaces, before its ``prov:id``
+        is resolved, so the identifier and the records read in its scope.
         """
         if not isinstance(document, prov.model.ProvDocument):
             # Only a document may directly contain named bundles;
@@ -381,6 +387,8 @@ class ProvXMLSerializer(Serializer):
         default = _own_default(element, bundle)
         if default is not None:
             bundle.set_default_namespace(default)
+        for prefix, uri in _own_prefixes(element):
+            bundle.add_namespace(_namespace(namespaces, prefix, uri))
         identifier = xml_qname_to_QualifiedName(
             element, rec_id, namespaces, scope=bundle
         )
@@ -751,6 +759,18 @@ def _own_default(
     enclosing = bundle.document
     inherited = None if enclosing is None else enclosing.default_ns_uri
     return None if default in (inherited, bundle.default_ns_uri) else default
+
+
+def _own_prefixes(element: etree._Element) -> list[tuple[str, str]]:
+    """The ``(prefix, uri)`` declarations made on ``element`` itself, leaving
+    out those inherited from its parent."""
+    parent = element.getparent()
+    inherited = {} if parent is None else parent.nsmap
+    return [
+        (prefix, uri)
+        for prefix, uri in element.nsmap.items()
+        if prefix is not None and inherited.get(prefix) != uri
+    ]
 
 
 def _namespace(

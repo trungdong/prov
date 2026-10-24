@@ -10,7 +10,6 @@ import shutil
 import tempfile
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, ValuesView
-from operator import attrgetter
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
@@ -515,6 +514,7 @@ class ProvBundle:
         return self._namespaces.get_default_namespace()
 
     def _copy_default_from(self, source: ProvBundle) -> None:
+        """Make ``source``'s default namespace, if it has one, this scope's."""
         default = source.get_default_namespace()
         if default is not None:
             self.set_default_namespace(default.uri)
@@ -578,10 +578,10 @@ class ProvBundle:
         """Resolve a split name by its prefix in scope; see ``NamespaceManager.lookup``."""
         return self._namespaces.lookup(prefix, local)
 
-    def _unresolved_reason(self, text: str) -> str:
-        """Why ``text`` does not resolve in this bundle by its prefix, after
-        :meth:`_lookup` returned ``None``."""
-        return self._namespaces._unresolved_reason(text)
+    def _unresolved_reason(self, prefix: str, local: str) -> str:
+        """Why a split name does not resolve in this bundle by its prefix,
+        after :meth:`_lookup` returned ``None``."""
+        return self._namespaces._unresolved_reason(prefix, local)
 
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate
@@ -702,26 +702,6 @@ class ProvBundle:
             lines.append("")
         return lines
 
-    def _enclosing_declarations(
-        self,
-        default_namespace: Namespace | None,
-        registered_namespaces: list[Namespace],
-    ) -> tuple[Namespace | None, list[Namespace]]:
-        """Add the document's default when the bundle has none, and the
-        document's prefixes the bundle does not rebind, so a bundle written
-        alone reads."""
-        own = set(map(attrgetter("prefix"), registered_namespaces))
-        enclosing = cast("ProvDocument", self._document)._namespaces
-        inherited = [
-            namespace
-            for namespace in enclosing.get_registered_namespaces()
-            if namespace.prefix not in own
-        ]
-        return (
-            default_namespace or enclosing.get_default_namespace(),
-            registered_namespaces + inherited,
-        )
-
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
 
@@ -741,12 +721,13 @@ class ProvBundle:
 
         #  if this is the document, start the document;
         # otherwise, start the bundle
-        default_namespace = self._namespaces.get_default_namespace()
-        registered_namespaces = list(self._namespaces.get_registered_namespaces())
         if _indent_level == 0 and self._document is not None:
-            default_namespace, registered_namespaces = self._enclosing_declarations(
-                default_namespace, registered_namespaces
+            default_namespace, registered_namespaces = (
+                self._namespaces.declarations_with_enclosing()
             )
+        else:
+            default_namespace = self._namespaces.get_default_namespace()
+            registered_namespaces = list(self._namespaces.get_registered_namespaces())
         record_lines = [record.get_provn(strict=strict) for record in self._records]
         lines = [self._provn_header()]
         lines.extend(
@@ -1878,7 +1859,11 @@ class ProvDocument(ProvBundle):
         free suffix."""
         for bundle in source.bundles if source.is_document() else ():
             uri = bundle.default_ns_uri
-            if uri is not None and uri != self.default_ns_uri:
+            if (
+                uri is not None
+                and uri != self.default_ns_uri
+                and self._namespaces.get_namespace(uri) is None
+            ):
                 prefix = self._namespaces._unused_prefix_in_scope("dn")
                 self.add_namespace(Namespace(prefix, uri))
 

@@ -424,14 +424,21 @@ def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
         bundle: Bundle to register the namespaces on.
 
     Raises:
-        ProvJSONException: If the ``"prefix"`` value is not a JSON object.
+        ProvJSONException: If the ``"prefix"`` value is not a JSON object, or
+            declares its default namespace under both ``""`` and ``"default"``
+            with different IRIs.
     """
     prefixes = _expect_json_object(jc["prefix"], 'The "prefix" value')
+    if "" in prefixes and "default" in prefixes and prefixes[""] != prefixes["default"]:
+        raise ProvJSONException(
+            'The "prefix" object declares two different default namespaces, '
+            f'under "" ({prefixes[""]!r}) and "default" ({prefixes["default"]!r})'
+        )
     for prefix, uri in prefixes.items():
-        if prefix != "default":
-            bundle.add_namespace(Namespace(prefix, uri))
-        else:
+        if prefix in ("", "default"):
             bundle.set_default_namespace(uri)
+        else:
+            bundle.add_namespace(Namespace(prefix, uri))
     del jc["prefix"]
 
 

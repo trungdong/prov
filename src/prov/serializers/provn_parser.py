@@ -65,7 +65,7 @@ from prov.model import (
     ProvException,
     parse_xsd_datetime,
 )
-from prov.model._values import resolve_name
+from prov.model._values import resolve_name, unresolved_name_detail
 from prov.serializers.provn_lexer import (
     _PN_PREFIX,
     ProvNSyntaxError,
@@ -695,14 +695,19 @@ class ProvNParser:
         ``'ex:x'`` literal, a string for ``"ex:x" %% xsd:QName``; rejected
         at the token when it does not resolve by its prefix (#516, #553)."""
         text = token.value
-        if isinstance(text, tuple):
-            prefix, local = text
-            if not prefix and ":" in local:
-                # An escaped colon has no text form the resolver would split
-                # correctly, so the token itself reports the failure.
-                return self._resolve(token, bundle)
-            text = f"{prefix}:{local}" if prefix else local
-        name = resolve_name(bundle, text)
-        if isinstance(name, str):
-            raise self._error(name, token)
-        return name
+        if not isinstance(text, tuple):
+            name = resolve_name(bundle, text)
+            if isinstance(name, str):
+                raise self._error(name, token)
+            return name
+        prefix, local = text
+        if not prefix and ":" in local:
+            # An escaped colon has no text form the resolver would split
+            # correctly, so the token itself reports the failure.
+            return self._resolve(token, bundle)
+        qname = bundle._lookup(prefix, local)
+        if qname is None:
+            shown = f"{prefix}:{local}" if prefix else local
+            reason = bundle._unresolved_reason(prefix, local)
+            raise self._error(unresolved_name_detail(shown, reason), token)
+        return qname

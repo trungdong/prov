@@ -15,6 +15,7 @@ from prov.model import (
     Literal,
     Namespace,
     ProvDocument,
+    ProvEntity,
     ProvMembership,
     ProvWarning,
 )
@@ -284,6 +285,28 @@ def test_deserialize_mixed_context_registers_namespace_prefixes() -> None:
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
         "ex": EX_URI
     }
+
+
+def test_deserialize_empty_context_key_declares_the_default_namespace() -> None:
+    text = json.dumps(
+        {
+            "@context": [{"": "http://ex.org/"}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "e"}],
+        }
+    )
+    doc = ProvDocument.deserialize(content=text, format="jsonld")
+    default = doc.get_default_namespace()
+    assert default is not None
+    assert default.uri == "http://ex.org/"
+    (record,) = doc.get_records(ProvEntity)
+    assert record.identifier == default["e"]
+
+
+def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
+    context = {"": "http://ex.org/", "@vocab": "http://w.org/"}
+    text = json.dumps({"@context": context, "@graph": []})
+    with pytest.raises(ProvJSONLDException, match="two different default namespaces"):
+        _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
 def test_deserialize_context_with_version_registers_namespace_prefixes() -> None:

@@ -326,14 +326,20 @@ def resolve_name(
     raises its own error with it, adding the position where its format has
     one.
     """
-    qname = bundle._lookup(*_split_name(text))
+    prefix, local = _split_name(text)
+    qname = bundle._lookup(prefix, local)
     if qname is not None:
         return qname
+    return unresolved_name_detail(text, bundle._unresolved_reason(prefix, local), attr)
+
+
+def unresolved_name_detail(
+    text: str, reason: str, attr: QualifiedName | None = None
+) -> str:
+    """The sentence saying the name ``text`` of ``attr`` does not resolve,
+    because of ``reason`` (see ``NamespaceManager._unresolved_reason``)."""
     of_attr = f" of {attr}" if attr is not None else ""
-    return (
-        f"the qualified name {text!r}{of_attr} does not resolve,"
-        f" because {bundle._unresolved_reason(text)}"
-    )
+    return f"the qualified name {text!r}{of_attr} does not resolve, because {reason}"
 
 
 def time_offset_detail(attr: QualifiedName, value: datetime.datetime) -> str | None:

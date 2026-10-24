@@ -386,7 +386,7 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     already known to this library via the built-in ``prov``/``xsd``
     namespaces) are skipped entirely. Every other object is treated as a
     namespace map: its string-valued entries are registered as prefixes
-    (``"@vocab"`` as the default namespace), and any dict-valued entries --
+    (``"@vocab"`` and ``""`` as the default namespace), and any dict-valued entries --
     third-party inline term definitions this library does not model -- are
     ignored individually rather than causing the whole object to be
     skipped. Every other JSON-LD keyword key (``@base``, ``@version``, ...)
@@ -397,7 +397,8 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
-            a JSON object.
+            a JSON object, or declares its default namespace under both
+            ``"@vocab"`` and ``""`` with different IRIs.
     """
     if not isinstance(context, list):
         context = [context]
@@ -407,8 +408,13 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
         item = _expect_object(item, "A @context entry")
         if _is_embedded_submission_context(item):
             continue
+        if "" in item and "@vocab" in item and item[""] != item["@vocab"]:
+            raise ProvJSONLDException(
+                "A @context entry declares two different default namespaces, "
+                'under "@vocab" and ""'
+            )
         for prefix, value in item.items():
-            if prefix == "@vocab" and isinstance(value, str):
+            if prefix in ("@vocab", "") and isinstance(value, str):
                 bundle.set_default_namespace(value)
             elif not prefix.startswith("@") and isinstance(value, str):
                 bundle.add_namespace(Namespace(prefix, value))
