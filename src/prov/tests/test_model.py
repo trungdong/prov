@@ -10,6 +10,7 @@ import logging
 import os
 import shutil
 import tempfile
+import warnings
 from pathlib import Path
 
 import pytest
@@ -823,6 +824,35 @@ def test_unified_with_no_bundles() -> None:
 
     assert list(unified.bundles) == []
     assert unified == doc
+
+
+@pytest.mark.parametrize(
+    "in_document", [True, False], ids=["in-document", "standalone"]
+)
+def test_bundle_unified_is_deprecated(in_document: bool) -> None:
+    # 4.0 removes ProvBundle.unified(); the copy it returns is unchanged until then.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    bundle = (
+        doc.bundle("ex:b")
+        if in_document
+        else ProvBundle(namespaces={"ex": "http://example.org/"})
+    )
+    bundle.entity("ex:e", {"ex:v": 1})
+    bundle.entity("ex:e", {"ex:w": 2})
+
+    with pytest.warns(DeprecationWarning, match=r"ProvDocument\.unified\(\)") as record:
+        unified = bundle.unified()
+
+    assert len(record) == 1
+    assert record[0].filename == __file__
+    assert unified.document is None
+    assert len(unified.get_records()) == 1
+
+    # The document method unifies each bundle in place and does not warn.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        doc.unified()
 
 
 # The following cover ProvDocument.plot()'s filename-based save path and its

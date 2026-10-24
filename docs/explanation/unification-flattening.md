@@ -2,13 +2,12 @@
 
 A document built up over time, or merged from several sources, describes one thing in
 several statements and splits facts across named bundles. Two transformations tidy this up,
-{py:meth}`~prov.model.ProvDocument.flattened` and {py:meth}`~prov.model.ProvBundle.unified`.
+{py:meth}`~prov.model.ProvDocument.flattened` and {py:meth}`~prov.model.ProvDocument.unified`.
 This page explains each with an example and says how far `unified()` goes towards
 PROV-CONSTRAINTS normalization.
 
-Both transformations leave the original untouched. `unified()` returns a new document or
-bundle. `flattened()` returns a new document, or the document itself when it has no
-bundles.
+Both transformations leave the original untouched. `unified()` returns a new document.
+`flattened()` returns a new document, or the document itself when it has no bundles.
 
 ## Flattening
 
@@ -68,8 +67,9 @@ endDocument
 
 ## Unification
 
-{py:meth}`~prov.model.ProvBundle.unified` addresses the same thing described by several
-statements, each carrying a few attributes, and combines the statements into one record.
+{py:meth}`~prov.model.ProvDocument.unified` addresses the same thing described by
+several statements, each carrying a few attributes, and combines the statements into one
+record.
 
 ### What `unified()` does
 

@@ -407,6 +407,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `float` and a `datetime` are written by one rule rather than by each format's own, and
   the same function decides whether a typed literal collapses to a Python value
   ([#589](https://github.com/trungdong/prov/issues/589))
+- `ProvBundle.unified()` is deprecated and warns `DeprecationWarning` on every call, for a
+  bundle inside a document and for one that belongs to none. Unify the document with
+  `ProvDocument.unified()`, which unifies each bundle in place. The bundle method still
+  returns a copy that belongs to no document, as in 3.2.3, and 4.0 removes it
+  ([#652](https://github.com/trungdong/prov/issues/652))
 
 ## 3.2.3 (2026-10-19)
 

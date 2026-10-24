@@ -14,6 +14,7 @@ from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
 from prov import serializers
+from prov._warnings import warn
 from prov.constants import (
     PROV,
     PROV_ACTIVITY,
@@ -804,6 +805,10 @@ class ProvBundle:
     def unified(self) -> ProvBundle:
         """Return a new bundle with records sharing an identifier merged.
 
+        .. deprecated:: 3.3.0
+            Unify the document with :meth:`ProvDocument.unified`, which
+            unifies each bundle in place; 4.0 removes this method.
+
         For each identifier carried by more than one record, the records are
         first checked for type compatibility (W3C PROV-CONSTRAINTS'
         impossibility constraints 53, 54 and 55): an entity and an activity (or
@@ -847,12 +852,18 @@ class ProvBundle:
                 where another holds a concrete one, or if two records sharing
                 an identifier have incompatible types.
         """
+        warn(
+            "ProvBundle.unified() is deprecated and 4.0 removes it; unify the "
+            "document with ProvDocument.unified()",
+            DeprecationWarning,
+        )
         return self._unified_copy(None)
 
     def _unified_copy(self, document: ProvDocument | None) -> ProvBundle:
         """The unified bundle, built inside ``document``, or standalone."""
         bundle = ProvBundle(identifier=self.identifier, document=document)
-        # a standalone copy declares what the bundle reads through its document
+        # a standalone copy declares what the bundle reads through its document;
+        # the branch goes with ProvBundle.unified() in 4.0
         enclosing = self._document if document is None else None
         if enclosing is not None:
             # first, so a namespace both scopes bind keeps the document's prefix
