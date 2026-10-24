@@ -179,6 +179,31 @@ def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
     )
 
 
+def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() -> None:
+    doc = _document_with_default_and_a_bundle()
+    doc.add_namespace("p", "http://doc-p.org/")
+    (bundle,) = doc.bundles
+    bundle.add_namespace("p", "http://bundle-p.org/")
+    bundle.entity("ex:d")
+    bundle.entity("p:e")
+    unified = bundle.unified()
+    assert unified.document is None
+    assert _spellings(unified) == _spellings(bundle)
+    assert unified.get_default_namespace() == doc.get_default_namespace()
+    assert sorted((n.prefix, n.uri) for n in unified.get_registered_namespaces()) == [
+        ("ex", "http://example.org/"),
+        ("p", "http://bundle-p.org/"),
+    ]
+    assert set(unified.get_records()) == set(bundle.get_records())
+
+    # an IRI both scopes bind keeps the document's prefix, as in 3.2.3
+    bundle.add_namespace("e2", "http://example.org/")
+    bundle.entity("e2:f")
+    unified = bundle.unified()
+    assert [s for s, _ in _spellings(unified)] == ["c", "ex:d", "p:e", "ex:f"]
+    assert str(unified.identifier) == "ex:bn"
+
+
 def test_add_bundle_keeps_the_spellings_of_a_document_argument() -> None:
     source = _document_with_default_and_a_bundle()
     target = ProvDocument()

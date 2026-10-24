@@ -832,6 +832,10 @@ class ProvBundle:
         (Constraints 24-29) are not checked and no inference is performed. The
         original bundle is left untouched.
 
+        The new bundle belongs to no document. A bundle inside a document
+        gives it the document's declarations it does not make itself, so its
+        names read as they do in the original.
+
         Returns:
             The new, unified :class:`ProvBundle`.
 
@@ -842,16 +846,21 @@ class ProvBundle:
                 where another holds a concrete one, or if two records sharing
                 an identifier have incompatible types.
         """
-        return self._unified_copy(self._document)
+        return self._unified_copy(None)
 
     def _unified_copy(self, document: ProvDocument | None) -> ProvBundle:
-        """The unified bundle, built inside ``document``."""
-        bundle = ProvBundle(
-            identifier=self.identifier,
-            namespaces=list(self.get_registered_namespaces()),
-            document=document,
-        )
-        bundle._copy_default_from(self)
+        """The unified bundle, built inside ``document``, or standalone."""
+        bundle = ProvBundle(identifier=self.identifier, document=document)
+        # a standalone copy declares what the bundle reads through its document
+        enclosing = self._document if document is None else None
+        if enclosing is not None:
+            # first, so a namespace both scopes bind keeps the document's prefix
+            for namespace in enclosing.get_registered_namespaces():
+                if self._namespaces._binding(namespace.prefix) is None:
+                    bundle.add_namespace(namespace)
+        bundle._copy_declarations_from(self)
+        if enclosing is not None and bundle.get_default_namespace() is None:
+            bundle._copy_default_from(enclosing)
         for record in self._unified_records():
             bundle.add_record(record)
         return bundle

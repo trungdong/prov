@@ -178,10 +178,7 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     prov_doc = ProvDocument()
     if bundles:
         # the declarations the records' names are spelled with
-        source = bundles[0].document or bundles[0]
-        prov_doc._copy_declarations_from(source)
-        in_graph = {id(b): b for b in bundles if b.is_bundle()}
-        prov_doc._declare_prefixes_for_bundle_defaults(in_graph.values())
+        prov_doc._copy_declarations_from(bundles[0])
     for element in elements:
         prov_doc.add_record(element)
     for relation in relations:
