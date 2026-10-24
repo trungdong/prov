@@ -270,13 +270,14 @@ class ProvXMLSerializer(Serializer):
 
         document = prov.model.ProvDocument()
         namespaces: dict[tuple[str, str], prov.identifier.Namespace] = {}
-        self.deserialize_subtree(xml_doc, document, namespaces)
+        self.deserialize_subtree(xml_doc, document, namespaces=namespaces)
         return document
 
     def deserialize_subtree(
         self,
         xml_doc: etree._Element,
         bundle: prov.model.ProvDocument | prov.model.ProvBundle,
+        *,
         namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None = None,
     ) -> prov.model.ProvDocument | prov.model.ProvBundle:
         """Deserialize an etree element containing a PROV document or bundle.
@@ -335,7 +336,9 @@ class ProvXMLSerializer(Serializer):
 
             # Try to make a qualified name out of it!
             prov_rec_id = (
-                xml_qname_to_QualifiedName(element, rec_id, namespaces, scope=bundle)
+                xml_qname_to_QualifiedName(
+                    element, rec_id, namespaces=namespaces, scope=bundle
+                )
                 if rec_id is not None
                 else None
             )
@@ -350,7 +353,7 @@ class ProvXMLSerializer(Serializer):
                 value = xml_qname_to_QualifiedName(
                     element,
                     element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
-                    namespaces,
+                    namespaces=namespaces,
                     scope=bundle,
                 )
                 attributes.append((PROV["type"], value))
@@ -387,7 +390,7 @@ class ProvXMLSerializer(Serializer):
         for prefix, uri in own_prefixes:
             bundle.add_namespace(_namespace(namespaces, prefix, uri))
         identifier = xml_qname_to_QualifiedName(
-            element, rec_id, namespaces, scope=bundle
+            element, rec_id, namespaces=namespaces, scope=bundle
         )
         if identifier.namespace.prefix and identifier.namespace.prefix not in (
             prefix for prefix, _ in own_prefixes
@@ -395,7 +398,7 @@ class ProvXMLSerializer(Serializer):
             # a prefix read from the document or an ancestor is the document's
             identifier = document.mandatory_valid_qname(identifier)
         document.add_bundle(bundle, identifier)
-        self.deserialize_subtree(element, bundle, namespaces)
+        self.deserialize_subtree(element, bundle, namespaces=namespaces)
 
     def _derive_record_label(
         self,
@@ -640,23 +643,27 @@ def _extract_attributes(
         sqname = etree.QName(subel)
         localname = _unescape_ncname_localpart(sqname.localname)
         qname_str = f"{subel.prefix}:{localname}" if subel.prefix else localname
-        _t = xml_qname_to_QualifiedName(subel, qname_str, namespaces, scope)
+        _t = xml_qname_to_QualifiedName(
+            subel, qname_str, namespaces=namespaces, scope=scope
+        )
 
         _v: Any = _unassigned
         for key, value in subel.attrib.items():
             value_str = value.decode("utf-8") if isinstance(value, bytes) else value
             if key == _ns_prov("ref"):
-                _v = xml_qname_to_QualifiedName(subel, value_str, namespaces, scope)
+                _v = xml_qname_to_QualifiedName(
+                    subel, value_str, namespaces=namespaces, scope=scope
+                )
             elif key == _ns_xsi("type"):
                 datatype = xml_qname_to_QualifiedName(
-                    subel, value_str, namespaces, scope
+                    subel, value_str, namespaces=namespaces, scope=scope
                 )
                 if datatype == XSD_QNAME:
                     _v = xml_qname_to_QualifiedName(
                         subel,
                         subel.text,  # type: ignore[arg-type]
-                        namespaces,
-                        scope,
+                        namespaces=namespaces,
+                        scope=scope,
                     )
                 else:
                     # An empty XSD-typed text value (e.g. prov:value="")
@@ -738,7 +745,10 @@ def _nested_reference(
             "PROV-XML schema-valid (ProvToolbox writes it for hadMember)."
         )
         return xml_qname_to_QualifiedName(
-            children[0], str(children[0].attrib[ref]), namespaces, scope
+            children[0],
+            str(children[0].attrib[ref]),
+            namespaces=namespaces,
+            scope=scope,
         )
     if subel.text is not None and subel.text.strip():
         return subel.text
@@ -824,6 +834,7 @@ def _bare_name(
 def xml_qname_to_QualifiedName(
     element: etree._Element,
     qname_str: str,
+    *,
     namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None = None,
     scope: prov.model.ProvBundle | None = None,
 ) -> prov.identifier.QualifiedName:
