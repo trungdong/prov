@@ -284,26 +284,6 @@ def test_a_prefix_that_would_change_a_held_name_is_refused() -> None:
     assert doc.add_namespace("ex", "http://two.org/").prefix == "ex_1"
 
 
-def test_bundle_written_alone_declares_the_enclosing_namespaces() -> None:
-    # N19: ProvBundle.get_provn() on a bundle inside a document declares
-    # what the document binds and the bundle does not, so the text reads.
-    doc = ProvDocument()
-    doc.set_default_namespace("http://d.org/")
-    doc.add_namespace("ex", "http://example.org/")
-    bundle = doc.bundle("ex:b")
-    bundle.add_namespace("own", "http://own.org/")
-    bundle.entity("ex:e", {"own:k": doc.valid_qualified_name("v")})
-    text = bundle.get_provn()
-    assert "default <http://d.org/>" in text
-    assert "prefix ex <http://example.org/>" in text
-    assert "prefix own <http://own.org/>" in text
-    reloaded = ProvDocument.deserialize(
-        content=f"document\n{text}\nendDocument", format="provn"
-    )
-    (back,) = reloaded.bundles
-    assert set(back.get_records()) == set(bundle.get_records())
-
-
 def _held_names(bundle: ProvBundle) -> Iterator[QualifiedName]:
     if bundle.identifier is not None:
         yield bundle.identifier

@@ -704,17 +704,15 @@ class ProvBundle:
         identifier = self._identifier
         return f"bundle {identifier.provn_bare_representation() if identifier else ''}"
 
-    def _provn_namespace_lines(
-        self,
-        default_namespace: Namespace | None,
-        registered_namespaces: list[Namespace],
-    ) -> list[str]:
+    def _provn_namespace_lines(self) -> list[str]:
         """Return the header's ``default``/``prefix`` declaration lines.
 
         Checks every namespace being declared is a legal PROV-N IRI first,
         then a trailing blank line separates the declarations from the
         assertions that follow, present only when there is at least one.
         """
+        default_namespace = self._namespaces.get_default_namespace()
+        registered_namespaces = list(self._namespaces.get_registered_namespaces())
         for namespace in (
             [default_namespace] if default_namespace else []
         ) + registered_namespaces:
@@ -733,10 +731,6 @@ class ProvBundle:
     def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
         """Return the PROV-N representation of the bundle.
 
-        On a bundle inside a document, called with no indentation, the output
-        also declares the document's default and prefixes the bundle does not
-        bind itself, so a bundle written alone reads.
-
         Args:
             _indent_level: Indentation level for nested bundles.
             strict: Write output that parses under the strict PROV-N
@@ -746,21 +740,9 @@ class ProvBundle:
         """
         indentation = "" + ("  " * _indent_level)
         newline = "\n" + ("  " * (_indent_level + 1))
-
-        #  if this is the document, start the document;
-        # otherwise, start the bundle
-        if _indent_level == 0 and self._document is not None:
-            default_namespace, registered_namespaces = (
-                self._namespaces.declarations_with_enclosing()
-            )
-        else:
-            default_namespace = self._namespaces.get_default_namespace()
-            registered_namespaces = list(self._namespaces.get_registered_namespaces())
         record_lines = [record.get_provn(strict=strict) for record in self._records]
         lines = [self._provn_header()]
-        lines.extend(
-            self._provn_namespace_lines(default_namespace, registered_namespaces)
-        )
+        lines.extend(self._provn_namespace_lines())
 
         #  adding all the records
         lines.extend(record_lines)
