@@ -59,32 +59,30 @@ def test_default_namespace_inheritance(roundtrip: Roundtrip) -> None:
     roundtrip(prov_doc)
 
 
-@pytest.mark.parametrize("n", [1, 2, 3])
-@pytest.mark.parametrize("document_default", [None, "http://www.example.org/default/0"])
-def test_flattening_bundles_with_other_default_namespaces_is_rejected(
-    n: int, document_default: str | None
-) -> None:
-    # The flattened document has one default at most, and the model mints no
-    # prefix for a name in another.
-    prov_doc = document_with_n_bundles_having_default_namespace(n)
-    if document_default is not None:
-        prov_doc.set_default_namespace(document_default)
-    expected = "none" if document_default is None else f"<{document_default}>"
-    with pytest.raises(ProvException) as caught:
-        prov_doc.flattened()
-    assert str(caught.value) == (
-        "cannot flatten: bundle ex:bundle/1 declares default "
-        f"<http://www.example.org/default/1> while the document's is {expected}, "
-        "so its bare names have no spelling in the flat document; "
-        "declare a prefix for the namespace"
-    )
-
-
-def test_flattening_a_bundle_in_the_document_default_namespace(
-    roundtrip: Roundtrip,
-) -> None:
+def test_flattening_1_bundle_with_default_namespace(roundtrip: Roundtrip) -> None:
     prov_doc = document_with_n_bundles_having_default_namespace(1)
-    prov_doc.set_default_namespace("http://www.example.org/default/1")
+    roundtrip(prov_doc.flattened())
+
+
+def test_flattening_2_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
+    prov_doc = document_with_n_bundles_having_default_namespace(2)
+    roundtrip(prov_doc.flattened())
+
+
+def test_flattening_3_bundles_with_default_namespace(roundtrip: Roundtrip) -> None:
+    prov_doc = document_with_n_bundles_having_default_namespace(3)
+    roundtrip(prov_doc.flattened())
+
+
+def test_flattening_1_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
+    prov_doc = document_with_n_bundles_having_default_namespace(1)
+    prov_doc.set_default_namespace("http://www.example.org/default/0")
+    roundtrip(prov_doc.flattened())
+
+
+def test_flattening_2_bundle_with_default_namespaces(roundtrip: Roundtrip) -> None:
+    prov_doc = document_with_n_bundles_having_default_namespace(2)
+    prov_doc.set_default_namespace("http://www.example.org/default/0")
     roundtrip(prov_doc.flattened())
 
 

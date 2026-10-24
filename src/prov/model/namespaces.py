@@ -275,7 +275,8 @@ class NamespaceManager(dict[str, Namespace]):
     def _reconcile_qualified_name(self, qname: QualifiedName) -> QualifiedName:
         # The name as this scope holds it: unchanged when a scope in reach
         # binds its namespace (#449); a name in a default namespace no scope
-        # in reach declares is rejected, as is the default IRI itself (#473);
+        # in reach declares takes a prefix in reach that is bound to its IRI
+        # and rejected without one, as is the default IRI itself (#473);
         # a prefixed foreign namespace is registered here under a prefix no
         # scope in reach binds.
         namespace = qname.namespace
@@ -292,11 +293,26 @@ class NamespaceManager(dict[str, Namespace]):
         if bound == namespace:
             return bound[qname.localpart]
         if not prefix:
-            raise ProvExceptionInvalidQualifiedName(
-                qname, _undeclared_default_detail(qname)
-            )
+            return self._spelled_by_prefix(qname)
         chosen = prefix if bound is None else self._unused_prefix_in_scope(prefix)
         return self.add_namespace(Namespace(chosen, namespace.uri))[qname.localpart]
+
+    def _spelled_by_prefix(self, qname: QualifiedName) -> QualifiedName:
+        """``qname`` under the nearest prefix in reach bound to its IRI that
+        this scope reads the same way; nothing is minted."""
+        uri = qname.namespace.uri
+        manager: NamespaceManager | None = self
+        while manager is not None:
+            namespace = manager._uri_map.get(uri)
+            if (
+                namespace is not None
+                and self._binding_in_scope(namespace.prefix) is namespace
+            ):
+                return namespace[qname.localpart]
+            manager = manager.parent
+        raise ProvExceptionInvalidQualifiedName(
+            qname, _undeclared_default_detail(qname)
+        )
 
     def _resolve_prefixed_string(self, str_value: str) -> QualifiedName | None:
         #  check if the identifier contains a registered prefix

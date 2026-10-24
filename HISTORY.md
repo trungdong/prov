@@ -100,13 +100,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `set_default_namespace()`, the one way to declare a default. 3.2.x accepted the object
   and made it the default of the first scope that met a name from it
 - A name in a default namespace asserted where no default namespace in scope is that
-  namespace, such as a record copied by `update()` into a document that declares another
+  namespace and no prefix in scope is bound to its IRI, such as a record copied by `update()` into a document that declares another
   default or none, or a document-default name asserted inside a bundle that declares its
   own default, a `ProvExceptionInvalidQualifiedName` that names the IRI and asks for a
   prefix; and an identifier equal to the default namespace IRI, such as
-  `d.entity("http://example.org/")` under that default, the same error. 3.2.x made the
-  namespace the scope's default in the first case, and in the second raised
-  `ProvElementIdentifierRequired` for the string and failed at write time for the
+  `d.entity("http://example.org/")` under that default, the same error. In the first case
+  3.2.x made the namespace the scope's default when the scope had none, and wrote the name
+  under a `dn` prefix it minted when the scope had another default. In the second it
+  raised `ProvElementIdentifierRequired` for the string and failed at write time for the
   `QualifiedName` ([#473](https://github.com/trungdong/prov/issues/473))
 - `set_default_namespace()` or `add_namespace()` on a document or bundle that already holds
   a name the declaration would change, such as a bundle named `e001` in the document's
@@ -116,10 +117,6 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `add_bundle()` given a bundle that belongs to another document, a `ProvException`. A
   bundle is not moved between documents; 3.2.x re-parented it and relied on the declarations
   it had copied
-- `flattened()` on a document with a bundle that declares a default namespace other than
-  the document's, a `ProvException` that names the bundle and both namespaces and asks for
-  a prefix. 3.2.x wrote the bundle's bare names under a `dn` prefix it minted in the
-  flattened document
 - A bare name under an `xmlns` declared on an inner element of a PROV-XML document, a
   `ProvXMLException` that names the name and the namespace. 3.2.x made that namespace the
   default of the first scope that met it

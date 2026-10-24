@@ -398,7 +398,8 @@ def test_a_prefix_redeclared_inside_bundle_content_does_not_shadow_the_document(
     assert first.uri == "http://example.org/one/a"
     assert second.uri == "http://example.org/two/c"
     assert second.namespace.prefix == "ex_1"
-    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex", "ex_1"]
+    assert [ns.prefix for ns in bundle.get_registered_namespaces()] == ["ex_1"]
+    assert [ns.prefix for ns in doc.get_registered_namespaces()] == ["ex"]
 
 
 def test_redefining_namespaces() -> None:

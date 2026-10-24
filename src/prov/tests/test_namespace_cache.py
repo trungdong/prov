@@ -48,19 +48,28 @@ def test_a_prefixless_name_is_rejected_when_no_default_is_declared() -> None:
     assert list(manager.get_registered_namespaces()) == []
 
 
-def test_a_bundle_reads_the_prefix_its_document_binds() -> None:
-    # A bundle resolves "ex:e" through the document's binding and registers
-    # nothing of its own; a default-namespace name for the same IRI is rejected.
+def test_a_prefixless_name_takes_the_prefix_bound_to_its_iri() -> None:
+    # A bundle reads a prefix-less name through the prefix its document binds
+    # to the IRI, and registers nothing of its own.
     document = ProvDocument()
     document.add_namespace("ex", "http://ex/")
     bundle = document.bundle("ex:b")
-    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
-        bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
+    resolved = bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
 
-    assert str(bundle.valid_qualified_name("ex:e")) == "ex:e"
+    assert str(resolved) == "ex:e"
     assert list(bundle.get_registered_namespaces()) == []
     assert str(bundle.valid_qualified_name("http://ex/other")) == "ex:other"
     assert bundle.valid_qualified_name(":foo") is None
+
+
+def test_a_prefixless_name_is_rejected_when_the_bound_prefix_is_shadowed() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://ex/")
+    named = document.add_namespace("nm", "http://named.org/")
+    bundle = document.bundle(named["b"])
+    bundle.add_namespace("ex", "http://other/")
+    with pytest.raises(ProvExceptionInvalidQualifiedName, match="declare a prefix"):
+        bundle.valid_qualified_name(default_namespace("http://ex/")["e"])
 
 
 def test_child_lookup_answered_by_parent_is_not_cached_in_the_child() -> None:

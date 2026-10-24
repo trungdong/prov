@@ -384,6 +384,9 @@ class ProvXMLSerializer(Serializer):
         identifier = xml_qname_to_QualifiedName(
             element, rec_id, namespaces, scope=bundle
         )
+        if identifier.namespace.prefix:
+            # a prefix read from the document or an ancestor is the document's
+            identifier = document.mandatory_valid_qname(identifier)
         document.add_bundle(bundle, identifier)
         self.deserialize_subtree(element, bundle, namespaces)
 

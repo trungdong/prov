@@ -670,6 +670,7 @@ class ProvBundle:
         raise ProvException("A PROV bundle does not contain sub-bundles")
 
     def _provn_header(self) -> str:
+        """The ``document`` or ``bundle <id>`` line that opens the PROV-N text."""
         if self.is_document():
             return "document"
         identifier = self._identifier
@@ -1849,10 +1850,10 @@ class ProvDocument(ProvBundle):
             if it has no bundles.
         """
         if self._bundles:
-            self._refuse_flattening_other_defaults()
             # Creating a new document for all the records
             new_doc = ProvDocument(namespaces=list(self.get_registered_namespaces()))
             new_doc._copy_default_from(self)
+            new_doc._declare_prefixes_for_bundle_defaults(self)
             bundled_records = itertools.chain(
                 *[b.get_records() for b in self._bundles.values()]
             )
@@ -1870,20 +1871,16 @@ class ProvDocument(ProvBundle):
             if bundle._namespaces._binding(prefix) is None
         ]
 
-    def _refuse_flattening_other_defaults(self) -> None:
-        """Refuse to flatten a bundle whose default differs from the
-        document's, since its bare names would have no spelling there."""
-        own = self.default_ns_uri
-        for bundle in self._bundles.values():
-            default = bundle.default_ns_uri
-            if default is not None and default != own:
-                raise ProvException(
-                    f"cannot flatten: bundle {bundle.identifier} declares default "
-                    f"<{default}> while the document's is "
-                    f"{'none' if own is None else f'<{own}>'}, so its bare names "
-                    "have no spelling in the flat document; declare a prefix for "
-                    "the namespace"
-                )
+    def _declare_prefixes_for_bundle_defaults(self, source: ProvBundle) -> None:
+        """Declare a prefix for each default ``source``'s bundles have that
+        differs from this document's, so their bare names keep a spelling
+        here: the prefix already bound to the IRI, else ``dn`` or the next
+        free suffix."""
+        for bundle in source.bundles if source.is_document() else ():
+            uri = bundle.default_ns_uri
+            if uri is not None and uri != self.default_ns_uri:
+                prefix = self._namespaces._unused_prefix_in_scope("dn")
+                self.add_namespace(Namespace(prefix, uri))
 
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
