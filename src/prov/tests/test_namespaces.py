@@ -204,6 +204,18 @@ def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() ->
     assert str(unified.identifier) == "ex:bn"
 
 
+def test_a_bundle_unified_alone_declares_its_identifier_prefix() -> None:
+    # a prefix the bundle only renames is still the document's, so the copy declares it
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://V.org/")
+    bundle = doc.bundle("ex:bn")
+    bundle.add_namespace("a", "http://U.org/")
+    bundle.entity(Namespace("ex", "http://U.org/")["x"])
+    unified = bundle.unified()
+    assert sorted(n.prefix for n in unified.get_registered_namespaces()) == ["a", "ex"]
+    assert "prefix ex <http://V.org/>" in unified.get_provn()
+
+
 def test_add_bundle_keeps_the_spellings_of_a_document_argument() -> None:
     source = _document_with_default_and_a_bundle()
     target = ProvDocument()

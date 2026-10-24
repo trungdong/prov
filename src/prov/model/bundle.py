@@ -833,8 +833,9 @@ class ProvBundle:
         original bundle is left untouched.
 
         The new bundle belongs to no document. A bundle inside a document
-        gives it the document's declarations it does not make itself, so its
-        names read as they do in the original.
+        gives it the document's declarations it does not make itself, declared
+        first, so every name resolves to the IRI it has in the original; an
+        IRI both scopes bind is spelled with the document's prefix.
 
         Returns:
             The new, unified :class:`ProvBundle`.
@@ -856,7 +857,7 @@ class ProvBundle:
         if enclosing is not None:
             # first, so a namespace both scopes bind keeps the document's prefix
             for namespace in enclosing.get_registered_namespaces():
-                if self._namespaces._binding(namespace.prefix) is None:
+                if namespace.prefix not in self._namespaces:
                     bundle.add_namespace(namespace)
         bundle._copy_declarations_from(self)
         if enclosing is not None and bundle.get_default_namespace() is None:

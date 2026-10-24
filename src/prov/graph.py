@@ -162,9 +162,19 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     Args:
         g: The graph instance to convert.
 
+    The new document declares what the records' document declares, so their
+    names keep their spelling. :func:`prov_to_graph` works on documents, and
+    so does this function.
+
     Returns:
         A new :class:`~prov.model.ProvDocument` containing the elements and
         relations recovered from ``g``.
+
+    Raises:
+        ProvExceptionInvalidQualifiedName: If the records come from scopes
+            with different default namespaces, such as a graph composed from
+            two bundles, because a bare name of the second scope has no
+            spelling in the first scope's declarations.
     """
     elements = [
         n for n in g.nodes() if isinstance(n, ProvRecord) and n.bundle is not None
@@ -177,8 +187,8 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     bundles = [r.bundle for r in (*elements, *relations) if r.bundle is not None]
     prov_doc = ProvDocument()
     if bundles:
-        # the declarations the records' names are spelled with
-        prov_doc._copy_declarations_from(bundles[0])
+        # the records' document; its declarations spell their names
+        prov_doc._copy_declarations_from(bundles[0].document or bundles[0])
     for element in elements:
         prov_doc.add_record(element)
     for relation in relations:
