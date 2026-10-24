@@ -852,6 +852,11 @@ REJECTED_DOCUMENTS = [
         _unresolved("record ':'", ":", "it is empty"),
         id="record key of a colon alone under a default",
     ),
+    pytest.param(
+        _json({"entity": {":x": {}}}),
+        _unresolved("record ':x'", ":x", "its prefix '' is not declared"),
+        id="record key with an explicit empty prefix and no default",
+    ),
 ]
 
 

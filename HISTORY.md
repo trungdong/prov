@@ -262,6 +262,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 ### Output changes
 
+- The PROV-XML reader reads an `xmlns` on `prov:document` as the document's default
+  namespace even when no name uses it, so every writer declares it, as an unused `prefix`
+  declaration from any other format is. 3.2.x kept an `xmlns` only when a name used it.
+  Likewise the reader registers every `xmlns:*` declared on a `prov:bundleContent` on the
+  bundle, so `bundle.get_registered_namespaces()` lists them and the writers declare them
+  inside the bundle, where 3.2.x registered only those a name used
 - The PROV-JSONLD writer writes a qualified name under any attribute other than
   `prov:type`, `prov:location` and `prov:role` as a node reference, `{"@id": "ex:shed"}`,
   the form the 2026-10-14 revision of the PROV-JSONLD schema specifies. A JSON-LD
@@ -305,7 +311,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 - The PROV-O reader registers the default binding `@prefix :` as the document's default
   namespace, where 3.2.x registered it as a namespace with an empty prefix that PROV-N
-  could not write
+  could not write. The PROV-JSON and PROV-JSONLD readers do the same for a `""` entry in
+  the `prefix` object or an `@context` entry. An entry that disagrees with `default` or
+  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`

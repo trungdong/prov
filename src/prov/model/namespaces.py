@@ -413,15 +413,17 @@ class NamespaceManager(dict[str, Namespace]):
         namespace = self._binding_in_scope(prefix)
         return None if namespace is None else namespace[local]
 
-    def _unresolved_reason(self, prefix: str, local: str) -> str:
+    def _unresolved_reason(self, prefix: str, local: str, colon: bool = False) -> str:
         """Why the name split into ``prefix`` and ``local`` resolves to no
         qualified name, as the clause after "because"; meaningful after
-        :meth:`lookup` returned ``None`` for the pair."""
+        :meth:`lookup` returned ``None`` for the pair. ``colon`` says the
+        name was written with a ``:``, so an empty ``prefix`` is a declared
+        empty prefix and not the lack of one."""
         if (prefix, local) == ("", ""):
             return "it is empty"
         if prefix == "_":
             return "its prefix '_' is reserved for blank nodes"
-        if prefix:
+        if prefix or colon:
             return f"its prefix {prefix!r} is not declared"
         return "it has no prefix and no default namespace is declared"
 

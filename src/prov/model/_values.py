@@ -330,7 +330,9 @@ def resolve_name(
     qname = bundle._lookup(prefix, local)
     if qname is not None:
         return qname
-    return unresolved_name_detail(text, bundle._unresolved_reason(prefix, local), attr)
+    return unresolved_name_detail(
+        text, bundle._unresolved_reason(prefix, local, ":" in text), attr
+    )
 
 
 def unresolved_name_detail(
