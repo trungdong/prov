@@ -22,7 +22,7 @@ print(document.get_provn())
 
 A statement with an attribute block that is wider than 80 columns, indentation included,
 wraps before the block. {py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass
-`width` to change the limit, or `width=None` to write every statement on one line:
+`width` to change the limit, or `width=None` to never wrap:
 
 ```python
 one_line = document.get_provn(width=None)

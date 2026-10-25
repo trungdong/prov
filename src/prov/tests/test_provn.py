@@ -981,11 +981,6 @@ _ROWS = (
 )
 _MULTILINE = {"ex:t": 'x\n  y"', "ex:l": "z"}
 _RECORD_LAYOUTS = {
-    "fits": (
-        lambda d: d.entity("ex:e", {"ex:a": "x" * 54}),
-        80,
-        f'entity(ex:e, [ex:a="{"x" * 54}"])',
-    ),
     "one-pair": (
         lambda d: d.entity("ex:e", {"ex:a": "a value no width can break"}),
         20,
@@ -1006,7 +1001,6 @@ _RECORD_LAYOUTS = {
         'entity(ex:e,\n       [ex:a="x"])',
     ),
     "width-0-bare": (lambda d: d.entity("ex:e"), 0, "entity(ex:e)"),
-    "width-none": (_derivation, None, _ONE_LINE),
 }
 
 

@@ -1174,7 +1174,6 @@ class ProvRecord:
                 identifier = bare
         items.extend(self._provn_formal_items())
         pairs = self._provn_attribute_block()
-        block = f"[{', '.join(pairs)}]"
         if strict and self.get_type() == PROV_MENTION:
             # The Recommendation grammar has no Mention; PROV-Links writes it
             # as prov:mentionOf. The default keeps the bare keyword ProvToolbox
@@ -1191,27 +1190,25 @@ class ProvRecord:
                 )
                 identifier = ""
             if pairs:
+                block = f"[{', '.join(pairs)}]"
                 warn(
-                    f"strict=True drops the attribute block {block}"
-                    f" of {written}, because PROV-N gives {keyword} no attribute block"
+                    f"strict=True drops the attribute block {block} of {written},"
+                    f" because PROV-N gives {keyword} no attribute block"
                 )
                 pairs = []
         relation_id = f"{identifier}; " if identifier else ""
         return self._provn_layout(
-            keyword, f"{relation_id}{', '.join(items)}", pairs, block, width
+            keyword, f"{relation_id}{', '.join(items)}", pairs, width
         )
 
     @staticmethod
     def _provn_layout(
-        keyword: str, head: str, pairs: list[str], block: str, width: int | None
+        keyword: str, head: str, pairs: list[str], width: int | None
     ) -> str:
-        """Lay the statement out on one line or, past ``width``, over rows.
-
-        ``block`` is the attribute block ``pairs`` form on one line.
-        """
+        """Lay the statement out on one line or, past ``width``, over rows."""
         if not pairs:
             return f"{keyword}({head})"
-        one_line = f"{keyword}({head}, {block})"
+        one_line = f"{keyword}({head}, [{', '.join(pairs)}])"
         if width is None or len(one_line) <= width:
             return one_line
         # Pairs after the first sit one column right, under the first pair.
