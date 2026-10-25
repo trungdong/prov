@@ -8,6 +8,7 @@ import enum
 import io
 import math
 import re
+import uuid
 import warnings
 
 import pytest
@@ -365,6 +366,11 @@ def test_ill_formed_text_reads_as_a_value_through_prov_o(
     assert _single_value(roundtrip_document(document, "rdf")) == via_rdf
 
 
+# An (int, Enum) mixin is an int whose str() is its member name, not its digits.
+class _Level(int, enum.Enum):
+    LOW = 5
+
+
 # Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
@@ -383,18 +389,27 @@ def test_ill_formed_text_reads_as_a_value_through_prov_o(
         (datetime.datetime(2012, 1, 1), XSD_DATETIME, "2012-01-01T00:00:00"),
         (5, XSD_INT, "5"),
         ("x", None, "x"),
+        (datetime.timedelta(days=1, seconds=30), XSD["duration"], "P1DT30S"),
+        (
+            uuid.UUID(int=1),
+            XSD["anyURI"],
+            "urn:uuid:00000000-0000-0000-0000-000000000001",
+        ),
+        (b"\x00\x01", XSD["base64Binary"], "AAE="),
+        (b"\xab\x01", XSD["hexBinary"], "AB01"),
+        (datetime.date(2012, 1, 1), XSD["date"], "2012-01-01"),
+        (_Level.LOW, XSD_INT, "5"),
+        # No form in the given datatype: prov's spelling, under that datatype (N29).
+        (b"\x00", XSD["duration"], "AA=="),
     ],
     ids=str,
 )
 def test_literal_spells_a_python_value_in_xsd_form(
     value: object, datatype: QualifiedName | None, text: str
 ) -> None:
-    assert Literal(value, datatype).value == text
-
-
-# An (int, Enum) mixin is an int whose str() is its member name, not its digits.
-class _Level(int, enum.Enum):
-    LOW = 5
+    literal = Literal(value, datatype)
+    assert literal.value == text
+    assert literal.datatype == datatype
 
 
 @pytest.mark.parametrize("fmt", TEXT_FORMATS)

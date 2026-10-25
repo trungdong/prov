@@ -174,8 +174,9 @@ def graph_to_prov(g: nx.MultiDiGraph[Any]) -> ProvDocument:
     Raises:
         ProvExceptionInvalidQualifiedName: If the records come from scopes
             with different default namespaces, such as a graph composed from
-            two bundles, because a bare name of the second scope has no
-            spelling in the first scope's declarations.
+            the graphs of two documents with different defaults, because a
+            bare name of the second scope has no spelling in the first
+            scope's declarations.
     """
     elements = [
         n for n in g.nodes() if isinstance(n, ProvRecord) and n.bundle is not None

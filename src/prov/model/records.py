@@ -350,20 +350,21 @@ class TypedValueSet(MutableSet[Any]):
 
 
 def _literal_text(value: Any, datatype: QualifiedName | None) -> str:
-    """The text a ``Literal`` stores for ``value``: a ``str`` as given, a
-    ``bool``, ``float``, ``Decimal`` or ``datetime`` in the XSD form
-    ``python_value_form`` gives it (the decimal text for a ``float`` as
-    ``xsd:decimal``), anything else through ``str()``. A ``Decimal`` with no
-    plain form (non-finite, or longer than the interpreter's digit limit)
-    keeps ``str()``, a text outside the lexical space, because a ``Literal``
-    holds the text its caller gave it."""
+    """The text a ``Literal`` stores for ``value``: ``prov``'s spelling through
+    ``python_value_form``, except that a ``float`` under ``xsd:decimal`` spells
+    as the decimal text and a bytes-like value under ``xsd:hexBinary`` in hex,
+    uppercase. A type or value with no form keeps ``str()``. The datatype is
+    the caller's and is never changed (#656)."""
     if isinstance(value, float) and datatype == XSD_DECIMAL:
         value = decimal.Decimal(float.__repr__(value))
-    if isinstance(value, (bool, float, decimal.Decimal, datetime.datetime)):
-        form = python_value_form(value)
-        if form is not None and (text := form[0]) is not None:
-            return text
-    # Other types keep str(): a Literal built from them holds that text.
+    elif (
+        isinstance(value, (bytes, bytearray, memoryview))
+        and datatype == XSD["hexBinary"]
+    ):
+        return bytes(value).hex().upper()
+    form = python_value_form(value)
+    if form is not None and (text := form[0]) is not None:
+        return text
     return str(value)
 
 
@@ -434,14 +435,21 @@ class Literal:
 
         Args:
             value: The literal's value, stored as text: a ``str`` as given, a
-                ``bool`` as ``true`` or ``false``, a ``float`` in XSD form
-                (``INF``, ``-INF``, ``NaN`` or its ``repr()``; the decimal text
-                when ``datatype`` is ``xsd:decimal``), a ``Decimal`` in its
-                plain form, a ``datetime`` in ISO 8601 form, anything else
-                through ``str()``. A ``Literal`` holds the text its caller gave it,
-                however it was spelled, so ``Literal(Decimal("NaN"), XSD_DECIMAL)``
-                is the ill-formed text ``NaN``, which compares as text; only a
-                plain Python value given to a record must have a PROV form (#482).
+                ``bool`` as ``true`` or ``false``, an ``int`` as its digits, a
+                ``float`` in XSD form (``INF``, ``-INF``, ``NaN`` or its
+                ``repr()``; the decimal text when ``datatype`` is
+                ``xsd:decimal``), a ``Decimal`` in its plain form, a
+                ``datetime``, ``date`` or ``time`` in ISO 8601 form, a
+                ``timedelta`` as an ``xsd:duration``, a ``UUID`` as its URN, a
+                bytes-like value in base64, or in hex, uppercase, when
+                ``datatype`` is ``xsd:hexBinary``, and a value of any other
+                type through ``str()``. The datatype stays as given. A
+                ``Literal`` holds the text its caller gave it, however it was
+                spelled, so ``Literal(Decimal("NaN"), XSD_DECIMAL)`` is the
+                ill-formed text ``NaN``, which compares as text, and a
+                ``bytes`` value under ``xsd:duration`` is its base64 text under
+                that datatype; only a plain Python value given to a record must
+                have a PROV form (#482).
             datatype: The qualified name of the value's datatype (default:
                 ``None``).
             langtag: An optional language tag. When given, ``datatype`` is
@@ -668,7 +676,7 @@ class ProvExceptionInvalidQualifiedName(ProvException):
 
 
 class ProvUnificationError(ProvException):
-    """Raised by :meth:`ProvBundle.unified` when records sharing an
+    """Raised by :meth:`ProvDocument.unified` when records sharing an
     identifier cannot be merged under PROV-CONSTRAINTS term unification
     (two different concrete values for the same formal attribute, an absent
     value in a non-expandable position against a present one, or records of

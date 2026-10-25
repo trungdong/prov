@@ -351,6 +351,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
   name, which no reader read back.
+- A `Literal` built from a Python value stores `prov`'s spelling of the value, the text the
+  same value takes when it is asserted plainly: a `timedelta` as an `xsd:duration` such as
+  `P1DT30S`, a `UUID` as `urn:uuid:...`, a `bytes`, `bytearray` or `memoryview` in base64,
+  or in hex, uppercase, when the datatype is `xsd:hexBinary`, and a member of an
+  `(int, Enum)` mixin as its digits. 3.2.3 stored `str()` of the value, so
+  `Literal(timedelta(days=1, seconds=30), XSD["duration"]).value` was `'1 day, 0:00:30'`.
+  The datatype stays as given, so a value with no form in that datatype, such as bytes
+  under `xsd:duration`, stores the base64 text under `xsd:duration` and is not rejected
+  ([#656](https://github.com/trungdong/prov/issues/656))
 - The PROV-XML writer declares a bundle's own default namespace on its
   `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
   back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
@@ -398,6 +407,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `float` and a `datetime` are written by one rule rather than by each format's own, and
   the same function decides whether a typed literal collapses to a Python value
   ([#589](https://github.com/trungdong/prov/issues/589))
+- `ProvBundle.unified()` is deprecated and warns `DeprecationWarning` on every call, for a
+  bundle inside a document and for one that belongs to none. Unify the document with
+  `ProvDocument.unified()`, which unifies each bundle in place. The bundle method still
+  returns a copy that belongs to no document, as in 3.2.3, and 4.0 removes it. A bundle
+  that belongs to no document is unified by adding it to a document with
+  `ProvDocument.add_bundle()` and unifying that document.
+  ([#652](https://github.com/trungdong/prov/issues/652))
 
 ## 3.2.3 (2026-10-19)
 

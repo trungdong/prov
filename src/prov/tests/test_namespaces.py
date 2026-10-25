@@ -173,8 +173,10 @@ def test_flattened_and_unified_keep_the_spelling_of_every_identifier() -> None:
     standalone = ProvBundle()
     standalone.set_default_namespace("http://s.org/")
     standalone.entity("x")
-    assert _spellings(standalone.unified()) == [("x", "http://s.org/x")]
-    assert standalone.unified().get_default_namespace() == default_namespace(
+    with pytest.warns(DeprecationWarning):
+        standalone_unified = standalone.unified()
+    assert _spellings(standalone_unified) == [("x", "http://s.org/x")]
+    assert standalone_unified.get_default_namespace() == default_namespace(
         "http://s.org/"
     )
 
@@ -186,7 +188,8 @@ def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() ->
     bundle.add_namespace("p", "http://bundle-p.org/")
     bundle.entity("ex:d")
     bundle.entity("p:e")
-    unified = bundle.unified()
+    with pytest.warns(DeprecationWarning):
+        unified = bundle.unified()
     assert unified.document is None
     assert _spellings(unified) == _spellings(bundle)
     assert unified.get_default_namespace() == doc.get_default_namespace()
@@ -199,7 +202,8 @@ def test_a_bundle_unified_alone_declares_what_it_reads_through_its_document() ->
     # an IRI both scopes bind keeps the document's prefix, as in 3.2.3
     bundle.add_namespace("e2", "http://example.org/")
     bundle.entity("e2:f")
-    unified = bundle.unified()
+    with pytest.warns(DeprecationWarning):
+        unified = bundle.unified()
     assert [s for s, _ in _spellings(unified)] == ["c", "ex:d", "p:e", "ex:f"]
     assert str(unified.identifier) == "ex:bn"
 
@@ -211,7 +215,8 @@ def test_a_bundle_unified_alone_declares_its_identifier_prefix() -> None:
     bundle = doc.bundle("ex:bn")
     bundle.add_namespace("a", "http://U.org/")
     bundle.entity(Namespace("ex", "http://U.org/")["x"])
-    unified = bundle.unified()
+    with pytest.warns(DeprecationWarning):
+        unified = bundle.unified()
     assert sorted(n.prefix for n in unified.get_registered_namespaces()) == ["a", "ex"]
     assert "prefix ex <http://V.org/>" in unified.get_provn()
 
