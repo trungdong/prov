@@ -114,7 +114,7 @@ The shared attribute corpus exercises every XSD type below in every format, on `
 | Qualified name as a value | `xsd:QName` in PROV-JSON, a node reference in PROV-JSONLD (a bare string under `type`, `location` and `role`), native elsewhere; a `Literal` typed `xsd:QName` or `prov:QUALIFIED_NAME` whose prefix is declared is stored as a qualified name | ✓ |
 | `xsd:dateTime` | the `xsd:dateTime` lexical form with at most six fractional digits and a year from 1 to 9999; a naive `datetime` is written without a zone; an offset beyond ±14:00 is rejected, and a typed literal with one, a longer fraction or a year outside the range stays a `Literal`; PROV-O reads a longer fraction truncated (C10) | ✓ C7 C10 |
 | `xsd:anyURI`, `xsd:base64Binary` and the other XSD types in the corpus | lexical form and datatype as given; `xsd:boolean`, `xsd:decimal`, `xsd:double`, `xsd:float` and the `xsd:integer` family compare in value space, so `"1"` and `"01"` as `xsd:int` are one value and a text outside the lexical space or the subtype's range compares as text; an `xsd:float` is keyed as a Python `float`, so two texts that differ only beyond single precision are two values; every other datatype compares as text; an `Identifier` value is stored as an `xsd:anyURI` `Literal` | ✓ C10 |
-| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C9 |
+| Python `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray`, `memoryview` | the `Literal` of its XSD datatype, in the lexical form the how-to lists; a value of any other type is rejected | ✓ C10 |
 
 ## Permanent limitations
 
@@ -247,10 +247,6 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
 - **C7. Zone offsets that are not whole minutes.** Every format writes such an `xsd:dateTime`
   in UTC, because the datatype allows no seconds in an offset. The instant is unchanged and
   the round trip compares equal; the original offset is not preserved.
-- **C9. An `xsd:duration` read from RDF is normalised
-  ([#620](https://github.com/trungdong/prov/issues/620)).** rdflib rewrites the lexical
-  form when it parses the literal, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`; the
-  zero-duration row of the converted-value round trip is marked known-lossy for RDF.
 - **C10. Literals rdflib normalises on read.** rdflib rewrites some literal texts when it
   parses them, before `prov` sees them, so PROV-O reads these differently from every other
   format: an `xsd:dateTime` fraction beyond six digits is truncated to microseconds, so such
@@ -258,8 +254,11 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
   statement and keep it as a `Literal` as an attribute value
   ([#514](https://github.com/trungdong/prov/issues/514)); an `xsd:decimal` text in exponent
   form, such as `1e1`, which is outside the lexical space and compares as text elsewhere,
-  reads as rdflib's decimal text and compares as the value `10`; and a numeric spelling such
-  as `05` or `1e0` reads as the canonical one, which compares equal.
+  reads as rdflib's decimal text and compares as the value `10`; a numeric spelling such as
+  `05` or `1e0` reads as the canonical one, which compares equal; and an `xsd:duration` text
+  reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`
+  ([#620](https://github.com/trungdong/prov/issues/620)), and the zero-duration row of the
+  converted-value round trip is skipped for RDF.
 - **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
   one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
   a `Decimal`, has no order against a number, so writing a record that holds such a text and

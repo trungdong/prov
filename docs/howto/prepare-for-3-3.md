@@ -151,10 +151,11 @@ write it faithfully.
 A converted value reads back as the `Literal`, not as the Python value, from
 `get_attribute()` and from every format, except that an `xsd:duration` read from RDF comes
 back in rdflib's normalised form, so a zero `timedelta` reads as `P0D`
-([#620](https://github.com/trungdong/prov/issues/620)). The readers never build these
-types unless a `json.load` option asks for one. With `parse_float=decimal.Decimal`, the
-PROV-JSON and PROV-JSONLD readers read each bare JSON number with a fraction or an
-exponent as a `Decimal`, which is stored as an `xsd:decimal` `Literal`.
+([#620](https://github.com/trungdong/prov/issues/620),
+{doc}`../reference/conformance`, C10). The readers never build these types unless a
+`json.load` option asks for one. With `parse_float=decimal.Decimal`, the PROV-JSON and
+PROV-JSONLD readers read each bare JSON number with a fraction or an exponent as a
+`Decimal`, which is stored as an `xsd:decimal` `Literal`.
 
 An `Identifier` given as a value is stored as a `Literal` typed `xsd:anyURI`, the form
 every writer wrote for it and every reader now builds, so `isinstance(value, Identifier)`

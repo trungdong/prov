@@ -95,7 +95,7 @@ def test_python_value_is_stored_as_a_literal(value: Any, literal: Literal) -> No
 
 
 # rdflib rewrites an xsd:duration lexical form when it parses a literal, so
-# PT0S reads back as P0D (#620).
+# PT0S reads back as P0D (#620, conformance caveat C10).
 RDF_UNREADABLE = Literal("PT0S", XSD["duration"])
 
 
