@@ -17,6 +17,7 @@ from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
     DEFAULT_NAMESPACES,
     NameValuePair,
+    ProvException,
     sorted_attributes,
 )
 from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
@@ -305,7 +306,10 @@ class ProvXMLSerializer(Serializer):
 
         Raises:
             ProvXMLException: If a child element is not in the PROV
-                namespace.
+                namespace; if a ``<prov:bundleContent>`` has no
+                ``prov:id`` or is nested in a bundle; or, naming the
+                element and its line, if the model rejects a record or a
+                bundle (the model's error is the ``__cause__``).
 
         Warns:
             UserWarning: For each ``<prov:other>`` child, which is otherwise
@@ -332,40 +336,47 @@ class ProvXMLSerializer(Serializer):
             id_tag = _ns_prov("id")
             rec_id = element.attrib.get(id_tag, None)
 
-            # Recursively read bundles.
-            if qname.localname == "bundleContent":
-                self._read_bundle_content(element, bundle, rec_id, namespaces)
-                continue
+            try:
+                # Recursively read bundles.
+                if qname.localname == "bundleContent":
+                    self._read_bundle_content(element, bundle, rec_id, namespaces)
+                    continue
 
-            # Try to make a qualified name out of it!
-            prov_rec_id = (
-                xml_qname_to_QualifiedName(
-                    element, rec_id, namespaces=namespaces, scope=bundle
+                # Try to make a qualified name out of it!
+                prov_rec_id = (
+                    xml_qname_to_QualifiedName(
+                        element, rec_id, namespaces=namespaces, scope=bundle
+                    )
+                    if rec_id is not None
+                    else None
                 )
-                if rec_id is not None
-                else None
-            )
 
-            attributes = _extract_attributes(element, namespaces, bundle)
+                attributes = _extract_attributes(element, namespaces, bundle)
 
-            # Map the record type to its base type.
-            q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
-            rec_type = PROV_BASE_CLS[q_prov_name]
+                # Map the record type to its base type.
+                q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
+                rec_type = PROV_BASE_CLS[q_prov_name]
 
-            if _ns_xsi("type") in element.attrib:
-                value = xml_qname_to_QualifiedName(
-                    element,
-                    element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
-                    namespaces=namespaces,
-                    scope=bundle,
-                )
-                attributes.append((PROV["type"], value))
+                if _ns_xsi("type") in element.attrib:
+                    value = xml_qname_to_QualifiedName(
+                        element,
+                        element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
+                        namespaces=namespaces,
+                        scope=bundle,
+                    )
+                    attributes.append((PROV["type"], value))
 
-            rec = bundle.new_record(rec_type, prov_rec_id, attributes)
+                rec = bundle.new_record(rec_type, prov_rec_id, attributes)
 
-            # Add the actual type in case a base type has been used.
-            if rec_type != q_prov_name:
-                rec.add_asserted_type(q_prov_name)
+                # Add the actual type in case a base type has been used.
+                if rec_type != q_prov_name:
+                    rec.add_asserted_type(q_prov_name)
+            except ProvException as exc:
+                named = repr(rec_id) if rec_id is not None else "with no prov:id"
+                raise ProvXMLException(
+                    f"line {element.sourceline}, <prov:{qname.localname}> {named}: "
+                    f"{exc}"
+                ) from exc
         return bundle
 
     def _read_bundle_content(
@@ -380,13 +391,17 @@ class ProvXMLSerializer(Serializer):
         The bundle takes its own ``xmlns`` as its default, and the prefixes
         declared on the element as its own namespaces, before its ``prov:id``
         is resolved, so the identifier and the records read in its scope.
+
+        Raises:
+            ProvXMLException: If ``document`` is not a document, or ``rec_id``
+                is ``None``.
         """
         if not isinstance(document, prov.model.ProvDocument):
             # Only a document may directly contain named bundles;
             # nested bundleContent would mean a bundle-within-a-bundle.
-            raise AssertionError("bundleContent found outside a ProvDocument")
+            raise ProvXMLException("bundleContent found outside a ProvDocument")
         if rec_id is None:
-            raise AssertionError("bundleContent element has no id")
+            raise ProvXMLException("bundleContent element has no id")
         bundle = prov.model.ProvBundle(document=document)
         _adopt_own_default(element, bundle)
         own_prefixes = _own_prefixes(element)

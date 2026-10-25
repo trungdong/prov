@@ -1,6 +1,7 @@
 """Unit tests for the stdlib-based xsd:dateTime parser (3.0 dateutil drop, #237)."""
 
 import datetime
+import re
 import warnings
 
 import pytest
@@ -18,6 +19,7 @@ from prov.model import (
 from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import ProvJSONLDException
 from prov.serializers.provn_lexer import ProvNSyntaxError
+from prov.serializers.provxml import ProvXMLException
 from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
 
 UTC = datetime.UTC
@@ -249,6 +251,26 @@ def _written_with(fmt: str, build, old: str, new: str) -> str:
     return text.replace(old, new)
 
 
+# Each reader's error for a time outside the bound, and what starts its message.
+# PROV-O raises the model's error as it is; PROV-N chains it from a positioned
+# syntax error; the other readers chain it from their own error, naming the
+# record.
+_TIME_ERRORS: dict[str, type[Exception]] = {
+    "json": ProvJSONException,
+    "xml": ProvXMLException,
+    "jsonld": ProvJSONLDException,
+    "rdf": ProvValueError,
+    "provn": ProvNSyntaxError,
+}
+_TIME_WHERE = {
+    "json": r"record 'ex:a1': ",
+    "xml": r"line 3, <prov:activity> 'ex:a1': ",
+    "jsonld": r"Activity 'ex:a1': ",
+    "rdf": r"prov:startTime ",
+    "provn": r"line \d+, column \d+: ",
+}
+
+
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
     text = _written_with(
@@ -257,12 +279,16 @@ def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
         "+14:00",
         "+15:00",
     )
-    with pytest.raises(ProvException) as ctx:
+    with pytest.raises(_TIME_ERRORS[fmt]) as ctx:
         ProvDocument.deserialize(content=text, format=fmt)
-    # The PROV-N parser wraps a model error at the statement with __cause__.
-    error = ctx.value if isinstance(ctx.value, ProvValueError) else ctx.value.__cause__
+    # The model's error is the reader's own, or its cause.
+    error = ctx.value.__cause__ or ctx.value
     assert isinstance(error, ProvValueError)
     assert str(error) == f"prov:startTime 2012-01-01T00:00:00+15:00 {_BEYOND}"
+    assert re.match(_TIME_WHERE[fmt], str(ctx.value))
+    assert isinstance(ctx.value, ValueError) is issubclass(
+        _TIME_ERRORS[fmt], ValueError
+    )
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
@@ -283,7 +309,7 @@ def test_every_reader_keeps_a_typed_time_beyond_the_bound_as_a_literal(fmt) -> N
 # test_prov_o_truncates_a_fraction_beyond_six_digits.
 _FRACTION_ERRORS = {
     "json": ProvJSONException,
-    "xml": ProvException,
+    "xml": ProvXMLException,
     "jsonld": ProvJSONLDException,
     "provn": ProvNSyntaxError,
 }

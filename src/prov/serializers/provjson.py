@@ -14,6 +14,7 @@ from prov.model import (
     Literal,
     ProvBundle,
     ProvDocument,
+    ProvException,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -370,7 +371,9 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
 
     Raises:
         ProvJSONException: If ``content``, or its ``"bundle"`` value (when
-            present), is not a JSON object.
+            present), is not a JSON object; or, naming the bundle, if a
+            bundle's identifier is not a qualified name or repeats an
+            earlier bundle's (the model's error is the ``__cause__``).
     """
     _expect_json_object(content, "A PROV-JSON document")
     bundles = {}
@@ -383,9 +386,14 @@ def decode_json_document(content: ProvJSONDict, document: ProvDocument) -> None:
     for bundle_id, bundle_content in bundles.items():
         bundle = ProvBundle(document=document)
         decode_json_container(bundle_content, bundle)
-        document.add_bundle(
-            bundle, _resolve_name(bundle, bundle_id, bundle_id, kind="bundle")
-        )
+        try:
+            document.add_bundle(
+                bundle, _resolve_name(bundle, bundle_id, bundle_id, kind="bundle")
+            )
+        except ProvException as exc:
+            raise ProvJSONException(
+                f"{_position(bundle_id, None, kind='bundle')}{exc}"
+            ) from exc
 
 
 def decode_json_container(jc: ProvJSONDict, bundle: ProvBundle) -> None:
@@ -471,7 +479,10 @@ def _decode_record_group(
             neither a string nor an ``xsd:dateTime`` value object with a
             well-formed ``"$"``
             (all raised further down the call chain, by
-            :func:`_decode_record_instance` / :func:`_decode_formal_attribute`).
+            :func:`_decode_record_instance` / :func:`_decode_formal_attribute`);
+            or, naming the record, if the model rejects the record's
+            identifier, a value or the record itself (the model's error is
+            the ``__cause__``).
     """
     try:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]
@@ -488,11 +499,16 @@ def _decode_record_group(
                 "not a string"
             )
         elements = _json_record_elements(content, rec_type_str, rec_id)
-        identifier = (
-            None if rec_id.startswith("_:") else _resolve_name(bundle, rec_id, rec_id)
-        )
-        for element in elements:
-            _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
+        try:
+            identifier = (
+                None
+                if rec_id.startswith("_:")
+                else _resolve_name(bundle, rec_id, rec_id)
+            )
+            for element in elements:
+                _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
+        except ProvException as exc:
+            raise ProvJSONException(f"{_position(rec_id, None)}{exc}") from exc
 
 
 def _decode_record_instance(

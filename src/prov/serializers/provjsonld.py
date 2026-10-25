@@ -36,6 +36,7 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvElement,
+    ProvException,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -704,8 +705,10 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             array (formal attributes take a single value, except a
             Membership's ``entity``, which may be a non-empty array and
             yields one record per member) or cannot be
-            resolved to a qualified name; or if a non-formal attribute's
-            value is not a JSON array.
+            resolved to a qualified name; if a non-formal attribute's
+            value is not a JSON array; or, naming the statement, if the
+            model rejects a value or the record (the model's error is the
+            ``__cause__``).
     """
     rec_type, type_term = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
@@ -715,20 +718,25 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         raise ProvJSONLDException(
             f'A {type_term} statement requires an "@id"; found {item!r}'
         )
-    attributes, other_attributes, members = _decode_statement_attributes(
-        item, bundle, rec_type, type_term, formal_by_term
-    )
-    if members is None:
-        bundle.new_record(rec_type, rec_id, attributes, other_attributes)
-        return
-    if not members:
-        raise ProvJSONLDException(
-            f'The "entity" array of {type_term} is empty; found {item!r}'
+    try:
+        attributes, other_attributes, members = _decode_statement_attributes(
+            item, bundle, rec_type, type_term, formal_by_term
         )
-    resolved = [
-        _decode_formal_qname(bundle, member, type_term, "entity") for member in members
-    ]
-    _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
+        if members is None:
+            bundle.new_record(rec_type, rec_id, attributes, other_attributes)
+            return
+        if not members:
+            raise ProvJSONLDException(
+                f'The "entity" array of {type_term} is empty; found {item!r}'
+            )
+        resolved = [
+            _decode_formal_qname(bundle, member, type_term, "entity")
+            for member in members
+        ]
+        _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
+    except ProvException as exc:
+        named = f"{type_term} {rec_id!r}" if rec_id else f"an anonymous {rec_type}"
+        raise ProvJSONLDException(f"{named}: {exc}") from exc
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
@@ -743,8 +751,10 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         ProvJSONLDException: If ``container`` is not a JSON object; if it is
             missing ``"@context"`` or ``"@graph"``; if ``"@graph"`` is not a
             JSON array; if a ``@graph`` entry is not a JSON object; if a
-            nested bundle object is missing its required ``"@id"``; or (from
-            further down the call chain) if a statement is malformed (see
+            nested bundle object is missing its required ``"@id"``; if the
+            model rejects a nested bundle's ``"@id"``, naming the bundle (the
+            model's error is the ``__cause__``); or (from further down the
+            call chain) if a statement is malformed (see
             :func:`decode_jsonld_statement`).
     """
     container = _expect_object(container, "A PROV-JSONLD document")
@@ -774,13 +784,17 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
         _decode_context(item.get("@context", []), bundle)
         for stmt in item.get("@graph", []):
             decode_jsonld_statement(_expect_object(stmt, "A bundle statement"), bundle)
-        bundle_id = bundle.valid_qualified_name(item["@id"])
-        if bundle_id is None:
-            raise ProvJSONLDException(
-                f'The "@id" {item["@id"]!r} of the Bundle in @graph entry '
-                f"{position} names no qualified name in scope; declare a prefix for it"
-            )
-        document.add_bundle(bundle, bundle_id)
+        try:
+            bundle_id = bundle.valid_qualified_name(item["@id"])
+            if bundle_id is None:
+                raise ProvJSONLDException(
+                    f'The "@id" {item["@id"]!r} of the Bundle in @graph entry '
+                    f"{position} names no qualified name in scope; "
+                    "declare a prefix for it"
+                )
+            document.add_bundle(bundle, bundle_id)
+        except ProvException as exc:
+            raise ProvJSONLDException(f"Bundle {item['@id']!r}: {exc}") from exc
 
 
 class ProvJSONLDSerializer(Serializer):

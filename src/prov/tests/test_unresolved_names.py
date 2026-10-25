@@ -22,7 +22,7 @@ from prov.model import (
     QualifiedName,
 )
 from prov.serializers.provjson import ProvJSONException
-from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
+from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 from prov.serializers.provn_lexer import ProvNSyntaxError
 
 from .conftest import default_namespace, ex_document
@@ -293,8 +293,8 @@ _CHANNELS: dict[
     ),
     "jsonld": (
         _read_jsonld,
-        ProvExceptionInvalidQualifiedName,
-        "Invalid Qualified Name: {text}, ",
+        ProvJSONLDException,
+        "Entity 'ex:e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
     "rdf": (
