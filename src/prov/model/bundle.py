@@ -606,11 +606,13 @@ class ProvBundle:
         """Resolve a split name by its prefix in scope; see ``NamespaceManager.lookup``."""
         return self._namespaces.lookup(prefix, local)
 
-    def _unresolved_reason(self, prefix: str, local: str, colon: bool = False) -> str:
+    def _unresolved_reason(
+        self, prefix: str, local: str, colon: bool, text: str
+    ) -> str:
         """Why a split name does not resolve in this bundle by its prefix,
         after :meth:`_lookup` returned ``None``; ``colon`` says it was
-        written with a ``:``."""
-        return self._namespaces._unresolved_reason(prefix, local, colon)
+        written with a ``:`` and ``text`` is the name as written."""
+        return self._namespaces._unresolved_reason(prefix, local, colon, text)
 
     def mandatory_valid_qname(
         self, identifier: QualifiedNameCandidate

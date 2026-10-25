@@ -351,7 +351,7 @@ def resolve_pair(
     if shown is None:
         shown = f"{prefix}:{local}" if prefix else local
     return _unresolved_name_detail(
-        shown, bundle._unresolved_reason(prefix, local, colon), attr
+        shown, bundle._unresolved_reason(prefix, local, colon, shown), attr
     )
 
 
