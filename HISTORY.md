@@ -283,6 +283,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvWarning` that names the record and the attribute, and keeps the attribute's other
   values
   ([#609](https://github.com/trungdong/prov/issues/609))
+- A PROV-O literal whose datatype IRI contains no `/` or `#`, such as
+  `"1"^^<urn:example:t=>`, raises a `ValueError` that names the IRI, because no namespace
+  can be split from it. 3.2.3 read the value as plain text and lost the datatype
+  ([#665](https://github.com/trungdong/prov/issues/665))
 
 ### Output changes
 
@@ -373,6 +377,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   element's identifier does and, with no default namespace, raises
   `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
   first ([#639](https://github.com/trungdong/prov/issues/639))
+- The PROV-O reader reads the untyped subject or object of a relation, and a subject that
+  only a `prov:qualified*` triple names, under a prefix it mints, such as the
+  `<urn:uuid:1234-abcd>` of `ex:e prov:wasDerivedFrom <urn:uuid:1234-abcd>`, where it
+  raised `ProvExceptionInvalidQualifiedName`. It keeps the datatype of a literal that no
+  namespace compacts, such as `"1"^^<http://d.example/c:d>`, where it read the value as
+  plain text ([#665](https://github.com/trungdong/prov/issues/665))
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no

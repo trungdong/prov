@@ -1314,6 +1314,94 @@ def test_unsplittable_iri_raises_clear_error() -> None:
     assert "urn:no-separator;" in str(ctx.value)
 
 
+_ENDPOINT_PREFIXES = (
+    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+    "@prefix ex: <http://example.org/> .\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("body", "record_type", "attribute", "uri"),
+    [
+        (
+            "ex:e a prov:Entity ; prov:wasDerivedFrom <urn:uuid:1234-abcd> .\n",
+            pm.ProvDerivation,
+            "prov:usedEntity",
+            r"urn:uuid:1234-abcd",
+        ),
+        (
+            "<urn:uuid:1234-abcd> prov:wasDerivedFrom ex:e .\nex:e a prov:Entity .\n",
+            pm.ProvDerivation,
+            "prov:generatedEntity",
+            r"urn:uuid:1234-abcd",
+        ),
+        (
+            "<urn:uuid:8> prov:qualifiedAssociation"
+            " [ a prov:Association ; prov:agent ex:ag ] .\n"
+            "ex:ag a prov:Agent .\n",
+            pm.ProvAssociation,
+            "prov:activity",
+            r"urn:uuid:8",
+        ),
+        (
+            "@prefix : <http://d.example/> .\n"
+            "_:b a prov:Entity .\n"
+            "ex:e a prov:Entity ; prov:wasDerivedFrom _:b .\n",
+            pm.ProvDerivation,
+            "prov:usedEntity",
+            r"http://d\.example/.+",
+        ),
+    ],
+    ids=["object", "subject", "qualified-subject", "blank-element"],
+)
+def test_untyped_relation_endpoint_reads(
+    body: str, record_type: type[pm.ProvRecord], attribute: str, uri: str
+) -> None:
+    # An endpoint that no binding covers and no rdf:type names reads under a
+    # prefix the reader mints, as a typed subject does; a blank-node element
+    # keeps reading as its label in the default namespace.
+    document = ProvDocument.deserialize(
+        content=_ENDPOINT_PREFIXES + body, format="rdf", rdf_format="turtle"
+    )
+    (record,) = document.get_records(record_type)
+    (endpoint,) = record.get_attribute(attribute)
+    assert re.fullmatch(uri, endpoint.uri)
+
+
+@pytest.mark.parametrize("namespace", ["default", "unbound"])
+def test_a_datatype_no_namespace_compacts_is_kept(namespace: str) -> None:
+    # The datatype's local part holds a colon, so no prefix compacts it (#665).
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    if namespace == "default":
+        document.set_default_namespace("http://d.example/")
+        default = document.get_default_namespace()
+        assert default is not None
+        datatype = default["c:d"]
+    else:
+        datatype = pm.Namespace("zz", "http://zz.example/")["t:u"]
+    document.entity("ex:e", {"ex:p": pm.Literal("1", datatype)})
+    content = document.serialize(format="rdf", rdf_format="turtle")
+    back = ProvDocument.deserialize(content=content, format="rdf", rdf_format="turtle")
+    assert back == document
+    ((_, value),) = [
+        (name, v)
+        for record in back.get_records()
+        for name, v in record.attributes
+        if isinstance(v, pm.Literal)
+    ]
+    assert value.datatype is not None
+    assert value.datatype.uri == datatype.uri
+
+
+def test_a_datatype_iri_with_no_separator_raises() -> None:
+    turtle = _ENDPOINT_PREFIXES + 'ex:e a prov:Entity ; ex:p "1"^^<urn:example:t=> .\n'
+    with pytest.raises(
+        ValueError, match=re.escape("Cannot split IRI 'urn:example:t='")
+    ):
+        _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+
+
 def test_trailing_metacharacter_encode_output_unchanged() -> None:
     # #294 is a decode-side-only fix: the encoded graph must be byte-identical
     # in content to what master produced. Compare by graph isomorphism (rdflib

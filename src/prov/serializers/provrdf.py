@@ -741,7 +741,7 @@ class ProvRDFSerializer(Serializer):
             for ``URIRef`` values, or ``literal`` unchanged otherwise.
         """
         if isinstance(literal, RDFLiteral):
-            return self._decode_literal_representation(literal)
+            return self._decode_literal_representation(literal, graph)
         elif isinstance(literal, URIRef):
             rval = self.valid_identifier(literal)
             if rval is None:
@@ -788,7 +788,33 @@ class ProvRDFSerializer(Serializer):
             value_overridden = True
         return value, datatype, langtag, value_overridden
 
-    def _decode_literal_representation(self, literal: RDFLiteral) -> Any:
+    def _datatype_name(
+        self, datatype: URIRef | None, graph: Graph
+    ) -> pm.QualifiedName | None:
+        """Resolve a literal's datatype IRI, as a typed subject's IRI is.
+
+        The document's namespaces come first, then ``graph``'s bindings and
+        a minted namespace, so a datatype that no namespace compacts is kept
+        (#665).
+
+        Args:
+            datatype: The literal's datatype, or ``None`` for a plain literal.
+            graph: Graph the literal came from, for its namespace bindings.
+
+        Returns:
+            The datatype's :class:`~prov.identifier.QualifiedName`, or
+            ``None`` when ``datatype`` is ``None``.
+
+        Raises:
+            ValueError: If ``datatype`` contains no ``#`` or ``/`` separator.
+        """
+        if datatype is None:
+            return None
+        return self.valid_identifier(datatype) or self._resolve_iri(
+            str(datatype), graph
+        )
+
+    def _decode_literal_representation(self, literal: RDFLiteral, graph: Graph) -> Any:
         """Decode a single RDF literal term back to its PROV attribute value.
 
         Extracted from ``decode_rdf_representation()`` for the
@@ -798,12 +824,17 @@ class ProvRDFSerializer(Serializer):
 
         Args:
             literal: RDF literal term to decode.
+            graph: Graph ``literal`` came from, for resolving its datatype.
 
         Returns:
             A :class:`datetime.datetime` for a well-formed ``xsd:dateTime``
             literal with an offset within ±14:00, or a
             :class:`~prov.model.Literal` for any other typed/tagged literal,
             ill-formed ones included.
+
+        Raises:
+            ValueError: If the datatype IRI contains no ``#`` or ``/``
+                separator.
         """
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
@@ -822,18 +853,18 @@ class ProvRDFSerializer(Serializer):
         if datatype == XSD["gYear"]:
             year_match = _XSD_GYEAR_RE.match(str(literal))
             if year_match is None:
-                return pm.Literal(str(literal), self.valid_identifier(datatype))
+                return pm.Literal(str(literal), self._datatype_name(datatype, graph))
             return pm.Literal(
                 int(year_match.group(1)),
-                datatype=self.valid_identifier(datatype),
+                datatype=self._datatype_name(datatype, graph),
             )
         if datatype == XSD["gYearMonth"]:
             ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
             if ym_match is None:
-                return pm.Literal(str(literal), self.valid_identifier(datatype))
+                return pm.Literal(str(literal), self._datatype_name(datatype, graph))
             return pm.Literal(
                 f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
-                datatype=self.valid_identifier(datatype),
+                datatype=self._datatype_name(datatype, graph),
             )
         else:
             if (
@@ -853,7 +884,7 @@ class ProvRDFSerializer(Serializer):
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by
             # _auto_literal_conversion()
-            return pm.Literal(value, self.valid_identifier(datatype), langtag)
+            return pm.Literal(value, self._datatype_name(datatype, graph), langtag)
 
     def encode_document(
         self,
@@ -1557,7 +1588,7 @@ class ProvRDFSerializer(Serializer):
                 continue
             if pred in relation_mapper:
                 self._decode_relation_triple(
-                    graph, bundle, state, subj, pred, obj, relation_mapper
+                    graph, bundle, state, subj_node, pred, obj, relation_mapper
                 )
             elif subj in state.record_types:
                 self._decode_attribute_triple(
@@ -1569,14 +1600,33 @@ class ProvRDFSerializer(Serializer):
                 # at it fills the relation's first formal attribute.
                 state.formal_attributes[local_key][
                     next(iter(state.formal_attributes[local_key].keys()))
-                ] = subj
+                ] = self._relation_node(subj_node, graph)
+
+    def _relation_node(self, node: Node, graph: Graph) -> Any:
+        """Return what the model receives for a relation's subject or object.
+
+        A ``URIRef`` resolves as a typed subject's IRI does, minting a
+        namespace when none covers it. Any other node, a blank node's label
+        included, passes as its string.
+
+        Args:
+            node: The relation's subject or object.
+            graph: Graph ``node`` came from, for its namespace bindings.
+
+        Returns:
+            A :class:`~prov.identifier.QualifiedName` for a ``URIRef``,
+            else ``str(node)``.
+        """
+        if isinstance(node, URIRef):
+            return self.decode_rdf_representation(node, graph)
+        return str(node)
 
     def _decode_relation_triple(
         self,
         graph: Graph,
         bundle: pm.ProvBundle,
         state: "_DecodeState",
-        subj: str,
+        subj_node: Node,
         pred: URIRef,
         obj: Node,
         relation_mapper: RelationMapper,
@@ -1595,23 +1645,26 @@ class ProvRDFSerializer(Serializer):
             graph: The RDF (sub)graph being decoded.
             bundle: Bundle to add the relation to.
             state: Decode state, mutated in place.
-            subj: The triple's subject, as a string.
+            subj_node: The triple's subject.
             pred: The triple's relation predicate.
             obj: The triple's object.
             relation_mapper: Maps PROV-O relation predicate URIRefs to
                 :class:`~prov.model.ProvBundle` factory method names.
         """
         factory = getattr(bundle, relation_mapper[pred])
+        subj = str(subj_node)
+        subj_name = self._relation_node(subj_node, graph)
+        obj_name = self._relation_node(obj, graph)
         if "alternateOf" in pred:
-            factory(subj, str(obj))
+            factory(subj_name, obj_name)
             return
         if "mentionOf" in pred:
             mention_bundle = None
             for stmt in graph.triples(
                 (URIRef(subj), URIRef(pm.PROV["asInBundle"].uri), None)
             ):
-                mention_bundle = stmt[2]
-            factory(subj, str(obj), mention_bundle)
+                mention_bundle = self._relation_node(stmt[2], graph)
+            factory(subj_name, obj_name, mention_bundle)
             return
         name = relation_mapper[pred]
         if name in _QUALIFIED_RELATION_INFLUENCER:
@@ -1638,10 +1691,10 @@ class ProvRDFSerializer(Serializer):
                     break
             if qualifier_bnode is not None:
                 fakeys = list(state.formal_attributes[str(qualifier_bnode)].keys())
-                state.formal_attributes[str(qualifier_bnode)][fakeys[0]] = subj
-                state.formal_attributes[str(qualifier_bnode)][fakeys[1]] = str(obj)
+                state.formal_attributes[str(qualifier_bnode)][fakeys[0]] = subj_name
+                state.formal_attributes[str(qualifier_bnode)][fakeys[1]] = obj_name
                 return
-        factory(subj, str(obj))
+        factory(subj_name, obj_name)
 
     def _attribute_object(
         self,
