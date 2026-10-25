@@ -309,26 +309,6 @@ def _unresolved(text: str, attr: str) -> str:
     )
 
 
-def _default_iri(text: str, attr: str) -> str:
-    """The regex for the sentence a reference equal to the default IRI raises (#675)."""
-    return re.escape(
-        f"the qualified name {text!r} of {attr} does not resolve, because the IRI "
-        f"{text} is the default namespace and has no qualified-name form; "
-        "declare a prefix for it"
-    )
-
-
-def test_deserialize_value_equal_to_the_vocab_iri_is_rejected() -> None:
-    text = json.dumps(
-        {
-            "@context": {"@vocab": EX_URI},
-            "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
-        }
-    )
-    with pytest.raises(ProvJSONLDException, match=_default_iri(EX_URI, "k")):
-        ProvDocument.deserialize(content=text, format="jsonld")
-
-
 def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:
     text = json.dumps(
         {

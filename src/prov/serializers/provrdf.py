@@ -1997,9 +1997,9 @@ def _repeated_formal_attribute(
     same-key entries instead of being tracked there, and reaches
     :meth:`~prov.model.records.ProvRecord.add_attributes` as a duplicate
     plain attribute, which raises ``ProvException``. This function
-    recognizes that specific shape so callers can relabel only it, leaving
-    every other ``ProvException`` (e.g. an unresolvable qualified name)
-    untouched.
+    recognizes that specific shape so callers can relabel only it; every
+    other ``ProvException`` (e.g. an unresolvable qualified name) is
+    wrapped in a :class:`ProvRDFException` that names the subject.
 
     Note: on a qualified node, ``Start``/``End`` carry their time as
     ``prov:atTime`` too, matching every other timed relation's generic

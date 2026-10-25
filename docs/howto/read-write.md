@@ -60,7 +60,7 @@ non-seekable stream is consumed by the first attempt, so pass `format=` for thos
 
 Auto-detection treats each deserializer's error as "not this format" and raises
 {py:class}`~prov.serializers.ProvFormatNotDetected` when no format succeeds. It is a
-`TypeError`, as the call raised before, and a
+`TypeError`, so `except TypeError` keeps working, and a
 {py:class}`~prov.serializers.ProvSerializationError`. When the content starts the way
 PROV-JSON, PROV-JSONLD or PROV-N starts and that reader rejected it, the reader's own error
 is its `__cause__`. Pass `format=` to get the error from one deserializer on its own.

@@ -101,8 +101,8 @@ class ProvSerializationError(Error):
 class ProvFormatNotDetected(ProvSerializationError, TypeError):
     """:func:`prov.read` could not detect the format of its source.
 
-    Also a :class:`TypeError`, which :func:`prov.read` raised before this
-    class existed.
+    Also a :class:`TypeError`, so ``except TypeError`` around
+    :func:`prov.read` keeps working.
     """
 
 

@@ -289,9 +289,7 @@ def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
     assert isinstance(error, ProvValueError)
     assert str(error) == f"prov:startTime 2012-01-01T00:00:00+15:00 {_BEYOND}"
     assert re.match(_TIME_WHERE[fmt], str(ctx.value))
-    assert isinstance(ctx.value, ValueError) is issubclass(
-        _TIME_ERRORS[fmt], ValueError
-    )
+    assert not isinstance(ctx.value, ValueError)
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)

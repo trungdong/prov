@@ -69,8 +69,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   namespace IRI against the text, so `http://example.org/x` is the prefix `http`, and a
   prefix the document declares is found from a bundle before the bundle's own namespaces
   could compact the text. A value equal to a default namespace IRI in reach is rejected
-  because the IRI has no qualified-name form and needs a prefix, in every reader and in
-  code. The `lenient` PROV-N profile skips the statement with a
+  because the IRI has no qualified-name form and needs a prefix, from PROV-N, PROV-JSON,
+  PROV-JSONLD and PROV-O, and in code. The `lenient` PROV-N profile skips the statement with a
   `ProvWarning` and emits nothing else about it
   ([#675](https://github.com/trungdong/prov/issues/675),
   [#516](https://github.com/trungdong/prov/issues/516),
@@ -159,9 +159,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#532](https://github.com/trungdong/prov/issues/532))
 - `prov.read()` without `format=` raises `ProvFormatNotDetected`, a `TypeError` and a
   `ProvSerializationError`, from the error of the reader the content's first character
-  names, so the traceback shows the rule and its position. That reader's error is chained
-  whichever way it rejected the input, a model rejection included. Pass `format=` to get
-  that error on its own
+  names, so the traceback shows the rule and its position. That reader's error is chained,
+  a wrapped model rejection included. Pass `format=` to get that error on its own
 - `ProvValueError`, a subclass of both `ProvException` and `ValueError`, is the error for
   a value a `Literal` or an attribute cannot hold. `ProvExceptionInvalidQualifiedName`
   gains a `detail` attribute and prints it after the name
@@ -195,21 +194,25 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvJSONException` is not a `ProvException`, so code that handles both catches
   `prov.Error`
   ([#551](https://github.com/trungdong/prov/issues/551))
-- `except ProvException` around a PROV-XML, PROV-JSONLD or PROV-O read no longer catches
-  three errors that 3.2.3 raised as the model's. The PROV-XML reader raises
-  `ProvXMLException` for an element with no identifier, the PROV-JSONLD and PROV-O readers
-  raise `ProvJSONLDException` and `ProvRDFException` for a name that does not resolve, and
-  the PROV-O reader raises `ProvRDFException` for two relations of one identifier that
-  differ in a formal attribute (C1 on the conformance page). Each carries the model's
-  error as its `__cause__`. Write `except ProvSerializationError` for these, or
-  `except prov.Error` to catch a reader's error and the model's. `except ProvException`
-  around a PROV-N read catches what it caught
+- `except ProvException` around a PROV-JSON, PROV-XML, PROV-JSONLD or PROV-O read no longer
+  catches these errors, which 3.2.3 raised as the model's. The PROV-JSON reader raises
+  `ProvJSONException` for an element keyed by a blank node such as `_:b1`, and for two
+  bundles whose identifiers are one IRI under two prefixes. The PROV-XML reader raises
+  `ProvXMLException` for an element with no identifier, and for the same two bundles. The
+  PROV-JSONLD reader raises `ProvJSONLDException` for an element whose `@id` does not
+  resolve, and for the same two bundles. The PROV-O reader raises `ProvRDFException` for a
+  relation object that is not a name, for a blank-node element, and for two relations of
+  one identifier that differ in a formal attribute (C1 on the conformance page). Each
+  carries the model's error as its `__cause__`. Write `except ProvSerializationError` for
+  these, or `except prov.Error` to catch a reader's error and the model's.
+  `except ProvException` around a PROV-N read catches what it caught. The PROV-XML reader
+  also raises `ProvXMLException`, not `AssertionError`, for a `bundleContent` with no
+  `prov:id` or outside a document
   ([#653](https://github.com/trungdong/prov/issues/653))
 - `except ValueError` and `except ProvValueError` around a read never catch a rejected
   time offset or language tag, because the reader's error is neither. `except ValueError`
   around a PROV-O read no longer catches an IRI the reader cannot split, which is now a
-  `ProvRDFException` that names the IRI. The PROV-XML reader raises `ProvXMLException`, not
-  `AssertionError`, for a `bundleContent` with no `prov:id` or outside a document
+  `ProvRDFException` that names the IRI
   ([#653](https://github.com/trungdong/prov/issues/653))
 - `get_records()` with a class or a tuple of classes returns a list, as `get_records()` with
   no argument always did, where it returned a one-shot iterator.
