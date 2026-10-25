@@ -389,20 +389,23 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     context (see :func:`_is_embedded_submission_context`; its terms are
     already known to this library via the built-in ``prov``/``xsd``
     namespaces) are skipped entirely. Every other object is treated as a
-    namespace map: its string-valued entries are registered as prefixes
-    (``"@vocab"`` and ``""`` as the default namespace), and any dict-valued entries --
-    third-party inline term definitions this library does not model -- are
-    ignored individually rather than causing the whole object to be
-    skipped. Every other JSON-LD keyword key (``@base``, ``@version``, ...)
-    is likewise ignored: ``@base`` is written as a duplicate of ``@vocab``
-    (needed for real JSON-LD processors, see :data:`_JSONLD_DEFAULT_KEYS`)
-    and carries no information this library doesn't already get from
-    ``@vocab``.
+    namespace map (see :func:`_register_context_namespaces`). Its
+    dict-valued entries (third-party inline term definitions this library
+    does not model) are skipped individually rather than causing the whole
+    object to be skipped, and so are the ``@``-keys other than ``"@vocab"``.
+    ``@base`` is written as a duplicate of ``@vocab`` (see
+    :data:`_JSONLD_DEFAULT_KEYS`) and carries no information this library
+    doesn't already get from ``@vocab``. Every string-valued entry that
+    remains is a namespace: ``"@vocab"`` and ``""`` set the default, and any
+    other key is a prefix.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
-            a JSON object, or declares its default namespace under both
-            ``"@vocab"`` and ``""`` with different IRIs.
+            a JSON object, declares its default namespace under both
+            ``"@vocab"`` and ``""`` with different IRIs, holds a string
+            value that starts with ``"@"``, or declares a prefix or default
+            namespace the model refuses (``__cause__`` holds the
+            :class:`ProvException`).
     """
     if not isinstance(context, list):
         context = [context]
@@ -418,11 +421,36 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
                 "A @context entry declares two different default namespaces, "
                 'under "@vocab" and ""'
             )
+        _register_context_namespaces(item, bundle)
+
+
+def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> None:
+    """Register the string-valued entries of one ``@context`` object on ``bundle``.
+
+    Args:
+        item: A ``@context`` entry that is a JSON object and a namespace map.
+        bundle: Bundle (or document) to register the namespaces on.
+
+    Raises:
+        ProvJSONLDException: If a string value starts with ``"@"``, which is
+            not an IRI, or if the model refuses a prefix or the default
+            namespace (``__cause__`` holds the :class:`ProvException`).
+    """
+    try:
         for prefix, value in item.items():
-            if prefix in ("@vocab", "") and isinstance(value, str):
+            if not isinstance(value, str):
+                continue
+            if value.startswith("@"):
+                raise ProvJSONLDException(
+                    f"prefix {prefix!r}, IRI {value!r}: "
+                    "a namespace IRI cannot start with '@'"
+                )
+            if prefix in ("@vocab", ""):
                 bundle.set_default_namespace(value)
-            elif not prefix.startswith("@") and isinstance(value, str):
+            elif not prefix.startswith("@"):
                 bundle.add_namespace(Namespace(prefix, value))
+    except ProvException as exc:
+        raise ProvJSONLDException(f"prefix {prefix!r}, IRI {value!r}: {exc}") from exc
 
 
 def _strip_prov_prefix(term: str) -> str:

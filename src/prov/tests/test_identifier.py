@@ -2,6 +2,7 @@
 serializer round-trip tests (planning/test-gap-checklist.md, T13), and
 the local parts 3.3.0 rejects (#524)."""
 
+import json
 import re
 from typing import Any, cast
 
@@ -226,6 +227,33 @@ _PREFIX_DOCUMENTS = {
         "</prov:document>",
         "line 2, <prov:entity> 'a.:e': " + _PREFIX_MESSAGE.format("a."),
     ),
+    "jsonld document": (
+        "jsonld",
+        {},
+        '{"@context": {"1a": "http://example.org/"}, "@graph": []}',
+        "prefix '1a', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("1a"),
+    ),
+    "jsonld bundle": (
+        "jsonld",
+        {},
+        '{"@context": {"ex": "http://example.org/"}, "@graph": [{"@type": "Bundle", '
+        '"@id": "ex:b", "@context": {"1a": "http://example.org/"}, "@graph": []}]}',
+        "prefix '1a', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("1a"),
+    ),
+    "jsonld term definition": (
+        "jsonld",
+        {},
+        '{"@context": {"ex": "http://example.org/", '
+        '"ex:term": "http://example.org/term"}, "@graph": []}',
+        "prefix 'ex:term', IRI 'http://example.org/term': "
+        + _PREFIX_MESSAGE.format("ex:term"),
+    ),
+    "jsonld space": (
+        "jsonld",
+        {},
+        '{"@context": {"a b": "http://example.org/"}, "@graph": []}',
+        "prefix 'a b', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("a b"),
+    ),
     "rdf xml": (
         "rdf",
         {"rdf_format": "xml"},
@@ -252,3 +280,17 @@ def test_prefix_raises_when_read(name: str) -> None:
     with pytest.raises(READER_ERRORS[fmt], match=f"^{re.escape(message)}$") as ctx:
         ProvDocument.deserialize(content=text, format=fmt, **kwargs)
     assert isinstance(ctx.value.__cause__, ProvValueError)
+
+
+@pytest.mark.parametrize(
+    ("prefix", "value"),
+    [("id", "@id"), ("_type", "@type"), ("@vocab", "@id"), ("", "@id")],
+)
+def test_jsonld_context_value_starting_with_at_raises(prefix: str, value: str) -> None:
+    # The reader accepts only the PROV-JSONLD structure, so a keyword in the
+    # value position is its own error, with no model exception behind it.
+    text = json.dumps({"@context": {prefix: value}, "@graph": []})
+    message = f"prefix {prefix!r}, IRI {value!r}: a namespace IRI cannot start with '@'"
+    with pytest.raises(READER_ERRORS["jsonld"], match=f"^{re.escape(message)}$") as ctx:
+        ProvDocument.deserialize(content=text, format="jsonld")
+    assert ctx.value.__cause__ is None
