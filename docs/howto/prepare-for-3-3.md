@@ -202,7 +202,7 @@ a bare string there is an IRI, as a `{"@id": …}` node reference is: one a decl
 namespace compacts is the qualified name, and one no namespace compacts is rejected with
 `ProvJSONLDException`, as a node reference is. 3.2.3 kept that string as an `xsd:QName`
 `Literal` and warned that 3.3.0 would reject it, and read a node reference no namespace
-compacts as an `xsd:anyURI` `Literal`. A reference to a blank node, `{"@id": "_:b1"}` or
+compacts as an `Identifier`. A reference to a blank node, `{"@id": "_:b1"}` or
 `"_:b1"`, names no record, so the reader drops that value with a `ProvWarning`. An
 `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared
 prefix is rejected by the model, with no position.

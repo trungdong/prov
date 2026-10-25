@@ -278,14 +278,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   sentence the other readers use: `the qualified name 'http://other.org/x' of ex:ref does
   not resolve, because its prefix 'http' is not declared`. 3.2.3 read the bare string as
   an `xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read the node
-  reference as an `xsd:anyURI` `Literal` without a warning. A reference to a blank node,
+  reference as an `Identifier` without a warning. A reference to a blank node,
   `{"@id": "_:b1"}` or `"_:b1"`, names no record, so the reader drops that value with a
   `ProvWarning` that names the record and the attribute, and keeps the attribute's other
   values
   ([#609](https://github.com/trungdong/prov/issues/609))
-- A PROV-O literal whose datatype IRI contains no `/` or `#`, such as
-  `"1"^^<urn:example:t=>`, raises a `ValueError` that names the IRI, because no namespace
-  can be split from it. 3.2.3 read the value as plain text and lost the datatype
+- A PROV-O literal whose datatype IRI neither rdflib nor `prov` can split into a
+  namespace and a local part, such as `"1"^^<urn:example:t=>`, raises a `ValueError` that
+  names the IRI. 3.2.3 read the value as plain text and lost the datatype
   ([#665](https://github.com/trungdong/prov/issues/665))
 
 ### Output changes
@@ -362,14 +362,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 
 - The PROV-O reader registers the default binding `@prefix :` as the document's default
   namespace, where 3.2.x registered it as a namespace with an empty prefix that PROV-N
-  could not write. It no longer declares the 27 prefix bindings rdflib adds to every
-  graph (`dcterms`, `foaf`, `owl` and the rest) as the document's own, so
-  `get_registered_namespaces()` and every writer list the source's declarations and the
-  namespaces its names use, where 3.2.x listed all of them. A prefix the source declares
-  and no name uses is not written by `prov`'s Turtle, so it does not survive a round trip.
-  The PROV-JSON and PROV-JSONLD readers do the same for a `""` entry in the `prefix`
-  object or an `@context` entry. An entry that disagrees with `default` or
-  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`
+  could not write. The PROV-JSON and PROV-JSONLD readers do the same for a `""` entry in
+  the `prefix` object or an `@context` entry. An entry that disagrees with `default` or
+  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`. The
+  PROV-O reader no longer declares rdflib's default prefix bindings (`dcterms`, `foaf`,
+  `owl` and the rest) as the document's own, so `get_registered_namespaces()` and every
+  writer list the source's declarations and the namespaces its names use, where 3.2.x
+  listed all of them. A source declaration identical to one of rdflib's default bindings,
+  such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name or the
+  text of an `xsd:QName` literal uses it, and an unused `ex` is kept. A prefix the source
+  declares and no name uses is not written by `prov`'s Turtle, so it does not survive a
+  round trip.
   ([#654](https://github.com/trungdong/prov/issues/654))
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A

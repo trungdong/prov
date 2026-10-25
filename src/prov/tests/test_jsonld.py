@@ -840,30 +840,36 @@ _DROP_WARNING = (
 
 
 @pytest.mark.parametrize(
-    ("content", "record", "attr"),
+    ("content", "record", "attr", "kept"),
     [
         pytest.param(
-            _entity_with("type", [_DROPPED_NODE]), "ex:e1", "prov:type", id="node-type"
+            _entity_with("type", [_DROPPED_NODE]),
+            "ex:e1",
+            "prov:type",
+            [],
+            id="node-type",
         ),
         pytest.param(
-            _entity_with("type", ["_:b1"]), "ex:e1", "prov:type", id="bare-type"
+            _entity_with("type", ["_:b1"]), "ex:e1", "prov:type", [], id="bare-type"
         ),
         pytest.param(
             _entity_with("ex:attr", [_DROPPED_NODE, "x"]),
             "ex:e1",
             "ex:attr",
+            [("ex:attr", "x")],
             id="node-attr",
         ),
         pytest.param(
             _usage_with("role", [_DROPPED_NODE], ident=None),
             "an anonymous prov:Usage",
             "prov:role",
+            [],
             id="anonymous",
         ),
     ],
 )
 def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
-    content: str, record: str, attr: str
+    content: str, record: str, attr: str, kept: list[tuple[str, str]]
 ) -> None:
     # A blank node names no record, so the reference is dropped and only that
     # value goes (#609).
@@ -873,7 +879,7 @@ def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
     assert len([w for w in caught if issubclass(w.category, ProvWarning)]) == 1
     (rec,) = doc.get_records()
     values = [(str(name), value) for name, value in rec.extra_attributes]
-    assert values == ([("ex:attr", "x")] if attr == "ex:attr" else [])
+    assert values == kept
 
 
 @pytest.mark.parametrize(

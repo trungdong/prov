@@ -42,6 +42,7 @@ from prov.constants import (
     PROV_LOCATION,
     PROV_MENTION,
     PROV_N_MAP,
+    PROV_QUALIFIEDNAME,
     PROV_ROLE,
     PROV_START,
     PROV_USAGE,
@@ -814,6 +815,25 @@ class ProvRDFSerializer(Serializer):
             str(datatype), graph
         )
 
+    def _register_qname_prefix(self, text: str, graph: Graph) -> None:
+        """Register the graph's binding for the prefix of a QName literal's text.
+
+        QName text resolves by prefix in the model, with no graph fallback,
+        and a binding that equals one of rdflib's defaults is not copied to
+        the document up front. A prefix the document already resolves, an
+        empty prefix and a prefix the graph does not bind are left alone.
+
+        Args:
+            text: Lexical form of an ``xsd:QName`` or ``prov:QUALIFIED_NAME``
+                literal.
+            graph: Graph the literal came from.
+        """
+        prefix, colon, _local = text.partition(":")
+        if prefix and colon and self.valid_identifier(text) is None:
+            uri = graph.namespace_manager.store.namespace(prefix)
+            if uri is not None:
+                self.document.add_namespace(prefix, str(uri))  # type: ignore[union-attr]
+
     def _decode_literal_representation(self, literal: RDFLiteral, graph: Graph) -> Any:
         """Decode a single RDF literal term back to its PROV attribute value.
 
@@ -839,6 +859,8 @@ class ProvRDFSerializer(Serializer):
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
         )
+        if datatype in (XSD["QName"], URIRef(PROV_QUALIFIEDNAME.uri)):
+            self._register_qname_prefix(str(literal), graph)
         if datatype == XSD["QName"]:
             return pm.Literal(literal, datatype=XSD_QNAME)
         if datatype == XSD["dateTime"]:

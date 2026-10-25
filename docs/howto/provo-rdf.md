@@ -51,3 +51,7 @@ because PROV-O names a relation by its identifier; reading such RDF raises
 {py:class}`~prov.model.ProvException` ({doc}`../reference/conformance`, C1). On the same
 page, C10 covers literals rdflib rewrites on read, and C11 a decimal `NaN` beside a
 number, which rdflib cannot write.
+
+A prefix the source declares with the same IRI rdflib binds by default is declared only
+when a name uses it, and `prov`'s own Turtle writes no unused prefix, so an unused
+declaration does not survive a PROV-O round trip ({doc}`../reference/conformance`).

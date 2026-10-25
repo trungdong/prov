@@ -214,8 +214,10 @@ statement's own arguments are errors.
   naming the subject and the predicate. A blank node that is an element's subject resolves as
   that element's identifier does, so it needs the default namespace the element itself needs.
 - The document declares the source's own prefix bindings and the namespaces its names use,
-  not the 27 bindings rdflib adds to every graph. A prefix the source declares and no name
-  uses is not written by `prov`'s Turtle, so it does not survive a round trip.
+  not rdflib's default prefix bindings. A source declaration identical to one of those
+  defaults, such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name
+  uses it, and an unused `ex` is kept. A prefix the source declares and no name uses is
+  not written by `prov`'s Turtle, so it does not survive a round trip.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options
