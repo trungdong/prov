@@ -119,13 +119,16 @@ types not natively/simply representable in PROV-RDF."""
 
 
 class _LexicalFormLiteral(RDFLiteral):
-    """An ``rdflib.Literal`` written in its lexical form in every RDF syntax.
+    """An ``rdflib.Literal`` that Turtle, TriG and N3 write quoted, in its
+    lexical form, as N-Triples and RDF/XML do.
 
     rdflib's Turtle writer abbreviates an ``xsd:double``, ``xsd:integer``,
     ``xsd:decimal`` or ``xsd:boolean`` to a bare token built from the value,
     which loses a double's precision (#225) and breaks on a kept text such as
     ``maybe`` or ``05`` (#575), so the non-abbreviated ``_literal_n3`` path is
-    forced.
+    forced. That path still spells a non-finite double from its value, and
+    rdflib's JSON-LD writer does not take it, writing a boolean, integer or
+    double as a JSON value.
     """
 
     def _literal_n3(self, use_plain: bool = False, qname_callback: Any = None) -> str:

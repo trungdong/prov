@@ -1017,7 +1017,8 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
     assert other is not None
     bundle.entity("ex:f", {"ex:c": prov.Literal("3", other["c:d"])})
 
-    root = etree.fromstring(document.serialize(format="xml").encode())
+    xml = document.serialize(format="xml")
+    root = etree.fromstring(xml.encode())
     assert _xsi_type_of(root, "prov:entity/ex:t") == "t"
     assert _xsi_type_of(root, "prov:entity/ex:c") == f"{prefix}:a:b"
     assert root.nsmap[prefix] == "http://d.example/"
@@ -1025,6 +1026,7 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
     assert content is not None
     assert _xsi_type_of(content, "prov:entity/ex:c") == "dn:c:d"
     assert content.nsmap["dn"] == "http://other.example/"
+    assert prov.ProvDocument.deserialize(content=xml, format="xml") == document
 
 
 def _membership_xml(entity_element: str) -> str:
