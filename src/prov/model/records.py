@@ -1144,11 +1144,11 @@ class ProvRecord:
         """Return the PROV-N representation of the record.
 
         A statement with an attribute block that is wider than ``width``
-        columns, its indentation included, is written over several lines. The
-        keyword, identifier and formal arguments stay on the first line and
-        the attribute block follows, one ``name=value`` pair per line, aligned
-        after the opening parenthesis. The formal arguments and a single pair
-        are never broken. ``str(record)`` always gives one line.
+        columns is written over several lines. The keyword, identifier and
+        formal arguments stay on the first line and the attribute block
+        follows, one ``name=value`` pair per line, aligned after the opening
+        parenthesis. The formal arguments and a single pair are never broken.
+        ``str(record)`` always gives one line.
 
         Args:
             strict: Write output that parses under the strict PROV-N
@@ -1159,9 +1159,9 @@ class ProvRecord:
                 each dropped with a :class:`~prov.model.ProvWarning` that
                 names the record.
             width: The column limit for one line. ``None`` writes every
-                statement on one line, the output of ``prov`` before 3.3.0.
-                A width of ``0`` or less wraps every statement that has an
-                attribute block.
+                statement on one line, the one-line layout of ``prov`` before
+                3.3.0. A width of ``0`` or less wraps every statement that has
+                an attribute block.
         """
         keyword = PROV_N_MAP[self.get_type()]
         identifier = ""
@@ -1205,9 +1205,10 @@ class ProvRecord:
         keyword: str, head: str, pairs: list[str], width: int | None
     ) -> str:
         """Lay the statement out on one line or, past ``width``, over rows."""
-        parts = [head, f"[{', '.join(pairs)}]"] if pairs else [head]
-        one_line = f"{keyword}({', '.join(filter(None, parts))})"
-        if width is None or not pairs or len(one_line) <= width:
+        if not pairs:
+            return f"{keyword}({head})"
+        one_line = f"{keyword}({head}, [{', '.join(pairs)}])"
+        if width is None or len(one_line) <= width:
             return one_line
         # Pairs after the first sit one column right, under the first pair.
         column = " " * (len(keyword) + 1)

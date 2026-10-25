@@ -452,9 +452,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `ProvDocument.add_bundle()` and unifying that document.
   ([#652](https://github.com/trungdong/prov/issues/652))
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
-  it to every record by keyword, so a subclass that overrides `ProvRecord.get_provn(self,
-  strict=False)` or `ProvBundle.get_provn` without it fails with `TypeError`. Add
-  `width: int | None = 80` to the override to accept it
+  it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
+  overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it
+  fails with `TypeError`. Add `width: int | None = 80` to the override to accept it
   ([#131](https://github.com/trungdong/prov/issues/131))
 
 ## 3.2.3 (2026-10-19)

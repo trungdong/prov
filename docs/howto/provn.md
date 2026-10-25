@@ -20,9 +20,9 @@ document.wasGeneratedBy(e, a)
 print(document.get_provn())
 ```
 
-A statement wider than 80 columns, indentation included, wraps before its attribute block.
-{py:meth}`~prov.model.ProvBundle.get_provn` gives the rule. Pass `width` to change the
-limit, or `width=None` to write every statement on one line:
+A statement with an attribute block that is wider than 80 columns, indentation included,
+wraps before the block. {py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass
+`width` to change the limit, or `width=None` to write every statement on one line:
 
 ```python
 one_line = document.get_provn(width=None)
