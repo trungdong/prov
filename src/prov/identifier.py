@@ -351,9 +351,10 @@ def _raise_value_error(message: str) -> NoReturn:
 def _reject_unwritable_prefix(prefix: str) -> None:
     """Raise ``ProvValueError`` unless ``prefix`` is a ``PN_PREFIX``."""
     # An ASCII identifier that does not start with '_' needs no regex.
-    if (
-        prefix.isascii() and prefix.isidentifier() and prefix[0] != "_"
-    ) or _PN_PREFIX_NAME.fullmatch(prefix):
+    if isinstance(prefix, str) and (
+        (prefix.isascii() and prefix.isidentifier() and prefix[0] != "_")
+        or _PN_PREFIX_NAME.fullmatch(prefix)
+    ):
         return
     _raise_value_error(
         f"the prefix {prefix!r} is not a PN_PREFIX, so no format can write it"
@@ -361,8 +362,9 @@ def _reject_unwritable_prefix(prefix: str) -> None:
 
 
 def _check_namespace_uri(uri: str) -> None:
-    """Raise ``ProvValueError`` if ``uri`` is blank or starts with ``@``."""
-    if not uri or uri.isspace():
+    """Raise ``ProvValueError`` if ``uri`` is not a string, is blank or starts
+    with ``@``."""
+    if not isinstance(uri, str) or not uri or uri.isspace():
         _raise_value_error("Not a valid URI to create a namespace.")
     if uri[0] == "@":
         _raise_value_error(f"the namespace IRI {uri!r} cannot start with '@'")
@@ -372,8 +374,8 @@ class Namespace:
     """PROV Namespace.
 
     A prefix is a SPARQL ``PN_PREFIX``: it starts with a letter, and holds
-    letters, digits, ``-``, ``_`` and ``.``, but does not end with ``.``. Every
-    format can write such a prefix.
+    letters, digits, ``-``, ``_``, ``.``, U+00B7 and the combining marks, but
+    does not end with ``.``.
     """
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
@@ -393,10 +395,10 @@ class Namespace:
             uri: URI string for the namespace (cannot be blank).
 
         Raises:
-            ProvValueError: If ``prefix`` is empty or is not a ``PN_PREFIX``
-                (no format can write it), or if ``uri`` is empty, contains
-                only whitespace or starts with ``@`` (PROV-JSONLD cannot read
-                such an IRI back).
+            ProvValueError: If ``prefix`` is empty or is not a ``PN_PREFIX``,
+                or if ``uri`` is not a string, is empty, contains only
+                whitespace or starts with ``@`` (PROV-JSONLD cannot read such
+                an IRI back).
         """
         if not prefix:
             _raise_value_error(

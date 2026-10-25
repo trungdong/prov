@@ -5,7 +5,7 @@ import io
 import json
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -439,9 +439,9 @@ def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     Raises:
         ProvJSONException: If the ``"prefix"`` value is not a JSON object, or
             declares its default namespace under both ``""`` and ``"default"``
-            with different IRIs, or holds an IRI that is neither a string nor
-            ``null``, or declares a prefix or default namespace the model
-            refuses (``__cause__`` holds the :class:`ProvException`).
+            with different IRIs, or holds an IRI that is not a string, or
+            declares a prefix or default namespace the model refuses
+            (``__cause__`` holds the :class:`ProvException`).
     """
     prefixes = _expect_json_object(jc["prefix"], 'The "prefix" value')
     if "" in prefixes and "default" in prefixes and prefixes[""] != prefixes["default"]:
@@ -450,19 +450,17 @@ def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             f'under "" ({prefixes[""]!r}) and "default" ({prefixes["default"]!r})'
         )
     try:
-        for prefix, uri in prefixes.items():
-            if uri is not None and not isinstance(uri, str):
+        for prefix, iri in prefixes.items():
+            if not isinstance(iri, str):
                 raise ProvJSONException(
-                    f"prefix {prefix!r}, IRI {uri!r}: a namespace IRI must be a string"
+                    f"prefix {prefix!r}, IRI {iri!r}: a namespace IRI must be a string"
                 )
-            # a null IRI reaches the model, which refuses it as blank
-            iri = cast("str", uri)
             if prefix in ("", "default"):
                 bundle.set_default_namespace(iri)
             else:
                 bundle.add_namespace(Namespace(prefix, iri))
     except ProvException as exc:
-        raise ProvJSONException(f"prefix {prefix!r}, IRI {uri!r}: {exc}") from exc
+        raise ProvJSONException(f"prefix {prefix!r}, IRI {iri!r}: {exc}") from exc
     del jc["prefix"]
 
 

@@ -27,6 +27,13 @@ def test_namespace_rejects_whitespace_only_uri() -> None:
         Namespace("ex", "   ")
 
 
+def test_namespace_rejects_a_uri_that_is_not_a_string() -> None:
+    with pytest.raises(
+        ProvValueError, match=re.escape("Not a valid URI to create a namespace.")
+    ):
+        Namespace("ex", cast("Any", 5))
+
+
 def test_contains_with_matching_str() -> None:
     ns = Namespace("ex", "http://example.org/")
     assert ns.contains("http://example.org/thing")
@@ -160,9 +167,9 @@ def test_prefix_that_is_a_pn_prefix_is_accepted(prefix: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "prefix", ["1a", "_a", "_", "a.", ".a", "·a", "a b", "a\nb", "a:b", 'a"b']
+    "prefix", [1, "1a", "_a", "_", "a.", ".a", "·a", "a b", "a\nb", "a:b", 'a"b']
 )
-def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: str) -> None:
+def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: Any) -> None:
     # Every way to build a Namespace goes through the same check.
     message = f"^{re.escape(_PREFIX_MESSAGE.format(prefix))}$"
     with pytest.raises(ProvValueError, match=message) as ctx:
@@ -188,6 +195,7 @@ def test_namespace_iri_starting_with_at_is_rejected() -> None:
         ProvDocument().add_namespace("ex", "@foo/")
     with pytest.raises(ProvValueError, match=message):
         ProvDocument().set_default_namespace("@foo/")
+    # The IRI is checked before the prefix, so '_type' is never reported.
     with pytest.raises(
         ProvValueError, match=f"^{re.escape(_IRI_MESSAGE.format('@type'))}$"
     ):
@@ -218,12 +226,6 @@ _PREFIX_DOCUMENTS = {
         {},
         '{"prefix": {"ex": "@foo/"}}',
         "prefix 'ex', IRI '@foo/': " + _IRI_MESSAGE.format("@foo/"),
-    ),
-    "json null IRI": (
-        "json",
-        {},
-        '{"prefix": {"ex": null}}',
-        "prefix 'ex', IRI None: Not a valid URI to create a namespace.",
     ),
     "json default": (
         "json",
@@ -355,33 +357,3 @@ def test_prefix_raises_when_read(name: str) -> None:
     with pytest.raises(READER_ERRORS[fmt], match=f"^{re.escape(message)}$") as ctx:
         ProvDocument.deserialize(content=text, format=fmt, **kwargs)
     assert isinstance(ctx.value.__cause__, ProvValueError)
-
-
-@pytest.mark.parametrize(
-    ("declaration", "iri"),
-    [('"ex": 5', "5"), ('"ex": ["x"]', "['x']"), ('"default": 5', "5")],
-)
-def test_json_namespace_iri_that_is_not_a_string_is_rejected(
-    declaration: str, iri: str
-) -> None:
-    # The reader refuses it with its own error, so there is no cause.
-    prefix = declaration.split('"')[1]
-    message = (
-        f"^prefix {prefix!r}, IRI {re.escape(iri)}: a namespace IRI must be a string$"
-    )
-    with pytest.raises(READER_ERRORS["json"], match=message) as ctx:
-        ProvDocument.deserialize(
-            content="{" + f'"prefix": {{{declaration}}}' + "}", format="json"
-        )
-    assert ctx.value.__cause__ is None
-
-
-def test_jsonld_context_keywords_are_not_namespaces() -> None:
-    # A keyword other than @vocab, even one holding an '@' string, is skipped.
-    text = (
-        '{"@context": [{"ex": "http://example.org/", "@base": "@x", '
-        '"@version": 1.1, "@language": "en"}], "@graph": []}'
-    )
-    document = ProvDocument.deserialize(content=text, format="jsonld")
-    assert {namespace.prefix for namespace in document.namespaces} == {"ex"}
-    assert document.default_ns_uri is None

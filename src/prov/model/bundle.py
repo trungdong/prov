@@ -497,6 +497,7 @@ class ProvBundle:
             uri: The URI of the default namespace.
 
         Raises:
+            ProvValueError: If ``uri`` is blank or starts with ``@``.
             ProvException: If the bundle holds a name in the current default
                 namespace, which the new one would make another name.
         """

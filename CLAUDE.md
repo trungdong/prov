@@ -60,7 +60,7 @@ uv run mypy src                  # strict, library and tests; configured in pypr
 uv run ruff check src/ benchmarks/
 uv run ruff format --check src/ benchmarks/
 codacy-analysis analyze --files <changed files>   # expect "0 issues found"
-git worktree add --detach /tmp/prov-min HEAD && (cd /tmp/prov-min && uv sync --locked --group dev && uv run --no-sync pytest src/prov/tests/test_minimal_install.py); git worktree remove --force /tmp/prov-min   # when conftest.py or an import changed
+git worktree add --detach /tmp/prov-min HEAD && (cd /tmp/prov-min && uv sync --locked --group dev && uv run --no-sync pytest src/prov/tests/test_minimal_install.py); rc=$?; git worktree remove --force /tmp/prov-min; (exit $rc)   # when conftest.py or an import changed
 uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
 ```
 

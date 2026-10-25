@@ -331,6 +331,9 @@ class ProvXMLSerializer(Serializer):
                 ignored.
         """
 
+        # For a bundleContent, _read_bundle_content has already adopted the
+        # element's default inside the record wrap, so this wrap fires for the
+        # document element only.
         try:
             _adopt_own_default(xml_doc, bundle)
         except ProvException as exc:

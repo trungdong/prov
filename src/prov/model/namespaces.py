@@ -124,6 +124,9 @@ class NamespaceManager(dict[str, Namespace]):
 
         Args:
             uri: The URI of the default namespace.
+
+        Raises:
+            ProvValueError: If ``uri`` is blank or starts with ``@``.
         """
         self._set_default(Namespace._default(uri))
 

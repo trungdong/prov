@@ -55,13 +55,19 @@ from prov.constants import (
     XSD,
     XSD_QNAME,
 )
-from prov.identifier import _PN_PREFIX_NAME, Namespace, QualifiedName
+from prov.identifier import (
+    _PN_PREFIX_NAME,
+    Namespace,
+    QualifiedName,
+    _check_namespace_uri,
+)
 from prov.model import (
     PROV_REC_CLS,
     Literal,
     ProvBundle,
     ProvDocument,
     ProvException,
+    ProvValueError,
     parse_xsd_datetime,
 )
 from prov.model._values import resolve_name, resolve_pair
@@ -338,14 +344,19 @@ class ProvNParser:
                 return namespaces, default
 
     def _namespace_iri(self) -> Token:
-        """Consume the IRI of a declaration, refusing one the model refuses."""
+        """Consume the IRI of a declaration.
+
+        An empty IRI is refused here with its own sentence. Any other IRI the
+        model refuses is a positioned syntax error carrying the model's error
+        as its cause.
+        """
         iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
         if not iri.value:
             raise self._error("a namespace IRI cannot be empty", iri)
-        if iri.value[0] == "@":
-            raise self._error(
-                f"the namespace IRI {iri.value!r} cannot start with '@'", iri
-            )
+        try:
+            _check_namespace_uri(iri.value)
+        except ProvValueError as exc:
+            raise self._error(str(exc), iri) from exc
         return iri
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:

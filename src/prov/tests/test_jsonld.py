@@ -333,11 +333,17 @@ def test_deserialize_context_with_version_registers_namespace_prefixes() -> None
     # "@version": 1.1 is a normal, common JSON-LD 1.1 context marker, not
     # unique to the vendored embedded submission context -- a namespace map
     # that happens to declare it must not be misclassified as that context
-    # and have its prefixes silently dropped.
+    # and have its prefixes silently dropped. A keyword other than @vocab,
+    # even one holding an '@' string, is not a namespace.
     text = json.dumps(
         {
             "@context": [
-                {"@version": 1.1, "ex": EX_URI},
+                {
+                    "@version": 1.1,
+                    "ex": EX_URI,
+                    "@base": "@x",
+                    "@language": "en",
+                },
                 JSONLD_CONTEXT_URL,
             ],
             "@graph": [{"@type": "Entity", "@id": "ex:e1"}],
@@ -350,6 +356,7 @@ def test_deserialize_context_with_version_registers_namespace_prefixes() -> None
     assert {ns.prefix: ns.uri for ns in doc.get_registered_namespaces()} == {
         "ex": EX_URI
     }
+    assert doc.default_ns_uri is None
 
 
 def test_deserialize_context_with_one_colliding_term_registers_namespace_prefixes() -> (

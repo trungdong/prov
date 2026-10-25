@@ -51,16 +51,19 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   PROV-JSON, PROV-JSONLD or PROV-O read raises it as the cause of the format's error at
   the declaration. A PROV-XML read raises it at the `bundleContent` element that declares
   it, whether or not a name uses it, or at the first name under a prefix the document
-  element declares. PROV-N refused the declaration already
+  element declares, and raises the model's refusal of an `xmlns` on the document element
+  at `<prov:document>`. PROV-N refused the declaration already
   ([#511](https://github.com/trungdong/prov/issues/511)). 3.2.3 accepted the prefix and
-  wrote text that did not read back. The `Namespace` constructor's refusals of an empty
-  prefix and of a blank IRI are a `ProvValueError` now, which `except ValueError` still
-  catches ([#668](https://github.com/trungdong/prov/issues/668))
+  wrote text that did not read back. From code, the `Namespace` constructor's refusals of
+  an empty prefix and of a blank IRI are a `ProvValueError` now, which `except ValueError`
+  still catches ([#668](https://github.com/trungdong/prov/issues/668))
 - A namespace IRI that starts with `@`, a `ProvValueError` when the `Namespace` is built,
   from code or from any reader. PROV-N refuses it at the IRI with a `ProvNSyntaxError`, as
   it refuses an empty IRI, and the other readers raise their format's error with it as
-  the cause. A PROV-JSON namespace IRI that is not a string raises `ProvJSONException`,
-  where 3.2.3 raised `AttributeError`. In PROV-JSONLD this covers a `@context` term such
+  the cause. A PROV-JSON namespace IRI that is not a string, `null` included, raises
+  `ProvJSONException`, where 3.2.3 raised `AttributeError`, or `ValueError` for `null`.
+  From code, a prefix or an IRI that is not a string is a `ProvValueError`, where 3.2.3
+  accepted an integer prefix and raised `AttributeError` for a non-string IRI. In PROV-JSONLD this covers a `@context` term such
   as `"id": "@id"`, and a context key holding `:` falls under the prefix rule above.
   3.2.3 accepted such an IRI, PROV-JSONLD registered such a term as a namespace, and
   PROV-N output declared it as `prefix id <@id>` ([#668](https://github.com/trungdong/prov/issues/668))
@@ -230,8 +233,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `except ValueError` and `except ProvValueError` around a read never catch a rejected
   time offset or language tag, because the reader's error is neither. `except ValueError`
   around a PROV-O read no longer catches an IRI the reader cannot split, which is now a
-  `ProvRDFException` that names the IRI
-  ([#653](https://github.com/trungdong/prov/issues/653))
+  `ProvRDFException` that names the IRI, and around a PROV-JSON or PROV-JSONLD read no
+  longer catches a blank namespace IRI (PROV-JSON `{"prefix": {"ex": ""}}`,
+  `{"prefix": {"default": ""}}` and `{"prefix": {"ex": null}}`, PROV-JSONLD
+  `{"@context": {"ex": ""}}`), which raised a bare `ValueError` in 3.2.3 and is now the
+  format's error
+  ([#653](https://github.com/trungdong/prov/issues/653), [#668](https://github.com/trungdong/prov/issues/668))
 - `get_records()` with a class or a tuple of classes returns a list, as `get_records()` with
   no argument always did, where it returned a one-shot iterator.
   `next(document.get_records(ProvEntity))` raises `TypeError`, so write

@@ -21,6 +21,7 @@ from prov.model import (
     ProvException,
     ProvMention,
     ProvRecord,
+    ProvValueError,
     ProvWarning,
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError
@@ -379,6 +380,16 @@ REJECTED_DOCUMENTS = [
             id=f"{declaration.split()[0]} IRI starting with @",
         )
         for declaration in ("prefix ex <@foo/>", "default <@foo/>")
+    ],
+    *[
+        pytest.param(
+            f"document\n{declaration}\nentity(e)\nendDocument",
+            EVERY,
+            "Not a valid URI to create a namespace.",
+            (2, declaration.index("<") + 1),
+            id=f"{declaration.split()[0]} IRI of whitespace",
+        )
+        for declaration in ("prefix ex <\u00a0>", "default <\u00a0>")
     ],
     pytest.param(
         f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
@@ -1201,6 +1212,21 @@ def test_empty_namespace_iri_is_a_syntax_error(profile, declaration) -> None:
     ) as ctx:
         ProvNParser(f"document\n{declaration}\nendDocument", profile).parse()
     assert (ctx.value.line, ctx.value.column) == (2, declaration.index("<") + 1)
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        "prefix ex <@foo/>",
+        "default <@foo/>",
+        "prefix ex <\u00a0>",
+        "default <\u00a0>",
+    ],
+)
+def test_namespace_iri_the_model_refuses_carries_its_error(declaration) -> None:
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        ProvNParser(f"document\n{declaration}\nendDocument", "strict").parse()
+    assert isinstance(ctx.value.__cause__, ProvValueError)
 
 
 @pytest.mark.parametrize("declaration", ["prefix z <>", "default <>"])

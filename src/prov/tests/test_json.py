@@ -858,6 +858,19 @@ REJECTED_DOCUMENTS = [
         _unresolved("record ':x'", ":x", "its prefix '' is not declared"),
         id="record key with an explicit empty prefix and no default",
     ),
+    *[
+        pytest.param(
+            json.dumps({"prefix": {prefix: iri}}),
+            f"prefix {prefix!r}, IRI {iri!r}: a namespace IRI must be a string",
+            id=f"namespace IRI {iri!r} under {prefix!r}",
+        )
+        for prefix, iri in (
+            ("ex", 5),
+            ("ex", ["x"]),
+            ("default", 5),
+            ("ex", None),
+        )
+    ],
 ]
 
 
