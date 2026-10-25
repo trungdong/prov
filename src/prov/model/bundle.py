@@ -130,6 +130,18 @@ def _check_provn_iri(namespace: Namespace) -> None:
         )
 
 
+def _indent_line_feeds(text: str, newline: str) -> str:
+    """Replace the line feeds outside triple-quoted strings with ``newline``.
+
+    A triple-quoted string keeps its line feeds raw, and the lexer counts the
+    spaces after one as part of the value, so its content is never indented.
+    """
+    parts = text.split('"""')
+    for index in range(0, len(parts), 2):
+        parts[index] = parts[index].replace("\n", newline)
+    return '"""'.join(parts)
+
+
 def _held_qualified_names(records: Iterable[ProvRecord]) -> Iterator[QualifiedName]:
     """Every qualified name the records hold in their identifier, attribute
     names and values, a literal standing for its datatype."""
@@ -729,7 +741,9 @@ class ProvBundle:
             lines.append("")
         return lines
 
-    def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
+    def get_provn(
+        self, _indent_level: int = 0, strict: bool = False, width: int | None = 80
+    ) -> str:
         """Return the PROV-N representation of the bundle.
 
         Args:
@@ -738,10 +752,22 @@ class ProvBundle:
                 profile, as :meth:`ProvRecord.get_provn` describes, dropping
                 what ``alternateOf``, ``specializationOf`` and ``hadMember``
                 cannot carry there, with a warning each.
+            width: The column limit for one line, as
+                :meth:`ProvRecord.get_provn` describes, counted with the
+                indentation of the statement. ``None`` writes every statement
+                on one line, the output of ``prov`` before 3.3.0.
         """
         indentation = "" + ("  " * _indent_level)
-        newline = "\n" + ("  " * (_indent_level + 1))
-        record_lines = [record.get_provn(strict=strict) for record in self._records]
+        record_indentation = "  " * (_indent_level + 1)
+        newline = "\n" + record_indentation
+        record_width = None if width is None else width - len(record_indentation)
+        # Continuation rows join the record's column; triple-quoted values stay as written.
+        record_lines = [
+            _indent_line_feeds(
+                record.get_provn(strict=strict, width=record_width), newline
+            )
+            for record in self._records
+        ]
         lines = [self._provn_header()]
         lines.extend(self._provn_namespace_lines())
 
@@ -750,7 +776,7 @@ class ProvBundle:
         if self.is_document():
             # Print out bundles
             lines.extend(
-                bundle.get_provn(_indent_level + 1, strict=strict)
+                bundle.get_provn(_indent_level + 1, strict=strict, width=width)
                 for bundle in self.bundles
             )
         provn_str = newline.join(lines) + "\n"

@@ -18,7 +18,13 @@ class ProvNSerializer(Serializer):
 
     deserialize_options = frozenset({"profile"})
 
-    def serialize(self, stream: io.IOBase, strict: bool = False, **args: Any) -> None:
+    def serialize(
+        self,
+        stream: io.IOBase,
+        strict: bool = False,
+        width: int | None = 80,
+        **args: Any,
+    ) -> None:
         """Serialize ``self.document`` to `PROV-N <http://www.w3.org/TR/prov-n/>`_.
 
         Args:
@@ -29,6 +35,9 @@ class ProvNSerializer(Serializer):
                 profile, as :meth:`prov.model.ProvRecord.get_provn` describes,
                 dropping what ``alternateOf``, ``specializationOf`` and
                 ``hadMember`` cannot carry there, with a warning each.
+            width: The column limit for one line, as
+                :meth:`prov.model.ProvRecord.get_provn` describes. ``None``
+                writes every statement on one line.
             **args: Unused; accepted for interface compatibility with
                 :meth:`Serializer.serialize`.
 
@@ -38,7 +47,7 @@ class ProvNSerializer(Serializer):
         if self.document is None:
             raise Exception("No document to serialize")
 
-        provn_content = self.document.get_provn(strict=strict)
+        provn_content = self.document.get_provn(strict=strict, width=width)
         stream.write(
             provn_content if _is_text_stream(stream) else provn_content.encode("utf-8")
         )
