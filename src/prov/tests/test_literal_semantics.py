@@ -396,7 +396,7 @@ class _Level(int, enum.Enum):
             "urn:uuid:00000000-0000-0000-0000-000000000001",
         ),
         (b"\x00\x01", XSD["base64Binary"], "AAE="),
-        (b"\x00\x01", XSD["hexBinary"], "0001"),
+        (b"\xab\x01", XSD["hexBinary"], "AB01"),
         (datetime.date(2012, 1, 1), XSD["date"], "2012-01-01"),
         (_Level.LOW, XSD_INT, "5"),
         # No form in the given datatype: prov's spelling, under that datatype (N29).
