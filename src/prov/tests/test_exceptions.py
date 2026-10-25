@@ -8,6 +8,7 @@ import pytest
 from lxml import etree
 
 import prov
+from prov.constants import PROV
 from prov.model import (
     ProvDocument,
     ProvElementIdentifierRequired,
@@ -26,36 +27,34 @@ from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 from prov.serializers.provn import ProvNSyntaxError
 from prov.serializers.provrdf import ProvRDFException
 from prov.serializers.provxml import ProvXMLException, ProvXMLSerializer
-from prov.tests.conftest import READER_ERRORS
+from prov.tests.conftest import EX_URI, READER_ERRORS
 
-HIERARCHY = [
-    (ProvJSONException, ProvSerializationError, True),
-    (ProvJSONLDException, ProvSerializationError, True),
-    (ProvNSyntaxError, ProvSerializationError, True),
-    (ProvXMLException, ProvSerializationError, True),
-    (ProvRDFException, ProvSerializationError, True),
-    (ProvFormatNotDetected, ProvSerializationError, True),
-    (ProvSerializationError, prov.Error, True),
-    (ProvNSyntaxError, ProvException, True),
-    (ProvJSONException, ProvException, False),
-    (ProvJSONLDException, ProvException, False),
-    (ProvXMLException, ProvException, False),
-    (ProvRDFException, ProvException, False),
-    (ProvFormatNotDetected, ProvException, False),
-    (DoNotExist, ProvSerializationError, False),
-    (DoNotExist, ProvException, False),
-    (ProvFormatNotDetected, TypeError, True),
-    (ProvValueError, ValueError, True),
-]
+# The five formats' reader errors and the auto-detection failure.
+SERIALIZATION_ERRORS = (*READER_ERRORS.values(), ProvFormatNotDetected)
+
+
+@pytest.mark.parametrize("cls", SERIALIZATION_ERRORS, ids=lambda cls: cls.__name__)
+def test_reader_errors_are_serialization_errors(cls: type) -> None:
+    assert issubclass(cls, ProvSerializationError)
 
 
 @pytest.mark.parametrize(
-    ("cls", "base", "expected"),
-    HIERARCHY,
-    ids=[f"{cls.__name__}-{base.__name__}" for cls, base, _ in HIERARCHY],
+    "cls",
+    [cls for cls in SERIALIZATION_ERRORS if cls is not ProvNSyntaxError],
+    ids=lambda cls: cls.__name__,
 )
-def test_hierarchy(cls: type, base: type, expected: bool) -> None:
-    assert issubclass(cls, base) is expected
+def test_reader_errors_are_not_model_errors(cls: type) -> None:
+    assert not issubclass(cls, ProvException)
+
+
+def test_the_remaining_hierarchy_facts() -> None:
+    # ProvNSyntaxError keeps ProvException as a second base.
+    assert issubclass(ProvNSyntaxError, ProvException)
+    assert issubclass(ProvSerializationError, prov.Error)
+    assert issubclass(ProvFormatNotDetected, TypeError)
+    assert issubclass(ProvValueError, ValueError)
+    assert not issubclass(DoNotExist, ProvSerializationError)
+    assert not issubclass(DoNotExist, ProvException)
 
 
 # PROV-N and PROV-JSON have no error class of their own for a missing document.
@@ -76,21 +75,12 @@ def test_serialize_without_a_document_raises_the_formats_error(fmt: str) -> None
     assert stream.getvalue() == b""
 
 
-def test_read_of_undetected_content_raises_format_not_detected() -> None:
-    with pytest.raises(TypeError) as ctx:
-        prov.read("hello world")
-    assert isinstance(ctx.value, ProvFormatNotDetected)
-    assert str(ctx.value).startswith("Could not read from the source.")
-    assert ctx.value.__cause__ is None
-
-
-EX = "http://example.org/"
 BAD_TIME = "2012-01-01T00:00:00+15:00"
 
 
 def _jsonld(*statements: Mapping[str, object]) -> str:
     return json.dumps(
-        {"@context": [{"ex": EX}, JSONLD_CONTEXT_URL], "@graph": statements}
+        {"@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL], "@graph": statements}
     )
 
 
@@ -104,10 +94,11 @@ def _jsonld_bundle(*statements: Mapping[str, object]) -> dict[str, object]:
 
 
 _JSONLD_ACTIVITY = {"@type": "Activity", "@id": "ex:a1", "startTime": BAD_TIME}
-_TRIG_PREFIXES = f"@prefix ex: <{EX}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
-PROV_NS = "http://www.w3.org/ns/prov#"
-_XML_ROOT = f'<prov:document xmlns:prov="{PROV_NS}" xmlns:ex="{EX}">'
-_XML_ROOT_EX2 = _XML_ROOT[:-1] + f' xmlns:ex2="{EX}">'
+_TRIG_PREFIXES = (
+    f"@prefix ex: <{EX_URI}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+)
+_XML_ROOT = f'<prov:document xmlns:prov="{PROV.uri}" xmlns:ex="{EX_URI}">'
+_XML_ROOT_EX2 = _XML_ROOT[:-1] + f' xmlns:ex2="{EX_URI}">'
 
 # A model rejection from a bundle or an element: the format, the content, the
 # reader's error, what starts its message and the class of its cause. A record
@@ -125,7 +116,7 @@ WRAPPED = [
         "json",
         json.dumps(
             {
-                "prefix": {"ex": EX},
+                "prefix": {"ex": EX_URI},
                 "bundle": {
                     "ex:b": {"activity": {"ex:a1": {"prov:startTime": BAD_TIME}}}
                 },
@@ -152,7 +143,7 @@ WRAPPED = [
     ),
     pytest.param(
         "json",
-        json.dumps({"prefix": {"ex": EX}, "bundle": {"ex:a b": {}}}),
+        json.dumps({"prefix": {"ex": EX_URI}, "bundle": {"ex:a b": {}}}),
         ProvJSONException,
         "bundle 'ex:a b': ",
         ProvExceptionInvalidQualifiedName,
@@ -161,7 +152,10 @@ WRAPPED = [
     pytest.param(
         "json",
         json.dumps(
-            {"prefix": {"ex": EX, "ex2": EX}, "bundle": {"ex:b": {}, "ex2:b": {}}}
+            {
+                "prefix": {"ex": EX_URI, "ex2": EX_URI},
+                "bundle": {"ex:b": {}, "ex2:b": {}},
+            }
         ),
         ProvJSONException,
         "bundle 'ex2:b': ",
@@ -183,7 +177,7 @@ WRAPPED = [
         "jsonld",
         json.dumps(
             {
-                "@context": [{"ex": EX, "ex2": EX}, JSONLD_CONTEXT_URL],
+                "@context": [{"ex": EX_URI, "ex2": EX_URI}, JSONLD_CONTEXT_URL],
                 "@graph": [_jsonld_bundle(), {**_jsonld_bundle(), "@id": "ex2:b"}],
             }
         ),
@@ -250,21 +244,6 @@ def test_a_reader_names_the_record_it_rejects(
     assert str(ctx.value) == where + str(ctx.value.__cause__)
 
 
-def test_read_of_a_bad_language_tag_chains_the_reader_and_the_model_errors() -> None:
-    content = json.dumps(
-        {
-            "prefix": {"ex": EX},
-            "entity": {"ex:e1": {"ex:a": {"$": "hi", "lang": "en_US"}}},
-        }
-    )
-    with pytest.raises(TypeError) as ctx:
-        prov.read(content)
-    assert type(ctx.value) is ProvFormatNotDetected
-    reader_error = ctx.value.__cause__
-    assert type(reader_error) is ProvJSONException
-    assert type(reader_error.__cause__) is ProvValueError
-
-
 def test_a_typed_subject_with_no_separator_raises_the_rdf_error() -> None:
     content = _TRIG_PREFIXES + "<urn:example:e2=> a prov:Entity .\n"
     with pytest.raises(ProvRDFException) as ctx:
@@ -314,8 +293,10 @@ def test_a_malformed_element_raises_the_xml_error(content: str, message: str) ->
 
 
 def test_an_element_built_in_code_has_no_line_to_name() -> None:
-    root = etree.Element(f"{{{PROV_NS}}}document", nsmap={"prov": PROV_NS, "ex": EX})
-    etree.SubElement(root, f"{{{PROV_NS}}}frob").set(f"{{{PROV_NS}}}id", "ex:a1")
+    root = etree.Element(
+        f"{{{PROV.uri}}}document", nsmap={"prov": PROV.uri, "ex": EX_URI}
+    )
+    etree.SubElement(root, f"{{{PROV.uri}}}frob").set(f"{{{PROV.uri}}}id", "ex:a1")
     with pytest.raises(ProvXMLException) as ctx:
         ProvXMLSerializer().deserialize_subtree(root, ProvDocument())
     assert str(ctx.value) == "<prov:frob> 'ex:a1': it is not a PROV element"

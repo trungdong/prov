@@ -351,44 +351,55 @@ class ProvXMLSerializer(Serializer):
                     self._read_bundle_content(element, bundle, rec_id, namespaces)
                     continue
 
-                # Try to make a qualified name out of it!
-                prov_rec_id = (
-                    xml_qname_to_QualifiedName(
-                        element, rec_id, namespaces=namespaces, scope=bundle
-                    )
-                    if rec_id is not None
-                    else None
-                )
-
-                attributes = _extract_attributes(element, namespaces, bundle)
-
-                # Map the record type to its base type.
-                q_prov_name = FULL_PROV_RECORD_IDS_MAP.get(qname.localname)
-                if q_prov_name is None:
-                    raise ProvXMLException(
-                        _element_position(element, rec_id) + "it is not a PROV element"
-                    )
-                rec_type = PROV_BASE_CLS[q_prov_name]
-
-                if _ns_xsi("type") in element.attrib:
-                    value = xml_qname_to_QualifiedName(
-                        element,
-                        element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
-                        namespaces=namespaces,
-                        scope=bundle,
-                    )
-                    attributes.append((PROV["type"], value))
-
-                rec = bundle.new_record(rec_type, prov_rec_id, attributes)
-
-                # Add the actual type in case a base type has been used.
-                if rec_type != q_prov_name:
-                    rec.add_asserted_type(q_prov_name)
+                self._read_record(element, qname.localname, rec_id, bundle, namespaces)
             except ProvException as exc:
                 raise ProvXMLException(
                     f"{_element_position(element, rec_id)}{exc}"
                 ) from exc
         return bundle
+
+    def _read_record(
+        self,
+        element: etree._Element,
+        localname: str,
+        rec_id: str | None,
+        bundle: prov.model.ProvDocument | prov.model.ProvBundle,
+        namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
+    ) -> None:
+        """Add the record that ``element`` encodes to ``bundle``."""
+        # Try to make a qualified name out of it!
+        prov_rec_id = (
+            xml_qname_to_QualifiedName(
+                element, rec_id, namespaces=namespaces, scope=bundle
+            )
+            if rec_id is not None
+            else None
+        )
+
+        attributes = _extract_attributes(element, namespaces, bundle)
+
+        # Map the record type to its base type.
+        q_prov_name = FULL_PROV_RECORD_IDS_MAP.get(localname)
+        if q_prov_name is None:
+            raise ProvXMLException(
+                _element_position(element, rec_id) + "it is not a PROV element"
+            )
+        rec_type = PROV_BASE_CLS[q_prov_name]
+
+        if _ns_xsi("type") in element.attrib:
+            value = xml_qname_to_QualifiedName(
+                element,
+                element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
+                namespaces=namespaces,
+                scope=bundle,
+            )
+            attributes.append((PROV["type"], value))
+
+        rec = bundle.new_record(rec_type, prov_rec_id, attributes)
+
+        # Add the actual type in case a base type has been used.
+        if rec_type != q_prov_name:
+            rec.add_asserted_type(q_prov_name)
 
     def _read_bundle_content(
         self,

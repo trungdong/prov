@@ -1569,14 +1569,9 @@ class ProvRDFSerializer(Serializer):
             subj = str(stmt[0])
             obj = str(stmt[2])
             try:
-                add_attr = (
-                    self._register_record_type(
-                        graph, stmt, subj, obj, prov_cls_map, state
-                    )
-                    if obj in prov_cls_map
-                    else True
-                )
-                if add_attr:
+                if obj not in prov_cls_map or self._register_record_type(
+                    graph, stmt, subj, obj, prov_cls_map, state
+                ):
                     state.other_attributes.setdefault(subj, []).append(
                         (
                             pm.PROV["type"],
@@ -1931,17 +1926,9 @@ class ProvRDFSerializer(Serializer):
             ]
             identifier = None if subj in state.anonymous else subj
             try:
-                if items_to_walk:
-                    for subset in list(walk(items_to_walk)):
-                        for prov_type, value in subset.items():
-                            state.formal_attributes[subj][prov_type] = value
-                        bundle.new_record(
-                            state.record_types[subj],
-                            identifier,
-                            state.formal_attributes[subj].items(),
-                            attrs,
-                        )
-                else:
+                for subset in list(walk(items_to_walk)):
+                    for prov_type, value in subset.items():
+                        state.formal_attributes[subj][prov_type] = value
                     bundle.new_record(
                         state.record_types[subj],
                         identifier,
