@@ -112,9 +112,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `QualifiedName` ([#473](https://github.com/trungdong/prov/issues/473))
 - `set_default_namespace()` or `add_namespace()` on a document or bundle that already holds
   a name the declaration would change, such as a bundle named `e001` in the document's
-  default namespace that then declares its own default, a `ProvException` naming the name
-  and the IRI it would read as. 3.2.x accepted the declaration and the PROV-N writer gave
-  the name a `dn` prefix it declared inside the bundle
+  default namespace that then declares its own default, or a bundle named `ex:b2` that
+  then binds `ex` to another IRI, a `ProvException` naming the name and the IRI it would
+  read as. 3.2.x accepted the declaration; the PROV-N writer gave the bare name a `dn`
+  prefix it declared inside the bundle, and every writer spelled the prefixed identifier
+  under the rebound prefix, which a reader resolves in the bundle's own scope, so it read
+  back under the bundle's IRI ([#573](https://github.com/trungdong/prov/issues/573))
 - `add_bundle()` given a bundle that belongs to another document, a `ProvException`. A
   bundle is not moved between documents; 3.2.x re-parented it and relied on the declarations
   it had copied

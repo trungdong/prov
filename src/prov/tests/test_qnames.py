@@ -222,8 +222,9 @@ def test_prefix_named_default_in_bundles(roundtrip: Roundtrip) -> None:
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     bundle = prov_doc.bundle(DEFAULT_PREFIX_NS["b1"])
     bundle.entity(DEFAULT_PREFIX_NS["e"])
-    # a bundle's own "default" prefix, beside the document's; its identifier
-    # avoids that prefix, which a reader would resolve in the bundle (#573)
+    # a bundle's own "default" prefix, beside the document's; the identifier
+    # is under another prefix, since a bundle cannot rebind the prefix its
+    # own identifier uses
     prov_doc.add_namespace("ex", "http://ex.example/")
     bundle = prov_doc.bundle("ex:b2")
     bundle.add_namespace("default", "http://w.example/")
