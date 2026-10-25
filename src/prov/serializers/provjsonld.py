@@ -395,17 +395,17 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     object to be skipped, and so are the ``@``-keys other than ``"@vocab"``.
     ``@base`` is written as a duplicate of ``@vocab`` (see
     :data:`_JSONLD_DEFAULT_KEYS`) and carries no information this library
-    doesn't already get from ``@vocab``. Every string-valued entry that
-    remains is a namespace: ``"@vocab"`` and ``""`` set the default, and any
-    other key is a prefix.
+    doesn't already get from ``@vocab``. Every other string-valued entry is a
+    namespace: ``"@vocab"`` and ``""`` set the default, and any other key is a
+    prefix.
 
     Raises:
         ProvJSONLDException: If a ``@context`` entry is neither a string nor
             a JSON object, declares its default namespace under both
-            ``"@vocab"`` and ``""`` with different IRIs, holds a string
-            value that starts with ``"@"``, or declares a prefix or default
-            namespace the model refuses (``__cause__`` holds the
-            :class:`ProvException`).
+            ``"@vocab"`` and ``""`` with different IRIs, or declares a prefix,
+            default namespace or IRI the model refuses, such as a prefix that
+            is not a ``PN_PREFIX`` or an IRI that starts with ``"@"``
+            (``__cause__`` holds the :class:`ProvException`).
     """
     if not isinstance(context, list):
         context = [context]
@@ -432,19 +432,14 @@ def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> No
         bundle: Bundle (or document) to register the namespaces on.
 
     Raises:
-        ProvJSONLDException: If a string value starts with ``"@"``, which is
-            not an IRI, or if the model refuses a prefix or the default
-            namespace (``__cause__`` holds the :class:`ProvException`).
+        ProvJSONLDException: If the model refuses a prefix, the default
+            namespace or an IRI (``__cause__`` holds the
+            :class:`ProvException`).
     """
     try:
         for prefix, value in item.items():
             if not isinstance(value, str):
                 continue
-            if value.startswith("@"):
-                raise ProvJSONLDException(
-                    f"prefix {prefix!r}, IRI {value!r}: "
-                    "a namespace IRI cannot start with '@'"
-                )
             if prefix in ("@vocab", ""):
                 bundle.set_default_namespace(value)
             elif not prefix.startswith("@"):

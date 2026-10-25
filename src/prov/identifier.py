@@ -362,9 +362,11 @@ def _reject_unwritable_prefix(prefix: str) -> None:
 
 
 def _check_namespace_uri(uri: str) -> None:
-    """Raise ``ProvValueError`` unless ``uri`` is non-blank."""
+    """Raise ``ProvValueError`` if ``uri`` is blank or starts with ``@``."""
     if not uri or uri.isspace():
         _raise_value_error("Not a valid URI to create a namespace.")
+    if uri[0] == "@":
+        _raise_value_error("a namespace IRI cannot start with '@'")
 
 
 class Namespace:
@@ -393,16 +395,17 @@ class Namespace:
 
         Raises:
             ProvValueError: If ``prefix`` is empty or is not a ``PN_PREFIX``
-                (no format can write it), or if ``uri`` is empty or contains
-                only whitespace.
+                (no format can write it), or if ``uri`` is empty, contains
+                only whitespace or starts with ``@`` (PROV-JSONLD cannot read
+                such an IRI back).
         """
         if not prefix:
             _raise_value_error(
                 "a namespace needs a prefix; a default namespace is set with "
                 "set_default_namespace()"
             )
-        _reject_unwritable_prefix(prefix)
         _check_namespace_uri(uri)
+        _reject_unwritable_prefix(prefix)
         self._prefix = prefix
         self._uri = uri
         self._cache: dict[str, QualifiedName] = {}

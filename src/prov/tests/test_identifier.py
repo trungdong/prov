@@ -2,7 +2,6 @@
 serializer round-trip tests (planning/test-gap-checklist.md, T13), and
 the local parts 3.3.0 rejects (#524)."""
 
-import json
 import re
 from typing import Any, cast
 
@@ -177,6 +176,22 @@ def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: str) -> None:
         ProvBundle(namespaces={prefix: EX})
 
 
+_IRI_MESSAGE = "a namespace IRI cannot start with '@'"
+
+
+def test_namespace_iri_starting_with_at_is_rejected() -> None:
+    # Every entry point refuses it, and the IRI is named ahead of the prefix.
+    message = f"^{re.escape(_IRI_MESSAGE)}$"
+    with pytest.raises(ProvValueError, match=message):
+        Namespace("ex", "@foo/")
+    with pytest.raises(ProvValueError, match=message):
+        Namespace("_type", "@type")
+    with pytest.raises(ProvValueError, match=message):
+        ProvDocument().add_namespace("ex", "@foo/")
+    with pytest.raises(ProvValueError, match=message):
+        ProvDocument().set_default_namespace("@foo/")
+
+
 _RDF_PREFIXES = (
     '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
     'xmlns:prov="http://www.w3.org/ns/prov#" xmlns:_a="http://example.org/a/">'
@@ -196,6 +211,12 @@ _PREFIX_DOCUMENTS = {
         '{"prefix": {"1a": "http://example.org/"}}}}',
         "prefix '1a', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("1a"),
     ),
+    "json at sign": (
+        "json",
+        {},
+        '{"prefix": {"ex": "@foo/"}}',
+        "prefix 'ex', IRI '@foo/': " + _IRI_MESSAGE,
+    ),
     "json default": (
         "json",
         {},
@@ -210,6 +231,13 @@ _PREFIX_DOCUMENTS = {
         '<prov:bundleContent prov:id="ex:b" xmlns:_a="http://example.org/a/"/>'
         "</prov:document>",
         "line 2, <prov:bundleContent> 'ex:b': " + _PREFIX_MESSAGE.format("_a"),
+    ),
+    "xml document element, at sign": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:ex="@foo/">\n<prov:entity prov:id="ex:e"/></prov:document>',
+        "line 2, <prov:entity> 'ex:e': " + _IRI_MESSAGE,
     ),
     "xml document element, underscore": (
         "xml",
@@ -248,6 +276,30 @@ _PREFIX_DOCUMENTS = {
         "prefix 'ex:term', IRI 'http://example.org/term': "
         + _PREFIX_MESSAGE.format("ex:term"),
     ),
+    "jsonld alias": (
+        "jsonld",
+        {},
+        '{"@context": {"id": "@id"}, "@graph": []}',
+        "prefix 'id', IRI '@id': " + _IRI_MESSAGE,
+    ),
+    "jsonld underscore alias": (
+        "jsonld",
+        {},
+        '{"@context": {"_type": "@type"}, "@graph": []}',
+        "prefix '_type', IRI '@type': " + _IRI_MESSAGE,
+    ),
+    "jsonld vocab alias": (
+        "jsonld",
+        {},
+        '{"@context": {"@vocab": "@id"}, "@graph": []}',
+        "prefix '@vocab', IRI '@id': " + _IRI_MESSAGE,
+    ),
+    "jsonld empty key alias": (
+        "jsonld",
+        {},
+        '{"@context": {"": "@id"}, "@graph": []}',
+        "prefix '', IRI '@id': " + _IRI_MESSAGE,
+    ),
     "jsonld space": (
         "jsonld",
         {},
@@ -280,17 +332,3 @@ def test_prefix_raises_when_read(name: str) -> None:
     with pytest.raises(READER_ERRORS[fmt], match=f"^{re.escape(message)}$") as ctx:
         ProvDocument.deserialize(content=text, format=fmt, **kwargs)
     assert isinstance(ctx.value.__cause__, ProvValueError)
-
-
-@pytest.mark.parametrize(
-    ("prefix", "value"),
-    [("id", "@id"), ("_type", "@type"), ("@vocab", "@id"), ("", "@id")],
-)
-def test_jsonld_context_value_starting_with_at_raises(prefix: str, value: str) -> None:
-    # The reader accepts only the PROV-JSONLD structure, so a keyword in the
-    # value position is its own error, with no model exception behind it.
-    text = json.dumps({"@context": {prefix: value}, "@graph": []})
-    message = f"prefix {prefix!r}, IRI {value!r}: a namespace IRI cannot start with '@'"
-    with pytest.raises(READER_ERRORS["jsonld"], match=f"^{re.escape(message)}$") as ctx:
-        ProvDocument.deserialize(content=text, format="jsonld")
-    assert ctx.value.__cause__ is None
