@@ -457,8 +457,10 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     assert read == plain
     assert type(read) is type(plain)
     assert back == document
+    # the record's own storage holds one value, where get_attribute() would
+    # merge the pair by Python equality whatever the storage did
     both = ex_document().entity("ex:e2", [("ex:a", value), ("ex:a", plain)])
-    assert len(both.get_attribute("ex:a")) == 1
+    assert len(both.extra_attributes) == 1
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:

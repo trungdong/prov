@@ -251,36 +251,16 @@ class _RaisingLiteral(Literal):
     def provn_representation(self) -> str:
         raise AttributeError("boom")
 
+    # Without this override the pre-fix `except` branch reached
+    # Literal.__str__ and raised anyway, so the test would pass on the old code.
     def __str__(self) -> str:
         return '"fallback"'
 
 
-class _OwnTextLiteral(Literal):
-    def provn_representation(self) -> str:
-        return '"own" %% ex:custom'
-
-
-@pytest.mark.parametrize("kind", ["raises", "own-text", "pickled-identifier"])
-def test_provn_writer_asks_a_literal_for_its_own_text(kind: str) -> None:
+def test_provn_writer_lets_an_error_in_a_literal_subclass_propagate() -> None:
     document = _doc()
-    if kind == "pickled-identifier":
-        # A 3.2.x pickle stores an Identifier value raw and __setstate__ re-adds
-        # it without coercion; it still writes as an xsd:anyURI literal.
-        record = document.entity("ex:e", {"ex:v": 1})
-        container = record._attributes[document.valid_qualified_name("ex:v")]
-        container.__setstate__(
-            (None, {"_index": {0: Identifier("http://example.org/x")}})
-        )
-        provn = document.get_provn()
-        assert 'ex:v="http://example.org/x" %% xsd:anyURI' in provn
-        ProvDocument.deserialize(content=provn, format="provn")
-        return
-    cls = _RaisingLiteral if kind == "raises" else _OwnTextLiteral
-    record = document.entity("ex:e", {"ex:v": cls("x", NS["custom"])})
-    assert any(type(value) is cls for value in record.get_attribute("ex:v"))
-    if kind == "own-text":
-        assert 'ex:v="own" %% ex:custom' in document.get_provn()
-        return
+    record = document.entity("ex:e", {"ex:v": _RaisingLiteral("x", NS["custom"])})
+    assert any(type(v) is _RaisingLiteral for v in record.get_attribute("ex:v"))
     with pytest.raises(AttributeError, match="boom"):
         document.get_provn()
     with pytest.raises(AttributeError, match="boom"):

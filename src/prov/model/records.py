@@ -575,7 +575,8 @@ def _value_key(value: Any) -> ValueKey:
     ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
     XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34). A
     ``datetime`` takes ``xsd:dateTime``, so a subclass shares the key of the
-    plain ``datetime`` it reads back as (#663).
+    plain ``datetime`` it reads back as (#663). It does not share the key of
+    an ``xsd:dateTime`` ``Literal``, whose key holds its text.
     """
     if isinstance(value, Literal):
         return value._key()
