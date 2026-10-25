@@ -24,6 +24,7 @@ from prov.model import (
 from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 from prov.serializers.provn_lexer import ProvNSyntaxError
+from prov.serializers.provrdf import ProvRDFException
 
 from .conftest import default_namespace, ex_document
 
@@ -299,8 +300,8 @@ _CHANNELS: dict[
     ),
     "rdf": (
         _read_rdf,
-        ProvExceptionInvalidQualifiedName,
-        "Invalid Qualified Name: {text}, ",
+        ProvRDFException,
+        "subject 'http://example.org/e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
 }

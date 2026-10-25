@@ -688,7 +688,7 @@ class ProvRDFSerializer(Serializer):
             namespace is now registered on ``self.document``.
 
         Raises:
-            ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
+            ProvRDFException: If ``iri`` contains no ``#`` or ``/`` separator.
         """
         assert self.document is not None
         # 1. Longest namespace URI bound in the graph that is a proper prefix
@@ -748,11 +748,11 @@ class ProvRDFSerializer(Serializer):
         :class:`~prov.identifier.QualifiedName` equality is URI-based.
 
         Raises:
-            ValueError: If ``iri`` contains no ``#`` or ``/`` separator.
+            ProvRDFException: If ``iri`` contains no ``#`` or ``/`` separator.
         """
         sep = max(iri.rfind("#"), iri.rfind("/"))
         if sep < 0:
-            raise ValueError(
+            raise ProvRDFException(
                 f"Cannot split IRI {iri!r} into a namespace and a local "
                 "part: it contains no '#' or '/' separator."
             )
@@ -865,8 +865,8 @@ class ProvRDFSerializer(Serializer):
             ill-formed ones included.
 
         Raises:
-            ValueError: If the datatype is an IRI neither rdflib nor prov can
-                split, such as ``urn:example:t=``.
+            ProvRDFException: If the datatype is an IRI neither rdflib nor
+                prov can split, such as ``urn:example:t=``.
         """
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
@@ -1466,8 +1466,15 @@ class ProvRDFSerializer(Serializer):
                     # so re-parsed documents may lack them), fall back to
                     # minting a namespace via compute_qname, as
                     # decode_rdf_representation does for all other IRIs.
-                    bundle_id = self.decode_rdf_representation(graph.identifier, graph)
-                    bundle = document.bundle(bundle_id)
+                    try:
+                        bundle_id = self.decode_rdf_representation(
+                            graph.identifier, graph
+                        )
+                        bundle = document.bundle(bundle_id)
+                    except pm.ProvException as exc:
+                        raise ProvRDFException(
+                            f"bundle {str(graph.identifier)!r}: {exc}"
+                        ) from exc
                     self.decode_container(
                         graph,
                         bundle,
@@ -1513,6 +1520,9 @@ class ProvRDFSerializer(Serializer):
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
 
         Raises:
+            ProvRDFException: If the model rejects a record, naming its
+                subject with the model's exception as the cause, or if an IRI
+                cannot be split into a namespace and a local part.
             ValueError: If a relation's object term cannot be decoded to a
                 usable attribute value.
 
@@ -1558,15 +1568,23 @@ class ProvRDFSerializer(Serializer):
         for stmt in graph.triples((None, RDF.type, None)):
             subj = str(stmt[0])
             obj = str(stmt[2])
-            add_attr = (
-                self._register_record_type(graph, stmt, subj, obj, prov_cls_map, state)
-                if obj in prov_cls_map
-                else True
-            )
-            if add_attr:
-                state.other_attributes.setdefault(subj, []).append(
-                    (pm.PROV["type"], self.decode_rdf_representation(stmt[2], graph))
+            try:
+                add_attr = (
+                    self._register_record_type(
+                        graph, stmt, subj, obj, prov_cls_map, state
+                    )
+                    if obj in prov_cls_map
+                    else True
                 )
+                if add_attr:
+                    state.other_attributes.setdefault(subj, []).append(
+                        (
+                            pm.PROV["type"],
+                            self.decode_rdf_representation(stmt[2], graph),
+                        )
+                    )
+            except pm.ProvException as exc:
+                raise ProvRDFException(f"subject {subj!r}: {exc}") from exc
 
     def _register_record_type(
         self,
@@ -1636,21 +1654,24 @@ class ProvRDFSerializer(Serializer):
             pred = cast(URIRef, pred_node)
             if pred == RDF.type:
                 continue
-            if pred in relation_mapper:
-                self._decode_relation_triple(
-                    graph, bundle, state, subj_node, pred, obj, relation_mapper
-                )
-            elif subj in state.record_types:
-                self._decode_attribute_triple(
-                    graph, state, subj, pred, obj, predicate_mapper
-                )
-            local_key = str(obj)
-            if local_key in state.record_types and "qualified" in pred:
-                # The qualification node's influencer: the subject that points
-                # at it fills the relation's first formal attribute.
-                state.formal_attributes[local_key][
-                    next(iter(state.formal_attributes[local_key].keys()))
-                ] = self._relation_node(subj_node, graph)
+            try:
+                if pred in relation_mapper:
+                    self._decode_relation_triple(
+                        graph, bundle, state, subj_node, pred, obj, relation_mapper
+                    )
+                elif subj in state.record_types:
+                    self._decode_attribute_triple(
+                        graph, state, subj, pred, obj, predicate_mapper
+                    )
+                local_key = str(obj)
+                if local_key in state.record_types and "qualified" in pred:
+                    # The qualification node's influencer: the subject that
+                    # points at it fills the relation's first formal attribute.
+                    state.formal_attributes[local_key][
+                        next(iter(state.formal_attributes[local_key].keys()))
+                    ] = self._relation_node(subj_node, graph)
+            except pm.ProvException as exc:
+                raise ProvRDFException(f"subject {subj!r}: {exc}") from exc
 
     def _relation_node(self, node: Node, graph: Graph) -> Any:
         """Return what the model receives for a relation's subject or object.
@@ -1891,14 +1912,15 @@ class ProvRDFSerializer(Serializer):
                 what remains afterwards is what could not be converted.
 
         Raises:
-            ProvException: If a subject carries more than one value for a
+            ProvRDFException: If a subject carries more than one value for a
                 formal attribute that :attr:`_DecodeState.unique_sets`
                 doesn't track separately (e.g. two ``prov:atTime`` triples
                 on one identified qualified node) -- the documented,
                 permanent PROV-O representational limitation described in
                 ``docs/reference/conformance.md``. Any other ``ProvException``
                 raised while constructing a record (e.g. an unresolvable
-                qualified name) propagates unchanged.
+                qualified name) is wrapped in a ``ProvRDFException`` naming
+                the subject, with the model's exception as the cause.
         """
         for subj in state.record_types:
             attrs = state.other_attributes.get(subj)
@@ -1932,13 +1954,13 @@ class ProvRDFSerializer(Serializer):
                 # docstring below for why such repeats land there instead of
                 # being walked). Anything else -- e.g. an unresolvable
                 # qualified name -- is a genuinely different failure and
-                # must propagate with its original message, not this one.
+                # keeps its own message, behind the subject.
                 duplicate_attr = _repeated_formal_attribute(
                     state.record_types[subj], attrs
                 )
                 if duplicate_attr is None:
-                    raise
-                raise pm.ProvException(
+                    raise ProvRDFException(f"subject {subj!r}: {exc}") from exc
+                raise ProvRDFException(
                     f"Cannot decode {subj!r} as a single "
                     f"{state.record_types[subj]} record: more than one "
                     f"value for formal attribute {duplicate_attr!r} ({exc}). "

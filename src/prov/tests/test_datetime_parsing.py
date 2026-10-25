@@ -19,6 +19,7 @@ from prov.model import (
 from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import ProvJSONLDException
 from prov.serializers.provn_lexer import ProvNSyntaxError
+from prov.serializers.provrdf import ProvRDFException
 from prov.serializers.provxml import ProvXMLException
 from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
 
@@ -160,9 +161,13 @@ def test_prov_o_time_outside_the_lexical_space_raises() -> None:
         'ex:a1 a prov:Activity ; prov:startedAtTime "2012-13-01T00:00:00"^^xsd:dateTime .\n'
     )
     with pytest.raises(
-        ProvException, match="Invalid value for attribute prov:startTime"
-    ):
+        ProvRDFException,
+        match=re.escape(
+            "subject 'http://example.org/a1': Invalid value for attribute prov:startTime"
+        ),
+    ) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    assert type(ctx.value.__cause__) is ProvException
 
 
 _BEYOND = "has a timezone offset beyond ±14:00"
@@ -252,21 +257,20 @@ def _written_with(fmt: str, build, old: str, new: str) -> str:
 
 
 # Each reader's error for a time outside the bound, and what starts its message.
-# PROV-O raises the model's error as it is; PROV-N chains it from a positioned
-# syntax error; the other readers chain it from their own error, naming the
-# record.
+# PROV-N chains it from a positioned syntax error; the other readers chain it
+# from their own error, naming the record.
 _TIME_ERRORS: dict[str, type[Exception]] = {
     "json": ProvJSONException,
     "xml": ProvXMLException,
     "jsonld": ProvJSONLDException,
-    "rdf": ProvValueError,
+    "rdf": ProvRDFException,
     "provn": ProvNSyntaxError,
 }
 _TIME_WHERE = {
     "json": r"record 'ex:a1': ",
     "xml": r"line 3, <prov:activity> 'ex:a1': ",
     "jsonld": r"Activity 'ex:a1': ",
-    "rdf": r"prov:startTime ",
+    "rdf": r"subject 'http://example.org/a1': prov:startTime ",
     "provn": r"line \d+, column \d+: ",
 }
 
@@ -281,8 +285,7 @@ def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
     )
     with pytest.raises(_TIME_ERRORS[fmt]) as ctx:
         ProvDocument.deserialize(content=text, format=fmt)
-    # The model's error is the reader's own, or its cause.
-    error = ctx.value.__cause__ or ctx.value
+    error = ctx.value.__cause__
     assert isinstance(error, ProvValueError)
     assert str(error) == f"prov:startTime 2012-01-01T00:00:00+15:00 {_BEYOND}"
     assert re.match(_TIME_WHERE[fmt], str(ctx.value))

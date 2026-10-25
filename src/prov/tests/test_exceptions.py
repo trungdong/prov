@@ -119,6 +119,7 @@ def _jsonld_bundle(*statements: Mapping[str, object]) -> dict[str, object]:
 
 
 _JSONLD_ACTIVITY = {"@type": "Activity", "@id": "ex:a1", "startTime": BAD_TIME}
+_TRIG_PREFIXES = f"@prefix ex: <{EX}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
 _XML_ROOT = f'<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:ex="{EX}">'
 
 # A model rejection from a bundle or an element: the format, the content, the
@@ -208,6 +209,22 @@ WRAPPED = [
         ProvElementIdentifierRequired,
         id="xml-element-without-an-id",
     ),
+    pytest.param(
+        "rdf",
+        _TRIG_PREFIXES + 'ex:e1 a prov:Entity ; prov:wasDerivedFrom "not a name" .\n',
+        ProvRDFException,
+        "subject 'http://example.org/e1': ",
+        ProvExceptionInvalidQualifiedName,
+        id="rdf-relation-object",
+    ),
+    pytest.param(
+        "rdf",
+        _TRIG_PREFIXES + "<http://example.org/a|b> { ex:e a prov:Entity . }\n",
+        ProvRDFException,
+        "bundle 'http://example.org/a|b': ",
+        ProvExceptionInvalidQualifiedName,
+        id="rdf-bundle-name",
+    ),
 ]
 
 
@@ -220,6 +237,18 @@ def test_a_reader_names_the_record_it_rejects(
     assert type(ctx.value) is error
     assert isinstance(ctx.value.__cause__, cause)
     assert str(ctx.value) == where + str(ctx.value.__cause__)
+
+
+def test_a_typed_subject_with_no_separator_raises_the_rdf_error() -> None:
+    content = _TRIG_PREFIXES + "<urn:example:e2=> a prov:Entity .\n"
+    with pytest.raises(ProvRDFException) as ctx:
+        ProvDocument.deserialize(content=content, format="rdf")
+    assert type(ctx.value) is ProvRDFException
+    assert str(ctx.value) == (
+        "Cannot split IRI 'urn:example:e2=' into a namespace and a local part: "
+        "it contains no '#' or '/' separator."
+    )
+    assert ctx.value.__cause__ is None
 
 
 BAD_BUNDLE_CONTENT = [
