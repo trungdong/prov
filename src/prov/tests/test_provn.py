@@ -7,6 +7,7 @@ import datetime
 import io
 import re
 import warnings
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -19,6 +20,7 @@ from prov.model import (
     ProvDocument,
     ProvException,
     ProvMention,
+    ProvRecord,
     ProvWarning,
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError
@@ -910,6 +912,8 @@ def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
         {"prov:alternate1": "ex:e1", "prov:alternate2": "ex:e2"},
         {"ex:k": "v"},
     )
+    # Past 80 columns with its block, one line without it.
+    document.alternateOf("ex:e3", "ex:e4").add_attributes({"ex:long": "y" * 80})
     document.wasDerivedFrom(
         "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
     )
@@ -923,11 +927,16 @@ def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
         'strict=True drops the attribute block [ex:k="v"] of'
         " alternateOf(ex:e1, ex:e2), because PROV-N gives alternateOf no"
         " attribute block",
+        f'strict=True drops the attribute block [ex:long="{"y" * 80}"] of'
+        " alternateOf(ex:e3, ex:e4), because PROV-N gives alternateOf no"
+        " attribute block",
     ]
+    assert "\n  alternateOf(ex:e3, ex:e4)\n" in text
     expected = ProvDocument()
     expected.add_namespace("ex", "http://example.org/")
     expected.membership("ex:c", "ex:x")
     expected.alternateOf("ex:e1", "ex:e2")
+    expected.alternateOf("ex:e3", "ex:e4")
     expected.wasDerivedFrom(
         "ex:e2", "ex:e1", identifier="ex:d", other_attributes={"ex:k": "x"}
     )
@@ -939,6 +948,159 @@ def test_strict_writer_drops_what_bare_relations_cannot_carry() -> None:
         assert reread == expected
         # The default writer keeps both and warns about nothing.
         assert 'alternateOf(ex:alt; ex:e1, ex:e2, [ex:k="v"])' in document.get_provn()
+
+
+def _derivation(container: ProvBundle) -> ProvRecord:
+    return container.wasDerivedFrom(
+        "ex:e2",
+        "ex:e1",
+        "ex:a",
+        "ex:g2",
+        "ex:u1",
+        identifier="ex:d",
+        other_attributes={
+            "prov:type": PROV["Revision"],
+            "ex:comment": "a righteous derivation",
+        },
+    )
+
+
+def _written(body: str) -> str:
+    """A document holding ``body``, whose rows are already at their columns."""
+    return f"document\n  prefix ex <http://example.org/>\n  \n{body}\nendDocument"
+
+
+_ONE_LINE = (
+    "wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, ex:g2, ex:u1,"
+    " [prov:type='prov:Revision', ex:comment=\"a righteous derivation\"])"
+)
+_ROWS = (
+    "wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, ex:g2, ex:u1,\n"
+    "               [prov:type='prov:Revision',\n"
+    '                ex:comment="a righteous derivation"])'
+)
+_MULTILINE = {"ex:t": 'x\n  y"', "ex:l": "z"}
+_RECORD_LAYOUTS = {
+    "one-pair": (
+        lambda d: d.entity("ex:e", {"ex:a": "a value no width can break"}),
+        20,
+        'entity(ex:e,\n       [ex:a="a value no width can break"])',
+    ),
+    "several-pairs": (_derivation, 80, _ROWS),
+    "long-formals": (
+        lambda d: d.activity(
+            "ex:a1", "2026-01-01T00:00:01", "2026-01-01T00:00:02", {"ex:a": "1"}
+        ),
+        40,
+        "activity(ex:a1, 2026-01-01T00:00:01, 2026-01-01T00:00:02,\n"
+        '         [ex:a="1"])',
+    ),
+    "width-0-pair": (
+        lambda d: d.entity("ex:e", {"ex:a": "x"}),
+        0,
+        'entity(ex:e,\n       [ex:a="x"])',
+    ),
+    "width-0-bare": (lambda d: d.entity("ex:e"), 0, "entity(ex:e)"),
+}
+
+
+@pytest.mark.parametrize(
+    ("build", "width", "expected"), _RECORD_LAYOUTS.values(), ids=_RECORD_LAYOUTS
+)
+def test_record_wraps_before_its_attribute_block(
+    build: Callable[[ProvDocument], ProvRecord], width: int | None, expected: str
+) -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    record = build(document)
+    assert record.get_provn(width=width) == expected
+    # The width of the one-line text is the exact limit.
+    one_line = record.get_provn(width=None)
+    assert record.get_provn(width=len(one_line)) == one_line
+    if "[" in one_line:
+        assert record.get_provn(width=len(one_line) - 1) != one_line
+    text = document.get_provn(width=width)
+    assert ProvDocument.deserialize(content=text, format="provn") == document
+
+
+_DOCUMENT_LAYOUTS = {
+    "80-columns-stays": (
+        lambda d: d.entity("ex:e", {"ex:a": "x" * 55}),
+        {},
+        _written(f'  entity(ex:e, [ex:a="{"x" * 55}"])'),
+    ),
+    "81-columns-wraps": (
+        lambda d: d.entity("ex:e", {"ex:a": "x" * 56}),
+        {},
+        _written(f'  entity(ex:e,\n         [ex:a="{"x" * 56}"])'),
+    ),
+    "fits-alone-wraps-nested": (
+        lambda d: d.bundle("ex:b").entity("ex:e", {"ex:a": "x" * 54}),
+        {},
+        _written(
+            f'  bundle ex:b\n    entity(ex:e,\n           [ex:a="{"x" * 54}"])\n'
+            "  endBundle"
+        ),
+    ),
+    "nested": (
+        lambda d: _derivation(d.bundle("ex:b")),
+        {},
+        _written(
+            "  bundle ex:b\n"
+            "    wasDerivedFrom(ex:d; ex:e2, ex:e1, ex:a, ex:g2, ex:u1,\n"
+            "                   [prov:type='prov:Revision',\n"
+            '                    ex:comment="a righteous derivation"])\n'
+            "  endBundle"
+        ),
+    ),
+    "multiline-in-bundle": (
+        lambda d: d.bundle("ex:b").entity("ex:e", _MULTILINE),
+        {"width": 30},
+        _written(
+            "  bundle ex:b\n    entity(ex:e,\n           "
+            '[ex:t="""x\n  y\\"""",\n            ex:l="z"])\n  endBundle'
+        ),
+    ),
+    "width-none": (
+        lambda d: (_derivation(d), d.bundle("ex:b").entity("ex:e", _MULTILINE)),
+        {"width": None},
+        _written(
+            f"  {_ONE_LINE}\n  bundle ex:b\n"
+            '    entity(ex:e, [ex:t="""x\n  y\\"""", ex:l="z"])\n  endBundle'
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("build", "kwargs", "expected"), _DOCUMENT_LAYOUTS.values(), ids=_DOCUMENT_LAYOUTS
+)
+def test_document_layout_counts_the_indentation(
+    build: Callable[[ProvDocument], object], kwargs: dict[str, Any], expected: str
+) -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    build(document)
+    text = document.get_provn(**kwargs)
+    assert text == expected
+    assert ProvDocument.deserialize(content=text, format="provn") == document
+
+
+def test_str_and_serialize_follow_get_provn() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    record = _derivation(document)
+    assert str(record) == _ONE_LINE
+    assert document.serialize(format="provn", width=None) == document.get_provn(
+        width=None
+    )
+    stream = io.BytesIO()
+    document.serialize(stream, format="provn")
+    assert stream.getvalue() == document.get_provn().encode("utf-8")
+    assert document.get_provn() != document.get_provn(width=None)
+    with pytest.raises(TypeError):
+        # pylint: disable-next=too-many-function-args
+        document.get_provn(0, True)  # type: ignore[call-arg, arg-type]
 
 
 def test_duplicate_prefix_in_one_scope_is_an_error() -> None:

@@ -62,7 +62,11 @@ document
   default <http://anotherexample.org/>
   prefix ex <http://example.org/>
 
-  entity(e2, [prov:type="File", ex:path="/shared/crime.txt", ex:creator="Alice", ex:content="There was a lot of crime in London last month"])
+  entity(e2,
+         [prov:type="File",
+          ex:path="/shared/crime.txt",
+          ex:creator="Alice",
+          ex:content="There was a lot of crime in London last month"])
   activity(a1, 2024-07-09T16:39:38, -, [prov:type="edit"])
   wasGeneratedBy(e2, a1, -, [ex:fct="save"])
   wasAssociatedWith(a1, ag2, -, [prov:role="author"])

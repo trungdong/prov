@@ -1138,10 +1138,18 @@ class ProvRecord:
         )
 
     def __str__(self) -> str:
-        return self.get_provn()
+        return self.get_provn(width=None)
 
-    def get_provn(self, strict: bool = False) -> str:
+    def get_provn(self, strict: bool = False, width: int | None = 80) -> str:
         """Return the PROV-N representation of the record.
+
+        A statement with an attribute block that is wider than ``width``
+        columns is written over several lines. The keyword, identifier and
+        formal arguments stay on the first line and the attribute block
+        follows, one ``name=value`` pair per line, aligned after the opening
+        parenthesis. The formal arguments and a single pair are never broken.
+        ``str(record)`` never wraps. A string value that holds a line feed is
+        still written as a triple-quoted string over several lines.
 
         Args:
             strict: Write output that parses under the strict PROV-N
@@ -1151,6 +1159,9 @@ class ProvRecord:
                 the identifier or attribute block PROV-N does not give them,
                 each dropped with a :class:`~prov.model.ProvWarning` that
                 names the record.
+            width: The column limit for one line. ``None`` never wraps. A
+                width of ``0`` or less wraps every statement that has an
+                attribute block.
         """
         keyword = PROV_N_MAP[self.get_type()]
         identifier = ""
@@ -1162,7 +1173,7 @@ class ProvRecord:
             else:
                 identifier = bare
         items.extend(self._provn_formal_items())
-        block = self._provn_attribute_block()
+        pairs = self._provn_attribute_block()
         if strict and self.get_type() == PROV_MENTION:
             # The Recommendation grammar has no Mention; PROV-Links writes it
             # as prov:mentionOf. The default keeps the bare keyword ProvToolbox
@@ -1178,16 +1189,32 @@ class ProvRecord:
                     f" because PROV-N gives {keyword} no identifier"
                 )
                 identifier = ""
-            if block:
+            if pairs:
+                block = f"[{', '.join(pairs)}]"
                 warn(
                     f"strict=True drops the attribute block {block} of {written},"
                     f" because PROV-N gives {keyword} no attribute block"
                 )
-                block = ""
-        if block:
-            items.append(block)
+                pairs = []
         relation_id = f"{identifier}; " if identifier else ""
-        return f"{keyword}({relation_id}{', '.join(items)})"
+        return self._provn_layout(
+            keyword, f"{relation_id}{', '.join(items)}", pairs, width
+        )
+
+    @staticmethod
+    def _provn_layout(
+        keyword: str, head: str, pairs: list[str], width: int | None
+    ) -> str:
+        """Lay the statement out on one line or, past ``width``, over rows."""
+        if not pairs:
+            return f"{keyword}({head})"
+        one_line = f"{keyword}({head}, [{', '.join(pairs)}])"
+        if width is None or len(one_line) <= width:
+            return one_line
+        # Pairs after the first sit one column right, under the first pair.
+        column = " " * (len(keyword) + 1)
+        rows = f",\n{column} ".join(pairs)
+        return f"{keyword}({head},\n{column}[{rows}])"
 
     def _provn_formal_items(self) -> list[str]:
         """The formal attributes in production order, ``-`` where absent."""
@@ -1206,8 +1233,8 @@ class ProvRecord:
                 items.append(str(value))
         return items
 
-    def _provn_attribute_block(self) -> str:
-        """The ``[name=value, ...]`` block of the other attributes, or ``""``."""
+    def _provn_attribute_block(self) -> list[str]:
+        """The ``name=value`` texts of the other attributes, in order."""
         pairs = []
         for attr in self._attributes:
             if attr in self.FORMAL_ATTRIBUTES:
@@ -1218,7 +1245,7 @@ class ProvRecord:
                 except AttributeError:
                     text = encoding_provn_value(value)
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
-        return f"[{', '.join(pairs)}]" if pairs else ""
+        return pairs
 
     def is_element(self) -> bool:
         """Return ``True`` if the record is an element, ``False`` otherwise."""

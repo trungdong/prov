@@ -130,6 +130,26 @@ def _check_provn_iri(namespace: Namespace) -> None:
         )
 
 
+def _indent_line_feeds(text: str, newline: str) -> str:
+    """Replace the line feeds outside triple-quoted strings with ``newline``.
+
+    A triple-quoted string keeps its line feeds raw, and the lexer counts the
+    spaces after one as part of the value, so its content is never indented.
+    ``_provn_string_literal`` escapes every double quote, a namespace IRI
+    cannot hold one (``_PROVN_IRI_FORBIDDEN``) and a checked name cannot
+    either, so three in a row appear only as the delimiters of such a string,
+    and the odd-indexed parts of the split hold its content. A content that
+    ends in a quote gives four in a row at the close. The split takes the first
+    three and leaves the fourth in an even-indexed part, so the parity holds.
+    A prefix is not checked yet, so one holding a double quote breaks the
+    parity for the whole text (#668).
+    """
+    parts = text.split('"""')
+    for index in range(0, len(parts), 2):
+        parts[index] = parts[index].replace("\n", newline)
+    return '"""'.join(parts)
+
+
 def _held_qualified_names(records: Iterable[ProvRecord]) -> Iterator[QualifiedName]:
     """Every qualified name the records hold in their identifier, attribute
     names and values, a literal standing for its datatype."""
@@ -729,37 +749,30 @@ class ProvBundle:
             lines.append("")
         return lines
 
-    def get_provn(self, _indent_level: int = 0, strict: bool = False) -> str:
+    def get_provn(self, *, strict: bool = False, width: int | None = 80) -> str:
         """Return the PROV-N representation of the bundle.
 
         Args:
-            _indent_level: Indentation level for nested bundles.
             strict: Write output that parses under the strict PROV-N
                 profile, as :meth:`ProvRecord.get_provn` describes, dropping
                 what ``alternateOf``, ``specializationOf`` and ``hadMember``
                 cannot carry there, with a warning each.
+            width: The column limit for one line, as
+                :meth:`ProvRecord.get_provn` describes, counted with the
+                indentation of the statement. ``None`` never wraps.
         """
-        indentation = "" + ("  " * _indent_level)
-        newline = "\n" + ("  " * (_indent_level + 1))
-        record_lines = [record.get_provn(strict=strict) for record in self._records]
+        inner = None if width is None else width - 2
         lines = [self._provn_header()]
         lines.extend(self._provn_namespace_lines())
-
-        #  adding all the records
-        lines.extend(record_lines)
-        if self.is_document():
-            # Print out bundles
-            lines.extend(
-                bundle.get_provn(_indent_level + 1, strict=strict)
-                for bundle in self.bundles
-            )
-        provn_str = newline.join(lines) + "\n"
-
-        #  closing the structure
-        provn_str += indentation + (
-            "endDocument" if self.is_document() else "endBundle"
+        lines.extend(
+            record.get_provn(strict=strict, width=inner) for record in self._records
         )
-        return provn_str
+        if self.is_document():
+            lines.extend(
+                bundle.get_provn(strict=strict, width=inner) for bundle in self.bundles
+            )
+        body = _indent_line_feeds("\n".join(lines), "\n  ")
+        return body + "\n" + ("endDocument" if self.is_document() else "endBundle")
 
     def __eq__(self, other: Any) -> bool:
         # Record equality agrees with record hashing, so one set comparison

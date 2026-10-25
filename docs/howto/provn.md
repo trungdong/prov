@@ -20,6 +20,15 @@ document.wasGeneratedBy(e, a)
 print(document.get_provn())
 ```
 
+A statement with an attribute block that is wider than 80 columns, indentation included,
+wraps before the block. {py:meth}`~prov.model.ProvRecord.get_provn` gives the rule. Pass
+`width` to change the limit, or `width=None` to never wrap:
+
+```python
+one_line = document.get_provn(width=None)
+wider = document.serialize(format="provn", width=100)
+```
+
 ## Serialize to a file
 
 `format="provn"` goes through the same {py:meth}`~prov.model.ProvDocument.serialize` API
