@@ -13,7 +13,6 @@ from functools import lru_cache
 from importlib.resources import files
 from typing import Any
 
-from prov import Error
 from prov._warnings import warn
 from prov.constants import (
     PROV_ATTR_ENTITY,
@@ -47,7 +46,7 @@ from prov.model._values import (
     python_value_form,
     resolve_name,
 )
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
     _JSONPrefixMap,
@@ -105,7 +104,7 @@ FORMAL_ATTRS_BY_TERM: dict[type[ProvRecord], dict[str, QualifiedName]] = {
 }
 
 
-class ProvJSONLDException(Error):
+class ProvJSONLDException(ProvSerializationError):
     """Raised when a document cannot be written as, or read from, PROV-JSONLD."""
 
 

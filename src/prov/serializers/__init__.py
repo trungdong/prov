@@ -12,7 +12,13 @@ if TYPE_CHECKING:
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
-__all__ = ["Registry", "Serializer", "get"]
+__all__ = [
+    "ProvFormatNotDetected",
+    "ProvSerializationError",
+    "Registry",
+    "Serializer",
+    "get",
+]
 
 
 def _is_text_stream(stream: io.IOBase) -> bool:
@@ -81,6 +87,23 @@ class Serializer(ABC):
 
 class DoNotExist(Error):
     """Exception for the case a serializer is not available."""
+
+
+class ProvSerializationError(Error):
+    """A document cannot be read from or written to a format.
+
+    Each format's error derives from it. A reader raises its own subclass for
+    input it cannot decode, and sets the model's exception that rejected the
+    record as ``__cause__`` when there is one.
+    """
+
+
+class ProvFormatNotDetected(ProvSerializationError, TypeError):
+    """:func:`prov.read` could not detect the format of its source.
+
+    Also a :class:`TypeError`, which :func:`prov.read` raised before this
+    class existed.
+    """
 
 
 class Registry:

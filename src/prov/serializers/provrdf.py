@@ -14,7 +14,6 @@ from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
-from prov import Error
 from prov._warnings import warn
 from prov.constants import (
     PROV,
@@ -54,7 +53,7 @@ from prov.model._values import (
     _offset_beyond_xsd_bound,
     python_value_form,
 )
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 
 __author__ = "Satrajit S. Ghosh"
 __email__ = "satra@mit.edu"
@@ -70,7 +69,7 @@ RdfTerm: typing.TypeAlias = URIRef | RDFLiteral
 RdfSubject: typing.TypeAlias = URIRef | BNode
 
 
-class ProvRDFException(Error):
+class ProvRDFException(ProvSerializationError):
     """Raised when a PROV-RDF/PROV-O graph cannot be decoded by this package."""
 
 

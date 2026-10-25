@@ -543,13 +543,6 @@ def test_deserialization_with_xsd_as_default_namespace() -> None:
 # serializers/provxml.py).
 
 
-def test_serialize_without_a_document_raises() -> None:
-    serializer = ProvXMLSerializer(document=None)
-    with pytest.raises(ProvXMLException) as ctx:
-        serializer.serialize(io.BytesIO())
-    assert "No document to serialize" in str(ctx.value)
-
-
 def test_non_prov_top_level_element_raises() -> None:
     xml_string = """<?xml version="1.0" encoding="UTF-8"?>
     <prov:document

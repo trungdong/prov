@@ -108,7 +108,14 @@ PUBLIC_API = {
         "PROV_LOCATION",
         "PROV_ROLE",
     ],
-    "prov.serializers": ["get", "Serializer", "Registry", "DoNotExist"],
+    "prov.serializers": [
+        "get",
+        "Serializer",
+        "Registry",
+        "DoNotExist",
+        "ProvSerializationError",
+        "ProvFormatNotDetected",
+    ],
     "prov.dot": ["prov_to_dot"],
     "prov.graph": ["prov_to_graph", "graph_to_prov"],
 }

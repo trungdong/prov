@@ -8,7 +8,7 @@ its serializer class. {doc}`../howto/read-write` shows how to read and write in 
 format, and the format guides ({doc}`../howto/provjson`,
 {doc}`../howto/provxml`, {doc}`../howto/provo-rdf`, {doc}`../howto/provn`,
 {doc}`../howto/provjsonld`) show how to use each format. This page documents the interface,
-the registry and PROV-N's error type.
+the registry and the exception classes every format's error derives from.
 
 ```{eval-rst}
 .. py:module:: prov.serializers
@@ -23,6 +23,14 @@ the registry and PROV-N's error type.
 .. autofunction:: prov.serializers.get
 
 .. autoclass:: prov.serializers.DoNotExist
+   :members:
+   :show-inheritance:
+
+.. autoclass:: prov.serializers.ProvSerializationError
+   :members:
+   :show-inheritance:
+
+.. autoclass:: prov.serializers.ProvFormatNotDetected
    :members:
    :show-inheritance:
 ```

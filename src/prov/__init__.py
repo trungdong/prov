@@ -92,15 +92,13 @@ def _head(
 def _rejection_cause(
     head: str | None, errors: dict[str, Exception]
 ) -> Exception | None:
-    """The error of the reader the input's first character names, when that
-    reader rejected the input with its own positioned error: PROV-JSON or
-    PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds ``"@context"`` or
-    ``"@graph"``), PROV-N for ``document``. The PROV-XML and RDF readers
-    raise no positioned error of their own, so ``<`` chains nothing."""
-    # Lazy imports: prov and the serializers are circularly dependent.
-    from prov.serializers.provjson import ProvJSONException
-    from prov.serializers.provjsonld import ProvJSONLDException
-    from prov.serializers.provn_lexer import ProvNSyntaxError
+    """The error of the reader the input's head names, when that reader
+    rejected the input with its own :class:`~prov.serializers.ProvSerializationError`:
+    PROV-JSON or PROV-JSONLD for ``{`` (PROV-JSONLD when the head holds
+    ``"@context"`` or ``"@graph"``), PROV-N for ``document``. ``<`` names no one
+    reader, since PROV-XML and PROV-O both start with it, so it chains nothing."""
+    # Lazy import: prov and the serializers are circularly dependent.
+    from prov.serializers import ProvSerializationError
 
     if head is None:
         return None
@@ -112,8 +110,7 @@ def _rejection_cause(
     else:
         return None
     error = errors.get(name)
-    positioned = (ProvJSONException, ProvJSONLDException, ProvNSyntaxError)
-    return error if isinstance(error, positioned) else None
+    return error if isinstance(error, ProvSerializationError) else None
 
 
 def _detect_and_parse(
@@ -125,15 +122,16 @@ def _detect_and_parse(
     """Try each registered format in turn, returning the first non-empty parse.
 
     Raises:
-        TypeError: If no registered serializer produced a non-empty
-            document from ``src``/``content``. When the content's first
-            character names PROV-JSON, PROV-JSONLD or PROV-N and that reader
-            rejected the input with its own error, that error is the
-            ``TypeError``'s ``__cause__``.
+        ProvFormatNotDetected: If no registered serializer produced a
+            non-empty document from ``src``/``content``. When the content's
+            first character names PROV-JSON, PROV-JSONLD or PROV-N and that
+            reader rejected the input with its own error, that error is the
+            exception's ``__cause__``.
     """
     # Lazy import: prov and prov.model are circularly dependent.
     from prov._warnings import collect_warnings, warn
     from prov.model import ProvDocument
+    from prov.serializers import ProvFormatNotDetected
 
     stream, start_pos = _prepare_stream(src)
     errors: dict[str, Exception] = {}
@@ -141,7 +139,7 @@ def _detect_and_parse(
     # Failed-candidate diagnostics (e.g. rdflib's "does not look like a
     # valid URI" logger warnings) are noise by definition here: every
     # candidate's exception is swallowed below, and only the rejection of
-    # the reader the content names is chained as the TypeError's cause.
+    # the reader the content names is chained as the exception's cause.
     # Raise rdflib's logger level for the duration of auto-detection only
     # -- the explicit-format path in read() is unaffected and still shows
     # real diagnostics. Note this mutation is process-global and not
@@ -212,7 +210,7 @@ def _detect_and_parse(
             " Note: the source is not a path to an existing file and was "
             "parsed as raw content."
         )
-    raise TypeError(message) from _rejection_cause(
+    raise ProvFormatNotDetected(message) from _rejection_cause(
         _head(src, content, stream, start_pos), errors
     )
 
@@ -236,9 +234,10 @@ def read(
     own default-bound namespace prefixes on every successful parse, empty
     or not). Auto-detection swallows each candidate's error. When every
     candidate fails and the content's first character names PROV-JSON,
-    PROV-JSONLD or PROV-N, that reader's own error is the ``TypeError``'s
-    ``__cause__``, so the traceback shows the rule and its position; pass
-    ``format`` explicitly to get that error on its own.
+    PROV-JSONLD or PROV-N, that reader's own error is the
+    :class:`~prov.serializers.ProvFormatNotDetected`'s ``__cause__``, so the
+    traceback shows the rule and its position; pass ``format`` explicitly to
+    get that error on its own.
 
     ``prov``'s own warnings from a candidate that fails or produces an empty
     document are dropped. Those of the chosen candidate are emitted at the
@@ -270,11 +269,12 @@ def read(
 
     Raises:
         TypeError: If ``format`` is given and names an option the
-            corresponding deserializer does not declare, or if ``format``
-            is ``None`` and no registered serializer produced a non-empty
-            document from ``source``. The ``TypeError`` is raised from the
-            rejecting reader's error when the content names one of PROV-JSON,
-            PROV-JSONLD or PROV-N.
+            corresponding deserializer does not declare.
+        ProvFormatNotDetected: If ``format`` is ``None`` and no registered
+            serializer produced a non-empty document from ``source``. It is
+            also a ``TypeError`` and is raised from the rejecting reader's
+            error when the content names one of PROV-JSON, PROV-JSONLD or
+            PROV-N.
     """
     # Lazy imports to not globber the namespace.
     from prov.model import ProvDocument

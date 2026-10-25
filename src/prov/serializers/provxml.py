@@ -21,7 +21,7 @@ from prov.model import (
 )
 from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
 from prov.model.namespaces import _first_free
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
 __email__ = "krischer@geophysik.uni-muenchen.de"
@@ -71,7 +71,7 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
-class ProvXMLException(prov.Error):
+class ProvXMLException(ProvSerializationError):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
 
 

@@ -6,7 +6,7 @@ from typing import Any
 
 from prov._warnings import warn
 from prov.model import ProvDocument
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import PROFILES, ProvNParser
 
@@ -42,10 +42,10 @@ class ProvNSerializer(Serializer):
                 :meth:`Serializer.serialize`.
 
         Raises:
-            Exception: If ``self.document`` is ``None``.
+            ProvSerializationError: If ``self.document`` is ``None``.
         """
         if self.document is None:
-            raise Exception("No document to serialize")
+            raise ProvSerializationError("No document to serialize.")
 
         provn_content = self.document.get_provn(strict=strict, width=width)
         stream.write(

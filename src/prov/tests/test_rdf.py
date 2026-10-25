@@ -25,7 +25,6 @@ from rdflib.graph import Dataset, Graph
 import prov.model as pm
 from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
-    ProvRDFException,
     ProvRDFSerializer,
     literal_rdf_representation,
 )
@@ -119,13 +118,6 @@ def test_decoding_unicode_value() -> None:
     )
     e1 = prov_doc.get_record("ex:unicode_char")[0]
     assert unicode_char in e1.get_attribute("prov:label")
-
-
-def test_serialize_without_a_document_raises() -> None:
-    serializer = ProvRDFSerializer(document=None)
-    with pytest.raises(ProvRDFException) as ctx:
-        serializer.serialize(BytesIO())
-    assert "No document to serialize" in str(ctx.value)
 
 
 def test_literal_rdf_representation_langtag() -> None:

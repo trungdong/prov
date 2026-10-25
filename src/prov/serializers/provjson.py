@@ -7,7 +7,6 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
-from prov import Error
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
@@ -25,7 +24,7 @@ from prov.model._values import (
     python_value_form,
     resolve_name,
 )
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
     _json_text,
@@ -42,7 +41,7 @@ __email__ = "trungdong@donggiang.com"
 ProvJSONDict = dict[str, dict[str, Any]]
 
 
-class ProvJSONException(Error):
+class ProvJSONException(ProvSerializationError):
     """Raised when a PROV-JSON document contains a construct this package cannot decode."""
 
 
@@ -100,7 +99,13 @@ class ProvJSONSerializer(Serializer):
                 UTF-8-encoded.
             **args: Extra keyword arguments passed through to
                 :func:`json.dump`.
+
+        Raises:
+            ProvSerializationError: If ``self.document`` is ``None``.
         """
+        if self.document is None:
+            raise ProvSerializationError("No document to serialize.")
+
         buf = io.StringIO()
         try:
             json.dump(self.document, buf, cls=ProvJSONEncoder, **args)
