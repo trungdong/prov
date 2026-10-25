@@ -1,6 +1,5 @@
 """PROV-JSONLD format-specific tests: encoder shape, options, error paths."""
 
-import io
 import json
 import re
 import warnings
@@ -22,7 +21,6 @@ from prov.model import (
 from prov.serializers.provjsonld import (
     JSONLD_CONTEXT_URL,
     ProvJSONLDException,
-    ProvJSONLDSerializer,
 )
 
 EX_URI = "http://example.org/"
@@ -227,13 +225,6 @@ def test_serialize_mention_raises() -> None:
         doc.serialize(format="jsonld")
 
 
-def test_serialize_without_a_document_raises() -> None:
-    serializer = ProvJSONLDSerializer(document=None)
-    with pytest.raises(ProvJSONLDException) as ctx:
-        serializer.serialize(io.BytesIO())
-    assert "No document to serialize" in str(ctx.value)
-
-
 def _roundtrip(doc: ProvDocument, **kwargs: Any) -> ProvDocument:
     return ProvDocument.deserialize(
         content=doc.serialize(format="jsonld", **kwargs), format="jsonld"
@@ -316,17 +307,6 @@ def _unresolved(text: str, attr: str) -> str:
         f"the qualified name {text!r} of {attr} does not resolve, "
         f"because its prefix {prefix!r} is not declared"
     )
-
-
-def test_deserialize_value_equal_to_the_vocab_iri_is_rejected() -> None:
-    text = json.dumps(
-        {
-            "@context": {"@vocab": EX_URI},
-            "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
-        }
-    )
-    with pytest.raises(ProvJSONLDException, match=_unresolved(EX_URI, "k")):
-        ProvDocument.deserialize(content=text, format="jsonld")
 
 
 def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:

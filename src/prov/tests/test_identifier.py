@@ -9,6 +9,7 @@ import pytest
 
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import ProvDocument, ProvExceptionInvalidQualifiedName
+from prov.tests.format_errors import READER_ERRORS
 
 
 def test_namespace_rejects_empty_uri() -> None:
@@ -118,9 +119,18 @@ def test_local_part_provn_can_write_is_accepted(localpart: str) -> None:
     assert Namespace("ex", EX)[localpart].localpart == localpart
 
 
-@pytest.mark.parametrize("fmt", ["json", "xml", "jsonld"])
+# The pattern that starts a reader's message for the record whose name is rejected.
+_READ_WHERE = {
+    "json": r"record 'ex:a b': ",
+    "xml": r"line \d+, <prov:entity> 'ex:a b': ",
+    "jsonld": r"prov:Entity 'ex:a b': ",
+}
+
+
+@pytest.mark.parametrize("fmt", list(_READ_WHERE))
 def test_local_part_raises_when_read(fmt: str) -> None:
-    # The readers build the name, so the model's error reaches their caller.
+    # The readers build the name, so each raises its own error for the record,
+    # with the model's error as the cause.
     # PROV-N cannot carry the name and PROV-O refuses to write it, so the
     # text is written with an accepted name and edited.
     document = ProvDocument()
@@ -129,5 +139,8 @@ def test_local_part_raises_when_read(fmt: str) -> None:
     text = document.serialize(format=fmt)
     assert text is not None
     assert text.count("a_b") == 1
-    with pytest.raises(ProvExceptionInvalidQualifiedName, match=_message("a b")):
+    with pytest.raises(
+        READER_ERRORS[fmt], match=f"^{_READ_WHERE[fmt]}{_message('a b')}$"
+    ) as ctx:
         ProvDocument.deserialize(content=text.replace("a_b", "a b"), format=fmt)
+    assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)

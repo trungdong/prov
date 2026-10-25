@@ -30,7 +30,7 @@ from prov.model import ProvDocument
 from prov.tests.examples import primer_example
 
 PUBLIC_API = {
-    "prov": ["Error", "read"],
+    "prov": ["Error", "model", "read"],
     "prov.model": [
         # containers
         "ProvDocument",
@@ -108,7 +108,14 @@ PUBLIC_API = {
         "PROV_LOCATION",
         "PROV_ROLE",
     ],
-    "prov.serializers": ["get", "Serializer", "Registry", "DoNotExist"],
+    "prov.serializers": [
+        "get",
+        "Serializer",
+        "Registry",
+        "DoNotExist",
+        "ProvSerializationError",
+        "ProvFormatNotDetected",
+    ],
     "prov.dot": ["prov_to_dot"],
     "prov.graph": ["prov_to_graph", "graph_to_prov"],
 }
@@ -332,6 +339,7 @@ def test_prov_model_namespace_snapshot() -> None:
 
 def test_names_importable() -> None:
     missing = []
+    unlisted: list[str] = []
     for module_name, names in PUBLIC_API.items():
         requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
         if requirement and importlib.util.find_spec(requirement) is None:
@@ -340,7 +348,10 @@ def test_names_importable() -> None:
         for name in names:
             if not hasattr(module, name):
                 missing.append(f"{module_name}.{name}")
+        exported = getattr(module, "__all__", [])
+        unlisted.extend(f"{module_name}.{n}" for n in exported if n not in names)
     assert missing == [], f"Public API names missing: {missing}"
+    assert unlisted == [], f"__all__ names missing from PUBLIC_API: {unlisted}"
 
 
 def test_serializer_registry_formats() -> None:

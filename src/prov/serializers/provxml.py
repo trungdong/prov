@@ -17,11 +17,12 @@ from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import (
     DEFAULT_NAMESPACES,
     NameValuePair,
+    ProvException,
     sorted_attributes,
 )
 from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
 from prov.model.namespaces import _first_free
-from prov.serializers import Serializer, _is_text_stream
+from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
 __email__ = "krischer@geophysik.uni-muenchen.de"
@@ -71,8 +72,16 @@ XML_XSD_URI = "http://www.w3.org/2001/XMLSchema"
 _XML_PARSER = etree.XMLParser(resolve_entities=False, no_network=True)
 
 
-class ProvXMLException(prov.Error):
+class ProvXMLException(ProvSerializationError):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
+
+
+def _element_position(element: etree._Element, rec_id: str | None) -> str:
+    """Where an error about ``element`` starts: its line, if it has one, its
+    tag and its ``prov:id``."""
+    line = "" if element.sourceline is None else f"line {element.sourceline}, "
+    named = repr(rec_id) if rec_id is not None else "with no prov:id"
+    return f"{line}<prov:{etree.QName(element).localname}> {named}: "
 
 
 class ProvXMLSerializer(Serializer):
@@ -305,7 +314,11 @@ class ProvXMLSerializer(Serializer):
 
         Raises:
             ProvXMLException: If a child element is not in the PROV
-                namespace.
+                namespace; if a ``<prov:bundleContent>`` has no
+                ``prov:id`` or is nested in a bundle; or, naming the
+                element and, when it has one, its line, if the element is
+                not a PROV element or the model rejects a record or a
+                bundle (the model's error is the ``__cause__``).
 
         Warns:
             UserWarning: For each ``<prov:other>`` child, which is otherwise
@@ -332,41 +345,61 @@ class ProvXMLSerializer(Serializer):
             id_tag = _ns_prov("id")
             rec_id = element.attrib.get(id_tag, None)
 
-            # Recursively read bundles.
-            if qname.localname == "bundleContent":
-                self._read_bundle_content(element, bundle, rec_id, namespaces)
-                continue
+            try:
+                # Recursively read bundles.
+                if qname.localname == "bundleContent":
+                    self._read_bundle_content(element, bundle, rec_id, namespaces)
+                    continue
 
-            # Try to make a qualified name out of it!
-            prov_rec_id = (
-                xml_qname_to_QualifiedName(
-                    element, rec_id, namespaces=namespaces, scope=bundle
-                )
-                if rec_id is not None
-                else None
-            )
-
-            attributes = _extract_attributes(element, namespaces, bundle)
-
-            # Map the record type to its base type.
-            q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
-            rec_type = PROV_BASE_CLS[q_prov_name]
-
-            if _ns_xsi("type") in element.attrib:
-                value = xml_qname_to_QualifiedName(
-                    element,
-                    element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
-                    namespaces=namespaces,
-                    scope=bundle,
-                )
-                attributes.append((PROV["type"], value))
-
-            rec = bundle.new_record(rec_type, prov_rec_id, attributes)
-
-            # Add the actual type in case a base type has been used.
-            if rec_type != q_prov_name:
-                rec.add_asserted_type(q_prov_name)
+                self._read_record(element, qname.localname, rec_id, bundle, namespaces)
+            except ProvException as exc:
+                raise ProvXMLException(
+                    f"{_element_position(element, rec_id)}{exc}"
+                ) from exc
         return bundle
+
+    def _read_record(
+        self,
+        element: etree._Element,
+        localname: str,
+        rec_id: str | None,
+        bundle: prov.model.ProvDocument | prov.model.ProvBundle,
+        namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
+    ) -> None:
+        """Add the record that ``element`` encodes to ``bundle``."""
+        # Try to make a qualified name out of it!
+        prov_rec_id = (
+            xml_qname_to_QualifiedName(
+                element, rec_id, namespaces=namespaces, scope=bundle
+            )
+            if rec_id is not None
+            else None
+        )
+
+        attributes = _extract_attributes(element, namespaces, bundle)
+
+        # Map the record type to its base type.
+        q_prov_name = FULL_PROV_RECORD_IDS_MAP.get(localname)
+        if q_prov_name is None:
+            raise ProvXMLException(
+                _element_position(element, rec_id) + "it is not a PROV element"
+            )
+        rec_type = PROV_BASE_CLS[q_prov_name]
+
+        if _ns_xsi("type") in element.attrib:
+            value = xml_qname_to_QualifiedName(
+                element,
+                element.attrib[_ns_xsi("type")],  # type: ignore[arg-type]
+                namespaces=namespaces,
+                scope=bundle,
+            )
+            attributes.append((PROV["type"], value))
+
+        rec = bundle.new_record(rec_type, prov_rec_id, attributes)
+
+        # Add the actual type in case a base type has been used.
+        if rec_type != q_prov_name:
+            rec.add_asserted_type(q_prov_name)
 
     def _read_bundle_content(
         self,
@@ -380,13 +413,17 @@ class ProvXMLSerializer(Serializer):
         The bundle takes its own ``xmlns`` as its default, and the prefixes
         declared on the element as its own namespaces, before its ``prov:id``
         is resolved, so the identifier and the records read in its scope.
+
+        Raises:
+            ProvXMLException: If ``document`` is not a document, or ``rec_id``
+                is ``None``.
         """
         if not isinstance(document, prov.model.ProvDocument):
             # Only a document may directly contain named bundles;
             # nested bundleContent would mean a bundle-within-a-bundle.
-            raise AssertionError("bundleContent found outside a ProvDocument")
+            raise ProvXMLException("bundleContent found outside a ProvDocument")
         if rec_id is None:
-            raise AssertionError("bundleContent element has no id")
+            raise ProvXMLException("bundleContent element has no id")
         bundle = prov.model.ProvBundle(document=document)
         _adopt_own_default(element, bundle)
         own_prefixes = _own_prefixes(element)

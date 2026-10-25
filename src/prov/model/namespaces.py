@@ -365,9 +365,15 @@ class NamespaceManager(dict[str, Namespace]):
             ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
                 this manager's default or an enclosing one.
         """
-        for manager in self._scopes():
-            if manager._default is not None and text == manager._default.uri:
-                raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
+        if self._is_default_iri_in_reach(text):
+            raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
+
+    def _is_default_iri_in_reach(self, text: str) -> bool:
+        """Whether ``text`` equals the IRI of a default namespace in reach."""
+        return any(
+            manager._default is not None and manager._default.uri == text
+            for manager in self._scopes()
+        )
 
     def _scopes(self) -> Iterator[NamespaceManager]:
         """This manager, then each of its ancestors."""
@@ -420,12 +426,18 @@ class NamespaceManager(dict[str, Namespace]):
         namespace = self._binding_in_scope(prefix)
         return None if namespace is None else namespace[local]
 
-    def _unresolved_reason(self, prefix: str, local: str, colon: bool = False) -> str:
+    def _unresolved_reason(
+        self, prefix: str, local: str, colon: bool, text: str
+    ) -> str:
         """Why the name split into ``prefix`` and ``local`` resolves to no
         qualified name, as the clause after "because"; meaningful after
         :meth:`lookup` returned ``None`` for the pair. ``colon`` says the
         name was written with a ``:``, so an empty ``prefix`` is a declared
-        empty prefix and not the lack of one."""
+        empty prefix and not the lack of one. ``text`` is the name as
+        written; when it is the IRI of a default namespace in reach, that
+        is the reason (#675)."""
+        if self._is_default_iri_in_reach(text):
+            return _default_iri_detail(text)
         if (prefix, local) == ("", ""):
             return "it is empty"
         if prefix == "_":

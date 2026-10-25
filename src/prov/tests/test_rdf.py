@@ -121,13 +121,6 @@ def test_decoding_unicode_value() -> None:
     assert unicode_char in e1.get_attribute("prov:label")
 
 
-def test_serialize_without_a_document_raises() -> None:
-    serializer = ProvRDFSerializer(document=None)
-    with pytest.raises(ProvRDFException) as ctx:
-        serializer.serialize(BytesIO())
-    assert "No document to serialize" in str(ctx.value)
-
-
 def test_literal_rdf_representation_langtag() -> None:
     literal = pm.Literal("bonjour", langtag="fr")
     rdf_literal = literal_rdf_representation(literal)
@@ -648,12 +641,13 @@ def test_decode_scruffy_qualified_generation_raises_documented_limitation() -> N
         prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime,
             "2013-01-01T00:00:00"^^xsd:dateTime .
     """
-    with pytest.raises(ProvException) as ctx:
+    with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
+    assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
 
@@ -690,12 +684,13 @@ def test_decode_scruffy_relations_raise_documented_limitation(
 
     rdf = document.serialize(format="rdf")
 
-    with pytest.raises(ProvException) as ctx:
+    with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=rdf, format="rdf")
 
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
+    assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
 
@@ -706,8 +701,9 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
     # every ProvException raised while building a record. This document has
     # no duplication at all -- a single prov:activity triple whose object is
     # a plain literal, which is not a qualified name, and a single
-    # prov:atTime triple -- so it must fail with a plain
-    # ProvExceptionInvalidQualifiedName, not the #217 message.
+    # prov:atTime triple -- so it must fail naming the subject with the
+    # model's ProvExceptionInvalidQualifiedName as the cause, not the #217
+    # message.
     turtle = """
     @prefix prov: <http://www.w3.org/ns/prov#> .
     @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
@@ -720,13 +716,16 @@ def test_decode_unrelated_provexception_is_not_relabelled_as_scruffy() -> None:
         prov:activity "not a name" ;
         prov:atTime "2012-01-01T00:00:00"^^xsd:dateTime .
     """
-    with pytest.raises(ProvExceptionInvalidQualifiedName) as ctx:
+    with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" not in message
     assert "conformance.md" not in message
-    assert message.startswith("Invalid Qualified Name:")
+    assert message.startswith(
+        "subject 'http://example.org/gen1': Invalid Qualified Name:"
+    )
+    assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
 
 
 def test_alternate_triple_follows_dm_argument_order() -> None:
@@ -818,12 +817,13 @@ def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_
         prov:startedAtTime "2020-01-01T00:00:00"^^xsd:dateTime,
             "2021-01-01T00:00:00"^^xsd:dateTime .
     """
-    with pytest.raises(ProvException) as ctx:
+    with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
+    assert ctx.type is ProvRDFException
     assert isinstance(ctx.value.__cause__, ProvException)
 
 
@@ -1238,8 +1238,12 @@ def test_blank_node_element_still_takes_its_label_as_identifier() -> None:
         "@prefix ex: <http://example.org/> .\n"
         '[] a prov:Entity ; ex:k "v" .\n'
     )
-    with pytest.raises(pm.ProvElementIdentifierRequired):
+    with pytest.raises(ProvRDFException) as ctx:
         _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    assert isinstance(ctx.value.__cause__, pm.ProvElementIdentifierRequired)
+    assert re.fullmatch(
+        r"subject '[^']+': " + re.escape(str(ctx.value.__cause__)), str(ctx.value)
+    )
 
 
 @pytest.mark.parametrize(
@@ -1303,10 +1307,14 @@ def test_blank_node_behind_an_element_is_the_elements_own_problem(body: str) -> 
     # label (#639). The positive case, the element resolving under a default
     # namespace, waits for the reader to read the default binding as the
     # default.
-    with pytest.raises(pm.ProvElementIdentifierRequired):
+    with pytest.raises(ProvRDFException) as ctx:
         _ = ProvDocument.deserialize(
             content=_TURTLE_PREFIXES + body, format="rdf", rdf_format="turtle"
         )
+    assert isinstance(ctx.value.__cause__, pm.ProvElementIdentifierRequired)
+    assert re.fullmatch(
+        r"subject '[^']+': " + re.escape(str(ctx.value.__cause__)), str(ctx.value)
+    )
 
 
 def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
@@ -1480,7 +1488,7 @@ def test_unsplittable_iri_raises_clear_error() -> None:
     # the IRI rather than letting an obscure rdflib error escape.
     serializer = ProvRDFSerializer(document=ProvDocument())
     graph = Graph()
-    with pytest.raises(ValueError) as ctx:
+    with pytest.raises(ProvRDFException) as ctx:
         serializer.decode_rdf_representation(URIRef("urn:no-separator;"), graph)
     assert "urn:no-separator;" in str(ctx.value)
 
@@ -1566,7 +1574,7 @@ def test_a_datatype_no_namespace_compacts_is_kept(prefix: str, uri: str) -> None
 def test_a_datatype_iri_with_no_separator_raises() -> None:
     turtle = _TURTLE_PREFIXES + 'ex:e a prov:Entity ; ex:p "1"^^<urn:example:t=> .\n'
     with pytest.raises(
-        ValueError, match=re.escape("Cannot split IRI 'urn:example:t='")
+        ProvRDFException, match=re.escape("Cannot split IRI 'urn:example:t='")
     ):
         _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 

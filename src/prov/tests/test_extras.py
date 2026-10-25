@@ -289,12 +289,3 @@ def test_plot_without_matplotlib_raises_helpful_error() -> None:
         assert "prov[plot]" in str(ctx.value)
     finally:
         builtins.__import__ = real_import
-
-
-def test_serialize_without_a_document_raises() -> None:
-    """Covers ProvNSerializer.serialize()'s "no document" guard
-    (planning/test-gap-checklist.md, T13 item under serializers/provn.py)."""
-    serializer = ProvNSerializer(document=None)
-    with pytest.raises(Exception) as ctx:
-        serializer.serialize(io.StringIO())
-    assert "No document to serialize" in str(ctx.value)

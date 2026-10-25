@@ -1,6 +1,7 @@
 """Unit tests for the stdlib-based xsd:dateTime parser (3.0 dateutil drop, #237)."""
 
 import datetime
+import re
 import warnings
 
 import pytest
@@ -15,10 +16,9 @@ from prov.model import (
     ProvWarning,
     parse_xsd_datetime,
 )
-from prov.serializers.provjson import ProvJSONException
-from prov.serializers.provjsonld import ProvJSONLDException
-from prov.serializers.provn_lexer import ProvNSyntaxError
+from prov.serializers.provrdf import ProvRDFException
 from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
+from prov.tests.format_errors import READER_ERRORS
 
 UTC = datetime.UTC
 
@@ -158,9 +158,15 @@ def test_prov_o_time_outside_the_lexical_space_raises() -> None:
         'ex:a1 a prov:Activity ; prov:startedAtTime "2012-13-01T00:00:00"^^xsd:dateTime .\n'
     )
     with pytest.raises(
-        ProvException, match="Invalid value for attribute prov:startTime"
-    ):
+        ProvRDFException,
+        match=re.escape(
+            "subject 'http://example.org/a1': Invalid value for attribute prov:startTime"
+        ),
+    ) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    cause = ctx.value.__cause__
+    assert cause is not None
+    assert pytest.ExceptionInfo.from_exception(cause).type is ProvException
 
 
 _BEYOND = "has a timezone offset beyond ±14:00"
@@ -249,6 +255,18 @@ def _written_with(fmt: str, build, old: str, new: str) -> str:
     return text.replace(old, new)
 
 
+# What starts each reader's message for a time outside the bound. PROV-N
+# chains the model's error from a positioned syntax error; the other readers
+# chain it from their own error, naming the record.
+_TIME_WHERE = {
+    "json": r"record 'ex:a1': ",
+    "xml": r"line \d+, <prov:activity> 'ex:a1': ",
+    "jsonld": r"prov:Activity 'ex:a1': ",
+    "rdf": r"subject 'http://example.org/a1': prov:startTime ",
+    "provn": r"line \d+, column \d+: ",
+}
+
+
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
 def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
     text = _written_with(
@@ -257,12 +275,13 @@ def test_every_reader_rejects_a_time_beyond_the_bound(fmt) -> None:
         "+14:00",
         "+15:00",
     )
-    with pytest.raises(ProvException) as ctx:
+    with pytest.raises(READER_ERRORS[fmt]) as ctx:
         ProvDocument.deserialize(content=text, format=fmt)
-    # The PROV-N parser wraps a model error at the statement with __cause__.
-    error = ctx.value if isinstance(ctx.value, ProvValueError) else ctx.value.__cause__
+    error = ctx.value.__cause__
     assert isinstance(error, ProvValueError)
     assert str(error) == f"prov:startTime 2012-01-01T00:00:00+15:00 {_BEYOND}"
+    assert re.match(_TIME_WHERE[fmt], str(ctx.value))
+    assert not isinstance(ctx.value, ValueError)
 
 
 @pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
@@ -281,12 +300,6 @@ def test_every_reader_keeps_a_typed_time_beyond_the_bound_as_a_literal(fmt) -> N
 # the lexical form (#514, the #513 precedent).
 # PROV-O is the one format that cannot reject or keep the text; see
 # test_prov_o_truncates_a_fraction_beyond_six_digits.
-_FRACTION_ERRORS = {
-    "json": ProvJSONException,
-    "xml": ProvException,
-    "jsonld": ProvJSONLDException,
-    "provn": ProvNSyntaxError,
-}
 
 
 @pytest.mark.parametrize("fmt", TEXT_FORMATS)
@@ -297,7 +310,7 @@ def test_every_reader_rejects_a_fraction_beyond_six_digits(fmt) -> None:
         ".123456",
         ".1234567",
     )
-    with pytest.raises(_FRACTION_ERRORS[fmt]):
+    with pytest.raises(READER_ERRORS[fmt]):
         ProvDocument.deserialize(content=text, format=fmt)
 
 

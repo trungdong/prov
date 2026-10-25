@@ -18,11 +18,12 @@ from typing import Any
 from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
 from prov.model import ProvException
 from prov.model._values import LANGTAG_PATTERN, XSD_DATETIME_PATTERN
+from prov.serializers import ProvSerializationError
 
 __all__ = ["ProvNSyntaxError", "Token", "TokenKind", "tokenize"]
 
 
-class ProvNSyntaxError(ProvException):
+class ProvNSyntaxError(ProvSerializationError, ProvException):
     """A PROV-N document could not be tokenised or parsed.
 
     Attributes:

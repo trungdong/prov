@@ -21,11 +21,10 @@ from prov.model import (
     ProvRecord,
     QualifiedName,
 )
-from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
-from prov.serializers.provn_lexer import ProvNSyntaxError
 
 from .conftest import default_namespace, ex_document
+from .format_errors import READER_ERRORS
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]
@@ -284,23 +283,23 @@ _CHANNELS: dict[
         "Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
-    "provn": (_read_provn, ProvNSyntaxError, "line 3, column 20: ", ""),
+    "provn": (_read_provn, READER_ERRORS["provn"], "line 3, column 20: ", ""),
     "json": (
         _read_json_value,
-        ProvJSONException,
+        READER_ERRORS["json"],
         "record 'ex:e', attribute 'ex:k': ",
         "",
     ),
     "jsonld": (
         _read_jsonld,
-        ProvExceptionInvalidQualifiedName,
-        "Invalid Qualified Name: {text}, ",
+        READER_ERRORS["jsonld"],
+        "prov:Entity 'ex:e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
     "rdf": (
         _read_rdf,
-        ProvExceptionInvalidQualifiedName,
-        "Invalid Qualified Name: {text}, ",
+        READER_ERRORS["rdf"],
+        "subject 'http://example.org/e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
 }
@@ -316,6 +315,120 @@ def test_every_reader_and_assertion_reject_with_one_message(
     with pytest.raises(error) as ctx:
         read(text, datatype)
     assert str(ctx.value) == where.format(text=text) + _detail(text, reason, attr)
+
+
+#  A value equal to a default namespace IRI in reach (#675)
+DEFAULT_IRI = "http://d.example/"
+DEFAULT_IRI_REASON = (
+    f"the IRI {DEFAULT_IRI} is the default namespace and has no qualified-name "
+    "form; declare a prefix for it"
+)
+
+
+def _assert_the_default_iri() -> None:
+    document = ex_document()
+    document.set_default_namespace(DEFAULT_IRI)
+    document.entity("ex:e", {"prov:type": Literal(DEFAULT_IRI, XSD_QNAME)})
+
+
+def _read_provn_the_default_iri() -> None:
+    declarations = f"prefix ex <{EX}>\ndefault <{DEFAULT_IRI}>\n"
+    source = _provn(f"'{DEFAULT_IRI}'", declarations)
+    ProvDocument.deserialize(content=source, format="provn")
+
+
+def _read_json_the_default_iri() -> None:
+    value = {"$": DEFAULT_IRI, "type": "prov:QUALIFIED_NAME"}
+    source = _json(
+        {"entity": {"ex:e": {"ex:k": value}}}, {"ex": EX, "default": DEFAULT_IRI}
+    )
+    ProvDocument.deserialize(content=source, format="json")
+
+
+def _read_jsonld_node_the_default_iri() -> None:
+    source = json.dumps(
+        {
+            "@context": {"@vocab": DEFAULT_IRI},
+            "@graph": [
+                {"@type": "Entity", "@id": "e", "k": [{"@id": DEFAULT_IRI}]},
+            ],
+        }
+    )
+    ProvDocument.deserialize(content=source, format="jsonld")
+
+
+def _read_jsonld_value_the_default_iri() -> None:
+    value = {"@value": DEFAULT_IRI, "@type": "prov:QUALIFIED_NAME"}
+    source = json.dumps(
+        {
+            "@context": [{"@vocab": DEFAULT_IRI}, JSONLD_CONTEXT_URL],
+            "@graph": [{"@type": "Entity", "@id": "e", "k": [value]}],
+        }
+    )
+    ProvDocument.deserialize(content=source, format="jsonld")
+
+
+def _read_rdf_the_default_iri() -> None:
+    source = (
+        f"@prefix : <{DEFAULT_IRI}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        f':e a prov:Entity ; prov:type "{DEFAULT_IRI}"^^<{XSD_QNAME.uri}> .\n'
+    )
+    ProvDocument.deserialize(content=source, format="rdf", rdf_format="turtle")
+
+
+# Each channel: its reader, the error it raises, what starts the message and
+# whether the attribute is named after the value. A JSON-LD node reference
+# names no record.
+_DEFAULT_IRI_CHANNELS: dict[
+    str, tuple[Callable[[], None], type[Exception], str, str]
+] = {
+    "asserted": (
+        _assert_the_default_iri,
+        ProvExceptionInvalidQualifiedName,
+        f"Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of prov:type",
+    ),
+    "provn": (
+        _read_provn_the_default_iri,
+        READER_ERRORS["provn"],
+        "line 4, column 20: ",
+        "",
+    ),
+    "json": (
+        _read_json_the_default_iri,
+        READER_ERRORS["json"],
+        "record 'ex:e', attribute 'ex:k': ",
+        "",
+    ),
+    "jsonld-node": (
+        _read_jsonld_node_the_default_iri,
+        READER_ERRORS["jsonld"],
+        "",
+        " of k",
+    ),
+    "jsonld-value": (
+        _read_jsonld_value_the_default_iri,
+        READER_ERRORS["jsonld"],
+        f"prov:Entity 'e': Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of k",
+    ),
+    "rdf": (
+        _read_rdf_the_default_iri,
+        READER_ERRORS["rdf"],
+        f"subject '{DEFAULT_IRI}e': Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of prov:type",
+    ),
+}
+
+
+@pytest.mark.parametrize("channel", list(_DEFAULT_IRI_CHANNELS))
+def test_a_value_equal_to_the_default_iri_gives_the_default_reason(
+    channel: str,
+) -> None:
+    read, error, where, attr = _DEFAULT_IRI_CHANNELS[channel]
+    with pytest.raises(error) as ctx:
+        read()
+    assert str(ctx.value) == where + _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
 
 
 #  A prefix the document declares wins over compaction in a bundle (#599)

@@ -26,12 +26,14 @@ from prov.constants import (
     XSD_LONG,
 )
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
+from prov.serializers.provjson import ProvJSONException
 from prov.tests.conftest import (
     ROUNDTRIP_FORMATS,
     TEXT_FORMATS,
     ex_document,
     roundtrip_document,
 )
+from prov.tests.format_errors import READER_ERRORS
 
 
 def test_decimal_literals_compare_in_value_space() -> None:
@@ -185,7 +187,12 @@ def test_bcp47_language_tag_is_kept(tag: str | None) -> None:
         assert Literal("hi", langtag=tag).langtag == tag
 
 
-READERS = ["json", "xml", "jsonld"]
+READER_WHERE = {
+    "json": r"record 'ex:e1': ",
+    "xml": r"line \d+, <prov:entity> 'ex:e1': ",
+    "jsonld": r"prov:Entity 'ex:e1': ",
+}
+READERS = list(READER_WHERE)
 
 
 def _written_with_tag(fmt: str, tag: str) -> str:
@@ -201,9 +208,14 @@ def _written_with_tag(fmt: str, tag: str) -> str:
 
 @pytest.mark.parametrize("fmt", READERS)
 def test_language_tag_raises_when_read(fmt: str) -> None:
-    # The readers build the Literal, so the model's error reaches their caller.
-    with pytest.raises(ProvValueError, match="'en_US'"):
+    # The readers build the Literal, so each raises its own error for the
+    # record, with the model's error as the cause.
+    with pytest.raises(
+        READER_ERRORS[fmt], match=f"^{READER_WHERE[fmt]}.*'en_US'"
+    ) as ctx:
         ProvDocument.deserialize(content=_written_with_tag(fmt, "en_US"), format=fmt)
+    assert isinstance(ctx.value.__cause__, ProvValueError)
+    assert not isinstance(ctx.value, ValueError)
 
 
 @pytest.mark.parametrize("fmt", READERS)
@@ -222,8 +234,13 @@ def test_empty_json_lang_raises() -> None:
         '{"prefix": {"ex": "http://example.org/"},'
         ' "entity": {"ex:e1": {"ex:a": {"$": "hi", "lang": ""}}}}'
     )
-    with pytest.raises(ProvValueError, match="is empty"):
+    message = "record 'ex:e1': the language tag of 'hi' is empty"
+    with pytest.raises(
+        ProvJSONException,
+        match=f"^{re.escape(message)}$",
+    ) as ctx:
         ProvDocument.deserialize(content=content, format="json")
+    assert isinstance(ctx.value.__cause__, ProvValueError)
 
 
 # A typed literal whose text is not the canonical spelling of its value keeps

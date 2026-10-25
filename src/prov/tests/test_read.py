@@ -15,8 +15,8 @@ import pytest
 
 import prov
 from prov._warnings import collect_warnings, warn as prov_warn
-from prov.model import ProvDocument, ProvWarning
-from prov.serializers import DoNotExist
+from prov.model import ProvDocument, ProvValueError, ProvWarning
+from prov.serializers import DoNotExist, ProvFormatNotDetected
 from prov.serializers.provjson import ProvJSONException, ProvJSONSerializer
 from prov.serializers.provjsonld import ProvJSONLDException
 from prov.serializers.provn import ProvNSerializer
@@ -194,6 +194,8 @@ def test_read_garbage_content_raises_type_error() -> None:
     # A str that is not an existing file path is treated as raw content.
     with pytest.raises(TypeError) as ctx:
         _ = prov.read("no/such/file.json")
+    assert ctx.type is ProvFormatNotDetected
+    assert str(ctx.value).startswith("Could not read from the source.")
     assert ctx.value.__cause__ is None
 
 
@@ -203,6 +205,10 @@ _JSON_NULL = (
     '{"prefix": {"ex": "http://example.org/"}, "entity": {"ex:e": {"ex:k": null}}}'
 )
 _JSONLD_UNKNOWN_TYPE = '{"@context": [], "@graph": [{"@type": "Frobnication"}]}'
+_JSON_LANGUAGE_TAG = (
+    '{"prefix": {"ex": "http://example.org/"},'
+    ' "entity": {"ex:e": {"ex:k": {"$": "hi", "lang": "en_US"}}}}'
+)
 _PROVN_UNDECLARED = "document\n  prefix ex <http://example.org/>\n  entity(ex:e, [ex:k='zz:x'])\nendDocument"
 
 
@@ -229,6 +235,12 @@ def _source(kind: str, content: str, tmp_path: pathlib.Path) -> object:
             id="json",
         ),
         pytest.param(
+            _JSON_LANGUAGE_TAG,
+            ProvJSONException,
+            "^record 'ex:e': the language tag 'en_US' of 'hi' is not a BCP 47 tag$",
+            id="json-language-tag",
+        ),
+        pytest.param(
             _JSONLD_UNKNOWN_TYPE, ProvJSONLDException, "Frobnication", id="jsonld"
         ),
         pytest.param(
@@ -245,8 +257,17 @@ def test_read_auto_detect_chains_the_readers_error(
 ) -> None:
     with pytest.raises(TypeError) as ctx:
         _ = prov.read(_source(kind, content, tmp_path))
+    assert ctx.type is ProvFormatNotDetected
     assert isinstance(ctx.value.__cause__, cause)
     assert re.search(match, str(ctx.value.__cause__))
+
+
+def test_read_of_a_bad_language_tag_chains_the_reader_and_the_model_errors() -> None:
+    with pytest.raises(TypeError) as ctx:
+        _ = prov.read(_JSON_LANGUAGE_TAG)
+    reader_error = ctx.value.__cause__
+    assert isinstance(reader_error, ProvJSONException)
+    assert isinstance(reader_error.__cause__, ProvValueError)
 
 
 def test_read_auto_detect_chains_nothing_for_an_error_of_another_type() -> None:
@@ -258,7 +279,7 @@ def test_read_auto_detect_chains_nothing_for_an_error_of_another_type() -> None:
 
 
 def test_read_auto_detect_chains_nothing_for_xml() -> None:
-    # The PROV-XML reader raises no error of its own that names a position.
+    # `<` starts both PROV-XML and RDF/XML, so it names no one reader.
     text = (
         '<prov:document xmlns:prov="http://www.w3.org/ns/prov#">'
         '<prov:entity prov:id="zz:e"/></prov:document>'
