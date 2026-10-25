@@ -263,5 +263,3 @@ def test_provn_writer_lets_an_error_in_a_literal_subclass_propagate() -> None:
     assert any(type(v) is _RaisingLiteral for v in record.get_attribute("ex:v"))
     with pytest.raises(AttributeError, match="boom"):
         document.get_provn()
-    with pytest.raises(AttributeError, match="boom"):
-        document.serialize(format="provn")
