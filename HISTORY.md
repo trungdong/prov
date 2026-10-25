@@ -73,10 +73,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   [#551](https://github.com/trungdong/prov/issues/551),
   [#553](https://github.com/trungdong/prov/issues/553),
   [#599](https://github.com/trungdong/prov/issues/599),
-  [#586](https://github.com/trungdong/prov/issues/586)). A bare string under `type`,
-  `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
-  stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
-  `xsd:QName` `Literal` and said 3.3.0 would reject it
+  [#586](https://github.com/trungdong/prov/issues/586))
 - In PROV-JSON, a `ProvJSONException` naming the record and attribute for a `null` value
   ([#528](https://github.com/trungdong/prov/issues/528)), a formal attribute or member
   that is not a string ([#597](https://github.com/trungdong/prov/issues/597)), a formal
@@ -276,6 +273,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the fraction to microseconds before `prov` reads the text, so such a time reads as the
   truncated `datetime` in both positions, as the conformance page records
   ([#514](https://github.com/trungdong/prov/issues/514))
+- A PROV-JSONLD node reference, `{"@id": …}`, or a bare string under `type`, `role` or
+  `location`, that no declared namespace resolves raises `ProvJSONLDException`, with the
+  sentence the other readers use: `the qualified name 'http://other.org/x' of ex:ref does
+  not resolve, because its prefix 'http' is not declared`. 3.2.3 read the bare string as
+  an `xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read the node
+  reference as an `xsd:anyURI` `Literal` without a warning. A reference to a blank node,
+  `{"@id": "_:b1"}` or `"_:b1"`, names no record, so the reader drops that value with a
+  `ProvWarning` that names the record and the attribute, and keeps the attribute's other
+  values
+  ([#609](https://github.com/trungdong/prov/issues/609))
 
 ### Output changes
 

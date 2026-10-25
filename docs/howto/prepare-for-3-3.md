@@ -19,8 +19,9 @@ RDF. A message from `unified()` names the identifier of the records it cannot me
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects with its own `ProvJSONException`, `ProvJSONLDException` or
 `ProvNSyntaxError` raises `TypeError`, whose `__cause__` is that error with the rule and
-its position. An error from the model, such as the one for an undeclared prefix in
-PROV-JSONLD, is not chained. Pass `format=` to see the rule on its own.
+its position. An error from the model, such as the one for a PROV-JSONLD attribute key
+whose prefix the context does not declare, is not chained. Pass `format=` to see the rule
+on its own.
 
 ## PROV-N declarations
 
@@ -197,10 +198,13 @@ warning.
 
 In PROV-JSONLD, the context marks the values of `type`, `role` and `location` as IRIs, so
 a bare string there is an IRI, as a `{"@id": …}` node reference is: one a declared
-namespace compacts is the qualified name, and one no namespace compacts is stored as an
-`xsd:anyURI` `Literal`. 3.2.3 kept that string as an `xsd:QName` `Literal` and warned that
-3.3.0 would reject it. An `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full
-IRI or an undeclared prefix is rejected by the model, with no position.
+namespace compacts is the qualified name, and one no namespace compacts is rejected with
+`ProvJSONLDException`, as a node reference is. 3.2.3 kept that string as an `xsd:QName`
+`Literal` and warned that 3.3.0 would reject it, and read a node reference no namespace
+compacts as an `xsd:anyURI` `Literal`. A reference to a blank node, `{"@id": "_:b1"}` or
+`"_:b1"`, names no record, so the reader drops that value with a `ProvWarning`. An
+`xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared
+prefix is rejected by the model, with no position.
 
 In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts when no prefix named `http` is

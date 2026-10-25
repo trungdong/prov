@@ -11,9 +11,10 @@ import json
 from collections.abc import Callable
 from functools import lru_cache
 from importlib.resources import files
-from typing import Any
+from typing import Any, Final
 
 from prov import Error
+from prov._warnings import warn
 from prov.constants import (
     PROV_ATTR_ENTITY,
     PROV_ATTRIBUTE_LITERALS,
@@ -27,7 +28,6 @@ from prov.constants import (
     PROV_ROLE,
     PROV_TYPE,
     PROV_VALUE,
-    XSD_ANYURI,
 )
 from prov.identifier import Namespace, QualifiedName
 from prov.model import (
@@ -42,7 +42,7 @@ from prov.model import (
     first,
     parse_xsd_datetime,
 )
-from prov.model._values import _xsd_datetime_text, python_value_form
+from prov.model._values import _xsd_datetime_text, python_value_form, resolve_name
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
@@ -460,17 +460,25 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
-def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
+_DROPPED: Final = object()
+"""What :func:`decode_jsonld_value` returns for a value it drops."""
+
+
+def decode_jsonld_value(
+    value: Any, bundle: ProvBundle, term: str, *, attr: QualifiedName, record: str
+) -> Any:
     """Decode one member of a non-formal attribute's value array.
 
     A bare string under an ``@id``-typed term (see :data:`ID_TYPED_TERMS`)
     and a ``{"@id": ...}`` node reference are IRIs: the
     :class:`~prov.identifier.QualifiedName` when a declared namespace
-    compacts the IRI, an ``xsd:anyURI`` :class:`~prov.model.Literal`
-    otherwise. A bare string under any other term is the text. A value
-    object is a language-tagged or datatyped :class:`~prov.model.Literal`,
-    which the model resolves when its datatype is ``xsd:QName`` or
-    ``prov:QUALIFIED_NAME`` (#168, #238), or the text when it has no type.
+    compacts the IRI. An IRI no namespace compacts raises, and a blank-node
+    reference (``_:``) names no record, so it is dropped with a
+    :class:`~prov.model.ProvWarning`. A bare string under any other term is
+    the text. A value object is a language-tagged or datatyped
+    :class:`~prov.model.Literal`, which the model resolves when its datatype
+    is ``xsd:QName`` or ``prov:QUALIFIED_NAME`` (#168, #238), or the text
+    when it has no type.
 
     Args:
         value: The raw JSON-LD value: a bare string, a ``{"@id": ...}`` node
@@ -479,12 +487,21 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
         term: The unprefixed JSON-LD term ``value`` was read from (e.g.
             ``"type"``, ``"ex:price"``), used to decide how a bare string is
             interpreted.
+        attr: The attribute ``value`` belongs to, named in the exception and
+            the warning.
+        record: The statement's ``"@id"`` as written, or a description of the
+            anonymous statement, named in the warning.
+
+    Returns:
+        The decoded value, or the module's ``_DROPPED`` sentinel for a
+        blank-node reference.
 
     Raises:
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
             object, if a node reference has keys other than ``"@id"`` or an
-            empty ``"@id"``, or if a value object is missing its required
-            ``"@value"`` key.
+            empty ``"@id"``, if a value object is missing its required
+            ``"@value"`` key, or if a node reference or an ``@id``-typed
+            bare string resolves in no declared namespace.
     """
     if isinstance(value, str):
         if term not in ID_TYPED_TERMS:
@@ -495,8 +512,16 @@ def decode_jsonld_value(value: Any, bundle: ProvBundle, term: str) -> Any:
         if "@id" not in value:
             return _decode_value_object(value, bundle, term)
         text = _decode_node_reference(value, term)
+    if text.startswith("_:"):
+        warn(
+            f"{record}: {attr} points at a blank node that names no record; "
+            "the value is dropped"
+        )
+        return _DROPPED
     resolved = bundle.valid_qualified_name(text)
-    return resolved if resolved is not None else Literal(text, XSD_ANYURI)
+    if resolved is None:
+        raise ProvJSONLDException(str(resolve_name(bundle, text, attr=attr)))
+    return resolved
 
 
 def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -> Any:
@@ -586,6 +611,20 @@ def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
     return rec_type, type_term
 
 
+def _decode_attribute_values(
+    values: list[Any], bundle: ProvBundle, term: str, attr: QualifiedName, record: str
+) -> list[AttributePair]:
+    """The ``(attr, value)`` pairs of a non-formal attribute's value array.
+
+    A value :func:`decode_jsonld_value` drops leaves the others in place.
+    """
+    pairs = [
+        (attr, decode_jsonld_value(v, bundle, term, attr=attr, record=record))
+        for v in values
+    ]
+    return [pair for pair in pairs if pair[1] is not _DROPPED]
+
+
 def _decode_statement_attributes(
     item: dict[str, Any],
     bundle: ProvBundle,
@@ -620,6 +659,7 @@ def _decode_statement_attributes(
     attributes: dict[QualifiedNameCandidate, Any] = {}
     other_attributes: list[AttributePair] = []
     members: list[Any] | None = None
+    record = item.get("@id") or f"an anonymous {rec_type}"
     for key, value in item.items():
         if key in ("@type", "@id"):
             continue
@@ -650,7 +690,7 @@ def _decode_statement_attributes(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            (qname, decode_jsonld_value(v, bundle, term)) for v in value
+            _decode_attribute_values(value, bundle, term, qname, record)
         )
     return attributes, other_attributes, members
 

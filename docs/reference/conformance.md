@@ -192,13 +192,15 @@ statement's own arguments are errors.
   reference, such as `{"@id": "ex:shed"}`, is a qualified name under any attribute. A bare
   string is an IRI under `type`, `location` and `role`, which the context coerces to `@id`,
   and a string under any other attribute. A node reference, or a bare string under those
-  three terms, whose IRI no declared namespace compacts is stored as an `xsd:anyURI`
-  `Literal`. A node reference with a key other than `@id`, or with an empty `@id`, raises
-  `ProvJSONLDException`. From 3.3.0 `prov` writes a qualified name under any attribute other
-  than `type`, `location` and `role` as a node reference. It still reads an `xsd:QName` or
-  `prov:QUALIFIED_NAME` value object, the form 3.2.x wrote, as a qualified name, although a
-  JSON-LD processor reads that as a typed literal. The schema's `label` production admits
-  only strings, so a qualified name under `prov:label` does not validate in either form.
+  three terms, whose IRI no declared namespace compacts, raises `ProvJSONLDException`. One
+  that names a blank node (`_:`) refers to no record, so the reader drops it with a
+  `ProvWarning` and keeps the attribute's other values. A node reference with a key other
+  than `@id`, or with an empty `@id`, raises `ProvJSONLDException`. `prov` writes a
+  qualified name under any attribute other than `type`, `location` and `role` as a node
+  reference. It still reads an `xsd:QName` or `prov:QUALIFIED_NAME` value object, the form
+  3.2.x wrote, as a qualified name, although a JSON-LD processor reads that as a typed
+  literal. The schema's `label` production admits only strings, so a qualified name
+  under `prov:label` does not validate in either form.
 
 ### PROV-O
 
