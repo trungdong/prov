@@ -20,6 +20,7 @@ from prov.model import (
     sorted_attributes,
 )
 from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
+from prov.model.namespaces import _first_free
 from prov.serializers import Serializer, _is_text_stream
 
 __author__ = "Lion Krischer"
@@ -447,16 +448,17 @@ def _prefix_bound_to(
     return next((p for p, u in bindings if p is not None and u == uri), None)
 
 
-def _holds_a_colon_datatype_in_the_default(bundle: prov.model.ProvBundle) -> bool:
-    """Whether a literal of ``bundle`` has a datatype in the default namespace
+def _holds_a_colon_datatype_in(bundle: prov.model.ProvBundle, uri: str) -> bool:
+    """Whether a literal of ``bundle`` has a datatype in the namespace ``uri``
     whose local part contains ``:``, which has no ``xsi:type`` QName."""
     return any(
         isinstance(value, prov.model.Literal)
         and value.datatype is not None
-        and not value.datatype.namespace.prefix
+        and value.datatype.namespace.uri == uri
         and ":" in value.datatype.localpart
         for record in bundle._records
-        for _, value in record.attributes
+        for values in record._attributes.values()
+        for value in values
     )
 
 
@@ -472,12 +474,8 @@ def _declare_a_prefix_for_colon_datatypes(
     default = next((uri for prefix, uri in nsmap.items() if prefix is None), None)
     if default is None or _prefix_bound_to(nsmap.items(), default) is not None:
         return
-    if _holds_a_colon_datatype_in_the_default(bundle):
-        prefix, n = "dn", 0
-        while prefix in nsmap:
-            n += 1
-            prefix = f"dn_{n}"
-        nsmap[prefix] = default
+    if _holds_a_colon_datatype_in(bundle, default):
+        nsmap[_first_free("dn", nsmap.__contains__)] = default
 
 
 def _xsi_type_text(
@@ -486,7 +484,9 @@ def _xsi_type_text(
     """The QName that names ``datatype`` in ``xsi:type``: ``prefix:local``; a
     bare local part under the element's ``xmlns`` when the namespace has no
     prefix; and, when that local part contains ``:`` and so has no QName, the
-    local part under the prefix bound to the IRI on the bundle element."""
+    local part under the prefix bound to the IRI on the bundle element, which
+    the pre-scan declares for the default namespace, the only prefix-less one
+    a bundle can hold."""
     prefix: str | None = datatype.namespace.prefix
     if not prefix and ":" in datatype.localpart:
         prefix = _prefix_bound_to(elem.nsmap.items(), datatype.namespace.uri)

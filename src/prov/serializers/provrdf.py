@@ -554,9 +554,7 @@ class ProvRDFSerializer(Serializer):
         text, datatype = form
         rdf_datatype: URIRef = XSD[datatype.localpart]
         if datatype == XSD_DOUBLE:
-            # The full-precision lexical form, which skips rdflib's
-            # bare-double abbreviation on output (#225); normalize=False keeps
-            # it from being rewritten to Python's str() ('inf', 'nan').
+            # the full-precision lexical form, kept as written (#225)
             return _LexicalFormLiteral(text, datatype=rdf_datatype, normalize=False)
         return RDFLiteral(text, datatype=rdf_datatype)
 
