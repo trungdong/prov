@@ -345,6 +345,105 @@ def test_the_default_binding_reads_back_as_the_default_namespace() -> None:
     assert ProvDocument.deserialize(content=provn, format="provn") == reloaded
 
 
+def _round_trip_turtle() -> tuple[ProvDocument, str]:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    document.add_namespace("un", "http://unused.example/")
+    document.entity("ex:e")
+    document.agent("foaf:alice")
+    return document, document.serialize(format="rdf", rdf_format="turtle")
+
+
+_BINDING_PREFIXES = (
+    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+    "@prefix ex: <http://example.org/> .\n"
+)
+_NT_ATTRIBUTION = (
+    "<http://example.org/e>"
+    " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
+    " <http://www.w3.org/ns/prov#Entity> .\n"
+    "<http://example.org/e> <http://www.w3.org/ns/prov#wasAttributedTo>"
+    " <http://xmlns.com/foaf/0.1/Alice> .\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("case", "content", "rdf_format", "exact", "contains"),
+    [
+        (
+            "own-only",
+            _BINDING_PREFIXES + "ex:e a prov:Entity .\n",
+            "turtle",
+            {"ex"},
+            set(),
+        ),
+        ("round-trip", _round_trip_turtle()[1], "turtle", {"ex", "foaf"}, set()),
+        ("nt-foaf", _NT_ATTRIBUTION, "nt", None, {"foaf"}),
+        (
+            "dcterms-datatype",
+            _BINDING_PREFIXES
+            + "@prefix dcterms: <http://purl.org/dc/terms/> .\n"
+            + 'ex:e a prov:Entity ; ex:p "1"^^dcterms:W3CDTF .\n',
+            "turtle",
+            None,
+            {"dcterms"},
+        ),
+        (
+            "rebound-dc",
+            "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+            "@prefix dc: <http://other.example/dc#> .\n"
+            "dc:x a prov:Entity .\n",
+            "turtle",
+            None,
+            {"dc1"},
+        ),
+    ],
+    ids=["own-only", "round-trip", "nt-foaf", "dcterms-datatype", "rebound-dc"],
+)
+def test_the_reader_declares_only_the_source_bindings_and_the_names_it_uses(
+    case: str,
+    content: str,
+    rdf_format: str,
+    exact: set[str] | None,
+    contains: set[str],
+) -> None:
+    # rdflib binds 27 default prefixes on every graph; the document holds a
+    # binding only when the source declares it or a name read from it needs
+    # it (#654).
+    back = ProvDocument.deserialize(
+        content=content, format="rdf", rdf_format=rdf_format
+    )
+    prefixes = {ns.prefix for ns in back.get_registered_namespaces()}
+    if exact is not None:
+        assert prefixes == exact
+    assert contains <= prefixes
+    if case == "own-only":
+        assert back.get_provn().count("prefix ") == 1
+    elif case == "round-trip":
+        assert back == _round_trip_turtle()[0]
+    elif case == "nt-foaf":
+        (attribution,) = back.get_records(pm.ProvAttribution)
+        (agent,) = attribution.get_attribute("prov:agent")
+        assert (agent.namespace.prefix, agent.localpart) == ("foaf", "Alice")
+    elif case == "dcterms-datatype":
+        (entity,) = back.get_records(pm.ProvEntity)
+        (value,) = entity.get_attribute("ex:p")
+        assert isinstance(value, pm.Literal)
+        assert value.value == "1"
+        assert value.datatype is not None
+        assert (value.datatype.namespace.prefix, value.datatype.localpart) == (
+            "dcterms",
+            "W3CDTF",
+        )
+    else:
+        (entity,) = back.get_records(pm.ProvEntity)
+        assert entity.identifier.uri == "http://other.example/dc#x"
+        assert {ns.prefix: ns.uri for ns in back.get_registered_namespaces()}[
+            "dc1"
+        ] == "http://other.example/dc#"
+
+
 def test_encode_container_reuses_a_provided_container() -> None:
     # encode_container()'s `container` parameter defaults to None
     # everywhere it is called internally; passing one explicitly (as an

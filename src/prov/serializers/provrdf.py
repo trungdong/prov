@@ -1382,6 +1382,11 @@ class ProvRDFSerializer(Serializer):
         is a plain ``Graph``, not a ``Dataset``), it is decoded directly as
         the document's own records.
 
+        A binding identical to one rdflib adds to every graph is not
+        registered here, because the source may not have declared it. A name
+        a record uses under such a binding registers its namespace as the
+        decoding reaches it, so only the namespaces the names need are kept.
+
         Args:
             content: RDF graph (typically a ``Dataset``, as produced by
                 :meth:`encode_document`) to decode.
@@ -1392,9 +1397,11 @@ class ProvRDFSerializer(Serializer):
             predicate_mapper: Maps PROV-O predicate URIRefs to formal
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
         """
+        rdflib_defaults = {(prefix, str(iri)) for prefix, iri in Graph().namespaces()}
         for prefix, url in content.namespaces():
             if prefix:
-                document.add_namespace(prefix, str(url))
+                if (prefix, str(url)) not in rdflib_defaults:
+                    document.add_namespace(prefix, str(url))
             else:
                 document.set_default_namespace(str(url))
         if hasattr(content, "graphs"):

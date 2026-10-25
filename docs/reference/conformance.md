@@ -213,6 +213,9 @@ statement's own arguments are errors.
   `prov:hadGeneration` pointing at an anonymous generation, is dropped with a `ProvWarning`
   naming the subject and the predicate. A blank node that is an element's subject resolves as
   that element's identifier does, so it needs the default namespace the element itself needs.
+- The document declares the source's own prefix bindings and the namespaces its names use,
+  not the 27 bindings rdflib adds to every graph. A prefix the source declares and no name
+  uses is not written by `prov`'s Turtle, so it does not survive a round trip.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options
