@@ -1883,11 +1883,10 @@ class ProvDocument(ProvBundle):
     def unified(self) -> ProvDocument:
         """Return a new document with records sharing an identifier merged.
 
-        Term unification, described below, is applied to the
-        document's top-level records and, independently, to each contained
-        bundle, preserving the bundle structure — as PROV-CONSTRAINTS §7.2
-        requires, nothing is merged across a bundle boundary. The original
-        document is left untouched.
+        Term unification is applied to the document's top-level records and,
+        independently, to each contained bundle, preserving the bundle
+        structure — as PROV-CONSTRAINTS §7.2 requires, nothing is merged
+        across a bundle boundary. The original document is left untouched.
 
         For each identifier carried by more than one record, the records are
         first checked for type compatibility (W3C PROV-CONSTRAINTS'
