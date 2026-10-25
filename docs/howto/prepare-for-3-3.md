@@ -19,8 +19,9 @@ RDF. A message from `unified()` names the identifier of the records it cannot me
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects with its own `ProvJSONException`, `ProvJSONLDException` or
 `ProvNSyntaxError` raises `TypeError`, whose `__cause__` is that error with the rule and
-its position. An error from the model, such as the one for an undeclared prefix in
-PROV-JSONLD, is not chained. Pass `format=` to see the rule on its own.
+its position. An error from the model, such as the one for a PROV-JSONLD attribute key
+whose prefix the context does not declare, is not chained. Pass `format=` to see the rule
+on its own.
 
 ## PROV-N declarations
 
@@ -150,10 +151,11 @@ write it faithfully.
 A converted value reads back as the `Literal`, not as the Python value, from
 `get_attribute()` and from every format, except that an `xsd:duration` read from RDF comes
 back in rdflib's normalised form, so a zero `timedelta` reads as `P0D`
-([#620](https://github.com/trungdong/prov/issues/620)). The readers never build these
-types unless a `json.load` option asks for one. With `parse_float=decimal.Decimal`, the
-PROV-JSON and PROV-JSONLD readers read each bare JSON number with a fraction or an
-exponent as a `Decimal`, which is stored as an `xsd:decimal` `Literal`.
+([#620](https://github.com/trungdong/prov/issues/620),
+{doc}`../reference/conformance`, C10). The readers never build these types unless a
+`json.load` option asks for one. With `parse_float=decimal.Decimal`, the PROV-JSON and
+PROV-JSONLD readers read each bare JSON number with a fraction or an exponent as a
+`Decimal`, which is stored as an `xsd:decimal` `Literal`.
 
 An `Identifier` given as a value is stored as a `Literal` typed `xsd:anyURI`, the form
 every writer wrote for it and every reader now builds, so `isinstance(value, Identifier)`
@@ -197,10 +199,13 @@ warning.
 
 In PROV-JSONLD, the context marks the values of `type`, `role` and `location` as IRIs, so
 a bare string there is an IRI, as a `{"@id": …}` node reference is: one a declared
-namespace compacts is the qualified name, and one no namespace compacts is stored as an
-`xsd:anyURI` `Literal`. 3.2.3 kept that string as an `xsd:QName` `Literal` and warned that
-3.3.0 would reject it. An `xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full
-IRI or an undeclared prefix is rejected by the model, with no position.
+namespace compacts is the qualified name, and one no namespace compacts is rejected with
+`ProvJSONLDException`, as a node reference is. 3.2.3 kept that string as an `xsd:QName`
+`Literal` and warned that 3.3.0 would reject it, and read a node reference no namespace
+compacts as an `Identifier`. A reference to a blank node, `{"@id": "_:b1"}` or
+`"_:b1"`, names no record, so the reader drops that value with a `ProvWarning`. An
+`xsd:QName` or `prov:QUALIFIED_NAME` value object holding a full IRI or an undeclared
+prefix is rejected by the model, with no position.
 
 In code, a plain string given as an identifier, such as
 `bundle.entity("http://example.org/e1")`, still compacts when no prefix named `http` is

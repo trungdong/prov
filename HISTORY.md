@@ -73,10 +73,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   [#551](https://github.com/trungdong/prov/issues/551),
   [#553](https://github.com/trungdong/prov/issues/553),
   [#599](https://github.com/trungdong/prov/issues/599),
-  [#586](https://github.com/trungdong/prov/issues/586)). A bare string under `type`,
-  `role` or `location` in PROV-JSONLD that no declared namespace compacts is an IRI,
-  stored as an `xsd:anyURI` `Literal` as a node reference is, where 3.2.3 kept an
-  `xsd:QName` `Literal` and said 3.3.0 would reject it
+  [#586](https://github.com/trungdong/prov/issues/586))
 - In PROV-JSON, a `ProvJSONException` naming the record and attribute for a `null` value
   ([#528](https://github.com/trungdong/prov/issues/528)), a formal attribute or member
   that is not a string ([#597](https://github.com/trungdong/prov/issues/597)), a formal
@@ -276,6 +273,24 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   the fraction to microseconds before `prov` reads the text, so such a time reads as the
   truncated `datetime` in both positions, as the conformance page records
   ([#514](https://github.com/trungdong/prov/issues/514))
+- A PROV-JSONLD node reference, `{"@id": …}`, or a bare string under `type`, `role` or
+  `location`, that no declared namespace resolves raises `ProvJSONLDException`, with the
+  sentence the other readers use: `the qualified name 'http://other.org/x' of ex:ref does
+  not resolve, because its prefix 'http' is not declared`. 3.2.3 read the bare string as
+  an `xsd:QName` `Literal` and warned that 3.3.0 would reject it, and read the node
+  reference as an `Identifier` without a warning. A reference to a blank node,
+  `{"@id": "_:b1"}` or `"_:b1"`, names no record, so the reader drops that value with a
+  `ProvWarning` that names the record and the attribute, and keeps the attribute's other
+  values
+  ([#609](https://github.com/trungdong/prov/issues/609))
+- A PROV-O literal whose datatype IRI neither rdflib nor `prov` can split into a
+  namespace and a local part, such as `"1"^^<urn:example:t=>`, raises a `ValueError` that
+  names the IRI. 3.2.3 read the value as plain text and lost the datatype. An untyped
+  relation endpoint, `prov:qualified*` subject or `prov:asInBundle` object whose IRI
+  neither rdflib nor `prov` can split, such as `urn:example:t=`, now raises the same
+  `ValueError`, where 3.2.3 raised `ProvExceptionInvalidQualifiedName`; the same input
+  fails on both
+  ([#665](https://github.com/trungdong/prov/issues/665))
 
 ### Output changes
 
@@ -353,7 +368,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   namespace, where 3.2.x registered it as a namespace with an empty prefix that PROV-N
   could not write. The PROV-JSON and PROV-JSONLD readers do the same for a `""` entry in
   the `prefix` object or an `@context` entry. An entry that disagrees with `default` or
-  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`
+  `@vocab` in the same object is a `ProvJSONException` or `ProvJSONLDException`. The
+  PROV-O reader no longer declares rdflib's default prefix bindings (`dcterms`, `foaf`,
+  `owl` and the rest) as the document's own, so `get_registered_namespaces()` and every
+  writer list the source's declarations and the namespaces its names use, where 3.2.x
+  listed all of them. A namespace the reader mints for a short IRI, such as the `http://`
+  of `<http://alice.example>`, also declares the rdflib bindings under it, such as `foaf`,
+  so that a name under one keeps its prefix. The rules are in the PROV-O section of
+  `docs/reference/conformance.md`
+  ([#654](https://github.com/trungdong/prov/issues/654))
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
   `MappingProxyType` was iterated as bare prefix strings and raised `AttributeError`
@@ -366,6 +389,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   element's identifier does and, with no default namespace, raises
   `ProvElementIdentifierRequired` as the element does, whichever record the reader meets
   first ([#639](https://github.com/trungdong/prov/issues/639))
+- The PROV-O reader reads the untyped subject or object of a relation, and a subject that
+  only a `prov:qualified*` triple names, under a prefix it mints, such as the
+  `<urn:uuid:1234-abcd>` of `ex:e prov:wasDerivedFrom <urn:uuid:1234-abcd>`, where it
+  raised `ProvExceptionInvalidQualifiedName`
+  ([#654](https://github.com/trungdong/prov/issues/654))
+- The PROV-O reader keeps the datatype of a literal that no namespace compacts, such as
+  `"1"^^<http://d.example/c:d>`, where it read the value as plain text
+  ([#665](https://github.com/trungdong/prov/issues/665))
 - A `Literal` whose datatype is in a namespace nothing declared, such as
   `Literal("1", Namespace("zz", "http://zz.org/")["t"])`, registers that namespace when it
   is asserted, so every writer declares it. 3.2.x wrote `"1" %% zz:t` with no

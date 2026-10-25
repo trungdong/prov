@@ -2,6 +2,7 @@
 
 import io
 import json
+import re
 import warnings
 from pathlib import Path
 from typing import Any
@@ -11,7 +12,6 @@ import pytest
 import prov
 from prov.constants import PROV
 from prov.model import (
-    XSD_ANYURI,
     Literal,
     Namespace,
     ProvDocument,
@@ -309,17 +309,24 @@ def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
         _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
-def test_deserialize_value_equal_to_the_vocab_iri_is_an_anyuri_literal() -> None:
+def _unresolved(text: str, attr: str) -> str:
+    """The regex for the sentence a reference no namespace resolves raises (5.8)."""
+    prefix = text.partition(":")[0]
+    return re.escape(
+        f"the qualified name {text!r} of {attr} does not resolve, "
+        f"because its prefix {prefix!r} is not declared"
+    )
+
+
+def test_deserialize_value_equal_to_the_vocab_iri_is_rejected() -> None:
     text = json.dumps(
         {
             "@context": {"@vocab": EX_URI},
             "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
         }
     )
-    doc = ProvDocument.deserialize(content=text, format="jsonld")
-    (record,) = doc.get_records(ProvEntity)
-    ((_, value),) = record.extra_attributes
-    assert value == Literal(EX_URI, XSD_ANYURI)
+    with pytest.raises(ProvJSONLDException, match=_unresolved(EX_URI, "k")):
+        ProvDocument.deserialize(content=text, format="jsonld")
 
 
 def test_deserialize_bundle_id_equal_to_the_vocab_iri_is_rejected() -> None:
@@ -682,13 +689,18 @@ def test_interop_provtoolbox_string_with_colon() -> None:
     assert doc == expected
 
 
-def _entity_with(key: str, values: list) -> str:
+def _statement_text(statement: dict[str, Any]) -> str:
+    """One statement as JSON-LD text under the ``ex`` context."""
     return json.dumps(
         {
             "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
-            "@graph": [{"@type": "Entity", "@id": "ex:e1", key: values}],
+            "@graph": [statement],
         }
     )
+
+
+def _entity_with(key: str, values: list) -> str:
+    return _statement_text({"@type": "Entity", "@id": "ex:e1", key: values})
 
 
 @pytest.mark.parametrize("key", ["type", "prov:type", "value", "ex:ref"])
@@ -708,18 +720,6 @@ def test_deserialize_node_reference_with_absolute_iri() -> None:
     (entity,) = doc.get_records()
     (value,) = [v for _, v in entity.extra_attributes]
     assert value == doc.valid_qualified_name("ex:thing")
-
-
-@pytest.mark.parametrize("iri", ["http://other.org/x", "nope:thing"])
-def test_deserialize_node_reference_outside_every_namespace_is_an_anyuri_literal(
-    iri,
-) -> None:
-    doc = ProvDocument.deserialize(
-        content=_entity_with("ex:ref", [{"@id": iri}]), format="jsonld"
-    )
-    (entity,) = doc.get_records()
-    (value,) = [v for _, v in entity.extra_attributes]
-    assert value == Literal(iri, XSD_ANYURI)
 
 
 @pytest.mark.parametrize(
@@ -765,23 +765,133 @@ def test_deserialize_iri_value_is_the_qualified_name(
     assert read == doc.valid_qualified_name("ex:thing")
 
 
-@pytest.mark.parametrize("text", ["http://other.org/x", "zz:x"])
-def test_deserialize_bare_string_under_id_typed_term_outside_every_namespace_is_an_anyuri_literal(
-    text: str,
+def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
+    statement: dict[str, Any] = {
+        "@type": "Usage",
+        "activity": "ex:a",
+        "entity": "ex:e",
+        key: values,
+    }
+    if ident is not None:
+        statement["@id"] = ident
+    return _statement_text(statement)
+
+
+@pytest.mark.parametrize(
+    ("content", "text", "attr"),
+    [
+        pytest.param(
+            _entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
+            "http://other.org/x",
+            "ex:ref",
+            id="node-iri",
+        ),
+        pytest.param(
+            _entity_with("ex:ref", [{"@id": "nope:thing"}]),
+            "nope:thing",
+            "ex:ref",
+            id="node-prefix",
+        ),
+        pytest.param(
+            _entity_with("type", ["http://other.org/x"]),
+            "http://other.org/x",
+            "prov:type",
+            id="bare-type-iri",
+        ),
+        pytest.param(
+            _entity_with("type", ["zz:x"]),
+            "zz:x",
+            "prov:type",
+            id="bare-type-prefix",
+        ),
+        pytest.param(
+            _usage_with("role", ["zz:R"]),
+            "zz:R",
+            "prov:role",
+            id="bare-role",
+        ),
+        pytest.param(
+            _entity_with("location", ["zz:L"]),
+            "zz:L",
+            "prov:location",
+            id="bare-location",
+        ),
+    ],
+)
+def test_deserialize_reference_no_namespace_resolves_is_rejected(
+    content: str, text: str, attr: str
 ) -> None:
-    # The context marks the term's values as IRIs, so a string no declared
-    # namespace compacts is an IRI, as a node reference is (#516).
-    doc = ProvDocument.deserialize(
-        content=_entity_with("type", [text]), format="jsonld"
-    )
+    # A node reference, or a bare string under an @id-typed term, that no
+    # declared namespace resolves raises the 5.8 sentence (#609).
+    with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr)):
+        ProvDocument.deserialize(content=content, format="jsonld")
+
+
+_DROPPED_NODE = {"@id": "_:b1"}
+_DROP_WARNING = (
+    "{record}: {attr} points at a blank node that names no record; the value is dropped"
+)
+
+
+@pytest.mark.parametrize(
+    ("content", "record", "attr", "kept"),
+    [
+        pytest.param(
+            _entity_with("type", [_DROPPED_NODE]),
+            "ex:e1",
+            "prov:type",
+            [],
+            id="node-type",
+        ),
+        pytest.param(
+            _entity_with("type", ["_:b1"]), "ex:e1", "prov:type", [], id="bare-type"
+        ),
+        pytest.param(
+            _entity_with("ex:attr", [_DROPPED_NODE, "x"]),
+            "ex:e1",
+            "ex:attr",
+            [("ex:attr", "x")],
+            id="node-attr",
+        ),
+        pytest.param(
+            _usage_with("role", [_DROPPED_NODE], ident=None),
+            "an anonymous prov:Usage",
+            "prov:role",
+            [],
+            id="anonymous",
+        ),
+    ],
+)
+def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
+    content: str, record: str, attr: str, kept: list[tuple[str, str]]
+) -> None:
+    # A blank node names no record, so the reference is dropped and only that
+    # value goes (#609).
+    message = _DROP_WARNING.format(record=record, attr=attr)
+    with pytest.warns(ProvWarning, match=re.escape(message)) as caught:
+        doc = ProvDocument.deserialize(content=content, format="jsonld")
+    assert len([w for w in caught if issubclass(w.category, ProvWarning)]) == 1
+    (rec,) = doc.get_records()
+    values = [(str(name), value) for name, value in rec.extra_attributes]
+    assert values == kept
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param("_:b1", ["_:b1"], id="bare-attr"),
+        pytest.param({"@value": None}, [], id="null-value"),
+    ],
+)
+def test_deserialize_bare_blank_label_stays_text_and_null_value_warns_nothing(
+    value: Any, expected: list[str]
+) -> None:
+    # A bare string under a non-@id-typed attribute stays text, and a null value
+    # object reads as the model reads None: neither is a dropped reference.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", ProvWarning)
+        doc = ProvDocument.deserialize(
+            content=_entity_with("ex:attr", [value]), format="jsonld"
+        )
     (entity,) = doc.get_records()
-    (value,) = [v for _, v in entity.extra_attributes]
-    assert value == Literal(text, XSD_ANYURI)
-
-
-def test_deserialize_node_reference_outside_every_namespace_reads() -> None:
-    document = ProvDocument.deserialize(
-        content=_entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
-        format="jsonld",
-    )
-    assert list(document.get_records())
+    assert [v for _, v in entity.extra_attributes] == expected

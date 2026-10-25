@@ -76,4 +76,6 @@ The submission defines no Mention term, so a document with a
 {py:class}`~prov.model.ProvMention` raises `prov.serializers.provjsonld.ProvJSONLDException`
 on write and on read
 ({doc}`../reference/conformance`, C2). The reader accepts the submission's compacted shape
-only, not expanded or flattened JSON-LD.
+only, not expanded or flattened JSON-LD. A reference to a blank node, such as
+`{"@id": "_:b1"}`, names no record, so the reader drops it with a
+{py:class}`~prov.model.ProvWarning`.
