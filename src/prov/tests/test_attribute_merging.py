@@ -26,7 +26,8 @@ import datetime
 
 import pytest
 
-from prov.constants import XSD_DECIMAL
+from prov.constants import XSD_ANYURI, XSD_DECIMAL
+from prov.identifier import Identifier
 from prov.model import (
     PROV_ATTR_COLLECTION,
     PROV_ATTR_ENTITY,
@@ -294,6 +295,22 @@ def test_unpickled_value_set_from_an_earlier_release_is_rekeyed(doc) -> None:
     assert 5 in restored
     assert list(restored) == [5]
     assert restored == container
+
+
+def test_unpickled_identifier_value_from_an_earlier_release_writes_as_anyuri(
+    doc,
+) -> None:
+    # A 3.2.x pickle stores an Identifier value raw and __setstate__ re-adds it
+    # without coercion; it still writes as an xsd:anyURI literal.
+    entity = doc.entity("ex:e", {"ex:v": 1})
+    container = entity._attributes[doc.valid_qualified_name("ex:v")]
+    container.__setstate__((None, {"_index": {0: Identifier("http://example.org/x")}}))
+    provn = doc.get_provn()
+    assert 'ex:v="http://example.org/x" %% xsd:anyURI' in provn
+    back = type(doc).deserialize(content=provn, format="provn")
+    (value,) = back.get_records(ProvEntity)[0].get_attribute("ex:v")
+    assert value == Literal("http://example.org/x", XSD_ANYURI)
+    assert type(value) is Literal
 
 
 def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> None:

@@ -433,14 +433,18 @@ def test_literal_spells_a_python_value_in_xsd_form(
         (_Level.LOW, 5),
         (_OddFloat(1.5), 1.5),
         (_Stamp(2012, 1, 1), datetime.datetime(2012, 1, 1)),
+        (
+            _Stamp(2012, 1, 1, tzinfo=datetime.UTC),
+            datetime.datetime(2012, 1, 1, tzinfo=datetime.UTC),
+        ),
     ],
-    ids=["int", "float", "datetime"],
+    ids=["int", "float", "datetime", "aware-datetime"],
 )
 def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     fmt: str, value: object, plain: object
 ) -> None:
     # every writer spells and types the plain value, so a subclass reads back
-    # as the plain type (#657)
+    # as the plain type (#657) and equals it, the document included (#663)
     document = ex_document()
     document.entity("ex:e1", [("ex:a", value)])
     with io.BytesIO() as stream:
@@ -448,9 +452,15 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
         text = stream.getvalue()
     assert type(value).__name__.encode() not in text
     assert b"LOW" not in text and b"odd" not in text
-    back = _single_value(roundtrip_document(document, fmt))
-    assert back == plain
-    assert type(back) is type(plain)
+    back = roundtrip_document(document, fmt)
+    read = _single_value(back)
+    assert read == plain
+    assert type(read) is type(plain)
+    assert back == document
+    # the record's own storage holds one value, where get_attribute() would
+    # merge the pair by Python equality whatever the storage did
+    both = ex_document().entity("ex:e2", [("ex:a", value), ("ex:a", plain)])
+    assert len(both.extra_attributes) == 1
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:

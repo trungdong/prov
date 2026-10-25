@@ -7,6 +7,7 @@ import pytest
 
 from prov.identifier import Identifier, Namespace
 from prov.model import (
+    Literal,
     ProvDocument,
     ProvWarning,
     encoding_provn_value,
@@ -17,7 +18,7 @@ METACHARS = "='(),:;[]"
 NS = Namespace("ex", "http://example.org/")
 
 
-def _doc():
+def _doc() -> ProvDocument:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     return document
@@ -244,3 +245,21 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
+
+
+class _RaisingLiteral(Literal):
+    def provn_representation(self) -> str:
+        raise AttributeError("boom")
+
+    # Without this override the pre-fix `except` branch reached
+    # Literal.__str__ and raised anyway, so the test would pass on the old code.
+    def __str__(self) -> str:
+        return '"fallback"'
+
+
+def test_provn_writer_lets_an_error_in_a_literal_subclass_propagate() -> None:
+    document = _doc()
+    record = document.entity("ex:e", {"ex:v": _RaisingLiteral("x", NS["custom"])})
+    assert any(type(v) is _RaisingLiteral for v in record.get_attribute("ex:v"))
+    with pytest.raises(AttributeError, match="boom"):
+        document.get_provn()

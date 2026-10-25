@@ -573,7 +573,10 @@ def _value_key(value: Any) -> ValueKey:
 
     A plain Python value takes the datatype the writers give it, so ``5`` and
     ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
-    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34).
+    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34). A
+    ``datetime`` takes ``xsd:dateTime``, so a subclass shares the key of the
+    plain ``datetime`` it reads back as (#663). It does not share the key of
+    an ``xsd:dateTime`` ``Literal``, whose key holds its text.
     """
     if isinstance(value, Literal):
         return value._key()
@@ -585,6 +588,8 @@ def _value_key(value: Any) -> ValueKey:
         return (canonical_xsd_datatype(value), value, None)
     if isinstance(value, float):
         return (XSD_DOUBLE, key_slot(value), None)
+    if isinstance(value, datetime.datetime):
+        return (XSD_DATETIME, value, None)
     return (type(value), value, None)
 
 
@@ -696,10 +701,7 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 # The types of a converted non-formal attribute value that need no check.
-# bool is an int, so isinstance() needs only the tuple.
-_PLAIN_VALUE_TYPES = frozenset(
-    {str, int, bool, float, datetime.datetime, QualifiedName, Literal}
-)
+# bool is an int, so it needs no entry of its own.
 _PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, QualifiedName, Literal)
 
 
@@ -1003,11 +1005,7 @@ class ProvRecord:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value, attr)
-            if (
-                type(value) not in _PLAIN_VALUE_TYPES
-                and value is not None
-                and not isinstance(value, _PLAIN_VALUE_BASES)
-            ):
+            if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
                 value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
@@ -1240,10 +1238,11 @@ class ProvRecord:
             if attr in self.FORMAL_ATTRIBUTES:
                 continue
             for value in self._attributes[attr]:
-                try:
-                    text = value.provn_representation()
-                except AttributeError:
-                    text = encoding_provn_value(value)
+                text = (
+                    value.provn_representation()
+                    if isinstance(value, (Identifier, Literal))
+                    else encoding_provn_value(value)
+                )
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
         return pairs
 
