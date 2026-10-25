@@ -292,8 +292,8 @@ class ProvNParser:
         bundle's own declarations before the bundle exists, to resolve its
         identifier against them).
 
-        Raises at a repeated default, at a prefix that is not a PN_PREFIX,
-        and under the strict profile at a default that follows a prefix and
+        Raises at a repeated default, at a prefix that is not a PN_PREFIX, at
+        an IRI that is empty or starts with ``@``, and under the strict profile at a default that follows a prefix and
         at a declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
@@ -310,9 +310,7 @@ class ProvNParser:
                     raise self._error(
                         f"prefix '{local}' is declared twice in this scope", name
                     )
-                iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
-                if not iri.value:
-                    raise self._error("a namespace IRI cannot be empty", iri)
+                iri = self._namespace_iri()
                 self._check_reserved_prefix(local, iri.value, name)
                 if not _PN_PREFIX_NAME.fullmatch(local):
                     raise self._error(
@@ -324,9 +322,7 @@ class ProvNParser:
                 seen.add(local)
             elif self._at_keyword("default"):
                 keyword = self._advance()
-                iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
-                if not iri.value:
-                    raise self._error("a namespace IRI cannot be empty", iri)
+                iri = self._namespace_iri()
                 if default is not None:
                     raise self._error(
                         "'default' is declared twice in this scope", keyword
@@ -340,6 +336,15 @@ class ProvNParser:
                 default = iri.value
             else:
                 return namespaces, default
+
+    def _namespace_iri(self) -> Token:
+        """Consume the IRI of a declaration, refusing one the model refuses."""
+        iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
+        if not iri.value:
+            raise self._error("a namespace IRI cannot be empty", iri)
+        if iri.value[0] == "@":
+            raise self._error("a namespace IRI cannot start with '@'", iri)
+        return iri
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:
         reserved = _RESERVED_PREFIXES.get(prefix)

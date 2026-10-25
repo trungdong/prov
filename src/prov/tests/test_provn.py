@@ -370,6 +370,16 @@ REJECTED_DOCUMENTS = [
         )
         for name in ("_", "a/b", "1a")
     ],
+    *[
+        pytest.param(
+            f"document\n{declaration}\nentity(e)\nendDocument",
+            EVERY,
+            "a namespace IRI cannot start with '@'",
+            (2, declaration.index("<") + 1),
+            id=f"{declaration.split()[0]} IRI starting with @",
+        )
+        for declaration in ("prefix ex <@foo/>", "default <@foo/>")
+    ],
     pytest.param(
         f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
         STRICT,
