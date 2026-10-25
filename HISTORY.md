@@ -67,9 +67,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   resolves a qualified name by its prefix in scope and never by matching a declared
   namespace IRI against the text, so `http://example.org/x` is the prefix `http`, and a
   prefix the document declares is found from a bundle before the bundle's own namespaces
-  could compact the text. The `lenient` PROV-N profile skips the statement with a
+  could compact the text. A value equal to a default namespace IRI in reach is rejected
+  because the IRI has no qualified-name form and needs a prefix, in every reader and in
+  code. The `lenient` PROV-N profile skips the statement with a
   `ProvWarning` and emits nothing else about it
-  ([#516](https://github.com/trungdong/prov/issues/516),
+  ([#675](https://github.com/trungdong/prov/issues/675),
+  [#516](https://github.com/trungdong/prov/issues/516),
   [#551](https://github.com/trungdong/prov/issues/551),
   [#553](https://github.com/trungdong/prov/issues/553),
   [#599](https://github.com/trungdong/prov/issues/599),
@@ -438,10 +441,6 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `xsi:type=":t"`, which read back with the local part `:t`
   ([#571](https://github.com/trungdong/prov/issues/571),
   [#570](https://github.com/trungdong/prov/issues/570))
-- A qualified-name value equal to a default namespace IRI in reach is rejected because the
-  IRI has no qualified-name form and needs a prefix, in every reader and in code, where
-  3.2.x said its prefix `http` was not declared. The inputs rejected do not change
-  ([#675](https://github.com/trungdong/prov/issues/675))
 
 ### Project
 
