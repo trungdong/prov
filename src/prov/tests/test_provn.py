@@ -1098,6 +1098,8 @@ def test_str_and_serialize_follow_get_provn() -> None:
     document.serialize(stream, format="provn")
     assert stream.getvalue() == document.get_provn().encode("utf-8")
     assert document.get_provn() != document.get_provn(width=None)
+    with pytest.raises(TypeError):
+        document.get_provn(0, True)  # type: ignore[call-arg, arg-type]
 
 
 def test_duplicate_prefix_in_one_scope_is_an_error() -> None:

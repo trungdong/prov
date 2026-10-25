@@ -455,7 +455,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `ProvRecord.get_provn` and `ProvBundle.get_provn` take a `width` argument. A bundle passes
   it to every record by keyword, and `str(record)` passes `width=None`, so a subclass that
   overrides `ProvRecord.get_provn(self, strict=False)` or `ProvBundle.get_provn` without it
-  fails with `TypeError`. Add `width: int | None = 80` to the override to accept it
+  fails with `TypeError`. Add `width: int | None = 80` to the override to accept it.
+  `ProvBundle.get_provn` takes `strict` and `width` by keyword only, and its private
+  `_indent_level` parameter is gone, so a positional call raises `TypeError`
   ([#131](https://github.com/trungdong/prov/issues/131))
 
 ## 3.2.3 (2026-10-19)
