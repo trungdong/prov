@@ -573,7 +573,9 @@ def _value_key(value: Any) -> ValueKey:
 
     A plain Python value takes the datatype the writers give it, so ``5`` and
     ``Literal("05", XSD_INT)`` share a key, ``5`` and ``Literal("5",
-    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34).
+    XSD_LONG)`` do not (#235), and ``2`` and ``2.0`` do not (#34). A
+    ``datetime`` takes ``xsd:dateTime``, so a subclass shares the key of the
+    plain ``datetime`` it reads back as (#663).
     """
     if isinstance(value, Literal):
         return value._key()
@@ -585,6 +587,8 @@ def _value_key(value: Any) -> ValueKey:
         return (canonical_xsd_datatype(value), value, None)
     if isinstance(value, float):
         return (XSD_DOUBLE, key_slot(value), None)
+    if isinstance(value, datetime.datetime):
+        return (XSD_DATETIME, value, None)
     return (type(value), value, None)
 
 
