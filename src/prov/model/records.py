@@ -700,10 +700,7 @@ class ProvElementIdentifierRequired(ProvException):
 
 
 # The types of a converted non-formal attribute value that need no check.
-# bool is an int, so isinstance() needs only the tuple.
-_PLAIN_VALUE_TYPES = frozenset(
-    {str, int, bool, float, datetime.datetime, QualifiedName, Literal}
-)
+# bool is an int, so it needs no entry of its own.
 _PLAIN_VALUE_BASES = (str, int, float, datetime.datetime, QualifiedName, Literal)
 
 
@@ -1007,11 +1004,7 @@ class ProvRecord:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value, attr)
-            if (
-                type(value) not in _PLAIN_VALUE_TYPES
-                and value is not None
-                and not isinstance(value, _PLAIN_VALUE_BASES)
-            ):
+            if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
                 value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
