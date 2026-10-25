@@ -17,12 +17,8 @@ from prov.model import (
     parse_xsd_datetime,
 )
 from prov.serializers.provrdf import ProvRDFException
-from prov.tests.conftest import (
-    READER_ERRORS,
-    ROUNDTRIP_FORMATS,
-    TEXT_FORMATS,
-    ex_document,
-)
+from prov.tests.conftest import ROUNDTRIP_FORMATS, TEXT_FORMATS, ex_document
+from prov.tests.format_errors import READER_ERRORS
 
 UTC = datetime.UTC
 

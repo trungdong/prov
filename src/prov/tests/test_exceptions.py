@@ -27,7 +27,8 @@ from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 from prov.serializers.provn import ProvNSyntaxError
 from prov.serializers.provrdf import ProvRDFException
 from prov.serializers.provxml import ProvXMLException, ProvXMLSerializer
-from prov.tests.conftest import EX_URI, READER_ERRORS
+from prov.tests.conftest import EX_URI
+from prov.tests.format_errors import READER_ERRORS
 
 # The five formats' reader errors and the auto-detection failure.
 SERIALIZATION_ERRORS = (*READER_ERRORS.values(), ProvFormatNotDetected)

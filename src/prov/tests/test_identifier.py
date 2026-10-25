@@ -9,7 +9,7 @@ import pytest
 
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import ProvDocument, ProvExceptionInvalidQualifiedName
-from prov.tests.conftest import READER_ERRORS
+from prov.tests.format_errors import READER_ERRORS
 
 
 def test_namespace_rejects_empty_uri() -> None:

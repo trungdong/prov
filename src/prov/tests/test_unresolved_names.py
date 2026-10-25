@@ -23,7 +23,8 @@ from prov.model import (
 )
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 
-from .conftest import READER_ERRORS, default_namespace, ex_document
+from .conftest import default_namespace, ex_document
+from .format_errors import READER_ERRORS
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]

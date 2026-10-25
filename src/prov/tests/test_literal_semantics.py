@@ -28,12 +28,12 @@ from prov.constants import (
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.serializers.provjson import ProvJSONException
 from prov.tests.conftest import (
-    READER_ERRORS,
     ROUNDTRIP_FORMATS,
     TEXT_FORMATS,
     ex_document,
     roundtrip_document,
 )
+from prov.tests.format_errors import READER_ERRORS
 
 
 def test_decimal_literals_compare_in_value_space() -> None:
