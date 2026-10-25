@@ -260,9 +260,21 @@ class _OwnTextLiteral(Literal):
         return '"own" %% ex:custom'
 
 
-@pytest.mark.parametrize("kind", ["raises", "own-text"])
+@pytest.mark.parametrize("kind", ["raises", "own-text", "pickled-identifier"])
 def test_provn_writer_asks_a_literal_for_its_own_text(kind: str) -> None:
     document = _doc()
+    if kind == "pickled-identifier":
+        # A 3.2.x pickle stores an Identifier value raw and __setstate__ re-adds
+        # it without coercion; it still writes as an xsd:anyURI literal.
+        record = document.entity("ex:e", {"ex:v": 1})
+        container = record._attributes[document.valid_qualified_name("ex:v")]
+        container.__setstate__(
+            (None, {"_index": {0: Identifier("http://example.org/x")}})
+        )
+        provn = document.get_provn()
+        assert 'ex:v="http://example.org/x" %% xsd:anyURI' in provn
+        ProvDocument.deserialize(content=provn, format="provn")
+        return
     cls = _RaisingLiteral if kind == "raises" else _OwnTextLiteral
     record = document.entity("ex:e", {"ex:v": cls("x", NS["custom"])})
     assert any(type(value) is cls for value in record.get_attribute("ex:v"))

@@ -1239,7 +1239,7 @@ class ProvRecord:
             for value in self._attributes[attr]:
                 text = (
                     value.provn_representation()
-                    if isinstance(value, (QualifiedName, Literal))
+                    if isinstance(value, (Identifier, Literal))
                     else encoding_provn_value(value)
                 )
                 pairs.append(f"{attr.provn_bare_representation()}={text}")

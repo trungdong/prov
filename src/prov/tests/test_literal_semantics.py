@@ -26,7 +26,6 @@ from prov.constants import (
     XSD_LONG,
 )
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
-from prov.model.records import _value_key
 from prov.tests.conftest import (
     ROUNDTRIP_FORMATS,
     TEXT_FORMATS,
@@ -454,10 +453,12 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     assert type(value).__name__.encode() not in text
     assert b"LOW" not in text and b"odd" not in text
     back = roundtrip_document(document, fmt)
-    assert _single_value(back) == plain
-    assert type(_single_value(back)) is type(plain)
+    read = _single_value(back)
+    assert read == plain
+    assert type(read) is type(plain)
     assert back == document
-    assert _value_key(value) == _value_key(plain)
+    both = ex_document().entity("ex:e2", [("ex:a", value), ("ex:a", plain)])
+    assert len(both.get_attribute("ex:a")) == 1
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:

@@ -382,7 +382,7 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#657](https://github.com/trungdong/prov/issues/657))
 - A `datetime` subclass, such as `pandas.Timestamp`, equals the `datetime` every reader
   builds from its text, so a document holding one equals its own round trip, as one holding
-  an `int` or `float` subclass already did
+  an `int` or `float` subclass does
   ([#663](https://github.com/trungdong/prov/issues/663))
 - A `Literal` built from a Python value stores `prov`'s spelling of the value, the text the
   same value takes when it is asserted plainly: a `timedelta` as an `xsd:duration` such as
