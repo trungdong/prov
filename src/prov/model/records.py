@@ -543,12 +543,16 @@ class Literal:
         return self._langtag is None
 
     def provn_representation(self) -> str:
-        """Return the PROV-N representation of the literal."""
+        """Return the PROV-N representation of the literal, the datatype spelled
+        as at an identifier position, so a ``:`` in its local part is escaped
+        (#571)."""
         quoted_value = _provn_string_literal(self._value)
         if self._langtag:
             # a language tag can only go with prov:InternationalizedString.
             return f"{quoted_value}@{self._langtag}"
-        return f"{quoted_value} %% {self._datatype!s}"
+        datatype = self._datatype
+        spelled = datatype.provn_bare_representation() if datatype else None
+        return f"{quoted_value} %% {spelled}"
 
 
 # Depends on `Literal` and `SupportedXSDParsedTypes` above, so it cannot join

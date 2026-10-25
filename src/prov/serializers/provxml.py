@@ -4,6 +4,7 @@ import datetime
 import io
 import logging
 import re
+from collections.abc import Iterable
 from typing import Any
 
 from lxml import etree
@@ -147,6 +148,7 @@ class ProvXMLSerializer(Serializer):
         # Build the namespace map for lxml and attach it to the root XML
         # element.
         nsmap = self._build_nsmap(bundle)
+        _declare_a_prefix_for_colon_datatypes(nsmap, bundle)
 
         if element is not None:
             xml_bundle_root = etree.SubElement(
@@ -438,6 +440,59 @@ class ProvXMLSerializer(Serializer):
         return rec_label
 
 
+def _prefix_bound_to(
+    bindings: Iterable[tuple[str | None, str]], uri: str
+) -> str | None:
+    """A prefix among ``bindings`` bound to ``uri``, or ``None``."""
+    return next((p for p, u in bindings if p is not None and u == uri), None)
+
+
+def _holds_a_colon_datatype_in_the_default(bundle: prov.model.ProvBundle) -> bool:
+    """Whether a literal of ``bundle`` has a datatype in the default namespace
+    whose local part contains ``:``, which has no ``xsi:type`` QName."""
+    return any(
+        isinstance(value, prov.model.Literal)
+        and value.datatype is not None
+        and not value.datatype.namespace.prefix
+        and ":" in value.datatype.localpart
+        for record in bundle._records
+        for _, value in record.attributes
+    )
+
+
+def _declare_a_prefix_for_colon_datatypes(
+    nsmap: dict[str, str], bundle: prov.model.ProvBundle
+) -> None:
+    """Bind ``dn`` (``dn_1``, ... when taken) in ``nsmap`` to the default
+    namespace in scope when a literal of ``bundle`` has a datatype in it whose
+    local part contains ``:``, and no prefix is bound to it yet; the datatype
+    is then written under that prefix, as the PROV-JSON writer does (#570).
+    lxml fixes an element's declarations at creation, so this runs before the
+    element is built."""
+    default = next((uri for prefix, uri in nsmap.items() if prefix is None), None)
+    if default is None or _prefix_bound_to(nsmap.items(), default) is not None:
+        return
+    if _holds_a_colon_datatype_in_the_default(bundle):
+        prefix, n = "dn", 0
+        while prefix in nsmap:
+            n += 1
+            prefix = f"dn_{n}"
+        nsmap[prefix] = default
+
+
+def _xsi_type_text(
+    elem: etree._Element, datatype: prov.identifier.QualifiedName
+) -> str:
+    """The QName that names ``datatype`` in ``xsi:type``: ``prefix:local``; a
+    bare local part under the element's ``xmlns`` when the namespace has no
+    prefix; and, when that local part contains ``:`` and so has no QName, the
+    local part under the prefix bound to the IRI on the bundle element."""
+    prefix: str | None = datatype.namespace.prefix
+    if not prefix and ":" in datatype.localpart:
+        prefix = _prefix_bound_to(elem.nsmap.items(), datatype.namespace.uri)
+    return f"{prefix}:{datatype.localpart}" if prefix else datatype.localpart
+
+
 def _encode_attribute(
     elem: etree._Element,
     attr: prov.identifier.QualifiedName,
@@ -499,9 +554,7 @@ def _encode_attribute_value(
             value.datatype is not None
             and value.datatype != PROV_INTERNATIONALIZEDSTRING
         ):
-            subelem.attrib[_ns_xsi("type")] = (
-                f"{value.datatype.namespace.prefix}:{value.datatype.localpart}"
-            )
+            subelem.attrib[_ns_xsi("type")] = _xsi_type_text(subelem, value.datatype)
         if value.langtag is not None:
             subelem.attrib[_ns_xml("lang")] = value.langtag
         return value.value

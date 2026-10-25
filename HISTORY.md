@@ -363,6 +363,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-XML writer declares a bundle's own default namespace on its
   `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
   back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
+- A typed literal whose datatype is in the default namespace round-trips through PROV-N
+  and PROV-XML. PROV-N escapes a `:` in the datatype's local part, `"1" %% a\:b`, as it
+  does in an identifier; PROV-XML writes the datatype as the bare local part, which
+  `xsi:type` resolves under the element's `xmlns`, and one whose local part contains `:`
+  under a prefix bound to the default namespace, `dn` declared on the element when none
+  is. 3.2.x wrote `%% a:b`, which read back under the undeclared prefix `a`, and
+  `xsi:type=":t"`, which read back with the local part `:t`
+  ([#571](https://github.com/trungdong/prov/issues/571),
+  [#570](https://github.com/trungdong/prov/issues/570))
 
 ### Project
 
