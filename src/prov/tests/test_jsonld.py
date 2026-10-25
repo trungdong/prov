@@ -4,7 +4,6 @@ import io
 import json
 import re
 import warnings
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -325,7 +324,12 @@ def test_deserialize_value_equal_to_the_vocab_iri_is_rejected() -> None:
             "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
         }
     )
-    with pytest.raises(ProvJSONLDException, match=_unresolved(EX_URI, "k", "http")):
+    reason = (
+        f"the IRI {EX_URI} is the default namespace and has no qualified-name "
+        "form; declare a prefix for it"
+    )
+    message = f"the qualified name {EX_URI!r} of k does not resolve, because {reason}"
+    with pytest.raises(ProvJSONLDException, match=re.escape(message)):
         ProvDocument.deserialize(content=text, format="jsonld")
 
 
@@ -778,45 +782,45 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
 
 
 @pytest.mark.parametrize(
-    ("build", "text", "attr", "prefix"),
+    ("content", "text", "attr", "prefix"),
     [
         pytest.param(
-            lambda t: _entity_with("ex:ref", [{"@id": t}]),
+            _entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
             "http://other.org/x",
             "ex:ref",
             "http",
             id="node-iri",
         ),
         pytest.param(
-            lambda t: _entity_with("ex:ref", [{"@id": t}]),
+            _entity_with("ex:ref", [{"@id": "nope:thing"}]),
             "nope:thing",
             "ex:ref",
             "nope",
             id="node-prefix",
         ),
         pytest.param(
-            lambda t: _entity_with("type", [t]),
+            _entity_with("type", ["http://other.org/x"]),
             "http://other.org/x",
             "prov:type",
             "http",
             id="bare-type-iri",
         ),
         pytest.param(
-            lambda t: _entity_with("type", [t]),
+            _entity_with("type", ["zz:x"]),
             "zz:x",
             "prov:type",
             "zz",
             id="bare-type-prefix",
         ),
         pytest.param(
-            lambda t: _usage_with("role", [t]),
+            _usage_with("role", ["zz:R"]),
             "zz:R",
             "prov:role",
             "zz",
             id="bare-role",
         ),
         pytest.param(
-            lambda t: _entity_with("location", [t]),
+            _entity_with("location", ["zz:L"]),
             "zz:L",
             "prov:location",
             "zz",
@@ -825,12 +829,12 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
     ],
 )
 def test_deserialize_reference_no_namespace_resolves_is_rejected(
-    build: Callable[[str], str], text: str, attr: str, prefix: str
+    content: str, text: str, attr: str, prefix: str
 ) -> None:
     # A node reference, or a bare string under an @id-typed term, that no
     # declared namespace resolves raises the 5.8 sentence (#609).
     with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr, prefix)):
-        ProvDocument.deserialize(content=build(text), format="jsonld")
+        ProvDocument.deserialize(content=content, format="jsonld")
 
 
 _DROPPED_NODE = {"@id": "_:b1"}
@@ -889,7 +893,7 @@ def test_deserialize_blank_node_reference_is_dropped_with_a_warning(
         pytest.param({"@value": None}, [], id="null-value"),
     ],
 )
-def test_deserialize_attribute_value_kept_as_before(
+def test_deserialize_bare_blank_label_stays_text_and_null_value_warns_nothing(
     value: Any, expected: list[str]
 ) -> None:
     # A bare string under a non-@id-typed attribute stays text, and a null value

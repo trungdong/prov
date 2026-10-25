@@ -215,9 +215,15 @@ statement's own arguments are errors.
   that element's identifier does, so it needs the default namespace the element itself needs.
 - The document declares the source's own prefix bindings and the namespaces its names use,
   not rdflib's default prefix bindings. A source declaration identical to one of those
-  defaults, such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name
-  uses it, and an unused `ex` is kept. A prefix the source declares and no name uses is
-  not written by `prov`'s Turtle, so it does not survive a round trip.
+  defaults, such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name,
+  or the text of an `xsd:QName` or `prov:QUALIFIED_NAME` literal, uses it, and an unused
+  `ex` is kept. The exception is a namespace the reader mints for a short IRI, such as the
+  `http://` of `<http://alice.example>`: it also declares every rdflib default binding
+  under it, such as `foaf`, whether or not a name uses it. QName text under a prefix
+  rdflib renamed, such as `"dc:x"^^xsd:QName` with the source's `dc` bound to another IRI,
+  reads under rdflib's IRI for that prefix, because rdflib replaces the source's binding
+  at parse. A prefix the source declares and no name uses is not written by `prov`'s
+  Turtle, so it does not survive a round trip.
 - `rdf_format` selects the RDF syntax to read.
 
 `prov.read()` detects the format from the content and forwards each reader's own options

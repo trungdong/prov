@@ -285,7 +285,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#609](https://github.com/trungdong/prov/issues/609))
 - A PROV-O literal whose datatype IRI neither rdflib nor `prov` can split into a
   namespace and a local part, such as `"1"^^<urn:example:t=>`, raises a `ValueError` that
-  names the IRI. 3.2.3 read the value as plain text and lost the datatype
+  names the IRI. 3.2.3 read the value as plain text and lost the datatype. An untyped
+  relation endpoint, `prov:qualified*` subject or `prov:asInBundle` object whose IRI
+  neither rdflib nor `prov` can split, such as `urn:example:t=`, now raises the same
+  `ValueError`, where 3.2.3 raised `ProvExceptionInvalidQualifiedName`; the same input
+  fails on both
   ([#665](https://github.com/trungdong/prov/issues/665))
 
 ### Output changes
@@ -369,10 +373,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `owl` and the rest) as the document's own, so `get_registered_namespaces()` and every
   writer list the source's declarations and the namespaces its names use, where 3.2.x
   listed all of them. A source declaration identical to one of rdflib's default bindings,
-  such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name or the
-  text of an `xsd:QName` literal uses it, and an unused `ex` is kept. A prefix the source
-  declares and no name uses is not written by `prov`'s Turtle, so it does not survive a
-  round trip.
+  such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name, or the
+  text of an `xsd:QName` or `prov:QUALIFIED_NAME` literal, uses it, and an unused `ex` is
+  kept. The exception is a namespace the reader mints for a short IRI, such as the
+  `http://` of `<http://alice.example>`: it also declares every rdflib default binding
+  under it, such as `foaf`, whether or not a name uses it, so that a name under one keeps
+  its prefix. A prefix the source declares and no name uses is not written by `prov`'s
+  Turtle, so it does not survive a round trip
   ([#654](https://github.com/trungdong/prov/issues/654))
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A

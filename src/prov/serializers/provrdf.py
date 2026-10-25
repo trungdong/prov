@@ -141,6 +141,7 @@ class _LexicalFormLiteral(RDFLiteral):
 # directly. Every other datatype (`xsd:decimal`, `xsd:unsignedInt`,
 # `xsd:positiveInteger`, other XSD numeric subtypes, custom datatypes, ...)
 # is reconstructed from the RDF term's own lexical form instead (#218).
+_QNAME_DATATYPES = frozenset({XSD["QName"], URIRef(PROV_QUALIFIEDNAME.uri)})
 _LOSSLESS_COLLAPSE_DATATYPES = frozenset(
     {
         XSD["double"],
@@ -411,6 +412,11 @@ class ProvRDFSerializer(Serializer):
     deserialize_options = frozenset(
         {"rdf_format", "relation_mapper", "predicate_mapper"}
     )
+
+    # The (prefix, IRI) bindings of the graph being read that
+    # ``decode_document`` left unregistered because rdflib adds them to every
+    # graph.
+    _skipped_bindings: tuple[tuple[str, str], ...] = ()
 
     def serialize(
         self,
@@ -698,8 +704,24 @@ class ProvRDFSerializer(Serializer):
         if not prefix:
             qname = self._default_name(iri, uri)
             return qname if qname is not None else self._split_at_separator(iri)
+        self._register_shadowed_bindings(uri)
         ns = self.document.add_namespace(prefix, uri)
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _register_shadowed_bindings(self, uri: str) -> None:
+        """Register the skipped bindings whose IRI extends the namespace ``uri``.
+
+        The model resolves a full IRI against the first registered namespace
+        that prefixes it. A minted namespace such as ``http://`` would
+        otherwise capture IRIs under a skipped binding (``foaf``) that is
+        registered only when a name uses it, later (N56).
+
+        Args:
+            uri: The IRI of the namespace about to be minted.
+        """
+        for prefix, iri in self._skipped_bindings:
+            if len(iri) > len(uri) and iri.startswith(uri):
+                self.document.add_namespace(prefix, iri)  # type: ignore[union-attr]
 
     def _split_at_separator(self, iri: str) -> pm.QualifiedName:
         """Split ``iri`` at its last ``#`` or ``/`` and mint a namespace for
@@ -717,6 +739,7 @@ class ProvRDFSerializer(Serializer):
                 f"Cannot split IRI {iri!r} into a namespace and a local "
                 "part: it contains no '#' or '/' separator."
             )
+        self._register_shadowed_bindings(iri[: sep + 1])
         ns = self.document.add_namespace("ns", iri[: sep + 1])  # type: ignore[union-attr]
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
 
@@ -789,32 +812,6 @@ class ProvRDFSerializer(Serializer):
             value_overridden = True
         return value, datatype, langtag, value_overridden
 
-    def _datatype_name(
-        self, datatype: URIRef | None, graph: Graph
-    ) -> pm.QualifiedName | None:
-        """Resolve a literal's datatype IRI, as a typed subject's IRI is.
-
-        The document's namespaces come first, then ``graph``'s bindings and
-        a minted namespace, so a datatype that no namespace compacts is kept
-        (#665).
-
-        Args:
-            datatype: The literal's datatype, or ``None`` for a plain literal.
-            graph: Graph the literal came from, for its namespace bindings.
-
-        Returns:
-            The datatype's :class:`~prov.identifier.QualifiedName`, or
-            ``None`` when ``datatype`` is ``None``.
-
-        Raises:
-            ValueError: If ``datatype`` contains no ``#`` or ``/`` separator.
-        """
-        if datatype is None:
-            return None
-        return self.valid_identifier(datatype) or self._resolve_iri(
-            str(datatype), graph
-        )
-
     def _register_qname_prefix(self, text: str, graph: Graph) -> None:
         """Register the graph's binding for the prefix of a QName literal's text.
 
@@ -853,16 +850,16 @@ class ProvRDFSerializer(Serializer):
             ill-formed ones included.
 
         Raises:
-            ValueError: If the datatype IRI contains no ``#`` or ``/``
-                separator.
+            ValueError: If the datatype is an IRI neither rdflib nor prov can
+                split, such as ``urn:example:t=``.
         """
         value, datatype, langtag, value_overridden = self._normalize_literal_value(
             literal
         )
-        if datatype in (XSD["QName"], URIRef(PROV_QUALIFIEDNAME.uri)):
+        if datatype in _QNAME_DATATYPES:
             self._register_qname_prefix(str(literal), graph)
-        if datatype == XSD["QName"]:
-            return pm.Literal(literal, datatype=XSD_QNAME)
+            if datatype == XSD["QName"]:
+                return pm.Literal(literal, datatype=XSD_QNAME)
         if datatype == XSD["dateTime"]:
             parsed = pm.parse_xsd_datetime(str(literal))
             # An ill-formed literal, or one whose offset is beyond ±14:00,
@@ -875,18 +872,18 @@ class ProvRDFSerializer(Serializer):
         if datatype == XSD["gYear"]:
             year_match = _XSD_GYEAR_RE.match(str(literal))
             if year_match is None:
-                return pm.Literal(str(literal), self._datatype_name(datatype, graph))
+                return pm.Literal(str(literal), self.valid_identifier(datatype))
             return pm.Literal(
                 int(year_match.group(1)),
-                datatype=self._datatype_name(datatype, graph),
+                datatype=self.valid_identifier(datatype),
             )
         if datatype == XSD["gYearMonth"]:
             ym_match = _XSD_GYEARMONTH_RE.match(str(literal))
             if ym_match is None:
-                return pm.Literal(str(literal), self._datatype_name(datatype, graph))
+                return pm.Literal(str(literal), self.valid_identifier(datatype))
             return pm.Literal(
                 f"{int(ym_match.group(1))}-{int(ym_match.group(2)):02d}",
-                datatype=self._datatype_name(datatype, graph),
+                datatype=self.valid_identifier(datatype),
             )
         else:
             if (
@@ -906,7 +903,12 @@ class ProvRDFSerializer(Serializer):
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by
             # _auto_literal_conversion()
-            return pm.Literal(value, self._datatype_name(datatype, graph), langtag)
+            resolved = (
+                None
+                if datatype is None
+                else self.decode_rdf_representation(datatype, graph)
+            )
+            return pm.Literal(value, resolved, langtag)
 
     def encode_document(
         self,
@@ -1408,6 +1410,9 @@ class ProvRDFSerializer(Serializer):
         registered here, because the source may not have declared it. A name
         a record uses under such a binding registers its namespace as the
         decoding reaches it, so only the namespaces the names need are kept.
+        The one exception is a namespace the reader mints for a short IRI,
+        which registers the skipped bindings under it first
+        (:meth:`_register_shadowed_bindings`).
 
         Args:
             content: RDF graph (typically a ``Dataset``, as produced by
@@ -1419,13 +1424,14 @@ class ProvRDFSerializer(Serializer):
             predicate_mapper: Maps PROV-O predicate URIRefs to formal
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
         """
-        rdflib_defaults = {(prefix, str(iri)) for prefix, iri in Graph().namespaces()}
-        for prefix, url in content.namespaces():
-            if prefix:
-                if (prefix, str(url)) not in rdflib_defaults:
-                    document.add_namespace(prefix, str(url))
-            else:
-                document.set_default_namespace(str(url))
+        skipped = {(prefix, str(iri)) for prefix, iri in Graph().namespaces()}
+        bindings = [(prefix, str(url)) for prefix, url in content.namespaces()]
+        self._skipped_bindings = tuple(b for b in bindings if b[0] and b in skipped)
+        for prefix, iri in bindings:
+            if not prefix:
+                document.set_default_namespace(iri)
+            elif (prefix, iri) not in skipped:
+                document.add_namespace(prefix, iri)
         if hasattr(content, "graphs"):
             for graph in content.graphs():
                 if (

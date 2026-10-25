@@ -11,7 +11,7 @@ import json
 from collections.abc import Callable
 from functools import lru_cache
 from importlib.resources import files
-from typing import Any, Final
+from typing import Any
 
 from prov import Error
 from prov._warnings import warn
@@ -37,12 +37,18 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvElement,
+    ProvExceptionInvalidQualifiedName,
     ProvRecord,
     QualifiedNameCandidate,
     first,
     parse_xsd_datetime,
 )
-from prov.model._values import _xsd_datetime_text, python_value_form, resolve_name
+from prov.model._values import (
+    _unresolved_name_detail,
+    _xsd_datetime_text,
+    python_value_form,
+    resolve_name,
+)
 from prov.serializers import Serializer, _is_text_stream
 from prov.serializers._json_common import (
     _add_memberships,
@@ -460,10 +466,6 @@ def _decode_node_reference(value: dict[str, Any], term: str) -> str:
     return text
 
 
-_DROPPED: Final = object()
-"""What :func:`decode_jsonld_value` returns for a value it drops."""
-
-
 def decode_jsonld_value(
     value: Any, bundle: ProvBundle, term: str, *, attr: QualifiedName, record: str
 ) -> Any:
@@ -493,8 +495,8 @@ def decode_jsonld_value(
             anonymous statement, named in the warning.
 
     Returns:
-        The decoded value, or the module's ``_DROPPED`` sentinel for a
-        blank-node reference.
+        The decoded value, or ``None`` for a blank-node reference, which the
+        model skips.
 
     Raises:
         ProvJSONLDException: If ``value`` is neither a string nor a JSON
@@ -517,11 +519,19 @@ def decode_jsonld_value(
             f"{record}: {attr} points at a blank node that names no record; "
             "the value is dropped"
         )
-        return _DROPPED
+        return None
     resolved = bundle.valid_qualified_name(text)
-    if resolved is None:
-        raise ProvJSONLDException(str(resolve_name(bundle, text, attr=attr)))
-    return resolved
+    if resolved is not None:
+        return resolved
+    try:
+        bundle._reject_default_iri(text)
+    except ProvExceptionInvalidQualifiedName as exc:
+        reason = str(exc.detail)
+        raise ProvJSONLDException(_unresolved_name_detail(text, reason, attr)) from exc
+    name = resolve_name(bundle, text, attr=attr)
+    if isinstance(name, str):
+        raise ProvJSONLDException(name)
+    return name
 
 
 def _decode_value_object(value: dict[str, Any], bundle: ProvBundle, term: str) -> Any:
@@ -611,20 +621,6 @@ def _decode_statement_type(item: dict[str, Any]) -> tuple[QualifiedName, str]:
     return rec_type, type_term
 
 
-def _decode_attribute_values(
-    values: list[Any], bundle: ProvBundle, term: str, attr: QualifiedName, record: str
-) -> list[AttributePair]:
-    """The ``(attr, value)`` pairs of a non-formal attribute's value array.
-
-    A value :func:`decode_jsonld_value` drops leaves the others in place.
-    """
-    pairs = [
-        (attr, decode_jsonld_value(v, bundle, term, attr=attr, record=record))
-        for v in values
-    ]
-    return [pair for pair in pairs if pair[1] is not _DROPPED]
-
-
 def _decode_statement_attributes(
     item: dict[str, Any],
     bundle: ProvBundle,
@@ -690,7 +686,8 @@ def _decode_statement_attributes(
                 f"The attribute {key!r} must be an array of values; found {value!r}"
             )
         other_attributes.extend(
-            _decode_attribute_values(value, bundle, term, qname, record)
+            (qname, decode_jsonld_value(v, bundle, term, attr=qname, record=record))
+            for v in value
         )
     return attributes, other_attributes, members
 

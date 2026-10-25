@@ -53,5 +53,7 @@ page, C10 covers literals rdflib rewrites on read, and C11 a decimal `NaN` besid
 number, which rdflib cannot write.
 
 A prefix the source declares with the same IRI rdflib binds by default is declared only
-when a name uses it, and `prov`'s own Turtle writes no unused prefix, so an unused
+when a name, or the text of an `xsd:QName` or `prov:QUALIFIED_NAME` literal, uses it, or
+when the reader mints a namespace for a short IRI such as `<http://alice.example>` that
+the binding's IRI extends. `prov`'s own Turtle writes no unused prefix, so an unused
 declaration does not survive a PROV-O round trip ({doc}`../reference/conformance`).

@@ -346,20 +346,11 @@ def test_the_default_binding_reads_back_as_the_default_namespace() -> None:
     assert ProvDocument.deserialize(content=provn, format="provn") == reloaded
 
 
-def _round_trip_turtle() -> tuple[ProvDocument, str]:
-    document = ProvDocument()
-    document.add_namespace("ex", "http://example.org/")
-    document.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
-    document.add_namespace("un", "http://unused.example/")
-    document.entity("ex:e")
-    document.agent("foaf:alice")
-    return document, document.serialize(format="rdf", rdf_format="turtle")
-
-
-_BINDING_PREFIXES = (
+_TURTLE_PREFIXES = (
     "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
     "@prefix ex: <http://example.org/> .\n"
 )
+_FOAF_PREFIX = "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
 _NT_ATTRIBUTION = (
     "<http://example.org/e>"
     " <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>"
@@ -367,22 +358,24 @@ _NT_ATTRIBUTION = (
     "<http://example.org/e> <http://www.w3.org/ns/prov#wasAttributedTo>"
     " <http://xmlns.com/foaf/0.1/Alice> .\n"
 )
-
-
-_ROUND_TRIP_DOCUMENT, _ROUND_TRIP_TURTLE = _round_trip_turtle()
 _QNAME_PREFIXES = (
-    _BINDING_PREFIXES
+    _TURTLE_PREFIXES
     + "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n"
-    + "@prefix foaf: <http://xmlns.com/foaf/0.1/> .\n"
+    + _FOAF_PREFIX
 )
-
-
-def _check_own_only(back: ProvDocument) -> None:
-    assert back.get_provn().count("prefix ") == 1
-
-
-def _check_round_trip(back: ProvDocument) -> None:
-    assert back == _ROUND_TRIP_DOCUMENT
+# `<http://alice.example>` splits at `http://`, a namespace that prefixes
+# rdflib's foaf binding (N56).
+_SHORT_IRI_SAME_TRIPLE = (
+    _TURTLE_PREFIXES
+    + _FOAF_PREFIX
+    + "ex:alice a prov:Agent ; foaf:homepage <http://alice.example> .\n"
+)
+_SHORT_IRI_SPLIT = (
+    _TURTLE_PREFIXES
+    + _FOAF_PREFIX
+    + 'ex:a a prov:Agent ; foaf:name "A" .\n'
+    + "ex:b a prov:Entity ; ex:site <http://b.example> .\n"
+)
 
 
 def _check_nt_foaf(back: ProvDocument) -> None:
@@ -423,34 +416,94 @@ def _check_qname_literal(attribute: str) -> Callable[[ProvDocument], None]:
     return check
 
 
+# The skipped rdflib bindings under `http://`, which the reader declares once it
+# mints that namespace (N56). `prov` and `xsd` are built into every document.
+_HTTP_BINDINGS = {
+    prefix
+    for prefix, iri in Graph().namespaces()
+    if str(iri).startswith("http://") and prefix not in {"prov", "xsd"}
+}
+
+
+def _prefixes(document: ProvDocument) -> set[str]:
+    return {ns.prefix for ns in document.get_registered_namespaces()}
+
+
 @pytest.mark.parametrize(
-    ("content", "rdf_format", "exact", "contains", "check"),
+    ("content", "exact"),
     [
         pytest.param(
-            _BINDING_PREFIXES + "ex:e a prov:Entity .\n",
-            "turtle",
+            _TURTLE_PREFIXES + "ex:e a prov:Entity .\n", {"ex"}, id="own-only"
+        ),
+        pytest.param(
+            _TURTLE_PREFIXES + _FOAF_PREFIX + "ex:e a prov:Entity .\n",
             {"ex"},
-            set(),
-            _check_own_only,
-            id="own-only",
+            id="declared-and-unused",
         ),
         pytest.param(
-            _ROUND_TRIP_TURTLE,
-            "turtle",
-            {"ex", "foaf"},
-            set(),
-            _check_round_trip,
-            id="round-trip",
+            _SHORT_IRI_SAME_TRIPLE,
+            {"ex", "ns1"} | _HTTP_BINDINGS,
+            id="short-iri-same-triple",
         ),
         pytest.param(
-            _NT_ATTRIBUTION, "nt", None, {"foaf"}, _check_nt_foaf, id="nt-foaf"
+            _SHORT_IRI_SPLIT, {"ex", "ns1"} | _HTTP_BINDINGS, id="short-iri-split"
         ),
+    ],
+)
+def test_the_reader_declares_only_the_source_bindings_and_the_names_it_uses(
+    content: str, exact: set[str]
+) -> None:
+    # rdflib binds default prefixes on every graph; the document holds a
+    # binding only when the source declares it or a name read from it needs
+    # it (#654). A namespace the reader mints for a short IRI also declares
+    # the rdflib bindings under it (N56).
+    back = ProvDocument.deserialize(content=content, format="rdf", rdf_format="turtle")
+    assert _prefixes(back) == exact
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        pytest.param(_SHORT_IRI_SAME_TRIPLE, id="same-triple"),
+        pytest.param(_SHORT_IRI_SPLIT, id="split"),
+    ],
+)
+def test_a_minted_namespace_does_not_shadow_the_foaf_binding(content: str) -> None:
+    back = ProvDocument.deserialize(content=content, format="rdf", rdf_format="turtle")
+    foaf = {ns.prefix: ns.uri for ns in back.get_registered_namespaces()}["foaf"]
+    assert foaf == "http://xmlns.com/foaf/0.1/"
+    names = {
+        name
+        for record in back.get_records()
+        for name, _ in record.attributes
+        if name.uri.startswith(foaf)
+    }
+    assert names
+    assert {name.namespace.prefix for name in names} == {"foaf"}
+
+
+def test_the_reader_keeps_the_bindings_a_written_document_uses() -> None:
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    document.add_namespace("un", "http://unused.example/")
+    document.entity("ex:e")
+    document.agent("foaf:alice")
+    turtle = document.serialize(format="rdf", rdf_format="turtle")
+    back = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
+    assert back == document
+    assert _prefixes(back) == {"ex", "foaf"}
+
+
+@pytest.mark.parametrize(
+    ("content", "rdf_format", "contains", "check"),
+    [
+        pytest.param(_NT_ATTRIBUTION, "nt", {"foaf"}, _check_nt_foaf, id="nt-foaf"),
         pytest.param(
-            _BINDING_PREFIXES
+            _TURTLE_PREFIXES
             + "@prefix dcterms: <http://purl.org/dc/terms/> .\n"
             + 'ex:e a prov:Entity ; ex:p "1"^^dcterms:W3CDTF .\n',
             "turtle",
-            None,
             {"dcterms"},
             _check_dcterms_datatype,
             id="dcterms-datatype",
@@ -460,7 +513,6 @@ def _check_qname_literal(attribute: str) -> Callable[[ProvDocument], None]:
             "@prefix dc: <http://other.example/dc#> .\n"
             "dc:x a prov:Entity .\n",
             "turtle",
-            None,
             {"dc1"},
             _check_rebound_dc,
             id="rebound-dc",
@@ -468,7 +520,6 @@ def _check_qname_literal(attribute: str) -> Callable[[ProvDocument], None]:
         pytest.param(
             _QNAME_PREFIXES + 'ex:e a prov:Entity ; ex:p "foaf:x"^^xsd:QName .\n',
             "turtle",
-            None,
             {"foaf"},
             _check_qname_literal("ex:p"),
             id="xsd-qname-literal",
@@ -477,7 +528,6 @@ def _check_qname_literal(attribute: str) -> Callable[[ProvDocument], None]:
             _QNAME_PREFIXES
             + 'ex:e a prov:Entity ; ex:p "foaf:x"^^prov:QUALIFIED_NAME .\n',
             "turtle",
-            None,
             {"foaf"},
             _check_qname_literal("ex:p"),
             id="prov-qualified-name-literal",
@@ -485,30 +535,24 @@ def _check_qname_literal(attribute: str) -> Callable[[ProvDocument], None]:
         pytest.param(
             _QNAME_PREFIXES + 'ex:e a prov:Entity ; prov:type "foaf:x"^^xsd:QName .\n',
             "turtle",
-            None,
             {"foaf"},
             _check_qname_literal("prov:type"),
             id="prov-type-qname-literal",
         ),
     ],
 )
-def test_the_reader_declares_only_the_source_bindings_and_the_names_it_uses(
+def test_the_reader_registers_a_binding_a_name_needs(
     content: str,
     rdf_format: str,
-    exact: set[str] | None,
     contains: set[str],
     check: Callable[[ProvDocument], None],
 ) -> None:
-    # rdflib binds default prefixes on every graph; the document holds a
-    # binding only when the source declares it or a name read from it needs
-    # it, a QName literal's prefix included (#654).
+    # A name read under a binding rdflib adds to every graph registers it, a
+    # QName literal's prefix included (#654).
     back = ProvDocument.deserialize(
         content=content, format="rdf", rdf_format=rdf_format
     )
-    prefixes = {ns.prefix for ns in back.get_registered_namespaces()}
-    if exact is not None:
-        assert prefixes == exact
-    assert contains <= prefixes
+    assert contains <= _prefixes(back)
     check(back)
 
 
@@ -1232,12 +1276,6 @@ def test_blank_node_element_still_takes_its_label_as_identifier() -> None:
         _ = ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
 
 
-_BLANK_OBJECT_PREFIXES = (
-    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
-    "@prefix ex: <http://example.org/> .\n"
-)
-
-
 @pytest.mark.parametrize(
     ("predicate", "typed"),
     [
@@ -1251,7 +1289,7 @@ def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) ->
     # A blank node names no record (a relation it types reads anonymous), so
     # the link has no form; the derivation reads without it (#639).
     node_type = "prov:Generation" if predicate == "hadGeneration" else "prov:Usage"
-    turtle = _BLANK_OBJECT_PREFIXES + (
+    turtle = _TURTLE_PREFIXES + (
         "ex:e2 a prov:Entity ; prov:qualifiedDerivation [ a prov:Derivation ;"
         f" prov:entity ex:e1 ; prov:{predicate} _:g1 ] .\n"
         "ex:e1 a prov:Entity .\n"
@@ -1301,12 +1339,12 @@ def test_blank_node_behind_an_element_is_the_elements_own_problem(body: str) -> 
     # default.
     with pytest.raises(pm.ProvElementIdentifierRequired):
         _ = ProvDocument.deserialize(
-            content=_BLANK_OBJECT_PREFIXES + body, format="rdf", rdf_format="turtle"
+            content=_TURTLE_PREFIXES + body, format="rdf", rdf_format="turtle"
         )
 
 
 def test_blank_node_behind_an_extra_attribute_is_dropped() -> None:
-    turtle = _BLANK_OBJECT_PREFIXES + "ex:e a prov:Entity ; ex:ref _:x .\n"
+    turtle = _TURTLE_PREFIXES + "ex:e a prov:Entity ; ex:ref _:x .\n"
     with pytest.warns(
         pm.ProvWarning, match="ex:e: ex:ref points at a blank node that names no record"
     ):
@@ -1481,12 +1519,6 @@ def test_unsplittable_iri_raises_clear_error() -> None:
     assert "urn:no-separator;" in str(ctx.value)
 
 
-_ENDPOINT_PREFIXES = (
-    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
-    "@prefix ex: <http://example.org/> .\n"
-)
-
-
 @pytest.mark.parametrize(
     ("body", "record_type", "attribute", "uri"),
     [
@@ -1535,7 +1567,7 @@ def test_untyped_relation_endpoint_reads(
     # prefix the reader mints, as a typed subject does; a blank-node element
     # keeps reading as its label in the default namespace.
     document = ProvDocument.deserialize(
-        content=_ENDPOINT_PREFIXES + body, format="rdf", rdf_format="turtle"
+        content=_TURTLE_PREFIXES + body, format="rdf", rdf_format="turtle"
     )
     (record,) = document.get_records(record_type)
     (endpoint,) = record.get_attribute(attribute)
@@ -1571,18 +1603,10 @@ def test_a_datatype_no_namespace_compacts_is_kept(
     content = document.serialize(format="rdf", rdf_format="turtle")
     back = ProvDocument.deserialize(content=content, format="rdf", rdf_format="turtle")
     assert back == document
-    ((_, value),) = [
-        (name, v)
-        for record in back.get_records()
-        for name, v in record.attributes
-        if isinstance(v, pm.Literal)
-    ]
-    assert value.datatype is not None
-    assert value.datatype.uri == datatype.uri
 
 
 def test_a_datatype_iri_with_no_separator_raises() -> None:
-    turtle = _ENDPOINT_PREFIXES + 'ex:e a prov:Entity ; ex:p "1"^^<urn:example:t=> .\n'
+    turtle = _TURTLE_PREFIXES + 'ex:e a prov:Entity ; ex:p "1"^^<urn:example:t=> .\n'
     with pytest.raises(
         ValueError, match=re.escape("Cannot split IRI 'urn:example:t='")
     ):
