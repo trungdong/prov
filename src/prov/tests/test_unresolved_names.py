@@ -21,12 +21,9 @@ from prov.model import (
     ProvRecord,
     QualifiedName,
 )
-from prov.serializers.provjson import ProvJSONException
-from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
-from prov.serializers.provn_lexer import ProvNSyntaxError
-from prov.serializers.provrdf import ProvRDFException
+from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 
-from .conftest import default_namespace, ex_document
+from .conftest import READER_ERRORS, default_namespace, ex_document
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]
@@ -285,22 +282,22 @@ _CHANNELS: dict[
         "Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
-    "provn": (_read_provn, ProvNSyntaxError, "line 3, column 20: ", ""),
+    "provn": (_read_provn, READER_ERRORS["provn"], "line 3, column 20: ", ""),
     "json": (
         _read_json_value,
-        ProvJSONException,
+        READER_ERRORS["json"],
         "record 'ex:e', attribute 'ex:k': ",
         "",
     ),
     "jsonld": (
         _read_jsonld,
-        ProvJSONLDException,
-        "Entity 'ex:e': Invalid Qualified Name: {text}, ",
+        READER_ERRORS["jsonld"],
+        "prov:Entity 'ex:e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
     "rdf": (
         _read_rdf,
-        ProvRDFException,
+        READER_ERRORS["rdf"],
         "subject 'http://example.org/e': Invalid Qualified Name: {text}, ",
         " of ex:k",
     ),
@@ -334,17 +331,15 @@ def _assert_the_default_iri() -> None:
 
 
 def _read_provn_the_default_iri() -> None:
-    source = (
-        f"document\ndefault <{DEFAULT_IRI}>\n"
-        f"entity(e, [prov:type='{DEFAULT_IRI}'])\nendDocument\n"
-    )
+    declarations = f"prefix ex <{EX}>\ndefault <{DEFAULT_IRI}>\n"
+    source = _provn(f"'{DEFAULT_IRI}'", declarations)
     ProvDocument.deserialize(content=source, format="provn")
 
 
 def _read_json_the_default_iri() -> None:
     value = {"$": DEFAULT_IRI, "type": "prov:QUALIFIED_NAME"}
-    source = json.dumps(
-        {"prefix": {"default": DEFAULT_IRI}, "entity": {"e": {"prov:type": value}}}
+    source = _json(
+        {"entity": {"ex:e": {"ex:k": value}}}, {"ex": EX, "default": DEFAULT_IRI}
     )
     ProvDocument.deserialize(content=source, format="json")
 
@@ -380,13 +375,48 @@ def _read_rdf_the_default_iri() -> None:
     ProvDocument.deserialize(content=source, format="rdf", rdf_format="turtle")
 
 
-_DEFAULT_IRI_CHANNELS: dict[str, tuple[Callable[[], None], type[Exception]]] = {
-    "asserted": (_assert_the_default_iri, ProvExceptionInvalidQualifiedName),
-    "provn": (_read_provn_the_default_iri, ProvNSyntaxError),
-    "json": (_read_json_the_default_iri, ProvJSONException),
-    "jsonld-node": (_read_jsonld_node_the_default_iri, ProvJSONLDException),
-    "jsonld-value": (_read_jsonld_value_the_default_iri, ProvJSONLDException),
-    "rdf": (_read_rdf_the_default_iri, ProvRDFException),
+# Each channel: its reader, the error it raises, what starts the message and
+# whether the attribute is named after the value. A JSON-LD node reference
+# names no record.
+_DEFAULT_IRI_CHANNELS: dict[
+    str, tuple[Callable[[], None], type[Exception], str, str]
+] = {
+    "asserted": (
+        _assert_the_default_iri,
+        ProvExceptionInvalidQualifiedName,
+        f"Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of prov:type",
+    ),
+    "provn": (
+        _read_provn_the_default_iri,
+        READER_ERRORS["provn"],
+        "line 4, column 20: ",
+        "",
+    ),
+    "json": (
+        _read_json_the_default_iri,
+        READER_ERRORS["json"],
+        "record 'ex:e', attribute 'ex:k': ",
+        "",
+    ),
+    "jsonld-node": (
+        _read_jsonld_node_the_default_iri,
+        READER_ERRORS["jsonld"],
+        "",
+        " of k",
+    ),
+    "jsonld-value": (
+        _read_jsonld_value_the_default_iri,
+        READER_ERRORS["jsonld"],
+        f"prov:Entity 'e': Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of k",
+    ),
+    "rdf": (
+        _read_rdf_the_default_iri,
+        READER_ERRORS["rdf"],
+        f"subject '{DEFAULT_IRI}e': Invalid Qualified Name: {DEFAULT_IRI}, ",
+        " of prov:type",
+    ),
 }
 
 
@@ -394,10 +424,10 @@ _DEFAULT_IRI_CHANNELS: dict[str, tuple[Callable[[], None], type[Exception]]] = {
 def test_a_value_equal_to_the_default_iri_gives_the_default_reason(
     channel: str,
 ) -> None:
-    read, error = _DEFAULT_IRI_CHANNELS[channel]
+    read, error, where, attr = _DEFAULT_IRI_CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read()
-    assert DEFAULT_IRI_REASON in str(ctx.value)
+    assert str(ctx.value) == where + _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
 
 
 #  A prefix the document declares wins over compaction in a bundle (#599)

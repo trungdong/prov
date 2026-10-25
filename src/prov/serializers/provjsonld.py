@@ -735,7 +735,11 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
         ]
         _add_memberships(bundle, rec_id, attributes, other_attributes, resolved)
     except ProvException as exc:
-        named = f"{type_term} {rec_id!r}" if rec_id else f"an anonymous {rec_type}"
+        named = (
+            f"{rec_type} {rec_id!r}"
+            if rec_id is not None
+            else f"an anonymous {rec_type}"
+        )
         raise ProvJSONLDException(f"{named}: {exc}") from exc
 
 
@@ -794,7 +798,7 @@ def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
                 )
             document.add_bundle(bundle, bundle_id)
         except ProvException as exc:
-            raise ProvJSONLDException(f"Bundle {item['@id']!r}: {exc}") from exc
+            raise ProvJSONLDException(f"{PROV_BUNDLE} {item['@id']!r}: {exc}") from exc
 
 
 class ProvJSONLDSerializer(Serializer):

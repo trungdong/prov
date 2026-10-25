@@ -76,6 +76,14 @@ class ProvXMLException(ProvSerializationError):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
 
 
+def _element_position(element: etree._Element, rec_id: str | None) -> str:
+    """Where an error about ``element`` starts: its line, if it has one, its
+    tag and its ``prov:id``."""
+    line = "" if element.sourceline is None else f"line {element.sourceline}, "
+    named = repr(rec_id) if rec_id is not None else "with no prov:id"
+    return f"{line}<prov:{etree.QName(element).localname}> {named}: "
+
+
 class ProvXMLSerializer(Serializer):
     """PROV-XML serializer for :class:`~prov.model.ProvDocument`"""
 
@@ -308,7 +316,8 @@ class ProvXMLSerializer(Serializer):
             ProvXMLException: If a child element is not in the PROV
                 namespace; if a ``<prov:bundleContent>`` has no
                 ``prov:id`` or is nested in a bundle; or, naming the
-                element and its line, if the model rejects a record or a
+                element and, when it has one, its line, if the element is
+                not a PROV element or the model rejects a record or a
                 bundle (the model's error is the ``__cause__``).
 
         Warns:
@@ -354,7 +363,11 @@ class ProvXMLSerializer(Serializer):
                 attributes = _extract_attributes(element, namespaces, bundle)
 
                 # Map the record type to its base type.
-                q_prov_name = FULL_PROV_RECORD_IDS_MAP[qname.localname]
+                q_prov_name = FULL_PROV_RECORD_IDS_MAP.get(qname.localname)
+                if q_prov_name is None:
+                    raise ProvXMLException(
+                        _element_position(element, rec_id) + "it is not a PROV element"
+                    )
                 rec_type = PROV_BASE_CLS[q_prov_name]
 
                 if _ns_xsi("type") in element.attrib:
@@ -372,10 +385,8 @@ class ProvXMLSerializer(Serializer):
                 if rec_type != q_prov_name:
                     rec.add_asserted_type(q_prov_name)
             except ProvException as exc:
-                named = repr(rec_id) if rec_id is not None else "with no prov:id"
                 raise ProvXMLException(
-                    f"line {element.sourceline}, <prov:{qname.localname}> {named}: "
-                    f"{exc}"
+                    f"{_element_position(element, rec_id)}{exc}"
                 ) from exc
         return bundle
 

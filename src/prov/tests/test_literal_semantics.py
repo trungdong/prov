@@ -27,9 +27,8 @@ from prov.constants import (
 )
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.serializers.provjson import ProvJSONException
-from prov.serializers.provjsonld import ProvJSONLDException
-from prov.serializers.provxml import ProvXMLException
 from prov.tests.conftest import (
+    READER_ERRORS,
     ROUNDTRIP_FORMATS,
     TEXT_FORMATS,
     ex_document,
@@ -188,17 +187,12 @@ def test_bcp47_language_tag_is_kept(tag: str | None) -> None:
         assert Literal("hi", langtag=tag).langtag == tag
 
 
-READER_ERRORS = {
-    "json": ProvJSONException,
-    "xml": ProvXMLException,
-    "jsonld": ProvJSONLDException,
-}
 READER_WHERE = {
-    "json": "record 'ex:e1': ",
-    "xml": "line 3, <prov:entity> 'ex:e1': ",
-    "jsonld": "Entity 'ex:e1': ",
+    "json": r"record 'ex:e1': ",
+    "xml": r"line \d+, <prov:entity> 'ex:e1': ",
+    "jsonld": r"prov:Entity 'ex:e1': ",
 }
-READERS = list(READER_ERRORS)
+READERS = list(READER_WHERE)
 
 
 def _written_with_tag(fmt: str, tag: str) -> str:
@@ -217,7 +211,7 @@ def test_language_tag_raises_when_read(fmt: str) -> None:
     # The readers build the Literal, so each raises its own error for the
     # record, with the model's error as the cause.
     with pytest.raises(
-        READER_ERRORS[fmt], match=f"^{re.escape(READER_WHERE[fmt])}.*'en_US'"
+        READER_ERRORS[fmt], match=f"^{READER_WHERE[fmt]}.*'en_US'"
     ) as ctx:
         ProvDocument.deserialize(content=_written_with_tag(fmt, "en_US"), format=fmt)
     assert isinstance(ctx.value.__cause__, ProvValueError)

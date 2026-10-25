@@ -30,7 +30,7 @@ from prov.model import ProvDocument
 from prov.tests.examples import primer_example
 
 PUBLIC_API = {
-    "prov": ["Error", "read"],
+    "prov": ["Error", "model", "read"],
     "prov.model": [
         # containers
         "ProvDocument",
@@ -348,6 +348,17 @@ def test_names_importable() -> None:
             if not hasattr(module, name):
                 missing.append(f"{module_name}.{name}")
     assert missing == [], f"Public API names missing: {missing}"
+
+
+def test_all_lists_only_public_api_names() -> None:
+    unlisted: list[str] = []
+    for module_name, names in PUBLIC_API.items():
+        requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
+        if requirement and importlib.util.find_spec(requirement) is None:
+            continue
+        exported = getattr(importlib.import_module(module_name), "__all__", [])
+        unlisted.extend(f"{module_name}.{n}" for n in exported if n not in names)
+    assert unlisted == [], f"__all__ names missing from PUBLIC_API: {unlisted}"
 
 
 def test_serializer_registry_formats() -> None:

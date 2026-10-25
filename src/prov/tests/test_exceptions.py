@@ -5,9 +5,9 @@ import json
 from collections.abc import Mapping
 
 import pytest
+from lxml import etree
 
 import prov
-import prov.serializers
 from prov.model import (
     ProvDocument,
     ProvElementIdentifierRequired,
@@ -25,7 +25,8 @@ from prov.serializers.provjson import ProvJSONException
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL, ProvJSONLDException
 from prov.serializers.provn import ProvNSyntaxError
 from prov.serializers.provrdf import ProvRDFException
-from prov.serializers.provxml import ProvXMLException
+from prov.serializers.provxml import ProvXMLException, ProvXMLSerializer
+from prov.tests.conftest import READER_ERRORS
 
 HIERARCHY = [
     (ProvJSONException, ProvSerializationError, True),
@@ -58,30 +59,20 @@ def test_hierarchy(cls: type, base: type, expected: bool) -> None:
 
 
 # PROV-N and PROV-JSON have no error class of their own for a missing document.
-BASE_WRITERS = ["provn", "json"]
-OWN_WRITERS = {
-    "xml": ProvXMLException,
-    "jsonld": ProvJSONLDException,
-    "rdf": ProvRDFException,
+WRITER_ERRORS: dict[str, type[ProvSerializationError]] = READER_ERRORS | {
+    "provn": ProvSerializationError,
+    "json": ProvSerializationError,
 }
 
 
-@pytest.mark.parametrize("fmt", BASE_WRITERS)
-def test_serialize_without_a_document_raises_the_base(fmt: str) -> None:
+@pytest.mark.parametrize("fmt", WRITER_ERRORS)
+def test_serialize_without_a_document_raises_the_formats_error(fmt: str) -> None:
     stream = io.BytesIO()
     with pytest.raises(
         ProvSerializationError, match=r"^No document to serialize\.$"
     ) as ctx:
         get_serializer(fmt)(document=None).serialize(stream)
-    assert type(ctx.value) is ProvSerializationError
-    assert stream.getvalue() == b""
-
-
-@pytest.mark.parametrize("fmt", OWN_WRITERS)
-def test_serialize_without_a_document_raises_the_formats_own_error(fmt: str) -> None:
-    stream = io.BytesIO()
-    with pytest.raises(OWN_WRITERS[fmt], match=r"^No document to serialize\.$"):
-        get_serializer(fmt)(document=None).serialize(stream)
+    assert type(ctx.value) is WRITER_ERRORS[fmt]
     assert stream.getvalue() == b""
 
 
@@ -91,12 +82,6 @@ def test_read_of_undetected_content_raises_format_not_detected() -> None:
     assert isinstance(ctx.value, ProvFormatNotDetected)
     assert str(ctx.value).startswith("Could not read from the source.")
     assert ctx.value.__cause__ is None
-
-
-def test_serializers_all_holds_both_new_names() -> None:
-    assert {"ProvSerializationError", "ProvFormatNotDetected"} <= set(
-        prov.serializers.__all__
-    )
 
 
 EX = "http://example.org/"
@@ -120,7 +105,9 @@ def _jsonld_bundle(*statements: Mapping[str, object]) -> dict[str, object]:
 
 _JSONLD_ACTIVITY = {"@type": "Activity", "@id": "ex:a1", "startTime": BAD_TIME}
 _TRIG_PREFIXES = f"@prefix ex: <{EX}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
-_XML_ROOT = f'<prov:document xmlns:prov="http://www.w3.org/ns/prov#" xmlns:ex="{EX}">'
+PROV_NS = "http://www.w3.org/ns/prov#"
+_XML_ROOT = f'<prov:document xmlns:prov="{PROV_NS}" xmlns:ex="{EX}">'
+_XML_ROOT_EX2 = _XML_ROOT[:-1] + f' xmlns:ex2="{EX}">'
 
 # A model rejection from a bundle or an element: the format, the content, the
 # reader's error, what starts its message and the class of its cause. A record
@@ -130,7 +117,7 @@ WRAPPED = [
         "jsonld",
         _jsonld(_jsonld_bundle(_JSONLD_ACTIVITY)),
         ProvJSONLDException,
-        "Activity 'ex:a1': ",
+        "prov:Activity 'ex:a1': ",
         ProvValueError,
         id="jsonld-record-in-bundle",
     ),
@@ -180,6 +167,30 @@ WRAPPED = [
         "bundle 'ex2:b': ",
         ProvException,
         id="json-duplicate-bundle",
+    ),
+    pytest.param(
+        "xml",
+        f"""{_XML_ROOT_EX2}
+  <prov:bundleContent prov:id="ex:b"/>
+  <prov:bundleContent prov:id="ex2:b"/>
+</prov:document>""",
+        ProvXMLException,
+        "line 3, <prov:bundleContent> 'ex2:b': ",
+        ProvException,
+        id="xml-duplicate-bundle",
+    ),
+    pytest.param(
+        "jsonld",
+        json.dumps(
+            {
+                "@context": [{"ex": EX, "ex2": EX}, JSONLD_CONTEXT_URL],
+                "@graph": [_jsonld_bundle(), {**_jsonld_bundle(), "@id": "ex2:b"}],
+            }
+        ),
+        ProvJSONLDException,
+        "prov:Bundle 'ex2:b': ",
+        ProvException,
+        id="jsonld-duplicate-bundle",
     ),
     pytest.param(
         "jsonld",
@@ -239,6 +250,21 @@ def test_a_reader_names_the_record_it_rejects(
     assert str(ctx.value) == where + str(ctx.value.__cause__)
 
 
+def test_read_of_a_bad_language_tag_chains_the_reader_and_the_model_errors() -> None:
+    content = json.dumps(
+        {
+            "prefix": {"ex": EX},
+            "entity": {"ex:e1": {"ex:a": {"$": "hi", "lang": "en_US"}}},
+        }
+    )
+    with pytest.raises(TypeError) as ctx:
+        prov.read(content)
+    assert type(ctx.value) is ProvFormatNotDetected
+    reader_error = ctx.value.__cause__
+    assert type(reader_error) is ProvJSONException
+    assert type(reader_error.__cause__) is ProvValueError
+
+
 def test_a_typed_subject_with_no_separator_raises_the_rdf_error() -> None:
     content = _TRIG_PREFIXES + "<urn:example:e2=> a prov:Entity .\n"
     with pytest.raises(ProvRDFException) as ctx:
@@ -251,7 +277,7 @@ def test_a_typed_subject_with_no_separator_raises_the_rdf_error() -> None:
     assert ctx.value.__cause__ is None
 
 
-BAD_BUNDLE_CONTENT = [
+BAD_XML_ELEMENT = [
     pytest.param(
         f"""{_XML_ROOT}
   <prov:bundleContent/>
@@ -268,14 +294,28 @@ BAD_BUNDLE_CONTENT = [
         "bundleContent found outside a ProvDocument",
         id="inside-a-bundle",
     ),
+    pytest.param(
+        f"""{_XML_ROOT}
+  <prov:frob prov:id="ex:a1"/>
+</prov:document>""",
+        "line 2, <prov:frob> 'ex:a1': it is not a PROV element",
+        id="unknown-prov-element",
+    ),
 ]
 
 
-@pytest.mark.parametrize(("content", "message"), BAD_BUNDLE_CONTENT)
-def test_a_misplaced_bundle_content_raises_the_xml_error(
-    content: str, message: str
-) -> None:
+@pytest.mark.parametrize(("content", "message"), BAD_XML_ELEMENT)
+def test_a_malformed_element_raises_the_xml_error(content: str, message: str) -> None:
     with pytest.raises(ProvXMLException) as ctx:
         ProvDocument.deserialize(content=content, format="xml")
+    assert type(ctx.value) is ProvXMLException
     assert str(ctx.value) == message
     assert ctx.value.__cause__ is None
+
+
+def test_an_element_built_in_code_has_no_line_to_name() -> None:
+    root = etree.Element(f"{{{PROV_NS}}}document", nsmap={"prov": PROV_NS, "ex": EX})
+    etree.SubElement(root, f"{{{PROV_NS}}}frob").set(f"{{{PROV_NS}}}id", "ex:a1")
+    with pytest.raises(ProvXMLException) as ctx:
+        ProvXMLSerializer().deserialize_subtree(root, ProvDocument())
+    assert str(ctx.value) == "<prov:frob> 'ex:a1': it is not a PROV element"

@@ -20,6 +20,12 @@ from prov.model import (
     ProvDocument,
     ProvMention,
 )
+from prov.serializers import ProvSerializationError
+from prov.serializers.provjson import ProvJSONException
+from prov.serializers.provjsonld import ProvJSONLDException
+from prov.serializers.provn import ProvNSyntaxError
+from prov.serializers.provrdf import ProvRDFException
+from prov.serializers.provxml import ProvXMLException
 
 # Hypothesis profiles for the property-based round-trip tests
 # (``test_property_roundtrip.py``). The local ``default`` profile is
@@ -33,6 +39,14 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 # Formats that support a full serialize -> deserialize -> compare round trip.
 ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld", "provn")
+# The error each format's reader raises for a model rejection.
+READER_ERRORS: dict[str, type[ProvSerializationError]] = {
+    "json": ProvJSONException,
+    "xml": ProvXMLException,
+    "rdf": ProvRDFException,
+    "jsonld": ProvJSONLDException,
+    "provn": ProvNSyntaxError,
+}
 # The formats that read a literal's text as given; rdflib rewrites some on read (C10).
 TEXT_FORMATS = tuple(fmt for fmt in ROUNDTRIP_FORMATS if fmt != "rdf")
 # The full target axis: the round-trip formats PLUS a "model" target that

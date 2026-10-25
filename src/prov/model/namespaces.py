@@ -365,18 +365,15 @@ class NamespaceManager(dict[str, Namespace]):
             ProvExceptionInvalidQualifiedName: If ``text`` equals the IRI of
                 this manager's default or an enclosing one.
         """
-        iri = self._default_iri_in_reach(text)
-        if iri is not None:
-            raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(iri))
+        if self._is_default_iri_in_reach(text):
+            raise ProvExceptionInvalidQualifiedName(text, _default_iri_detail(text))
 
-    def _default_iri_in_reach(self, text: str) -> str | None:
-        """The IRI of the default namespace in reach that equals ``text``, or
-        ``None``."""
-        for manager in self._scopes():
-            default = manager._default
-            if default is not None and default.uri == text:
-                return default.uri
-        return None
+    def _is_default_iri_in_reach(self, text: str) -> bool:
+        """Whether ``text`` equals the IRI of a default namespace in reach."""
+        return any(
+            manager._default is not None and manager._default.uri == text
+            for manager in self._scopes()
+        )
 
     def _scopes(self) -> Iterator[NamespaceManager]:
         """This manager, then each of its ancestors."""
@@ -439,8 +436,8 @@ class NamespaceManager(dict[str, Namespace]):
         empty prefix and not the lack of one. ``text`` is the name as
         written; when it is the IRI of a default namespace in reach, that
         is the reason (#675)."""
-        if (iri := self._default_iri_in_reach(text)) is not None:
-            return _default_iri_detail(iri)
+        if self._is_default_iri_in_reach(text):
+            return _default_iri_detail(text)
         if (prefix, local) == ("", ""):
             return "it is empty"
         if prefix == "_":
