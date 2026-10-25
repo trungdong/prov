@@ -839,8 +839,9 @@ REJECTED_DOCUMENTS = [
                 "entity": {"ex:e": {"_:x": "v"}},
             }
         ),
-        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
-        id="attribute name under a declared blank-node prefix",
+        "prefix '_', IRI 'http://blank.org/': the prefix '_' is not a PN_PREFIX, "
+        "so no format can write it",
+        id="declared blank-node prefix",
     ),
     pytest.param(
         json.dumps(

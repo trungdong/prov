@@ -561,6 +561,8 @@ class ProvBundle:
                 the prefix is not bound here but an enclosing scope binds it
                 and the bundle holds a name in that binding, which the new
                 namespace would make another name.
+            ProvValueError: If a prefix string is given that is empty or is not
+                a ``PN_PREFIX``, or whose ``uri`` is blank.
         """
         if not isinstance(namespace_or_prefix, Namespace):
             if uri is None:

@@ -1435,17 +1435,25 @@ class ProvRDFSerializer(Serializer):
                 defaults to :data:`RELATION_MAP`.
             predicate_mapper: Maps PROV-O predicate URIRefs to formal
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
+
+        Raises:
+            ProvRDFException: If ``content`` binds a prefix or default
+                namespace the model refuses (``__cause__`` holds the
+                :class:`~prov.model.ProvException`).
         """
         skipped = {(prefix, str(iri)) for prefix, iri in Graph().namespaces()}
         shadowed = []
-        for prefix, url in content.namespaces():
-            iri = str(url)
-            if not prefix:
-                document.set_default_namespace(iri)
-            elif (prefix, iri) in skipped:
-                shadowed.append((prefix, iri))
-            else:
-                document.add_namespace(prefix, iri)
+        try:
+            for prefix, url in content.namespaces():
+                iri = str(url)
+                if not prefix:
+                    document.set_default_namespace(iri)
+                elif (prefix, iri) in skipped:
+                    shadowed.append((prefix, iri))
+                else:
+                    document.add_namespace(prefix, iri)
+        except pm.ProvException as exc:
+            raise ProvRDFException(f"prefix {prefix!r}, IRI {iri!r}: {exc}") from exc
         self._skipped_bindings = tuple(shadowed)
         if hasattr(content, "graphs"):
             for graph in content.graphs():

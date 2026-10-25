@@ -26,7 +26,6 @@ level or inside a bundle.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from prov.constants import (
@@ -56,7 +55,7 @@ from prov.constants import (
     XSD,
     XSD_QNAME,
 )
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import _PN_PREFIX_NAME, Namespace, QualifiedName
 from prov.model import (
     PROV_REC_CLS,
     Literal,
@@ -67,7 +66,6 @@ from prov.model import (
 )
 from prov.model._values import resolve_name, resolve_pair
 from prov.serializers.provn_lexer import (
-    _PN_PREFIX,
     ProvNSyntaxError,
     Token,
     TokenKind,
@@ -123,8 +121,6 @@ _BARE_RELATIONS = frozenset(PROV_N_MAP[t] for t in _PROV_N_BARE_RELATIONS)
 
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
-
-_PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 
 
 class ProvNParser:

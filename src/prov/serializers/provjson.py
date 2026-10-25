@@ -439,7 +439,8 @@ def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
     Raises:
         ProvJSONException: If the ``"prefix"`` value is not a JSON object, or
             declares its default namespace under both ``""`` and ``"default"``
-            with different IRIs.
+            with different IRIs, or declares a prefix or default namespace the
+            model refuses (``__cause__`` holds the :class:`ProvException`).
     """
     prefixes = _expect_json_object(jc["prefix"], 'The "prefix" value')
     if "" in prefixes and "default" in prefixes and prefixes[""] != prefixes["default"]:
@@ -447,11 +448,14 @@ def _decode_namespaces(jc: ProvJSONDict, bundle: ProvBundle) -> None:
             'The "prefix" object declares two different default namespaces, '
             f'under "" ({prefixes[""]!r}) and "default" ({prefixes["default"]!r})'
         )
-    for prefix, uri in prefixes.items():
-        if prefix in ("", "default"):
-            bundle.set_default_namespace(uri)
-        else:
-            bundle.add_namespace(Namespace(prefix, uri))
+    try:
+        for prefix, uri in prefixes.items():
+            if prefix in ("", "default"):
+                bundle.set_default_namespace(uri)
+            else:
+                bundle.add_namespace(Namespace(prefix, uri))
+    except ProvException as exc:
+        raise ProvJSONException(f"prefix {prefix!r}, IRI {uri!r}: {exc}") from exc
     del jc["prefix"]
 
 

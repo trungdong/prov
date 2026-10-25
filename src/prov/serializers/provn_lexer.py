@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from prov.identifier import _NCNAME_CHARS, _NCNAME_START_CHARS
+from prov.identifier import _NCNAME_START_CHARS, _PN_CHARS, _PN_PREFIX
 from prov.model import ProvException
 from prov.model._values import LANGTAG_PATTERN, XSD_DATETIME_PATTERN
 from prov.serializers import ProvSerializationError
@@ -74,15 +74,12 @@ class Token:
 
 
 # Character classes from the Recommendation ([53] to [55]); '.' is handled
-# in the local-part patterns because its placement rules differ, so PN_CHARS
-# is PROV-N's share of prov.identifier's NCName tables minus '.'. PN_CHARS_U
-# (NCName's NameStartChar, '_' included) is that table unchanged; PN_CHARS_BASE
-# (SPARQL's PN_CHARS_BASE, no leading '_') strips '_' back out. Both classes'
-# equivalence to the NCName tables over the full codepoint space is pinned
-# by test_provn_lexer.py.
+# in the local-part patterns because its placement rules differ. PN_CHARS and
+# PN_PREFIX come from prov.identifier, which builds them from its NCName
+# tables. PN_CHARS_U (NCName's NameStartChar, '_' included) is that table
+# unchanged. The classes' equivalence to the NCName tables over the full
+# codepoint space is pinned by test_provn_lexer.py.
 _PN_CHARS_U = _NCNAME_START_CHARS
-_PN_CHARS_BASE = _PN_CHARS_U.replace("_", "")
-_PN_CHARS = _NCNAME_CHARS.replace(".", "")
 _PN_OTHERS = r"/@~&+*?#$!"
 _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = r"\\[=',\-:;\[\]().]"
@@ -94,9 +91,6 @@ _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 # matching linear even for a long run of trailing dots.
 _LOCAL_LAST = rf"[{_PN_CHARS}{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _PN_LOCAL = rf"(?:{_LOCAL_START})(?:(?:{_LOCAL_CONT})*(?:{_LOCAL_LAST}))?"
-# SPARQL's PN_PREFIX ([52]'s reference production) is PN_CHARS_BASE
-# ((PN_CHARS | '.')* PN_CHARS)? -- a prefix can't end in '.' either.
-_PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 
 # [52] allows "PN_PREFIX ':'" alone (empty local, e.g. the Recommendation's
 # own `bbc:`), so the prefixed branch's local part is optional; group 3 is

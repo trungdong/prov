@@ -15,6 +15,7 @@ from prov.model import (
     ProvDocument,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvValueError,
 )
 
 from . import examples
@@ -97,7 +98,7 @@ def test_a_prefix_less_name_is_rejected_and_sets_no_default() -> None:
 
 
 def test_a_default_namespace_is_set_only_through_the_api() -> None:
-    with pytest.raises(ValueError, match="set_default_namespace"):
+    with pytest.raises(ProvValueError, match="set_default_namespace"):
         Namespace("", "http://x/")
 
     declaring = ProvDocument()
@@ -110,7 +111,7 @@ def test_a_default_namespace_is_set_only_through_the_api() -> None:
     manager = NamespaceManager()
     with pytest.raises(ProvException, match="set_default_namespace"):
         manager.add_namespace(default)
-    with pytest.raises(ValueError, match="set_default_namespace"):
+    with pytest.raises(ProvValueError, match="set_default_namespace"):
         manager.add_namespaces({"": "http://x/"})
     assert other.get_default_namespace() is None
     assert manager.get_default_namespace() is None
@@ -383,8 +384,6 @@ def test_lookup_corners() -> None:
     doc.add_namespace("ex", "http://example.org/")
     bundle = doc.bundle("ex:b")
     assert doc._lookup("", "") is None
-    assert doc._lookup("_", "x") is None
-    doc.add_namespace("_", "http://blank.org/")
     assert doc._lookup("_", "x") is None
     assert doc._lookup("zz", "x") is None
     default = doc.get_default_namespace()

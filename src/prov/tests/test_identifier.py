@@ -8,17 +8,22 @@ from typing import Any, cast
 import pytest
 
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model import ProvDocument, ProvExceptionInvalidQualifiedName
+from prov.model import (
+    ProvBundle,
+    ProvDocument,
+    ProvExceptionInvalidQualifiedName,
+    ProvValueError,
+)
 from prov.tests.format_errors import READER_ERRORS
 
 
 def test_namespace_rejects_empty_uri() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ProvValueError):
         Namespace("ex", "")
 
 
 def test_namespace_rejects_whitespace_only_uri() -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ProvValueError):
         Namespace("ex", "   ")
 
 
@@ -144,3 +149,106 @@ def test_local_part_raises_when_read(fmt: str) -> None:
     ) as ctx:
         ProvDocument.deserialize(content=text.replace("a_b", "a b"), format=fmt)
     assert isinstance(ctx.value.__cause__, ProvExceptionInvalidQualifiedName)
+
+
+_PREFIX_MESSAGE = "the prefix {!r} is not a PN_PREFIX, so no format can write it"
+
+
+@pytest.mark.parametrize("prefix", ["ex", "a.b", "a-b", "a_b", "é", "a·b"])
+def test_prefix_that_is_a_pn_prefix_is_accepted(prefix: str) -> None:
+    assert Namespace(prefix, EX).prefix == prefix
+
+
+@pytest.mark.parametrize(
+    "prefix", ["1a", "_a", "_", "a.", ".a", "·a", "a b", "a\nb", "a:b", 'a"b']
+)
+def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: str) -> None:
+    # Every way to build a Namespace goes through the same check.
+    message = f"^{re.escape(_PREFIX_MESSAGE.format(prefix))}$"
+    with pytest.raises(ProvValueError, match=message) as ctx:
+        Namespace(prefix, EX)
+    assert isinstance(ctx.value, ValueError)
+    with pytest.raises(ProvValueError, match=message):
+        ProvDocument().add_namespace(prefix, EX)
+    with pytest.raises(ProvValueError, match=message):
+        ProvDocument(namespaces={prefix: EX})
+    with pytest.raises(ProvValueError, match=message):
+        ProvBundle(namespaces={prefix: EX})
+
+
+_RDF_PREFIXES = (
+    '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
+    'xmlns:prov="http://www.w3.org/ns/prov#" xmlns:_a="http://example.org/a/">'
+)
+# Case name -> format, the reader's extra arguments, document, whole message.
+_PREFIX_DOCUMENTS = {
+    "json document": (
+        "json",
+        {},
+        '{"prefix": {"1a": "http://example.org/"}}',
+        "prefix '1a', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("1a"),
+    ),
+    "json bundle": (
+        "json",
+        {},
+        '{"prefix": {"ex": "http://example.org/"}, "bundle": {"ex:b": '
+        '{"prefix": {"1a": "http://example.org/"}}}}',
+        "prefix '1a', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("1a"),
+    ),
+    "json default": (
+        "json",
+        {},
+        '{"prefix": {"default": ""}}',
+        "prefix 'default', IRI '': Not a valid URI to create a namespace.",
+    ),
+    "xml bundleContent, unused": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:ex="http://example.org/">\n'
+        '<prov:bundleContent prov:id="ex:b" xmlns:_a="http://example.org/a/"/>'
+        "</prov:document>",
+        "line 2, <prov:bundleContent> 'ex:b': " + _PREFIX_MESSAGE.format("_a"),
+    ),
+    "xml document element, underscore": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:_a="http://example.org/a/">\n<prov:entity prov:id="_a:e"/>'
+        "</prov:document>",
+        "line 2, <prov:entity> '_a:e': " + _PREFIX_MESSAGE.format("_a"),
+    ),
+    "xml document element, trailing dot": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:a.="http://example.org/a/">\n<prov:entity prov:id="a.:e"/>'
+        "</prov:document>",
+        "line 2, <prov:entity> 'a.:e': " + _PREFIX_MESSAGE.format("a."),
+    ),
+    "rdf xml": (
+        "rdf",
+        {"rdf_format": "xml"},
+        _RDF_PREFIXES + '<rdf:Description rdf:about="http://example.org/a/e">'
+        '<rdf:type rdf:resource="http://www.w3.org/ns/prov#Entity"/>'
+        "</rdf:Description></rdf:RDF>",
+        "prefix '_a', IRI 'http://example.org/a/': " + _PREFIX_MESSAGE.format("_a"),
+    ),
+    "rdf trig": (
+        "rdf",
+        {"rdf_format": "trig"},
+        "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+        "@prefix _a: <http://example.org/a/> .\n_a:e a prov:Entity .\n",
+        "prefix '_a', IRI 'http://example.org/a/': " + _PREFIX_MESSAGE.format("_a"),
+    ),
+}
+
+
+@pytest.mark.parametrize("name", list(_PREFIX_DOCUMENTS))
+def test_prefix_raises_when_read(name: str) -> None:
+    # The readers build the Namespace, so each raises its own error naming the
+    # declaration, with the model's error as the cause.
+    fmt, kwargs, text, message = _PREFIX_DOCUMENTS[name]
+    with pytest.raises(READER_ERRORS[fmt], match=f"^{re.escape(message)}$") as ctx:
+        ProvDocument.deserialize(content=text, format=fmt, **kwargs)
+    assert isinstance(ctx.value.__cause__, ProvValueError)

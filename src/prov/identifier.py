@@ -1,7 +1,7 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-from typing import Any, Final
+from typing import Any, Final, NoReturn
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -52,6 +52,12 @@ _PROVN_LOCAL_LEADING_ESCAPE = "-."
 # PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
 # (see the comment on _NCNAME_CHARS above).
 _PN_CHARS = _NCNAME_CHARS.replace(".", "")
+# SPARQL's PN_PREFIX, the prefix rule of PROV-N's QUALIFIED_NAME ([52]) and of
+# Turtle: PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?, so no leading digit or
+# '_' and no trailing '.'. Every match is an NCName, so PROV-XML writes it too.
+_PN_CHARS_BASE = _NCNAME_START_CHARS.replace("_", "")
+_PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
+_PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 # The characters in _PN_CHARS that are legal anywhere in PN_LOCAL but, being
 # combining marks rather than letters, cannot start it ([53]'s PN_CHARS_BASE
 # vs. PN_CHARS): the NameChar-only part of _NCNAME_CHARS, minus '-'/'.'
@@ -335,14 +341,39 @@ class QualifiedName(Identifier):
         return f"'{self.provn_bare_representation()}'"
 
 
+def _raise_value_error(message: str) -> NoReturn:
+    # Imported here, as _reject_unwritable_local_part does: prov.model imports
+    # this module.
+    from prov.model.records import ProvValueError
+
+    raise ProvValueError(message)
+
+
+def _reject_unwritable_prefix(prefix: str) -> None:
+    """Raise ``ProvValueError`` unless ``prefix`` is a ``PN_PREFIX``."""
+    # An ASCII identifier that does not start with '_' needs no regex.
+    if (
+        prefix.isascii() and prefix.isidentifier() and prefix[0] != "_"
+    ) or _PN_PREFIX_NAME.fullmatch(prefix):
+        return
+    _raise_value_error(
+        f"the prefix {prefix!r} is not a PN_PREFIX, so no format can write it"
+    )
+
+
 def _check_namespace_uri(uri: str) -> None:
-    """Raise ``ValueError`` unless ``uri`` is non-blank."""
+    """Raise ``ProvValueError`` unless ``uri`` is non-blank."""
     if not uri or uri.isspace():
-        raise ValueError("Not a valid URI to create a namespace.")
+        _raise_value_error("Not a valid URI to create a namespace.")
 
 
 class Namespace:
-    """PROV Namespace."""
+    """PROV Namespace.
+
+    A prefix is a SPARQL ``PN_PREFIX``: it starts with a letter, and holds
+    letters, digits, ``-``, ``_`` and ``.``, but does not end with ``.``. Every
+    format can write such a prefix.
+    """
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
@@ -361,14 +392,16 @@ class Namespace:
             uri: URI string for the namespace (cannot be blank).
 
         Raises:
-            ValueError: If ``prefix`` is empty, or if ``uri`` is empty or
-                contains only whitespace.
+            ProvValueError: If ``prefix`` is empty or is not a ``PN_PREFIX``
+                (no format can write it), or if ``uri`` is empty or contains
+                only whitespace.
         """
         if not prefix:
-            raise ValueError(
+            _raise_value_error(
                 "a namespace needs a prefix; a default namespace is set with "
                 "set_default_namespace()"
             )
+        _reject_unwritable_prefix(prefix)
         _check_namespace_uri(uri)
         self._prefix = prefix
         self._uri = uri
