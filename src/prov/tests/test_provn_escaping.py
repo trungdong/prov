@@ -7,6 +7,7 @@ import pytest
 
 from prov.identifier import Identifier, Namespace
 from prov.model import (
+    Literal,
     ProvDocument,
     ProvWarning,
     encoding_provn_value,
@@ -17,7 +18,7 @@ METACHARS = "='(),:;[]"
 NS = Namespace("ex", "http://example.org/")
 
 
-def _doc():
+def _doc() -> ProvDocument:
     document = ProvDocument()
     document.add_namespace("ex", "http://example.org/")
     return document
@@ -244,3 +245,31 @@ class _Shouted(str):
 
 def test_string_subclass_is_written_through_its_str() -> None:
     assert encoding_provn_value(_Shouted('a"b')) == '"A\\"B"'
+
+
+class _RaisingLiteral(Literal):
+    def provn_representation(self) -> str:
+        raise AttributeError("boom")
+
+    def __str__(self) -> str:
+        return '"fallback"'
+
+
+class _OwnTextLiteral(Literal):
+    def provn_representation(self) -> str:
+        return '"own" %% ex:custom'
+
+
+@pytest.mark.parametrize("kind", ["raises", "own-text"])
+def test_provn_writer_asks_a_literal_for_its_own_text(kind: str) -> None:
+    document = _doc()
+    cls = _RaisingLiteral if kind == "raises" else _OwnTextLiteral
+    record = document.entity("ex:e", {"ex:v": cls("x", NS["custom"])})
+    assert any(type(value) is cls for value in record.get_attribute("ex:v"))
+    if kind == "own-text":
+        assert 'ex:v="own" %% ex:custom' in document.get_provn()
+        return
+    with pytest.raises(AttributeError, match="boom"):
+        document.get_provn()
+    with pytest.raises(AttributeError, match="boom"):
+        document.serialize(format="provn")

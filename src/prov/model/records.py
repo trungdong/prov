@@ -1240,10 +1240,11 @@ class ProvRecord:
             if attr in self.FORMAL_ATTRIBUTES:
                 continue
             for value in self._attributes[attr]:
-                try:
-                    text = value.provn_representation()
-                except AttributeError:
-                    text = encoding_provn_value(value)
+                text = (
+                    value.provn_representation()
+                    if isinstance(value, (QualifiedName, Literal))
+                    else encoding_provn_value(value)
+                )
                 pairs.append(f"{attr.provn_bare_representation()}={text}")
         return pairs
 
