@@ -572,12 +572,6 @@ def _encode_attribute_value(
         return str(value)
 
 
-# To enable a mapping of Python types to XML and back, the XSD type must be
-# written for values of these types. Membership is tested against the value's
-# exact type, deliberately not with isinstance().
-_ALWAYS_CHECK = frozenset({bool, datetime.datetime, float, int})
-
-
 def _needs_xsd_type_inference(
     has_xsi_type: bool,
     attr: prov.identifier.QualifiedName,
@@ -587,13 +581,10 @@ def _needs_xsd_type_inference(
 ) -> bool:
     """Decide whether an ``xsi:type`` should be inferred for an attribute.
 
-    This is a bit messy and there are all kinds of special rules but it
-    appears to get the job done.
-
-    If it is a type element and does not yet have an associated xsi type, try
-    to infer it from the value. The not startswith("prov:") check is a little
-    bit hacky to avoid type interference when the type is a standard prov
-    type.
+    A ``bool``, ``int``, ``float`` or ``datetime`` value, a subclass included
+    (#657), is typed so that it reads back as the same Python type; the three
+    ``prov:`` attributes that take any value are typed for the same reason.
+    The not startswith("prov:") check avoids typing a standard PROV type.
 
     Args:
         has_xsi_type: Whether the attribute's XML element, as written so
@@ -610,7 +601,7 @@ def _needs_xsd_type_inference(
     return (
         (
             force_types
-            or type(value) in _ALWAYS_CHECK
+            or isinstance(value, (int, float, datetime.datetime))
             or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
         )
         and not has_xsi_type

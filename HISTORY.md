@@ -350,7 +350,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#615](https://github.com/trungdong/prov/issues/615))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
-  name, which no reader read back.
+  name, which no reader read back. PROV-XML types a subclass of `int`, `float` or
+  `datetime`, such as an `(int, Enum)` member, a `numpy.float64` or a `pandas.Timestamp`,
+  as it types the plain value, so it reads back as a number or a time, where 3.2.x wrote
+  it with no `xsi:type` and it read back as a string
+  ([#657](https://github.com/trungdong/prov/issues/657))
 - A `Literal` built from a Python value stores `prov`'s spelling of the value, the text the
   same value takes when it is asserted plainly: a `timedelta` as an `xsd:duration` such as
   `P1DT30S`, a `UUID` as `urn:uuid:...`, a `bytes`, `bytearray` or `memoryview` in base64,
