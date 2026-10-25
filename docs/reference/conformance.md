@@ -123,8 +123,9 @@ Two constructs cannot round-trip, and no change is planned.
 - **C1. Two relations with the same identifier and different `prov:time` (PROV-O, permanent).**
   PROV-O names a relation by its identifier, so two asserted relations that share one and
   differ only in time land on one node. Only that construct is affected; decoding
-  third-party RDF shaped this way raises `prov.model.ProvException`. Minting a synthetic
-  IRI and guessing values on decode were both rejected ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` reports the
+  third-party RDF shaped this way raises `prov.serializers.provrdf.ProvRDFException`.
+  Minting a synthetic IRI and guessing values on decode were both rejected
+  ([#217](https://github.com/trungdong/prov/issues/217)). `unified()` reports the
   conflict.
 - **C2. No Mention term in PROV-JSONLD (permanent).** The submission defines none, so
   serialising or deserialising a document with a {py:class}`~prov.model.ProvMention` raises

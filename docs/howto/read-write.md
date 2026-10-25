@@ -59,10 +59,12 @@ A seekable stream, such as an open file or `io.StringIO`, is rewound between att
 non-seekable stream is consumed by the first attempt, so pass `format=` for those.
 
 Auto-detection treats each deserializer's error as "not this format" and raises
-`TypeError` when no format succeeds. When the content starts the way PROV-JSON, PROV-JSONLD
-or PROV-N starts and that reader rejected it, the reader's own error is the `TypeError`'s
-`__cause__`. Pass `format=` to get the error from one deserializer on its own. Keyword
-arguments such as `profile` reach each candidate that declares them.
+{py:class}`~prov.serializers.ProvFormatNotDetected` when no format succeeds. It is a
+`TypeError`, as the call raised before, and a
+{py:class}`~prov.serializers.ProvSerializationError`. When the content starts the way
+PROV-JSON, PROV-JSONLD or PROV-N starts and that reader rejected it, the reader's own error
+is its `__cause__`. Pass `format=` to get the error from one deserializer on its own.
+Keyword arguments such as `profile` reach each candidate that declares them.
 
 ## Formats
 
@@ -85,11 +87,28 @@ Each reader raises its format's own exception for input it cannot represent:
 `prov.serializers.provjson.ProvJSONException`,
 `prov.serializers.provjsonld.ProvJSONLDException`,
 {py:class}`~prov.serializers.provn.ProvNSyntaxError`,
-`prov.serializers.provxml.ProvXMLException`, and {py:class}`~prov.model.ProvException` for
-PROV-O. Input that is not well-formed in the underlying syntax raises the parsing library's
-own error first: `json.JSONDecodeError` for the two JSON formats, `lxml`'s `XMLSyntaxError`,
-and the error of the rdflib parser for the chosen `rdf_format`, `BadSyntax` for TriG and
-Turtle.
+`prov.serializers.provxml.ProvXMLException` and
+`prov.serializers.provrdf.ProvRDFException`. All five derive from
+{py:class}`~prov.serializers.ProvSerializationError`, which sits under `prov.Error`
+beside {py:class}`~prov.model.ProvException`.
+
+When the model rejects a record a reader builds, such as a value no PROV form holds or a
+name that does not resolve, the reader raises its own error. The message names the record
+and carries the model's sentence, and the model's exception is the error's `__cause__`.
+Code that builds the record itself gets the model's exception.
+
+Choose the `except` clause by what the code handles:
+
+| Clause | Catches |
+|---|---|
+| `except ProvSerializationError` | a failure to read or write a document in any format, a reader's rejection of a record included, and the writers' error for a serializer with no document |
+| `except ProvException` | a refusal by the model when code builds or changes a record, and `ProvNSyntaxError`, which stays a `ProvException` through 3.x |
+| `except prov.Error` | both of the above, and `DoNotExist` |
+
+Input that is not well-formed in the underlying syntax raises the parsing library's own
+error, which is outside the base: `json.JSONDecodeError` for the two JSON formats,
+`lxml`'s `XMLSyntaxError`, and the error of the rdflib parser for the chosen `rdf_format`,
+`BadSyntax` for TriG and Turtle.
 
 ```python
 try:
