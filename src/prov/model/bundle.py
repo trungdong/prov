@@ -135,6 +135,11 @@ def _indent_line_feeds(text: str, newline: str) -> str:
 
     A triple-quoted string keeps its line feeds raw, and the lexer counts the
     spaces after one as part of the value, so its content is never indented.
+    ``_provn_string_literal`` escapes every double quote, so three in a row
+    appear in a record's text only as the delimiters of such a string, and the
+    odd-indexed parts of the split hold its content. A content that ends in a
+    quote gives four in a row at the close. The split takes the first three and
+    leaves the fourth in an even-indexed part, so the parity holds.
     """
     if "\n" not in text:
         return text
@@ -756,15 +761,12 @@ class ProvBundle:
                 cannot carry there, with a warning each.
             width: The column limit for one line, as
                 :meth:`ProvRecord.get_provn` describes, counted with the
-                indentation of the statement. ``None`` writes every statement
-                on one line, the one-line layout of ``prov`` before 3.3.0.
+                indentation of the statement. ``None`` never wraps.
         """
         indentation = "" + ("  " * _indent_level)
         record_indentation = "  " * (_indent_level + 1)
         newline = "\n" + record_indentation
         record_width = None if width is None else width - len(record_indentation)
-        # Indent continuation rows to the record's column; triple-quoted values keep
-        # their line feeds raw.
         record_lines = [
             _indent_line_feeds(
                 record.get_provn(strict=strict, width=record_width), newline

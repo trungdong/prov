@@ -341,9 +341,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `serialize(format="provn")`, `get_provn()` or `prov-convert`. The first row holds the
   keyword, the identifier and the formal arguments. The attribute block starts on the next
   row, aligned after the opening parenthesis, with one pair per row. A statement that fits,
-  or that has no attribute block, stays on one line, and `str(record)` always gives one
-  line. `width` sets the limit, and `width=None` writes the one-line shape of 3.2.x, for
-  output compared byte for byte or read line by line
+  or that has no attribute block, stays on one line. `str(record)` never wraps, and a
+  string value that holds a line feed is still written as a triple-quoted string over
+  several lines. `width` sets the limit, and `width=None` writes the one-line shape of
+  3.2.x, for output compared byte for byte or read line by line
   ([#131](https://github.com/trungdong/prov/issues/131))
 
 ### Fixes
