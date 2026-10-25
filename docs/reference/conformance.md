@@ -246,7 +246,8 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
   since the only PROV-N spelling would be a percent-encoding that reads back as a different
   IRI ([#524](https://github.com/trungdong/prov/issues/524)). PROV-O rejects an IRI containing a space. A namespace prefix
   must be a valid `PN_PREFIX` (a letter first, then name characters or `.`, not ending in
-  `.`); `prov` does not validate or rename one that is not.
+  `.`). `Namespace` rejects one that is not when it is built, from any format or from code,
+  and `prov` does not rename it ([#668](https://github.com/trungdong/prov/issues/668)).
 - **C5. Empty language tag.** `Literal("hi", langtag="")` is rejected when built;
   PROV-XML's `xml:lang=""` is rejected on read
   ([#472](https://github.com/trungdong/prov/issues/472)).

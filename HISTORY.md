@@ -46,6 +46,23 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   statement with a `ProvWarning`. The PROV-N writer no longer percent-encodes,
   since no such name can be held; a local part with a metacharacter is still written with
   a backslash escape ([#524](https://github.com/trungdong/prov/issues/524))
+- A namespace prefix that is not a `PN_PREFIX`, such as `1a` or `_a`, a `ProvValueError`
+  naming the prefix when the `Namespace` is built, from code or from any reader. A
+  PROV-JSON, PROV-JSONLD or PROV-O read raises it as the cause of the format's error at
+  the declaration. A PROV-XML read raises it at the `bundleContent` element that declares
+  it, whether or not a name uses it, or at the first name under a prefix the document
+  element declares. PROV-N refused the declaration already
+  ([#511](https://github.com/trungdong/prov/issues/511)). 3.2.3 accepted the prefix and
+  wrote text that did not read back. The `Namespace` constructor's refusals of an empty
+  prefix and of a blank IRI are a `ProvValueError` now, which `except ValueError` still
+  catches ([#668](https://github.com/trungdong/prov/issues/668))
+- A namespace IRI that starts with `@`, a `ProvValueError` when the `Namespace` is built,
+  from code or from any reader. PROV-N refuses it at the IRI with a `ProvNSyntaxError`, as
+  it refuses an empty IRI, and the other readers raise their format's error with it as
+  the cause. In PROV-JSONLD this covers a `@context` term such as `"id": "@id"`, and a
+  context key holding `:` falls under the prefix rule above. 3.2.3 accepted such an IRI,
+  PROV-JSONLD registered such a term as a namespace, and PROV-N output declared it as
+  `prefix id <@id>` ([#668](https://github.com/trungdong/prov/issues/668))
 - A Python value of a type with no PROV form, such as a `Fraction` or a `tuple`, a
   `ProvValueError` naming the attribute and the type where the value is asserted. A
   `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview` is

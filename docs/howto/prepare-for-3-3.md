@@ -126,6 +126,21 @@ U+2040 (character tie) or a combining mark from U+0300 to U+036F. 3.2.3 percent-
 such a character when it wrote PROV-N, so a PROV-N reader recovered a different IRI. The
 characters `= ' ( ) , : ; [ ]` are written with a backslash instead, and are accepted.
 
+## Namespace prefixes
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `the prefix '1a' is not a PN_PREFIX, so no format can write it` | [#668](https://github.com/trungdong/prov/issues/668) | `1a`, `_a` | A prefix that starts with a letter, such as `a1` or `ex`. |
+| `a namespace IRI cannot start with '@'` | [#668](https://github.com/trungdong/prov/issues/668) | `"id": "@id"` in a PROV-JSONLD `@context` | An absolute IRI, such as `http://example.org/`. |
+
+Each is a `ProvValueError` when the `Namespace` is built, from code or from any reader. A
+reader raises its format's error with it as the cause. A PROV-XML read raises it at the
+`bundleContent` element that declares the prefix, or at the first name under a prefix the
+document element declares. A prefix is a letter, followed by name characters or `.`, and
+does not end in `.`. 3.2.3 accepted such a prefix and wrote text that did not
+read back. The `Namespace` constructor's refusals of an empty prefix and of a blank IRI
+are a `ProvValueError` now, which `except ValueError` still catches.
+
 ## Python values
 
 | Error | Issue | Example | Write instead |
