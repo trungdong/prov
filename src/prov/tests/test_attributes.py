@@ -126,7 +126,8 @@ def test_float_subclass_is_written_as_the_float_it_holds(fmt: str) -> None:
             fmt,
             marks=pytest.mark.xfail(
                 strict=True,
-                reason="#575: rdflib rewrites an ill-formed xsd:boolean as false",
+                reason="C10: rdflib normalises the text on parse; the writer keeps "
+                "it (#575)",
             ),
         )
         if fmt == "rdf"

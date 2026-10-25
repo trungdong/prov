@@ -210,9 +210,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   so a record holding one equals its copy, where 3.2.3 found no match. A typed literal
   whose text is not the canonical spelling of its value, such as `"05" %% xsd:int` or
   `"1" %% xsd:boolean`, is kept as a `Literal` with its text, still equals the Python value
-  in a record, and is written back as it was read by every format but PROV-O, where 3.2.3
-  read the Python value and wrote `5` or `true`; `get_attribute()` returns the `Literal`
-  for it. PROV-O also reads an exponent-form `xsd:decimal` such as `"1e1"`, outside the
+  in a record, and is written back as it was read by every format, where 3.2.3 read the
+  Python value and wrote `5` or `true`; PROV-O reads it back normalised (C10);
+  `get_attribute()` returns the `Literal` for it. PROV-O also reads an exponent-form
+  `xsd:decimal` such as `"1e1"`, outside the
   lexical space, as its decimal value where every other format keeps the text. A text that
   Python accepts and XSD does not, such as `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"`
   as `xsd:double`, or `" 5"` and `"1_000"` as `xsd:int`, which 3.2.3 read as `True`,
@@ -321,6 +322,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `encoding_provn_value` and the other value encoders now spell the typed form the record
   would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))
+- PROV-O writes a `Literal`'s text as given, in every RDF syntax, Turtle included, where the
+  text is written quoted. `Literal("maybe", XSD_BOOLEAN)` is written `"maybe"^^xsd:boolean`,
+  and a kept spelling such as `"05" %% xsd:int`, `"1e0" %% xsd:double` or `"PT0S" %%
+  xsd:duration` as `"05"`, `"1e0"` and `"PT0S"`, where 3.2.x wrote rdflib's normalised
+  forms `false`, `5`, `1.0` and `P0D`. rdflib still warns `UserWarning` about an
+  ill-formed boolean when the literal is built. PROV-O reads such a text back normalised,
+  as before (C10)
+  ([#575](https://github.com/trungdong/prov/issues/575))
 
 ### Fixes
 

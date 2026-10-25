@@ -118,17 +118,14 @@ LITERAL_XSDTYPE_MAP = {
 types not natively/simply representable in PROV-RDF."""
 
 
-class _FullPrecisionDoubleLiteral(RDFLiteral):
-    """An ``xsd:double`` ``rdflib.Literal`` that keeps its exact lexical form on output.
+class _LexicalFormLiteral(RDFLiteral):
+    """An ``rdflib.Literal`` written in its lexical form in every RDF syntax.
 
-    rdflib's Turtle/TriG writer abbreviates ``xsd:double`` literals to a bare
-    (undecorated) numeric token via ``f"{float(self):e}"``, which is capped at
-    Python's default ``%e`` precision (~7 significant digits) -- discarding
-    precision regardless of the literal's actual stored lexical form (#225).
-    Forcing the non-abbreviated ``_literal_n3`` path keeps our full-precision
-    lexical (``_xsd_double_text(value)``, the XSD form with ``INF``, ``-INF`` and
-    ``NaN`` for non-finite values and float's repr otherwise) intact in every RDF
-    output format.
+    rdflib's Turtle writer abbreviates an ``xsd:double``, ``xsd:integer``,
+    ``xsd:decimal`` or ``xsd:boolean`` to a bare token built from the value,
+    which loses a double's precision (#225) and breaks on a kept text such as
+    ``maybe`` or ``05`` (#575), so the non-abbreviated ``_literal_n3`` path is
+    forced.
     """
 
     def _literal_n3(self, use_plain: bool = False, qname_callback: Any = None) -> str:
@@ -557,9 +554,7 @@ class ProvRDFSerializer(Serializer):
             # The full-precision lexical form, which skips rdflib's
             # bare-double abbreviation on output (#225); normalize=False keeps
             # it from being rewritten to Python's str() ('inf', 'nan').
-            return _FullPrecisionDoubleLiteral(
-                text, datatype=rdf_datatype, normalize=False
-            )
+            return _LexicalFormLiteral(text, datatype=rdf_datatype, normalize=False)
         return RDFLiteral(text, datatype=rdf_datatype)
 
     def _resolve_predicate_key(
@@ -1961,15 +1956,11 @@ def walk(
 
 
 def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:
-    """Encode a :class:`~prov.model.Literal` to an ``rdflib.Literal``.
-
-    Args:
-        literal: Literal to encode.
-
-    Returns:
-        A language-tagged ``rdflib.Literal`` if ``literal`` has a language
-        tag, otherwise a datatype-tagged one (base64-encoding the value
-        first for ``xsd:base64Binary``).
+    """Encode a :class:`~prov.model.Literal` to an ``rdflib.Literal`` with the
+    literal's own text: language-tagged when it has a language tag, else
+    tagged with its datatype. ``normalize=False`` keeps the text as given,
+    where rdflib would rewrite ``05`` as ``5`` or an ill-formed ``xsd:boolean``
+    as ``false`` (#575); the reader has no such switch (C10).
 
     Raises:
         ValueError: If ``literal`` has neither a language tag nor a
@@ -1978,18 +1969,7 @@ def literal_rdf_representation(literal: pm.Literal) -> RDFLiteral:
     if literal.langtag:
         #  a language tag can only go with prov:InternationalizedString
         return RDFLiteral(literal.value, lang=literal.langtag)
-    else:
-        datatype = literal.datatype
-        if datatype is not None:
-            if "base64Binary" in datatype.uri:
-                return RDFLiteral(literal.value.encode(), datatype=datatype.uri)
-            elif datatype == XSD_DOUBLE:
-                # Same precision-preserving datatype as the plain-float path
-                # in encode_rdf_representation (#225): the literal's own
-                # lexical form is already the asserted value's string, so
-                # just skip rdflib's bare-double abbreviation on output.
-                return _FullPrecisionDoubleLiteral(literal.value, datatype=datatype.uri)
-            else:
-                return RDFLiteral(literal.value, datatype=datatype.uri)
-        else:
-            raise ValueError("Literal has no datatype")
+    datatype = literal.datatype
+    if datatype is None:
+        raise ValueError("Literal has no datatype")
+    return _LexicalFormLiteral(literal.value, datatype=datatype.uri, normalize=False)

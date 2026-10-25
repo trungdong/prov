@@ -33,7 +33,7 @@ settings.load_profile(os.environ.get("HYPOTHESIS_PROFILE", "default"))
 
 # Formats that support a full serialize -> deserialize -> compare round trip.
 ROUNDTRIP_FORMATS = ("json", "xml", "rdf", "jsonld", "provn")
-# The formats that write a literal's text as given; rdflib rewrites some on read.
+# The formats that read a literal's text as given; rdflib rewrites some on read (C10).
 TEXT_FORMATS = tuple(fmt for fmt in ROUNDTRIP_FORMATS if fmt != "rdf")
 # The full target axis: the round-trip formats PLUS a "model" target that
 # constructs the document, exercises PROV-N generation, and checks the

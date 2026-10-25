@@ -181,6 +181,33 @@ def test_literal_rdf_representation_without_datatype_raises() -> None:
         literal_rdf_representation(pm.Literal("no datatype, no langtag"))
 
 
+@pytest.mark.filterwarnings("ignore:Parsing weird boolean")
+@pytest.mark.parametrize(
+    ("text", "datatype"),
+    [
+        ("maybe", pm.XSD_BOOLEAN),
+        ("05", pm.XSD_INT),
+        ("1e0", pm.XSD_DOUBLE),
+        ("PT0S", pm.XSD["duration"]),
+    ],
+    ids=["boolean", "int", "double", "duration"],
+)
+def test_literal_rdf_representation_keeps_the_text(
+    text: str, datatype: pm.QualifiedName
+) -> None:
+    # rdflib normalises a lexical form when it builds a Literal, unless told
+    # not to; the reader has no such switch (#575, C10)
+    rdf_literal = literal_rdf_representation(pm.Literal(text, datatype))
+    assert str(rdf_literal) == text
+    assert rdf_literal.datatype == URIRef(datatype.uri)
+    document = ProvDocument()
+    document.add_namespace("ex", "http://example.org/")
+    document.entity("ex:e", {"ex:v": pm.Literal(text, datatype)})
+    nt = document.serialize(format="rdf", rdf_format="nt")
+    assert f'"{text}"^^<{datatype.uri}>' in nt
+    assert f'"{text}"^^' in document.serialize(format="rdf")
+
+
 def test_out_of_int32_plain_int_emits_xsd_long_ntriples() -> None:
     # #256: a plain out-of-int32 int must not be ill-typed as xsd:int.
     doc = ProvDocument()
