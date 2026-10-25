@@ -72,7 +72,7 @@ def test_serialize_without_a_document_raises_the_formats_error(fmt: str) -> None
         ProvSerializationError, match=r"^No document to serialize\.$"
     ) as ctx:
         get_serializer(fmt)(document=None).serialize(stream)
-    assert type(ctx.value) is WRITER_ERRORS[fmt]
+    assert ctx.type is WRITER_ERRORS[fmt]
     assert stream.getvalue() == b""
 
 
@@ -240,7 +240,7 @@ def test_a_reader_names_the_record_it_rejects(
 ) -> None:
     with pytest.raises(error) as ctx:
         ProvDocument.deserialize(content=content, format=fmt)
-    assert type(ctx.value) is error
+    assert ctx.type is error
     assert isinstance(ctx.value.__cause__, cause)
     assert str(ctx.value) == where + str(ctx.value.__cause__)
 
@@ -249,7 +249,7 @@ def test_a_typed_subject_with_no_separator_raises_the_rdf_error() -> None:
     content = _TRIG_PREFIXES + "<urn:example:e2=> a prov:Entity .\n"
     with pytest.raises(ProvRDFException) as ctx:
         ProvDocument.deserialize(content=content, format="rdf")
-    assert type(ctx.value) is ProvRDFException
+    assert ctx.type is ProvRDFException
     assert str(ctx.value) == (
         "Cannot split IRI 'urn:example:e2=' into a namespace and a local part: "
         "it contains no '#' or '/' separator."
@@ -288,7 +288,7 @@ BAD_XML_ELEMENT = [
 def test_a_malformed_element_raises_the_xml_error(content: str, message: str) -> None:
     with pytest.raises(ProvXMLException) as ctx:
         ProvDocument.deserialize(content=content, format="xml")
-    assert type(ctx.value) is ProvXMLException
+    assert ctx.type is ProvXMLException
     assert str(ctx.value) == message
     assert ctx.value.__cause__ is None
 

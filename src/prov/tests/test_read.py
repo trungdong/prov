@@ -194,7 +194,7 @@ def test_read_garbage_content_raises_type_error() -> None:
     # A str that is not an existing file path is treated as raw content.
     with pytest.raises(TypeError) as ctx:
         _ = prov.read("no/such/file.json")
-    assert type(ctx.value) is ProvFormatNotDetected
+    assert ctx.type is ProvFormatNotDetected
     assert str(ctx.value).startswith("Could not read from the source.")
     assert ctx.value.__cause__ is None
 
@@ -257,7 +257,7 @@ def test_read_auto_detect_chains_the_readers_error(
 ) -> None:
     with pytest.raises(TypeError) as ctx:
         _ = prov.read(_source(kind, content, tmp_path))
-    assert type(ctx.value) is ProvFormatNotDetected
+    assert ctx.type is ProvFormatNotDetected
     assert isinstance(ctx.value.__cause__, cause)
     assert re.search(match, str(ctx.value.__cause__))
 
@@ -266,8 +266,8 @@ def test_read_of_a_bad_language_tag_chains_the_reader_and_the_model_errors() -> 
     with pytest.raises(TypeError) as ctx:
         _ = prov.read(_JSON_LANGUAGE_TAG)
     reader_error = ctx.value.__cause__
-    assert type(reader_error) is ProvJSONException
-    assert type(reader_error.__cause__) is ProvValueError
+    assert isinstance(reader_error, ProvJSONException)
+    assert isinstance(reader_error.__cause__, ProvValueError)
 
 
 def test_read_auto_detect_chains_nothing_for_an_error_of_another_type() -> None:

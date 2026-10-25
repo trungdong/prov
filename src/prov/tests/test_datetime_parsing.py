@@ -164,7 +164,9 @@ def test_prov_o_time_outside_the_lexical_space_raises() -> None:
         ),
     ) as ctx:
         ProvDocument.deserialize(content=turtle, format="rdf", rdf_format="turtle")
-    assert type(ctx.value.__cause__) is ProvException
+    cause = ctx.value.__cause__
+    assert cause is not None
+    assert pytest.ExceptionInfo.from_exception(cause).type is ProvException
 
 
 _BEYOND = "has a timezone offset beyond ±14:00"

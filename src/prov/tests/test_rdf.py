@@ -647,7 +647,7 @@ def test_decode_scruffy_qualified_generation_raises_documented_limitation() -> N
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
-    assert type(ctx.value) is ProvRDFException
+    assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
 
@@ -690,7 +690,7 @@ def test_decode_scruffy_relations_raise_documented_limitation(
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
-    assert type(ctx.value) is ProvRDFException
+    assert ctx.type is ProvRDFException
     # The chained original ProvException is preserved, not swallowed.
     assert isinstance(ctx.value.__cause__, ProvException)
 
@@ -823,7 +823,7 @@ def test_decode_duplicated_started_at_time_on_qualified_start_raises_documented_
     message = str(ctx.value)
     assert "documented PROV-O representational limitation" in message
     assert "conformance.md" in message
-    assert type(ctx.value) is ProvRDFException
+    assert ctx.type is ProvRDFException
     assert isinstance(ctx.value.__cause__, ProvException)
 
 

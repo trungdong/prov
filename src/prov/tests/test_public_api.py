@@ -339,6 +339,7 @@ def test_prov_model_namespace_snapshot() -> None:
 
 def test_names_importable() -> None:
     missing = []
+    unlisted: list[str] = []
     for module_name, names in PUBLIC_API.items():
         requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
         if requirement and importlib.util.find_spec(requirement) is None:
@@ -347,17 +348,9 @@ def test_names_importable() -> None:
         for name in names:
             if not hasattr(module, name):
                 missing.append(f"{module_name}.{name}")
-    assert missing == [], f"Public API names missing: {missing}"
-
-
-def test_all_lists_only_public_api_names() -> None:
-    unlisted: list[str] = []
-    for module_name, names in PUBLIC_API.items():
-        requirement = OPTIONAL_MODULE_REQUIREMENTS.get(module_name)
-        if requirement and importlib.util.find_spec(requirement) is None:
-            continue
-        exported = getattr(importlib.import_module(module_name), "__all__", [])
+        exported = getattr(module, "__all__", [])
         unlisted.extend(f"{module_name}.{n}" for n in exported if n not in names)
+    assert missing == [], f"Public API names missing: {missing}"
     assert unlisted == [], f"__all__ names missing from PUBLIC_API: {unlisted}"
 
 
