@@ -293,8 +293,8 @@ class ProvNParser:
         identifier against them).
 
         Raises at a repeated default, at a prefix that is not a PN_PREFIX, at
-        an IRI that is empty or starts with ``@``, and under the strict profile at a default that follows a prefix and
-        at a declaration of prov or xsd.
+        an IRI that is empty or starts with ``@``, and under the strict profile
+        at a default that follows a prefix and at a declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -343,7 +343,9 @@ class ProvNParser:
         if not iri.value:
             raise self._error("a namespace IRI cannot be empty", iri)
         if iri.value[0] == "@":
-            raise self._error("a namespace IRI cannot start with '@'", iri)
+            raise self._error(
+                f"the namespace IRI {iri.value!r} cannot start with '@'", iri
+            )
         return iri
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:

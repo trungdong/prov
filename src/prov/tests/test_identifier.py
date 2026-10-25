@@ -176,20 +176,22 @@ def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: str) -> None:
         ProvBundle(namespaces={prefix: EX})
 
 
-_IRI_MESSAGE = "a namespace IRI cannot start with '@'"
+_IRI_MESSAGE = "the namespace IRI {!r} cannot start with '@'"
 
 
 def test_namespace_iri_starting_with_at_is_rejected() -> None:
-    # Every entry point refuses it, and the IRI is named ahead of the prefix.
-    message = f"^{re.escape(_IRI_MESSAGE)}$"
+    # Every entry point refuses it and names the IRI.
+    message = f"^{re.escape(_IRI_MESSAGE.format('@foo/'))}$"
     with pytest.raises(ProvValueError, match=message):
         Namespace("ex", "@foo/")
-    with pytest.raises(ProvValueError, match=message):
-        Namespace("_type", "@type")
     with pytest.raises(ProvValueError, match=message):
         ProvDocument().add_namespace("ex", "@foo/")
     with pytest.raises(ProvValueError, match=message):
         ProvDocument().set_default_namespace("@foo/")
+    with pytest.raises(
+        ProvValueError, match=f"^{re.escape(_IRI_MESSAGE.format('@type'))}$"
+    ):
+        Namespace("_type", "@type")
 
 
 _RDF_PREFIXES = (
@@ -215,7 +217,13 @@ _PREFIX_DOCUMENTS = {
         "json",
         {},
         '{"prefix": {"ex": "@foo/"}}',
-        "prefix 'ex', IRI '@foo/': " + _IRI_MESSAGE,
+        "prefix 'ex', IRI '@foo/': " + _IRI_MESSAGE.format("@foo/"),
+    ),
+    "json null IRI": (
+        "json",
+        {},
+        '{"prefix": {"ex": null}}',
+        "prefix 'ex', IRI None: Not a valid URI to create a namespace.",
     ),
     "json default": (
         "json",
@@ -237,7 +245,22 @@ _PREFIX_DOCUMENTS = {
         {},
         '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
         'xmlns:ex="@foo/">\n<prov:entity prov:id="ex:e"/></prov:document>',
-        "line 2, <prov:entity> 'ex:e': " + _IRI_MESSAGE,
+        "line 2, <prov:entity> 'ex:e': " + _IRI_MESSAGE.format("@foo/"),
+    ),
+    "xml document element default, at sign": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns="@foo/">\n<prov:entity prov:id="e"/></prov:document>',
+        "line 1, <prov:document>: " + _IRI_MESSAGE.format("@foo/"),
+    ),
+    "xml bundleContent default, at sign": (
+        "xml",
+        {},
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:ex="http://example.org/">\n'
+        '<prov:bundleContent prov:id="ex:b" xmlns="@foo/"/></prov:document>',
+        "line 2, <prov:bundleContent> 'ex:b': " + _IRI_MESSAGE.format("@foo/"),
     ),
     "xml document element, underscore": (
         "xml",
@@ -280,25 +303,25 @@ _PREFIX_DOCUMENTS = {
         "jsonld",
         {},
         '{"@context": {"id": "@id"}, "@graph": []}',
-        "prefix 'id', IRI '@id': " + _IRI_MESSAGE,
+        "prefix 'id', IRI '@id': " + _IRI_MESSAGE.format("@id"),
     ),
     "jsonld underscore alias": (
         "jsonld",
         {},
         '{"@context": {"_type": "@type"}, "@graph": []}',
-        "prefix '_type', IRI '@type': " + _IRI_MESSAGE,
+        "prefix '_type', IRI '@type': " + _IRI_MESSAGE.format("@type"),
     ),
     "jsonld vocab alias": (
         "jsonld",
         {},
         '{"@context": {"@vocab": "@id"}, "@graph": []}',
-        "prefix '@vocab', IRI '@id': " + _IRI_MESSAGE,
+        "prefix '@vocab', IRI '@id': " + _IRI_MESSAGE.format("@id"),
     ),
     "jsonld empty key alias": (
         "jsonld",
         {},
         '{"@context": {"": "@id"}, "@graph": []}',
-        "prefix '', IRI '@id': " + _IRI_MESSAGE,
+        "prefix '', IRI '@id': " + _IRI_MESSAGE.format("@id"),
     ),
     "jsonld space": (
         "jsonld",
@@ -332,3 +355,33 @@ def test_prefix_raises_when_read(name: str) -> None:
     with pytest.raises(READER_ERRORS[fmt], match=f"^{re.escape(message)}$") as ctx:
         ProvDocument.deserialize(content=text, format=fmt, **kwargs)
     assert isinstance(ctx.value.__cause__, ProvValueError)
+
+
+@pytest.mark.parametrize(
+    ("declaration", "iri"),
+    [('"ex": 5', "5"), ('"ex": ["x"]', "['x']"), ('"default": 5', "5")],
+)
+def test_json_namespace_iri_that_is_not_a_string_is_rejected(
+    declaration: str, iri: str
+) -> None:
+    # The reader refuses it with its own error, so there is no cause.
+    prefix = declaration.split('"')[1]
+    message = (
+        f"^prefix {prefix!r}, IRI {re.escape(iri)}: a namespace IRI must be a string$"
+    )
+    with pytest.raises(READER_ERRORS["json"], match=message) as ctx:
+        ProvDocument.deserialize(
+            content="{" + f'"prefix": {{{declaration}}}' + "}", format="json"
+        )
+    assert ctx.value.__cause__ is None
+
+
+def test_jsonld_context_keywords_are_not_namespaces() -> None:
+    # A keyword other than @vocab, even one holding an '@' string, is skipped.
+    text = (
+        '{"@context": [{"ex": "http://example.org/", "@base": "@x", '
+        '"@version": 1.1, "@language": "en"}], "@graph": []}'
+    )
+    document = ProvDocument.deserialize(content=text, format="jsonld")
+    assert {namespace.prefix for namespace in document.namespaces} == {"ex"}
+    assert document.default_ns_uri is None

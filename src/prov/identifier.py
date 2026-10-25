@@ -8,9 +8,8 @@ __email__ = "trungdong@donggiang.com"
 
 # Character classes for the XML 1.0 5th-edition Name productions, minus ':'
 # (NCName). Shared by prov.serializers.provxml (PROV-XML element-tag
-# legality, #289) and prov.serializers.provn_lexer, whose PN_CHARS_BASE/
-# PN_CHARS_U/PN_CHARS ([53]-[55]) are these same ranges, bar '.', which
-# PROV-N's grammar handles positionally rather than as an ordinary name char.
+# legality, #289) and prov.serializers.provn_lexer, which takes
+# _NCNAME_START_CHARS, _PN_CHARS and _PN_PREFIX from this module.
 #
 # Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
 # a literal glyph) and annotated with the spec clause it implements, so a
@@ -366,7 +365,7 @@ def _check_namespace_uri(uri: str) -> None:
     if not uri or uri.isspace():
         _raise_value_error("Not a valid URI to create a namespace.")
     if uri[0] == "@":
-        _raise_value_error("a namespace IRI cannot start with '@'")
+        _raise_value_error(f"the namespace IRI {uri!r} cannot start with '@'")
 
 
 class Namespace:

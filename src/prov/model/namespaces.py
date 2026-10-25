@@ -208,7 +208,7 @@ class NamespaceManager(dict[str, Namespace]):
 
         Raises:
             ProvValueError: If a mapping has an empty prefix, a prefix that is
-                not a ``PN_PREFIX``, or a blank IRI.
+                not a ``PN_PREFIX``, or a blank IRI or one that starts with ``@``.
             ProvException: If an iterable holds a default namespace.
         """
         if isinstance(namespaces, Mapping):

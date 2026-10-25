@@ -374,7 +374,7 @@ REJECTED_DOCUMENTS = [
         pytest.param(
             f"document\n{declaration}\nentity(e)\nendDocument",
             EVERY,
-            "a namespace IRI cannot start with '@'",
+            "the namespace IRI '@foo/' cannot start with '@'",
             (2, declaration.index("<") + 1),
             id=f"{declaration.split()[0]} IRI starting with @",
         )
