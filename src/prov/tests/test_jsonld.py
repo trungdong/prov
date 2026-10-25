@@ -309,8 +309,9 @@ def test_deserialize_empty_key_and_vocab_in_one_context_object() -> None:
         _ = ProvDocument.deserialize(content=text, format="jsonld")
 
 
-def _unresolved(text: str, attr: str, prefix: str) -> str:
+def _unresolved(text: str, attr: str) -> str:
     """The regex for the sentence a reference no namespace resolves raises (5.8)."""
+    prefix = text.partition(":")[0]
     return re.escape(
         f"the qualified name {text!r} of {attr} does not resolve, "
         f"because its prefix {prefix!r} is not declared"
@@ -324,12 +325,7 @@ def test_deserialize_value_equal_to_the_vocab_iri_is_rejected() -> None:
             "@graph": [{"@type": "Entity", "@id": "e", "k": [{"@id": EX_URI}]}],
         }
     )
-    reason = (
-        f"the IRI {EX_URI} is the default namespace and has no qualified-name "
-        "form; declare a prefix for it"
-    )
-    message = f"the qualified name {EX_URI!r} of k does not resolve, because {reason}"
-    with pytest.raises(ProvJSONLDException, match=re.escape(message)):
+    with pytest.raises(ProvJSONLDException, match=_unresolved(EX_URI, "k")):
         ProvDocument.deserialize(content=text, format="jsonld")
 
 
@@ -693,13 +689,18 @@ def test_interop_provtoolbox_string_with_colon() -> None:
     assert doc == expected
 
 
-def _entity_with(key: str, values: list) -> str:
+def _statement_text(statement: dict[str, Any]) -> str:
+    """One statement as JSON-LD text under the ``ex`` context."""
     return json.dumps(
         {
             "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
-            "@graph": [{"@type": "Entity", "@id": "ex:e1", key: values}],
+            "@graph": [statement],
         }
     )
+
+
+def _entity_with(key: str, values: list) -> str:
+    return _statement_text({"@type": "Entity", "@id": "ex:e1", key: values})
 
 
 @pytest.mark.parametrize("key", ["type", "prov:type", "value", "ex:ref"])
@@ -773,67 +774,56 @@ def _usage_with(key: str, values: list, ident: str | None = "ex:u1") -> str:
     }
     if ident is not None:
         statement["@id"] = ident
-    return json.dumps(
-        {
-            "@context": [{"ex": EX_URI}, JSONLD_CONTEXT_URL],
-            "@graph": [statement],
-        }
-    )
+    return _statement_text(statement)
 
 
 @pytest.mark.parametrize(
-    ("content", "text", "attr", "prefix"),
+    ("content", "text", "attr"),
     [
         pytest.param(
             _entity_with("ex:ref", [{"@id": "http://other.org/x"}]),
             "http://other.org/x",
             "ex:ref",
-            "http",
             id="node-iri",
         ),
         pytest.param(
             _entity_with("ex:ref", [{"@id": "nope:thing"}]),
             "nope:thing",
             "ex:ref",
-            "nope",
             id="node-prefix",
         ),
         pytest.param(
             _entity_with("type", ["http://other.org/x"]),
             "http://other.org/x",
             "prov:type",
-            "http",
             id="bare-type-iri",
         ),
         pytest.param(
             _entity_with("type", ["zz:x"]),
             "zz:x",
             "prov:type",
-            "zz",
             id="bare-type-prefix",
         ),
         pytest.param(
             _usage_with("role", ["zz:R"]),
             "zz:R",
             "prov:role",
-            "zz",
             id="bare-role",
         ),
         pytest.param(
             _entity_with("location", ["zz:L"]),
             "zz:L",
             "prov:location",
-            "zz",
             id="bare-location",
         ),
     ],
 )
 def test_deserialize_reference_no_namespace_resolves_is_rejected(
-    content: str, text: str, attr: str, prefix: str
+    content: str, text: str, attr: str
 ) -> None:
     # A node reference, or a bare string under an @id-typed term, that no
     # declared namespace resolves raises the 5.8 sentence (#609).
-    with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr, prefix)):
+    with pytest.raises(ProvJSONLDException, match=_unresolved(text, attr)):
         ProvDocument.deserialize(content=content, format="jsonld")
 
 

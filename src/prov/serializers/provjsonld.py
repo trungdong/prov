@@ -37,14 +37,12 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvElement,
-    ProvExceptionInvalidQualifiedName,
     ProvRecord,
     QualifiedNameCandidate,
     first,
     parse_xsd_datetime,
 )
 from prov.model._values import (
-    _unresolved_name_detail,
     _xsd_datetime_text,
     python_value_form,
     resolve_name,
@@ -523,11 +521,6 @@ def decode_jsonld_value(
     resolved = bundle.valid_qualified_name(text)
     if resolved is not None:
         return resolved
-    try:
-        bundle._reject_default_iri(text)
-    except ProvExceptionInvalidQualifiedName as exc:
-        reason = str(exc.detail)
-        raise ProvJSONLDException(_unresolved_name_detail(text, reason, attr)) from exc
     name = resolve_name(bundle, text, attr=attr)
     if isinstance(name, str):
         raise ProvJSONLDException(name)

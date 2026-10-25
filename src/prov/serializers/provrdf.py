@@ -141,7 +141,6 @@ class _LexicalFormLiteral(RDFLiteral):
 # directly. Every other datatype (`xsd:decimal`, `xsd:unsignedInt`,
 # `xsd:positiveInteger`, other XSD numeric subtypes, custom datatypes, ...)
 # is reconstructed from the RDF term's own lexical form instead (#218).
-_QNAME_DATATYPES = frozenset({XSD["QName"], URIRef(PROV_QUALIFIEDNAME.uri)})
 _LOSSLESS_COLLAPSE_DATATYPES = frozenset(
     {
         XSD["double"],
@@ -153,6 +152,9 @@ _LOSSLESS_COLLAPSE_DATATYPES = frozenset(
         XSD["string"],
     }
 )
+
+# Datatypes whose literal text is a QName the reader registers a prefix for.
+_QNAME_DATATYPES = frozenset({XSD["QName"], URIRef(PROV_QUALIFIEDNAME.uri)})
 
 RELATION_MAP = {
     URIRef(PROV["alternateOf"].uri): "alternate",
@@ -704,8 +706,24 @@ class ProvRDFSerializer(Serializer):
         if not prefix:
             qname = self._default_name(iri, uri)
             return qname if qname is not None else self._split_at_separator(iri)
+        return self._mint(prefix, uri, iri)
+
+    def _mint(self, prefix: str, uri: str, iri: str) -> pm.QualifiedName:
+        """Register the namespace ``prefix``:``uri`` and name ``iri`` in it.
+
+        The one site that mints a namespace, so the skipped bindings under
+        ``uri`` are registered first (N56).
+
+        Args:
+            prefix: Prefix to register.
+            uri: IRI of the namespace; ``iri`` starts with it.
+            iri: The IRI to name.
+
+        Returns:
+            The :class:`~prov.identifier.QualifiedName` for ``iri``.
+        """
         self._register_shadowed_bindings(uri)
-        ns = self.document.add_namespace(prefix, uri)
+        ns = self.document.add_namespace(prefix, uri)  # type: ignore[union-attr]
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
 
     def _register_shadowed_bindings(self, uri: str) -> None:
@@ -739,9 +757,7 @@ class ProvRDFSerializer(Serializer):
                 f"Cannot split IRI {iri!r} into a namespace and a local "
                 "part: it contains no '#' or '/' separator."
             )
-        self._register_shadowed_bindings(iri[: sep + 1])
-        ns = self.document.add_namespace("ns", iri[: sep + 1])  # type: ignore[union-attr]
-        return pm.QualifiedName(ns, iri[len(ns.uri) :])
+        return self._mint("ns", iri[: sep + 1], iri)
 
     def decode_rdf_representation(self, literal: Any, graph: Graph) -> Any:
         """Decode a single RDF term back to its PROV attribute value representation.
@@ -903,12 +919,9 @@ class ProvRDFSerializer(Serializer):
             # The literal of standard Python types is not converted here
             # It will be automatically converted when added to a record by
             # _auto_literal_conversion()
-            resolved = (
-                None
-                if datatype is None
-                else self.decode_rdf_representation(datatype, graph)
+            return pm.Literal(
+                value, self.decode_rdf_representation(datatype, graph), langtag
             )
-            return pm.Literal(value, resolved, langtag)
 
     def encode_document(
         self,
@@ -1425,13 +1438,16 @@ class ProvRDFSerializer(Serializer):
                 attribute QualifiedNames; defaults to :data:`PREDICATE_MAP`.
         """
         skipped = {(prefix, str(iri)) for prefix, iri in Graph().namespaces()}
-        bindings = [(prefix, str(url)) for prefix, url in content.namespaces()]
-        self._skipped_bindings = tuple(b for b in bindings if b[0] and b in skipped)
-        for prefix, iri in bindings:
+        shadowed = []
+        for prefix, url in content.namespaces():
+            iri = str(url)
             if not prefix:
                 document.set_default_namespace(iri)
-            elif (prefix, iri) not in skipped:
+            elif (prefix, iri) in skipped:
+                shadowed.append((prefix, iri))
+            else:
                 document.add_namespace(prefix, iri)
+        self._skipped_bindings = tuple(shadowed)
         if hasattr(content, "graphs"):
             for graph in content.graphs():
                 if (
@@ -1694,11 +1710,14 @@ class ProvRDFSerializer(Serializer):
             factory(subj_name, obj_name)
             return
         if "mentionOf" in pred:
-            mention_bundle = None
+            last_bundle = None
             for stmt in graph.triples(
                 (URIRef(subj), URIRef(pm.PROV["asInBundle"].uri), None)
             ):
-                mention_bundle = self._relation_node(stmt[2], graph)
+                last_bundle = stmt[2]
+            mention_bundle = (
+                None if last_bundle is None else self._relation_node(last_bundle, graph)
+            )
             factory(subj_name, obj_name, mention_bundle)
             return
         name = relation_mapper[pred]

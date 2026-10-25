@@ -372,14 +372,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   PROV-O reader no longer declares rdflib's default prefix bindings (`dcterms`, `foaf`,
   `owl` and the rest) as the document's own, so `get_registered_namespaces()` and every
   writer list the source's declarations and the namespaces its names use, where 3.2.x
-  listed all of them. A source declaration identical to one of rdflib's default bindings,
-  such as `@prefix foaf: <http://xmlns.com/foaf/0.1/>`, is kept only when a name, or the
-  text of an `xsd:QName` or `prov:QUALIFIED_NAME` literal, uses it, and an unused `ex` is
-  kept. The exception is a namespace the reader mints for a short IRI, such as the
-  `http://` of `<http://alice.example>`: it also declares every rdflib default binding
-  under it, such as `foaf`, whether or not a name uses it, so that a name under one keeps
-  its prefix. A prefix the source declares and no name uses is not written by `prov`'s
-  Turtle, so it does not survive a round trip
+  listed all of them. A namespace the reader mints for a short IRI, such as the `http://`
+  of `<http://alice.example>`, also declares the rdflib bindings under it, such as `foaf`,
+  so that a name under one keeps its prefix. The rules are in the PROV-O section of
+  `docs/reference/conformance.md`
   ([#654](https://github.com/trungdong/prov/issues/654))
 - `ProvDocument(namespaces=...)`, `ProvBundle(namespaces=...)` and
   `NamespaceManager.add_namespaces()` accept any mapping of prefix to IRI, not only a `dict`. A
