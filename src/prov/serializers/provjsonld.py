@@ -388,9 +388,28 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     String items (the context URL) and the embedded copy of the submission
     context (see :func:`_is_embedded_submission_context`; its terms are
     already known to this library via the built-in ``prov``/``xsd``
-    namespaces) are skipped entirely. Every other object is treated as a
-    namespace map (see :func:`_register_context_namespaces`). Its
-    dict-valued entries (third-party inline term definitions this library
+    namespaces) are skipped entirely. Every other object is a namespace map
+    (see :func:`_register_context_namespaces`).
+
+    Raises:
+        ProvJSONLDException: If a ``@context`` entry is neither a string nor
+            a JSON object, or a namespace map is refused (see
+            :func:`_register_context_namespaces`).
+    """
+    if not isinstance(context, list):
+        context = [context]
+    for item in context:
+        if isinstance(item, str):
+            continue
+        item = _expect_object(item, "A @context entry")
+        if not _is_embedded_submission_context(item):
+            _register_context_namespaces(item, bundle)
+
+
+def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> None:
+    """Register the string-valued entries of one ``@context`` object on ``bundle``.
+
+    Dict-valued entries (third-party inline term definitions this library
     does not model) are skipped individually rather than causing the whole
     object to be skipped, and so are the ``@``-keys other than ``"@vocab"``.
     ``@base`` is written as a duplicate of ``@vocab`` (see
@@ -399,43 +418,23 @@ def _decode_context(context: Any, bundle: ProvBundle) -> None:
     namespace: ``"@vocab"`` and ``""`` set the default, and any other key is a
     prefix.
 
-    Raises:
-        ProvJSONLDException: If a ``@context`` entry is neither a string nor
-            a JSON object, declares its default namespace under both
-            ``"@vocab"`` and ``""`` with different IRIs, or declares a prefix,
-            default namespace or IRI the model refuses, such as a prefix that
-            is not a ``PN_PREFIX`` or an IRI that starts with ``"@"``
-            (``__cause__`` holds the :class:`ProvException`).
-    """
-    if not isinstance(context, list):
-        context = [context]
-    for item in context:
-        if isinstance(item, str):
-            continue
-        item = _expect_object(item, "A @context entry")
-        if _is_embedded_submission_context(item):
-            continue
-        empty, vocab = item.get(""), item.get("@vocab")
-        if isinstance(empty, str) and isinstance(vocab, str) and empty != vocab:
-            raise ProvJSONLDException(
-                "A @context entry declares two different default namespaces, "
-                'under "@vocab" and ""'
-            )
-        _register_context_namespaces(item, bundle)
-
-
-def _register_context_namespaces(item: dict[str, Any], bundle: ProvBundle) -> None:
-    """Register the string-valued entries of one ``@context`` object on ``bundle``.
-
     Args:
         item: A ``@context`` entry that is a JSON object and a namespace map.
         bundle: Bundle (or document) to register the namespaces on.
 
     Raises:
-        ProvJSONLDException: If the model refuses a prefix, the default
-            namespace or an IRI (``__cause__`` holds the
-            :class:`ProvException`).
+        ProvJSONLDException: If the map declares its default namespace under
+            both ``"@vocab"`` and ``""`` with different IRIs, or the model
+            refuses a prefix, the default namespace or an IRI, such as a
+            prefix that is not a ``PN_PREFIX`` or an IRI that starts with
+            ``"@"`` (``__cause__`` holds the :class:`ProvException`).
     """
+    empty, vocab = item.get(""), item.get("@vocab")
+    if isinstance(empty, str) and isinstance(vocab, str) and empty != vocab:
+        raise ProvJSONLDException(
+            "A @context entry declares two different default namespaces, "
+            'under "@vocab" and ""'
+        )
     try:
         for prefix, value in item.items():
             if not isinstance(value, str):

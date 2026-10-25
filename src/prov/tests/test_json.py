@@ -861,7 +861,7 @@ REJECTED_DOCUMENTS = [
     *[
         pytest.param(
             json.dumps({"prefix": {prefix: iri}}),
-            f"prefix {prefix!r}, IRI {iri!r}: a namespace IRI must be a string",
+            f"prefix {prefix!r}, IRI {iri!r}: the namespace IRI {iri!r} is not a string",
             id=f"namespace IRI {iri!r} under {prefix!r}",
         )
         for prefix, iri in (

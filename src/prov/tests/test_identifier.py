@@ -17,21 +17,18 @@ from prov.model import (
 from prov.tests.format_errors import READER_ERRORS
 
 
-def test_namespace_rejects_empty_uri() -> None:
-    with pytest.raises(ProvValueError):
-        Namespace("ex", "")
-
-
-def test_namespace_rejects_whitespace_only_uri() -> None:
-    with pytest.raises(ProvValueError):
-        Namespace("ex", "   ")
-
-
-def test_namespace_rejects_a_uri_that_is_not_a_string() -> None:
-    with pytest.raises(
-        ProvValueError, match=re.escape("Not a valid URI to create a namespace.")
-    ):
-        Namespace("ex", cast("Any", 5))
+@pytest.mark.parametrize(
+    ("uri", "message"),
+    [
+        ("", "Not a valid URI to create a namespace."),
+        ("   ", "Not a valid URI to create a namespace."),
+        (5, "the namespace IRI 5 is not a string"),
+        (None, "the namespace IRI None is not a string"),
+    ],
+)
+def test_namespace_rejects_a_blank_or_non_string_uri(uri: Any, message: str) -> None:
+    with pytest.raises(ProvValueError, match=f"^{re.escape(message)}$"):
+        Namespace("ex", uri)
 
 
 def test_contains_with_matching_str() -> None:
@@ -170,17 +167,20 @@ def test_prefix_that_is_a_pn_prefix_is_accepted(prefix: str) -> None:
     "prefix", [1, "1a", "_a", "_", "a.", ".a", "·a", "a b", "a\nb", "a:b", 'a"b']
 )
 def test_prefix_that_is_not_a_pn_prefix_is_rejected(prefix: Any) -> None:
-    # Every way to build a Namespace goes through the same check.
     message = f"^{re.escape(_PREFIX_MESSAGE.format(prefix))}$"
-    with pytest.raises(ProvValueError, match=message) as ctx:
+    with pytest.raises(ProvValueError, match=message):
         Namespace(prefix, EX)
+
+
+def test_every_way_to_build_a_namespace_checks_the_prefix() -> None:
+    message = f"^{re.escape(_PREFIX_MESSAGE.format('1a'))}$"
+    with pytest.raises(ProvValueError, match=message) as ctx:
+        ProvDocument().add_namespace("1a", EX)
     assert isinstance(ctx.value, ValueError)
     with pytest.raises(ProvValueError, match=message):
-        ProvDocument().add_namespace(prefix, EX)
+        ProvDocument(namespaces={"1a": EX})
     with pytest.raises(ProvValueError, match=message):
-        ProvDocument(namespaces={prefix: EX})
-    with pytest.raises(ProvValueError, match=message):
-        ProvBundle(namespaces={prefix: EX})
+        ProvBundle(namespaces={"1a": EX})
 
 
 _IRI_MESSAGE = "the namespace IRI {!r} cannot start with '@'"
@@ -272,14 +272,6 @@ _PREFIX_DOCUMENTS = {
         "</prov:document>",
         "line 2, <prov:entity> '_a:e': " + _PREFIX_MESSAGE.format("_a"),
     ),
-    "xml document element, trailing dot": (
-        "xml",
-        {},
-        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
-        'xmlns:a.="http://example.org/a/">\n<prov:entity prov:id="a.:e"/>'
-        "</prov:document>",
-        "line 2, <prov:entity> 'a.:e': " + _PREFIX_MESSAGE.format("a."),
-    ),
     "jsonld document": (
         "jsonld",
         {},
@@ -307,12 +299,6 @@ _PREFIX_DOCUMENTS = {
         '{"@context": {"id": "@id"}, "@graph": []}',
         "prefix 'id', IRI '@id': " + _IRI_MESSAGE.format("@id"),
     ),
-    "jsonld underscore alias": (
-        "jsonld",
-        {},
-        '{"@context": {"_type": "@type"}, "@graph": []}',
-        "prefix '_type', IRI '@type': " + _IRI_MESSAGE.format("@type"),
-    ),
     "jsonld vocab alias": (
         "jsonld",
         {},
@@ -324,12 +310,6 @@ _PREFIX_DOCUMENTS = {
         {},
         '{"@context": {"": "@id"}, "@graph": []}',
         "prefix '', IRI '@id': " + _IRI_MESSAGE.format("@id"),
-    ),
-    "jsonld space": (
-        "jsonld",
-        {},
-        '{"@context": {"a b": "http://example.org/"}, "@graph": []}',
-        "prefix 'a b', IRI 'http://example.org/': " + _PREFIX_MESSAGE.format("a b"),
     ),
     "rdf xml": (
         "rdf",

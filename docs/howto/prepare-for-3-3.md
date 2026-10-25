@@ -14,8 +14,9 @@ column in PROV-N, or the record identifier and attribute name in PROV-JSON. A la
 tag, a local part, a namespace prefix, a namespace IRI, a Python value, a qualified-name
 value or a time offset beyond ±14:00 is rejected by the model, and the model's sentence
 names the value. A reader's error names the record (the subject in PROV-O), or the
-declaration. It carries that sentence, and its `__cause__` is the model's error. Code that builds the value gets the model's error on its own. A message
-from `unified()` names the identifier of the records it cannot merge.
+declaration. It carries that sentence, and its `__cause__` is the model's error. Code that
+builds the value gets the model's error on its own. A message from `unified()` names the
+identifier of the records it cannot merge.
 
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects raises `ProvFormatNotDetected`, a `TypeError`, whose `__cause__` is the
@@ -140,8 +141,8 @@ raises it at the `bundleContent` element that declares the prefix, or at the fir
 under a prefix the document element declares, and raises the model's refusal of an `xmlns`
 on the document element at `<prov:document>`. A prefix is a letter, followed by name
 characters or `.`, and does not end in `.`. 3.2.3 accepted a prefix that is not a
-`PN_PREFIX` and wrote text that did not read back. The `Namespace` constructor's
-refusals of an empty prefix and of a blank IRI are a `ProvValueError` now, from code, which
+`PN_PREFIX` and wrote text that did not read back. The `Namespace` constructor's refusals
+of an empty prefix and of a blank IRI are a `ProvValueError` now, from code, which
 `except ValueError` still catches. A prefix or an IRI that is not a string is a
 `ProvValueError` too, where 3.2.3 accepted an integer prefix.
 

@@ -348,7 +348,8 @@ EVERY = PROFILES
 STRICT = ("strict",)
 # Rejected inside a statement, so the lenient profile skips the statement.
 STATEMENT = ("strict", "default")
-
+_AT_MESSAGE = "the namespace IRI '@foo/' cannot start with '@'"
+_BLANK_MESSAGE = "Not a valid URI to create a namespace."
 
 # The declarations and whitespace the reader rejects (#508, #509, #510, #511,
 # #519 a and d): the document, the profiles that reject it, the message and
@@ -375,21 +376,16 @@ REJECTED_DOCUMENTS = [
         pytest.param(
             f"document\n{declaration}\nentity(e)\nendDocument",
             EVERY,
-            "the namespace IRI '@foo/' cannot start with '@'",
+            message,
             (2, declaration.index("<") + 1),
-            id=f"{declaration.split()[0]} IRI starting with @",
+            id=f"{declaration.split()[0]} IRI {label}",
         )
-        for declaration in ("prefix ex <@foo/>", "default <@foo/>")
-    ],
-    *[
-        pytest.param(
-            f"document\n{declaration}\nentity(e)\nendDocument",
-            EVERY,
-            "Not a valid URI to create a namespace.",
-            (2, declaration.index("<") + 1),
-            id=f"{declaration.split()[0]} IRI of whitespace",
+        for declaration, message, label in (
+            ("prefix ex <@foo/>", _AT_MESSAGE, "starting with @"),
+            ("default <@foo/>", _AT_MESSAGE, "starting with @"),
+            ("prefix ex <\u00a0>", _BLANK_MESSAGE, "of whitespace"),
+            ("default <\u00a0>", _BLANK_MESSAGE, "of whitespace"),
         )
-        for declaration in ("prefix ex <\u00a0>", "default <\u00a0>")
     ],
     pytest.param(
         f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
@@ -1214,15 +1210,7 @@ def test_empty_namespace_iri_is_a_syntax_error(profile, declaration) -> None:
     assert (ctx.value.line, ctx.value.column) == (2, declaration.index("<") + 1)
 
 
-@pytest.mark.parametrize(
-    "declaration",
-    [
-        "prefix ex <@foo/>",
-        "default <@foo/>",
-        "prefix ex <\u00a0>",
-        "default <\u00a0>",
-    ],
-)
+@pytest.mark.parametrize("declaration", ["prefix ex <@foo/>", "default <\u00a0>"])
 def test_namespace_iri_the_model_refuses_carries_its_error(declaration) -> None:
     with pytest.raises(ProvNSyntaxError) as ctx:
         ProvNParser(f"document\n{declaration}\nendDocument", "strict").parse()

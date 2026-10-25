@@ -59,14 +59,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   still catches ([#668](https://github.com/trungdong/prov/issues/668))
 - A namespace IRI that starts with `@`, a `ProvValueError` when the `Namespace` is built,
   from code or from any reader. PROV-N refuses it at the IRI with a `ProvNSyntaxError`, as
-  it refuses an empty IRI, and the other readers raise their format's error with it as
-  the cause. A PROV-JSON namespace IRI that is not a string, `null` included, raises
+  it refuses an empty IRI, and the other readers raise their format's error with it as the
+  cause. A PROV-JSON namespace IRI that is not a string, `null` included, raises
   `ProvJSONException`, where 3.2.3 raised `AttributeError`, or `ValueError` for `null`.
   From code, a prefix or an IRI that is not a string is a `ProvValueError`, where 3.2.3
-  accepted an integer prefix and raised `AttributeError` for a non-string IRI. In PROV-JSONLD this covers a `@context` term such
-  as `"id": "@id"`, and a context key holding `:` falls under the prefix rule above.
-  3.2.3 accepted such an IRI, PROV-JSONLD registered such a term as a namespace, and
-  PROV-N output declared it as `prefix id <@id>` ([#668](https://github.com/trungdong/prov/issues/668))
+  accepted an integer prefix and raised `AttributeError` for a non-string IRI. In
+  PROV-JSONLD this covers a `@context` term such as `"id": "@id"`, and a context key
+  holding `:` falls under the prefix rule above. 3.2.3 accepted such an IRI, PROV-JSONLD
+  registered such a term as a namespace, and PROV-N output declared it as
+  `prefix id <@id>` ([#668](https://github.com/trungdong/prov/issues/668))
 - A Python value of a type with no PROV form, such as a `Fraction` or a `tuple`, a
   `ProvValueError` naming the attribute and the type where the value is asserted. A
   `Decimal`, `date`, `time`, `timedelta`, `UUID`, `bytes`, `bytearray` or `memoryview` is

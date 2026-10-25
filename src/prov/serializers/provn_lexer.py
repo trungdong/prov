@@ -74,11 +74,11 @@ class Token:
 
 
 # Character classes from the Recommendation ([53] to [55]); '.' is handled
-# in the local-part patterns because its placement rules differ. PN_CHARS and
-# PN_PREFIX come from prov.identifier, which builds them from its NCName
-# tables. PN_CHARS_U (NCName's NameStartChar, '_' included) is that table
-# unchanged. The classes' equivalence to the NCName tables over the full
-# codepoint space is pinned by test_provn_lexer.py.
+# in the local-part patterns because its placement rules differ.
+# prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables, and
+# this module imports them. PN_CHARS_U (NCName's NameStartChar, '_' included)
+# is that table unchanged. The classes' equivalence to the NCName tables over
+# the full codepoint space is pinned by test_provn_lexer.py.
 _PN_CHARS_U = _NCNAME_START_CHARS
 _PN_OTHERS = r"/@~&+*?#$!"
 _PERCENT = r"%[0-9A-Fa-f]{2}"
