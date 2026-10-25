@@ -982,6 +982,53 @@ def test_force_types_controls_xsi_type_on_non_prov_attributes(force_types) -> No
     assert xsi_type(".//prov:type") == "xsd:string"
 
 
+def _xsi_type_of(parent: etree._Element, path: str) -> str | None:
+    element = parent.find(path, FORCE_TYPES_NS)
+    assert element is not None
+    return element.get(XSI_TYPE)
+
+
+@pytest.mark.parametrize(
+    ("declared", "prefix"), [(None, "dn"), ("d", "d")], ids=["minted", "reused"]
+)
+def test_a_default_namespace_datatype_is_written_as_a_qname(
+    declared: str | None, prefix: str
+) -> None:
+    # a bare local part is a QName under the element's xmlns; one with a colon
+    # takes a prefix bound to the IRI, declared on the element when none is in
+    # scope, as the PROV-JSON writer does (#570)
+    document = prov.ProvDocument()
+    document.set_default_namespace("http://d.example/")
+    document.add_namespace("ex", "http://example.org/")
+    if declared is not None:
+        document.add_namespace(declared, "http://d.example/")
+    default = document.get_default_namespace()
+    assert default is not None
+    document.entity(
+        "ex:e",
+        {
+            "ex:t": prov.Literal("1", default["t"]),
+            "ex:c": prov.Literal("2", default["a:b"]),
+        },
+    )
+    bundle = document.bundle("ex:b")
+    bundle.set_default_namespace("http://other.example/")
+    other = bundle.get_default_namespace()
+    assert other is not None
+    bundle.entity("ex:f", {"ex:c": prov.Literal("3", other["c:d"])})
+
+    xml = document.serialize(format="xml")
+    root = etree.fromstring(xml.encode())
+    assert _xsi_type_of(root, "prov:entity/ex:t") == "t"
+    assert _xsi_type_of(root, "prov:entity/ex:c") == f"{prefix}:a:b"
+    assert root.nsmap[prefix] == "http://d.example/"
+    content = root.find("prov:bundleContent", FORCE_TYPES_NS)
+    assert content is not None
+    assert _xsi_type_of(content, "prov:entity/ex:c") == "dn:c:d"
+    assert content.nsmap["dn"] == "http://other.example/"
+    assert prov.ProvDocument.deserialize(content=xml, format="xml") == document
+
+
 def _membership_xml(entity_element: str) -> str:
     return f"""<document xmlns="http://www.w3.org/ns/prov#"
         xmlns:prov="http://www.w3.org/ns/prov#"

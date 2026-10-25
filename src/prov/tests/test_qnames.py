@@ -145,37 +145,16 @@ def test_default_namespace_colon_local_part_as_attribute_value(
     roundtrip(prov_doc)
 
 
-@pytest.mark.parametrize(
-    "fmt",
-    [
-        "model",
-        "json",
-        pytest.param(
-            "xml",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason='#570: PROV-XML writes the datatype as xsi:type=":a:b", '
-                'which reads back with the local part ":a:b"',
-            ),
-        ),
-        "rdf",
-        "jsonld",
-        pytest.param(
-            "provn",
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="#571: PROV-N writes the datatype unescaped (%% a:b), which "
-                "reads back as the undeclared prefix a",
-            ),
-        ),
-    ],
-)
-def test_default_namespace_colon_local_part_as_literal_datatype(
-    roundtrip: Roundtrip,
+@pytest.mark.parametrize("localpart", ["t", "a:b"])
+def test_default_namespace_literal_datatype(
+    roundtrip: Roundtrip, localpart: str
 ) -> None:
+    # PROV-XML writes a bare local part, a QName under the element's xmlns, and
+    # gives one with a colon, which has no QName, a prefix bound to the IRI;
+    # PROV-N escapes the colon (#570, #571)
     prov_doc = document_with_default_namespace()
     prov_doc.entity(
-        DEFAULT_NS["e"], {DEFAULT_NS["attr"]: Literal("1", DEFAULT_NS["a:b"])}
+        DEFAULT_NS["e"], {DEFAULT_NS["attr"]: Literal("1", DEFAULT_NS[localpart])}
     )
     roundtrip(prov_doc)
 
@@ -211,7 +190,7 @@ def test_default_namespace_colon_local_part_in_a_bundle_default_namespace(
     named = prov_doc.add_namespace("ex", "http://ex.example/")
     bundle = prov_doc.bundle(named["b:c"])
     bundle.set_default_namespace(other_ns.uri)
-    bundle.entity(other_ns["c:d"])
+    bundle.entity(other_ns["c:d"], {named["attr"]: Literal("2", other_ns["t"])})
     roundtrip(prov_doc)
 
 
@@ -243,8 +222,9 @@ def test_prefix_named_default_in_bundles(roundtrip: Roundtrip) -> None:
     prov_doc.add_namespace(DEFAULT_PREFIX_NS)
     bundle = prov_doc.bundle(DEFAULT_PREFIX_NS["b1"])
     bundle.entity(DEFAULT_PREFIX_NS["e"])
-    # a bundle's own "default" prefix, beside the document's; its identifier
-    # avoids that prefix, which a reader would resolve in the bundle (#573)
+    # a bundle's own "default" prefix, beside the document's; the identifier
+    # is under another prefix, since a bundle cannot rebind the prefix its
+    # own identifier uses
     prov_doc.add_namespace("ex", "http://ex.example/")
     bundle = prov_doc.bundle("ex:b2")
     bundle.add_namespace("default", "http://w.example/")

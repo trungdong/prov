@@ -72,9 +72,12 @@ expresses them: the grammar has no `wasRevisionOf` keyword.
 | Bundle constructor §5.4.1 | {py:class}`~prov.model.ProvBundle` | `ProvDocument.bundle()` / `add_bundle()` | `bundle <id> ... endBundle` | ✓ | ✓ | ✓ | ✓ |
 | Bundle as an entity §5.4.2 | not implemented, see below | | | | | | |
 
-Only a {py:class}`~prov.model.ProvDocument` may contain named bundles. A bundle that
-declares a default namespace different from the one its identifier lives in is written with
-a prefixed identifier, so the identifier's IRI survives re-reading.
+Only a {py:class}`~prov.model.ProvDocument` may contain named bundles. A bundle identifier
+is resolved in the bundle's own scope (PROV-N section 3.4.1), so a declaration on the bundle
+that would change what its identifier reads as, its own default while the identifier is
+bare in the document's default, or a rebinding of the identifier's prefix, is refused with a
+{py:class}`~prov.model.ProvException`
+([#573](https://github.com/trungdong/prov/issues/573)).
 
 ## Component 5: Alternate Entities
 

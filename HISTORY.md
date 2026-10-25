@@ -112,9 +112,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `QualifiedName` ([#473](https://github.com/trungdong/prov/issues/473))
 - `set_default_namespace()` or `add_namespace()` on a document or bundle that already holds
   a name the declaration would change, such as a bundle named `e001` in the document's
-  default namespace that then declares its own default, a `ProvException` naming the name
-  and the IRI it would read as. 3.2.x accepted the declaration and the PROV-N writer gave
-  the name a `dn` prefix it declared inside the bundle
+  default namespace that then declares its own default, or a bundle named `ex:b2` that
+  then binds `ex` to another IRI, a `ProvException` naming the name and the IRI it would
+  read as. 3.2.x accepted the declaration; the PROV-N writer gave the bare name a `dn`
+  prefix it declared inside the bundle, and every writer spelled the prefixed identifier
+  under the rebound prefix, which a reader resolves in the bundle's own scope, so it read
+  back under the IRI the bundle bound the prefix to
+  ([#573](https://github.com/trungdong/prov/issues/573))
 - `add_bundle()` given a bundle that belongs to another document, a `ProvException`. A
   bundle is not moved between documents; 3.2.x re-parented it and relied on the declarations
   it had copied
@@ -210,13 +214,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   so a record holding one equals its copy, where 3.2.3 found no match. A typed literal
   whose text is not the canonical spelling of its value, such as `"05" %% xsd:int` or
   `"1" %% xsd:boolean`, is kept as a `Literal` with its text, still equals the Python value
-  in a record, and is written back as it was read by every format but PROV-O, where 3.2.3
-  read the Python value and wrote `5` or `true`; `get_attribute()` returns the `Literal`
-  for it. PROV-O also reads an exponent-form `xsd:decimal` such as `"1e1"`, outside the
-  lexical space, as its decimal value where every other format keeps the text. A text that
-  Python accepts and XSD does not, such as `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"`
-  as `xsd:double`, or `" 5"` and `"1_000"` as `xsd:int`, which 3.2.3 read as `True`,
-  `inf`, `5` and `1000`, now stays a `Literal` and compares as text.
+  in a record, and is written back as it was read by every format, where 3.2.3 read the
+  Python value and wrote `5` or `true`; PROV-O reads it back normalised (C10);
+  `get_attribute()` returns the `Literal` for it. PROV-O also reads an exponent-form
+  `xsd:decimal` such as `"1e1"`, outside the lexical space, as its decimal value where
+  every other format keeps the text. A text that Python accepts and XSD does not, such as
+  `"True"` or `"TRUE"` as `xsd:boolean`, `"inf"` as `xsd:double`, or `" 5"` and `"1_000"`
+  as `xsd:int`, which 3.2.3 read as `True`, `inf`, `5` and `1000`, now stays a `Literal`
+  and compares as text.
   `Literal(True).value` is `"true"`, `Literal(float("inf")).value` is `"INF"`,
   `Literal(1e16, XSD_DECIMAL).value` and `Literal(Decimal("1E+2"), XSD_DECIMAL).value`
   are `"10000000000000000"` and `"100"`, and a `datetime` is spelled in ISO 8601 form
@@ -321,6 +326,16 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `encoding_provn_value` and the other value encoders now spell the typed form the record
   would hold rather than `str()` of the value
   ([#589](https://github.com/trungdong/prov/issues/589))
+- PROV-O writes a `Literal`'s text as given, quoted in Turtle, TriG and N3 as in N-Triples
+  and RDF/XML. `Literal("maybe", XSD_BOOLEAN)` is written `"maybe"^^xsd:boolean`, and a
+  kept spelling such as `"05" %% xsd:int`, `"1e0" %% xsd:double` or `"PT0S" %%
+  xsd:duration` as `"05"`, `"1e0"` and `"PT0S"`, where 3.2.x wrote rdflib's normalised
+  forms `false`, `5`, `1.0` and `P0D`. rdflib still spells a non-finite `xsd:double` from
+  its value, `INF` for `"inf"`, and its JSON-LD writer still writes an `xsd:boolean`,
+  `xsd:integer` or `xsd:double` as a JSON value. rdflib warns `UserWarning` about an
+  ill-formed boolean when the literal is built. PROV-O reads such a text back normalised,
+  as before (C10)
+  ([#575](https://github.com/trungdong/prov/issues/575))
 
 ### Fixes
 
@@ -350,7 +365,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#615](https://github.com/trungdong/prov/issues/615))
 - An `int` subclass whose `str()` is not its digits, such as a member of an `(int, Enum)`
   mixin, is written as its digits by every writer, where every writer wrote the member's
-  name, which no reader read back.
+  name, which no reader read back. PROV-XML types a subclass of `int`, `float` or
+  `datetime`, such as an `(int, Enum)` member or a `numpy.float64`, as it types the plain
+  value, so it reads back as a number or a time, where 3.2.x wrote it with no `xsi:type`
+  and it read back as a string
+  ([#657](https://github.com/trungdong/prov/issues/657))
 - A `Literal` built from a Python value stores `prov`'s spelling of the value, the text the
   same value takes when it is asserted plainly: a `timedelta` as an `xsd:duration` such as
   `P1DT30S`, a `UUID` as `urn:uuid:...`, a `bytes`, `bytearray` or `memoryview` in base64,
@@ -363,6 +382,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-XML writer declares a bundle's own default namespace on its
   `prov:bundleContent`, so the bundle's bare names read back in it, where 3.2.x read them
   back in the document's default ([#572](https://github.com/trungdong/prov/issues/572))
+- A typed literal whose datatype is in the default namespace round-trips through PROV-N
+  and PROV-XML. PROV-N escapes a `:` in the datatype's local part, `"1" %% a\:b`, as it
+  does in an identifier; PROV-XML writes the datatype as the bare local part, which
+  `xsi:type` resolves under the element's `xmlns`, and one whose local part contains `:`
+  under a prefix bound to the default namespace, `dn` declared on the element when none
+  is. 3.2.x wrote `%% a:b`, which read back under the undeclared prefix `a`, and
+  `xsi:type=":t"`, which read back with the local part `:t`
+  ([#571](https://github.com/trungdong/prov/issues/571),
+  [#570](https://github.com/trungdong/prov/issues/570))
 
 ### Project
 

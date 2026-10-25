@@ -26,7 +26,12 @@ from prov.constants import (
     XSD_LONG,
 )
 from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
-from prov.tests.conftest import TEXT_FORMATS, ex_document, roundtrip_document
+from prov.tests.conftest import (
+    ROUNDTRIP_FORMATS,
+    TEXT_FORMATS,
+    ex_document,
+    roundtrip_document,
+)
 
 
 def test_decimal_literals_compare_in_value_space() -> None:
@@ -371,6 +376,15 @@ class _Level(int, enum.Enum):
     LOW = 5
 
 
+class _OddFloat(float):
+    def __repr__(self) -> str:
+        return "odd"
+
+
+class _Stamp(datetime.datetime):
+    pass
+
+
 # Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
@@ -412,23 +426,31 @@ def test_literal_spells_a_python_value_in_xsd_form(
     assert literal.datatype == datatype
 
 
-@pytest.mark.parametrize("fmt", TEXT_FORMATS)
-def test_int_subclass_is_written_as_its_digits(fmt: str) -> None:
+@pytest.mark.parametrize("fmt", ROUNDTRIP_FORMATS)
+@pytest.mark.parametrize(
+    ("value", "plain"),
+    [
+        (_Level.LOW, 5),
+        (_OddFloat(1.5), 1.5),
+        (_Stamp(2012, 1, 1), datetime.datetime(2012, 1, 1)),
+    ],
+    ids=["int", "float", "datetime"],
+)
+def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
+    fmt: str, value: object, plain: object
+) -> None:
+    # every writer spells and types the plain value, so a subclass reads back
+    # as the plain type (#657)
     document = ex_document()
-    document.entity("ex:e1", [("ex:a", _Level.LOW)])
+    document.entity("ex:e1", [("ex:a", value)])
     with io.BytesIO() as stream:
         document.serialize(destination=stream, format=fmt)
-        assert b"_Level" not in stream.getvalue()
-        assert b"LOW" not in stream.getvalue()
-    # PROV-XML types only exact int values, so a subclass reads back as its text.
-    value = _single_value(roundtrip_document(document, fmt))
-    assert str(value) == "5"
-    assert not isinstance(value, enum.Enum)
-
-
-class _OddFloat(float):
-    def __repr__(self) -> str:
-        return "odd"
+        text = stream.getvalue()
+    assert type(value).__name__.encode() not in text
+    assert b"LOW" not in text and b"odd" not in text
+    back = _single_value(roundtrip_document(document, fmt))
+    assert back == plain
+    assert type(back) is type(plain)
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:
