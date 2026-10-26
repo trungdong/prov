@@ -182,7 +182,9 @@ prefix is `Name.Namespace` and the `:` is `Punctuation` wherever the name stands
 part takes the class of the construct's row. So `prov:mentionOf(` lexes as
 `Name.Namespace`, `Punctuation`, `Keyword`, an extensibility call `ex:foo(` ends in
 `Name.Function`, `prov:type=` ends in `Name.Attribute`, and `xsd:string` after `%%` ends in
-`Keyword.Type`. A quoted `'prefix:local'` stays one `String.Single` token.
+`Keyword.Type`. A prefix with an empty local part (`ex:`, production [52]) lexes as two
+tokens, `Name.Namespace` and `Punctuation`. A quoted `'prefix:local'` stays one
+`String.Single` token.
 
 Bare `mentionOf` is a keyword although the strict profile rejects it; highlighting is
 lenient by nature and the default profile accepts it. The reserved attribute keys take the
@@ -241,7 +243,8 @@ planned, not built.
 - The lexer's bare keyword set equals the unprefixed keys of the parser's `_KEYWORDS` (the
   17 expression names) plus `mentionOf`, which the parser accepts without a key. The
   `("prov", "mentionOf")` key of `_KEYWORDS` is checked separately. The lexer's copied
-  strings equal `prov.identifier`'s.
+  strings equal `prov.identifier`'s, and its copies of `XSD_DATETIME_PATTERN` and
+  `LANGTAG_PATTERN` equal `prov.model._values`'.
 - `get_lexer_by_name("provn")` resolves through the entry point.
 - `import prov` leaves `pygments` out of `sys.modules`.
 - One subprocess test hides Pygments (`sys.modules["pygments"] = None`) and asserts the
