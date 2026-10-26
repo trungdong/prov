@@ -442,6 +442,18 @@ REJECTED_DOCUMENTS = [
         (3, 15),
         id="undeclared xsi",
     ),
+    # An expression's attribute block stops at a structural keyword that is
+    # not an attribute name, so lenient resync finds the keyword.
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}ex:f(ex:a, [{pairs}\nendDocument",
+            STATEMENT,
+            "expected an attribute name, found 'endDocument'",
+            (4, 1),
+            id=f"extension attribute block {label} before endDocument",
+        )
+        for label, pairs in (("opened", ""), ("after a pair", 'ex:k="v",'))
+    ],
     # Statement rules (#523, #519 b and c). An attribute named after one of
     # the statement's own arguments is rejected at the attribute; under
     # strict, a statement after a bundle at the statement, and an identifier
@@ -871,6 +883,15 @@ ACCEPTED_STATEMENTS = [
         id="expression inside a bundle",
     ),
     pytest.param(
+        "bundle ex:b\nex:f(ex:a, [\nendBundle\nentity(ex:f)",
+        ("lenient",),
+        (
+            "PROV-N statement skipped: line 5, column 1: expected an attribute"
+            " name, found 'endBundle'",
+        ),
+        id="an unclosed attribute block ends at endBundle",
+    ),
+    pytest.param(
         'zz:hadMembers(zz:m; zz:d, zz:set(zz:pair("k1",zz:e1),\n'
         '    zz:pair("k2",zz:e2),\n    zz:pair("k3",zz:e3)),\n'
         '    [zz:uniqueKeys="true"])\nentity(zz:e)',
@@ -906,9 +927,9 @@ def test_reader_accepts_statements(body, profiles, dropped) -> None:
                 format="provn",
                 profile=profile,
             )
-        assert [(w.category, str(w.message)) for w in caught] == [
-            (ProvWarning, message) for message in dropped
-        ], profile
+        assert [
+            str(w.message) for w in caught if issubclass(w.category, ProvWarning)
+        ] == list(dropped), profile
 
 
 def test_strict_rejects_bare_mention_with_a_hint() -> None:

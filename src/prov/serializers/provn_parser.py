@@ -166,6 +166,12 @@ _KEYWORDS: dict[tuple[str, str], _Rule] = {
     ("prov", "mentionOf"): _Rule(PROV_MENTION, (3,), element=False),
 }
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
+_IDENTIFIER_FOLLOW = (
+    TokenKind.COMMA,
+    TokenKind.RPAREN,
+    TokenKind.SEMICOLON,
+    TokenKind.RBRACE,
+)
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
 # Brackets an extensibility argument may open (N53): [50] and [51].
@@ -269,11 +275,17 @@ class ProvNParser:
             self._reject_unclosed_structural_keyword()
         return self._expect(TokenKind.NAME, "an identifier")
 
-    def _reject_unclosed_structural_keyword(self) -> None:
+    def _reject_unclosed_structural_keyword(
+        self,
+        follow: tuple[TokenKind, ...] = _IDENTIFIER_FOLLOW,
+        expected: str = "an identifier",
+    ) -> None:
         """Refuse a bare structural keyword as an identifier or argument
-        unless it is immediately followed by ',', ')', ';' or '}' -- the only
-        tokens that follow a real identifier inside a statement's
-        parentheses or an extensibility tuple. Anything else means a
+        unless it is immediately followed by one of ``follow`` -- by default
+        ',', ')', ';' or '}', the only tokens that follow a real identifier
+        inside a statement's parentheses or an extensibility tuple. An
+        extensibility expression's attribute name passes ``('=',)`` and
+        ``expected="an attribute name"``. Anything else means a
         statement left open by a missing ')'/']'/'}' has read straight
         through a following 'bundle', 'endBundle' or 'endDocument' as if it
         were data; raising here without consuming the token lets lenient
@@ -285,14 +297,9 @@ class ProvNParser:
         prefix, local = current.value
         if prefix or local not in _STRUCTURAL:
             return
-        if self._peek().kind in (
-            TokenKind.COMMA,
-            TokenKind.RPAREN,
-            TokenKind.SEMICOLON,
-            TokenKind.RBRACE,
-        ):
+        if self._peek().kind in follow:
             return
-        raise self._error(f"expected an identifier, found {self._found()}")
+        raise self._error(f"expected {expected}, found {self._found()}")
 
     def _at_keyword(self, keyword: str) -> bool:
         return self._current.kind is TokenKind.NAME and self._current.value == (
@@ -741,6 +748,9 @@ class ProvNParser:
 
     def _extension_pair(self) -> None:
         if self._digit_run_as_name() is None:
+            self._reject_unclosed_structural_keyword(
+                (TokenKind.EQUALS,), "an attribute name"
+            )
             self._expect(TokenKind.NAME, "an attribute name")
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()

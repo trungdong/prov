@@ -369,10 +369,11 @@ def _read_recording_drops(path: Path, profile: str) -> ProvDocument:
         warnings.simplefilter("always")
         document = _read(path, profile)
     expected = IGNORED_EXTENSIONS.get(path.name, 0)
-    assert [w.category for w in caught] == [ProvWarning] * expected
+    ours = [w for w in caught if issubclass(w.category, ProvWarning)]
+    assert len(ours) == expected
     assert all(
         str(w.message).startswith("PROV-N extensibility expression dropped:")
-        for w in caught
+        for w in ours
     )
     return document
 

@@ -68,9 +68,10 @@ The parser accepts three dialects, selected with `profile`:
 
 Every profile reads an extensibility expression (`prefix:name(...)`, PROV-N section 5) and
 drops it with a {py:class}`~prov.model.ProvWarning` that names the predicate and its
-position. The parser counts the brackets nested inside an extensibility expression, and
-more than 32 levels raise a {py:class}`~prov.serializers.provn.ProvNSyntaxError`, which
-`lenient` skips as it skips any statement that fails to parse.
+position. The parser counts the brackets that an expression's arguments open, and not
+the `(` of the expression itself. More than 32 levels raise a
+{py:class}`~prov.serializers.provn.ProvNSyntaxError`, which `lenient` skips as it skips
+any statement that fails to parse.
 
 ```python
 document = pm.ProvDocument.deserialize("document.provn", format="provn", profile="strict")
