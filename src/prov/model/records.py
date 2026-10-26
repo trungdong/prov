@@ -25,6 +25,7 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Final,
     Protocol,
     Self,
@@ -108,6 +109,9 @@ from prov.identifier import (
     Namespace,
     QualifiedName,
     _provn_string_literal,
+    _refuse_delattr,
+    _refuse_setattr,
+    _set,
     _slot_state,
 )
 from prov.model._values import (
@@ -414,16 +418,29 @@ class Literal:
     ``prov:InternationalizedString``: if no datatype was given one is assumed,
     and any other datatype is overridden (with a warning) to comply with the
     PROV-JSON/PROV-XML rules for language-tagged strings.
+
+    The fields are read-only after construction: assigning or deleting one
+    raises :class:`AttributeError`. A subclass may set attributes of its own.
     """
 
     __slots__ = ("__weakref__", "_datatype", "_langtag", "_value")
 
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(
+        {"_datatype", "_langtag", "_value"}
+    )
+
+    # The guard is bound at runtime only: a visible __setattr__ makes mypy
+    # accept any attribute name.
+    if not TYPE_CHECKING:
+        __setattr__ = _refuse_setattr
+        __delattr__ = _refuse_delattr
+
     # These fields are assign-once. They take part in equality and hashing,
-    # so reassigning one after the object has been used as a set member or
-    # dict key corrupts that container. #444 tracks the runtime guard.
-    _value: Final[str]
-    _datatype: Final[QualifiedName | None]
-    _langtag: Final[str | None]
+    # so __setattr__ refuses a reassignment after the object has been used as
+    # a set member or dict key.
+    _value: Final[str]  # type: ignore[misc]
+    _datatype: Final[QualifiedName | None]  # type: ignore[misc]
+    _langtag: Final[str | None]  # type: ignore[misc]
 
     def __init__(
         self,
@@ -457,8 +474,8 @@ class Literal:
                 An empty tag, or a tag such as ``"en_US"`` that is not shaped
                 like a BCP 47 tag, raises :class:`~prov.model.ProvValueError`.
         """
-        self._value = _literal_text(value, datatype)
-        _check_langtag(self._value, langtag)
+        text = _literal_text(value, datatype)
+        _check_langtag(text, langtag)
         if langtag:
             if datatype is None:
                 logger.debug(
@@ -475,9 +492,10 @@ class Literal:
                     "prov:InternationalizedString."
                 )
                 datatype = PROV_INTERNATIONALIZEDSTRING
-        self._datatype = datatype
+        _set(self, "_value", text)
+        _set(self, "_datatype", datatype)
         # langtag is always a string
-        self._langtag = str(langtag) if langtag is not None else None
+        _set(self, "_langtag", str(langtag) if langtag is not None else None)
 
     def __str__(self) -> str:
         return self.provn_representation()
@@ -496,9 +514,9 @@ class Literal:
         # Also accepts the __dict__ state of 3.1.1 pickles and the
         # (dict_state, slot_state) tuple of 3.2.0 pickles.
         state = _slot_state(state)
-        object.__setattr__(self, "_value", state["_value"])
-        object.__setattr__(self, "_datatype", state["_datatype"])
-        object.__setattr__(self, "_langtag", state["_langtag"])
+        _set(self, "_value", state["_value"])
+        _set(self, "_datatype", state["_datatype"])
+        _set(self, "_langtag", state["_langtag"])
         _check_langtag(self._value, self._langtag)
 
     def __eq__(self, other: Any) -> bool:
