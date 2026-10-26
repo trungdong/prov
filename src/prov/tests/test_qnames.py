@@ -105,6 +105,8 @@ DEFAULT_PREFIX_NS = Namespace("default", "http://u.example/")
 def document_with_default_namespace() -> ProvDocument:
     prov_doc = ProvDocument()
     prov_doc.set_default_namespace(DEFAULT_NS.uri)
+    # a name "a:b" in the default is not the prefixed name "a" + "b"
+    prov_doc.add_namespace("a", "http://a.example/")
     return prov_doc
 
 
@@ -306,6 +308,7 @@ def test_identifier_equal_to_the_default_namespace_iri_is_rejected() -> None:
     doc = document_with_default_namespace()
     default = doc.get_default_namespace()
     assert default is not None
+    registered = list(doc.get_registered_namespaces())
     for identifier in (DEFAULT_NS.uri, default[""]):
         with pytest.raises(ProvExceptionInvalidQualifiedName) as caught:
             doc.entity(identifier)
@@ -313,7 +316,7 @@ def test_identifier_equal_to_the_default_namespace_iri_is_rejected() -> None:
             f"the IRI {DEFAULT_NS.uri} is the default namespace and has no "
             "qualified-name form; declare a prefix for it"
         )
-    assert list(doc.get_registered_namespaces()) == []
+    assert list(doc.get_registered_namespaces()) == registered
 
 
 def test_identifier_equal_to_a_namespace_iri_under_a_prefix_is_that_prefix() -> None:

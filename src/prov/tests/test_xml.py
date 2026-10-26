@@ -945,6 +945,8 @@ def test_bundle_namespace_order_follows_registration_in_xml() -> None:
 # #338: force_types coverage.
 
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
+PROV_ID = "{http://www.w3.org/ns/prov#}id"
+PROV_REF = "{http://www.w3.org/ns/prov#}ref"
 FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/prov#"}
 
 
@@ -989,7 +991,8 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
 ) -> None:
     # a bare local part is a QName under the element's xmlns; one with a colon
     # takes a prefix bound to the IRI, declared on the element when none is in
-    # scope, as the PROV-JSON writer does (#570)
+    # scope, in every position a name is written, as the PROV-JSON writer does
+    # (#570, #677)
     document = prov.ProvDocument()
     document.set_default_namespace("http://d.example/")
     document.add_namespace("ex", "http://example.org/")
@@ -1002,8 +1005,14 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
         {
             "ex:t": prov.Literal("1", default["t"]),
             "ex:c": prov.Literal("2", default["a:b"]),
+            "ex:q": default["a:b"],
+            "ex:p": default["e"],
         },
     )
+    document.entity(default["a:b"])
+    document.entity(default["e"])
+    document.used("ex:a", default["a:b"])
+    document.bundle(default["c:e"])
     bundle = document.bundle("ex:b")
     bundle.set_default_namespace("http://other.example/")
     other = bundle.get_default_namespace()
@@ -1012,11 +1021,23 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
 
     xml = document.serialize(format="xml")
     root = etree.fromstring(xml.encode())
+    assert root.nsmap[prefix] == "http://d.example/"
     assert _xsi_type_of(root, "prov:entity/ex:t") == "t"
     assert _xsi_type_of(root, "prov:entity/ex:c") == f"{prefix}:a:b"
-    assert root.nsmap[prefix] == "http://d.example/"
-    content = root.find("prov:bundleContent", FORCE_TYPES_NS)
-    assert content is not None
+    assert [e.get(PROV_ID) for e in root.findall("prov:entity", FORCE_TYPES_NS)] == [
+        "ex:e",
+        f"{prefix}:a:b",
+        "e",
+    ]
+    q = root.find("prov:entity/ex:q", FORCE_TYPES_NS)
+    assert q is not None and q.text == f"{prefix}:a:b"
+    p = root.find("prov:entity/ex:p", FORCE_TYPES_NS)
+    assert p is not None and p.text == "e"
+    used = root.find("prov:used/prov:entity", FORCE_TYPES_NS)
+    assert used is not None and used.get(PROV_REF) == f"{prefix}:a:b"
+    bundles = root.findall("prov:bundleContent", FORCE_TYPES_NS)
+    assert [b.get(PROV_ID) for b in bundles] == [f"{prefix}:c:e", "ex:b"]
+    content = bundles[1]
     assert _xsi_type_of(content, "prov:entity/ex:c") == "dn:c:d"
     assert content.nsmap["dn"] == "http://other.example/"
     assert prov.ProvDocument.deserialize(content=xml, format="xml") == document
