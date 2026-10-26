@@ -70,4 +70,4 @@ behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, an
 {doc}`../installation`). `prov.graph`, `prov.dot` and `prov.pygments` raise
 `ModuleNotFoundError` naming the extra when imported without it. `prov.pygments` imports
 Pygments and nothing else, because Pygments imports it on every plugin scan and a plugin
-that raises breaks every lookup.
+that raises breaks every lookup that reaches the plugins.

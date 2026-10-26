@@ -129,14 +129,14 @@ lexer = get_lexer_by_name("provn")
 ```
 
 Sphinx, MkDocs and Pelican look a code fence's language up by name, so a `provn` fence
-highlights with no configuration. A Jupyter notebook with `%%provn` cells needs one line in
-the nbconvert configuration for those cells to highlight on export:
+highlights with no PROV-N-specific configuration. A Jupyter notebook with `%%provn` cells
+needs one line in the nbconvert configuration for those cells to highlight on export:
 
 ```python
 c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
 ```
 
-`pygmentize -f latex` and minted v2 highlight PROV-N now. The minted v3 that TeX Live
+`pygmentize -f latex` and minted v2 highlight PROV-N. The minted v3 that TeX Live
 bundles, and Overleaf, use a Pygments that cannot see plugins, so they highlight PROV-N
 once the lexer ships in Pygments itself.
 

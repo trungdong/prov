@@ -33,7 +33,8 @@ extras — without them many tests fail with `ModuleNotFoundError`:
 uv sync --extra rdf --extra xml --extra dot --extra graph --group bench
 ```
 
-The `pygments` extra (the PROV-N lexer) is in no sync command because pytest already brings Pygments into every test environment.
+The `pygments` extra (the PROV-N lexer) is in no sync command because pytest already
+brings Pygments into every test environment.
 
 Sphinx docs need the `docs` group plus all four extras (autodoc imports the serializers
 and `prov.dot`/`prov.graph`). CI's `docs` job builds with `-W -n`, so every warning and
@@ -115,7 +116,8 @@ test-suite layout, and the PROV-N lexer and parser internals live in the module 
 - `prov.graph` and `prov.dot` sit behind the `graph` and `dot` extras and raise
   `ModuleNotFoundError` naming the extra when imported without it.
 - `prov.pygments` imports Pygments and nothing else, `prov.*` included, because Pygments
-  imports it on every plugin scan and a plugin that raises breaks every lookup.
+  imports it on every plugin scan and a plugin that raises breaks every lookup that
+  reaches the plugins.
   `ProvNLexer` is reached by name through the entry point and is not public API.
 - `prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld`, with
   `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and

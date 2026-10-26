@@ -121,6 +121,29 @@ def test_rejected_text_terminates_and_rejoins(text: str) -> None:
     assert rejoins(lex(text), text)
 
 
+@pytest.mark.parametrize(
+    ("text", "first"),
+    [
+        pytest.param(
+            "/* x\nentity(ex:a)",
+            (Comment.Multiline, "/* x\nentity(ex:a)"),
+            id="comment",
+        ),
+        pytest.param(
+            '"""x\nentity(ex:a)',
+            (String.Double, '"""x\nentity(ex:a)'),
+            id="long-string",
+        ),
+        pytest.param('"x\nentity(ex:a)', (String.Double, '"x'), id="string"),
+        pytest.param("'x\nentity(ex:a)", (String.Single, "'x"), id="quoted-name"),
+        pytest.param("<http://x\nentity(ex:a)", (String.Other, "<http://x"), id="iri"),
+    ],
+)
+def test_unterminated_construct_is_one_token(text: str, first: Tok) -> None:
+    """A comment or long string runs to the end of the text, the rest to the line end."""
+    assert lex(text)[0] == first
+
+
 # -- the rich fixture --------------------------------------------------------------
 
 # Rows of spec 3.3 that attribute-values.provn holds. Each value must carry this token
@@ -265,6 +288,18 @@ SNIPPET: list[tuple[str, list[Tok]]] = [
     ("  entity(@x)", entity(lit(Name, "@x"))),
     ("  entity(1a)", entity(lit(Name, "1a"))),
     ("  entity (ex:e)", entity(qname("ex", "e"))),
+    # An expression name as an argument is a name; a comment may precede the parenthesis.
+    ("  entity(entity)", entity(lit(Name, "entity"))),
+    (
+        "  ex:foo /* c */ (ex:a)",
+        seq(
+            qname("ex", "foo", Name.Function),
+            lit(Comment.Multiline, "/* c */"),
+            punct("("),
+            qname("ex", "a"),
+            punct(")"),
+        ),
+    ),
     # An empty local part: two tokens, not three.
     ("  entity(ex:)", entity(seq(lit(Name.Namespace, "ex"), punct(":")))),
     (r"  entity(ex:a\:b)", entity(qname("ex", r"a\:b"))),

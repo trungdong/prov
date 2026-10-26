@@ -6,8 +6,8 @@ follows ``prov.serializers.provn_lexer``, so it emits no ``Error`` token on text
 PROV-N reader accepts, and it lexes any other text without failing.
 
 The module imports Pygments and nothing from ``prov``, so it can be submitted to Pygments
-as it stands. It carries its own copies of the name character classes and the keyword
-list, and ``test_pygments.py`` pins each copy to its source.
+with the import guard removed. It carries its own copies of the name character classes
+and the keyword list, and ``test_pygments.py`` pins each copy to its source.
 """
 
 import re
@@ -76,7 +76,7 @@ _PN_CHARS = (
 )
 _PN_CHARS_ESC = "='(),:;[]" + "-."
 _PN_CHARS_OTHER = "/@~&+*?#$!"
-# The prefix rule holds its own brackets ([52]).
+# A bracketed regex fragment; the four strings above are class bodies.
 _PN_PREFIX = (
     rf"[{_NCNAME_START_CHARS.replace('_', '')}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 )
@@ -133,7 +133,8 @@ _BEFORE_EQUALS = rf"(?={_TRIVIA}=)"
 
 _PREFIXED = rf"({_PN_PREFIX})(:)({_LOCAL})?"
 _BARE = rf"({_LOCAL})"
-_IRI = r'<(?:[^<>"{}|^`\\\x00-\x20]|\\[^\x00-\x20])*>'
+_IRI_OPEN = r'<(?:[^<>"{}|^`\\\x00-\x20]|\\[^\x00-\x20])*'
+_IRI = _IRI_OPEN + ">"
 
 
 def _groups(*args: Any) -> Any:
@@ -165,14 +166,22 @@ class ProvNLexer(RegexLexer):
             (r"[ \t\r\n]+", Whitespace),
             (_LINE_COMMENT, Comment.Single),
             (_BLOCK_COMMENT, Comment.Multiline),
+            # An unterminated comment runs to the end of the text.
+            (r"/\*[\s\S]*", Comment.Multiline),
         ],
         "common": [
             include("trivia"),
             (XSD_DATETIME_PATTERN, Literal.Date),
             (r'"""(?:\\(?s:.)|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
+            # An unterminated string, quoted name or IRI runs to the end of its line
+            # (a long string, to the end of the text), so a bad file lexes in linear time.
+            (r'"""[\s\S]*', String.Double),
             (r'"(?:\\.|[^"\\\n\r])*"', String.Double, "string_tail"),
+            (r'"(?:\\.|[^"\\\n\r])*', String.Double),
             (r"'(?:\\.|[^'\\\n\r])*'", String.Single),
+            (r"'(?:\\.|[^'\\\n\r])*", String.Single),
             (_IRI, String.Other),
+            (_IRI_OPEN, String.Other),
             (r"%%", Operator, "datatype"),
             (
                 words(_EXPRESSIONS, suffix=_NAME_END + _BEFORE_PAREN),
