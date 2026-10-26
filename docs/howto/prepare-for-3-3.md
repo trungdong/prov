@@ -193,6 +193,7 @@ warn about this.
 | `the qualified name 'zz:a' does not resolve, because its prefix 'zz' is not declared` | [#516](https://github.com/trungdong/prov/issues/516) | `"prov:activity": "zz:a"` in PROV-JSON, or `"zz:a"` among the members of `hadMember` | A declared prefix. |
 | `cannot resolve 'http://example.org/e': prefix 'http' is not declared` | [#599](https://github.com/trungdong/prov/issues/599) | `entity(http://example.org/e)` in PROV-N, or the IRI as a formal argument, an attribute name or a datatype | The qualified name, `ex:e`. |
 | `the qualified name 'g1' does not resolve, because it has no prefix and no default namespace is declared` | [#599](https://github.com/trungdong/prov/issues/599) | `"wasGeneratedBy": {"g1": {…}}` in PROV-JSON with no `default` entry | A prefixed key, or `_:g1` for a relation with no identifier. |
+| `the qualified name 'zz:x' does not resolve, because its prefix 'zz' is not declared` | [#677](https://github.com/trungdong/prov/issues/677) | `prov:id="zz:x"` or `<prov:type xsi:type="xsd:QName">zz:x</prov:type>` in PROV-XML with no `xmlns:zz` in scope, with or without an `xmlns` | A declared prefix, such as `xmlns:zz="http://example.org/zz/"` on the document element. |
 
 In PROV-N the error is a `ProvNSyntaxError` at the value or the name, and the `lenient`
 profile skips the statement with a `ProvWarning`. In PROV-JSON it is a `ProvJSONException`
@@ -200,7 +201,17 @@ that names the record and the attribute. From code it is a
 `ProvExceptionInvalidQualifiedName` raised where the value is asserted, which names the
 attribute after the value: `Invalid Qualified Name: zz:x, the qualified name 'zz:x' of
 ex:k does not resolve, because its prefix 'zz' is not declared`. The PROV-JSONLD and
-PROV-O readers raise `ProvJSONLDException` and `ProvRDFException` with it as the cause.
+PROV-O readers raise `ProvJSONLDException` and `ProvRDFException` with it as the cause. The
+PROV-XML reader raises `ProvXMLException` with it as the cause, naming the element and the
+line, for a record or bundle `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a
+reference given as element text, and for a name with no colon in a document with no
+`xmlns`.
+
+`prov` 3.2.3 read a PROV-XML name whose prefix is not declared as a local part of the
+default namespace, so `zz:x` under an `xmlns` became the default namespace's `zz:x`. A file
+3.2.3 wrote with a default-namespace local part holding `:`, such as `a:b`, has that shape
+in `prov:id`, `prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace
+IRI, such as `xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
 
 A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and so does
 `'zz:x'` in PROV-N. `prov` splits its text at the first `:` and looks the prefix up in the
@@ -210,7 +221,7 @@ unless a prefix named `http` is declared, and a prefix the document declares is 
 a bundle before the bundle's own namespaces could compact the text. A value whose prefix
 is declared is stored as a `QualifiedName`, in code and from every format. `prov` 3.2.x
 kept a value whose prefix was not declared as a `Literal`, and read a full IRI as a name in
-a declared namespace the IRI starts with. The last two rows are positions 3.2.3 read
+a declared namespace the IRI starts with. The rows for #599 are positions 3.2.3 read
 without a warning.
 
 A formal attribute is one of the record's arguments in PROV-N, such as `prov:entity` or
