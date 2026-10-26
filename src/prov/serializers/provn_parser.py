@@ -157,6 +157,8 @@ class ProvNParser:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
     """
 
+    _current: Token  # always self._tokens[self._pos]; set by parse() and _advance()
+
     def __init__(self, text: str, profile: str = "default"):
         if profile not in PROFILES:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
@@ -166,28 +168,20 @@ class ProvNParser:
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
-        self._depth = 0  # bracket nesting, read only by lenient resync
         self._previous_kind: TokenKind | None = None  # last consumed token's kind
 
     # -- token helpers -----------------------------------------------------
-
-    @property
-    def _current(self) -> Token:
-        return self._tokens[self._pos]
 
     def _peek(self) -> Token:
         index = min(self._pos + 1, len(self._tokens) - 1)
         return self._tokens[index]
 
     def _advance(self) -> Token:
-        token = self._tokens[self._pos]
-        if token.kind in (TokenKind.LPAREN, TokenKind.LBRACKET):
-            self._depth += 1
-        elif token.kind in (TokenKind.RPAREN, TokenKind.RBRACKET):
-            self._depth = max(0, self._depth - 1)
+        token = self._current
         self._previous_kind = token.kind
         if self._pos < len(self._tokens) - 1:
             self._pos += 1
+            self._current = self._tokens[self._pos]
         return token
 
     def _error(self, message: str, token: Token | None = None) -> ProvNSyntaxError:
@@ -278,7 +272,7 @@ class ProvNParser:
         """Parse the whole input and return the document."""
         self._tokens = list(tokenize(self._text))
         self._pos = 0
-        self._depth = 0
+        self._current = self._tokens[0]
         document = ProvDocument()
         self._expect_keyword("document")
         namespaces, default = self._declarations()
@@ -435,23 +429,22 @@ class ProvNParser:
 
     def _statement(self, bundle: ProvBundle) -> None:
         start = self._current
-        start_depth = self._depth
         try:
             self._expression(bundle)
         except ProvNSyntaxError as error:
-            self._skip_or_raise(error, start_depth)
+            self._skip_or_raise(error)
         except (ProvException, ValueError, OverflowError) as exc:
             # A model rejection (e.g. from new_record()) is reported as a
             # positioned syntax error and, under lenient, skipped.
             wrapped = ProvNSyntaxError(str(exc), start.line, start.column)
             wrapped.__cause__ = exc
-            self._skip_or_raise(wrapped, start_depth)
+            self._skip_or_raise(wrapped)
 
-    def _skip_or_raise(self, error: ProvNSyntaxError, start_depth: int) -> None:
+    def _skip_or_raise(self, error: ProvNSyntaxError) -> None:
         if not self._profile.recover:
             raise error
         self.skipped.append(f"PROV-N statement skipped: {error}")
-        self._resync(start_depth)
+        self._resync()
 
     def _looks_like_statement_start(self) -> bool:
         """A NAME immediately followed by '(' opens a statement.
@@ -466,16 +459,11 @@ class ProvNParser:
         """
         return self._peek().kind is TokenKind.LPAREN
 
-    def _resync(self, start_depth: int) -> None:
+    def _resync(self) -> None:
         """Skip to the next statement boundary.
 
-        A statement missing a closing ``)``/``]`` leaves ``self._depth``
-        above ``start_depth`` forever, since ``_advance()`` only lowers it
-        on a matching close. Gating every boundary on depth would then
-        reject every statement keyword that follows, so a name immediately
-        followed by ``(`` is trusted at any depth (it is never legal inside
-        a statement body) and forces the depth back down to where the
-        failed statement started, clearing whatever imbalance it left.
+        A name immediately followed by ``(`` is a boundary at any bracket
+        depth, because it is never legal inside a statement body.
 
         A bare structural keyword (``document``, ``bundle``, ...) is not
         followed by ``(``, so it cannot be told apart this way from the
@@ -491,10 +479,8 @@ class ProvNParser:
                     # A structural keyword is a boundary unless it is an
                     # attribute value ([ex:k=bundle]), which only follows '='.
                     if self._previous_kind is not TokenKind.EQUALS:
-                        self._depth = start_depth
                         return
                 elif self._looks_like_statement_start():
-                    self._depth = start_depth
                     return
             self._advance()
 

@@ -185,9 +185,8 @@ def test_lenient_returns_bundle_statements_after_a_skip() -> None:
 
 
 def test_lenient_resync_recovers_from_a_missing_close_paren() -> None:
-    # entity(ex:e1 is missing its ')'; _advance() raises self._depth on '('
-    # and never lowers it again, so resync must not gate on depth staying
-    # at or below where the failed statement started.
+    # entity(ex:e1 is missing its ')', so resync must trust a statement start
+    # at any bracket depth.
     body = "entity(ex:e1\nentity(ex:e2)\nentity(ex:e3)"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")
