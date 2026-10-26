@@ -174,14 +174,14 @@ _set = object.__setattr__
 
 def _refuse_setattr(self: Any, name: str, value: Any) -> None:
     """Raise for a field in the class's ``_READ_ONLY``; set any other name."""
-    if name in self._READ_ONLY:
+    if name in type(self)._READ_ONLY:
         raise AttributeError(f"{type(self).__name__}.{name} is read-only")
     _set(self, name, value)
 
 
 def _refuse_delattr(self: Any, name: str) -> None:
     """Raise for a field in the class's ``_READ_ONLY``; delete any other name."""
-    if name in self._READ_ONLY:
+    if name in type(self)._READ_ONLY:
         raise AttributeError(f"{type(self).__name__}.{name} is read-only")
     object.__delattr__(self, name)
 
@@ -432,10 +432,9 @@ class Namespace:
         __setattr__ = _refuse_setattr
         __delattr__ = _refuse_delattr
 
-    # These fields are assign-once. _prefix and _uri take part in equality and
-    # hashing, so __setattr__ refuses a reassignment after the object has been
-    # used as a set member or dict key. _cache takes part in neither, and only
-    # its contents change.
+    # _prefix and _uri take part in equality and hashing, so reassigning one
+    # would corrupt any set or dict holding the namespace, and __setattr__
+    # refuses it. _cache is assigned once and only its contents change.
     _prefix: Final[str]  # type: ignore[misc]
     _uri: Final[str]  # type: ignore[misc]
     _cache: Final[dict[str, QualifiedName]]  # type: ignore[misc]

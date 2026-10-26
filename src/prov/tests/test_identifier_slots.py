@@ -251,6 +251,13 @@ def test_a_subclass_sets_its_own_attributes_and_keeps_the_guard(
         setattr(obj, name, "x")
     with pytest.raises(AttributeError, match=message):
         delattr(obj, name)
+    # An instance attribute named _READ_ONLY does not shadow the class's set.
+    obj._READ_ONLY = frozenset()
+    with pytest.raises(AttributeError, match=message):
+        setattr(obj, name, "x")
+    with pytest.raises(AttributeError, match=message):
+        delattr(obj, name)
+    del obj._READ_ONLY
 
 
 @pytest.mark.parametrize("name", ["_prefix", "_uri", "_cache"])

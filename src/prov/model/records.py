@@ -436,9 +436,9 @@ class Literal:
         __setattr__ = _refuse_setattr
         __delattr__ = _refuse_delattr
 
-    # These fields are assign-once. They take part in equality and hashing,
-    # so __setattr__ refuses a reassignment after the object has been used as
-    # a set member or dict key.
+    # _value, _datatype and _langtag take part in equality and hashing, so
+    # reassigning one would corrupt any set or dict holding the literal, and
+    # __setattr__ refuses it.
     _value: Final[str]  # type: ignore[misc]
     _datatype: Final[QualifiedName | None]  # type: ignore[misc]
     _langtag: Final[str | None]  # type: ignore[misc]
