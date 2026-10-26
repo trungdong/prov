@@ -583,6 +583,32 @@ REJECTED_DOCUMENTS = [
         )
         for keyword in ("prov:entity", "ex:mentionOf")
     ],
+    # Braces are tokens, so a stray one is a statement error (#520). The tuple
+    # outside an extensibility expression is the parser's existing message.
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{body}\nendDocument",
+            STATEMENT,
+            message,
+            (3, column),
+            id=f"{body} is not a statement",
+        )
+        for body, message, column in (
+            ("{", "expected a statement keyword, found '{'", 1),
+            ("}", "expected a statement keyword, found '}'", 1),
+            ("entity(ex:e, {)", "expected an identifier, a time or '-', found '{'", 14),
+            (
+                "wasDerivedFrom(ex:a, {ex:b})",
+                "expected an identifier, a time or '-', found '{'",
+                22,
+            ),
+            (
+                "wasDerivedFrom(ex:a, (ex:b, ex:c))",
+                "expected an identifier, a time or '-', found '('",
+                22,
+            ),
+        )
+    ],
 ]
 
 

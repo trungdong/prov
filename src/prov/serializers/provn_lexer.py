@@ -92,6 +92,8 @@ class TokenKind(Enum):
     RPAREN = ")"
     LBRACKET = "["
     RBRACKET = "]"
+    LBRACE = "{"
+    RBRACE = "}"
     COMMA = ","
     SEMICOLON = ";"
     EQUALS = "="
@@ -173,6 +175,8 @@ _PUNCTUATION = {
     ")": TokenKind.RPAREN,
     "[": TokenKind.LBRACKET,
     "]": TokenKind.RBRACKET,
+    "{": TokenKind.LBRACE,
+    "}": TokenKind.RBRACE,
     ",": TokenKind.COMMA,
     ";": TokenKind.SEMICOLON,
     "=": TokenKind.EQUALS,
