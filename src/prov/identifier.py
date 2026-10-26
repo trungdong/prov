@@ -1,7 +1,7 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-from typing import Any, Final, NoReturn
+from typing import TYPE_CHECKING, Any, ClassVar, Final, NoReturn
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -169,15 +169,46 @@ def _provn_string_literal(value: str) -> str:
         return f'"{s}"'
 
 
+_set = object.__setattr__
+
+
+def _refuse_setattr(self: Any, name: str, value: Any) -> None:
+    """Raise for a field in the class's ``_READ_ONLY``; set any other name."""
+    if name in type(self)._READ_ONLY:
+        raise AttributeError(f"{type(self).__name__}.{name} is read-only")
+    _set(self, name, value)
+
+
+def _refuse_delattr(self: Any, name: str) -> None:
+    """Raise for a field in the class's ``_READ_ONLY``; delete any other name."""
+    if name in type(self)._READ_ONLY:
+        raise AttributeError(f"{type(self).__name__}.{name} is read-only")
+    object.__delattr__(self, name)
+
+
 class Identifier:
-    """Base class for all identifiers."""
+    """Base class for all identifiers.
+
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
+    """
 
     __slots__ = ("__weakref__", "_hash", "_uri")
 
-    # This field is assign-once. The hash is computed from it at construction,
-    # and a later reassignment would leave the cached hash stale. #444 tracks
-    # the runtime guard.
-    _uri: Final[str]
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
+
+    # Bound at runtime only, because a visible __setattr__ makes mypy accept
+    # any attribute name.
+    if not TYPE_CHECKING:
+        __setattr__ = _refuse_setattr
+        __delattr__ = _refuse_delattr
+
+    # These fields are assign-once. The hash is computed from the URI at
+    # construction, and __setattr__ refuses a later reassignment that would
+    # leave the cached hash stale.
+    _uri: Final[str]  # type: ignore[misc]
+    _hash: Final[int]  # type: ignore[misc]
 
     def __init__(self, uri: str):
         """Create an identifier for the given URI.
@@ -186,8 +217,8 @@ class Identifier:
             uri: URI string for the identifier. Converted to ``str`` if not
                 already one.
         """
-        self._uri = str(uri)  # Ensure this is a unicode string
-        self._hash = self._compute_hash()
+        _set(self, "_uri", str(uri))  # Ensure this is a unicode string
+        _set(self, "_hash", self._compute_hash())
 
     def _compute_hash(self) -> int:
         """Hash by URI alone, so equal identifiers hash equal whatever their
@@ -203,8 +234,8 @@ class Identifier:
         # Also accepts the __dict__ state of 3.1.1 pickles and the
         # (dict_state, slot_state) tuple of 3.2.0 pickles.
         state = _slot_state(state)
-        object.__setattr__(self, "_uri", state["_uri"])
-        object.__setattr__(self, "_hash", self._compute_hash())
+        _set(self, "_uri", state["_uri"])
+        _set(self, "_hash", self._compute_hash())
 
     @property
     def uri(self) -> str:
@@ -237,16 +268,22 @@ class QualifiedName(Identifier):
     This class facilitates handling and manipulation of qualified names, which
     combine a namespace and a local identifier. It supports string representation,
     hashing, and retrieval of individual components (namespace or local part).
+
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("_localpart", "_namespace", "_str")
 
+    _READ_ONLY: ClassVar[frozenset[str]] = Identifier._READ_ONLY | frozenset(__slots__)
+
     # These fields are assign-once. The hash is computed from them at
-    # construction, and a later reassignment would leave the cached hash
-    # stale. #444 tracks the runtime guard.
-    _namespace: Final[Namespace]
-    _localpart: Final[str]
-    _str: Final[str]
+    # construction, and __setattr__ refuses a later reassignment that would
+    # leave the cached hash stale.
+    _namespace: Final[Namespace]  # type: ignore[misc]
+    _localpart: Final[str]  # type: ignore[misc]
+    _str: Final[str]  # type: ignore[misc]
 
     def __init__(self, namespace: Namespace, localpart: str):
         """
@@ -263,10 +300,12 @@ class QualifiedName(Identifier):
                 :class:`~prov.model.ProvExceptionInvalidQualifiedName`.
         """
         Identifier.__init__(self, "".join([namespace.uri, localpart]))
-        self._namespace = namespace
-        self._localpart = localpart
-        self._str = (
-            ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart
+        _set(self, "_namespace", namespace)
+        _set(self, "_localpart", localpart)
+        _set(
+            self,
+            "_str",
+            ":".join([namespace.prefix, localpart]) if namespace.prefix else localpart,
         )
         _reject_unwritable_local_part(localpart, self._uri, self._str)
 
@@ -285,9 +324,9 @@ class QualifiedName(Identifier):
 
     def __setstate__(self, state: Any) -> None:
         state = _slot_state(state)
-        object.__setattr__(self, "_namespace", state["_namespace"])
-        object.__setattr__(self, "_localpart", state["_localpart"])
-        object.__setattr__(self, "_str", state["_str"])
+        _set(self, "_namespace", state["_namespace"])
+        _set(self, "_localpart", state["_localpart"])
+        _set(self, "_str", state["_str"])
         Identifier.__setstate__(self, state)
         _reject_unwritable_local_part(self._localpart, self._uri, self._str)
 
@@ -377,15 +416,28 @@ class Namespace:
     A prefix is a SPARQL ``PN_PREFIX``: it starts with a letter, and holds
     letters, digits, ``-``, ``_``, ``.``, U+00B7 and the combining marks, but
     does not end with ``.``.
+
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
-    # These fields are assign-once. They take part in equality and hashing,
-    # so reassigning one after the object has been used as a set member or
-    # dict key corrupts that container. #444 tracks the runtime guard.
-    _prefix: Final[str]
-    _uri: Final[str]
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
+
+    # Bound at runtime only, because a visible __setattr__ makes mypy accept
+    # any attribute name.
+    if not TYPE_CHECKING:
+        __setattr__ = _refuse_setattr
+        __delattr__ = _refuse_delattr
+
+    # _prefix and _uri take part in equality and hashing, so reassigning one
+    # would corrupt any set or dict holding the namespace, and __setattr__
+    # refuses it. _cache is assigned once and only its contents change.
+    _prefix: Final[str]  # type: ignore[misc]
+    _uri: Final[str]  # type: ignore[misc]
+    _cache: Final[dict[str, QualifiedName]]  # type: ignore[misc]
 
     def __init__(self, prefix: str, uri: str):
         """Create a namespace with the given prefix and URI.
@@ -408,9 +460,9 @@ class Namespace:
             )
         _check_namespace_uri(uri)
         _reject_unwritable_prefix(prefix)
-        self._prefix = prefix
-        self._uri = uri
-        self._cache: dict[str, QualifiedName] = {}
+        _set(self, "_prefix", prefix)
+        _set(self, "_uri", uri)
+        _set(self, "_cache", {})
 
     @classmethod
     def _default(cls, uri: str) -> Namespace:
@@ -418,9 +470,9 @@ class Namespace:
         built only by ``NamespaceManager.set_default_namespace``."""
         _check_namespace_uri(uri)
         namespace = cls.__new__(cls)
-        object.__setattr__(namespace, "_prefix", "")
-        object.__setattr__(namespace, "_uri", uri)
-        object.__setattr__(namespace, "_cache", {})
+        _set(namespace, "_prefix", "")
+        _set(namespace, "_uri", uri)
+        _set(namespace, "_cache", {})
         return namespace
 
     @property
@@ -492,9 +544,9 @@ class Namespace:
         # (dict_state, slot_state) tuple of 3.2.0 pickles; either way any
         # cache carried in the state is discarded and rebuilt lazily.
         state = _slot_state(state)
-        object.__setattr__(self, "_prefix", state["_prefix"])
-        object.__setattr__(self, "_uri", state["_uri"])
-        object.__setattr__(self, "_cache", {})
+        _set(self, "_prefix", state["_prefix"])
+        _set(self, "_uri", state["_uri"])
+        _set(self, "_cache", {})
 
     def __getitem__(self, localpart: str) -> QualifiedName:
         if localpart in self._cache:
