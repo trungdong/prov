@@ -839,8 +839,9 @@ REJECTED_DOCUMENTS = [
                 "entity": {"ex:e": {"_:x": "v"}},
             }
         ),
-        _unresolved("record 'ex:e', attribute '_:x'", "_:x", _BLANK_PREFIX),
-        id="attribute name under a declared blank-node prefix",
+        "prefix '_', IRI 'http://blank.org/': the prefix '_' is not a PN_PREFIX, "
+        "so no format can write it",
+        id="declared blank-node prefix",
     ),
     pytest.param(
         json.dumps(
@@ -857,6 +858,19 @@ REJECTED_DOCUMENTS = [
         _unresolved("record ':x'", ":x", "its prefix '' is not declared"),
         id="record key with an explicit empty prefix and no default",
     ),
+    *[
+        pytest.param(
+            json.dumps({"prefix": {prefix: iri}}),
+            f"prefix {prefix!r}, IRI {iri!r}: the namespace IRI {iri!r} is not a string",
+            id=f"namespace IRI {iri!r} under {prefix!r}",
+        )
+        for prefix, iri in (
+            ("ex", 5),
+            ("ex", ["x"]),
+            ("default", 5),
+            ("ex", None),
+        )
+    ],
 ]
 
 

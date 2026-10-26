@@ -11,11 +11,12 @@ them before upgrading.
 
 A message from a reader starts with the position of the input, which is the line and
 column in PROV-N, or the record identifier and attribute name in PROV-JSON. A language
-tag, a local part, a Python value, a qualified-name value or a time offset beyond ±14:00
-is rejected by the model, and the model's sentence names the value. A reader's error
-names the record (the subject in PROV-O) and carries that sentence, and its `__cause__`
-is the model's error. Code that builds the value gets the model's error on its own. A
-message from `unified()` names the identifier of the records it cannot merge.
+tag, a local part, a namespace prefix, a namespace IRI, a Python value, a qualified-name
+value or a time offset beyond ±14:00 is rejected by the model, and the model's sentence
+names the value. A reader's error names the record (the subject in PROV-O), or the
+declaration. It carries that sentence, and its `__cause__` is the model's error. Code that
+builds the value gets the model's error on its own. A message from `unified()` names the
+identifier of the records it cannot merge.
 
 With `prov.read()` and no `format=`, a PROV-JSON, PROV-JSONLD or PROV-N input that the
 reader rejects raises `ProvFormatNotDetected`, a `TypeError`, whose `__cause__` is the
@@ -125,6 +126,25 @@ hexadecimal digits do not follow, or start with U+00B7 (middle dot), U+203F (und
 U+2040 (character tie) or a combining mark from U+0300 to U+036F. 3.2.3 percent-encoded
 such a character when it wrote PROV-N, so a PROV-N reader recovered a different IRI. The
 characters `= ' ( ) , : ; [ ]` are written with a backslash instead, and are accepted.
+
+## Namespace prefixes
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `the prefix '1a' is not a PN_PREFIX, so no format can write it` | [#668](https://github.com/trungdong/prov/issues/668) | `1a`, `_a` | A prefix that starts with a letter, such as `a1` or `ex`. |
+| `the namespace IRI '@id' cannot start with '@'` | [#668](https://github.com/trungdong/prov/issues/668) | `"id": "@id"` in a PROV-JSONLD `@context` | An absolute IRI, such as `http://example.org/`. |
+
+Each is a `ProvValueError` when the `Namespace` is built, from code or from a reader.
+PROV-N refuses the declaration at its token with a `ProvNSyntaxError`, and the other
+readers raise their format's error with the model's error as the cause. A PROV-XML read
+raises it at the `bundleContent` element that declares the prefix, or at the first name
+under a prefix the document element declares, and raises the model's refusal of an `xmlns`
+on the document element at `<prov:document>`. A prefix is a letter, followed by name
+characters or `.`, and does not end in `.`. 3.2.3 accepted a prefix that is not a
+`PN_PREFIX` and wrote text that did not read back. The `Namespace` constructor's refusals
+of an empty prefix and of a blank IRI are a `ProvValueError` now, from code, which
+`except ValueError` still catches. A prefix or an IRI that is not a string is a
+`ProvValueError` too, where 3.2.3 accepted an integer prefix.
 
 ## Python values
 

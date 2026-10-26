@@ -26,7 +26,6 @@ level or inside a bundle.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from prov.constants import (
@@ -56,18 +55,23 @@ from prov.constants import (
     XSD,
     XSD_QNAME,
 )
-from prov.identifier import Namespace, QualifiedName
+from prov.identifier import (
+    _PN_PREFIX_NAME,
+    Namespace,
+    QualifiedName,
+    _check_namespace_uri,
+)
 from prov.model import (
     PROV_REC_CLS,
     Literal,
     ProvBundle,
     ProvDocument,
     ProvException,
+    ProvValueError,
     parse_xsd_datetime,
 )
 from prov.model._values import resolve_name, resolve_pair
 from prov.serializers.provn_lexer import (
-    _PN_PREFIX,
     ProvNSyntaxError,
     Token,
     TokenKind,
@@ -123,8 +127,6 @@ _BARE_RELATIONS = frozenset(PROV_N_MAP[t] for t in _PROV_N_BARE_RELATIONS)
 
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
-
-_PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 
 
 class ProvNParser:
@@ -296,9 +298,9 @@ class ProvNParser:
         bundle's own declarations before the bundle exists, to resolve its
         identifier against them).
 
-        Raises at a repeated default, at a prefix that is not a PN_PREFIX,
-        and under the strict profile at a default that follows a prefix and
-        at a declaration of prov or xsd.
+        Raises at a repeated default, at a prefix that is not a PN_PREFIX, at
+        an IRI that is empty or starts with ``@``, and under the strict profile
+        at a default that follows a prefix and at a declaration of prov or xsd.
         """
         namespaces: list[Namespace] = []
         default: str | None = None
@@ -314,9 +316,7 @@ class ProvNParser:
                     raise self._error(
                         f"prefix '{local}' is declared twice in this scope", name
                     )
-                iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
-                if not iri.value:
-                    raise self._error("a namespace IRI cannot be empty", iri)
+                iri = self._namespace_iri()
                 self._check_reserved_prefix(local, iri.value, name)
                 if not _PN_PREFIX_NAME.fullmatch(local):
                     raise self._error(
@@ -328,9 +328,7 @@ class ProvNParser:
                 seen.add(local)
             elif self._at_keyword("default"):
                 keyword = self._advance()
-                iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
-                if not iri.value:
-                    raise self._error("a namespace IRI cannot be empty", iri)
+                iri = self._namespace_iri()
                 if default is not None:
                     raise self._error(
                         "'default' is declared twice in this scope", keyword
@@ -344,6 +342,22 @@ class ProvNParser:
                 default = iri.value
             else:
                 return namespaces, default
+
+    def _namespace_iri(self) -> Token:
+        """Consume the IRI of a declaration.
+
+        An empty IRI is refused here with its own sentence. Any other IRI the
+        model refuses is a positioned syntax error carrying the model's error
+        as its cause.
+        """
+        iri = self._expect(TokenKind.IRI, "an IRI in angle brackets")
+        if not iri.value:
+            raise self._error("a namespace IRI cannot be empty", iri)
+        try:
+            _check_namespace_uri(iri.value)
+        except ProvValueError as exc:
+            raise self._error(str(exc), iri) from exc
+        return iri
 
     def _check_reserved_prefix(self, prefix: str, uri: str, token: Token) -> None:
         reserved = _RESERVED_PREFIXES.get(prefix)

@@ -76,12 +76,16 @@ class ProvXMLException(ProvSerializationError):
     """Raised when a PROV-XML document cannot be serialized or parsed by this package."""
 
 
+def _line(element: etree._Element) -> str:
+    """``"line N, "`` for an element that has a line, else nothing."""
+    return "" if element.sourceline is None else f"line {element.sourceline}, "
+
+
 def _element_position(element: etree._Element, rec_id: str | None) -> str:
     """Where an error about ``element`` starts: its line, if it has one, its
     tag and its ``prov:id``."""
-    line = "" if element.sourceline is None else f"line {element.sourceline}, "
     named = repr(rec_id) if rec_id is not None else "with no prov:id"
-    return f"{line}<prov:{etree.QName(element).localname}> {named}: "
+    return f"{_line(element)}<prov:{etree.QName(element).localname}> {named}: "
 
 
 class ProvXMLSerializer(Serializer):
@@ -317,15 +321,25 @@ class ProvXMLSerializer(Serializer):
                 namespace; if a ``<prov:bundleContent>`` has no
                 ``prov:id`` or is nested in a bundle; or, naming the
                 element and, when it has one, its line, if the element is
-                not a PROV element or the model rejects a record or a
-                bundle (the model's error is the ``__cause__``).
+                not a PROV element or the model rejects a record, a bundle
+                or the default namespace ``xml_doc`` declares, such as one
+                that starts with ``@`` (the model's error is the
+                ``__cause__``).
 
         Warns:
             UserWarning: For each ``<prov:other>`` child, which is otherwise
                 ignored.
         """
 
-        _adopt_own_default(xml_doc, bundle)
+        # For a bundleContent, _read_bundle_content has already adopted the
+        # element's default inside the record wrap, so this wrap fires for the
+        # document element only.
+        try:
+            _adopt_own_default(xml_doc, bundle)
+        except ProvException as exc:
+            raise ProvXMLException(
+                f"{_line(xml_doc)}<prov:{etree.QName(xml_doc).localname}>: {exc}"
+            ) from exc
 
         for element in xml_doc:
             qname = etree.QName(element)

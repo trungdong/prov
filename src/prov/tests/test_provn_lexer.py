@@ -9,6 +9,7 @@ import time
 
 import pytest
 
+from prov import identifier
 from prov.serializers import provn_lexer
 from prov.serializers.provn_lexer import ProvNSyntaxError, Token, TokenKind, tokenize
 
@@ -367,7 +368,7 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges() -> Non
     old_pn_chars = old_pn_chars_u + r"\-0-9\u00B7\u0300-\u036F\u203F-\u2040"
 
     checks = [
-        (old_pn_chars_base, provn_lexer._PN_CHARS_BASE),
+        (old_pn_chars_base, identifier._PN_CHARS_BASE),
         (old_pn_chars_u, provn_lexer._PN_CHARS_U),
         (old_pn_chars, provn_lexer._PN_CHARS),
     ]

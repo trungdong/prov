@@ -124,6 +124,9 @@ class NamespaceManager(dict[str, Namespace]):
 
         Args:
             uri: The URI of the default namespace.
+
+        Raises:
+            ProvValueError: If ``uri`` is blank or starts with ``@``.
         """
         self._set_default(Namespace._default(uri))
 
@@ -207,7 +210,8 @@ class NamespaceManager(dict[str, Namespace]):
                 or an iterable of :class:`~prov.identifier.Namespace`.
 
         Raises:
-            ValueError: If a mapping has an empty prefix.
+            ProvValueError: If a mapping has an empty prefix, a prefix that is
+                not a ``PN_PREFIX``, or a blank IRI or one that starts with ``@``.
             ProvException: If an iterable holds a default namespace.
         """
         if isinstance(namespaces, Mapping):

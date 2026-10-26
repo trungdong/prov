@@ -1,16 +1,15 @@
 from __future__ import annotations  # defer eval: Namespace used before it's defined
 
 import re
-from typing import Any, Final
+from typing import Any, Final, NoReturn
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
 
 # Character classes for the XML 1.0 5th-edition Name productions, minus ':'
 # (NCName). Shared by prov.serializers.provxml (PROV-XML element-tag
-# legality, #289) and prov.serializers.provn_lexer, whose PN_CHARS_BASE/
-# PN_CHARS_U/PN_CHARS ([53]-[55]) are these same ranges, bar '.', which
-# PROV-N's grammar handles positionally rather than as an ordinary name char.
+# legality, #289). The PROV-N character classes and PN_PREFIX are built from
+# these tables here, and prov.serializers.provn_lexer imports them.
 #
 # Every range boundary is spelled as a \xHH/\uHHHH/\UHHHHHHHH escape (never
 # a literal glyph) and annotated with the spec clause it implements, so a
@@ -52,6 +51,12 @@ _PROVN_LOCAL_LEADING_ESCAPE = "-."
 # PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
 # (see the comment on _NCNAME_CHARS above).
 _PN_CHARS = _NCNAME_CHARS.replace(".", "")
+# SPARQL's PN_PREFIX, the prefix rule of PROV-N's QUALIFIED_NAME ([52]) and of
+# Turtle: PN_CHARS_BASE ((PN_CHARS | '.')* PN_CHARS)?, so no leading digit or
+# '_' and no trailing '.'. Every match is an NCName, so PROV-XML writes it too.
+_PN_CHARS_BASE = _NCNAME_START_CHARS.replace("_", "")
+_PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
+_PN_PREFIX_NAME = re.compile(_PN_PREFIX)
 # The characters in _PN_CHARS that are legal anywhere in PN_LOCAL but, being
 # combining marks rather than letters, cannot start it ([53]'s PN_CHARS_BASE
 # vs. PN_CHARS): the NameChar-only part of _NCNAME_CHARS, minus '-'/'.'
@@ -335,14 +340,45 @@ class QualifiedName(Identifier):
         return f"'{self.provn_bare_representation()}'"
 
 
+def _raise_value_error(message: str) -> NoReturn:
+    # Imported here, as _reject_unwritable_local_part does: prov.model imports
+    # this module.
+    from prov.model.records import ProvValueError
+
+    raise ProvValueError(message)
+
+
+def _reject_unwritable_prefix(prefix: str) -> None:
+    """Raise ``ProvValueError`` unless ``prefix`` is a ``PN_PREFIX``."""
+    # An ASCII identifier that does not start with '_' needs no regex.
+    if isinstance(prefix, str) and (
+        (prefix.isascii() and prefix.isidentifier() and prefix[0] != "_")
+        or _PN_PREFIX_NAME.fullmatch(prefix)
+    ):
+        return
+    _raise_value_error(
+        f"the prefix {prefix!r} is not a PN_PREFIX, so no format can write it"
+    )
+
+
 def _check_namespace_uri(uri: str) -> None:
-    """Raise ``ValueError`` unless ``uri`` is non-blank."""
+    """Raise ``ProvValueError`` if ``uri`` is not a string, is blank or starts
+    with ``@``."""
+    if not isinstance(uri, str):
+        _raise_value_error(f"the namespace IRI {uri!r} is not a string")
     if not uri or uri.isspace():
-        raise ValueError("Not a valid URI to create a namespace.")
+        _raise_value_error("Not a valid URI to create a namespace.")
+    if uri[0] == "@":
+        _raise_value_error(f"the namespace IRI {uri!r} cannot start with '@'")
 
 
 class Namespace:
-    """PROV Namespace."""
+    """PROV Namespace.
+
+    A prefix is a SPARQL ``PN_PREFIX``: it starts with a letter, and holds
+    letters, digits, ``-``, ``_``, ``.``, U+00B7 and the combining marks, but
+    does not end with ``.``.
+    """
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
@@ -361,15 +397,18 @@ class Namespace:
             uri: URI string for the namespace (cannot be blank).
 
         Raises:
-            ValueError: If ``prefix`` is empty, or if ``uri`` is empty or
-                contains only whitespace.
+            ProvValueError: If ``prefix`` is empty or is not a ``PN_PREFIX``,
+                or if ``uri`` is not a string, is empty, contains only
+                whitespace or starts with ``@`` (PROV-JSONLD cannot read such
+                an IRI back).
         """
         if not prefix:
-            raise ValueError(
+            _raise_value_error(
                 "a namespace needs a prefix; a default namespace is set with "
                 "set_default_namespace()"
             )
         _check_namespace_uri(uri)
+        _reject_unwritable_prefix(prefix)
         self._prefix = prefix
         self._uri = uri
         self._cache: dict[str, QualifiedName] = {}

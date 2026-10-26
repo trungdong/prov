@@ -21,6 +21,7 @@ from prov.model import (
     ProvException,
     ProvMention,
     ProvRecord,
+    ProvValueError,
     ProvWarning,
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError
@@ -347,7 +348,8 @@ EVERY = PROFILES
 STRICT = ("strict",)
 # Rejected inside a statement, so the lenient profile skips the statement.
 STATEMENT = ("strict", "default")
-
+_AT_MESSAGE = "the namespace IRI '@foo/' cannot start with '@'"
+_BLANK_MESSAGE = "Not a valid URI to create a namespace."
 
 # The declarations and whitespace the reader rejects (#508, #509, #510, #511,
 # #519 a and d): the document, the profiles that reject it, the message and
@@ -369,6 +371,21 @@ REJECTED_DOCUMENTS = [
             id=f"prefix {name}",
         )
         for name in ("_", "a/b", "1a")
+    ],
+    *[
+        pytest.param(
+            f"document\n{declaration}\nentity(e)\nendDocument",
+            EVERY,
+            message,
+            (2, declaration.index("<") + 1),
+            id=f"{declaration.split()[0]} IRI {label}",
+        )
+        for declaration, message, label in (
+            ("prefix ex <@foo/>", _AT_MESSAGE, "starting with @"),
+            ("default <@foo/>", _AT_MESSAGE, "starting with @"),
+            ("prefix ex <\u00a0>", _BLANK_MESSAGE, "of whitespace"),
+            ("default <\u00a0>", _BLANK_MESSAGE, "of whitespace"),
+        )
     ],
     pytest.param(
         f"document\n{EX_PREFIX}default <http://d/>\nentity(ex:e)\nendDocument",
@@ -1191,6 +1208,13 @@ def test_empty_namespace_iri_is_a_syntax_error(profile, declaration) -> None:
     ) as ctx:
         ProvNParser(f"document\n{declaration}\nendDocument", profile).parse()
     assert (ctx.value.line, ctx.value.column) == (2, declaration.index("<") + 1)
+
+
+@pytest.mark.parametrize("declaration", ["prefix ex <@foo/>", "default <\u00a0>"])
+def test_namespace_iri_the_model_refuses_carries_its_error(declaration) -> None:
+    with pytest.raises(ProvNSyntaxError) as ctx:
+        ProvNParser(f"document\n{declaration}\nendDocument", "strict").parse()
+    assert isinstance(ctx.value.__cause__, ProvValueError)
 
 
 @pytest.mark.parametrize("declaration", ["prefix z <>", "default <>"])
