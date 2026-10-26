@@ -63,7 +63,7 @@ audiences needs its own artefact (section 7).
   Pygments ships `provn`.
 - `get_all_lexers`, `guess_lexer`, `pygmentize -L` and any by-name miss load every plugin
   module, so the module's import cost is paid often. The floor is `prov/__init__`, about
-  14 ms; `prov.identifier` on top brings it to about 20 ms.
+  8 ms; `prov.identifier` on top brings it to about 15 ms.
 - Sphinx wraps every lexer in `raiseonerror`, so one `Error` token on valid input fails a
   `-W` build, which is how prov's docs are built.
 - Pygments ships no `py.typed`. `types-Pygments` (typeshed) types every lexer class
@@ -99,8 +99,13 @@ fences. `docs/conf.py` sets no `highlight_language` and no `pygments_style`.
 ### 3.1 Module and registration
 
 The lexer is `ProvNLexer` in `prov/pygments.py`, the module named after its extra as
-`prov.dot` and `prov.graph` are. The module exports that one name; anyone who wants HTML
-calls Pygments' own `highlight` with the lexer. It imports Pygments and nothing else, so a
+`prov.dot` and `prov.graph` are. The module exports that one name, but the class is not
+part of prov's public API. Callers reach it by name, through
+`pygments.lexers.get_lexer_by_name("provn")`, and pass it to Pygments' own `highlight`. It
+has no reference page and no entry in `test_public_api.py`, so retiring it (3.5) removes
+nothing a documented caller relies on. The lexer defines no `analyse_text`, so
+`guess_lexer` never picks it on content alone. The module imports Pygments and nothing
+else, so a
 plugin load pays only the `prov/__init__` floor (2.4), and it imports cleanly whenever
 Pygments is present, because a failing plugin breaks Pygments. When Pygments is absent the
 import raises `ModuleNotFoundError` naming the `pygments` extra in the pattern of `dot.py`
@@ -110,7 +115,8 @@ point without Pygments.
 `pyproject.toml` gains the extra `pygments = ["pygments>=2.18"]` with no upper bound (the
 floor verified by a probe during the build), the entry point
 `[project.entry-points."pygments.lexers"] provn = "prov.pygments:ProvNLexer"`, and
-`types-Pygments` in the dev group. `bygroups` is untyped in the stubs, so the module wraps
+`types-Pygments` in the dev group, with `uv.lock` regenerated because CI syncs
+`--locked`. `bygroups` is untyped in the stubs, so the module wraps
 it once in a typed one-line helper that carries the single `no-untyped-call` ignore, and
 the grammar calls the helper. A `[[tool.mypy.overrides]]` entry is not an option, because
 `test_mypy_override_list_only_shrinks` asserts the block holds exactly one entry, the
@@ -122,10 +128,14 @@ type the Recommendation names), `url = "https://www.w3.org/TR/prov-n/"`.
 
 ### 3.2 A self-contained lexer
 
-`ProvNLexer` is a `RegexLexer` that carries its own copies of the character-class strings
-from `prov.identifier` (`_NCNAME_START_CHARS`, `_PN_CHARS`, `_PN_CHARS_ESC`,
-`_PN_CHARS_OTHER`, `_PN_PREFIX`, all plain class-body strings) and its own keyword list.
-A test pins the copies to their sources, so drift fails CI (section 5). Importing them
+`ProvNLexer` is a `RegexLexer` that carries its own copies of the five strings the PROV-N
+tokenizer imports from `prov.identifier` (`_NCNAME_START_CHARS`, `_PN_CHARS`,
+`_PN_CHARS_ESC`, `_PN_CHARS_OTHER`, `_PN_PREFIX`) and its own keyword list. The copies
+hold the source values written out in full, since `prov.identifier` derives `_PN_CHARS`
+from another class. `_PN_PREFIX` is a regex fragment that already holds its brackets, and
+the other four are class bodies. The lexer passes `_PN_CHARS_ESC` and `_PN_CHARS_OTHER`
+through `re.escape`, as the tokenizer does. A test pins the copies to their sources, so
+drift fails CI (section 5). Importing them
 instead would make the upstream copy a different file and put `prov.identifier` on every
 plugin load. The upstream submission is this file minus the import guard, with
 `version_added` filled in.
@@ -138,15 +148,22 @@ are the #520 extensibility form PR 23 (#681) added to the parser, and names are 
 An unknown name before `(` lexes as an extensibility expression, never as `Error`. The
 lexer never emits `Error` on input the PROV-N reader accepts (2.4, Sphinx).
 
+The reader reserves no word. With a default namespace declared it accepts
+`entity(bundle)`, `[prefix="x"]` and `bundle bundle`. So `document`, `endDocument`,
+`bundle`, `endBundle`, `prefix` and `default` are keywords only outside brackets, and the
+name that follows `bundle` is a name. Inside `( )` and `[ ]` the six words lex as names or
+attribute keys.
+
 ### 3.3 Token mapping
 
 | Construct | Token |
 |---|---|
-| `document`, `endDocument`, `bundle`, `endBundle` | `Keyword` |
-| `prefix`, `default` | `Keyword.Declaration` |
+| `document`, `endDocument`, `bundle`, `endBundle`, outside brackets | `Keyword` |
+| `prefix`, `default`, outside brackets | `Keyword.Declaration` |
+| the declared name in `prefix ex <iri>` | `Name.Namespace` |
 | the 17 bare expression names, bare `mentionOf` and `prov:mentionOf`, before `(` | `Keyword` |
 | any other name before `(` (extensibility, #520) | `Name.Function` |
-| prefix of a qualified name | `Name.Namespace`; the `:` `Punctuation`; the local part `Name` |
+| prefix of a qualified name | `Name.Namespace`; the `:` `Punctuation`; the local part `Name` or its construct's class |
 | attribute key before `=`, the five `prov:` reserved keys included | `Name.Attribute` |
 | `<iri>` | `String.Other` |
 | `"..."`, `"""..."""` | `String.Double` |
@@ -160,6 +177,13 @@ lexer never emits `Error` on input the PROV-N reader accepts (2.4, Sphinx).
 | `( ) [ ] { } , ; =` | `Punctuation` |
 | whitespace | `Whitespace` |
 
+A qualified name always lexes as three tokens, as both 2014 grammars split it (2.5). The
+prefix is `Name.Namespace` and the `:` is `Punctuation` wherever the name stands. The local
+part takes the class of the construct's row. So `prov:mentionOf(` lexes as
+`Name.Namespace`, `Punctuation`, `Keyword`, an extensibility call `ex:foo(` ends in
+`Name.Function`, `prov:type=` ends in `Name.Attribute`, and `xsd:string` after `%%` ends in
+`Keyword.Type`. A quoted `'prefix:local'` stays one `String.Single` token.
+
 Bare `mentionOf` is a keyword although the strict profile rejects it; highlighting is
 lenient by nature and the default profile accepts it. The reserved attribute keys take the
 same class as any key; a separate class would be a second list to pin against the model.
@@ -170,7 +194,7 @@ The six `text` fences of 2.6 and the README block become `provn` in the same PR 
 lexer, because a `provn` fence before the lexer exists fails `sphinx-build -W`, and the
 README switch costs nothing where no lexer is present. The PROV-N how-to gains a "Syntax
 highlighting" section: the lexer registers itself once prov is installed; one `pygmentize`
-command; Sphinx, MkDocs and Pelican find it with no configuration; the one nbconvert line
+command; the `get_lexer_by_name("provn")` call for Python callers; Sphinx, MkDocs and Pelican find it with no configuration; the one nbconvert line
 for `%%provn` cells; and two sentences on LaTeX, that `pygmentize -f latex` and minted v2
 work now and that TeX Live's bundled minted v3 and Overleaf wait for the lexer to ship in
 Pygments itself. HISTORY records the lexer under 3.3.0 in the usual form.
@@ -181,7 +205,8 @@ After one prov release carries the lexer, it is submitted to Pygments as a copy 
 module with the import guard removed and `version_added` set, with golden-token tests in
 Pygments' format. Once a Pygments release carries it, prov drops the entry point and
 `prov/pygments.py` in its next minor release and raises the extra's floor to that Pygments
-version, so `prov[pygments]` keeps meaning "PROV-N highlighting works". Keeping both would
+version, so `prov[pygments]` keeps meaning "PROV-N highlighting works". A minor release
+may drop the module because the class was never public API (3.1). Keeping both would
 be harmless at runtime, since Pygments' own alias shadows the plugin, but it is dead code
 and a second copy to maintain.
 
@@ -206,14 +231,23 @@ planned, not built.
   has an exact `(token, value)` table for the constructs of 3.3, and a hand-written snippet
   covers `"""`, `\:`, `%XX`, `@lang`, `;`, `{ }` and an extensibility expression, since no
   fixture holds them.
-- The joined token values reproduce the input byte for byte, which Pygments requires.
-- The lexer's bare keyword set equals the parser's bare rule keys plus
-  `_PROV_N_BARE_RELATIONS`, the prefixed `prov:mentionOf` form is checked separately, and
-  its character-class strings equal `prov.identifier`'s.
+- The joined token values reproduce the input character for character, which Pygments
+  requires. Pygments' defaults strip leading and trailing newlines and add one at the end.
+  Ten fixtures under `written-by-3.2.3/`, `primer.provn` and `attribute-values.provn` among
+  them, end in `endDocument ` with no newline, and six files start with a blank line. So
+  every test builds the lexer with
+  `stripnl=False, ensurenl=False` and compares against the raw text. Pygments also turns
+  CRLF into LF and strips a BOM whatever the options, and the test tree holds neither.
+- The lexer's bare keyword set equals the unprefixed keys of the parser's `_KEYWORDS` (the
+  17 expression names) plus `mentionOf`, which the parser accepts without a key. The
+  `("prov", "mentionOf")` key of `_KEYWORDS` is checked separately. The lexer's copied
+  strings equal `prov.identifier`'s.
 - `get_lexer_by_name("provn")` resolves through the entry point.
 - `import prov` leaves `pygments` out of `sys.modules`.
 - One subprocess test hides Pygments (`sys.modules["pygments"] = None`) and asserts the
-  `ModuleNotFoundError` names `prov[pygments]`, since no environment lacks Pygments.
+  `ModuleNotFoundError` names `prov[pygments]`, since no environment lacks Pygments. It
+  matches the message, because the exception's `name` reads `pygments.lexer` under this
+  way of hiding the package.
 - The gates are unchanged: pytest brings Pygments into every environment, so the
   interpreter loop and CI need no new extra.
 
