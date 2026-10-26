@@ -165,20 +165,27 @@ def test_namespace_cache_still_interns_qualified_names() -> None:
     assert NS["e1"] is NS["e1"]
 
 
-GUARDED = {
-    Identifier: {"_hash", "_uri"},
-    QualifiedName: {"_hash", "_uri", "_localpart", "_namespace", "_str"},
-    Namespace: {"_cache", "_prefix", "_uri"},
-    Literal: {"_datatype", "_langtag", "_value"},
-}
-GUARDED_PAIRS = [(obj, name) for obj in OBJECTS for name in sorted(GUARDED[type(obj)])]
+def _slots_across_the_mro(cls: type) -> set[str]:
+    declared: set[str] = set()
+    for klass in cls.__mro__:
+        slots = klass.__dict__.get("__slots__", ())
+        declared.update([slots] if isinstance(slots, str) else slots)
+    return declared - {"__weakref__"}
 
 
-@pytest.mark.parametrize(
-    ("obj", "name"),
-    GUARDED_PAIRS,
-    ids=lambda v: v if isinstance(v, str) else type(v).__name__,
-)
+DEFAULT_NAMESPACE = Namespace._default("http://d.example/")
+GUARDED_PAIRS = [
+    pytest.param(
+        obj,
+        name,
+        id=f"{'DefaultNamespace' if obj is DEFAULT_NAMESPACE else type(obj).__name__}.{name}",
+    )
+    for obj in [*OBJECTS, DEFAULT_NAMESPACE]
+    for name in sorted(_slots_across_the_mro(type(obj)))
+]
+
+
+@pytest.mark.parametrize(("obj", "name"), GUARDED_PAIRS)
 def test_a_guarded_field_refuses_assignment_and_deletion(obj: Any, name: str) -> None:
     message = f"^{type(obj).__name__}\\.{name} is read-only$"
     before, digest, text = getattr(obj, name), hash(obj), str(obj)
@@ -188,20 +195,6 @@ def test_a_guarded_field_refuses_assignment_and_deletion(obj: Any, name: str) ->
         delattr(obj, name)
     assert getattr(obj, name) is before
     assert (hash(obj), str(obj)) == (digest, text)
-
-
-def _slots_across_the_mro(cls: type) -> set[str]:
-    declared: set[str] = set()
-    for klass in cls.__mro__:
-        slots = klass.__dict__.get("__slots__", ())
-        declared.update([slots] if isinstance(slots, str) else slots)
-    return declared - {"__weakref__"}
-
-
-@pytest.mark.parametrize("cls", list(GUARDED), ids=lambda c: c.__name__)
-def test_read_only_names_are_every_slot(cls: Any) -> None:
-    assert _slots_across_the_mro(cls) == cls._READ_ONLY
-    assert GUARDED[cls] == cls._READ_ONLY
 
 
 class _SubIdentifier(Identifier):
@@ -229,24 +222,24 @@ class _SubLiteral(Literal):
 
 
 @pytest.mark.parametrize(
-    ("subclass", "obj", "name"),
+    ("obj", "name", "extra"),
     [
-        (_SubIdentifier, _SubIdentifier("http://example.org/s"), "_uri"),
-        (_SubQualifiedName, _SubQualifiedName(NS, "s"), "_uri"),
-        (_SubNamespace, _SubNamespace("sx", "http://s.example/"), "_uri"),
-        (_SubLiteral, _SubLiteral("s"), "_value"),
+        (_SubIdentifier("http://example.org/s"), "_uri", "i"),
+        (_SubQualifiedName(NS, "s"), "_uri", "q"),
+        (_SubNamespace("sx", "http://s.example/"), "_uri", "n"),
+        (_SubLiteral("s"), "_value", "l"),
     ],
-    ids=lambda v: v if isinstance(v, str) else getattr(v, "__name__", ""),
+    ids=lambda v: v if isinstance(v, str) else type(v).__name__,
 )
 def test_a_subclass_sets_its_own_attributes_and_keeps_the_guard(
-    subclass: type, obj: Any, name: str
+    obj: Any, name: str, extra: str
 ) -> None:
-    assert obj.extra in {"i", "q", "n", "l"}
+    assert obj.extra == extra
     obj.extra = "changed"
     assert obj.extra == "changed"
     del obj.extra
     assert not hasattr(obj, "extra")
-    message = f"^{subclass.__name__}\\.{name} is read-only$"
+    message = f"^{type(obj).__name__}\\.{name} is read-only$"
     with pytest.raises(AttributeError, match=message):
         setattr(obj, name, "x")
     with pytest.raises(AttributeError, match=message):
@@ -258,18 +251,6 @@ def test_a_subclass_sets_its_own_attributes_and_keeps_the_guard(
     with pytest.raises(AttributeError, match=message):
         delattr(obj, name)
     del obj._READ_ONLY
-
-
-@pytest.mark.parametrize("name", ["_prefix", "_uri", "_cache"])
-def test_a_default_namespace_is_guarded_too(name: str) -> None:
-    default = Namespace._default("http://d.example/")
-    before = getattr(default, name)
-    message = f"^Namespace\\.{name} is read-only$"
-    with pytest.raises(AttributeError, match=message):
-        setattr(default, name, before)
-    with pytest.raises(AttributeError, match=message):
-        delattr(default, name)
-    assert getattr(default, name) == before
 
 
 def test_mypy_still_rejects_a_final_write_and_an_undeclared_name() -> None:

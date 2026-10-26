@@ -426,9 +426,7 @@ class Literal:
 
     __slots__ = ("__weakref__", "_datatype", "_langtag", "_value")
 
-    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(
-        {"_datatype", "_langtag", "_value"}
-    )
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
 
     # Bound at runtime only, because a visible __setattr__ makes mypy accept
     # any attribute name.

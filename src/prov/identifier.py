@@ -196,7 +196,7 @@ class Identifier:
 
     __slots__ = ("__weakref__", "_hash", "_uri")
 
-    _READ_ONLY: ClassVar[frozenset[str]] = frozenset({"_hash", "_uri"})
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
 
     # Bound at runtime only, because a visible __setattr__ makes mypy accept
     # any attribute name.
@@ -276,7 +276,7 @@ class QualifiedName(Identifier):
 
     __slots__ = ("_localpart", "_namespace", "_str")
 
-    _READ_ONLY = Identifier._READ_ONLY | {"_localpart", "_namespace", "_str"}
+    _READ_ONLY: ClassVar[frozenset[str]] = Identifier._READ_ONLY | frozenset(__slots__)
 
     # These fields are assign-once. The hash is computed from them at
     # construction, and __setattr__ refuses a later reassignment that would
@@ -424,7 +424,7 @@ class Namespace:
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
-    _READ_ONLY: ClassVar[frozenset[str]] = frozenset({"_cache", "_prefix", "_uri"})
+    _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
 
     # Bound at runtime only, because a visible __setattr__ makes mypy accept
     # any attribute name.
