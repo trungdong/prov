@@ -26,7 +26,7 @@ scanner and the rest of prov read one table for each.
 
 Only skipped whitespace and comments and long strings can hold a line break. The
 scanner counts line breaks in those (``advance_lines``) and moves every other token
-forward by its length (``advance``). A CR LF pair, a lone CR and a lone LF each count
+forward by its length. A CR LF pair, a lone CR and a lone LF each count
 as one line break.
 
 The IRI regex excludes line breaks. The short-string and quoted-name regexes admit a
@@ -266,10 +266,6 @@ class _Lexer:
             return self.line + count, self.pos + last_end
         return self.line, self.line_start
 
-    def advance(self, length: int) -> None:
-        """Move past ``length`` characters that hold no line break."""
-        self.pos += length
-
     def advance_lines(self, length: int) -> None:
         """Move past ``length`` characters that may hold line breaks."""
         chunk = self.text[self.pos : self.pos + length]
@@ -290,7 +286,10 @@ class _Lexer:
         self, kind: TokenKind, text: str, value: Any, multiline: bool = False
     ) -> Token:
         token = Token(kind, text, value, self.line, self.column)
-        (self.advance_lines if multiline else self.advance)(len(text))
+        if multiline:
+            self.advance_lines(len(text))
+        else:
+            self.pos += len(text)
         self.previous = kind
         return token
 

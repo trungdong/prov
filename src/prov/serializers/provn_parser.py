@@ -77,7 +77,6 @@ from prov.constants import (
     PROV_INVALIDATION,
     PROV_MEMBERSHIP,
     PROV_MENTION,
-    PROV_N_MAP,
     PROV_QUALIFIEDNAME,
     PROV_SPECIALIZATION,
     PROV_START,
@@ -162,10 +161,6 @@ _KEYWORDS: dict[tuple[str, str], _Rule] = {
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
-# PROV-N keywords of the relations that take neither an identifier nor an
-# attribute block (productions 24 to 26).
-_BARE_RELATIONS = frozenset(PROV_N_MAP[t] for t in _PROV_N_BARE_RELATIONS)
-
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
 
@@ -186,19 +181,18 @@ class ProvNParser:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
     """
 
-    # self._tokens[self._pos] once parse() has run; set by parse() and _advance().
+    # Set by parse(); _current is self._tokens[self._pos], kept by _advance().
     _current: Token
+    _profile: _Profile
 
     def __init__(self, text: str, profile: str = "default"):
         if profile not in PROFILES:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
         self.profile = profile
-        self._profile = _PROFILES[profile]
         self.skipped: list[str] = []
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
-        self._previous_kind: TokenKind | None = None  # last consumed token's kind
 
     # -- token helpers -----------------------------------------------------
 
@@ -208,7 +202,6 @@ class ProvNParser:
 
     def _advance(self) -> Token:
         token = self._current
-        self._previous_kind = token.kind
         if self._pos < len(self._tokens) - 1:
             self._pos += 1
             self._current = self._tokens[self._pos]
@@ -477,41 +470,27 @@ class ProvNParser:
         self.skipped.append(f"PROV-N statement skipped: {error}")
         self._resync()
 
-    def _looks_like_statement_start(self) -> bool:
-        """A NAME immediately followed by '(' opens a statement.
-
-        No production puts '(' after a name inside a statement body
-        (arguments and attribute values are followed by ',', ']' or ')'),
-        so the pair marks a boundary whatever the name is: a keyword, an
-        unknown keyword or a prefixed extensibility expression. Testing the
-        name against the keyword tables instead would run a skip through
-        every following statement the tables do not know, reporting a run
-        of bad statements as one.
-        """
-        return self._peek().kind is TokenKind.LPAREN
-
     def _resync(self) -> None:
         """Skip to the next statement boundary.
 
-        A name immediately followed by ``(`` is a boundary at any bracket
-        depth, because it is never legal inside a statement body.
+        A name followed by ``(`` is a boundary at any bracket depth. No
+        production puts ``(`` after a name inside a statement body, so the pair
+        marks a boundary whatever the name is, known or not. Testing the name
+        against the keyword tables would run a skip through every following
+        statement they do not know and report a run of bad statements as one.
 
-        A bare structural keyword (``document``, ``bundle``, ...) is not
-        followed by ``(``, so it cannot be told apart this way from the
-        same word used as an ordinary attribute value (e.g.
-        ``[ex:k=bundle]``); that case is instead gated on whether the token
-        before it is ``=``, since only an attribute value follows one.
+        A structural keyword (``document``, ``bundle``, ...) is a boundary
+        unless the token before it is ``=``. The same word is a legal attribute
+        value (``[ex:k=bundle]``), and only a value follows ``=``.
         """
         while self._current.kind is not TokenKind.EOF:
             token = self._current
             if token.kind is TokenKind.NAME:
                 prefix, local = token.value
                 if not prefix and local in _STRUCTURAL:
-                    # A structural keyword is a boundary unless it is an
-                    # attribute value ([ex:k=bundle]), which only follows '='.
-                    if self._previous_kind is not TokenKind.EQUALS:
+                    if self._tokens[self._pos - 1].kind is not TokenKind.EQUALS:
                         return
-                elif self._looks_like_statement_start():
+                elif self._peek().kind is TokenKind.LPAREN:
                     return
             self._advance()
 
@@ -576,12 +555,10 @@ class ProvNParser:
         else:
             first = self._argument()
             if self._current.kind is TokenKind.SEMICOLON:
-                self._check_strict_bare_relation(keyword, first, "an identifier")
-                if first.kind is TokenKind.MARKER:
-                    identifier = None
-                elif first.kind is TokenKind.NAME:
+                self._check_strict_bare_relation(keyword, rule, first, "an identifier")
+                if first.kind is TokenKind.NAME:
                     identifier = self._resolve(first, bundle)
-                else:
+                elif first.kind is not TokenKind.MARKER:
                     raise self._error("expected an identifier before ';'", first)
                 self._advance()
                 args.append(self._argument())
@@ -593,7 +570,7 @@ class ProvNParser:
             self._advance()
             if self._current.kind is TokenKind.LBRACKET:
                 self._check_strict_bare_relation(
-                    keyword, self._current, "an attribute block"
+                    keyword, rule, self._current, "an attribute block"
                 )
                 attribute_block = self._attributes(bundle)
                 break
@@ -603,11 +580,11 @@ class ProvNParser:
         return identifier, args, attribute_block
 
     def _check_strict_bare_relation(
-        self, keyword: Token, token: Token, what: str
+        self, keyword: Token, rule: _Rule, token: Token, what: str
     ) -> None:
         """Under ``strict``, reject an identifier or an attribute block on a
         relation whose production has neither (productions 24 to 26)."""
-        if not self._profile.extensions and keyword.value[1] in _BARE_RELATIONS:
+        if not self._profile.extensions and rule.record_type in _PROV_N_BARE_RELATIONS:
             raise self._error(
                 f"'{keyword.text}' has {what}, which the strict profile does not allow",
                 token,
