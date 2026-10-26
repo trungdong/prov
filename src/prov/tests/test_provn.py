@@ -26,9 +26,7 @@ from prov.model import (
 )
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import (
-    _ELEMENTS,
-    _MENTION,
-    _RELATIONS,
+    _KEYWORDS,
     PROFILES,
     ProvNParser,
 )
@@ -97,11 +95,8 @@ def test_every_expression_form(text, keyword, n_formal) -> None:
     record = only_record(parse(text))
     assert len([v for _, v in record.formal_attributes if v is not None]) == n_formal
     assert text.split("(")[0] == keyword
-    if keyword == "prov:mentionOf":
-        expected_type = _MENTION[0]
-    else:
-        expected_type = _ELEMENTS.get(keyword, _RELATIONS.get(keyword))[0]
-    assert record.get_type() == expected_type
+    prefix, _, local = keyword.rpartition(":")
+    assert record.get_type() == _KEYWORDS[(prefix, local)].record_type
 
 
 def test_relation_identifier_is_kept() -> None:
@@ -578,6 +573,16 @@ REJECTED_DOCUMENTS = [
         (3, 20),
         id="full IRI as a qualified-name value",
     ),
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{keyword}(ex:a, ex:b, ex:c)\nendDocument",
+            STATEMENT,
+            f"extensibility expression '{keyword}(...)' is not supported",
+            (3, 1),
+            id=f"{keyword} is an extension",
+        )
+        for keyword in ("prov:entity", "ex:mentionOf")
+    ],
 ]
 
 
@@ -689,6 +694,11 @@ ACCEPTED_STATEMENTS = [
         EVERY,
         id="identifier on a mention",
     ),
+    pytest.param(
+        "mentionOf(ex:a, ex:b, ex:c)",
+        ("default", "lenient"),
+        id="bare mentionOf",
+    ),
 ]
 
 
@@ -728,8 +738,10 @@ def test_unknown_profile_rejected() -> None:
 
 
 def test_arity_table_matches_formal_attributes() -> None:
-    for rec_type, arities in [*_ELEMENTS.values(), *_RELATIONS.values(), _MENTION]:
-        assert max(arities) == len(PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES)
+    for rule in _KEYWORDS.values():
+        assert max(rule.arities) == len(
+            PROV_REC_CLS[rule.record_type].FORMAL_ATTRIBUTES
+        )
 
 
 def test_document_missing_keyword_reports_expected_document() -> None:
@@ -858,7 +870,7 @@ def test_strict_requires_an_identifier_at_the_named_position() -> None:
 
 def test_strict_still_accepts_wasderivedfrom_with_trailing_markers() -> None:
     record = only_record(parse("wasDerivedFrom(ex:e2, ex:e1, -, -, -)"))
-    assert record.get_type() == _RELATIONS["wasDerivedFrom"][0]
+    assert record.get_type() == _KEYWORDS[("", "wasDerivedFrom")].record_type
 
 
 def test_unterminated_bundle_reports_end_of_input() -> None:

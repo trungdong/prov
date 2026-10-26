@@ -1,31 +1,61 @@
 """Recursive-descent parser for PROV-N (https://www.w3.org/TR/prov-n/).
 
-Every statement opens with a keyword, so the parser reads one token and
-enters the matching rule; there is no backtracking. Records are built
-through :meth:`ProvBundle.new_record` with the same arguments the PROV-JSON
-deserializer passes, so attribute typing, literal parsing and namespace
+The parser reads one token ahead. Every statement opens with a keyword and every
+keyword is followed by ``(``, so after one token the parser knows which rule it is in,
+and there is no backtracking. Each grammar production is a method (document,
+declarations, bundle, statement, expression, attributes, literal).
+
+The expression rule is table-driven, with no method per keyword. ``_KEYWORDS`` maps a
+statement keyword's ``(prefix, local)`` to a ``_Rule``: its record type, its legal
+argument counts and whether it is an element. ``_classify`` looks the keyword up.
+``_arguments`` reads the parenthesised part as a flat list of arguments and an
+attribute block. ``_expression`` checks the argument count, maps each position onto
+the record class's ``FORMAL_ATTRIBUTES`` in order, with ``-`` markers omitted, and
+builds the record. An element takes its identifier first. A relation's optional
+identifier is the one place the grammar needs a second token of lookahead, so
+``_arguments`` reads the first argument and then checks for ``;``.
+
+Records are built through :meth:`ProvBundle.new_record` with the same arguments the
+PROV-JSON deserializer passes, so attribute typing, literal parsing and namespace
 registration match every other format.
 
-Profiles:
+Profiles share this one parser. ``_PROFILES`` maps each profile name to a ``_Profile``
+of two flags, and ``PROFILES`` lists the names:
 
-- ``strict``: the Recommendation grammar only.
-- ``default``: also the bare ``mentionOf`` keyword that ``prov`` and
-  ProvToolbox write (the Recommendation grammar has no Mention production;
-  PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker where the
-  grammar has a plain identifier (see ``_STRICT_REQUIRED_LEADING``).
-- ``lenient``: as ``default``; a statement that fails to parse, including
-  one the model rejects, is skipped and parsing resumes at the next
-  statement. Tokenisation errors are fatal in every profile.
+- ``strict``: ``extensions`` and ``recover`` both off, the Recommendation grammar
+  only.
+- ``default``: ``extensions`` on. The parser also accepts the bare ``mentionOf``
+  keyword that ``prov`` and ProvToolbox write (the Recommendation grammar has no
+  Mention production; PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker
+  where the grammar has a plain identifier (each rule's smallest ``arities`` entry in
+  ``_KEYWORDS``). It also accepts an identifier or an attribute block on a relation
+  whose production has neither, a statement after a bundle, a ``default`` declaration
+  after a ``prefix`` declaration, and a declaration of ``prov`` or ``xsd`` to its
+  predeclared IRI.
+- ``lenient``: ``recover`` on as well. A statement that fails to parse, including one
+  the model rejects, is skipped and parsing resumes at the next statement. A bundle
+  whose identifier the model rejects is skipped too.
+
+Recovery is panic-mode. It records the error and skips tokens to a synchronisation
+point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
+``endDocument``, ``bundle``, ``endBundle``) not preceded by ``=``, at any bracket
+depth. The parser then resumes.
 
 Skipped-statement messages are collected on ``skipped`` rather than warned
 here, so :class:`~prov.serializers.provn.ProvNSerializer` can issue the
 :class:`~prov.model.ProvWarning` itself with a stack level that points at
 the caller of ``deserialize()``, whether the skip happened at document
 level or inside a bundle.
+
+Errors are :class:`~prov.serializers.provn.ProvNSyntaxError` and carry the line and
+column of the token at fault. ``parse`` tokenises the whole input before it parses a
+statement, so a tokenisation error is raised first in every profile and recovery never
+applies to it.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from prov.constants import (
@@ -47,7 +77,6 @@ from prov.constants import (
     PROV_INVALIDATION,
     PROV_MEMBERSHIP,
     PROV_MENTION,
-    PROV_N_MAP,
     PROV_QUALIFIEDNAME,
     PROV_SPECIALIZATION,
     PROV_START,
@@ -80,50 +109,57 @@ from prov.serializers.provn_lexer import (
 
 __all__ = ["PROFILES", "ProvNParser"]
 
-PROFILES = ("strict", "default", "lenient")
+
+@dataclass(frozen=True, slots=True)
+class _Profile:
+    extensions: bool  # accept the default profile's extensions (see module docstring)
+    recover: bool  # skip a statement that fails and resync
 
 
-# keyword -> (record type, allowed argument counts after the identifier)
-_ELEMENTS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
-    "entity": (PROV_ENTITY, (0,)),
-    "activity": (PROV_ACTIVITY, (0, 2)),
-    "agent": (PROV_AGENT, (0,)),
+_PROFILES = {
+    "strict": _Profile(extensions=False, recover=False),
+    "default": _Profile(extensions=True, recover=False),
+    "lenient": _Profile(extensions=True, recover=True),
 }
-# keyword -> (record type, allowed argument counts)
-_RELATIONS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
-    "wasGeneratedBy": (PROV_GENERATION, (1, 3)),
-    "used": (PROV_USAGE, (1, 3)),
-    "wasInvalidatedBy": (PROV_INVALIDATION, (1, 3)),
-    "wasStartedBy": (PROV_START, (1, 4)),
-    "wasEndedBy": (PROV_END, (1, 4)),
-    "wasInformedBy": (PROV_COMMUNICATION, (2,)),
-    "wasAttributedTo": (PROV_ATTRIBUTION, (2,)),
-    "wasAssociatedWith": (PROV_ASSOCIATION, (1, 3)),
-    "actedOnBehalfOf": (PROV_DELEGATION, (2, 3)),
-    "wasDerivedFrom": (PROV_DERIVATION, (2, 5)),
-    "wasInfluencedBy": (PROV_INFLUENCE, (2,)),
-    "alternateOf": (PROV_ALTERNATE, (2,)),
-    "specializationOf": (PROV_SPECIALIZATION, (2,)),
-    "hadMember": (PROV_MEMBERSHIP, (2,)),
+PROFILES = tuple(_PROFILES)
+
+
+@dataclass(frozen=True, slots=True)
+class _Rule:
+    record_type: QualifiedName
+    arities: tuple[int, ...]  # allowed argument counts after the identifier, if any
+    element: bool  # an element takes its identifier first, a relation an optional 'id;'
+
+
+# An attribute block's pairs: name, value and the token that names it.
+_AttributeBlock = list[tuple[QualifiedName, Any, Token]]
+
+# (prefix, local) of a statement keyword -> its rule. A relation's compact form
+# (no ';') lists exactly its required identifiers, so its smallest arity is the
+# number of leading arguments the strict profile refuses '-' in (#257). Bare
+# 'mentionOf' is not a key, because the profile decides it.
+_KEYWORDS: dict[tuple[str, str], _Rule] = {
+    ("", "entity"): _Rule(PROV_ENTITY, (0,), element=True),
+    ("", "activity"): _Rule(PROV_ACTIVITY, (0, 2), element=True),
+    ("", "agent"): _Rule(PROV_AGENT, (0,), element=True),
+    ("", "wasGeneratedBy"): _Rule(PROV_GENERATION, (1, 3), element=False),
+    ("", "used"): _Rule(PROV_USAGE, (1, 3), element=False),
+    ("", "wasInvalidatedBy"): _Rule(PROV_INVALIDATION, (1, 3), element=False),
+    ("", "wasStartedBy"): _Rule(PROV_START, (1, 4), element=False),
+    ("", "wasEndedBy"): _Rule(PROV_END, (1, 4), element=False),
+    ("", "wasInformedBy"): _Rule(PROV_COMMUNICATION, (2,), element=False),
+    ("", "wasAttributedTo"): _Rule(PROV_ATTRIBUTION, (2,), element=False),
+    ("", "wasAssociatedWith"): _Rule(PROV_ASSOCIATION, (1, 3), element=False),
+    ("", "actedOnBehalfOf"): _Rule(PROV_DELEGATION, (2, 3), element=False),
+    ("", "wasDerivedFrom"): _Rule(PROV_DERIVATION, (2, 5), element=False),
+    ("", "wasInfluencedBy"): _Rule(PROV_INFLUENCE, (2,), element=False),
+    ("", "alternateOf"): _Rule(PROV_ALTERNATE, (2,), element=False),
+    ("", "specializationOf"): _Rule(PROV_SPECIALIZATION, (2,), element=False),
+    ("", "hadMember"): _Rule(PROV_MEMBERSHIP, (2,), element=False),
+    ("prov", "mentionOf"): _Rule(PROV_MENTION, (3,), element=False),
 }
-_MENTION: tuple[QualifiedName, tuple[int, ...]] = (PROV_MENTION, (3,))
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
-
-# keyword -> number of leading arguments (after any 'id;') that the
-# Recommendation's grammar makes a plain identifier, not an identifierOrMarker;
-# '-' there is only ever accepted under the default/lenient extensions,
-# matching the model's scruffy-statement policy (#257).
-#
-# A relation's compact form (no ';') lists exactly its required identifiers,
-# so the smallest allowed arity is that required count.
-_STRICT_REQUIRED_LEADING: dict[str, int] = {
-    name: min(arities) for name, (_, arities) in _RELATIONS.items()
-} | {"mentionOf": min(_MENTION[1])}
-
-# PROV-N keywords of the relations that take neither an identifier nor an
-# attribute block (productions 24 to 26).
-_BARE_RELATIONS = frozenset(PROV_N_MAP[t] for t in _PROV_N_BARE_RELATIONS)
 
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
@@ -145,6 +181,10 @@ class ProvNParser:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
     """
 
+    # Set by parse(); _current is self._tokens[self._pos], kept by _advance().
+    _current: Token
+    _profile: _Profile
+
     def __init__(self, text: str, profile: str = "default"):
         if profile not in PROFILES:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
@@ -153,28 +193,18 @@ class ProvNParser:
         self._text = text
         self._tokens: list[Token] = []
         self._pos = 0
-        self._depth = 0  # bracket nesting, read only by lenient resync
-        self._previous_kind: TokenKind | None = None  # last consumed token's kind
 
     # -- token helpers -----------------------------------------------------
-
-    @property
-    def _current(self) -> Token:
-        return self._tokens[self._pos]
 
     def _peek(self) -> Token:
         index = min(self._pos + 1, len(self._tokens) - 1)
         return self._tokens[index]
 
     def _advance(self) -> Token:
-        token = self._tokens[self._pos]
-        if token.kind in (TokenKind.LPAREN, TokenKind.LBRACKET):
-            self._depth += 1
-        elif token.kind in (TokenKind.RPAREN, TokenKind.RBRACKET):
-            self._depth = max(0, self._depth - 1)
-        self._previous_kind = token.kind
+        token = self._current
         if self._pos < len(self._tokens) - 1:
             self._pos += 1
+            self._current = self._tokens[self._pos]
         return token
 
     def _error(self, message: str, token: Token | None = None) -> ProvNSyntaxError:
@@ -263,9 +293,10 @@ class ProvNParser:
 
     def parse(self) -> ProvDocument:
         """Parse the whole input and return the document."""
+        self._profile = _PROFILES[self.profile]
         self._tokens = list(tokenize(self._text))
         self._pos = 0
-        self._depth = 0
+        self._current = self._tokens[0]
         document = ProvDocument()
         self._expect_keyword("document")
         namespaces, default = self._declarations()
@@ -279,7 +310,7 @@ class ProvNParser:
                 after_bundle = True
             else:
                 # Production 1 puts every expression before the first bundle.
-                if after_bundle and self.profile == "strict":
+                if after_bundle and not self._profile.extensions:
                     raise self._error(
                         "a statement follows a bundle, which the strict profile"
                         " does not allow"
@@ -333,7 +364,7 @@ class ProvNParser:
                     raise self._error(
                         "'default' is declared twice in this scope", keyword
                     )
-                if namespaces and self.profile == "strict":
+                if namespaces and not self._profile.extensions:
                     raise self._error(
                         "'default' follows a 'prefix' declaration, which the"
                         " strict profile does not allow",
@@ -369,7 +400,7 @@ class ProvNParser:
                 " be redeclared",
                 token,
             )
-        if self.profile == "strict":
+        if not self._profile.extensions:
             raise self._error(
                 f"prefix '{prefix}' is predeclared, and the strict profile does"
                 " not allow declaring it",
@@ -398,7 +429,7 @@ class ProvNParser:
             raise
         except ProvException as exc:
             error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
-            if self.profile != "lenient":
+            if not self._profile.recover:
                 raise error from exc
             error.__cause__ = exc
             self.skipped.append(f"PROV-N bundle skipped: {error}")
@@ -422,89 +453,62 @@ class ProvNParser:
 
     def _statement(self, bundle: ProvBundle) -> None:
         start = self._current
-        start_depth = self._depth
         try:
             self._expression(bundle)
         except ProvNSyntaxError as error:
-            self._skip_or_raise(error, start_depth)
+            self._skip_or_raise(error)
         except (ProvException, ValueError, OverflowError) as exc:
             # A model rejection (e.g. from new_record()) is reported as a
             # positioned syntax error and, under lenient, skipped.
             wrapped = ProvNSyntaxError(str(exc), start.line, start.column)
             wrapped.__cause__ = exc
-            self._skip_or_raise(wrapped, start_depth)
+            self._skip_or_raise(wrapped)
 
-    def _skip_or_raise(self, error: ProvNSyntaxError, start_depth: int) -> None:
-        if self.profile != "lenient":
+    def _skip_or_raise(self, error: ProvNSyntaxError) -> None:
+        if not self._profile.recover:
             raise error
         self.skipped.append(f"PROV-N statement skipped: {error}")
-        self._resync(start_depth)
+        self._resync()
 
-    def _looks_like_statement_start(self) -> bool:
-        """A NAME immediately followed by '(' opens a statement.
-
-        No production puts '(' after a name inside a statement body
-        (arguments and attribute values are followed by ',', ']' or ')'),
-        so the pair marks a boundary whatever the name is: a keyword, an
-        unknown keyword or a prefixed extensibility expression. Testing the
-        name against the keyword tables instead would run a skip through
-        every following statement the tables do not know, reporting a run
-        of bad statements as one.
-        """
-        return self._peek().kind is TokenKind.LPAREN
-
-    def _resync(self, start_depth: int) -> None:
+    def _resync(self) -> None:
         """Skip to the next statement boundary.
 
-        A statement missing a closing ``)``/``]`` leaves ``self._depth``
-        above ``start_depth`` forever, since ``_advance()`` only lowers it
-        on a matching close. Gating every boundary on depth would then
-        reject every statement keyword that follows, so a name immediately
-        followed by ``(`` is trusted at any depth (it is never legal inside
-        a statement body) and forces the depth back down to where the
-        failed statement started, clearing whatever imbalance it left.
+        A name followed by ``(`` is a boundary at any bracket depth. No
+        production puts ``(`` after a name inside a statement body, so the pair
+        marks a boundary whatever the name is, known or not. Testing the name
+        against the keyword tables would run a skip through every following
+        statement they do not know and report a run of bad statements as one.
 
-        A bare structural keyword (``document``, ``bundle``, ...) is not
-        followed by ``(``, so it cannot be told apart this way from the
-        same word used as an ordinary attribute value (e.g.
-        ``[ex:k=bundle]``); that case is instead gated on whether the token
-        before it is ``=``, since only an attribute value follows one.
+        A structural keyword (``document``, ``bundle``, ...) is a boundary
+        unless the token before it is ``=``. The same word is a legal attribute
+        value (``[ex:k=bundle]``), and only a value follows ``=``.
         """
         while self._current.kind is not TokenKind.EOF:
             token = self._current
             if token.kind is TokenKind.NAME:
                 prefix, local = token.value
                 if not prefix and local in _STRUCTURAL:
-                    # A structural keyword is a boundary unless it is an
-                    # attribute value ([ex:k=bundle]), which only follows '='.
-                    if self._previous_kind is not TokenKind.EQUALS:
-                        self._depth = start_depth
+                    if self._tokens[self._pos - 1].kind is not TokenKind.EQUALS:
                         return
-                elif self._looks_like_statement_start():
-                    self._depth = start_depth
+                elif self._peek().kind is TokenKind.LPAREN:
                     return
             self._advance()
 
     # -- expressions -------------------------------------------------------------
 
-    def _classify(self, token: Token) -> tuple[QualifiedName, tuple[int, ...], bool]:
-        """Return (record type, arities, is_element) for a keyword token."""
+    def _classify(self, token: Token) -> _Rule:
+        """Return the rule for a statement keyword token."""
         prefix, local = token.value
-        extensions = self.profile != "strict"
-        if (prefix, local) == ("prov", "mentionOf") or (
-            extensions and (prefix, local) == ("", "mentionOf")
-        ):
-            return (*_MENTION, False)
+        rule = _KEYWORDS.get(token.value)
+        if rule is not None:
+            return rule
         if prefix:
             raise self._error(
                 f"extensibility expression '{token.text}(...)' is not supported", token
             )
-        if local in _ELEMENTS:
-            return (*_ELEMENTS[local], True)
-        if local in _RELATIONS:
-            return (*_RELATIONS[local], False)
         if local == "mentionOf":
-            # Only reachable under strict; default and lenient matched above.
+            if self._profile.extensions:
+                return _KEYWORDS[("prov", "mentionOf")]
             raise self._error(
                 "unknown statement keyword 'mentionOf' under the strict profile: "
                 "write 'prov:mentionOf', or parse with profile='default' to accept "
@@ -514,49 +518,18 @@ class ProvNParser:
         raise self._error(f"unknown statement keyword '{local}'", token)
 
     def _expression(self, bundle: ProvBundle) -> None:
+        """Parse one statement, production ``expression``, and add its record."""
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
-        rec_type, arities, is_element = self._classify(keyword)
-        self._expect(TokenKind.LPAREN)
-        identifier: QualifiedName | None = None
-        args: list[Token] = []
-        if is_element:
-            id_token = self._identifier_token()
-            identifier = self._resolve(id_token, bundle)
-        else:
-            first = self._argument()
-            if self._current.kind is TokenKind.SEMICOLON:
-                self._check_strict_bare_relation(keyword, first, "an identifier")
-                if first.kind is TokenKind.MARKER:
-                    identifier = None
-                elif first.kind is TokenKind.NAME:
-                    identifier = self._resolve(first, bundle)
-                else:
-                    raise self._error("expected an identifier before ';'", first)
-                self._advance()
-                args.append(self._argument())
-            else:
-                args.append(first)
-        attribute_block: list[tuple[QualifiedName, Any, Token]] = []
-        separator = self._current.kind
-        while separator is TokenKind.COMMA:
-            self._advance()
-            if self._current.kind is TokenKind.LBRACKET:
-                self._check_strict_bare_relation(
-                    keyword, self._current, "an attribute block"
-                )
-                attribute_block = self._attributes(bundle)
-                break
-            args.append(self._argument())
-            separator = self._current.kind
-        self._expect(TokenKind.RPAREN)
+        rule = self._classify(keyword)
+        identifier, args, attribute_block = self._arguments(keyword, rule, bundle)
 
-        if len(args) not in arities:
-            allowed = " or ".join(str(n) for n in arities)
+        if len(args) not in rule.arities:
+            allowed = " or ".join(str(n) for n in rule.arities)
             raise self._error(
                 f"'{keyword.text}' takes {allowed} arguments, got {len(args)}", keyword
             )
-        self._check_strict_required_positions(keyword, args)
-        formal_names = PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES
+        self._check_strict_required_positions(keyword, rule, args)
+        formal_names = PROV_REC_CLS[rule.record_type].FORMAL_ATTRIBUTES
         attributes = []
         for attr, token in zip(formal_names, args, strict=False):
             value = self._argument_value(token, attr, bundle)
@@ -564,14 +537,54 @@ class ProvNParser:
                 attributes.append((attr, value))
         self._check_formal_attributes(keyword, formal_names, attribute_block)
         other_attributes = [(name, value) for name, value, _ in attribute_block]
-        bundle.new_record(rec_type, identifier, attributes, other_attributes)
+        bundle.new_record(rule.record_type, identifier, attributes, other_attributes)
+
+    def _arguments(
+        self, keyword: Token, rule: _Rule, bundle: ProvBundle
+    ) -> tuple[QualifiedName | None, list[Token], _AttributeBlock]:
+        """Read the parenthesised part of production ``expression``.
+
+        Return the identifier, the positional arguments and the attribute block.
+        """
+        self._expect(TokenKind.LPAREN)
+        identifier: QualifiedName | None = None
+        args: list[Token] = []
+        if rule.element:
+            id_token = self._identifier_token()
+            identifier = self._resolve(id_token, bundle)
+        else:
+            first = self._argument()
+            if self._current.kind is TokenKind.SEMICOLON:
+                self._check_strict_bare_relation(keyword, rule, first, "an identifier")
+                if first.kind is TokenKind.NAME:
+                    identifier = self._resolve(first, bundle)
+                elif first.kind is not TokenKind.MARKER:
+                    raise self._error("expected an identifier before ';'", first)
+                self._advance()
+                args.append(self._argument())
+            else:
+                args.append(first)
+        attribute_block: _AttributeBlock = []
+        separator = self._current.kind
+        while separator is TokenKind.COMMA:
+            self._advance()
+            if self._current.kind is TokenKind.LBRACKET:
+                self._check_strict_bare_relation(
+                    keyword, rule, self._current, "an attribute block"
+                )
+                attribute_block = self._attributes(bundle)
+                break
+            args.append(self._argument())
+            separator = self._current.kind
+        self._expect(TokenKind.RPAREN)
+        return identifier, args, attribute_block
 
     def _check_strict_bare_relation(
-        self, keyword: Token, token: Token, what: str
+        self, keyword: Token, rule: _Rule, token: Token, what: str
     ) -> None:
         """Under ``strict``, reject an identifier or an attribute block on a
         relation whose production has neither (productions 24 to 26)."""
-        if self.profile == "strict" and keyword.value[1] in _BARE_RELATIONS:
+        if not self._profile.extensions and rule.record_type in _PROV_N_BARE_RELATIONS:
             raise self._error(
                 f"'{keyword.text}' has {what}, which the strict profile does not allow",
                 token,
@@ -581,7 +594,7 @@ class ProvNParser:
         self,
         keyword: Token,
         formal_names: tuple[QualifiedName, ...],
-        attribute_block: list[tuple[QualifiedName, Any, Token]],
+        attribute_block: _AttributeBlock,
     ) -> None:
         """Reject an attribute named after one of the statement's own
         arguments, which PROV-N gives only by position (#523)."""
@@ -594,15 +607,14 @@ class ProvNParser:
                 )
 
     def _check_strict_required_positions(
-        self, keyword: Token, args: list[Token]
+        self, keyword: Token, rule: _Rule, args: list[Token]
     ) -> None:
         """Under ``strict``, reject '-' where the grammar has a plain
         identifier (no ``OrMarker``); ``default``/``lenient`` keep accepting
         it there, matching the model's scruffy-statement policy."""
-        if self.profile != "strict":
+        if self._profile.extensions:
             return
-        _, local = keyword.value
-        required = _STRICT_REQUIRED_LEADING.get(local, 0)
+        required = min(rule.arities)
         for index, arg in enumerate(args[:required]):
             if arg.kind is TokenKind.MARKER:
                 raise self._error(
@@ -661,10 +673,10 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
-    def _attributes(self, bundle: ProvBundle) -> list[tuple[QualifiedName, Any, Token]]:
+    def _attributes(self, bundle: ProvBundle) -> _AttributeBlock:
         """Parse an attribute block into (name, value, name token) triples."""
         self._expect(TokenKind.LBRACKET)
-        pairs: list[tuple[QualifiedName, Any, Token]] = []
+        pairs: _AttributeBlock = []
         if self._current.kind is TokenKind.RBRACKET:
             self._advance()
             return pairs

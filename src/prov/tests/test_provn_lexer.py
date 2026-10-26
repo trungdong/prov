@@ -67,11 +67,21 @@ def test_comments_are_skipped() -> None:
     assert values(text) == [("", "entity"), ("", "agent")]
 
 
-@pytest.mark.parametrize("ch", list("='(),:;[]"))
-def test_escaped_metachar_in_local_part(ch) -> None:
-    tokens = list(tokenize(f"ex:na\\{ch}me"))
-    assert tokens[0].kind is TokenKind.NAME
-    assert tokens[0].value == ("ex", f"na{ch}me")
+# The Recommendation's [55] PN_CHARS_ESC list, typed once as the oracle.
+PN_CHARS_ESC_ORACLE = "='(),-.:;[]"
+
+
+@pytest.mark.parametrize("ch", [chr(c) for c in range(0x21, 0x7F)] + ["\xe9", "\xb7"])
+def test_escaped_metachar_in_local_part(ch: str) -> None:
+    text = f"ex:na\\{ch}me"
+    if ch in PN_CHARS_ESC_ORACLE:
+        tokens = list(tokenize(text))
+        assert tokens[0].kind is TokenKind.NAME
+        assert tokens[0].value == ("ex", f"na{ch}me")
+    else:
+        with pytest.raises(ProvNSyntaxError) as ctx:
+            list(tokenize(text))
+        assert (ctx.value.line, ctx.value.column) == (1, 6)
 
 
 def test_percent_encoding_is_kept_verbatim() -> None:
@@ -134,10 +144,25 @@ def test_bare_local_name_has_empty_prefix() -> None:
     assert values("e1") == [("", "e1")]
 
 
-def test_line_and_column_tracking() -> None:
-    tokens = list(tokenize("entity(\n  ex:e1)"))
+@pytest.mark.parametrize(
+    ("text", "index", "line", "column"),
+    [
+        ("entity(\n  ex:e1)", 2, 2, 3),
+        ('"""a\nb""" ex:x', 1, 2, 6),
+        ('"""a\r\nb""" ex:x', 1, 2, 6),
+        ('"""a\rb\nc""" ex:x', 1, 3, 6),
+        ("a /* x\r\ny */ b", 1, 2, 6),
+        ('"a" ex:x', 1, 1, 5),
+        ("a\r\nb", 1, 2, 1),
+        ("a\rb", 1, 2, 1),
+    ],
+)
+def test_line_and_column_tracking(
+    text: str, index: int, line: int, column: int
+) -> None:
+    tokens = list(tokenize(text))
     assert (tokens[0].line, tokens[0].column) == (1, 1)
-    assert (tokens[2].line, tokens[2].column) == (2, 3)
+    assert (tokens[index].line, tokens[index].column) == (line, column)
     assert tokens[-1].kind is TokenKind.EOF
 
 
@@ -171,7 +196,8 @@ NON_WS_SPACES = [
         ("entity(\n  ex:e1, ^)", 2, 10),
         ("ex:a:b", 1, 5),
         ('"x" %', 1, 5),
-        ("ex:a\\zb", 1, 5),
+        ('"a\\\rb"', 1, 3),
+        ("'a\\\rb'", 1, 3),
         *[(f"entity(ex:e){ch}endDocument", 1, 13) for ch in NON_WS_SPACES],
         ("entity(ex:e) \xa0// note\n\xa0endDocument", 1, 14),
     ],
@@ -295,13 +321,6 @@ def test_line_comment_ends_at_cr_not_just_lf() -> None:
     ]
 
 
-def test_crlf_and_lone_cr_each_count_as_one_line_break() -> None:
-    crlf_tokens = list(tokenize("a\r\nb"))
-    assert (crlf_tokens[1].line, crlf_tokens[1].column) == (2, 1)
-    cr_tokens = list(tokenize("a\rb"))
-    assert (cr_tokens[1].line, cr_tokens[1].column) == (2, 1)
-
-
 def test_long_run_of_trailing_dots_is_fast() -> None:
     # 200_000 dots isn't large enough to expose the old O(n^2) back-off
     # loop within a 1s bound on typical hardware (~0.5s pre-fix); 1_000_000
@@ -367,6 +386,7 @@ def test_pn_chars_classes_match_the_recommendation_s_own_literal_ranges() -> Non
     old_pn_chars_u = old_pn_chars_base + "_"
     old_pn_chars = old_pn_chars_u + r"\-0-9\u00B7\u0300-\u036F\u203F-\u2040"
 
+    assert set(identifier._PN_CHARS_ESC) == set(PN_CHARS_ESC_ORACLE)
     checks = [
         (old_pn_chars_base, identifier._PN_CHARS_BASE),
         (old_pn_chars_u, provn_lexer._PN_CHARS_U),

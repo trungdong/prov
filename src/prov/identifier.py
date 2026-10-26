@@ -48,6 +48,9 @@ _PROVN_LOCAL_METACHARS = "='(),:;[]"
 # forbids a *bare* '-' or '.' as the first character, and a bare '.' as the
 # last character; elsewhere both are ordinary PN_CHARS and stay unescaped.
 _PROVN_LOCAL_LEADING_ESCAPE = "-."
+# Every character a backslash may escape: [55] PN_CHARS_ESC. The writer's
+# escaping and the lexer's PN_CHARS_ESC class both read this one table.
+_PN_CHARS_ESC = _PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE
 # PN_LOCAL's own character class ([53]), the shared NCName table minus '.'
 # (see the comment on _NCNAME_CHARS above).
 _PN_CHARS = _NCNAME_CHARS.replace(".", "")
@@ -75,9 +78,7 @@ _PN_CHARS_OTHER = "/@~&+*?#$!"
 # Everything PN_LOCAL can spell as-is or via a backslash escape: PN_CHARS,
 # PN_CHARS_OTHER, the backslash-escaped metacharacters, and '-'/'.' (whose
 # escaping is positional, decided in the loop below).
-_PROVN_LOCAL_ALLOWED_UNESCAPED = _PN_CHARS + re.escape(
-    _PN_CHARS_OTHER + _PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE
-)
+_PROVN_LOCAL_ALLOWED_UNESCAPED = _PN_CHARS + re.escape(_PN_CHARS_OTHER + _PN_CHARS_ESC)
 
 # A local part PROV-N could write only by percent-encoding it, which changes
 # the IRI a reader recovers: a character that cannot start PN_LOCAL in the
@@ -91,9 +92,7 @@ _PROVN_LOCAL_PERCENT_ENCODED = re.compile(
 
 # A metacharacter, or a '-'/'.' whose position may need an escape; a local
 # part matching none of these is written as it stands.
-_PROVN_LOCAL_NEEDS_ESCAPE = re.compile(
-    "[" + re.escape(_PROVN_LOCAL_METACHARS + _PROVN_LOCAL_LEADING_ESCAPE) + "]"
-)
+_PROVN_LOCAL_NEEDS_ESCAPE = re.compile("[" + re.escape(_PN_CHARS_ESC) + "]")
 
 
 def _reject_unwritable_local_part(localpart: str, uri: str, qname: str) -> None:

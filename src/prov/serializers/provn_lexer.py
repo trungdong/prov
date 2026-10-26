@@ -1,9 +1,37 @@
 """Tokeniser for PROV-N (https://www.w3.org/TR/prov-n/, section 3.8).
 
-Produces a flat token stream with line and column positions. Keywords are
-not distinguished here: every bare or prefixed name is a ``NAME`` token, and
-the parser decides whether a name at statement start is a keyword. The one
-context-sensitive rule is the language tag, which only follows a string.
+Produces a flat token stream. Every token carries its line and column. Keywords are
+not distinguished here: every bare or prefixed name is a ``NAME`` token, and the
+parser decides whether a name at statement start is a keyword.
+
+The scanner is regex-driven, with a fixed sequence of token classes. At each position
+it skips whitespace and comments, then tries the token classes in that order and takes
+the first match. The order encodes the grammar's precedence rules. Delimited tokens
+(IRIs in angle brackets, quoted strings, quoted qualified names) come first, then
+``xsd:dateTime``, then integers and qualified names, since a digit run can start any
+of the three. Between an integer and a qualified name reading of the same run, the
+scanner takes the longer match and prefers the integer reading on a tie, matching the
+Recommendation's guidance. The ``-`` marker comes after the integer and name readings,
+so ``-4`` is an integer.
+
+The one context-sensitive rule is the language tag. ``@`` starts a language tag only
+when the previous token was a string, since ``@`` is also a legal character inside a
+local name. The rule that a local name may contain but not end with ``.`` lives in the
+name regex itself, so the scanner never trims a match.
+
+The character classes are the Unicode tables the PROV-XML serializer uses for NCNames.
+``prov.identifier`` also holds ``PN_CHARS_ESC``, which the PROV-N writer's escaping
+reads, and ``PN_CHARS_OTHER``, which ``QualifiedName``'s writability check reads, so the
+scanner and the rest of prov read one table for each.
+
+Only skipped whitespace and comments and long strings can hold a line break. The
+scanner counts line breaks in those (``advance_lines``) and moves every other token
+forward by its length. A CR LF pair, a lone CR and a lone LF each count
+as one line break.
+
+The IRI regex excludes line breaks. The short-string and quoted-name regexes admit a
+backslash before a CR, so ``_unescape`` and ``_split_qname`` refuse it before the
+scanner emits the token.
 """
 
 from __future__ import annotations
@@ -15,7 +43,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from prov.identifier import _NCNAME_START_CHARS, _PN_CHARS, _PN_PREFIX
+from prov.identifier import (
+    _NCNAME_START_CHARS,
+    _PN_CHARS,
+    _PN_CHARS_ESC,
+    _PN_CHARS_OTHER,
+    _PN_PREFIX,
+)
 from prov.model import ProvException
 from prov.model._values import LANGTAG_PATTERN, XSD_DATETIME_PATTERN
 from prov.serializers import ProvSerializationError
@@ -73,16 +107,13 @@ class Token:
     column: int
 
 
-# Character classes from the Recommendation ([53] to [55]); '.' is handled
-# in the local-part patterns because its placement rules differ.
-# prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables, and
-# this module imports them. PN_CHARS_U (NCName's NameStartChar, '_' included)
-# is that table unchanged. The classes' equivalence to the NCName tables over
-# the full codepoint space is pinned by test_provn_lexer.py.
+# '.' is handled in the local-part patterns because its placement rules differ.
+# PN_CHARS_U is the NCName start table, '_' included. test_provn_lexer.py pins
+# the classes' equivalence to the NCName tables over the full code-point space.
 _PN_CHARS_U = _NCNAME_START_CHARS
-_PN_OTHERS = r"/@~&+*?#$!"
+_PN_OTHERS = re.escape(_PN_CHARS_OTHER)
 _PERCENT = r"%[0-9A-Fa-f]{2}"
-_ESC = r"\\[=',\-:;\[\]().]"
+_ESC = rf"\\[{re.escape(_PN_CHARS_ESC)}]"
 _LOCAL_START = rf"[{_PN_CHARS_U}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 # The last character of a local part can't be a bare '.' ([54]); an escaped
@@ -224,8 +255,8 @@ class _Lexer:
     def _line_after(self, chunk: str) -> tuple[int, int]:
         """(line, line_start) reached by moving past ``chunk``, which starts
         at ``self.pos``; a CRLF pair counts as a single line break. Shared by
-        ``advance`` (moving the lexer itself) and ``locate`` (a read-only
-        look-ahead), so the newline arithmetic lives in one place."""
+        ``advance_lines`` (moving the lexer itself) and ``locate`` (a
+        read-only look-ahead), so the newline arithmetic lives in one place."""
         count = 0
         last_end = 0
         for match in _LINEBREAK.finditer(chunk):
@@ -235,7 +266,8 @@ class _Lexer:
             return self.line + count, self.pos + last_end
         return self.line, self.line_start
 
-    def advance(self, length: int) -> None:
+    def advance_lines(self, length: int) -> None:
+        """Move past ``length`` characters that may hold line breaks."""
         chunk = self.text[self.pos : self.pos + length]
         self.line, self.line_start = self._line_after(chunk)
         self.pos += length
@@ -250,9 +282,14 @@ class _Lexer:
         line, line_start = self._line_after(self.text[self.pos : offset])
         return line, offset - line_start + 1
 
-    def emit(self, kind: TokenKind, text: str, value: Any) -> Token:
+    def emit(
+        self, kind: TokenKind, text: str, value: Any, multiline: bool = False
+    ) -> Token:
         token = Token(kind, text, value, self.line, self.column)
-        self.advance(len(text))
+        if multiline:
+            self.advance_lines(len(text))
+        else:
+            self.pos += len(text)
         self.previous = kind
         return token
 
@@ -261,7 +298,7 @@ class _Lexer:
         while True:
             skip = _SKIP.match(text, self.pos)
             if skip:
-                self.advance(skip.end() - self.pos)
+                self.advance_lines(skip.end() - self.pos)
             if self.pos >= len(text):
                 yield Token(TokenKind.EOF, "", None, self.line, self.column)
                 return
@@ -349,7 +386,8 @@ class _Lexer:
 
     def string_token(self) -> Token:
         text, pos = self.text, self.pos
-        if text.startswith('"""', pos):
+        long = text.startswith('"""', pos)
+        if long:
             match = _LONG_STRING.match(text, pos)
             if match is None:
                 raise self.error("unterminated long string")
@@ -358,7 +396,7 @@ class _Lexer:
             if match is None:
                 raise self.error("unterminated string")
         value = _unescape(match.group(1), self.locate, match.start(1), "string")
-        return self.emit(TokenKind.STRING, match.group(0), value)
+        return self.emit(TokenKind.STRING, match.group(0), value, multiline=long)
 
 
 def tokenize(text: str) -> Iterator[Token]:

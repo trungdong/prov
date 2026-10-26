@@ -15,7 +15,7 @@ from prov.model import (
     ProvMention,
     ProvWarning,
 )
-from prov.serializers.provn import PROFILES, ProvNSyntaxError
+from prov.serializers.provn import PROFILES, ProvNParser, ProvNSyntaxError
 
 PREFIXES = "prefix ex <http://example.org/>\n"
 
@@ -89,6 +89,13 @@ def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
         parse("mentionOf(ex:e1, ex:e0, ex:b)", profile="strict")
     (record,) = records(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)", profile="strict"))
     assert isinstance(record, ProvMention)
+    # A profile assigned after construction governs the parse.
+    parser = ProvNParser(
+        f"document\n{PREFIXES}mentionOf(ex:e1, ex:e0, ex:b)\nendDocument", "default"
+    )
+    parser.profile = "strict"
+    with pytest.raises(ProvNSyntaxError, match="mentionOf"):
+        parser.parse()
 
 
 def test_extensibility_rejected_in_default() -> None:
@@ -185,9 +192,8 @@ def test_lenient_returns_bundle_statements_after_a_skip() -> None:
 
 
 def test_lenient_resync_recovers_from_a_missing_close_paren() -> None:
-    # entity(ex:e1 is missing its ')'; _advance() raises self._depth on '('
-    # and never lowers it again, so resync must not gate on depth staying
-    # at or below where the failed statement started.
+    # entity(ex:e1 is missing its ')', so resync must trust a statement start
+    # at any bracket depth.
     body = "entity(ex:e1\nentity(ex:e2)\nentity(ex:e3)"
     with pytest.warns(ProvWarning) as caught:
         doc = parse(body, profile="lenient")

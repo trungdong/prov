@@ -540,6 +540,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   `QualifiedName` for an `xsd:QName` or `prov:QUALIFIED_NAME` value object, where it
   returned a `Literal` the record then resolved; records are unchanged
   ([#450](https://github.com/trungdong/prov/issues/450))
+- The PROV-N lexer and writer share one escaping table, and the parser holds its
+  profiles and statement keywords as tables. The lexer counts line breaks only where a
+  token can hold one, and the parser keeps its current token as an attribute and no
+  longer tracks bracket depth. Nothing changes in what the PROV-N reader accepts or
+  rejects, or in the positions its errors give
+  ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
   written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
   record or an adopted name from warning a second time are gone with the warnings
