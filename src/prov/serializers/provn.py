@@ -64,7 +64,9 @@ class ProvNSerializer(Serializer):
                 ``"default"`` (plus the bare ``mentionOf`` keyword that
                 ``prov`` and ProvToolbox write) or ``"lenient"`` (as
                 ``default``, skipping any statement that fails to parse with
-                a :class:`~prov.model.ProvWarning`).
+                a :class:`~prov.model.ProvWarning`). Every profile drops an
+                extensibility expression (``prefix:name(...)``) with one
+                :class:`~prov.model.ProvWarning` and reads no record from it.
             **args: Unused; accepted for interface compatibility.
 
         Returns:

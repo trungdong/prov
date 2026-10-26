@@ -36,6 +36,13 @@ of two flags, and ``PROFILES`` lists the names:
   the model rejects, is skipped and parsing resumes at the next statement. A bundle
   whose identifier the model rejects is skipped too.
 
+Under every profile, a statement whose keyword has a prefix and no rule is an
+extensibility expression ([49] to [51]). The parser reads it by the grammar and
+drops it with one ``skipped`` message naming its predicate and position. An
+expression nests at most 32 levels, counting each bracket an argument opens
+(``(`` or ``{``), and nothing in it resolves, so a prefix declared nowhere is not an
+error there. A bare unknown keyword is still an error.
+
 Recovery is panic-mode. It records the error and skips tokens to a synchronisation
 point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
 ``endDocument``, ``bundle``, ``endBundle``) not preceded by ``=``, at any bracket
@@ -161,6 +168,14 @@ _KEYWORDS: dict[tuple[str, str], _Rule] = {
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
 
+# Brackets an extensibility argument may open (N53): [50] and [51].
+_MAX_EXTENSION_DEPTH = 32
+_TUPLE_CLOSERS = {
+    TokenKind.LBRACE: TokenKind.RBRACE,
+    TokenKind.LPAREN: TokenKind.RPAREN,
+}
+_LITERAL_KINDS = (TokenKind.STRING, TokenKind.INT, TokenKind.QNAME_LITERAL)
+
 # PROV-N predeclares these two prefixes; ``xsi`` is an ordinary prefix.
 _RESERVED_PREFIXES: dict[str, Namespace] = {"prov": PROV, "xsd": XSD}
 
@@ -173,9 +188,9 @@ class ProvNParser:
         profile: One of :data:`PROFILES`.
 
     Attributes:
-        skipped: Messages for the statements the ``lenient`` profile
-            skipped, in source order; empty for every other profile. Read
-            after :meth:`parse` returns.
+        skipped: Messages for the extensibility expressions dropped under
+            every profile and for the statements the ``lenient`` profile
+            skipped, in source order. Read after :meth:`parse` returns.
 
     Raises:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
@@ -256,13 +271,13 @@ class ProvNParser:
 
     def _reject_unclosed_structural_keyword(self) -> None:
         """Refuse a bare structural keyword as an identifier or argument
-        unless it is immediately followed by ',', ')' or ';' -- the only
+        unless it is immediately followed by ',', ')', ';' or '}' -- the only
         tokens that follow a real identifier inside a statement's
-        parentheses. Anything else means a statement left open by a
-        missing ')'/']' has read straight through a following 'bundle',
-        'endBundle' or 'endDocument' as if it were data; raising here
-        without consuming the token lets lenient resync (and, outside
-        lenient, the enclosing loop) still find it.
+        parentheses or an extensibility tuple. Anything else means a
+        statement left open by a missing ')'/']'/'}' has read straight
+        through a following 'bundle', 'endBundle' or 'endDocument' as if it
+        were data; raising here without consuming the token lets lenient
+        resync (and, outside lenient, the enclosing loop) still find it.
         """
         current = self._current
         if current.kind is not TokenKind.NAME:
@@ -274,6 +289,7 @@ class ProvNParser:
             TokenKind.COMMA,
             TokenKind.RPAREN,
             TokenKind.SEMICOLON,
+            TokenKind.RBRACE,
         ):
             return
         raise self._error(f"expected an identifier, found {self._found()}")
@@ -473,11 +489,13 @@ class ProvNParser:
     def _resync(self) -> None:
         """Skip to the next statement boundary.
 
-        A name followed by ``(`` is a boundary at any bracket depth. No
-        production puts ``(`` after a name inside a statement body, so the pair
-        marks a boundary whatever the name is, known or not. Testing the name
-        against the keyword tables would run a skip through every following
-        statement they do not know and report a run of bad statements as one.
+        A name followed by ``(`` is a boundary at any bracket depth. Only an
+        extensibility expression puts ``(`` after a name inside a statement
+        body ([50]), so the pair marks a boundary whatever the name is, known
+        or not. Testing the name against the keyword tables would run a skip
+        through every following statement they do not know and report a run of
+        bad statements as one. Recovery inside an expression can stop at a
+        nested predicate and read it as a statement of its own.
 
         A structural keyword (``document``, ``bundle``, ...) is a boundary
         unless the token before it is ``=``. The same word is a legal attribute
@@ -496,16 +514,13 @@ class ProvNParser:
 
     # -- expressions -------------------------------------------------------------
 
-    def _classify(self, token: Token) -> _Rule:
-        """Return the rule for a statement keyword token."""
+    def _classify(self, token: Token) -> _Rule | None:
+        """Return the rule for a statement keyword token, or ``None`` for an
+        extensibility expression ([49]): a prefixed name no rule claims."""
         prefix, local = token.value
         rule = _KEYWORDS.get(token.value)
-        if rule is not None:
+        if rule is not None or prefix:
             return rule
-        if prefix:
-            raise self._error(
-                f"extensibility expression '{token.text}(...)' is not supported", token
-            )
         if local == "mentionOf":
             if self._profile.extensions:
                 return _KEYWORDS[("prov", "mentionOf")]
@@ -521,6 +536,9 @@ class ProvNParser:
         """Parse one statement, production ``expression``, and add its record."""
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
         rule = self._classify(keyword)
+        if rule is None:
+            self._extension(keyword)
+            return
         identifier, args, attribute_block = self._arguments(keyword, rule, bundle)
 
         if len(args) not in rule.arities:
@@ -623,6 +641,110 @@ class ProvNParser:
                     arg,
                 )
 
+    # -- extensibility expressions ([49] to [51]) --------------------------------
+    #
+    # Syntax only (N52): nothing in an expression resolves against a namespace,
+    # so these methods take no declaration scope and look no name up.
+
+    def _extension(self, keyword: Token) -> None:
+        """Consume an extensibility expression [49] after its predicate and
+        record its drop."""
+        self._extension_call(0)
+        self.skipped.append(
+            "PROV-N extensibility expression dropped:"
+            f" line {keyword.line}, column {keyword.column}: '{keyword.text}'"
+        )
+
+    def _extension_open(self, kind: TokenKind, depth: int) -> None:
+        """Consume the bracket that opens level ``depth`` (N53)."""
+        if depth > _MAX_EXTENSION_DEPTH:
+            raise self._error(
+                f"extensibility expression nested more than {_MAX_EXTENSION_DEPTH}"
+                " levels"
+            )
+        self._expect(kind)
+
+    def _extension_call(self, depth: int) -> None:
+        """Consume ``( [identifier ;] argument {, argument} [, [...]] )`` [49]."""
+        self._extension_open(TokenKind.LPAREN, depth)
+        if self._peek().kind is TokenKind.SEMICOLON and self._extension_identifier():
+            self._advance()
+        self._extension_list(depth, TokenKind.RPAREN, attributes=True)
+
+    def _extension_tuple(self, depth: int) -> None:
+        """Consume ``{ argument {, argument} }`` or the ``( ... )`` form [51]."""
+        kind = self._current.kind
+        self._extension_open(kind, depth)
+        self._extension_list(depth, _TUPLE_CLOSERS[kind], attributes=False)
+
+    def _extension_list(
+        self, depth: int, closer: TokenKind, *, attributes: bool
+    ) -> None:
+        """Consume the comma-separated arguments up to ``closer``; an
+        expression ([49]) may end with an attribute block, a tuple may not."""
+        self._extension_argument(depth)
+        separator = self._current.kind
+        while separator is TokenKind.COMMA:
+            self._advance()
+            if attributes and self._current.kind is TokenKind.LBRACKET:
+                self._extension_attributes()
+                break
+            self._extension_argument(depth)
+            separator = self._current.kind
+        self._expect(closer)
+
+    def _extension_argument(self, depth: int) -> None:
+        """Consume one argument [50], inside a bracket at level ``depth``."""
+        current = self._current
+        if current.kind is TokenKind.NAME and self._peek().kind is TokenKind.LPAREN:
+            # A nested expression; its '(' opens a level (N53).
+            predicate = self._advance()
+            if not predicate.value[0]:
+                raise self._error(
+                    f"the predicate '{predicate.text}' of an extensibility"
+                    " expression has no prefix",
+                    predicate,
+                )
+            self._extension_call(depth + 1)
+        elif current.kind in _TUPLE_CLOSERS:
+            self._extension_tuple(depth + 1)
+        elif current.kind is TokenKind.DATETIME:
+            self._advance()
+        elif current.kind in _LITERAL_KINDS:
+            # An unsigned INT is an identifier or an integer, one token either way.
+            self._literal_tokens()
+        elif not self._extension_identifier():
+            raise self._error(
+                f"expected an extensibility argument, found {self._found()}"
+            )
+
+    def _extension_identifier(self) -> bool:
+        """Consume an identifier or ``-`` and return ``True``, or return
+        ``False`` and consume nothing at any other token."""
+        if self._digit_run_as_name() is not None:
+            return True
+        if self._current.kind not in (TokenKind.NAME, TokenKind.MARKER):
+            return False
+        self._reject_unclosed_structural_keyword()
+        self._advance()
+        return True
+
+    def _extension_attributes(self) -> None:
+        """Consume ``[ name = literal {, name = literal} ]`` [4], [5]."""
+        self._expect(TokenKind.LBRACKET)
+        if self._current.kind is not TokenKind.RBRACKET:
+            self._extension_pair()
+            while self._current.kind is TokenKind.COMMA:
+                self._advance()
+                self._extension_pair()
+        self._expect(TokenKind.RBRACKET)
+
+    def _extension_pair(self) -> None:
+        if self._digit_run_as_name() is None:
+            self._expect(TokenKind.NAME, "an attribute name")
+        self._expect(TokenKind.EQUALS)
+        self._literal_tokens()
+
     def _argument(self) -> Token:
         # A relation argument is always an identifier, a time or '-', never
         # a literal, so an unsigned INT token here is a bare local name;
@@ -693,28 +815,42 @@ class ProvNParser:
             self._expect(TokenKind.RBRACKET)
             return pairs
 
-    def _literal(self, bundle: ProvBundle) -> Any:
+    def _literal_tokens(self) -> tuple[Token, Token | None]:
+        """Consume a literal's tokens [40] to [43] without resolving any name.
+
+        Return the value token and, for a string, the language tag or the
+        datatype name that follows it.
+        """
         token = self._current
         if token.kind is TokenKind.STRING:
             self._advance()
             if self._current.kind is TokenKind.LANGTAG:
-                return Literal(token.value, langtag=self._advance().value)
+                return token, self._advance()
             if self._current.kind is TokenKind.TYPED:
                 self._advance()
-                datatype_token = self._digit_run_as_name() or self._expect(
+                return token, self._digit_run_as_name() or self._expect(
                     TokenKind.NAME, "a datatype"
                 )
-                datatype = self._resolve(datatype_token, bundle)
-                if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
-                    return self._resolve_name_value(token, bundle)
-                return Literal(token.value, datatype)
-            return token.value
+            return token, None
+        if token.kind not in (TokenKind.INT, TokenKind.QNAME_LITERAL):
+            raise self._error(f"expected a literal value, found {self._found()}")
+        self._advance()
+        return token, None
+
+    def _literal(self, bundle: ProvBundle) -> Any:
+        token, suffix = self._literal_tokens()
         if token.kind is TokenKind.INT:
-            return self._advance().value
+            return token.value
         if token.kind is TokenKind.QNAME_LITERAL:
-            self._advance()
             return self._resolve_name_value(token, bundle)
-        raise self._error(f"expected a literal value, found {self._found()}")
+        if suffix is None:
+            return token.value
+        if suffix.kind is TokenKind.LANGTAG:
+            return Literal(token.value, langtag=suffix.value)
+        datatype = self._resolve(suffix, bundle)
+        if datatype in (PROV_QUALIFIEDNAME, XSD_QNAME):
+            return self._resolve_name_value(token, bundle)
+        return Literal(token.value, datatype)
 
     def _resolve_name_value(self, token: Token, bundle: ProvBundle) -> QualifiedName:
         """The qualified-name value at ``token``: a lexed pair for a

@@ -98,11 +98,6 @@ def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
         parser.parse()
 
 
-def test_extensibility_rejected_in_default() -> None:
-    with pytest.raises(ProvNSyntaxError, match="extensibility expression"):
-        parse("ex:custom(ex:e1)")
-
-
 def test_lenient_skips_bad_statement_and_warns_with_position() -> None:
     # document=1, prefix ex=2, entity(ex:e1)=3, so foo(ex:e2) is line 4 --
     # same convention test_provn.py's test_errors_name_the_problem_and_position
@@ -151,31 +146,33 @@ def test_lenient_warns_for_each_of_two_adjacent_unknown_statements() -> None:
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e4"]
 
 
-def test_lenient_warns_for_each_of_two_adjacent_extensibility_expressions() -> None:
-    # ProvToolbox's summary documents write runs of provext: statements; each
-    # must be reported, not only the first of a run.
-    body = (
-        "prefix provext <http://openprovenance.org/prov/extension#>\n"
-        "entity(ex:e1)\n"
-        "provext:hadMember(ex:c, ex:e1)\n"
-        "provext:hadMember(ex:c, ex:e2)\n"
-        "entity(ex:e2)"
-    )
-    with pytest.warns(ProvWarning) as caught:
-        doc = parse(body, profile="lenient")
-    assert [str(w.message) for w in caught] == [
-        "PROV-N statement skipped: line 5, column 1: extensibility expression "
-        "'provext:hadMember(...)' is not supported",
-        "PROV-N statement skipped: line 6, column 1: extensibility expression "
-        "'provext:hadMember(...)' is not supported",
-    ]
-    assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e2"]
-
-
-def test_lenient_skips_extensibility_expression() -> None:
-    with pytest.warns(ProvWarning, match="extensibility"):
-        doc = parse("ex:custom(ex:e1)\nentity(ex:e2)", profile="lenient")
-    assert [str(r.identifier) for r in records(doc)] == ["ex:e2"]
+@pytest.mark.parametrize(
+    ("body", "profiles", "identifiers"),
+    [
+        ("ex:custom(ex:e1)\nentity(ex:e2)", PROFILES, ["ex:e2"]),
+        (
+            # ProvToolbox's summary documents write runs of provext: statements.
+            "prefix provext <http://openprovenance.org/prov/extension#>\n"
+            "entity(ex:e1)\nprovext:hadMember(ex:c, ex:e1)\n"
+            "provext:hadMember(ex:c, ex:e2)\nentity(ex:e2)",
+            PROFILES,
+            ["ex:e1", "ex:e2"],
+        ),
+        (
+            "ex:f(ex:a, BAD BAD, ex:g(ex:b), ex:c)\nentity(ex:e)",
+            ("lenient",),
+            ["ex:e"],
+        ),
+    ],
+)
+def test_dropped_expression_reads_no_record_and_its_neighbours_read(
+    body, profiles, identifiers
+) -> None:
+    for profile in profiles:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ProvWarning)
+            doc = parse(body, profile=profile)
+        assert sorted(str(r.identifier) for r in records(doc)) == identifiers, profile
 
 
 def test_lenient_still_raises_on_tokenisation_error() -> None:
