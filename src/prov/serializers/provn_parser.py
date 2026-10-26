@@ -12,7 +12,7 @@ Profiles:
 - ``default``: also the bare ``mentionOf`` keyword that ``prov`` and
   ProvToolbox write (the Recommendation grammar has no Mention production;
   PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker where the
-  grammar has a plain identifier (see ``_STRICT_REQUIRED_LEADING``).
+  grammar has a plain identifier (each rule's ``arities`` in ``_KEYWORDS``).
 - ``lenient``: as ``default``; a statement that fails to parse, including
   one the model rejects, is skipped and parsing resumes at the next
   statement. Tokenisation errors are fatal in every profile.
@@ -26,6 +26,7 @@ level or inside a bundle.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from prov.constants import (
@@ -80,46 +81,54 @@ from prov.serializers.provn_lexer import (
 
 __all__ = ["PROFILES", "ProvNParser"]
 
-PROFILES = ("strict", "default", "lenient")
+
+@dataclass(frozen=True, slots=True)
+class _Profile:
+    extensions: bool  # the Recommendation's grammar plus bare mentionOf and '-'
+    recover: bool  # skip a statement that fails and resync
 
 
-# keyword -> (record type, allowed argument counts after the identifier)
-_ELEMENTS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
-    "entity": (PROV_ENTITY, (0,)),
-    "activity": (PROV_ACTIVITY, (0, 2)),
-    "agent": (PROV_AGENT, (0,)),
+_PROFILES = {
+    "strict": _Profile(extensions=False, recover=False),
+    "default": _Profile(extensions=True, recover=False),
+    "lenient": _Profile(extensions=True, recover=True),
 }
-# keyword -> (record type, allowed argument counts)
-_RELATIONS: dict[str, tuple[QualifiedName, tuple[int, ...]]] = {
-    "wasGeneratedBy": (PROV_GENERATION, (1, 3)),
-    "used": (PROV_USAGE, (1, 3)),
-    "wasInvalidatedBy": (PROV_INVALIDATION, (1, 3)),
-    "wasStartedBy": (PROV_START, (1, 4)),
-    "wasEndedBy": (PROV_END, (1, 4)),
-    "wasInformedBy": (PROV_COMMUNICATION, (2,)),
-    "wasAttributedTo": (PROV_ATTRIBUTION, (2,)),
-    "wasAssociatedWith": (PROV_ASSOCIATION, (1, 3)),
-    "actedOnBehalfOf": (PROV_DELEGATION, (2, 3)),
-    "wasDerivedFrom": (PROV_DERIVATION, (2, 5)),
-    "wasInfluencedBy": (PROV_INFLUENCE, (2,)),
-    "alternateOf": (PROV_ALTERNATE, (2,)),
-    "specializationOf": (PROV_SPECIALIZATION, (2,)),
-    "hadMember": (PROV_MEMBERSHIP, (2,)),
+PROFILES = tuple(_PROFILES)
+
+
+@dataclass(frozen=True, slots=True)
+class _Rule:
+    record_type: QualifiedName
+    arities: tuple[int, ...]  # allowed argument counts after the identifier, if any
+    element: bool  # an element takes its identifier first, a relation an optional 'id;'
+
+
+# (prefix, local) of a statement keyword -> its rule. A relation's compact form
+# (no ';') lists exactly its required identifiers, so its smallest arity is the
+# number of leading arguments the strict profile refuses '-' in (#257). Bare
+# 'mentionOf' is not a key, because the profile decides it.
+_KEYWORDS: dict[tuple[str, str], _Rule] = {
+    ("", "entity"): _Rule(PROV_ENTITY, (0,), element=True),
+    ("", "activity"): _Rule(PROV_ACTIVITY, (0, 2), element=True),
+    ("", "agent"): _Rule(PROV_AGENT, (0,), element=True),
+    ("", "wasGeneratedBy"): _Rule(PROV_GENERATION, (1, 3), element=False),
+    ("", "used"): _Rule(PROV_USAGE, (1, 3), element=False),
+    ("", "wasInvalidatedBy"): _Rule(PROV_INVALIDATION, (1, 3), element=False),
+    ("", "wasStartedBy"): _Rule(PROV_START, (1, 4), element=False),
+    ("", "wasEndedBy"): _Rule(PROV_END, (1, 4), element=False),
+    ("", "wasInformedBy"): _Rule(PROV_COMMUNICATION, (2,), element=False),
+    ("", "wasAttributedTo"): _Rule(PROV_ATTRIBUTION, (2,), element=False),
+    ("", "wasAssociatedWith"): _Rule(PROV_ASSOCIATION, (1, 3), element=False),
+    ("", "actedOnBehalfOf"): _Rule(PROV_DELEGATION, (2, 3), element=False),
+    ("", "wasDerivedFrom"): _Rule(PROV_DERIVATION, (2, 5), element=False),
+    ("", "wasInfluencedBy"): _Rule(PROV_INFLUENCE, (2,), element=False),
+    ("", "alternateOf"): _Rule(PROV_ALTERNATE, (2,), element=False),
+    ("", "specializationOf"): _Rule(PROV_SPECIALIZATION, (2,), element=False),
+    ("", "hadMember"): _Rule(PROV_MEMBERSHIP, (2,), element=False),
+    ("prov", "mentionOf"): _Rule(PROV_MENTION, (3,), element=False),
 }
-_MENTION: tuple[QualifiedName, tuple[int, ...]] = (PROV_MENTION, (3,))
 _STRUCTURAL = frozenset({"document", "endDocument", "bundle", "endBundle"})
 _ARGUMENT_KINDS = (TokenKind.NAME, TokenKind.MARKER, TokenKind.DATETIME)
-
-# keyword -> number of leading arguments (after any 'id;') that the
-# Recommendation's grammar makes a plain identifier, not an identifierOrMarker;
-# '-' there is only ever accepted under the default/lenient extensions,
-# matching the model's scruffy-statement policy (#257).
-#
-# A relation's compact form (no ';') lists exactly its required identifiers,
-# so the smallest allowed arity is that required count.
-_STRICT_REQUIRED_LEADING: dict[str, int] = {
-    name: min(arities) for name, (_, arities) in _RELATIONS.items()
-} | {"mentionOf": min(_MENTION[1])}
 
 # PROV-N keywords of the relations that take neither an identifier nor an
 # attribute block (productions 24 to 26).
@@ -149,6 +158,7 @@ class ProvNParser:
         if profile not in PROFILES:
             raise ValueError(f"profile must be one of {PROFILES}, got {profile!r}")
         self.profile = profile
+        self._profile = _PROFILES[profile]
         self.skipped: list[str] = []
         self._text = text
         self._tokens: list[Token] = []
@@ -279,7 +289,7 @@ class ProvNParser:
                 after_bundle = True
             else:
                 # Production 1 puts every expression before the first bundle.
-                if after_bundle and self.profile == "strict":
+                if after_bundle and not self._profile.extensions:
                     raise self._error(
                         "a statement follows a bundle, which the strict profile"
                         " does not allow"
@@ -333,7 +343,7 @@ class ProvNParser:
                     raise self._error(
                         "'default' is declared twice in this scope", keyword
                     )
-                if namespaces and self.profile == "strict":
+                if namespaces and not self._profile.extensions:
                     raise self._error(
                         "'default' follows a 'prefix' declaration, which the"
                         " strict profile does not allow",
@@ -369,7 +379,7 @@ class ProvNParser:
                 " be redeclared",
                 token,
             )
-        if self.profile == "strict":
+        if not self._profile.extensions:
             raise self._error(
                 f"prefix '{prefix}' is predeclared, and the strict profile does"
                 " not allow declaring it",
@@ -398,7 +408,7 @@ class ProvNParser:
             raise
         except ProvException as exc:
             error = ProvNSyntaxError(str(exc), id_token.line, id_token.column)
-            if self.profile != "lenient":
+            if not self._profile.recover:
                 raise error from exc
             error.__cause__ = exc
             self.skipped.append(f"PROV-N bundle skipped: {error}")
@@ -435,7 +445,7 @@ class ProvNParser:
             self._skip_or_raise(wrapped, start_depth)
 
     def _skip_or_raise(self, error: ProvNSyntaxError, start_depth: int) -> None:
-        if self.profile != "lenient":
+        if not self._profile.recover:
             raise error
         self.skipped.append(f"PROV-N statement skipped: {error}")
         self._resync(start_depth)
@@ -487,24 +497,19 @@ class ProvNParser:
 
     # -- expressions -------------------------------------------------------------
 
-    def _classify(self, token: Token) -> tuple[QualifiedName, tuple[int, ...], bool]:
-        """Return (record type, arities, is_element) for a keyword token."""
+    def _classify(self, token: Token) -> _Rule:
+        """Return the rule for a statement keyword token."""
         prefix, local = token.value
-        extensions = self.profile != "strict"
-        if (prefix, local) == ("prov", "mentionOf") or (
-            extensions and (prefix, local) == ("", "mentionOf")
-        ):
-            return (*_MENTION, False)
+        rule = _KEYWORDS.get(token.value)
+        if rule is not None:
+            return rule
         if prefix:
             raise self._error(
                 f"extensibility expression '{token.text}(...)' is not supported", token
             )
-        if local in _ELEMENTS:
-            return (*_ELEMENTS[local], True)
-        if local in _RELATIONS:
-            return (*_RELATIONS[local], False)
         if local == "mentionOf":
-            # Only reachable under strict; default and lenient matched above.
+            if self._profile.extensions:
+                return _KEYWORDS[("prov", "mentionOf")]
             raise self._error(
                 "unknown statement keyword 'mentionOf' under the strict profile: "
                 "write 'prov:mentionOf', or parse with profile='default' to accept "
@@ -515,11 +520,11 @@ class ProvNParser:
 
     def _expression(self, bundle: ProvBundle) -> None:
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
-        rec_type, arities, is_element = self._classify(keyword)
+        rule = self._classify(keyword)
         self._expect(TokenKind.LPAREN)
         identifier: QualifiedName | None = None
         args: list[Token] = []
-        if is_element:
+        if rule.element:
             id_token = self._identifier_token()
             identifier = self._resolve(id_token, bundle)
         else:
@@ -550,13 +555,13 @@ class ProvNParser:
             separator = self._current.kind
         self._expect(TokenKind.RPAREN)
 
-        if len(args) not in arities:
-            allowed = " or ".join(str(n) for n in arities)
+        if len(args) not in rule.arities:
+            allowed = " or ".join(str(n) for n in rule.arities)
             raise self._error(
                 f"'{keyword.text}' takes {allowed} arguments, got {len(args)}", keyword
             )
-        self._check_strict_required_positions(keyword, args)
-        formal_names = PROV_REC_CLS[rec_type].FORMAL_ATTRIBUTES
+        self._check_strict_required_positions(keyword, rule, args)
+        formal_names = PROV_REC_CLS[rule.record_type].FORMAL_ATTRIBUTES
         attributes = []
         for attr, token in zip(formal_names, args, strict=False):
             value = self._argument_value(token, attr, bundle)
@@ -564,14 +569,14 @@ class ProvNParser:
                 attributes.append((attr, value))
         self._check_formal_attributes(keyword, formal_names, attribute_block)
         other_attributes = [(name, value) for name, value, _ in attribute_block]
-        bundle.new_record(rec_type, identifier, attributes, other_attributes)
+        bundle.new_record(rule.record_type, identifier, attributes, other_attributes)
 
     def _check_strict_bare_relation(
         self, keyword: Token, token: Token, what: str
     ) -> None:
         """Under ``strict``, reject an identifier or an attribute block on a
         relation whose production has neither (productions 24 to 26)."""
-        if self.profile == "strict" and keyword.value[1] in _BARE_RELATIONS:
+        if not self._profile.extensions and keyword.value[1] in _BARE_RELATIONS:
             raise self._error(
                 f"'{keyword.text}' has {what}, which the strict profile does not allow",
                 token,
@@ -594,15 +599,14 @@ class ProvNParser:
                 )
 
     def _check_strict_required_positions(
-        self, keyword: Token, args: list[Token]
+        self, keyword: Token, rule: _Rule, args: list[Token]
     ) -> None:
         """Under ``strict``, reject '-' where the grammar has a plain
         identifier (no ``OrMarker``); ``default``/``lenient`` keep accepting
         it there, matching the model's scruffy-statement policy."""
-        if self.profile != "strict":
+        if self._profile.extensions:
             return
-        _, local = keyword.value
-        required = _STRICT_REQUIRED_LEADING.get(local, 0)
+        required = 0 if rule.element else min(rule.arities)
         for index, arg in enumerate(args[:required]):
             if arg.kind is TokenKind.MARKER:
                 raise self._error(
