@@ -232,8 +232,8 @@ class _Lexer:
     def _line_after(self, chunk: str) -> tuple[int, int]:
         """(line, line_start) reached by moving past ``chunk``, which starts
         at ``self.pos``; a CRLF pair counts as a single line break. Shared by
-        ``advance`` (moving the lexer itself) and ``locate`` (a read-only
-        look-ahead), so the newline arithmetic lives in one place."""
+        ``advance_lines`` (moving the lexer itself) and ``locate`` (a
+        read-only look-ahead), so the newline arithmetic lives in one place."""
         count = 0
         last_end = 0
         for match in _LINEBREAK.finditer(chunk):
@@ -244,6 +244,11 @@ class _Lexer:
         return self.line, self.line_start
 
     def advance(self, length: int) -> None:
+        """Move past ``length`` characters that hold no line break."""
+        self.pos += length
+
+    def advance_lines(self, length: int) -> None:
+        """Move past ``length`` characters that may hold line breaks."""
         chunk = self.text[self.pos : self.pos + length]
         self.line, self.line_start = self._line_after(chunk)
         self.pos += length
@@ -258,9 +263,11 @@ class _Lexer:
         line, line_start = self._line_after(self.text[self.pos : offset])
         return line, offset - line_start + 1
 
-    def emit(self, kind: TokenKind, text: str, value: Any) -> Token:
+    def emit(
+        self, kind: TokenKind, text: str, value: Any, multiline: bool = False
+    ) -> Token:
         token = Token(kind, text, value, self.line, self.column)
-        self.advance(len(text))
+        (self.advance_lines if multiline else self.advance)(len(text))
         self.previous = kind
         return token
 
@@ -269,7 +276,7 @@ class _Lexer:
         while True:
             skip = _SKIP.match(text, self.pos)
             if skip:
-                self.advance(skip.end() - self.pos)
+                self.advance_lines(skip.end() - self.pos)
             if self.pos >= len(text):
                 yield Token(TokenKind.EOF, "", None, self.line, self.column)
                 return
@@ -357,7 +364,8 @@ class _Lexer:
 
     def string_token(self) -> Token:
         text, pos = self.text, self.pos
-        if text.startswith('"""', pos):
+        long = text.startswith('"""', pos)
+        if long:
             match = _LONG_STRING.match(text, pos)
             if match is None:
                 raise self.error("unterminated long string")
@@ -366,7 +374,7 @@ class _Lexer:
             if match is None:
                 raise self.error("unterminated string")
         value = _unescape(match.group(1), self.locate, match.start(1), "string")
-        return self.emit(TokenKind.STRING, match.group(0), value)
+        return self.emit(TokenKind.STRING, match.group(0), value, long)
 
 
 def tokenize(text: str) -> Iterator[Token]:

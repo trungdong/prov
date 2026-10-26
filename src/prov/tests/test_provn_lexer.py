@@ -141,10 +141,23 @@ def test_bare_local_name_has_empty_prefix() -> None:
     assert values("e1") == [("", "e1")]
 
 
-def test_line_and_column_tracking() -> None:
-    tokens = list(tokenize("entity(\n  ex:e1)"))
+@pytest.mark.parametrize(
+    ("text", "index", "line", "column"),
+    [
+        ("entity(\n  ex:e1)", 2, 2, 3),
+        ('"""a\nb""" ex:x', 1, 2, 6),
+        ('"""a\r\nb""" ex:x', 1, 2, 6),
+        ('"""a\rb\nc""" ex:x', 1, 3, 6),
+        ("a /* x\r\ny */ b", 1, 2, 6),
+        ('"a" ex:x', 1, 1, 5),
+    ],
+)
+def test_line_and_column_tracking(
+    text: str, index: int, line: int, column: int
+) -> None:
+    tokens = list(tokenize(text))
     assert (tokens[0].line, tokens[0].column) == (1, 1)
-    assert (tokens[2].line, tokens[2].column) == (2, 3)
+    assert (tokens[index].line, tokens[index].column) == (line, column)
     assert tokens[-1].kind is TokenKind.EOF
 
 
