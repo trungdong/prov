@@ -514,6 +514,12 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   ([#677](https://github.com/trungdong/prov/issues/677),
   [#571](https://github.com/trungdong/prov/issues/571),
   [#570](https://github.com/trungdong/prov/issues/570))
+- The PROV-N reader parses an extensibility expression (`prefix:name(...)`) under every
+  profile and drops it with one `ProvWarning` naming its predicate and position, where
+  `strict` and `default` raised and `lenient` skipped it. No name inside one is resolved,
+  so a prefix declared nowhere there is not an error. A stray `{` or `}` is a
+  `ProvNSyntaxError` at its statement, which `lenient` skips, where every profile raised
+  at the character ([#520](https://github.com/trungdong/prov/issues/520))
 
 ### Project
 
