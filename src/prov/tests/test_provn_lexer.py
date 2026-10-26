@@ -193,6 +193,8 @@ NON_WS_SPACES = [
         ("ex:a:b", 1, 5),
         ('"x" %', 1, 5),
         ("ex:a\\zb", 1, 5),
+        ('"a\\\rb"', 1, 3),
+        ("'a\\\rb'", 1, 3),
         *[(f"entity(ex:e){ch}endDocument", 1, 13) for ch in NON_WS_SPACES],
         ("entity(ex:e) \xa0// note\n\xa0endDocument", 1, 14),
     ],

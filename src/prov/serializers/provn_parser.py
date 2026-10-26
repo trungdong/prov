@@ -300,6 +300,7 @@ class ProvNParser:
 
     def parse(self) -> ProvDocument:
         """Parse the whole input and return the document."""
+        self._profile = _PROFILES[self.profile]
         self._tokens = list(tokenize(self._text))
         self._pos = 0
         self._current = self._tokens[0]

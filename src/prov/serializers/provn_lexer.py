@@ -28,6 +28,10 @@ Only skipped whitespace and comments and long strings can hold a line break. The
 scanner counts line breaks in those (``advance_lines``) and moves every other token
 forward by its length (``advance``). A CR LF pair, a lone CR and a lone LF each count
 as one line break.
+
+The IRI regex excludes line breaks. The short-string and quoted-name regexes admit a
+backslash before a CR, so ``_unescape`` and ``_split_qname`` refuse it before the
+scanner emits the token.
 """
 
 from __future__ import annotations
@@ -103,15 +107,9 @@ class Token:
     column: int
 
 
-# Character classes from the Recommendation ([53] to [55]); '.' is handled
-# in the local-part patterns because its placement rules differ.
-# prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables and
-# holds PN_CHARS_OTHER, which QualifiedName's writability check also reads,
-# and PN_CHARS_ESC, which the writer's escaping also reads. This module
-# imports all four. PN_CHARS_U (NCName's NameStartChar,
-# '_' included) is that table unchanged. The classes' equivalence to the
-# NCName tables over the full codepoint space is pinned by
-# test_provn_lexer.py.
+# '.' is handled in the local-part patterns because its placement rules differ.
+# PN_CHARS_U is the NCName start table, '_' included. test_provn_lexer.py pins
+# the classes' equivalence to the NCName tables over the full code-point space.
 _PN_CHARS_U = _NCNAME_START_CHARS
 _PN_OTHERS = re.escape(_PN_CHARS_OTHER)
 _PERCENT = r"%[0-9A-Fa-f]{2}"

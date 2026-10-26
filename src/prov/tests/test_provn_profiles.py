@@ -15,7 +15,7 @@ from prov.model import (
     ProvMention,
     ProvWarning,
 )
-from prov.serializers.provn import PROFILES, ProvNSyntaxError
+from prov.serializers.provn import PROFILES, ProvNParser, ProvNSyntaxError
 
 PREFIXES = "prefix ex <http://example.org/>\n"
 
@@ -89,6 +89,13 @@ def test_strict_rejects_bare_mention_but_accepts_prefixed() -> None:
         parse("mentionOf(ex:e1, ex:e0, ex:b)", profile="strict")
     (record,) = records(parse("prov:mentionOf(ex:e1, ex:e0, ex:b)", profile="strict"))
     assert isinstance(record, ProvMention)
+    # A profile assigned after construction governs the parse.
+    parser = ProvNParser(
+        f"document\n{PREFIXES}mentionOf(ex:e1, ex:e0, ex:b)\nendDocument", "default"
+    )
+    parser.profile = "strict"
+    with pytest.raises(ProvNSyntaxError, match="mentionOf"):
+        parser.parse()
 
 
 def test_extensibility_rejected_in_default() -> None:
