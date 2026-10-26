@@ -1188,7 +1188,7 @@ def test_a_name_the_nsmap_does_not_resolve_is_rejected_by_the_model(
         ),
         str(ctx.value),
     )
-    assert type(ctx.value.__cause__) is prov.ProvExceptionInvalidQualifiedName
+    assert isinstance(ctx.value.__cause__, prov.ProvExceptionInvalidQualifiedName)
 
 
 def _iris(document: prov.ProvDocument) -> list[str]:

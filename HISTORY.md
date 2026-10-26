@@ -68,14 +68,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   holding `:` falls under the prefix rule above. 3.2.3 accepted such an IRI, PROV-JSONLD
   registered such a term as a namespace, and PROV-N output declared it as
   `prefix id <@id>` ([#668](https://github.com/trungdong/prov/issues/668))
-- A name in PROV-XML whose prefix no element in scope declares, in a record or bundle
-  `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a reference given as element
-  text, a `ProvXMLException` naming the element and the line, with the model's refusal as
+- A name in PROV-XML whose prefix no element in scope declares and the document has not
+  already registered, in a record or bundle `prov:id`, a `prov:ref`, `xsd:QName` text,
+  `xsi:type` or a reference given as element text, a `ProvXMLException` naming the element and the line, with the model's refusal as
   the cause, whether or not the document declares an `xmlns`. A name with no colon in a
   document with no `xmlns` is rejected the same way, and a value equal to the default
   namespace IRI is rejected with the reason the other formats give. 3.2.3 read such a name
-  as a local part of the default namespace, so `zz:x` became the default namespace's
-  `zz:x` with no error. A file 3.2.3 wrote with a default-namespace local part holding
+  under an `xmlns` as a local part of the default namespace, so `zz:x` became the default
+  namespace's `zz:x`, and without one raised a `ProvXMLException` naming no element. A file 3.2.3 wrote with a default-namespace local part holding
   `:` is fixed by declaring a prefix for the default namespace IRI and writing the name
   under it ([#677](https://github.com/trungdong/prov/issues/677))
 - A Python value of a type with no PROV form, such as a `Fraction` or a `tuple`, a
@@ -498,7 +498,9 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   is. PROV-XML writes such a local part under the same prefix in a record or bundle
   `prov:id`, a `prov:ref` and `xsd:QName` text, so a default-namespace `a:b` beside a
   declared prefix `a` round-trips. 3.2.x wrote `%% a:b`, which read back under the
-  undeclared prefix `a`, and `xsi:type=":t"`, which read back with the local part `:t`
+  undeclared prefix `a`, and `xsi:type=":t"`, which read back with the local part `:t`. A
+  file 3.2.3 wrote with such an `xsi:type`, `":t"` or `":a:b"`, now reads back with the
+  datatype in the default namespace, the default's `t` or `a:b`
   ([#677](https://github.com/trungdong/prov/issues/677),
   [#571](https://github.com/trungdong/prov/issues/571),
   [#570](https://github.com/trungdong/prov/issues/570))

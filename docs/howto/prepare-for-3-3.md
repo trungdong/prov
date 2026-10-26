@@ -203,12 +203,14 @@ attribute after the value: `Invalid Qualified Name: zz:x, the qualified name 'zz
 ex:k does not resolve, because its prefix 'zz' is not declared`. The PROV-JSONLD and
 PROV-O readers raise `ProvJSONLDException` and `ProvRDFException` with it as the cause. The
 PROV-XML reader raises `ProvXMLException` with it as the cause, naming the element and the
-line, for a record or bundle `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a
+line, for a name whose prefix no element in scope declares and the document has not already
+registered, in a record or bundle `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a
 reference given as element text, and for a name with no colon in a document with no
 `xmlns`.
 
-`prov` 3.2.3 read a PROV-XML name whose prefix is not declared as a local part of the
-default namespace, so `zz:x` under an `xmlns` became the default namespace's `zz:x`. A file
+`prov` 3.2.3 read a PROV-XML name whose prefix is not declared, under an `xmlns`, as a
+local part of the default namespace, so `zz:x` became the default namespace's `zz:x`, and
+without an `xmlns` raised a `ProvXMLException` naming no element. A file
 3.2.3 wrote with a default-namespace local part holding `:`, such as `a:b`, has that shape
 in `prov:id`, `prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace
 IRI, such as `xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
