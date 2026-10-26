@@ -103,9 +103,9 @@ committed baseline. `benchmarks/README.md` has the details.
 ## Architecture
 
 `docs/explanation/architecture.md` is the overview (layers, object model, registry and
-auto-detection, extras); `docs/development.md` holds the PROV-N parser internals, the
-serializer conventions and the test-suite layout. The rules below are what an agent must
-not break.
+auto-detection, extras); `docs/development.md` holds the serializer conventions and the
+test-suite layout, and the PROV-N lexer and parser internals live in the module docstrings of
+`provn_lexer.py` and `provn_parser.py`. The rules below are what an agent must not break.
 
 - **Always import from `prov.model`, never from its submodules.** `prov/model/__init__.py`
   re-exports every public name at its historic location and deletes the submodule

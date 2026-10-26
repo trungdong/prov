@@ -6,49 +6,11 @@ request must pass.
 
 ## The PROV-N parser
 
-PROV-N is read by two pure-Python modules with no dependency, `prov.serializers.provn_lexer`
-and `prov.serializers.provn_parser`, wired into the registry by `prov.serializers.provn`.
-
-The lexer is a regex-driven scanner with a fixed sequence of token classes. At each position
-it skips whitespace and comments, then tries the token classes in that order and takes the
-first match. The order encodes the grammar's precedence rules. Delimited tokens (IRIs in
-angle brackets, quoted strings, quoted qualified names) come first, then `xsd:dateTime`, then
-integers and qualified names, since a digit run can start any of the three. Between an
-integer and a qualified name reading of the same run, the scanner takes the longer match and
-prefers the integer reading on a tie, matching the Recommendation's guidance. One rule is
-context-sensitive.
-`@` starts a language tag only when the previous token was a string, since `@` is also a
-legal character inside a local name. The rule that a local name may contain but not end
-with `.` lives in the name regex itself, so the scanner never backtracks. The character
-classes are the same Unicode tables the PROV-XML serializer uses for NCNames, shared through
-`prov.identifier`. Every token carries its line and column.
-
-The parser is recursive descent with one token of lookahead. Every PROV-N statement begins
-with a keyword and every keyword is followed by `(`, so after one token the parser knows
-which rule it is in. Each grammar production is a method (document, declarations, bundle,
-statement, expression, attributes, literal), and the expression rule is table-driven rather
-than one method per keyword. A keyword maps to a record type and the set of legal argument
-counts; the positional arguments are read as a flat list, the count is checked, and each
-position is mapped onto the record class's `FORMAL_ATTRIBUTES` in order, with `-` markers
-omitted. Records are built through the same {py:meth}`~prov.model.ProvBundle.new_record`
-call the PROV-JSON deserializer uses, so literal typing and namespace handling are shared
-rather than reimplemented. The optional identifier before a relation's arguments, the one
-place the grammar needs a second token of lookahead, is handled by reading the first
-argument and then checking for `;`.
-
-The three profiles share one parser. The profile selects whether the bare `mentionOf`
-keyword that `prov` and ProvToolbox write is accepted alongside the Recommendation's
-keywords, and whether a required-position check rejects `-` where the grammar demands an
-identifier. The `lenient` profile adds panic-mode error
-recovery. When a statement fails, the parser records the error, skips tokens until it
-reaches a synchronisation point (any name followed by `(`, or a structural
-keyword such as `endBundle` at the statement's own bracket depth) and resumes; the skipped
-statements are reported as {py:class}`~prov.model.ProvWarning` by the serializer, attributed
-to the caller's frame.
-
-Errors are {py:class}`~prov.serializers.provn.ProvNSyntaxError` and carry the line and
-column of the token at fault. The tokens are produced eagerly, before any statement is
-parsed, so a tokenisation error is raised first in every profile.
+PROV-N is read by two pure-Python modules with no dependency,
+`prov.serializers.provn_lexer` and `prov.serializers.provn_parser`, wired into the registry
+by `prov.serializers.provn`. Their module docstrings hold the internals, which are the lexer's
+token order and line tracking and the parser's keyword table, profiles and error recovery.
+Sphinx does not render private modules, so read the docstrings in the source.
 
 ## Conventions for serializers
 

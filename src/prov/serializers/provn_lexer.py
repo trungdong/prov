@@ -1,9 +1,32 @@
 """Tokeniser for PROV-N (https://www.w3.org/TR/prov-n/, section 3.8).
 
-Produces a flat token stream with line and column positions. Keywords are
-not distinguished here: every bare or prefixed name is a ``NAME`` token, and
-the parser decides whether a name at statement start is a keyword. The one
-context-sensitive rule is the language tag, which only follows a string.
+Produces a flat token stream. Every token carries its line and column. Keywords are
+not distinguished here: every bare or prefixed name is a ``NAME`` token, and the
+parser decides whether a name at statement start is a keyword.
+
+The scanner is regex-driven, with a fixed sequence of token classes. At each position
+it skips whitespace and comments, then tries the token classes in that order and takes
+the first match. The order encodes the grammar's precedence rules. Delimited tokens
+(IRIs in angle brackets, quoted strings, quoted qualified names) come first, then
+``xsd:dateTime``, then integers and qualified names, since a digit run can start any
+of the three. Between an integer and a qualified name reading of the same run, the
+scanner takes the longer match and prefers the integer reading on a tie, matching the
+Recommendation's guidance.
+
+The one context-sensitive rule is the language tag. ``@`` starts a language tag only
+when the previous token was a string, since ``@`` is also a legal character inside a
+local name. The rule that a local name may contain but not end with ``.`` lives in the
+name regex itself, so the scanner never backtracks.
+
+The character classes are the Unicode tables the PROV-XML serializer uses for NCNames.
+``prov.identifier`` holds them, together with ``PN_CHARS_ESC`` and ``PN_CHARS_OTHER``,
+which the PROV-N writer's escaping reads too, so the writer and the scanner share one
+table for each.
+
+Only skipped whitespace and comments and long strings can hold a line break. The
+scanner counts line breaks in those (``advance_lines``) and moves every other token
+forward by its length (``advance``). A CR LF pair, a lone CR and a lone LF each count
+as one line break.
 """
 
 from __future__ import annotations

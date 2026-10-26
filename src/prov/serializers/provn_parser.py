@@ -1,27 +1,54 @@
 """Recursive-descent parser for PROV-N (https://www.w3.org/TR/prov-n/).
 
-Every statement opens with a keyword, so the parser reads one token and
-enters the matching rule; there is no backtracking. Records are built
-through :meth:`ProvBundle.new_record` with the same arguments the PROV-JSON
-deserializer passes, so attribute typing, literal parsing and namespace
+The parser reads one token ahead. Every statement opens with a keyword and every
+keyword is followed by ``(``, so after one token the parser knows which rule it is in,
+and there is no backtracking. Each grammar production is a method (document,
+declarations, bundle, statement, expression, attributes, literal).
+
+The expression rule is table-driven, with no method per keyword. ``_KEYWORDS`` maps a
+statement keyword's ``(prefix, local)`` to a ``_Rule``: its record type, its legal
+argument counts and whether it is an element. ``_classify`` looks the keyword up.
+``_arguments`` reads the parenthesised part as a flat list of arguments and an
+attribute block. ``_expression`` checks the argument count, maps each position onto
+the record class's ``FORMAL_ATTRIBUTES`` in order, with ``-`` markers omitted, and
+builds the record. An element takes its identifier first. A relation's optional
+identifier is the one place the grammar needs a second token of lookahead, so
+``_arguments`` reads the first argument and then checks for ``;``.
+
+Records are built through :meth:`ProvBundle.new_record` with the same arguments the
+PROV-JSON deserializer passes, so attribute typing, literal parsing and namespace
 registration match every other format.
 
-Profiles:
+Profiles share this one parser. ``_PROFILES`` maps each profile name to a ``_Profile``
+of two flags, and ``PROFILES`` lists the names:
 
-- ``strict``: the Recommendation grammar only.
-- ``default``: also the bare ``mentionOf`` keyword that ``prov`` and
-  ProvToolbox write (the Recommendation grammar has no Mention production;
-  PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker where the
-  grammar has a plain identifier (each rule's ``arities`` in ``_KEYWORDS``).
-- ``lenient``: as ``default``; a statement that fails to parse, including
-  one the model rejects, is skipped and parsing resumes at the next
-  statement. Tokenisation errors are fatal in every profile.
+- ``strict``: ``extensions`` and ``recover`` both off, the Recommendation grammar
+  only.
+- ``default``: ``extensions`` on. The parser also accepts the bare ``mentionOf``
+  keyword that ``prov`` and ProvToolbox write (the Recommendation grammar has no
+  Mention production; PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker
+  where the grammar has a plain identifier (each rule's smallest ``arities`` entry in
+  ``_KEYWORDS``). It also accepts an identifier or an attribute block on a relation
+  whose production has neither, a statement after a bundle, a ``default`` declaration
+  after a ``prefix`` declaration, and a declaration of ``prov`` or ``xsd``.
+- ``lenient``: ``recover`` on as well. A statement that fails to parse, including one
+  the model rejects, is skipped and parsing resumes at the next statement.
+
+Recovery is panic-mode. It records the error and skips tokens to a synchronisation
+point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
+``endDocument``, ``bundle``, ``endBundle``) not preceded by ``=``, at any bracket
+depth. The parser then resumes.
 
 Skipped-statement messages are collected on ``skipped`` rather than warned
 here, so :class:`~prov.serializers.provn.ProvNSerializer` can issue the
 :class:`~prov.model.ProvWarning` itself with a stack level that points at
 the caller of ``deserialize()``, whether the skip happened at document
 level or inside a bundle.
+
+Errors are :class:`~prov.serializers.provn.ProvNSyntaxError` and carry the line and
+column of the token at fault. ``parse`` tokenises the whole input before it parses a
+statement, so a tokenisation error is raised first in every profile and recovery never
+applies to it.
 """
 
 from __future__ import annotations
