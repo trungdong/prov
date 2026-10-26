@@ -103,6 +103,9 @@ class _Rule:
     element: bool  # an element takes its identifier first, a relation an optional 'id;'
 
 
+# An attribute block's pairs: name, value and the token that names it.
+_AttributeBlock = list[tuple[QualifiedName, Any, Token]]
+
 # (prefix, local) of a statement keyword -> its rule. A relation's compact form
 # (no ';') lists exactly its required identifiers, so its smallest arity is the
 # number of leading arguments the strict profile refuses '-' in (#257). Bare
@@ -519,8 +522,32 @@ class ProvNParser:
         raise self._error(f"unknown statement keyword '{local}'", token)
 
     def _expression(self, bundle: ProvBundle) -> None:
+        """Production ``expression``: parse one statement and add its record."""
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
         rule = self._classify(keyword)
+        identifier, args, attribute_block = self._arguments(keyword, rule, bundle)
+
+        if len(args) not in rule.arities:
+            allowed = " or ".join(str(n) for n in rule.arities)
+            raise self._error(
+                f"'{keyword.text}' takes {allowed} arguments, got {len(args)}", keyword
+            )
+        self._check_strict_required_positions(keyword, rule, args)
+        formal_names = PROV_REC_CLS[rule.record_type].FORMAL_ATTRIBUTES
+        attributes = []
+        for attr, token in zip(formal_names, args, strict=False):
+            value = self._argument_value(token, attr, bundle)
+            if value is not None:
+                attributes.append((attr, value))
+        self._check_formal_attributes(keyword, formal_names, attribute_block)
+        other_attributes = [(name, value) for name, value, _ in attribute_block]
+        bundle.new_record(rule.record_type, identifier, attributes, other_attributes)
+
+    def _arguments(
+        self, keyword: Token, rule: _Rule, bundle: ProvBundle
+    ) -> tuple[QualifiedName | None, list[Token], _AttributeBlock]:
+        """The parenthesised part of production ``expression``: the identifier,
+        the positional arguments and the attribute block."""
         self._expect(TokenKind.LPAREN)
         identifier: QualifiedName | None = None
         args: list[Token] = []
@@ -541,7 +568,7 @@ class ProvNParser:
                 args.append(self._argument())
             else:
                 args.append(first)
-        attribute_block: list[tuple[QualifiedName, Any, Token]] = []
+        attribute_block: _AttributeBlock = []
         separator = self._current.kind
         while separator is TokenKind.COMMA:
             self._advance()
@@ -554,22 +581,7 @@ class ProvNParser:
             args.append(self._argument())
             separator = self._current.kind
         self._expect(TokenKind.RPAREN)
-
-        if len(args) not in rule.arities:
-            allowed = " or ".join(str(n) for n in rule.arities)
-            raise self._error(
-                f"'{keyword.text}' takes {allowed} arguments, got {len(args)}", keyword
-            )
-        self._check_strict_required_positions(keyword, rule, args)
-        formal_names = PROV_REC_CLS[rule.record_type].FORMAL_ATTRIBUTES
-        attributes = []
-        for attr, token in zip(formal_names, args, strict=False):
-            value = self._argument_value(token, attr, bundle)
-            if value is not None:
-                attributes.append((attr, value))
-        self._check_formal_attributes(keyword, formal_names, attribute_block)
-        other_attributes = [(name, value) for name, value, _ in attribute_block]
-        bundle.new_record(rule.record_type, identifier, attributes, other_attributes)
+        return identifier, args, attribute_block
 
     def _check_strict_bare_relation(
         self, keyword: Token, token: Token, what: str
@@ -586,7 +598,7 @@ class ProvNParser:
         self,
         keyword: Token,
         formal_names: tuple[QualifiedName, ...],
-        attribute_block: list[tuple[QualifiedName, Any, Token]],
+        attribute_block: _AttributeBlock,
     ) -> None:
         """Reject an attribute named after one of the statement's own
         arguments, which PROV-N gives only by position (#523)."""
@@ -665,10 +677,10 @@ class ProvNParser:
 
     # -- attributes and literals -----------------------------------------------
 
-    def _attributes(self, bundle: ProvBundle) -> list[tuple[QualifiedName, Any, Token]]:
+    def _attributes(self, bundle: ProvBundle) -> _AttributeBlock:
         """Parse an attribute block into (name, value, name token) triples."""
         self._expect(TokenKind.LBRACKET)
-        pairs: list[tuple[QualifiedName, Any, Token]] = []
+        pairs: _AttributeBlock = []
         if self._current.kind is TokenKind.RBRACKET:
             self._advance()
             return pairs
