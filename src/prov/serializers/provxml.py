@@ -18,9 +18,15 @@ from prov.model import (
     DEFAULT_NAMESPACES,
     NameValuePair,
     ProvException,
+    ProvExceptionInvalidQualifiedName,
     sorted_attributes,
 )
-from prov.model._values import _xsd_datetime_text, _xsd_double_text, python_value_form
+from prov.model._values import (
+    _xsd_datetime_text,
+    _xsd_double_text,
+    python_value_form,
+    resolve_name,
+)
 from prov.model.namespaces import _first_free
 from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
 
@@ -844,22 +850,25 @@ def _nested_reference(
     attr: prov.identifier.QualifiedName,
     namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
     scope: prov.model.ProvBundle,
-) -> prov.identifier.QualifiedName | str:
+) -> prov.identifier.QualifiedName:
     """Value of a reference-valued formal attribute element with no ``prov:ref``.
 
     PROV-XML puts the reference on the element itself
     (``<prov:entity prov:ref="ex:e1"/>``). ProvToolbox 2.0.4 writes a
     ``hadMember`` member inside a wrapper,
     ``<entity><entity prov:ref="ex:e1"/></entity>``; the single child's
-    reference is taken, with a warning. Non-blank text is returned as the
-    reference. A blank element with no reference anywhere has no value.
+    reference is taken, with a warning. Non-blank text is the reference,
+    resolved through the element's ``nsmap`` as a ``prov:ref`` is. A blank
+    element with no reference anywhere has no value.
 
     Returns:
-        The referenced qualified name, or the element's non-blank text.
+        The referenced qualified name.
 
     Raises:
         ProvXMLException: If ``subel`` has neither a ``prov:ref`` child nor
             text.
+        ProvExceptionInvalidQualifiedName: If the reference does not
+            resolve (see :func:`xml_qname_to_QualifiedName`).
 
     Warns:
         ProvWarning: When the reference is taken from a nested child.
@@ -880,7 +889,9 @@ def _nested_reference(
             scope=scope,
         )
     if subel.text is not None and subel.text.strip():
-        return subel.text
+        return xml_qname_to_QualifiedName(
+            subel, subel.text, namespaces=namespaces, scope=scope
+        )
     raise ProvXMLException(
         f"The reference element '{attr}' has no prov:ref attribute and no "
         "reference text."
@@ -974,7 +985,8 @@ def xml_qname_to_QualifiedName(
             ``nsmap`` (in scope at that point in the document) is used to
             resolve the prefix.
         qname_str: A ``"prefix:localpart"`` string, or a bare local name to
-            be resolved against the default namespace.
+            be resolved against the default namespace. A name the ``nsmap``
+            does not resolve goes to the model when ``scope`` is given.
         namespaces: The read's ``(prefix, uri)`` map of namespaces; ``None``
             creates a namespace per call.
         scope: The document or bundle a bare name resolves in; its default
@@ -989,10 +1001,14 @@ def xml_qname_to_QualifiedName(
         ``(prefix, uri)`` for the length of a read.
 
     Raises:
-        ProvXMLException: If ``qname_str`` has no recognized prefix and
-            ``element`` has no default namespace in scope, ``scope`` is
-            ``None`` and the default namespace is not the XSD one, or the
-            ``xmlns`` is not the default of ``scope``.
+        ProvExceptionInvalidQualifiedName: If ``scope`` is given and the
+            model refuses ``qname_str``, a name whose prefix ``element``
+            does not declare or one with no colon and no default
+            namespace in scope.
+        ProvXMLException: If ``scope`` is ``None`` and the ``nsmap`` does
+            not resolve ``qname_str``, or a bare name sits under an
+            ``xmlns`` that is not the XSD namespace and not the default of
+            ``scope``.
     """
     if ":" in qname_str:
         prefix, localpart = qname_str.split(":", 1)
@@ -1005,12 +1021,16 @@ def xml_qname_to_QualifiedName(
             else:
                 ns = _namespace(namespaces, prefix, ns_uri)
             return ns[localpart]
-    # case 1: no colon
-    # case 2: unknown prefix
-    if None in element.nsmap:
+    elif None in element.nsmap:
         return _bare_name(element.nsmap[None], qname_str, scope)
-    # no default namespace
-    raise ProvXMLException(f'Could not create a valid QualifiedName for "{qname_str}"')
+    if scope is None:
+        raise ProvXMLException(
+            f'Could not create a valid QualifiedName for "{qname_str}"'
+        )
+    name = resolve_name(scope, qname_str)
+    if isinstance(name, str):
+        raise ProvExceptionInvalidQualifiedName(qname_str, name)
+    return name
 
 
 def _ns(ns: str, tag: str) -> str:

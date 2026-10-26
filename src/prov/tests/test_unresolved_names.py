@@ -368,6 +368,19 @@ def _read_jsonld_value_the_default_iri() -> None:
     ProvDocument.deserialize(content=source, format="jsonld")
 
 
+def _read_xml_the_default_iri() -> None:
+    source = (
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+        f'xmlns:ex="{EX}" xmlns="{DEFAULT_IRI}">\n'
+        '  <prov:entity prov:id="ex:e">\n'
+        f'    <ex:k xsi:type="xsd:QName">{DEFAULT_IRI}</ex:k>\n'
+        "  </prov:entity>\n</prov:document>"
+    )
+    ProvDocument.deserialize(content=source, format="xml")
+
+
 def _read_rdf_the_default_iri() -> None:
     source = (
         f"@prefix : <{DEFAULT_IRI}> .\n@prefix prov: <http://www.w3.org/ns/prov#> .\n"
@@ -411,6 +424,12 @@ _DEFAULT_IRI_CHANNELS: dict[
         READER_ERRORS["jsonld"],
         f"prov:Entity 'e': Invalid Qualified Name: {DEFAULT_IRI}, ",
         " of k",
+    ),
+    "xml": (
+        _read_xml_the_default_iri,
+        READER_ERRORS["xml"],
+        f"line 2, <prov:entity> 'ex:e': Invalid Qualified Name: {DEFAULT_IRI}, ",
+        "",
     ),
     "rdf": (
         _read_rdf_the_default_iri,
