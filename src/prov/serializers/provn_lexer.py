@@ -15,7 +15,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
-from prov.identifier import _NCNAME_START_CHARS, _PN_CHARS, _PN_PREFIX
+from prov.identifier import (
+    _NCNAME_START_CHARS,
+    _PN_CHARS,
+    _PN_CHARS_ESC,
+    _PN_CHARS_OTHER,
+    _PN_PREFIX,
+)
 from prov.model import ProvException
 from prov.model._values import LANGTAG_PATTERN, XSD_DATETIME_PATTERN
 from prov.serializers import ProvSerializationError
@@ -75,14 +81,16 @@ class Token:
 
 # Character classes from the Recommendation ([53] to [55]); '.' is handled
 # in the local-part patterns because its placement rules differ.
-# prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables, and
-# this module imports them. PN_CHARS_U (NCName's NameStartChar, '_' included)
-# is that table unchanged. The classes' equivalence to the NCName tables over
-# the full codepoint space is pinned by test_provn_lexer.py.
+# prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables and
+# holds PN_CHARS_OTHER and PN_CHARS_ESC, which the writer's escaping also
+# reads. This module imports all four. PN_CHARS_U (NCName's NameStartChar,
+# '_' included) is that table unchanged. The classes' equivalence to the
+# NCName tables over the full codepoint space is pinned by
+# test_provn_lexer.py.
 _PN_CHARS_U = _NCNAME_START_CHARS
-_PN_OTHERS = r"/@~&+*?#$!"
+_PN_OTHERS = re.escape(_PN_CHARS_OTHER)
 _PERCENT = r"%[0-9A-Fa-f]{2}"
-_ESC = r"\\[=',\-:;\[\]().]"
+_ESC = rf"\\[{re.escape(_PN_CHARS_ESC)}]"
 _LOCAL_START = rf"[{_PN_CHARS_U}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 _LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
 # The last character of a local part can't be a bare '.' ([54]); an escaped

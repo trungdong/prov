@@ -67,11 +67,18 @@ def test_comments_are_skipped() -> None:
     assert values(text) == [("", "entity"), ("", "agent")]
 
 
-@pytest.mark.parametrize("ch", list("='(),:;[]"))
-def test_escaped_metachar_in_local_part(ch) -> None:
-    tokens = list(tokenize(f"ex:na\\{ch}me"))
-    assert tokens[0].kind is TokenKind.NAME
-    assert tokens[0].value == ("ex", f"na{ch}me")
+@pytest.mark.parametrize("ch", [chr(c) for c in range(0x21, 0x7F)] + ["\xe9", "\xb7"])
+def test_escaped_metachar_in_local_part(ch: str) -> None:
+    # The Recommendation's [55] PN_CHARS_ESC list, typed once as the oracle.
+    assert set(identifier._PN_CHARS_ESC) == set("='(),-.:;[]")
+    text = f"ex:na\\{ch}me"
+    if ch in identifier._PN_CHARS_ESC:
+        tokens = list(tokenize(text))
+        assert tokens[0].kind is TokenKind.NAME
+        assert tokens[0].value == ("ex", f"na{ch}me")
+    else:
+        with pytest.raises(ProvNSyntaxError):
+            list(tokenize(text))
 
 
 def test_percent_encoding_is_kept_verbatim() -> None:
