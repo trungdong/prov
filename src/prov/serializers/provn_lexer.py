@@ -11,17 +11,18 @@ the first match. The order encodes the grammar's precedence rules. Delimited tok
 ``xsd:dateTime``, then integers and qualified names, since a digit run can start any
 of the three. Between an integer and a qualified name reading of the same run, the
 scanner takes the longer match and prefers the integer reading on a tie, matching the
-Recommendation's guidance.
+Recommendation's guidance. The ``-`` marker comes after the integer and name readings,
+so ``-4`` is an integer.
 
 The one context-sensitive rule is the language tag. ``@`` starts a language tag only
 when the previous token was a string, since ``@`` is also a legal character inside a
 local name. The rule that a local name may contain but not end with ``.`` lives in the
-name regex itself, so the scanner never backtracks.
+name regex itself, so the scanner never trims a match.
 
 The character classes are the Unicode tables the PROV-XML serializer uses for NCNames.
-``prov.identifier`` holds them, together with ``PN_CHARS_ESC`` and ``PN_CHARS_OTHER``,
-which the PROV-N writer's escaping reads too, so the writer and the scanner share one
-table for each.
+``prov.identifier`` also holds ``PN_CHARS_ESC``, which the PROV-N writer's escaping
+reads, and ``PN_CHARS_OTHER``, which ``QualifiedName``'s writability check reads, so the
+scanner and the rest of prov read one table for each.
 
 Only skipped whitespace and comments and long strings can hold a line break. The
 scanner counts line breaks in those (``advance_lines``) and moves every other token
@@ -105,8 +106,9 @@ class Token:
 # Character classes from the Recommendation ([53] to [55]); '.' is handled
 # in the local-part patterns because its placement rules differ.
 # prov.identifier builds PN_CHARS and PN_PREFIX from its NCName tables and
-# holds PN_CHARS_OTHER and PN_CHARS_ESC, which the writer's escaping also
-# reads. This module imports all four. PN_CHARS_U (NCName's NameStartChar,
+# holds PN_CHARS_OTHER, which QualifiedName's writability check also reads,
+# and PN_CHARS_ESC, which the writer's escaping also reads. This module
+# imports all four. PN_CHARS_U (NCName's NameStartChar,
 # '_' included) is that table unchanged. The classes' equivalence to the
 # NCName tables over the full codepoint space is pinned by
 # test_provn_lexer.py.
@@ -397,7 +399,7 @@ class _Lexer:
             if match is None:
                 raise self.error("unterminated string")
         value = _unescape(match.group(1), self.locate, match.start(1), "string")
-        return self.emit(TokenKind.STRING, match.group(0), value, long)
+        return self.emit(TokenKind.STRING, match.group(0), value, multiline=long)
 
 
 def tokenize(text: str) -> Iterator[Token]:

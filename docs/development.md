@@ -10,7 +10,7 @@ PROV-N is read by two pure-Python modules with no dependency,
 `prov.serializers.provn_lexer` and `prov.serializers.provn_parser`, wired into the registry
 by `prov.serializers.provn`. Their module docstrings hold the internals, which are the lexer's
 token order and line tracking and the parser's keyword table, profiles and error recovery.
-Sphinx does not render private modules, so read the docstrings in the source.
+The API reference does not document either module, so read the docstrings in the source.
 
 ## Conventions for serializers
 

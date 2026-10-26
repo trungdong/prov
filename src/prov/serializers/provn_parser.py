@@ -30,9 +30,11 @@ of two flags, and ``PROFILES`` lists the names:
   where the grammar has a plain identifier (each rule's smallest ``arities`` entry in
   ``_KEYWORDS``). It also accepts an identifier or an attribute block on a relation
   whose production has neither, a statement after a bundle, a ``default`` declaration
-  after a ``prefix`` declaration, and a declaration of ``prov`` or ``xsd``.
+  after a ``prefix`` declaration, and a declaration of ``prov`` or ``xsd`` to its
+  predeclared IRI.
 - ``lenient``: ``recover`` on as well. A statement that fails to parse, including one
-  the model rejects, is skipped and parsing resumes at the next statement.
+  the model rejects, is skipped and parsing resumes at the next statement. A bundle
+  whose identifier the model rejects is skipped too.
 
 Recovery is panic-mode. It records the error and skips tokens to a synchronisation
 point. A name followed by ``(`` is one, and so is a structural keyword (``document``,
@@ -111,7 +113,7 @@ __all__ = ["PROFILES", "ProvNParser"]
 
 @dataclass(frozen=True, slots=True)
 class _Profile:
-    extensions: bool  # the Recommendation's grammar plus bare mentionOf and '-'
+    extensions: bool  # accept the default profile's extensions (see module docstring)
     recover: bool  # skip a statement that fails and resync
 
 
@@ -184,7 +186,8 @@ class ProvNParser:
         ValueError: If ``profile`` is not one of :data:`PROFILES`.
     """
 
-    _current: Token  # always self._tokens[self._pos]; set by parse() and _advance()
+    # self._tokens[self._pos] once parse() has run; set by parse() and _advance().
+    _current: Token
 
     def __init__(self, text: str, profile: str = "default"):
         if profile not in PROFILES:
@@ -535,7 +538,7 @@ class ProvNParser:
         raise self._error(f"unknown statement keyword '{local}'", token)
 
     def _expression(self, bundle: ProvBundle) -> None:
-        """Production ``expression``: parse one statement and add its record."""
+        """Parse one statement, production ``expression``, and add its record."""
         keyword = self._expect(TokenKind.NAME, "a statement keyword")
         rule = self._classify(keyword)
         identifier, args, attribute_block = self._arguments(keyword, rule, bundle)
@@ -559,8 +562,10 @@ class ProvNParser:
     def _arguments(
         self, keyword: Token, rule: _Rule, bundle: ProvBundle
     ) -> tuple[QualifiedName | None, list[Token], _AttributeBlock]:
-        """The parenthesised part of production ``expression``: the identifier,
-        the positional arguments and the attribute block."""
+        """Read the parenthesised part of production ``expression``.
+
+        Return the identifier, the positional arguments and the attribute block.
+        """
         self._expect(TokenKind.LPAREN)
         identifier: QualifiedName | None = None
         args: list[Token] = []
@@ -631,7 +636,7 @@ class ProvNParser:
         it there, matching the model's scruffy-statement policy."""
         if self._profile.extensions:
             return
-        required = 0 if rule.element else min(rule.arities)
+        required = min(rule.arities)
         for index, arg in enumerate(args[:required]):
             if arg.kind is TokenKind.MARKER:
                 raise self._error(

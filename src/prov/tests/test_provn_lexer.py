@@ -77,8 +77,9 @@ def test_escaped_metachar_in_local_part(ch: str) -> None:
         assert tokens[0].kind is TokenKind.NAME
         assert tokens[0].value == ("ex", f"na{ch}me")
     else:
-        with pytest.raises(ProvNSyntaxError):
+        with pytest.raises(ProvNSyntaxError) as ctx:
             list(tokenize(text))
+        assert (ctx.value.line, ctx.value.column) == (1, 6)
 
 
 def test_percent_encoding_is_kept_verbatim() -> None:
