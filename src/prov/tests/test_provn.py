@@ -7,8 +7,7 @@ import datetime
 import io
 import re
 import warnings
-from collections.abc import Callable, Iterable
-from itertools import cycle, islice
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -345,19 +344,6 @@ STATEMENT = ("strict", "default")
 _TOO_DEEP = "extensibility expression nested more than 32 levels"
 
 
-def _nested(openers: Iterable[str]) -> str:
-    """An expression holding ``ex:a`` inside one bracket per opener."""
-    closers = {"{": "}", "(": ")", "ex:g(": ")"}
-    openers = list(openers)
-    return (
-        "ex:f("
-        + "".join(openers)
-        + "ex:a"
-        + "".join(closers[o] for o in reversed(openers))
-        + ")"
-    )
-
-
 def _dropped(line: int, column: int, keyword: str) -> str:
     return (
         "PROV-N extensibility expression dropped:"
@@ -626,7 +612,7 @@ REJECTED_DOCUMENTS = [
         )
         for body, message, position, label in (
             (
-                _nested("{" * 33),
+                "ex:f(" + "{" * 33 + "ex:a" + "}" * 33 + ")",
                 _TOO_DEEP,
                 (3, 38),
                 "33 braces",
@@ -669,8 +655,7 @@ REJECTED_DOCUMENTS = [
             ),
         )
     ],
-    # Braces are tokens, so a stray one is a statement error (#520). The tuple
-    # outside an extensibility expression is the parser's existing message.
+    # Braces are tokens, so a stray one is a statement error (#520).
     *[
         pytest.param(
             f"{STATEMENT_PREFIX}{body}\nendDocument",
@@ -865,7 +850,7 @@ ACCEPTED_STATEMENTS = [
         id="every argument kind",
     ),
     pytest.param(
-        _nested(islice(cycle(("{", "(", "ex:g(")), 32)),
+        "ex:f(" + "{(ex:g(" * 10 + "{(ex:a" + ")}" + "))}" * 10 + ")",
         EVERY,
         (_dropped(3, 1, "ex:f"),),
         id="32 levels of tuples and expressions",

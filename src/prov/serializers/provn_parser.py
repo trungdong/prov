@@ -281,12 +281,8 @@ class ProvNParser:
         expected: str = "an identifier",
     ) -> None:
         """Refuse a bare structural keyword as an identifier or argument
-        unless it is immediately followed by one of ``follow`` -- by default
-        ',', ')', ';' or '}', the only tokens that follow a real identifier
-        inside a statement's parentheses or an extensibility tuple. An
-        extensibility expression's attribute name passes ``('=',)`` and
-        ``expected="an attribute name"``. Anything else means a
-        statement left open by a missing ')'/']'/'}' has read straight
+        unless it is immediately followed by one of ``follow``. Anything else
+        means a statement left open by a missing ')'/']'/'}' has read straight
         through a following 'bundle', 'endBundle' or 'endDocument' as if it
         were data; raising here without consuming the token lets lenient
         resync (and, outside lenient, the enclosing loop) still find it.
@@ -526,8 +522,10 @@ class ProvNParser:
         extensibility expression ([49]): a prefixed name no rule claims."""
         prefix, local = token.value
         rule = _KEYWORDS.get(token.value)
-        if rule is not None or prefix:
+        if rule is not None:
             return rule
+        if prefix:
+            return None
         if local == "mentionOf":
             if self._profile.extensions:
                 return _KEYWORDS[("prov", "mentionOf")]
@@ -747,11 +745,10 @@ class ProvNParser:
         self._expect(TokenKind.RBRACKET)
 
     def _extension_pair(self) -> None:
-        if self._digit_run_as_name() is None:
-            self._reject_unclosed_structural_keyword(
-                (TokenKind.EQUALS,), "an attribute name"
-            )
-            self._expect(TokenKind.NAME, "an attribute name")
+        self._reject_unclosed_structural_keyword(
+            (TokenKind.EQUALS,), "an attribute name"
+        )
+        self._digit_run_as_name() or self._expect(TokenKind.NAME, "an attribute name")
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()
 
@@ -842,7 +839,7 @@ class ProvNParser:
                     TokenKind.NAME, "a datatype"
                 )
             return token, None
-        if token.kind not in (TokenKind.INT, TokenKind.QNAME_LITERAL):
+        if token.kind not in _LITERAL_KINDS:
             raise self._error(f"expected a literal value, found {self._found()}")
         self._advance()
         return token, None

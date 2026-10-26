@@ -416,7 +416,7 @@ def test_excluded_provtoolbox_documents_still_fail_to_parse() -> None:
     parsed = (SPEC_EXAMPLES.keys() | {p.name for p in _files("provtoolbox")}) - (
         EXCLUDED_SPEC_EXAMPLES.keys() | EXCLUDED_PROVTOOLBOX_DOCUMENTS.keys()
     )
-    assert IGNORED_EXTENSIONS.keys() <= parsed
+    assert IGNORED_EXTENSIONS.keys() | FAMILY_RECORDS.keys() <= parsed
 
 
 @pytest.mark.parametrize("path", _params("provtoolbox-corpus", KNOWN_DIFFERENCES))

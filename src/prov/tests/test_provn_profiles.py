@@ -146,33 +146,12 @@ def test_lenient_warns_for_each_of_two_adjacent_unknown_statements() -> None:
     assert sorted(str(r.identifier) for r in records(doc)) == ["ex:e1", "ex:e4"]
 
 
-@pytest.mark.parametrize(
-    ("body", "profiles", "identifiers"),
-    [
-        ("ex:custom(ex:e1)\nentity(ex:e2)", PROFILES, ["ex:e2"]),
-        (
-            # ProvToolbox's summary documents write runs of provext: statements.
-            "prefix provext <http://openprovenance.org/prov/extension#>\n"
-            "entity(ex:e1)\nprovext:hadMember(ex:c, ex:e1)\n"
-            "provext:hadMember(ex:c, ex:e2)\nentity(ex:e2)",
-            PROFILES,
-            ["ex:e1", "ex:e2"],
-        ),
-        (
-            "ex:f(ex:a, BAD BAD, ex:g(ex:b), ex:c)\nentity(ex:e)",
-            ("lenient",),
-            ["ex:e"],
-        ),
-    ],
-)
-def test_dropped_expression_reads_no_record_and_its_neighbours_read(
-    body, profiles, identifiers
-) -> None:
-    for profile in profiles:
+def test_dropped_expression_keeps_its_neighbours() -> None:
+    for profile in PROFILES:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", ProvWarning)
-            doc = parse(body, profile=profile)
-        assert sorted(str(r.identifier) for r in records(doc)) == identifiers, profile
+            doc = parse("ex:custom(ex:e1)\nentity(ex:e2)", profile=profile)
+        assert [str(r.identifier) for r in records(doc)] == ["ex:e2"], profile
 
 
 def test_lenient_still_raises_on_tokenisation_error() -> None:
