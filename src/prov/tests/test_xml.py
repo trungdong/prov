@@ -945,6 +945,8 @@ def test_bundle_namespace_order_follows_registration_in_xml() -> None:
 # #338: force_types coverage.
 
 XSI_TYPE = "{http://www.w3.org/2001/XMLSchema-instance}type"
+PROV_ID = "{http://www.w3.org/ns/prov#}id"
+PROV_REF = "{http://www.w3.org/ns/prov#}ref"
 FORCE_TYPES_NS = {"ex": "http://example.org/", "prov": "http://www.w3.org/ns/prov#"}
 
 
@@ -984,12 +986,13 @@ def _xsi_type_of(parent: etree._Element, path: str) -> str | None:
 @pytest.mark.parametrize(
     ("declared", "prefix"), [(None, "dn"), ("d", "d")], ids=["minted", "reused"]
 )
-def test_a_default_namespace_datatype_is_written_as_a_qname(
+def test_a_default_namespace_name_is_written_as_a_qname(
     declared: str | None, prefix: str
 ) -> None:
     # a bare local part is a QName under the element's xmlns; one with a colon
     # takes a prefix bound to the IRI, declared on the element when none is in
-    # scope, as the PROV-JSON writer does (#570)
+    # scope, in every position a name is written, as the PROV-JSON writer does
+    # (#570, #677)
     document = prov.ProvDocument()
     document.set_default_namespace("http://d.example/")
     document.add_namespace("ex", "http://example.org/")
@@ -1002,8 +1005,14 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
         {
             "ex:t": prov.Literal("1", default["t"]),
             "ex:c": prov.Literal("2", default["a:b"]),
+            "ex:q": default["a:b"],
+            "ex:p": default["e"],
         },
     )
+    document.entity(default["a:b"])
+    document.entity(default["e"])
+    document.used("ex:a", default["a:b"])
+    document.bundle(default["c:e"])
     bundle = document.bundle("ex:b")
     bundle.set_default_namespace("http://other.example/")
     other = bundle.get_default_namespace()
@@ -1012,14 +1021,294 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
 
     xml = document.serialize(format="xml")
     root = etree.fromstring(xml.encode())
+    assert root.nsmap[prefix] == "http://d.example/"
     assert _xsi_type_of(root, "prov:entity/ex:t") == "t"
     assert _xsi_type_of(root, "prov:entity/ex:c") == f"{prefix}:a:b"
-    assert root.nsmap[prefix] == "http://d.example/"
-    content = root.find("prov:bundleContent", FORCE_TYPES_NS)
-    assert content is not None
+    assert [e.get(PROV_ID) for e in root.findall("prov:entity", FORCE_TYPES_NS)] == [
+        "ex:e",
+        f"{prefix}:a:b",
+        "e",
+    ]
+    assert root.findtext("prov:entity/ex:q", namespaces=FORCE_TYPES_NS) == (
+        f"{prefix}:a:b"
+    )
+    assert root.findtext("prov:entity/ex:p", namespaces=FORCE_TYPES_NS) == "e"
+    used = root.find("prov:used/prov:entity", FORCE_TYPES_NS)
+    assert used is not None and used.get(PROV_REF) == f"{prefix}:a:b"
+    bundles = root.findall("prov:bundleContent", FORCE_TYPES_NS)
+    assert [b.get(PROV_ID) for b in bundles] == [f"{prefix}:c:e", "ex:b"]
+    content = bundles[1]
     assert _xsi_type_of(content, "prov:entity/ex:c") == "dn:c:d"
     assert content.nsmap["dn"] == "http://other.example/"
     assert prov.ProvDocument.deserialize(content=xml, format="xml") == document
+
+
+_XML_NAMESPACES = (
+    'xmlns:prov="http://www.w3.org/ns/prov#" '
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+    'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+    'xmlns:ex="http://example.org/"'
+)
+
+
+def _prov_xml(body: str, default: bool) -> str:
+    """A document whose root is line 1 and whose body starts at line 2."""
+    xmlns = ' xmlns="http://d.example/"' if default else ""
+    return f"<prov:document {_XML_NAMESPACES}{xmlns}>\n{body}\n</prov:document>"
+
+
+def _not_declared(prefix: str) -> str:
+    return f"its prefix {prefix!r} is not declared"
+
+
+_NO_PREFIX = "it has no prefix and no default namespace is declared"
+_ENTITY_WITH = '<prov:entity prov:id="ex:e">{}</prov:entity>'
+_USED_WITH = "<prov:used>{}</prov:used>"
+_AT_ENTITY = "line 2, <prov:entity> 'ex:e': "
+_AT_USED = "line 2, <prov:used> with no prov:id: "
+
+# Each row: the body, where the message starts, the text rejected and why.
+_REJECTED_UNDER_BOTH = {
+    "record id": (
+        '<prov:entity prov:id="zz:x"/>',
+        "line 2, <prov:entity> 'zz:x': ",
+        "zz:x",
+        _not_declared("zz"),
+    ),
+    "bundle id": (
+        '<prov:bundleContent prov:id="zz:x"/>',
+        "line 2, <prov:bundleContent> 'zz:x': ",
+        "zz:x",
+        _not_declared("zz"),
+    ),
+    "prov:ref": (
+        _USED_WITH.format('<prov:entity prov:ref="zz:x"/>'),
+        _AT_USED,
+        "zz:x",
+        _not_declared("zz"),
+    ),
+    "xsd:QName text": (
+        _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName">zz:x</ex:k>'),
+        _AT_ENTITY,
+        "zz:x",
+        _not_declared("zz"),
+    ),
+    "attribute xsi:type": (
+        _ENTITY_WITH.format('<ex:k xsi:type="zz:t">v</ex:k>'),
+        _AT_ENTITY,
+        "zz:t",
+        _not_declared("zz"),
+    ),
+    "record xsi:type": (
+        '<prov:entity prov:id="ex:e" xsi:type="zz:t"/>',
+        _AT_ENTITY,
+        "zz:t",
+        _not_declared("zz"),
+    ),
+    "reference text": (
+        _USED_WITH.format("<prov:entity>zz:x</prov:entity>"),
+        _AT_USED,
+        "zz:x",
+        _not_declared("zz"),
+    ),
+    "reference text, full IRI": (
+        _USED_WITH.format("<prov:entity>http://example.org/e1</prov:entity>"),
+        _AT_USED,
+        "http://example.org/e1",
+        _not_declared("http"),
+    ),
+    "3.2.3 bare id": (
+        '<prov:entity prov:id="a:b"/>',
+        "line 2, <prov:entity> 'a:b': ",
+        "a:b",
+        _not_declared("a"),
+    ),
+    "sibling, B before A": (
+        '<prov:entity prov:id="a:e2"/>\n'
+        '<prov:entity xmlns:a="http://a.example/" prov:id="a:e1"/>',
+        "line 2, <prov:entity> 'a:e2': ",
+        "a:e2",
+        _not_declared("a"),
+    ),
+}
+_REJECTED_WITH_NO_DEFAULT = {
+    "empty prefix": (
+        '<prov:entity prov:id=":x"/>',
+        "line 2, <prov:entity> ':x': ",
+        ":x",
+        _not_declared(""),
+    ),
+    "no colon, record id": (
+        '<prov:entity prov:id="e1"/>',
+        "line 2, <prov:entity> 'e1': ",
+        "e1",
+        _NO_PREFIX,
+    ),
+    "no colon, reference text": (
+        _USED_WITH.format("<prov:entity>e1</prov:entity>"),
+        _AT_USED,
+        "e1",
+        _NO_PREFIX,
+    ),
+    "attribute element in no namespace": (
+        _ENTITY_WITH.format("<k>v</k>"),
+        _AT_ENTITY,
+        "k",
+        _NO_PREFIX,
+    ),
+    "attribute element in no namespace, local part holding a colon": (
+        _ENTITY_WITH.format('<a_x003A_b xmlns:a="http://a.example/">v</a_x003A_b>'),
+        _AT_ENTITY,
+        "a:b",
+        _NO_PREFIX,
+    ),
+    "empty xsd:QName text": (
+        _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName"/>'),
+        _AT_ENTITY,
+        "",
+        "it is empty",
+    ),
+    "blank xsd:QName text": (
+        _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName">  </ex:k>'),
+        _AT_ENTITY,
+        "",
+        "it is empty",
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("body", "where", "text", "reason", "default"),
+    [
+        pytest.param(
+            *row, default, id=f"{name}, {'default' if default else 'no xmlns'}"
+        )
+        for name, row in _REJECTED_UNDER_BOTH.items()
+        for default in (True, False)
+    ]
+    + [
+        pytest.param(*row, False, id=f"{name}, no xmlns")
+        for name, row in _REJECTED_WITH_NO_DEFAULT.items()
+    ],
+)
+def test_a_name_the_nsmap_does_not_resolve_is_rejected_by_the_model(
+    body: str, where: str, text: str, reason: str, default: bool
+) -> None:
+    # the reader sends every such name to the model's one rejection, positioned
+    # at the element, whether or not an xmlns is declared (#677)
+    with pytest.raises(ProvXMLException) as ctx:
+        prov.ProvDocument.deserialize(content=_prov_xml(body, default), format="xml")
+    assert ctx.type is ProvXMLException
+    assert str(ctx.value) == (
+        f"{where}Invalid Qualified Name: {text}, the qualified name {text!r} "
+        f"does not resolve, because {reason}"
+    )
+    assert isinstance(ctx.value.__cause__, prov.ProvExceptionInvalidQualifiedName)
+
+
+@pytest.mark.parametrize("default", [True, False], ids=["default", "no xmlns"])
+@pytest.mark.parametrize("name", ["e", ":e"])
+def test_a_name_with_no_prefix_under_an_elements_own_xmlns_is_refused(
+    name: str, default: bool
+) -> None:
+    # an empty prefix reads as a name with no colon, so `:e` is refused as `e`
+    # is, whatever the document's default is (#677)
+    body = f'<prov:entity xmlns="http://other/" prov:id="{name}"/>'
+    with pytest.raises(ProvXMLException) as ctx:
+        prov.ProvDocument.deserialize(content=_prov_xml(body, default), format="xml")
+    assert str(ctx.value) == (
+        'the name "e" is under an xmlns declaration (http://other/) on an '
+        "element, which has no scope in PROV; declare the default on the "
+        "document or the bundle, or use a prefix"
+    )
+
+
+def _iris(document: prov.ProvDocument) -> list[str]:
+    """The IRI of every name the records spell outside the PROV and XSD namespaces."""
+    names: list[object] = []
+    for record in document.get_records():
+        names.append(record.identifier)
+        for attr, value in record.attributes:
+            names.extend(
+                (attr, value.datatype if isinstance(value, prov.Literal) else value)
+            )
+    return sorted(
+        name.uri
+        for name in names
+        if isinstance(name, QualifiedName)
+        and name.namespace.uri not in (PROV.uri, "http://www.w3.org/2001/XMLSchema#")
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "default", "iris"),
+    [
+        pytest.param(
+            '<prov:entity prov:id=":x"/>', True, ["http://d.example/x"], id=":x"
+        ),
+        pytest.param(
+            _USED_WITH.format("<prov:entity>ex:e1</prov:entity>"),
+            False,
+            ["http://example.org/e1"],
+            id="reference text, prefix on the root",
+        ),
+        pytest.param(
+            _USED_WITH.format(
+                '<prov:entity xmlns:a="http://a.example/">a:e</prov:entity>'
+            ),
+            False,
+            ["http://a.example/e"],
+            id="reference text, prefix on the reference",
+        ),
+        pytest.param(
+            '<prov:entity xmlns:a="http://a.example/" prov:id="a:e1"/>\n'
+            '<prov:entity prov:id="a:e2"/>',
+            False,
+            ["http://a.example/e1", "http://a.example/e2"],
+            id="sibling, A before B",
+        ),
+        pytest.param(
+            _ENTITY_WITH.format("<a_x003A_b>v</a_x003A_b>"),
+            True,
+            ["http://d.example/a:b", "http://example.org/e"],
+            id="attribute element",
+        ),
+        pytest.param(
+            _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName"> ex:v </ex:k>'),
+            False,
+            ["http://example.org/e", "http://example.org/k", "http://example.org/v"],
+            id="xsd:QName text with whitespace",
+        ),
+        pytest.param(
+            _USED_WITH.format("<prov:entity>\n   ex:e1\n  </prov:entity>"),
+            False,
+            ["http://example.org/e1"],
+            id="reference text with whitespace",
+        ),
+    ],
+)
+def test_a_name_the_nsmap_or_the_model_resolves_is_read(
+    body: str, default: bool, iris: list[str]
+) -> None:
+    document = prov.ProvDocument.deserialize(
+        content=_prov_xml(body, default), format="xml"
+    )
+    assert _iris(document) == iris
+
+
+def test_a_3_2_3_default_namespace_datatype_reads_back_equal() -> None:
+    # 3.2.3 wrote a default-namespace datatype holding ':' as xsi:type=":a:b"
+    expected = prov.ProvDocument()
+    expected.set_default_namespace("http://d.example/")
+    expected.add_namespace("ex", "http://example.org/")
+    default = expected.get_default_namespace()
+    assert default is not None
+    expected.entity("ex:e", {"prov:type": prov.Literal("v", default["a:b"])})
+    body = _ENTITY_WITH.format('<prov:type xsi:type=":a:b">v</prov:type>')
+    assert (
+        prov.ProvDocument.deserialize(content=_prov_xml(body, True), format="xml")
+        == expected
+    )
 
 
 def _membership_xml(entity_element: str) -> str:
