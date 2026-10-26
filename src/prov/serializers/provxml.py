@@ -26,6 +26,7 @@ from prov.model._values import (
     _xsd_double_text,
     python_value_form,
     resolve_name,
+    resolve_pair,
 )
 from prov.model.namespaces import _first_free
 from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
@@ -779,10 +780,7 @@ def _extract_attributes(
                 )
                 if datatype == XSD_QNAME:
                     _v = xml_qname_to_QualifiedName(
-                        subel,
-                        subel.text,  # type: ignore[arg-type]
-                        namespaces=namespaces,
-                        scope=scope,
+                        subel, _stripped_text(subel), namespaces=namespaces, scope=scope
                     )
                 else:
                     # An empty XSD-typed text value (e.g. prov:value="")
@@ -834,15 +832,22 @@ def _attribute_name(
     namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
     scope: prov.model.ProvBundle,
 ) -> prov.identifier.QualifiedName:
-    """The name an attribute element spells. An unprefixed element's local
-    part may hold ``:`` (escaped on write), so it is resolved in the
-    namespace the tag carries and never split."""
+    """The name an attribute element spells. Its local part may hold ``:``
+    (escaped on write), so it is resolved in the namespace the tag carries
+    and never split."""
     qname = etree.QName(subel)
-    localname = _unescape_ncname_localpart(qname.localname)
-    if subel.prefix is None and qname.namespace is not None:
-        return _bare_name(qname.namespace, localname, scope)
-    name = f"{subel.prefix}:{localname}" if subel.prefix else localname
-    return xml_qname_to_QualifiedName(subel, name, namespaces=namespaces, scope=scope)
+    local = _unescape_ncname_localpart(qname.localname)
+    if qname.namespace is None:
+        return _resolved(resolve_pair(scope, "", local), local)
+    if subel.prefix is None:
+        return _bare_name(qname.namespace, local, scope)
+    return _prefixed_namespace(namespaces, subel.prefix, qname.namespace)[local]
+
+
+def _stripped_text(element: etree._Element) -> str:
+    """The text of ``element`` read as a name, as ``xsd:QName``'s whitespace
+    facet reads it: stripped, and empty when the element has none."""
+    return (element.text or "").strip()
 
 
 def _nested_reference(
@@ -888,9 +893,10 @@ def _nested_reference(
             namespaces=namespaces,
             scope=scope,
         )
-    if subel.text is not None and subel.text.strip():
+    text = _stripped_text(subel)
+    if text:
         return xml_qname_to_QualifiedName(
-            subel, subel.text, namespaces=namespaces, scope=scope
+            subel, text, namespaces=namespaces, scope=scope
         )
     raise ProvXMLException(
         f"The reference element '{attr}' has no prov:ref attribute and no "
@@ -948,6 +954,30 @@ def _namespace(
     return namespace
 
 
+def _prefixed_namespace(
+    namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
+    prefix: str,
+    ns_uri: str,
+) -> prov.identifier.Namespace:
+    """The namespace a ``prefix`` bound to ``ns_uri`` names, the XSD and PROV
+    namespaces being this package's canonical objects."""
+    if ns_uri == XML_XSD_URI:
+        return XSD  # use the standard xsd namespace (i.e. with #)
+    if ns_uri == PROV.uri:
+        return PROV
+    return _namespace(namespaces, prefix, ns_uri)
+
+
+def _resolved(
+    name: prov.identifier.QualifiedName | str, shown: str
+) -> prov.identifier.QualifiedName:
+    """``name``, or the model's refusal when it is the sentence saying why
+    ``shown`` does not resolve."""
+    if isinstance(name, str):
+        raise ProvExceptionInvalidQualifiedName(shown, name)
+    return name
+
+
 def _bare_name(
     ns_uri: str, qname_str: str, scope: prov.model.ProvBundle | None
 ) -> prov.identifier.QualifiedName:
@@ -985,8 +1015,10 @@ def xml_qname_to_QualifiedName(
             ``nsmap`` (in scope at that point in the document) is used to
             resolve the prefix.
         qname_str: A ``"prefix:localpart"`` string, or a bare local name to
-            be resolved against the default namespace. A name the ``nsmap``
-            does not resolve goes to the model when ``scope`` is given.
+            be resolved against the default namespace; an empty prefix
+            (``":localpart"``) reads as a name with no colon. A name the
+            ``nsmap`` does not resolve goes to the model when ``scope`` is
+            given.
         namespaces: The read's ``(prefix, uri)`` map of namespaces; ``None``
             creates a namespace per call.
         scope: The document or bundle a bare name resolves in; its default
@@ -1010,27 +1042,20 @@ def xml_qname_to_QualifiedName(
             ``xmlns`` that is not the XSD namespace and not the default of
             ``scope``.
     """
-    if ":" in qname_str:
-        prefix, localpart = qname_str.split(":", 1)
+    prefix, colon, localpart = qname_str.partition(":")
+    if colon and prefix:
         if prefix in element.nsmap:
-            ns_uri = element.nsmap[prefix]
-            if ns_uri == XML_XSD_URI:
-                ns = XSD  # use the standard xsd namespace (i.e. with #)
-            elif ns_uri == PROV.uri:
-                ns = PROV
-            else:
-                ns = _namespace(namespaces, prefix, ns_uri)
-            return ns[localpart]
+            return _prefixed_namespace(namespaces, prefix, element.nsmap[prefix])[
+                localpart
+            ]
     elif None in element.nsmap:
-        return _bare_name(element.nsmap[None], qname_str, scope)
+        # An empty prefix reads as a name with no colon.
+        return _bare_name(element.nsmap[None], qname_str.removeprefix(":"), scope)
     if scope is None:
         raise ProvXMLException(
             f'Could not create a valid QualifiedName for "{qname_str}"'
         )
-    name = resolve_name(scope, qname_str)
-    if isinstance(name, str):
-        raise ProvExceptionInvalidQualifiedName(qname_str, name)
-    return name
+    return _resolved(resolve_name(scope, qname_str), qname_str)
 
 
 def _ns(ns: str, tag: str) -> str:

@@ -1156,6 +1156,24 @@ _REJECTED_WITH_NO_DEFAULT = {
         "k",
         _NO_PREFIX,
     ),
+    "attribute element in no namespace, local part holding a colon": (
+        _ENTITY_WITH.format('<a_x003A_b xmlns:a="http://a.example/">v</a_x003A_b>'),
+        _AT_ENTITY,
+        "a:b",
+        _NO_PREFIX,
+    ),
+    "empty xsd:QName text": (
+        _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName"/>'),
+        _AT_ENTITY,
+        "",
+        "it is empty",
+    ),
+    "blank xsd:QName text": (
+        _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName">  </ex:k>'),
+        _AT_ENTITY,
+        "",
+        "it is empty",
+    ),
 }
 
 
@@ -1189,6 +1207,23 @@ def test_a_name_the_nsmap_does_not_resolve_is_rejected_by_the_model(
         str(ctx.value),
     )
     assert isinstance(ctx.value.__cause__, prov.ProvExceptionInvalidQualifiedName)
+
+
+@pytest.mark.parametrize("default", [True, False], ids=["default", "no xmlns"])
+@pytest.mark.parametrize("name", ["e", ":e"])
+def test_a_name_with_no_prefix_under_an_elements_own_xmlns_is_refused(
+    name: str, default: bool
+) -> None:
+    # an empty prefix reads as a name with no colon, so `:e` is refused as `e`
+    # is, whatever the document's default is (#677)
+    body = f'<prov:entity xmlns="http://other/" prov:id="{name}"/>'
+    with pytest.raises(ProvXMLException) as ctx:
+        prov.ProvDocument.deserialize(content=_prov_xml(body, default), format="xml")
+    assert str(ctx.value) == (
+        'the name "e" is under an xmlns declaration (http://other/) on an '
+        "element, which has no scope in PROV; declare the default on the "
+        "document or the bundle, or use a prefix"
+    )
 
 
 def _iris(document: prov.ProvDocument) -> list[str]:
@@ -1246,6 +1281,18 @@ def _iris(document: prov.ProvDocument) -> list[str]:
             True,
             ["http://d.example/a:b", "http://example.org/e"],
             id="attribute element",
+        ),
+        pytest.param(
+            _ENTITY_WITH.format('<ex:k xsi:type="xsd:QName"> ex:v </ex:k>'),
+            False,
+            ["http://example.org/e", "http://example.org/k", "http://example.org/v"],
+            id="xsd:QName text with whitespace",
+        ),
+        pytest.param(
+            _USED_WITH.format("<prov:entity>\n   ex:e1\n  </prov:entity>"),
+            False,
+            ["http://example.org/e1"],
+            id="reference text with whitespace",
         ),
     ],
 )

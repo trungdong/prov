@@ -205,15 +205,25 @@ PROV-O readers raise `ProvJSONLDException` and `ProvRDFException` with it as the
 PROV-XML reader raises `ProvXMLException` with it as the cause, naming the element and the
 line, for a name whose prefix no element in scope declares and the document has not already
 registered, in a record or bundle `prov:id`, a `prov:ref`, `xsd:QName` text, `xsi:type` or a
-reference given as element text, and for a name with no colon in a document with no
-`xmlns`.
+reference given as element text, for a name with no colon and no `xmlns` in scope, and for an
+empty `xsd:QName` element.
 
-`prov` 3.2.3 read a PROV-XML name whose prefix is not declared, under an `xmlns`, as a
-local part of the default namespace, so `zz:x` became the default namespace's `zz:x`, and
-without an `xmlns` raised a `ProvXMLException` naming no element. A file
-3.2.3 wrote with a default-namespace local part holding `:`, such as `a:b`, has that shape
-in `prov:id`, `prov:ref` and `xsd:QName` text. Declare a prefix for the default namespace
-IRI, such as `xmlns:dn="http://example.org/"`, and write the name under it, `dn:a:b`.
+`prov` 3.2.3 read a PROV-XML name whose prefix is not declared, in a `prov:id`, `prov:ref`,
+`xsd:QName` text or `xsi:type`, under an `xmlns` as a local part of the default namespace,
+so `zz:x` became the default namespace's `zz:x`, and without an `xmlns` raised a
+`ProvXMLException` naming no element. It returned reference text as written for the model
+to resolve against its registry, so a full IRI such as `http://example.org/e1` read as
+`ex:e1` once an earlier name had registered `ex`, and a prefix the document element
+declared that no earlier name had used was rejected. The full IRI is rejected now, and a
+prefix declared in scope resolves. A file 3.2.3 wrote with a default-namespace local part
+holding `:`, such as `a:b`, has that shape in `prov:id`, `prov:ref` and `xsd:QName` text.
+Declare a prefix for the default namespace IRI, such as `xmlns:dn="http://example.org/"`,
+and write the name under it, `dn:a:b`.
+
+Whitespace around a name in `xsd:QName` text or reference text is stripped. 3.2.3 rejected
+it in reference text and, in `xsd:QName` text, read it under an `xmlns` as part of a
+default-namespace local part and raised a `ProvXMLException` without one. An empty
+`xsd:QName` element raised a `TypeError` in 3.2.3.
 
 A value typed `prov:QUALIFIED_NAME` or `xsd:QName` holds a qualified name, and so does
 `'zz:x'` in PROV-N. `prov` splits its text at the first `:` and looks the prefix up in the
