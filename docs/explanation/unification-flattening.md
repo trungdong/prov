@@ -35,7 +35,7 @@ b.wasGeneratedBy("e2", "a1")
 print(d.get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/>
 
@@ -54,7 +54,7 @@ endDocument
 print(d.flattened().get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/>
 
@@ -108,7 +108,7 @@ d.entity("e1", {"ex:size": 1024})
 print(d.get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/>
   prefix ex <http://example.org/ns#>
@@ -125,7 +125,7 @@ attributes:
 print(d.unified().get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/>
   prefix ex <http://example.org/ns#>

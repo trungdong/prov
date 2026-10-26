@@ -35,7 +35,7 @@ print(doc.get_provn())
 doc.serialize("report.json")
 ```
 
-```text
+```provn
 document
   default <https://example.org/>
 

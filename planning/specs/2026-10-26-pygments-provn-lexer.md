@@ -257,7 +257,8 @@ planned, not built.
 ## 6. Documentation and changelog
 
 Section 3.4. `CLAUDE.md`'s setup section lists the new extra beside the others; the gate
-commands do not change. `docs/dependencies.md` gains the two pins.
+commands do not change. `docs/installation.md` and `docs/explanation/architecture.md` list the
+extra and the module. `docs/dependencies.md` gains the two pins.
 
 ## 7. Out of scope and follow-on issues
 

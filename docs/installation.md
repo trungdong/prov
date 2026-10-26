@@ -19,6 +19,7 @@ to install.
 | `dot` | Graphviz export through `prov.dot` | `pydot`, `networkx` |
 | `graph` | NetworkX conversion through `prov.graph` | `networkx` |
 | `plot` | The interactive display in `ProvBundle.plot()` | `matplotlib`, `pydot`, `networkx` |
+| `pygments` | PROV-N syntax highlighting in every Pygments-based tool | `pygments` |
 
 The `dot` and `plot` extras also need a local [Graphviz](https://graphviz.org/download/)
 install, because rendering runs the `dot` executable.

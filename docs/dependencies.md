@@ -23,6 +23,7 @@ used, not at `import prov` time.
 | `dot` | `pydot>=1.2.0`, `networkx>=2.0` | `prov.dot`, Graphviz rendering |
 | `graph` | `networkx>=2.0` | `prov.graph`, NetworkX interop |
 | `plot` | `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0` | The interactive display in `ProvBundle.plot()` |
+| `pygments` | `pygments>=2.18` | `prov.pygments`, PROV-N highlighting through the `pygments.lexers` entry point |
 
 ### `rdf`
 
@@ -51,6 +52,13 @@ is the first release with the API `prov.graph` relies on. The `matplotlib` floor
 defensive modern baseline, not a verified minimum. The interactive `plot()` path is not
 exercised in CI because the test environment has no display backend.
 
+### `pygments`
+
+The floor is 2.18 because it is the oldest release the build ran green on CPython 3.12,
+3.15 and PyPy 3.11, and the first with `Lexer.version_added`, which the copy submitted to
+Pygments sets. There is no upper bound. Every test environment already holds Pygments
+through pytest, so the gates sync no new extra.
+
 ## Dev dependency group
 
 Tools for developing, testing, linting and type-checking the package locally and in CI.
@@ -69,6 +77,7 @@ Never installed for end users.
 | `pytest-cov>=7.1.0` | Coverage attribution under pytest. |
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
+| `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so one wrapper carries the only ignore. |
 
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.
