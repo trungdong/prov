@@ -64,7 +64,14 @@ The parser accepts three dialects, selected with `profile`:
 | --- | --- |
 | `strict` | The Recommendation grammar only, with at most one `default` declaration, before any `prefix` declaration, no declaration of `prov` or `xsd`, every statement before the first bundle, and no identifier or attribute block on `alternateOf`, `specializationOf` or `hadMember`. Mention is `prov:mentionOf`, as PROV-Links spells it, and `-` is not accepted where the grammar has a plain identifier. |
 | `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
-| `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. Extensibility expressions (`prefix:name(...)`) are skipped this way. |
+| `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. |
+
+Every profile reads an extensibility expression (`prefix:name(...)`, PROV-N section 5) and
+drops it with a {py:class}`~prov.model.ProvWarning` that names the predicate and its
+position. The parser counts the brackets that an expression's arguments open, and not
+the `(` of the expression itself. More than 32 levels raise a
+{py:class}`~prov.serializers.provn.ProvNSyntaxError`, which `lenient` skips as it skips
+any statement that fails to parse.
 
 ```python
 document = pm.ProvDocument.deserialize("document.provn", format="provn", profile="strict")

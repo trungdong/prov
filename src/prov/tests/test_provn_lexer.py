@@ -39,12 +39,14 @@ def values(text):
         ("-", [TokenKind.MARKER]),
         ("'ex:abc'", [TokenKind.QNAME_LITERAL]),
         (
-            "( ) [ ] , ; =",
+            "( ) [ ] { } , ; =",
             [
                 TokenKind.LPAREN,
                 TokenKind.RPAREN,
                 TokenKind.LBRACKET,
                 TokenKind.RBRACKET,
+                TokenKind.LBRACE,
+                TokenKind.RBRACE,
                 TokenKind.COMMA,
                 TokenKind.SEMICOLON,
                 TokenKind.EQUALS,

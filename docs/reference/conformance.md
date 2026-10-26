@@ -161,8 +161,7 @@ No profile accepts the keywords `person`, `organization`, `softwareAgent`, `coll
 `emptyCollection`, `plan`, `wasRevisionOf`, `wasQuotedFrom` or `hadPrimarySource`. They are
 not PROV-N. The grammar expresses subtypes through `prov:type`, no producer writes them and
 ProvToolbox's reader rejects them; they raise `ProvNSyntaxError` under `strict` and
-`default` and are skipped under `lenient`. The PROV-Dictionary set-of-pairs literal
-(`{("k1", e1), ...}`) is not supported.
+`default` and are skipped under `lenient`.
 
 The reader also accepts a leading byte order mark, a carriage return as a line end, an
 all-digit local name as an attribute name or datatype, and a `bytearray` stream. A
@@ -281,8 +280,8 @@ The [PROV-N conformance corpus](https://github.com/trungdong/prov/tree/main/src/
 
 | Set | Profile | Files | Result |
 | --- | --- | --- | --- |
-| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 92 parse and round-trip through the writer; 35 are excluded. |
-| ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 4 parse; 5 are excluded. |
+| Every example in the PROV-N and PROV-DM Recommendations | `strict` | 127 | 94 parse and round-trip through the writer; 33 are excluded. |
+| ProvToolbox's hand-written PROV-N test documents | `default` | 9 | 6 parse; 3 are excluded. |
 | PROV-N that ProvToolbox's writer produced from the shared test corpus, compared with the PROV-JSON fixture of the same name | `default` | 388 | 229 equal; 159 differ for reasons in the generator, not in `prov`. |
 
 The corpus README names every excluded or differing file with its reason.

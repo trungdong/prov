@@ -309,8 +309,6 @@ def test_comments_anywhere() -> None:
     ("body", "message", "line"),
     [
         ("entity(ex:e1)", "expected 'endDocument'", None),  # closing removed below
-        ("foo(ex:e1)", "unknown statement keyword 'foo'", 4),
-        ("ex:custom(ex:e1)", "extensibility expression", 4),
         ("wasGeneratedBy(ex:e1, ex:a1)", "takes 1 or 3 arguments, got 2", 4),
         ("used(ex:a1, 2011-11-16T16:05:00, -)", "expected an identifier", 4),
         ("entity(zz:e1)", "prefix 'zz' is not declared", 4),
@@ -343,6 +341,16 @@ EVERY = PROFILES
 STRICT = ("strict",)
 # Rejected inside a statement, so the lenient profile skips the statement.
 STATEMENT = ("strict", "default")
+_TOO_DEEP = "extensibility expression nested more than 32 levels"
+
+
+def _dropped(line: int, column: int, keyword: str) -> str:
+    return (
+        "PROV-N extensibility expression dropped:"
+        f" line {line}, column {column}: '{keyword}'"
+    )
+
+
 _AT_MESSAGE = "the namespace IRI '@foo/' cannot start with '@'"
 _BLANK_MESSAGE = "Not a valid URI to create a namespace."
 
@@ -420,6 +428,18 @@ REJECTED_DOCUMENTS = [
         (3, 15),
         id="undeclared xsi",
     ),
+    # An expression's attribute block stops at a structural keyword that is
+    # not an attribute name, so lenient resync finds the keyword.
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}ex:f(ex:a, [{pairs}\nendDocument",
+            STATEMENT,
+            "expected an attribute name, found 'endDocument'",
+            (4, 1),
+            id=f"extension attribute block {label} before endDocument",
+        )
+        for label, pairs in (("opened", ""), ("after a pair", 'ex:k="v",'))
+    ],
     # Statement rules (#523, #519 b and c). An attribute named after one of
     # the statement's own arguments is rejected at the attribute; under
     # strict, a statement after a bundle at the statement, and an identifier
@@ -573,15 +593,92 @@ REJECTED_DOCUMENTS = [
         (3, 20),
         id="full IRI as a qualified-name value",
     ),
+    pytest.param(
+        f"{STATEMENT_PREFIX}foo(ex:e1)\nendDocument",
+        STATEMENT,
+        "unknown statement keyword 'foo'",
+        (3, 1),
+        id="unprefixed unknown keyword",
+    ),
+    # An extensibility expression is read by the grammar ([49] to [51]) and
+    # dropped, so a malformed one is a statement error at the token at fault.
     *[
         pytest.param(
-            f"{STATEMENT_PREFIX}{keyword}(ex:a, ex:b, ex:c)\nendDocument",
+            f"{STATEMENT_PREFIX}{body}\nendDocument",
             STATEMENT,
-            f"extensibility expression '{keyword}(...)' is not supported",
-            (3, 1),
-            id=f"{keyword} is an extension",
+            message,
+            position,
+            id=label,
         )
-        for keyword in ("prov:entity", "ex:mentionOf")
+        for body, message, position, label in (
+            (
+                "ex:f(" + "{" * 33 + "ex:a" + "}" * 33 + ")",
+                _TOO_DEEP,
+                (3, 38),
+                "33 braces",
+            ),
+            (
+                "ex:f(" * 34 + "ex:a" + ")" * 34,
+                _TOO_DEEP,
+                (3, 5 * 34),
+                "34 nested expressions",
+            ),
+            (
+                "ex:f(foo(ex:a))",
+                "the predicate 'foo' of an extensibility expression has no prefix",
+                (3, 6),
+                "nested predicate without a prefix",
+            ),
+            (
+                "ex:f({ex:a, ex:b)",
+                "expected '}', found ')'",
+                (3, 17),
+                "unterminated tuple",
+            ),
+            (
+                "ex:f({})",
+                "expected an extensibility argument, found '}'",
+                (3, 7),
+                "empty tuple",
+            ),
+            (
+                "ex:f()",
+                "expected an extensibility argument, found ')'",
+                (3, 6),
+                "no argument",
+            ),
+            (
+                "ex:f({ex:a},",
+                "expected an identifier, found 'endDocument'",
+                (4, 1),
+                "unterminated expression stops at endDocument",
+            ),
+        )
+    ],
+    # Braces are tokens, so a stray one is a statement error (#520).
+    *[
+        pytest.param(
+            f"{STATEMENT_PREFIX}{body}\nendDocument",
+            STATEMENT,
+            message,
+            (3, column),
+            id=f"{body} is not a statement",
+        )
+        for body, message, column in (
+            ("{", "expected a statement keyword, found '{'", 1),
+            ("}", "expected a statement keyword, found '}'", 1),
+            ("entity(ex:e, {)", "expected an identifier, a time or '-', found '{'", 14),
+            (
+                "wasDerivedFrom(ex:a, {ex:b})",
+                "expected an identifier, a time or '-', found '{'",
+                22,
+            ),
+            (
+                "wasDerivedFrom(ex:a, (ex:b, ex:c))",
+                "expected an identifier, a time or '-', found '('",
+                22,
+            ),
+        )
     ],
 ]
 
@@ -653,26 +750,32 @@ def test_reader_accepts_declarations(declarations, profiles) -> None:
             )
 
 
-# Statements each profile reads with no warning of any kind (#523, #519 b
-# and c): the statement block and the profiles that accept it.
+# Statements each profile reads (#523, #519 b and c): the statement block, the
+# profiles that accept it and the exact warnings it gives under each, which are
+# the drops of its extensibility expressions and any lenient skip. Positions
+# follow STATEMENT_PREFIX, so the first body line is line 3.
+_PROVEXT = "prefix provext <http://openprovenance.org/prov/extension#>\n"
 ACCEPTED_STATEMENTS = [
     pytest.param(
         "wasGeneratedBy(ex:e, ex:a, -, [prov:role='ex:r'])",
         EVERY,
+        (),
         id="reserved attribute that is not an argument",
     ),
     pytest.param(
         "entity(ex:f)\nbundle ex:b\nentity(ex:e)\nendBundle",
         EVERY,
+        (),
         id="statement before a bundle",
     ),
     pytest.param(
         "bundle ex:b\nentity(ex:e)\nendBundle\nentity(ex:f)",
         ("default", "lenient"),
+        (),
         id="statement after a bundle",
     ),
     *[
-        pytest.param(statement, ("default", "lenient"), id=label)
+        pytest.param(statement, ("default", "lenient"), (), id=label)
         for statement, label in (
             ("hadMember(ex:m; ex:c, ex:e)", "hadMember with an identifier"),
             ("hadMember(-; ex:c, ex:e)", "hadMember with a marker"),
@@ -687,31 +790,131 @@ ACCEPTED_STATEMENTS = [
     pytest.param(
         'wasDerivedFrom(ex:d; ex:e2, ex:e1, [ex:k="x"])',
         EVERY,
+        (),
         id="identifier and attributes on a derivation",
     ),
     pytest.param(
         "prov:mentionOf(ex:m; ex:e2, ex:e1, ex:b)",
         EVERY,
+        (),
         id="identifier on a mention",
     ),
     pytest.param(
         "mentionOf(ex:a, ex:b, ex:c)",
         ("default", "lenient"),
+        (),
         id="bare mentionOf",
+    ),
+    # Extensibility expressions ([49] to [51]): dropped under every profile
+    # with one warning, whatever they nest and whatever prefix they use.
+    pytest.param(
+        'dictExt:hadMembers(mId; d, {("k1",e1), ("k2",e2), ("k3",e3)}, [])',
+        EVERY,
+        (_dropped(3, 1, "dictExt:hadMembers"),),
+        id="Recommendation example 63",
+    ),
+    pytest.param(
+        'dictExt:hadMembers(mid; d, dictExt:set(dictExt:pair("k1",e1), \n'
+        '    dictExt:pair("k2",e2), \n    dictExt:pair("k3",e3)), \n'
+        '    [dictExt:uniqueKeys="true"])',
+        EVERY,
+        (_dropped(3, 1, "dictExt:hadMembers"),),
+        id="Recommendation example 64",
+    ),
+    pytest.param(
+        'zz:f(zz:id; zz:a, "1" %% zz:t, \'zz:q\', zz:g(zz:b), [zz:k="v"])',
+        EVERY,
+        (_dropped(3, 1, "zz:f"),),
+        id="undeclared prefix at every position",
+    ),
+    *[
+        pytest.param(
+            f"{keyword}(ex:a, ex:b, ex:c)",
+            EVERY,
+            (_dropped(3, 1, keyword),),
+            id=f"{keyword} is an extension",
+        )
+        for keyword in ("prov:entity", "ex:mentionOf")
+    ],
+    pytest.param(
+        f"{_PROVEXT}entity(ex:e1)\nprovext:hadMember(ex:c, ex:e1)\n"
+        "provext:hadMember(ex:c, ex:e2)\nentity(ex:e2)",
+        EVERY,
+        (_dropped(5, 1, "provext:hadMember"), _dropped(6, 1, "provext:hadMember")),
+        id="two adjacent expressions",
+    ),
+    pytest.param(
+        'ex:f(2011-11-16T16:00:00, -, 42, "s"@en, (ex:a, {ex:b}), [])',
+        EVERY,
+        (_dropped(3, 1, "ex:f"),),
+        id="every argument kind",
+    ),
+    pytest.param(
+        "ex:f(" + "{(ex:g(" * 10 + "{(ex:a" + ")}" + "))}" * 10 + ")",
+        EVERY,
+        (_dropped(3, 1, "ex:f"),),
+        id="32 levels of tuples and expressions",
+    ),
+    pytest.param(
+        "ex:f({ex:a, bundle})",
+        EVERY,
+        (_dropped(3, 1, "ex:f"),),
+        id="a structural keyword before a closing brace",
+    ),
+    pytest.param(
+        "bundle ex:b\nex:f(ex:a)\nendBundle",
+        EVERY,
+        (_dropped(4, 1, "ex:f"),),
+        id="expression inside a bundle",
+    ),
+    pytest.param(
+        "bundle ex:b\nex:f(ex:a, [\nendBundle\nentity(ex:f)",
+        ("lenient",),
+        (
+            "PROV-N statement skipped: line 5, column 1: expected an attribute"
+            " name, found 'endBundle'",
+        ),
+        id="an unclosed attribute block ends at endBundle",
+    ),
+    pytest.param(
+        'zz:hadMembers(zz:m; zz:d, zz:set(zz:pair("k1",zz:e1),\n'
+        '    zz:pair("k2",zz:e2),\n    zz:pair("k3",zz:e3)),\n'
+        '    [zz:uniqueKeys="true"])\nentity(zz:e)',
+        ("lenient",),
+        (
+            _dropped(3, 1, "zz:hadMembers"),
+            "PROV-N statement skipped: line 7, column 8: cannot resolve 'zz:e':"
+            " prefix 'zz' is not declared",
+        ),
+        id="a skip after a multi-line expression is positioned",
+    ),
+    pytest.param(
+        "ex:f(ex:a, BAD BAD, ex:g(ex:b), ex:c)\nentity(ex:e)",
+        ("lenient",),
+        (
+            "PROV-N statement skipped: line 3, column 16: expected ')', found 'BAD'",
+            _dropped(3, 21, "ex:g"),
+            "PROV-N statement skipped: line 3, column 31: expected a statement"
+            " keyword, found ','",
+        ),
+        id="recovery stops at a nested predicate",
     ),
 ]
 
 
-@pytest.mark.parametrize(("body", "profiles"), ACCEPTED_STATEMENTS)
-def test_reader_accepts_statements(body, profiles) -> None:
+@pytest.mark.parametrize(("body", "profiles", "dropped"), ACCEPTED_STATEMENTS)
+def test_reader_accepts_statements(body, profiles, dropped) -> None:
     for profile in profiles:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", ProvWarning)
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
             ProvDocument.deserialize(
                 content=f"{STATEMENT_PREFIX}{body}\nendDocument",
                 format="provn",
                 profile=profile,
             )
+        assert [
+            str(w.message) for w in caught if issubclass(w.category, ProvWarning)
+        ] == list(dropped), profile
 
 
 def test_strict_rejects_bare_mention_with_a_hint() -> None:

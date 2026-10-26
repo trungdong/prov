@@ -10,7 +10,11 @@ Each set has a table of files it leaves out, with the reason per file, and
 one test that proves the exclusion still holds: an excluded example or
 document still fails to parse, and a listed corpus file still differs from
 its fixture. A file that starts to pass is removed from its table and from
-the README."""
+the README.
+
+A third table, ``IGNORED_EXTENSIONS``, counts the extensibility expressions the
+reader drops from a file that otherwise parses. The two parse tests assert that
+count as the number of warnings, and that no other warning appears."""
 
 from __future__ import annotations
 
@@ -68,15 +72,6 @@ EXCLUDED_SPEC_EXAMPLES: dict[str, str] = {
         "the bundle identifier 'b' has no declared default namespace; the "
         "example illustrates qualified-name resolution for ex:e001, not the "
         "bundle name itself"
-    ),
-    "prov-n-example-63.provn": (
-        "the dictionary set-of-pairs literal '{(\"k1\",e1), ...}' is "
-        "PROV-Dictionary syntax the lexer has no punctuation for, "
-        "unsupported by design"
-    ),
-    "prov-n-example-64.provn": (
-        "dictExt:hadMembers(...) is an extensibility expression "
-        "(prefix:name(...)), unsupported by design"
     ),
     "prov-dm-example-03.provn": (
         "used and wasGeneratedBy give only the entity/activity without the "
@@ -317,25 +312,28 @@ EXCLUDED_PROVTOOLBOX_DOCUMENTS: dict[str, str] = {
         "'\\.') with no default namespace declared anywhere in the document"
     ),
     "container1.provn": (
-        "derivedByInsertionFrom's dictionary set-of-pairs literal "
-        "'{(\"k1\", ex:e2)}' is PROV-Dictionary syntax the lexer has no "
-        "punctuation for, unsupported by design"
+        "'\"hello2\"@EN %% xsd:string' at line 12 gives one literal a language "
+        "tag and a datatype, which productions [41] and [43] do not allow; the "
+        "document also holds wasRevisionOf, wasQuotedFrom and hadPrimarySource, "
+        "which PROV-N has no production for, and declares 'bundle ex3:b2' with "
+        "ex3 declared nowhere. Its 'prov:' dictionary statements parse as "
+        "extensibility expressions"
     ),
     "container2.provn": (
         "'%% <http://example.org/type>' uses a bare IRI as a datatype; "
         "production [53] requires datatype to be a qualifiedName"
     ),
-    "prov-family.provn": (
-        "derivedByInsertionFrom's dictionary set-of-pairs literal "
-        "'{('tr:prov-dm', tr2011:WD-prov-dm-20111018)}' is PROV-Dictionary "
-        "syntax the lexer has no punctuation for, unsupported by design"
-    ),
-    "prov-family-graphics.provn": (
-        "derivedByInsertionFrom's dictionary set-of-pairs literal "
-        "'{('tr:prov-dm', tr2011:WD-prov-dm-20111018)}' is PROV-Dictionary "
-        "syntax the lexer has no punctuation for, unsupported by design"
-    ),
 }
+
+# Extensibility expressions the reader drops from a file that parses, one
+# warning each, and the records the two family documents hold without them.
+IGNORED_EXTENSIONS: dict[str, int] = {
+    "prov-n-example-63.provn": 1,
+    "prov-n-example-64.provn": 1,
+    "prov-family.provn": 12,
+    "prov-family-graphics.provn": 12,
+}
+FAMILY_RECORDS = {"prov-family.provn": 742, "prov-family-graphics.provn": 764}
 
 
 def _files(subdir: str) -> list[Path]:
@@ -365,15 +363,31 @@ SPEC_EXAMPLES = {
 }
 
 
+def _read_recording_drops(path: Path, profile: str) -> ProvDocument:
+    """Read ``path`` and assert it warns only for its dropped extensions."""
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = _read(path, profile)
+    expected = IGNORED_EXTENSIONS.get(path.name, 0)
+    ours = [w for w in caught if issubclass(w.category, ProvWarning)]
+    assert len(ours) == expected
+    assert all(
+        str(w.message).startswith("PROV-N extensibility expression dropped:")
+        for w in ours
+    )
+    return document
+
+
 @pytest.mark.parametrize(
     "path",
     _params("spec/prov-n", EXCLUDED_SPEC_EXAMPLES)
     + _params("spec/prov-dm", EXCLUDED_SPEC_EXAMPLES),
 )
 def test_spec_examples_parse_strictly_and_round_trip(path: Path) -> None:
+    document = _read_recording_drops(path, "strict")
+    # The writer emits no extensibility expression, so the reparse is silent.
     with warnings.catch_warnings():
         warnings.simplefilter("error", ProvWarning)
-        document = _read(path, "strict")
         reloaded = ProvDocument.deserialize(
             content=document.get_provn(strict=True), format="provn", profile="strict"
         )
@@ -388,14 +402,21 @@ def test_excluded_spec_examples_still_fail_to_parse() -> None:
 
 @pytest.mark.parametrize("path", _params("provtoolbox", EXCLUDED_PROVTOOLBOX_DOCUMENTS))
 def test_provtoolbox_documents_parse(path: Path) -> None:
-    document = _read(path)
+    document = _read_recording_drops(path, "default")
     assert document.get_records() or document.has_bundles()
+    if path.name in FAMILY_RECORDS:
+        assert len(document.get_records()) == FAMILY_RECORDS[path.name]
 
 
 def test_excluded_provtoolbox_documents_still_fail_to_parse() -> None:
     for name in EXCLUDED_PROVTOOLBOX_DOCUMENTS:
         with pytest.raises(ProvNSyntaxError):
             _ = _read(CORPUS / "provtoolbox" / name)
+    # Each counted file is a corpus file that parses, so no key is stale.
+    parsed = (SPEC_EXAMPLES.keys() | {p.name for p in _files("provtoolbox")}) - (
+        EXCLUDED_SPEC_EXAMPLES.keys() | EXCLUDED_PROVTOOLBOX_DOCUMENTS.keys()
+    )
+    assert IGNORED_EXTENSIONS.keys() | FAMILY_RECORDS.keys() <= parsed
 
 
 @pytest.mark.parametrize("path", _params("provtoolbox-corpus", KNOWN_DIFFERENCES))

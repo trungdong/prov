@@ -34,11 +34,6 @@ qualified-name value without declaring it, which `prov` rejects
   PROV-N
 - `prov-n-example-61.provn` - the bundle identifier `b` has no declared default namespace; the
   example illustrates qualified-name resolution for `ex:e001`, not the bundle name itself
-- `prov-n-example-63.provn` - the dictionary set-of-pairs literal
-  (`{("k1",e1), ...}`) is PROV-Dictionary syntax the lexer has no punctuation for,
-  unsupported by design
-- `prov-n-example-64.provn` - `dictExt:hadMembers(...)` is an extensibility expression
-  (`prefix:name(...)`), unsupported by design
 - `prov-dm-example-03.provn`, `prov-dm-example-04.provn` - `used`/`wasGeneratedBy` give only the
   entity/activity without the paired time; the formal grammar requires them together
 - `prov-dm-example-05.provn`, `prov-dm-example-06.provn` - a literal ellipsis elides the
@@ -69,9 +64,10 @@ Listed in `EXCLUDED_PROVTOOLBOX_DOCUMENTS`.
 
 - `container0.provn` - several entity identifiers are bare local names (`\\--`, `\\-`, `\\.`)
   with no default namespace declared anywhere in the document
-- `container1.provn`, `prov-family.provn`, `prov-family-graphics.provn` -
-  `derivedByInsertionFrom`'s dictionary set-of-pairs literal (`{(...)}`) is
-  PROV-Dictionary syntax the lexer has no punctuation for, unsupported by design
+- `container1.provn` - line 12 gives one literal (`"hello2"@EN %% xsd:string`) both a
+  language tag and a datatype, which productions [41] and [43] do not allow. The document
+  also holds `wasRevisionOf`, `wasQuotedFrom` and `hadPrimarySource` statements, which PROV-N
+  has no production for, and declares `bundle ex3:b2` with `ex3` declared nowhere
 - `container2.provn` - `%% <http://example.org/type>` uses a bare IRI as a datatype; production
   [53] requires `datatype` to be a `qualifiedName`
 
