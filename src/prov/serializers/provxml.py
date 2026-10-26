@@ -535,7 +535,7 @@ def _holds_a_colon_name_in(bundle: prov.model.ProvBundle, uri: str) -> bool:
     """Whether ``bundle`` writes a name in the namespace ``uri`` whose local
     part contains ``:``, which has no QName."""
     return any(
-        name.namespace.uri == uri and ":" in name.localpart
+        ":" in name.localpart and name.namespace.uri == uri
         for name in _names_written_by(bundle)
     )
 
@@ -841,7 +841,7 @@ def _attribute_name(
         return _resolved(resolve_pair(scope, "", local), local)
     if subel.prefix is None:
         return _bare_name(qname.namespace, local, scope)
-    return _prefixed_namespace(namespaces, subel.prefix, qname.namespace)[local]
+    return _namespace(namespaces, subel.prefix, qname.namespace)[local]
 
 
 def _stripped_text(element: etree._Element) -> str:
@@ -941,10 +941,15 @@ def _namespace(
     prefix: str,
     uri: str,
 ) -> prov.identifier.Namespace:
-    """One ``Namespace`` per ``(prefix, uri)`` for the length of a read.
-
-    ``None`` returns a new ``Namespace``.
+    """The namespace a ``prefix`` bound to ``uri`` names. The XSD and PROV
+    namespaces are this package's canonical objects; any other is one
+    ``Namespace`` per ``(prefix, uri)`` for the length of a read, and ``None``
+    returns a new one.
     """
+    if uri == XML_XSD_URI:
+        return XSD  # use the standard xsd namespace (i.e. with #)
+    if uri == PROV.uri:
+        return PROV
     if namespaces is None:
         return prov.identifier.Namespace(prefix, uri)
     key = (prefix, uri)
@@ -952,20 +957,6 @@ def _namespace(
     if namespace is None:
         namespace = namespaces[key] = prov.identifier.Namespace(prefix, uri)
     return namespace
-
-
-def _prefixed_namespace(
-    namespaces: dict[tuple[str, str], prov.identifier.Namespace] | None,
-    prefix: str,
-    ns_uri: str,
-) -> prov.identifier.Namespace:
-    """The namespace a ``prefix`` bound to ``ns_uri`` names, the XSD and PROV
-    namespaces being this package's canonical objects."""
-    if ns_uri == XML_XSD_URI:
-        return XSD  # use the standard xsd namespace (i.e. with #)
-    if ns_uri == PROV.uri:
-        return PROV
-    return _namespace(namespaces, prefix, ns_uri)
 
 
 def _resolved(
@@ -1042,15 +1033,12 @@ def xml_qname_to_QualifiedName(
             ``xmlns`` that is not the XSD namespace and not the default of
             ``scope``.
     """
-    prefix, colon, localpart = qname_str.partition(":")
-    if colon and prefix:
-        if prefix in element.nsmap:
-            return _prefixed_namespace(namespaces, prefix, element.nsmap[prefix])[
-                localpart
-            ]
-    elif None in element.nsmap:
-        # An empty prefix reads as a name with no colon.
-        return _bare_name(element.nsmap[None], qname_str.removeprefix(":"), scope)
+    nsmap = element.nsmap
+    prefix, local = qname_str.split(":", 1) if ":" in qname_str else ("", qname_str)
+    if prefix and prefix in nsmap:
+        return _namespace(namespaces, prefix, nsmap[prefix])[local]
+    if not prefix and None in nsmap:
+        return _bare_name(nsmap[None], local, scope)
     if scope is None:
         raise ProvXMLException(
             f'Could not create a valid QualifiedName for "{qname_str}"'

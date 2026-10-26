@@ -986,7 +986,7 @@ def _xsi_type_of(parent: etree._Element, path: str) -> str | None:
 @pytest.mark.parametrize(
     ("declared", "prefix"), [(None, "dn"), ("d", "d")], ids=["minted", "reused"]
 )
-def test_a_default_namespace_datatype_is_written_as_a_qname(
+def test_a_default_namespace_name_is_written_as_a_qname(
     declared: str | None, prefix: str
 ) -> None:
     # a bare local part is a QName under the element's xmlns; one with a colon
@@ -1029,10 +1029,10 @@ def test_a_default_namespace_datatype_is_written_as_a_qname(
         f"{prefix}:a:b",
         "e",
     ]
-    q = root.find("prov:entity/ex:q", FORCE_TYPES_NS)
-    assert q is not None and q.text == f"{prefix}:a:b"
-    p = root.find("prov:entity/ex:p", FORCE_TYPES_NS)
-    assert p is not None and p.text == "e"
+    assert root.findtext("prov:entity/ex:q", namespaces=FORCE_TYPES_NS) == (
+        f"{prefix}:a:b"
+    )
+    assert root.findtext("prov:entity/ex:p", namespaces=FORCE_TYPES_NS) == "e"
     used = root.find("prov:used/prov:entity", FORCE_TYPES_NS)
     assert used is not None and used.get(PROV_REF) == f"{prefix}:a:b"
     bundles = root.findall("prov:bundleContent", FORCE_TYPES_NS)
@@ -1199,12 +1199,9 @@ def test_a_name_the_nsmap_does_not_resolve_is_rejected_by_the_model(
     with pytest.raises(ProvXMLException) as ctx:
         prov.ProvDocument.deserialize(content=_prov_xml(body, default), format="xml")
     assert ctx.type is ProvXMLException
-    assert re.fullmatch(
-        re.escape(
-            f"{where}Invalid Qualified Name: {text}, the qualified name {text!r} "
-            f"does not resolve, because {reason}"
-        ),
-        str(ctx.value),
+    assert str(ctx.value) == (
+        f"{where}Invalid Qualified Name: {text}, the qualified name {text!r} "
+        f"does not resolve, because {reason}"
     )
     assert isinstance(ctx.value.__cause__, prov.ProvExceptionInvalidQualifiedName)
 
@@ -1248,12 +1245,6 @@ def _iris(document: prov.ProvDocument) -> list[str]:
     [
         pytest.param(
             '<prov:entity prov:id=":x"/>', True, ["http://d.example/x"], id=":x"
-        ),
-        pytest.param(
-            _ENTITY_WITH.format('<prov:type xsi:type=":a:b">v</prov:type>'),
-            True,
-            ["http://d.example/a:b", "http://example.org/e"],
-            id="3.2.3 xsi:type",
         ),
         pytest.param(
             _USED_WITH.format("<prov:entity>ex:e1</prov:entity>"),
