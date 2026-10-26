@@ -66,7 +66,11 @@ The parser accepts three dialects, selected with `profile`:
 | `default` | The grammar plus the bare `mentionOf` keyword. The Recommendation has no Mention production, and every existing producer, `prov` and ProvToolbox included, writes the bare keyword, so refusing it would refuse every file in circulation. |
 | `lenient` | As `default`. A statement that fails to parse, or that the model rejects, is skipped with a {py:class}`~prov.model.ProvWarning` naming its line and column; a bundle whose identifier duplicates another is skipped whole. |
 
-Every profile reads an extensibility expression (`prefix:name(...)`, PROV-N section 5) and drops it with a {py:class}`~prov.model.ProvWarning` that names the predicate and its position. A statement that nests brackets more than 32 levels deep raises a {py:class}`~prov.serializers.provn.ProvNSyntaxError`, which `lenient` skips as it skips any statement that fails to parse.
+Every profile reads an extensibility expression (`prefix:name(...)`, PROV-N section 5) and
+drops it with a {py:class}`~prov.model.ProvWarning` that names the predicate and its
+position. The parser counts the brackets nested inside an extensibility expression, and
+more than 32 levels raise a {py:class}`~prov.serializers.provn.ProvNSyntaxError`, which
+`lenient` skips as it skips any statement that fails to parse.
 
 ```python
 document = pm.ProvDocument.deserialize("document.provn", format="provn", profile="strict")

@@ -518,8 +518,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   profile and drops it with one `ProvWarning` naming its predicate and position, where
   `strict` and `default` raised and `lenient` skipped it. No name inside one is resolved,
   so a prefix declared nowhere there is not an error. A stray `{` or `}` is a
-  `ProvNSyntaxError` at its statement, which `lenient` skips, where every profile raised
-  at the character ([#520](https://github.com/trungdong/prov/issues/520))
+  parse error at its statement, which `lenient` skips, where it was a tokenisation error
+  that no profile could skip ([#520](https://github.com/trungdong/prov/issues/520))
 
 ### Project
 
@@ -549,8 +549,8 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - The PROV-N lexer and writer share one escaping table, and the parser holds its
   profiles and statement keywords as tables. The lexer counts line breaks only where a
   token can hold one, and the parser keeps its current token as an attribute and no
-  longer tracks bracket depth. Nothing changes in what the PROV-N reader accepts or
-  rejects, or in the positions its errors give
+  longer tracks bracket depth for recovery. Nothing changes in what the PROV-N reader
+  accepts or rejects, or in the positions its errors give
   ([#450](https://github.com/trungdong/prov/issues/450))
 - `ProvFutureRejectionWarning` is never raised. It stays in `prov.model` so that a filter
   written for 3.2.3 keeps working, and 4.0 removes it. The guards that kept a copied
