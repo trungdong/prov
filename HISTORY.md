@@ -596,11 +596,11 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   document, where PROV-N raised a bare `Exception` and PROV-JSON wrote `null`.
   `ProvNSyntaxError` stays a `ProvException` through 3.x, and 4.0 removes that base
   ([#653](https://github.com/trungdong/prov/issues/653))
-- `Identifier`, `QualifiedName`, `Namespace` and `Literal` raise
-  `AttributeError` naming the class and the field when code assigns or deletes
-  one of their fields, where the assignment went through and left any set or
-  dict holding the object with a stale hash. A subclass's own attributes are
-  unaffected ([#444](https://github.com/trungdong/prov/issues/444))
+- `Identifier`, `QualifiedName`, `Namespace` and `Literal` raise `AttributeError` naming
+  the class and the field when code assigns or deletes one of their fields, where the
+  change went through and could leave a set or dict holding the object unable to find it.
+  A subclass's own attributes are unaffected
+  ([#444](https://github.com/trungdong/prov/issues/444))
 
 ## 3.2.3 (2026-10-19)
 

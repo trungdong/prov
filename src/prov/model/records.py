@@ -419,8 +419,9 @@ class Literal:
     and any other datatype is overridden (with a warning) to comply with the
     PROV-JSON/PROV-XML rules for language-tagged strings.
 
-    The fields are read-only after construction: assigning or deleting one
-    raises :class:`AttributeError`. A subclass may set attributes of its own.
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("__weakref__", "_datatype", "_langtag", "_value")
@@ -429,8 +430,8 @@ class Literal:
         {"_datatype", "_langtag", "_value"}
     )
 
-    # The guard is bound at runtime only: a visible __setattr__ makes mypy
-    # accept any attribute name.
+    # Bound at runtime only, because a visible __setattr__ makes mypy accept
+    # any attribute name.
     if not TYPE_CHECKING:
         __setattr__ = _refuse_setattr
         __delattr__ = _refuse_delattr

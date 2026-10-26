@@ -189,16 +189,17 @@ def _refuse_delattr(self: Any, name: str) -> None:
 class Identifier:
     """Base class for all identifiers.
 
-    The fields are read-only after construction: assigning or deleting one
-    raises :class:`AttributeError`. A subclass may set attributes of its own.
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("__weakref__", "_hash", "_uri")
 
     _READ_ONLY: ClassVar[frozenset[str]] = frozenset({"_hash", "_uri"})
 
-    # The guard is bound at runtime only: a visible __setattr__ makes mypy
-    # accept any attribute name.
+    # Bound at runtime only, because a visible __setattr__ makes mypy accept
+    # any attribute name.
     if not TYPE_CHECKING:
         __setattr__ = _refuse_setattr
         __delattr__ = _refuse_delattr
@@ -268,8 +269,9 @@ class QualifiedName(Identifier):
     combine a namespace and a local identifier. It supports string representation,
     hashing, and retrieval of individual components (namespace or local part).
 
-    The fields are read-only after construction: assigning or deleting one
-    raises :class:`AttributeError`. A subclass may set attributes of its own.
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("_localpart", "_namespace", "_str")
@@ -415,23 +417,25 @@ class Namespace:
     letters, digits, ``-``, ``_``, ``.``, U+00B7 and the combining marks, but
     does not end with ``.``.
 
-    The fields are read-only after construction: assigning or deleting one
-    raises :class:`AttributeError`. A subclass may set attributes of its own.
+    Its fields are read-only after construction. Assigning or deleting one
+    raises :class:`AttributeError`, while a subclass may still set attributes
+    of its own.
     """
 
     __slots__ = ("__weakref__", "_cache", "_prefix", "_uri")
 
     _READ_ONLY: ClassVar[frozenset[str]] = frozenset({"_cache", "_prefix", "_uri"})
 
-    # The guard is bound at runtime only: a visible __setattr__ makes mypy
-    # accept any attribute name.
+    # Bound at runtime only, because a visible __setattr__ makes mypy accept
+    # any attribute name.
     if not TYPE_CHECKING:
         __setattr__ = _refuse_setattr
         __delattr__ = _refuse_delattr
 
-    # These fields are assign-once. They take part in equality and hashing,
-    # so __setattr__ refuses a reassignment after the object has been used as
-    # a set member or dict key.
+    # These fields are assign-once. _prefix and _uri take part in equality and
+    # hashing, so __setattr__ refuses a reassignment after the object has been
+    # used as a set member or dict key. _cache takes part in neither, and only
+    # its contents change.
     _prefix: Final[str]  # type: ignore[misc]
     _uri: Final[str]  # type: ignore[misc]
     _cache: Final[dict[str, QualifiedName]]  # type: ignore[misc]

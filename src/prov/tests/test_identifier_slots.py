@@ -271,3 +271,9 @@ def test_mypy_still_rejects_a_final_write_and_an_undeclared_name() -> None:
         qn._uri = "x"  # type: ignore[misc]
     with pytest.raises(AttributeError):
         qn.undeclared = 1  # type: ignore[attr-defined]
+    ns: Namespace = NS
+    with pytest.raises(AttributeError):
+        ns.undeclared = 1  # type: ignore[attr-defined]
+    lit: Literal = Literal("1", XSD_INT)
+    with pytest.raises(AttributeError):
+        lit.undeclared = 1  # type: ignore[attr-defined]
