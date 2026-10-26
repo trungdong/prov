@@ -748,7 +748,8 @@ class ProvNParser:
         self._reject_unclosed_structural_keyword(
             (TokenKind.EQUALS,), "an attribute name"
         )
-        self._digit_run_as_name() or self._expect(TokenKind.NAME, "an attribute name")
+        if self._digit_run_as_name() is None:
+            self._expect(TokenKind.NAME, "an attribute name")
         self._expect(TokenKind.EQUALS)
         self._literal_tokens()
 
