@@ -21,6 +21,7 @@ import rdflib as rl
 from rdflib import RDF, URIRef
 from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
+from rdflib.plugins.stores.memory import Memory
 
 import prov.model as pm
 from prov.constants import PROV_ATTR_COLLECTION, PROV_ATTR_USED_ENTITY
@@ -517,10 +518,10 @@ def test_the_reader_registers_the_prefix_of_a_qname_literal(
 
 
 def test_encode_container_reuses_a_provided_container() -> None:
-    # encode_container()'s `container` parameter defaults to None
-    # everywhere it is called internally; passing one explicitly (as an
-    # external caller might) must reuse it rather than creating a new
-    # Graph.
+    # encode_container()'s `container` parameter defaults to None for an
+    # external caller; encode_document() passes a SimpleMemory graph with
+    # prov bound. Passing one explicitly must reuse it rather than creating
+    # a new Graph.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
@@ -536,6 +537,19 @@ def test_encode_container_reuses_a_provided_container() -> None:
 
     assert result is container
     assert len(list(container.triples((None, None, None)))) > 0
+
+
+def test_encode_container_default_graph_uses_the_memory_store() -> None:
+    # Without a `container`, encode_container() keeps rdflib's default
+    # store and binds prov; only encode_document() opts into SimpleMemory.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.entity("ex:e1")
+
+    graph = ProvRDFSerializer(document=doc).encode_container(doc)
+
+    assert isinstance(graph.store, Memory)
+    assert "prov" in dict(graph.namespaces())
 
 
 def test_encode_relation_keeps_a_repeated_formal_attribute() -> None:
