@@ -432,6 +432,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   3.2.x, for output compared byte for byte or read line by line
   ([#131](https://github.com/trungdong/prov/issues/131))
 
+### Additions
+
+- `prov` registers a Pygments lexer for PROV-N under the names `provn` and `prov-n`, so
+  `pygmentize`, Sphinx, MkDocs, Pelican and the other Pygments-based tools that load
+  plugins highlight a `provn` code block once `prov` is installed. The `pygments` extra
+  installs Pygments for an environment that has none ([#628](https://github.com/trungdong/prov/issues/628))
+
 ### Fixes
 
 - The PROV-O reader registers the default binding `@prefix :` as the document's default

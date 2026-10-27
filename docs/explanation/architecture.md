@@ -16,6 +16,7 @@ on first use. Reading the layers in order gives the shape of the library.
 | `prov.serializers` | One module per format behind a registry; `ProvDocument.serialize()`, `ProvDocument.deserialize()` and `prov.read()` dispatch through it | `prov.model`, plus `rdflib` (`provrdf`) and `lxml` (`provxml`) behind extras |
 | `prov.graph` | `prov_to_graph()` / `graph_to_prov()`: conversion to and from a NetworkX `MultiDiGraph` | `prov.identifier`, `prov.model`, `networkx` (extra `graph`) |
 | `prov.dot` | `prov_to_dot()`: Graphviz rendering via pydot | `prov.identifier`, `prov.graph`, `prov.model`, `pydot` (extra `dot`) |
+| `prov.pygments` | `ProvNLexer`, the PROV-N lexer that Pygments loads through the `pygments.lexers` entry point | `pygments` (extra `pygments`) |
 | `prov.scripts` | The `prov-convert` and `prov-compare` command-line tools | `prov.model`, `prov.serializers` |
 
 `prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`, `_values.py` for assertion-time value checks) whose `__init__.py`
@@ -65,5 +66,10 @@ naming the extra to install when the format is one of the optional ones.
 
 The core package has no runtime dependencies. `rdflib` sits behind the `rdf` extra, `lxml`
 behind `xml`, `networkx` behind `graph`, `pydot` and `networkx` behind `dot`, and
-`matplotlib`, `pydot` and `networkx` behind `plot` (see {doc}`../installation`). `prov.graph`
-and `prov.dot` raise `ModuleNotFoundError` naming the extra when imported without it.
+`matplotlib`, `pydot` and `networkx` behind `plot`, and `pygments` behind `pygments` (see
+{doc}`../installation`). `prov.graph`, `prov.dot` and `prov.pygments` raise
+`ModuleNotFoundError` naming the extra when imported without it. `prov.pygments` imports
+nothing from `prov` and nothing but Pygments and the standard library, because Pygments
+imports it on every plugin scan and a plugin that raises breaks every lookup that reaches
+the plugins. A scan therefore costs only the `prov/__init__` floor, and anything added to
+`prov/__init__.py` is paid by every plugin scan in every environment with prov installed.

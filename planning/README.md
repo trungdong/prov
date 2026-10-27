@@ -35,5 +35,6 @@ which is gitignored and never committed.
 | `specs/2026-10-22-release-3.3.0-spec2-equality-typing.md` | 2026-10-22 | 3.3.0 | In progress |
 | `specs/2026-10-23-docs-restructure-design.md` | 2026-10-23 | 3.3.0 | Complete; merged on `main` |
 | `specs/2026-10-23-release-3.3.0-spec3-names-provn.md` | 2026-10-23 | 3.3.0 | In progress |
+| `specs/2026-10-26-pygments-provn-lexer.md` | 2026-10-26 | 3.3.0 | In progress |
 | `triage/2026-07-behaviour-bugs.md` | 2026-07-03 | 3.0.0 | Complete; #34, #77 and #89 fixed |
 | `test-gap-checklist.md` | 2026-07-04 | 2.3.0 | Complete |

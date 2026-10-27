@@ -1610,6 +1610,9 @@ plot = [
     { name = "networkx" },
     { name = "pydot" },
 ]
+pygments = [
+    { name = "pygments" },
+]
 rdf = [
     { name = "rdflib" },
 ]
@@ -1633,6 +1636,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "ruff" },
     { name = "types-networkx" },
+    { name = "types-pygments" },
 ]
 docs = [
     { name = "furo" },
@@ -1651,9 +1655,10 @@ requires-dist = [
     { name = "networkx", marker = "extra == 'plot'", specifier = ">=2.0" },
     { name = "pydot", marker = "extra == 'dot'", specifier = ">=1.2.0" },
     { name = "pydot", marker = "extra == 'plot'", specifier = ">=1.2.0" },
+    { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.13" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0.0,<8" },
 ]
-provides-extras = ["rdf", "xml", "dot", "graph", "plot"]
+provides-extras = ["rdf", "xml", "dot", "graph", "plot", "pygments"]
 
 [package.metadata.requires-dev]
 bench = [{ name = "pytest-benchmark", specifier = ">=5.1.0" }]
@@ -1669,6 +1674,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "ruff", specifier = ">=0.15.20" },
     { name = "types-networkx", specifier = ">=3.4.2.20250509" },
+    { name = "types-pygments", specifier = ">=2.21.0.20260819" },
 ]
 docs = [
     { name = "furo" },
@@ -2290,6 +2296,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c0/9f/ee7fe1e7670eed177ba4e7bc205982651967ac1348f49ecd2f5f7440bec5/types_networkx-3.6.1.20261018.tar.gz", hash = "sha256:136175a247087a8fe2ab0e6fc16c5e1e40ab5a7e497446c7dd18f69f0dac9cc9", size = 76528, upload-time = "2026-10-18T06:44:10.697Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/6f/4cb796c2e2c3db8c32f32c3467512c828a8f214f724e754732d25abf30e2/types_networkx-3.6.1.20261018-py3-none-any.whl", hash = "sha256:9b6180cd8e2bb78c31b7f031941da2be270340f8f2d4e46880497c4ef1326b0c", size = 167452, upload-time = "2026-10-18T06:44:09.678Z" },
+]
+
+[[package]]
+name = "types-pygments"
+version = "2.21.0.20260819"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/2b/b3e929c39fb056f0e44560acbe53a7c3f28f428af5362d043642d80b31ec/types_pygments-2.21.0.20260819.tar.gz", hash = "sha256:68e0cb27115b08b681c843e30a153b5d9850c048e1158623ada36ccd4cf7e89b", size = 21509, upload-time = "2026-08-19T02:47:15.827Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/a5/10a2de06b53a36f4334391fcf292b51877cbc71d3f6eac353e7b87a0a17e/types_pygments-2.21.0.20260819-py3-none-any.whl", hash = "sha256:85e216770d616db6a7e96fb70c2de9d9f283b746c37edb7768ce645bdbcaddb2", size = 29099, upload-time = "2026-08-19T02:47:14.81Z" },
 ]
 
 [[package]]

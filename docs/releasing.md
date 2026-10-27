@@ -206,7 +206,7 @@ gh pr list -R conda-forge/prov-feedstock --state open
 
 The bot supplies the version, sha256 and build number and re-renders. Review the run
 dependencies: conda has no extras, so by convention the recipe stays full-featured and
-mirrors the `rdf`/`xml`/`dot`/`graph` extras as hard dependencies.
+mirrors the `rdf`/`xml`/`dot`/`graph`/`pygments` extras as hard dependencies.
 
 If `gh pr merge` refuses the bot's PR for "base branch policy", see Troubleshooting.
 

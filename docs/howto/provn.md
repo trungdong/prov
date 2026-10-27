@@ -110,6 +110,38 @@ names the record, so the output parses under the `strict` profile:
 document.serialize("document.provn", format="provn", strict=True)
 ```
 
+## Syntax highlighting
+
+Pygments finds the PROV-N lexer by name once `prov` is installed, under `provn` and
+`prov-n`. An environment without Pygments gets it from the `pygments` extra,
+`python -m pip install "prov[pygments]"`. This command highlights a file:
+
+```bash
+pygmentize -l provn -f html document.provn
+```
+
+Python callers fetch the lexer the same way:
+
+```python
+from pygments.lexers import get_lexer_by_name
+
+lexer = get_lexer_by_name("provn")
+```
+
+Sphinx, MkDocs and Pelican look a code fence's language up by name, so a `provn` fence
+highlights with no PROV-N-specific configuration. In a Jupyter notebook, one line in the
+nbconvert configuration highlights cells that start with `%%provn` when the notebook is
+exported. prov provides no `%%provn` cell magic, so such a cell does not run unless you
+define the magic yourself:
+
+```python
+c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
+```
+
+`pygmentize -f latex` and minted v2 highlight PROV-N. The minted v3 that TeX Live
+bundles, and Overleaf, use a Pygments that cannot see plugins, so they highlight PROV-N
+once the lexer ships in Pygments itself.
+
 ## Convert on the command line
 
 `prov-convert` reads PROV-N with `-i provn`:

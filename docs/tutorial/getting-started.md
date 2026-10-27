@@ -57,7 +57,7 @@ from the PROV specification:
 print(document.get_provn())
 ```
 
-```text
+```provn
 document
   default <http://anotherexample.org/>
   prefix ex <http://example.org/>
@@ -134,7 +134,7 @@ bundle.entity("e001")
 print(d.get_provn())
 ```
 
-```text
+```provn
 document
   default <http://example.org/0/>
   prefix ex1 <http://example.org/1/>
