@@ -11,6 +11,7 @@ and the keyword list, and ``test_pygments.py`` pins each copy to its source.
 """
 
 import re
+from collections.abc import Callable
 from typing import Any
 
 try:
@@ -34,7 +35,8 @@ except ImportError as e:  # pragma: no cover -- Pygments (pygments extra) absent
 
 __all__ = ["ProvNLexer"]
 
-# Copies of prov.identifier's name tables, written out in full.
+# Copies of prov.identifier's name tables: the start-character table is written out
+# and the rest is built from it, as prov.identifier builds them.
 _NCNAME_START_CHARS = (
     "\x41-\x5a"  # NameStartChar: [A-Z]
     "\x5f"  # NameStartChar: "_"
@@ -52,34 +54,18 @@ _NCNAME_START_CHARS = (
     "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
     "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
 )
-_PN_CHARS = (
-    "\x41-\x5a"  # NameStartChar: [A-Z]
-    "\x5f"  # NameStartChar: "_"
-    "\x61-\x7a"  # NameStartChar: [a-z]
-    "\xc0-\xd6"  # NameStartChar: [#xC0-#xD6]
-    "\xd8-\xf6"  # NameStartChar: [#xD8-#xF6]
-    "\xf8-\u02ff"  # NameStartChar: [#xF8-#x2FF]
-    "\u0370-\u037d"  # NameStartChar: [#x370-#x37D]
-    "\u037f-\u1fff"  # NameStartChar: [#x37F-#x1FFF]
-    "\u200c-\u200d"  # NameStartChar: [#x200C-#x200D]
-    "\u2070-\u218f"  # NameStartChar: [#x2070-#x218F]
-    "\u2c00-\u2fef"  # NameStartChar: [#x2C00-#x2FEF]
-    "\u3001-\ud7ff"  # NameStartChar: [#x3001-#xD7FF]
-    "\uf900-\ufdcf"  # NameStartChar: [#xF900-#xFDCF]
-    "\ufdf0-\ufffd"  # NameStartChar: [#xFDF0-#xFFFD]
-    "\U00010000-\U000effff"  # NameStartChar: [#x10000-#xEFFFF]
+_PN_CHARS = _NCNAME_START_CHARS + (
     "\\-"  # NameChar: "-" (escaped: literal, not a range operator)
     "\x30-\x39"  # NameChar: [0-9]
     "\xb7"  # NameChar: #xB7
     "\u0300-\u036f"  # NameChar: [#x0300-#x036F]
     "\u203f-\u2040"  # NameChar: [#x203F-#x2040]
 )
-_PN_CHARS_ESC = "='(),:;[]" + "-."
+_PN_CHARS_ESC = "='(),:;[]-."
 _PN_CHARS_OTHER = "/@~&+*?#$!"
-# A bracketed regex fragment; the four strings above are class bodies.
-_PN_PREFIX = (
-    rf"[{_NCNAME_START_CHARS.replace('_', '')}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
-)
+_PN_CHARS_BASE = _NCNAME_START_CHARS.replace("_", "")
+# A bracketed regex fragment; the strings above are class bodies.
+_PN_PREFIX = rf"[{_PN_CHARS_BASE}](?:[{_PN_CHARS}.]*[{_PN_CHARS}])?"
 
 # Copies of the two patterns prov.model._values shares with the tokenizer.
 LANGTAG_PATTERN = r"[A-Za-z]+(?:-[A-Za-z0-9]+)*"
@@ -109,7 +95,7 @@ _EXPRESSIONS = (
     "hadMember",
     "mentionOf",
 )
-_STRUCTURAL = ("document", "endDocument", "bundle", "endBundle")
+_STRUCTURAL = ("document", "endDocument", "endBundle")
 
 _PN_OTHERS = re.escape(_PN_CHARS_OTHER)
 _PERCENT = r"%[0-9A-Fa-f]{2}"
@@ -131,14 +117,12 @@ _TRIVIA = rf"(?:[ \t\r\n]|{_LINE_COMMENT}(?![^\n\r])|{_BLOCK_COMMENT})*"
 _BEFORE_PAREN = rf"(?={_TRIVIA}\()"
 _BEFORE_EQUALS = rf"(?={_TRIVIA}=)"
 
-_PREFIXED = rf"({_PN_PREFIX})(:)({_PN_LOCAL})?"
-_BARE = rf"({_PN_LOCAL})"
-_IRI_OPEN = r'<(?:[^<>"{}|^`\\\x00-\x20]|\\[^\x00-\x20])*'
-_IRI = _IRI_OPEN + ">"
+# A qualified name as prefix, colon and optional local part, or a bare local name; the
+# groups take Name.Namespace, Punctuation and the construct's class twice.
+_QNAME = rf"(?:({_PN_PREFIX})(:)({_PN_LOCAL})?|({_PN_LOCAL}))"
+_IRI = r'<(?:[^<>"{}|^`\\\x00-\x20]|\\[^\x00-\x20])*>?'
 
-
-def _groups(*args: Any) -> Any:
-    return bygroups(*args)  # type: ignore[no-untyped-call]
+_groups: Callable[..., Any] = bygroups
 
 
 class ProvNLexer(RegexLexer):
@@ -154,14 +138,11 @@ class ProvNLexer(RegexLexer):
         # Outside brackets: the six structural words and the declarations.
         "root": [
             (rf"bundle{_WORD_END}", Keyword, "bundle_name"),
-            # "bundle" is caught above; it stays in the list so the list is _STRUCTURAL.
             (words(_STRUCTURAL, suffix=_WORD_END), Keyword),
             (rf"prefix{_WORD_END}", Keyword.Declaration, "prefix_name"),
             (rf"default{_WORD_END}", Keyword.Declaration),
             include("common"),
         ],
-        # Inside ( ), { } and [ ]; every opener pushes it and every closer pops it.
-        "bracket": [include("common")],
         "trivia": [
             (r"[ \t\r\n]+", Whitespace),
             (_LINE_COMMENT, Comment.Single),
@@ -169,6 +150,8 @@ class ProvNLexer(RegexLexer):
             # An unterminated comment runs to the end of the text.
             (r"/\*[\s\S]*", Comment.Multiline),
         ],
+        # Root includes it. Every opener pushes it and every closer pops it, so it holds
+        # inside ( ), { } and [ ].
         "common": [
             include("trivia"),
             (XSD_DATETIME_PATTERN, Literal.Date),
@@ -179,10 +162,8 @@ class ProvNLexer(RegexLexer):
             (r'"""[\s\S]*', String.Double),
             (r'"(?:\\.|[^"\\\n\r])*"', String.Double, "string_tail"),
             (r'"(?:\\.|[^"\\\n\r])*', String.Double),
-            (r"'(?:\\.|[^'\\\n\r])*'", String.Single),
-            (r"'(?:\\.|[^'\\\n\r])*", String.Single),
+            (r"'(?:\\.|[^'\\\n\r])*'?", String.Single),
             (_IRI, String.Other),
-            (_IRI_OPEN, String.Other),
             (r"%%", Operator, "datatype"),
             (
                 words(_EXPRESSIONS, suffix=_NAME_END + _BEFORE_PAREN),
@@ -193,29 +174,24 @@ class ProvNLexer(RegexLexer):
                 _groups(Name.Namespace, Punctuation, Keyword),
             ),
             (
-                _PREFIXED + _NAME_END + _BEFORE_PAREN,
-                _groups(Name.Namespace, Punctuation, Name.Function),
+                _QNAME + _NAME_END + _BEFORE_PAREN,
+                _groups(Name.Namespace, Punctuation, Name.Function, Name.Function),
             ),
-            (_BARE + _NAME_END + _BEFORE_PAREN, Name.Function),
             (
-                _PREFIXED + _NAME_END + _BEFORE_EQUALS,
-                _groups(Name.Namespace, Punctuation, Name.Attribute),
+                _QNAME + _NAME_END + _BEFORE_EQUALS,
+                _groups(Name.Namespace, Punctuation, Name.Attribute, Name.Attribute),
             ),
-            (_BARE + _NAME_END + _BEFORE_EQUALS, Name.Attribute),
-            (r"-[0-9]+", Number.Integer),
-            (rf"[0-9]+{_NAME_END}", Number.Integer),
-            (_PREFIXED, _groups(Name.Namespace, Punctuation, Name)),
-            (_BARE, Name),
+            (rf"-[0-9]+|[0-9]+{_NAME_END}", Number.Integer),
+            (_QNAME, _groups(Name.Namespace, Punctuation, Name, Name)),
             (r"-", Keyword.Constant),
-            (r"[(\[{]", Punctuation, "bracket"),
+            (r"[(\[{]", Punctuation, "common"),
             (r"[)\]}]", Punctuation, "#pop"),
             (r"[,;=]", Punctuation),
         ],
         # The name after "bundle" is a name, whatever it spells.
         "bundle_name": [
             include("trivia"),
-            (_PREFIXED, _groups(Name.Namespace, Punctuation, Name), "#pop"),
-            (_BARE, Name, "#pop"),
+            (_QNAME, _groups(Name.Namespace, Punctuation, Name, Name), "#pop"),
             default("#pop"),
         ],
         "prefix_name": [
@@ -232,11 +208,10 @@ class ProvNLexer(RegexLexer):
         "datatype": [
             include("trivia"),
             (
-                _PREFIXED,
-                _groups(Name.Namespace, Punctuation, Keyword.Type),
+                _QNAME,
+                _groups(Name.Namespace, Punctuation, Keyword.Type, Keyword.Type),
                 "#pop",
             ),
-            (_BARE, Keyword.Type, "#pop"),
             default("#pop"),
         ],
     }

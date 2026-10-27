@@ -110,11 +110,7 @@ def test_examples_lex_without_error(build: Callable[[], ProvDocument]) -> None:
 @pytest.mark.parametrize(
     "text",
     [
-        pytest.param('document\nentity(ex:a, [ex:k="never ends])\n', id="string"),
-        pytest.param("document\nprefix ex <http://example.org/\n", id="iri"),
-        pytest.param("document\n/* never ends\nentity(ex:a)", id="comment"),
         pytest.param("document\nentity(ex:a,\n", id="mid-statement"),
-        pytest.param('document\nentity(ex:a, [ex:k="""never\nends])', id="long-string"),
         pytest.param("document\n)]} ; = \x00 \u00a0 \n", id="stray-characters"),
     ],
 )
@@ -123,7 +119,7 @@ def test_rejected_text_terminates_and_rejoins(text: str) -> None:
 
 
 @pytest.mark.parametrize(
-    ("text", "first"),
+    ("text", "token"),
     [
         pytest.param(
             "/* x\nentity(ex:a)",
@@ -141,15 +137,32 @@ def test_rejected_text_terminates_and_rejoins(text: str) -> None:
         pytest.param(
             "<http://x entity(ex:a)", (String.Other, "<http://x"), id="iri-space"
         ),
+        pytest.param(
+            "document\nprefix ex <http://example.org/\n",
+            (String.Other, "<http://example.org/"),
+            id="iri-in-prefix",
+        ),
+        pytest.param(
+            'document\nentity(ex:a, [ex:k="never ends])\n',
+            (String.Double, '"never ends])'),
+            id="string-in-attributes",
+        ),
+        pytest.param(
+            'document\nentity(ex:a, [ex:k="""never\nends])',
+            (String.Double, '"""never\nends])'),
+            id="long-string-in-attributes",
+        ),
     ],
 )
-def test_unterminated_construct_is_one_token(text: str, first: Tok) -> None:
+def test_unterminated_construct_is_one_token(text: str, token: Tok) -> None:
     """A comment or long string runs to the end of the text.
 
     A string or quoted name runs to the end of its line. An IRI runs to the first
-    character in \\x00-\\x20, a space included.
+    character in \\x00-\\x20, a space included. The token values rejoin the text.
     """
-    assert lex(text)[0] == first
+    tokens = lex(text)
+    assert token in tokens
+    assert rejoins(tokens, text)
 
 
 # -- the rich fixture --------------------------------------------------------------
@@ -473,7 +486,7 @@ def test_expression_and_structural_words_match_the_parser() -> None:
     bare = {name for prefix, name in _KEYWORDS if prefix == ""}
     assert set(lexer_module._EXPRESSIONS) == bare | {"mentionOf"}
     assert ("prov", "mentionOf") in _KEYWORDS
-    assert set(lexer_module._STRUCTURAL) == _STRUCTURAL
+    assert set(lexer_module._STRUCTURAL) | {"bundle"} == _STRUCTURAL
 
 
 @pytest.mark.parametrize(
@@ -483,6 +496,7 @@ def test_expression_and_structural_words_match_the_parser() -> None:
         for name in (
             "_NCNAME_START_CHARS",
             "_PN_CHARS",
+            "_PN_CHARS_BASE",
             "_PN_CHARS_ESC",
             "_PN_CHARS_OTHER",
             "_PN_PREFIX",

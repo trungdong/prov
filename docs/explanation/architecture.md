@@ -16,7 +16,7 @@ on first use. Reading the layers in order gives the shape of the library.
 | `prov.serializers` | One module per format behind a registry; `ProvDocument.serialize()`, `ProvDocument.deserialize()` and `prov.read()` dispatch through it | `prov.model`, plus `rdflib` (`provrdf`) and `lxml` (`provxml`) behind extras |
 | `prov.graph` | `prov_to_graph()` / `graph_to_prov()`: conversion to and from a NetworkX `MultiDiGraph` | `prov.identifier`, `prov.model`, `networkx` (extra `graph`) |
 | `prov.dot` | `prov_to_dot()`: Graphviz rendering via pydot | `prov.identifier`, `prov.graph`, `prov.model`, `pydot` (extra `dot`) |
-| `prov.pygments` | `ProvNLexer`, the PROV-N lexer that Pygments loads through the `pygments.lexers` entry point; it imports nothing from `prov` and nothing but Pygments and the standard library | `pygments` (extra `pygments`) |
+| `prov.pygments` | `ProvNLexer`, the PROV-N lexer that Pygments loads through the `pygments.lexers` entry point | `pygments` (extra `pygments`) |
 | `prov.scripts` | The `prov-convert` and `prov-compare` command-line tools | `prov.model`, `prov.serializers` |
 
 `prov.model` is a package (`records.py`, `bundle.py`, `namespaces.py`, `_values.py` for assertion-time value checks) whose `__init__.py`

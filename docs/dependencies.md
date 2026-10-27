@@ -77,7 +77,7 @@ Never installed for end users.
 | `pytest-cov>=7.1.0` | Coverage attribution under pytest. |
 | `ruff>=0.15.20` | Linter and formatter; `[tool.ruff]` lists the rule families. |
 | `types-networkx>=3.4.2.20250509` | Type stubs for `graph.py` under `mypy --strict`. Pulls in `numpy` transitively, see the constraint below. |
-| `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so one wrapper carries the only `type: ignore`. |
+| `types-Pygments>=2.21.0.20260819` | Type stubs so `mypy --strict` checks `prov/pygments.py`. `bygroups` is untyped, so the module binds it to a typed alias and carries no `type: ignore`. |
 
 Build backend requirements live under `[build-system]`, and the interpreter matrix is run
 with `uv run --python 3.X pytest`, as `CONTRIBUTING.md` shows.

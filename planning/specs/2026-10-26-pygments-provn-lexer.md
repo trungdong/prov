@@ -117,9 +117,9 @@ floor is 2.18, the first release with `Lexer.version_added`, which the upstream 
 the lexer itself also runs on older releases), the entry point
 `[project.entry-points."pygments.lexers"] provn = "prov.pygments:ProvNLexer"`, and
 `types-Pygments` in the dev group, with `uv.lock` regenerated because CI syncs
-`--locked`. `bygroups` is untyped in the stubs, so the module wraps
-it once in a typed one-line helper that carries the single `no-untyped-call` ignore, and
-the grammar calls the helper. A `[[tool.mypy.overrides]]` entry is not an option, because
+`--locked`. `bygroups` is untyped in the stubs, so the module binds it once to a typed
+alias, `_groups: Callable[..., Any] = bygroups`, which the grammar calls, and the module
+carries no `type: ignore`. A `[[tool.mypy.overrides]]` entry is not an option, because
 `test_mypy_override_list_only_shrinks` asserts the block holds exactly one entry, the
 shrinking list of test modules. `docs/dependencies.md` explains both pins.
 
@@ -132,8 +132,9 @@ type the Recommendation names), `url = "https://www.w3.org/TR/prov-n/"`.
 `ProvNLexer` is a `RegexLexer` that carries its own copies of the five strings the PROV-N
 tokenizer imports from `prov.identifier` (`_NCNAME_START_CHARS`, `_PN_CHARS`,
 `_PN_CHARS_ESC`, `_PN_CHARS_OTHER`, `_PN_PREFIX`) and its own keyword list. The copies
-hold the source values written out in full, since `prov.identifier` derives `_PN_CHARS`
-from another class. `_PN_PREFIX` is a regex fragment that already holds its brackets, and
+hold the source values. The start-character table is written out and the rest is built
+from it, as `prov.identifier` builds them. `_PN_PREFIX` is a regex fragment that already
+holds its brackets, and
 the other four are class bodies. The lexer passes `_PN_CHARS_ESC` and `_PN_CHARS_OTHER`
 through `re.escape`, as the tokenizer does. A test pins the copies to their sources, so
 drift fails CI (section 5). Importing them
