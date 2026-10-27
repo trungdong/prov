@@ -1034,13 +1034,12 @@ class ProvRDFSerializer(Serializer):
                 ``prov`` namespace pre-bound). :meth:`encode_document` passes
                 a fresh plain ``Graph`` on rdflib's ``SimpleMemory`` store, and
                 then merges the returned triples into its ``Dataset`` via
-                ``addN()``. This method expects a
-                plain ``Graph`` here: passing a ``Dataset`` works, but its
-                ``.add()`` calls will surface rdflib's own internal
-                ``DeprecationWarning`` on ``Dataset.default_context`` (rdflib
-                >=7.3), which is exactly why :meth:`encode_document` uses a
-                plain ``Graph`` plus ``addN()`` instead of passing its
-                ``Dataset`` in here.
+                ``addN()``. This method expects a plain ``Graph`` here: passing
+                a ``Dataset`` works, but its ``.add()`` calls will surface
+                rdflib's own internal ``DeprecationWarning`` on
+                ``Dataset.default_context`` (rdflib >=7.3), which is exactly
+                why :meth:`encode_document` uses a plain ``Graph`` plus
+                ``addN()`` instead of passing its ``Dataset`` in here.
             identifier: Identifier for the new graph, used only when
                 ``container`` is ``None``.
 
@@ -1174,10 +1173,10 @@ class ProvRDFSerializer(Serializer):
         for attr, value in record.attributes:
             # The qualification head is (re)built until a blank node is minted
             # for it; for an identified relation no blank node is ever minted,
-            # so this re-runs per attribute exactly as it always has. Each
-            # rebuild also removes the record type's rdf:type triple when a
-            # derivation subtype prov:type is asserted, so an asserted
-            # prov:type prov:Derivation survives only as the last attribute.
+            # so this re-runs per attribute. Each rebuild also removes the
+            # record type's rdf:type triple when a derivation subtype prov:type
+            # is asserted, so an asserted prov:type prov:Derivation survives
+            # only when it is the last attribute.
             if bnode is None:
                 node, bnode, skip = self._encode_relation_head(
                     container,

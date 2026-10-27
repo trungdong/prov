@@ -790,9 +790,19 @@ _ORDER_TIME = datetime.datetime(2026, 1, 2, 3, 4, 5)
             [("ex:v", "a"), ("ex:v", prov.Literal("b", XSD_STRING))],
             id="a-literal-sorts-by-its-value-text",
         ),
+        pytest.param(
+            PROV_ENTITY,
+            [(_ORDER_EX["v"], 1), (_ORDER_EX["v"], "1")],
+            [("ex:v", 1), ("ex:v", "1")],
+            id="equal-keys-keep-input-order",
+        ),
     ],
 )
-def test_sorted_attributes_order(element, attributes, expected) -> None:
+def test_sorted_attributes_order(
+    element: QualifiedName,
+    attributes: list[prov.NameValuePair],
+    expected: list[tuple[str, object]],
+) -> None:
     # Formal attributes first, then label, location, role, type and value,
     # then the rest by name and value text; equal keys keep input order.
     result = prov.sorted_attributes(element, attributes)
