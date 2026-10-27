@@ -2,7 +2,7 @@
 
 ## 3.3.0 (unreleased)
 
-### Rejected input
+### Breaking changes
 
 From 3.3.0, the reader or the model that warned about an input in `prov` 3.2.3 with a
 `ProvFutureRejectionWarning` rejects it at the same position, or reads it as the warning
@@ -167,8 +167,6 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - A bare name under an `xmlns` declared on an inner element of a PROV-XML document, a
   `ProvXMLException` that names the name and the namespace. 3.2.x made that namespace the
   default of the first scope that met it
-
-### Changes with no prior warning
 
 - `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code, PROV-JSON
   or PROV-JSONLD needs a declaration like any other prefix. Without one, the PROV-JSON
@@ -361,8 +359,6 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   neither rdflib nor `prov` can split, such as `urn:example:t=`, now raises the same
   `ProvRDFException`, where 3.2.3 raised `ProvExceptionInvalidQualifiedName`; the same
   input fails on both ([#665](https://github.com/trungdong/prov/issues/665))
-
-### Output changes
 
 - The PROV-XML reader reads an `xmlns` on `prov:document` as the document's default
   namespace even when no name uses it, so the PROV-JSON, PROV-JSONLD, PROV-N and PROV-XML

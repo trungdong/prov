@@ -121,7 +121,31 @@ a volunteer-driven project.
    advisory and never blocks a merge. If it is red, or if your change is meant to alter
    speed, run `uv run python benchmarks/ab.py main --python 3.12` and put its table in the
    pull request. `benchmarks/README.md` describes the script.
-5. Add an entry to `HISTORY.md` under the unreleased version.
+5. Add an entry to `HISTORY.md` under the unreleased version, following "Changelog
+   entries" below.
+
+## Changelog entries
+
+- Write one entry per change a user can see, in the pull request that makes it, under the
+  unreleased version's fixed headings: Breaking changes, Additions, Fixes and Project.
+  Breaking changes comes first. It holds everything a reader of the previous release may
+  have to act on: input now rejected, behaviour that changed with or without a prior
+  warning, and output that changed shape.
+- State the new behaviour. When a reader must change code, say what to write instead, and
+  only then give the old behaviour, as one clause ("where 3.2.3 read it as ...").
+- Keep an entry to one or two sentences, under about 40 words. Anything longer belongs on
+  the page that owns the topic (the upgrade how-to, the reference or the conformance
+  page), and the entry links that page.
+- End the entry with one issue or pull request link.
+- Write no entry for a refactor, a test, CI, tooling or a docs-only change. A Project entry
+  is one line and only for something a user meets, such as the Python floor or a
+  deprecation.
+- Write an entry once. A later pull request adds its own entry and never grows an earlier
+  one.
+- At release time, the release pull request adds an opening summary of two to four
+  sentences (what kind of release it is and who has to act) and a short list of the
+  changes that require action, one line each, linking the how-to. Nothing else is added
+  at release time.
 
 ## Licensing
 

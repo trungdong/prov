@@ -8,4 +8,5 @@
 - [ ] Documentation is updated if the change adds or alters behaviour.
 - [ ] The checks in CONTRIBUTING.md step 6 pass locally.
 - [ ] CI is green for every supported Python version, including PyPy.
-- [ ] `HISTORY.md` has an entry under the unreleased version.
+- [ ] `HISTORY.md` has an entry under the unreleased version, written to the "Changelog
+  entries" rules in CONTRIBUTING.md.

@@ -94,8 +94,10 @@ committed baseline. `benchmarks/README.md` has the details.
 - Merge commits, never squash; one focused PR per change with a body that says what and why.
 - Commit-message and PR-body paragraphs stay unwrapped (one line each); GitHub soft-wraps.
 - No AI attribution lines in commits or PR bodies.
-- British English in shipped documentation and changelog text; describe changes by release,
-  never by plan task or batch.
+- Describe changes by release, never by plan task or batch. A HISTORY entry is one or two
+  sentences stating the new behaviour and what to write instead, with one link at the end; a
+  refactor, a test or a CI change never gets an entry. CONTRIBUTING.md (Changelog entries)
+  has the rules.
 - **Maintainability governs.** Added functionality keeps complexity as low as it can be.
   Removed behaviour comes with less code and fewer or consolidated tests, never more. Neither
   is bought with a loss of correctness. A change that simplifies and a change that breaks a
