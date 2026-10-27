@@ -653,6 +653,10 @@ def _encode_attribute_value(
         return str(value)
 
 
+_ANY_VALUE_ATTRIBUTES = frozenset({PROV_TYPE, PROV_LOCATION, PROV_VALUE})
+_UNTYPED_ATTRIBUTES = frozenset({PROV_ATTR_TIME, PROV_LABEL})
+
+
 def _needs_xsd_type_inference(
     has_xsi_type: bool,
     attr: prov.identifier.QualifiedName,
@@ -683,12 +687,12 @@ def _needs_xsd_type_inference(
         (
             force_types
             or isinstance(value, (int, float, datetime.datetime))
-            or attr in [PROV_TYPE, PROV_LOCATION, PROV_VALUE]
+            or attr in _ANY_VALUE_ATTRIBUTES
         )
         and not has_xsi_type
         and not str(value).startswith("prov:")
         and not (attr in PROV_ATTRIBUTE_QNAMES and v)
-        and attr not in [PROV_ATTR_TIME, PROV_LABEL]
+        and attr not in _UNTYPED_ATTRIBUTES
     )
 
 
@@ -709,11 +713,7 @@ def _infer_xsd_type(
         applies) and the value's text in that datatype's lexical form, which
         lower-cases a ``bool``.
     """
-    form = python_value_form(value)
-    if form is None or (text := form[0]) is None:
-        return None, v
-    xsd_type = form[1]
-    if xsd_type == XSD_DATETIME and (
+    if isinstance(value, datetime.datetime) and (
         attr.namespace.prefix == "prov" and "time" in attr.localpart.lower()
     ):
         # Exception of the exception, while technically still correct, do
@@ -721,7 +721,10 @@ def _infer_xsd_type(
         # as the type is already declared in the XSD and PROV XML also does
         # not specify it in the docs.
         return None, v
-    return xsd_type, text
+    form = python_value_form(value)
+    if form is None or (text := form[0]) is None:
+        return None, v
+    return form[1], text
 
 
 def _extract_attributes(
