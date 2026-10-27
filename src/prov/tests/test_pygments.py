@@ -534,7 +534,7 @@ def test_lookup_finds_the_lexer(lookup: Callable[[str], Lexer], argument: str) -
 
 
 def run_isolated(code: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # nosec B603 - nosemgrep
         [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
     )
 
