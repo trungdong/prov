@@ -1,6 +1,6 @@
 # Release 3.3.0: the Pygments lexer for PROV-N (#628)
 
-**Status:** In progress.
+**Status:** Complete; built in PR #686, ships in 3.3.0.
 
 Written 2026-10-26 against `main` 35500e3. Spec 1 (`2026-10-20-release-3.3.0-design.md`,
 section 2) had planned #628 from its issue alone; this file replaces that arrangement so
@@ -112,9 +112,9 @@ import raises `ModuleNotFoundError` naming the `pygments` extra in the pattern o
 and `graph.py`; that path is reached only by a direct import, since nothing loads the entry
 point without Pygments.
 
-`pyproject.toml` gains the extra `pygments = ["pygments>=2.18"]` with no upper bound (the
-floor is 2.18, the first release with `Lexer.version_added`, which the upstream copy sets;
-the lexer itself also runs on older releases), the entry point
+`pyproject.toml` gains the extra `pygments = ["pygments>=2.13"]` with no upper bound (the
+floor is 2.13, the first release that finds plugins through `importlib.metadata`; earlier
+releases use `pkg_resources`, which an environment without setuptools lacks), the entry point
 `[project.entry-points."pygments.lexers"] provn = "prov.pygments:ProvNLexer"`, and
 `types-Pygments` in the dev group, with `uv.lock` regenerated because CI syncs
 `--locked`. `bygroups` is untyped in the stubs, so the module binds it once to a typed

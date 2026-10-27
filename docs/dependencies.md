@@ -23,7 +23,7 @@ used, not at `import prov` time.
 | `dot` | `pydot>=1.2.0`, `networkx>=2.0` | `prov.dot`, Graphviz rendering |
 | `graph` | `networkx>=2.0` | `prov.graph`, NetworkX interop |
 | `plot` | `matplotlib>=3.6`, `pydot>=1.2.0`, `networkx>=2.0` | The interactive display in `ProvBundle.plot()` |
-| `pygments` | `pygments>=2.18` | `prov.pygments`, PROV-N highlighting through the `pygments.lexers` entry point |
+| `pygments` | `pygments>=2.13` | `prov.pygments`, PROV-N highlighting through the `pygments.lexers` entry point |
 
 ### `rdf`
 
@@ -54,9 +54,9 @@ exercised in CI because the test environment has no display backend.
 
 ### `pygments`
 
-The floor is 2.18, the first release with `Lexer.version_added`, which the copy submitted
-to Pygments sets. The lexer itself also runs on older releases, so the floor follows the
-upstream copy and is not a measured minimum. There is no upper bound. Every test
+The floor is 2.13, the first release that finds plugins through `importlib.metadata`.
+Earlier releases look them up through `pkg_resources`, which an environment without
+setuptools lacks, so they never see the lexer. There is no upper bound. Every test
 environment already holds Pygments through pytest, so the gates sync no new extra.
 
 ## Dev dependency group

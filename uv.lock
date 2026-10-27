@@ -1655,7 +1655,7 @@ requires-dist = [
     { name = "networkx", marker = "extra == 'plot'", specifier = ">=2.0" },
     { name = "pydot", marker = "extra == 'dot'", specifier = ">=1.2.0" },
     { name = "pydot", marker = "extra == 'plot'", specifier = ">=1.2.0" },
-    { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.18" },
+    { name = "pygments", marker = "extra == 'pygments'", specifier = ">=2.13" },
     { name = "rdflib", marker = "extra == 'rdf'", specifier = ">=7.0.0,<8" },
 ]
 provides-extras = ["rdf", "xml", "dot", "graph", "plot", "pygments"]

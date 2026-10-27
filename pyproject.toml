@@ -57,7 +57,7 @@ plot = [
 ]
 # Pygments lexer for PROV-N (prov.pygments), found by name through its entry point.
 pygments = [
-    "pygments>=2.18",
+    "pygments>=2.13",
 ]
 
 [project.scripts]
