@@ -100,7 +100,7 @@ class TokenKind(Enum):
     EOF = "end of input"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class Token:
     kind: TokenKind
     text: str
