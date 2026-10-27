@@ -115,9 +115,11 @@ test-suite layout, and the PROV-N lexer and parser internals live in the module 
   attributes, and `test_public_api.py` freezes `dir(prov.model)`.
 - `prov.graph` and `prov.dot` sit behind the `graph` and `dot` extras and raise
   `ModuleNotFoundError` naming the extra when imported without it.
-- `prov.pygments` imports Pygments and nothing else, `prov.*` included, because Pygments
-  imports it on every plugin scan and a plugin that raises breaks every lookup that
-  reaches the plugins.
+- `prov.pygments` imports nothing from `prov` and nothing but Pygments and the standard
+  library, because Pygments imports it on every plugin scan and a plugin that raises breaks
+  every lookup that reaches the plugins. A scan therefore costs only the `prov/__init__`
+  floor, and anything added to `prov/__init__.py` is paid by every plugin scan in every
+  environment with prov installed.
   `ProvNLexer` is reached by name through the entry point and is not public API.
 - `prov.serializers.Registry`'s insertion order is `json, rdf, provn, xml, jsonld`, with
   `jsonld` deliberately last: `prov.read()`'s auto-detection walks that order and

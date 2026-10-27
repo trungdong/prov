@@ -113,7 +113,8 @@ and `graph.py`; that path is reached only by a direct import, since nothing load
 point without Pygments.
 
 `pyproject.toml` gains the extra `pygments = ["pygments>=2.18"]` with no upper bound (the
-floor verified by a probe during the build), the entry point
+floor is 2.18, the first release with `Lexer.version_added`, which the upstream copy sets;
+the lexer itself also runs on older releases), the entry point
 `[project.entry-points."pygments.lexers"] provn = "prov.pygments:ProvNLexer"`, and
 `types-Pygments` in the dev group, with `uv.lock` regenerated because CI syncs
 `--locked`. `bygroups` is untyped in the stubs, so the module wraps
@@ -243,8 +244,9 @@ planned, not built.
 - The lexer's bare keyword set equals the unprefixed keys of the parser's `_KEYWORDS` (the
   17 expression names) plus `mentionOf`, which the parser accepts without a key. The
   `("prov", "mentionOf")` key of `_KEYWORDS` is checked separately. The lexer's copied
-  strings equal `prov.identifier`'s, and its copies of `XSD_DATETIME_PATTERN` and
-  `LANGTAG_PATTERN` equal `prov.model._values`'.
+  strings equal `prov.identifier`'s, its copies of `XSD_DATETIME_PATTERN` and
+  `LANGTAG_PATTERN` equal `prov.model._values`', and its local-name fragments equal the
+  tokenizer's.
 - `get_lexer_by_name("provn")` resolves through the entry point.
 - `import prov` leaves `pygments` out of `sys.modules`.
 - One subprocess test hides Pygments (`sys.modules["pygments"] = None`) and asserts the

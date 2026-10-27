@@ -111,13 +111,13 @@ _EXPRESSIONS = (
 )
 _STRUCTURAL = ("document", "endDocument", "bundle", "endBundle")
 
-_OTHERS = re.escape(_PN_CHARS_OTHER)
+_PN_OTHERS = re.escape(_PN_CHARS_OTHER)
 _PERCENT = r"%[0-9A-Fa-f]{2}"
 _ESC = rf"\\[{re.escape(_PN_CHARS_ESC)}]"
-_LOCAL_START = rf"[{_NCNAME_START_CHARS}0-9{_OTHERS}]|{_PERCENT}|{_ESC}"
-_LOCAL_CONT = rf"[{_PN_CHARS}.{_OTHERS}]|{_PERCENT}|{_ESC}"
-_LOCAL_LAST = rf"[{_PN_CHARS}{_OTHERS}]|{_PERCENT}|{_ESC}"
-_LOCAL = rf"(?:{_LOCAL_START})(?:(?:{_LOCAL_CONT})*(?:{_LOCAL_LAST}))?"
+_LOCAL_START = rf"[{_NCNAME_START_CHARS}0-9{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
+_LOCAL_CONT = rf"[{_PN_CHARS}.{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
+_LOCAL_LAST = rf"[{_PN_CHARS}{_PN_OTHERS}]|{_PERCENT}|{_ESC}"
+_PN_LOCAL = rf"(?:{_LOCAL_START})(?:(?:{_LOCAL_CONT})*(?:{_LOCAL_LAST}))?"
 
 _LINE_COMMENT = r"//[^\n\r]*"
 _BLOCK_COMMENT = r"/\*(?:[^*]|\*(?!/))*\*/"
@@ -131,8 +131,8 @@ _TRIVIA = rf"(?:[ \t\r\n]|{_LINE_COMMENT}(?![^\n\r])|{_BLOCK_COMMENT})*"
 _BEFORE_PAREN = rf"(?={_TRIVIA}\()"
 _BEFORE_EQUALS = rf"(?={_TRIVIA}=)"
 
-_PREFIXED = rf"({_PN_PREFIX})(:)({_LOCAL})?"
-_BARE = rf"({_LOCAL})"
+_PREFIXED = rf"({_PN_PREFIX})(:)({_PN_LOCAL})?"
+_BARE = rf"({_PN_LOCAL})"
 _IRI_OPEN = r'<(?:[^<>"{}|^`\\\x00-\x20]|\\[^\x00-\x20])*'
 _IRI = _IRI_OPEN + ">"
 
@@ -173,8 +173,9 @@ class ProvNLexer(RegexLexer):
             include("trivia"),
             (XSD_DATETIME_PATTERN, Literal.Date),
             (r'"""(?:\\(?s:.)|"(?!"")|[^"\\])*"""', String.Double, "string_tail"),
-            # An unterminated string, quoted name or IRI runs to the end of its line
-            # (a long string, to the end of the text), so a bad file lexes in linear time.
+            # An unterminated string or quoted name runs to the end of its line, a
+            # long string to the end of the text, and an IRI to the first character
+            # in \x00-\x20 (a space included), so a bad file lexes in linear time.
             (r'"""[\s\S]*', String.Double),
             (r'"(?:\\.|[^"\\\n\r])*"', String.Double, "string_tail"),
             (r'"(?:\\.|[^"\\\n\r])*', String.Double),

@@ -41,6 +41,7 @@ import prov
 from prov import identifier, pygments as lexer_module
 from prov.model import ProvDocument, _values
 from prov.pygments import ProvNLexer
+from prov.serializers import provn_lexer as tokenizer_module
 from prov.serializers.provn_lexer import ProvNSyntaxError
 from prov.serializers.provn_parser import _KEYWORDS, _STRUCTURAL
 from prov.tests import examples
@@ -137,10 +138,17 @@ def test_rejected_text_terminates_and_rejoins(text: str) -> None:
         pytest.param('"x\nentity(ex:a)', (String.Double, '"x'), id="string"),
         pytest.param("'x\nentity(ex:a)", (String.Single, "'x"), id="quoted-name"),
         pytest.param("<http://x\nentity(ex:a)", (String.Other, "<http://x"), id="iri"),
+        pytest.param(
+            "<http://x entity(ex:a)", (String.Other, "<http://x"), id="iri-space"
+        ),
     ],
 )
 def test_unterminated_construct_is_one_token(text: str, first: Tok) -> None:
-    """A comment or long string runs to the end of the text, the rest to the line end."""
+    """A comment or long string runs to the end of the text.
+
+    A string or quoted name runs to the end of its line. An IRI runs to the first
+    character in \\x00-\\x20, a space included.
+    """
     assert lex(text)[0] == first
 
 
@@ -480,7 +488,19 @@ def test_expression_and_structural_words_match_the_parser() -> None:
             "_PN_PREFIX",
         )
     ]
-    + [(_values, name) for name in ("XSD_DATETIME_PATTERN", "LANGTAG_PATTERN")],
+    + [(_values, name) for name in ("XSD_DATETIME_PATTERN", "LANGTAG_PATTERN")]
+    + [
+        (tokenizer_module, name)
+        for name in (
+            "_PN_OTHERS",
+            "_PERCENT",
+            "_ESC",
+            "_LOCAL_START",
+            "_LOCAL_CONT",
+            "_LOCAL_LAST",
+            "_PN_LOCAL",
+        )
+    ],
 )
 def test_copied_strings_equal_their_sources(source: object, name: str) -> None:
     assert getattr(lexer_module, name) == getattr(source, name)

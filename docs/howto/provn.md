@@ -129,8 +129,10 @@ lexer = get_lexer_by_name("provn")
 ```
 
 Sphinx, MkDocs and Pelican look a code fence's language up by name, so a `provn` fence
-highlights with no PROV-N-specific configuration. A Jupyter notebook with `%%provn` cells
-needs one line in the nbconvert configuration for those cells to highlight on export:
+highlights with no PROV-N-specific configuration. In a Jupyter notebook, one line in the
+nbconvert configuration highlights cells that start with `%%provn` when the notebook is
+exported. prov provides no `%%provn` cell magic, so such a cell does not run unless you
+define the magic yourself:
 
 ```python
 c.HighlightMagicsPreprocessor.languages = {"%%provn": "provn"}
