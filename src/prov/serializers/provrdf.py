@@ -1117,7 +1117,7 @@ class ProvRDFSerializer(Serializer):
                 #  Assuming this is a datetime value
                 obj = self.encode_rdf_representation(value)
             pred: RdfTerm
-            if attr == PROV["location"]:
+            if attr == PROV_LOCATION:
                 pred = _prov_uri("atLocation")
                 container.add(
                     (
@@ -1162,7 +1162,7 @@ class ProvRDFSerializer(Serializer):
         formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
         formal_qualifiers = False
-        for attrid, (_attr, value) in enumerate(list(record.formal_attributes)):
+        for attrid, (_attr, value) in enumerate(record.formal_attributes):
             if (identifier is not None and value is not None) or (
                 identifier is None and value is not None and attrid > 1
             ):

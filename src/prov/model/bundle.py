@@ -2209,7 +2209,11 @@ def _xml_attribute_rank(element: QualifiedName) -> Mapping[QualifiedName, int]:
     which is its formal attributes, then label, location, role, type and value."""
     order = (
         *PROV_REC_CLS[element].FORMAL_ATTRIBUTES,
-        *(PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE, PROV_VALUE),
+        PROV_LABEL,
+        PROV_LOCATION,
+        PROV_ROLE,
+        PROV_TYPE,
+        PROV_VALUE,
     )
     return {name: position for position, name in enumerate(order)}
 
@@ -2236,7 +2240,7 @@ def sorted_attributes(
     # the text, also including the namespace prefix if given. Unranked
     # attributes come after ranked ones.
     def sort_key(x: NameValuePair) -> tuple[int, str, str]:
-        value = x[1].value if hasattr(x[1], "value") else x[1]
+        value = getattr(x[1], "value", x[1])
         return rank.get(x[0], last), str(x[0]), str(value)
 
     return sorted(attributes, key=sort_key)

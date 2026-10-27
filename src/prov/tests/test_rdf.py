@@ -516,16 +516,21 @@ def test_the_reader_registers_the_prefix_of_a_qname_literal(
     assert value.uri == "http://xmlns.com/foaf/0.1/x"
 
 
-def test_encode_container_reuses_a_provided_container() -> None:
-    # encode_container()'s `container` parameter defaults to None for an
-    # external caller; encode_document() passes a SimpleMemory graph with
-    # prov bound. Passing one explicitly must reuse it rather than creating
-    # a new Graph.
+def test_encode_container_builds_or_reuses_its_container() -> None:
+    # Without a `container`, encode_container() builds a graph on rdflib's
+    # default store with prov bound; only encode_document() opts into
+    # SimpleMemory. Given a `container`, it reuses that object rather than
+    # creating a new Graph.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
-
     serializer = ProvRDFSerializer(document=doc)
+
+    graph = serializer.encode_container(doc)
+
+    assert isinstance(graph.store, type(Graph().store))
+    assert "prov" in dict(graph.namespaces())
+
     # A Dataset works here (it's a Graph subclass), but this exercises the
     # accepted-tradeoff path, not the recommended one: its .add() calls
     # surface rdflib's own internal deprecation noise (Dataset.default_context,
@@ -536,19 +541,6 @@ def test_encode_container_reuses_a_provided_container() -> None:
 
     assert result is container
     assert len(list(container.triples((None, None, None)))) > 0
-
-
-def test_encode_container_default_graph_uses_rdflibs_default_store() -> None:
-    # Without a `container`, encode_container() keeps rdflib's default
-    # store and binds prov; only encode_document() opts into SimpleMemory.
-    doc = ProvDocument()
-    doc.add_namespace("ex", "http://example.org/")
-    doc.entity("ex:e1")
-
-    graph = ProvRDFSerializer(document=doc).encode_container(doc)
-
-    assert isinstance(graph.store, type(Graph().store))
-    assert "prov" in dict(graph.namespaces())
 
 
 def test_encode_relation_keeps_a_repeated_formal_attribute() -> None:
