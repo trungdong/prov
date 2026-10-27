@@ -1176,7 +1176,7 @@ class ProvRDFSerializer(Serializer):
             # so this re-runs per attribute. Each rebuild also removes the
             # record type's rdf:type triple when a derivation subtype prov:type
             # is asserted, so an asserted prov:type prov:Derivation survives
-            # only when it is the last attribute.
+            # only when it is the last attribute (#697).
             if bnode is None:
                 node, bnode, skip = self._encode_relation_head(
                     container,

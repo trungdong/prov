@@ -21,7 +21,6 @@ import rdflib as rl
 from rdflib import RDF, URIRef
 from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
-from rdflib.plugins.stores.memory import Memory
 
 import prov.model as pm
 from prov.constants import PROV_ATTR_COLLECTION, PROV_ATTR_USED_ENTITY
@@ -539,7 +538,7 @@ def test_encode_container_reuses_a_provided_container() -> None:
     assert len(list(container.triples((None, None, None)))) > 0
 
 
-def test_encode_container_default_graph_uses_the_memory_store() -> None:
+def test_encode_container_default_graph_uses_rdflibs_default_store() -> None:
     # Without a `container`, encode_container() keeps rdflib's default
     # store and binds prov; only encode_document() opts into SimpleMemory.
     doc = ProvDocument()
@@ -548,7 +547,7 @@ def test_encode_container_default_graph_uses_the_memory_store() -> None:
 
     graph = ProvRDFSerializer(document=doc).encode_container(doc)
 
-    assert isinstance(graph.store, Memory)
+    assert isinstance(graph.store, type(Graph().store))
     assert "prov" in dict(graph.namespaces())
 
 
@@ -559,6 +558,8 @@ def test_encode_relation_keeps_a_repeated_formal_attribute() -> None:
     doc.add_namespace("ex", "http://example.org/")
     doc.wasDerivedFrom("ex:g", "ex:u", identifier="ex:d")
     (derivation,) = doc.get_records(pm.ProvDerivation)
+    # add_attributes lets a single-valued formal attribute repeat only when
+    # prov:collection is added with it.
     derivation.add_attributes(
         [(PROV_ATTR_COLLECTION, "ex:c"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
     )

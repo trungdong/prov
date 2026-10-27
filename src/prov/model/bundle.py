@@ -10,7 +10,7 @@ import re
 import shutil
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, ValuesView
+from collections.abc import Iterable, Iterator, Mapping, ValuesView
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
@@ -2204,14 +2204,14 @@ class ProvDocument(ProvBundle):
 
 
 @functools.cache
-def _xml_attribute_rank(element: QualifiedName) -> dict[QualifiedName, int]:
+def _xml_attribute_rank(element: QualifiedName) -> Mapping[QualifiedName, int]:
     """Map each attribute name to its place in PROV-XML order for ``element``,
     which is its formal attributes, then label, location, role, type and value."""
     order = (
         *PROV_REC_CLS[element].FORMAL_ATTRIBUTES,
         *(PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE, PROV_VALUE),
     )
-    return {name: order.index(name) for name in order}
+    return {name: position for position, name in enumerate(order)}
 
 
 def sorted_attributes(
