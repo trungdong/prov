@@ -23,6 +23,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
+from prov.constants import PROV_ATTR_COLLECTION, PROV_ATTR_USED_ENTITY
 from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
@@ -515,16 +516,21 @@ def test_the_reader_registers_the_prefix_of_a_qname_literal(
     assert value.uri == "http://xmlns.com/foaf/0.1/x"
 
 
-def test_encode_container_reuses_a_provided_container() -> None:
-    # encode_container()'s `container` parameter defaults to None
-    # everywhere it is called internally; passing one explicitly (as an
-    # external caller might) must reuse it rather than creating a new
-    # Graph.
+def test_encode_container_builds_or_reuses_its_container() -> None:
+    # Without a `container`, encode_container() builds a graph on rdflib's
+    # default store with prov bound; only encode_document() opts into
+    # SimpleMemory. Given a `container`, it reuses that object rather than
+    # creating a new Graph.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     doc.entity("ex:e1")
-
     serializer = ProvRDFSerializer(document=doc)
+
+    graph = serializer.encode_container(doc)
+
+    assert isinstance(graph.store, type(Graph().store))
+    assert "prov" in dict(graph.namespaces())
+
     # A Dataset works here (it's a Graph subclass), but this exercises the
     # accepted-tradeoff path, not the recommended one: its .add() calls
     # surface rdflib's own internal deprecation noise (Dataset.default_context,
@@ -535,6 +541,27 @@ def test_encode_container_reuses_a_provided_container() -> None:
 
     assert result is container
     assert len(list(container.triples((None, None, None)))) > 0
+
+
+def test_encode_relation_keeps_a_repeated_formal_attribute() -> None:
+    # A formal attribute added a second time sits among the record's
+    # attributes beside the first; both values reach the graph.
+    doc = ProvDocument()
+    doc.add_namespace("ex", "http://example.org/")
+    doc.wasDerivedFrom("ex:g", "ex:u", identifier="ex:d")
+    (derivation,) = doc.get_records(pm.ProvDerivation)
+    # add_attributes lets a single-valued formal attribute repeat only when
+    # prov:collection is added with it.
+    derivation.add_attributes(
+        [(PROV_ATTR_COLLECTION, "ex:c"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
+    )
+
+    graph = ProvRDFSerializer(document=doc).encode_document(doc)
+
+    subject = URIRef("http://example.org/d")
+    prov_entity = URIRef("http://www.w3.org/ns/prov#entity")
+    assert (subject, prov_entity, URIRef("http://example.org/u")) in graph
+    assert (subject, prov_entity, URIRef("http://example.org/u2")) in graph
 
 
 def test_decode_document_without_contexts_uses_plain_graph_path() -> None:

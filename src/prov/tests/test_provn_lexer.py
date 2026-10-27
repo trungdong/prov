@@ -58,10 +58,14 @@ def test_token_kinds(text, expected) -> None:
     assert kinds(text) == expected
 
 
-def test_token_uses_slots() -> None:
+def test_token_is_slotted_and_hashable() -> None:
     # Every Token instance is thrown away almost immediately by the parser,
-    # so __dict__ per instance is pure overhead.
-    assert not hasattr(Token(TokenKind.EOF, "", None, 1, 1), "__dict__")
+    # so __dict__ per instance is pure overhead. Token is public through
+    # __all__, so it keeps hashing and comparing by its fields.
+    token = Token(TokenKind.EOF, "", None, 1, 1)
+    assert not hasattr(token, "__dict__")
+    assert token == Token(TokenKind.EOF, "", None, 1, 1)
+    assert hash(token) == hash(Token(TokenKind.EOF, "", None, 1, 1))
 
 
 def test_comments_are_skipped() -> None:

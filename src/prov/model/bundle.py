@@ -2,6 +2,7 @@
 
 from __future__ import annotations  # defer eval: ProvDocument used before it's defined
 
+import functools
 import io
 import itertools
 import os
@@ -9,7 +10,7 @@ import re
 import shutil
 import tempfile
 from collections import defaultdict
-from collections.abc import Iterable, Iterator, ValuesView
+from collections.abc import Iterable, Iterator, Mapping, ValuesView
 from typing import Any, TypeVar, cast, overload
 from urllib.parse import urlparse
 
@@ -2202,6 +2203,21 @@ class ProvDocument(ProvBundle):
         raise TypeError("Either source or content must be provided")
 
 
+@functools.cache
+def _xml_attribute_rank(element: QualifiedName) -> Mapping[QualifiedName, int]:
+    """Map each attribute name to its place in PROV-XML order for ``element``,
+    which is its formal attributes, then label, location, role, type and value."""
+    order = (
+        *PROV_REC_CLS[element].FORMAL_ATTRIBUTES,
+        PROV_LABEL,
+        PROV_LOCATION,
+        PROV_ROLE,
+        PROV_TYPE,
+        PROV_VALUE,
+    )
+    return {name: position for position, name in enumerate(order)}
+
+
 def sorted_attributes(
     element: QualifiedName, attributes: Iterable[NameValuePair]
 ) -> list[NameValuePair]:
@@ -2216,33 +2232,15 @@ def sorted_attributes(
         label/location/role/type/value attributes, then any remaining
         attributes alphabetically.
     """
-    attributes = list(attributes)
-    order = list(PROV_REC_CLS[element].FORMAL_ATTRIBUTES)
+    rank = _xml_attribute_rank(element)
+    last = len(rank)
 
-    # Append label, location, role, type, and value attributes. This is
-    # universal amongst all elements.
-    order.extend([PROV_LABEL, PROV_LOCATION, PROV_ROLE, PROV_TYPE, PROV_VALUE])
+    # The PROV XML specification talks about alphabetical sorting. This
+    # interprets it as sorting by tag including the prefix first and then by
+    # the text, also including the namespace prefix if given. Unranked
+    # attributes come after ranked ones.
+    def sort_key(x: NameValuePair) -> tuple[int, str, str]:
+        value = getattr(x[1], "value", x[1])
+        return rank.get(x[0], last), str(x[0]), str(value)
 
-    # Sort function. The PROV XML specification talks about alphabetical
-    # sorting. We now interpret it as sorting by tag including the prefix
-    # first and then sorting by the text, also including the namespace
-    # prefix if given.
-    def sort_fct(x: NameValuePair) -> tuple[str, str]:
-        return str(x[0]), str(x[1].value if hasattr(x[1], "value") else x[1])
-
-    sorted_elements = []
-    for item in order:
-        this_type_list = []
-        for e in list(attributes):
-            if e[0] != item:
-                continue
-            this_type_list.append(e)
-            attributes.remove(e)
-        this_type_list.sort(key=sort_fct)
-        sorted_elements.extend(this_type_list)
-    # Add remaining attributes. According to the spec, the other attributes
-    # have a fixed alphabetical order.
-    attributes.sort(key=sort_fct)
-    sorted_elements.extend(attributes)
-
-    return sorted_elements
+    return sorted(attributes, key=sort_key)

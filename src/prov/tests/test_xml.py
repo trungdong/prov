@@ -12,7 +12,17 @@ import pytest
 from lxml import etree
 
 import prov.model as prov
-from prov.constants import PROV
+from prov.constants import (
+    PROV,
+    PROV_ATTR_ACTIVITY,
+    PROV_ATTR_ENTITY,
+    PROV_ATTR_TIME,
+    PROV_ENTITY,
+    PROV_LABEL,
+    PROV_TYPE,
+    PROV_USAGE,
+    XSD_STRING,
+)
 from prov.identifier import Namespace, QualifiedName
 from prov.serializers.provxml import (
     ProvXMLException,
@@ -714,6 +724,89 @@ def test_valid_ncname_attribute_name_serializes_byte_identically() -> None:
         xml_text = stream.getvalue().decode("utf-8")
     assert "_x" not in xml_text
     assert "<ex:plainKey0>" in xml_text
+
+
+_ORDER_EX = Namespace("ex", "http://example.org/")
+_ORDER_E2 = Namespace("e2", "http://example.org/")
+_ORDER_PV = Namespace("pv", PROV.uri)
+_ORDER_TIME = datetime.datetime(2026, 1, 2, 3, 4, 5)
+
+
+@pytest.mark.parametrize(
+    ("element", "attributes", "expected"),
+    [
+        pytest.param(
+            PROV_ENTITY,
+            [
+                (_ORDER_EX["z"], 2),
+                (PROV_TYPE, "b"),
+                (_ORDER_E2["a"], 1),
+                (PROV_LABEL, "y"),
+                (_ORDER_EX["a"], 3),
+                (PROV_TYPE, "a"),
+                (PROV_LABEL, "x"),
+                (_ORDER_EX["a"], 1),
+            ],
+            [
+                ("prov:label", "x"),
+                ("prov:label", "y"),
+                ("prov:type", "a"),
+                ("prov:type", "b"),
+                ("e2:a", 1),
+                ("ex:a", 1),
+                ("ex:a", 3),
+                ("ex:z", 2),
+            ],
+            id="ranked-then-unranked-by-name-then-value",
+        ),
+        pytest.param(
+            PROV_ENTITY,
+            [(_ORDER_PV["type"], "a"), (_ORDER_EX["b"], 1), (PROV_LABEL, "x")],
+            [("prov:label", "x"), ("pv:type", "a"), ("ex:b", 1)],
+            id="a-prov-name-under-another-prefix-ranks-as-prov",
+        ),
+        pytest.param(
+            PROV_USAGE,
+            [
+                (PROV_LABEL, "x"),
+                (PROV_ATTR_TIME, _ORDER_TIME),
+                (PROV_ATTR_ENTITY, _ORDER_EX["e"]),
+                (PROV_ATTR_ACTIVITY, _ORDER_EX["a"]),
+            ],
+            [
+                ("prov:activity", _ORDER_EX["a"]),
+                ("prov:entity", _ORDER_EX["e"]),
+                ("prov:time", _ORDER_TIME),
+                ("prov:label", "x"),
+            ],
+            id="formal-attributes-lead",
+        ),
+        pytest.param(
+            PROV_ENTITY,
+            [
+                (_ORDER_EX["v"], prov.Literal("b", XSD_STRING)),
+                (_ORDER_EX["v"], "a"),
+            ],
+            [("ex:v", "a"), ("ex:v", prov.Literal("b", XSD_STRING))],
+            id="a-literal-sorts-by-its-value-text",
+        ),
+        pytest.param(
+            PROV_ENTITY,
+            [(_ORDER_EX["v"], 1), (_ORDER_EX["v"], "1")],
+            [("ex:v", 1), ("ex:v", "1")],
+            id="equal-keys-keep-input-order",
+        ),
+    ],
+)
+def test_sorted_attributes_order(
+    element: QualifiedName,
+    attributes: list[prov.NameValuePair],
+    expected: list[tuple[str, object]],
+) -> None:
+    # Formal attributes first, then label, location, role, type and value,
+    # then the rest by name and value text; equal keys keep input order.
+    result = prov.sorted_attributes(element, attributes)
+    assert [(str(name), value) for name, value in result] == expected
 
 
 def test_literal_ncname_escape_shaped_attribute_name_roundtrips_xml() -> None:

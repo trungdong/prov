@@ -939,6 +939,14 @@ class ProvRDFSerializer(Serializer):
             plus one named graph per bundle in ``document.bundles``.
         """
         container = Dataset(default_union=True)
+
+        def new_graph(identifier: str | None = None) -> Graph:
+            # rdflib's SimpleMemory store skips the per-context bookkeeping
+            # that a plain Graph never uses, so these graphs fill faster.
+            graph = Graph(store="SimpleMemory", identifier=identifier)
+            graph.namespace_manager.bind("prov", PROV.uri)
+            return graph
+
         # Encode the document's own records into a plain Graph first, then
         # merge it into the Dataset's default graph via addN(), rather than
         # passing the Dataset itself as encode_container()'s `container`:
@@ -948,7 +956,9 @@ class ProvRDFSerializer(Serializer):
         # wasn't updated), which trips DeprecationWarning even though we
         # never reference that property ourselves. addN() with an explicit
         # graph avoids it.
-        doc_graph = self.encode_container(document, PROV_N_MAP=PROV_N_MAP)
+        doc_graph = self.encode_container(
+            document, PROV_N_MAP=PROV_N_MAP, container=new_graph()
+        )
         for prefix, uri in doc_graph.namespaces():
             container.bind(prefix, uri)
         default_graph = container.graph(DATASET_DEFAULT_GRAPH_ID)
@@ -957,8 +967,8 @@ class ProvRDFSerializer(Serializer):
             #  encoding the sub-bundle into a named graph carrying its IRI
             bundle = self.encode_container(
                 item,
-                identifier=item.identifier.uri,  # type: ignore[union-attr]
                 PROV_N_MAP=PROV_N_MAP,
+                container=new_graph(item.identifier.uri),  # type: ignore[union-attr]
             )
             # #96: the context passed here must be a Dataset-owned graph
             # (via container.graph(), mirroring `default_graph` above), not
@@ -989,7 +999,7 @@ class ProvRDFSerializer(Serializer):
             # already bound under a different prefix gets *rebound* to this
             # new preferred prefix. Passing False keeps every earlier
             # binding (the document-level ones bound just above, and the
-            # core prov/xsd/rdf/rdfs ones bound in encode_container()) as
+            # core prov/xsd/rdf/rdfs ones bound by new_graph() and rdflib) as
             # the preferred spelling, so document-level prefixes always win
             # on collision.
             for prefix, uri in bundle.namespaces():
@@ -1021,17 +1031,15 @@ class ProvRDFSerializer(Serializer):
                 defaults to :data:`~prov.constants.PROV_N_MAP`.
             container: Graph to add triples to. If ``None``, a new
                 ``Graph`` is created (with ``identifier``, and with the
-                ``prov`` namespace pre-bound). When called from
-                :meth:`encode_document`, ``container`` is always ``None``,
-                so this method builds a fresh plain ``Graph``;
-                :meth:`encode_document` then merges the returned triples
-                into its ``Dataset`` via ``addN()``. This method expects a
-                plain ``Graph`` here: passing a ``Dataset`` works, but its
-                ``.add()`` calls will surface rdflib's own internal
-                ``DeprecationWarning`` on ``Dataset.default_context`` (rdflib
-                >=7.3), which is exactly why :meth:`encode_document` uses a
-                plain ``Graph`` plus ``addN()`` instead of passing its
-                ``Dataset`` in here.
+                ``prov`` namespace pre-bound). :meth:`encode_document` passes
+                a fresh plain ``Graph`` on rdflib's ``SimpleMemory`` store, and
+                then merges the returned triples into its ``Dataset`` via
+                ``addN()``. This method expects a plain ``Graph`` here: passing
+                a ``Dataset`` works, but its ``.add()`` calls will surface
+                rdflib's own internal ``DeprecationWarning`` on
+                ``Dataset.default_context`` (rdflib >=7.3), which is exactly
+                why :meth:`encode_document` uses a plain ``Graph`` plus
+                ``addN()`` instead of passing its ``Dataset`` in here.
             identifier: Identifier for the new graph, used only when
                 ``container`` is ``None``.
 
@@ -1100,8 +1108,7 @@ class ProvRDFSerializer(Serializer):
             real_or_anon_id: Resolves a referenced record to its identifier
                 string, minting a stable anonymous one where needed.
         """
-        all_attributes = list(record.formal_attributes) + list(record.attributes)
-        for attr, value in all_attributes:
+        for attr, value in record.attributes:
             if value is None:
                 continue
             if isinstance(value, pm.ProvRecord):
@@ -1110,7 +1117,7 @@ class ProvRDFSerializer(Serializer):
                 #  Assuming this is a datetime value
                 obj = self.encode_rdf_representation(value)
             pred: RdfTerm
-            if attr == PROV["location"]:
+            if attr == PROV_LOCATION:
                 pred = _prov_uri("atLocation")
                 container.add(
                     (
@@ -1154,9 +1161,8 @@ class ProvRDFSerializer(Serializer):
         bnode = None
         formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
-        all_attributes = list(record.formal_attributes) + list(record.attributes)
         formal_qualifiers = False
-        for attrid, (_attr, value) in enumerate(list(record.formal_attributes)):
+        for attrid, (_attr, value) in enumerate(record.formal_attributes):
             if (identifier is not None and value is not None) or (
                 identifier is None and value is not None and attrid > 1
             ):
@@ -1164,11 +1170,13 @@ class ProvRDFSerializer(Serializer):
         has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
 
         node: RdfSubject | None = identifier
-        for attr, value in all_attributes:
+        for attr, value in record.attributes:
             # The qualification head is (re)built until a blank node is minted
             # for it; for an identified relation no blank node is ever minted,
-            # so this re-runs per attribute exactly as it always has -- every
-            # triple it emits is idempotent, so the repetition is harmless.
+            # so this re-runs per attribute. Each rebuild also removes the
+            # record type's rdf:type triple when a derivation subtype prov:type
+            # is asserted, so an asserted prov:type prov:Derivation survives
+            # only when it is the last attribute (#697).
             if bnode is None:
                 node, bnode, skip = self._encode_relation_head(
                     container,
