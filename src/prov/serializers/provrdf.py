@@ -1100,8 +1100,7 @@ class ProvRDFSerializer(Serializer):
             real_or_anon_id: Resolves a referenced record to its identifier
                 string, minting a stable anonymous one where needed.
         """
-        all_attributes = list(record.formal_attributes) + list(record.attributes)
-        for attr, value in all_attributes:
+        for attr, value in record.attributes:
             if value is None:
                 continue
             if isinstance(value, pm.ProvRecord):
@@ -1154,7 +1153,6 @@ class ProvRDFSerializer(Serializer):
         bnode = None
         formal_objects: list[pm.QualifiedName] = []
         used_objects: list[pm.QualifiedName] = []
-        all_attributes = list(record.formal_attributes) + list(record.attributes)
         formal_qualifiers = False
         for attrid, (_attr, value) in enumerate(list(record.formal_attributes)):
             if (identifier is not None and value is not None) or (
@@ -1164,11 +1162,13 @@ class ProvRDFSerializer(Serializer):
         has_qualifiers = len(record.extra_attributes) > 0 or formal_qualifiers
 
         node: RdfSubject | None = identifier
-        for attr, value in all_attributes:
+        for attr, value in record.attributes:
             # The qualification head is (re)built until a blank node is minted
             # for it; for an identified relation no blank node is ever minted,
-            # so this re-runs per attribute exactly as it always has -- every
-            # triple it emits is idempotent, so the repetition is harmless.
+            # so this re-runs per attribute exactly as it always has. Each
+            # rebuild also removes the record type's rdf:type triple when a
+            # derivation subtype prov:type is asserted, so an asserted
+            # prov:type prov:Derivation survives only as the last attribute.
             if bnode is None:
                 node, bnode, skip = self._encode_relation_head(
                     container,
