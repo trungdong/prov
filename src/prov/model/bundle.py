@@ -377,7 +377,7 @@ def _unify_same_type_group(records: list[ProvRecord]) -> ProvRecord:
     return merged
 
 
-def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecord]:
+def _unify_record_group(records: list[ProvRecord]) -> dict[int, ProvRecord]:
     """Merge records sharing an identifier by PROV-CONSTRAINTS term unification.
 
     Records are first partitioned by base record type (:data:`PROV_BASE_CLS`,
@@ -392,9 +392,10 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecor
             assertion order.
 
     Returns:
-        A mapping from each original record in the group to the single,
-        newly created record that stands for its base type. Records of the
-        same base type map to the same merged record.
+        A mapping from the ``id()`` of each original record in the group
+        (so equal copies each have an entry) to the single, newly created
+        record that stands for its base type. Records of the same base type
+        map to the same merged record.
 
     Raises:
         ProvUnificationError: If two records of the same type hold different
@@ -416,11 +417,11 @@ def _unify_record_group(records: list[ProvRecord]) -> dict[ProvRecord, ProvRecor
                 f"cannot unify {identifier}: incompatible types {type_a} and {type_b}"
             )
 
-    merged_records: dict[ProvRecord, ProvRecord] = {}
+    merged_records: dict[int, ProvRecord] = {}
     for group in groups.values():
         merged = _unify_same_type_group(group)
         for record in group:
-            merged_records[record] = merged
+            merged_records[id(record)] = merged
     return merged_records
 
 
@@ -799,7 +800,7 @@ class ProvBundle:
     def _unified_records(self) -> list[ProvRecord]:
         """The records with same-identifier groups merged and each record
         kept once, in the order of the first occurrence."""
-        merged_records: dict[ProvRecord, ProvRecord] = {}
+        merged_records: dict[int, ProvRecord] = {}
         for records in self._id_map.values():
             if len(records) > 1:
                 # Unify per base record type (usually one type, but
@@ -814,7 +815,7 @@ class ProvBundle:
                 if len(keyed) > 1:
                     merged_records.update(_unify_record_group(keyed))
         records = (
-            [merged_records.get(record, record) for record in self._records]
+            [merged_records.get(id(record), record) for record in self._records]
             if merged_records
             else self._records
         )
