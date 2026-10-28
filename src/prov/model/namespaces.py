@@ -165,8 +165,9 @@ class NamespaceManager(dict[str, Namespace]):
 
         # Every namespace is stored under its own prefix, so one lookup finds
         # an equal one.
-        if self.get(namespace.prefix) == namespace:
-            return namespace
+        registered = self.get(namespace.prefix)
+        if registered is not None and registered == namespace:
+            return registered
         if namespace in self._rename_map:
             #  already renamed and added
             return self._rename_map[namespace]

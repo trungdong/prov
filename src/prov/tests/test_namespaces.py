@@ -398,10 +398,11 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     doc.add_namespace("ex", "http://w.org/")
     manager = doc._namespaces
 
-    # A fresh equal namespace is found by its prefix and writes no rename.
+    # A fresh equal namespace is found by its prefix, returns the registered
+    # one and writes no rename.
     before = list(manager.items())
     fresh = doc.add_namespace(Namespace("ex", "http://w.org/"))
-    assert fresh == Namespace("ex", "http://w.org/")
+    assert fresh is manager["ex"]
     assert list(manager.items()) == before
     assert manager._rename_map == {}
     assert manager._prefix_renamed_map == {}
@@ -420,7 +421,7 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     # An equal ex_1 is found by its prefix.
     after_clash = list(manager.items())
     again = doc.add_namespace(Namespace("ex_1", "http://x.org/"))
-    assert again == renamed
+    assert again is renamed
     assert list(manager.items()) == after_clash
     assert manager._rename_map == {foreign: renamed}
     assert manager._prefix_renamed_map == {"ex": renamed}
