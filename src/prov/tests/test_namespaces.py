@@ -396,6 +396,17 @@ def test_lookup_corners() -> None:
 def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     doc = ProvDocument()
     doc.add_namespace("ex", "http://w.org/")
+    manager = doc._namespaces
+    ex = Namespace("ex", "http://w.org/")
+
+    # A fresh equal namespace is found by its prefix and writes no rename.
+    before = list(manager.items())
+    fresh = doc.add_namespace(Namespace("ex", "http://w.org/"))
+    assert fresh == ex
+    assert list(manager.items()) == before
+    assert manager._rename_map == {}
+    assert manager._prefix_renamed_map == {}
+
     foreign = Namespace("ex", "http://x.org/")
     assert doc.add_namespace(foreign).prefix == "ex_1"
 
@@ -405,6 +416,17 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     assert named.namespace.prefix == "ex_1"
     assert doc.valid_qualified_name("ex_2:z") is None
     assert doc._namespaces.lookup("ex_2", "z") is None
+
+    # The repeated clash returns its rename, and an equal ex_1 is found by its prefix.
+    before = list(manager.items())
+    renamed = doc.add_namespace(Namespace("ex", "http://x.org/"))
+    assert renamed == Namespace("ex_1", "http://x.org/")
+    assert "ex_2" not in manager
+    again = doc.add_namespace(Namespace("ex_1", "http://x.org/"))
+    assert again == Namespace("ex_1", "http://x.org/")
+    assert list(manager.items()) == before
+    assert manager._rename_map == {foreign: Namespace("ex_1", "http://x.org/")}
+    assert manager._prefix_renamed_map == {"ex": Namespace("ex_1", "http://x.org/")}
 
 
 def test_a_bundle_default_bound_to_a_prefix_leaves_no_dn_alias() -> None:
