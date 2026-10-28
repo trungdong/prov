@@ -43,26 +43,9 @@ Run on the commit you intend to release, before stamping anything. Releasing fro
 rather than `main`? Read "Releasing from the `2.x` maintenance branch" at the end first, since
 some of the steps below change.
 
-The gates every pull request passes, as `CONTRIBUTING.md` step 6 lists them:
-
-```bash
-# All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
-# reusing a PyPy 3.11 environment left by the previous run.
-for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
-    uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
-done
-
-uv run mypy src                  # strict, library and tests; configured in pyproject.toml
-uv run ruff check src/ benchmarks/
-uv run ruff format --check src/ benchmarks/
-codacy-analysis analyze --files <changed files>   # expect "0 issues found"
-uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
-```
-
-The interpreter loop leaves `.venv` on PyPy, where mypy cannot run; re-run it pinned,
-`uv run --python 3.13 --extra rdf --extra xml --extra dot --extra graph mypy src`. For the
-Codacy line, the changed files are those since the previous release:
-`git diff --name-only <previous tag>`.
+Run the gates every pull request passes, listed in `CONTRIBUTING.md` under "Checks every
+pull request must pass". For the Codacy line, the changed files are those since the previous
+release: `git diff --name-only <previous tag>`.
 
 Then the checks only a release runs:
 
@@ -228,8 +211,8 @@ series, so that every later PR builds on the new floor. The places that name the
   review of what the `UP` rules rewrite.
 - `pyrightconfig.json`: `pythonVersion`.
 - `.github/workflows/CI.yml`: the matrix and the Coveralls `carryforward` list.
-- The interpreter loops in `Makefile`, `CLAUDE.md`, `CONTRIBUTING.md` and this runbook,
-  and the sentence in `CONTRIBUTING.md` on the versions a pull request must pass on.
+- The interpreter loops in `Makefile` and `CONTRIBUTING.md`, and the sentence in
+  `CONTRIBUTING.md` on the versions a pull request must pass on.
 - `README.md`, `docs/installation.md`, `docs/whats-new-3.md` and the `HISTORY.md` entry.
 - `ROADMAP.md`'s support-policy paragraph, in the release PR.
 - `SECURITY.md`, which says what each supported line requires, in the release PR.

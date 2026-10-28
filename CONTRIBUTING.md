@@ -40,10 +40,11 @@ a volunteer-driven project.
 
    ```bash
    cd prov/
-   uv sync --extra rdf --extra xml --extra dot --extra graph
+   uv sync --extra rdf --extra xml --extra dot --extra graph --group bench --group docs
    ```
 
-   The full test suite needs all four extras.
+   The test suite needs all four extras, the benchmarks the `bench` group and the docs
+   build the `docs` group.
    [docs/dependencies.md](https://github.com/trungdong/prov/blob/main/docs/dependencies.md)
    explains what each dependency is for.
 
@@ -62,43 +63,8 @@ a volunteer-driven project.
    git checkout -b name-of-your-bugfix-or-feature
    ```
 
-6. Make your changes, then run the checks that every pull request must pass:
-
-   ```bash
-   # All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
-   # reusing a PyPy 3.11 environment left by the previous run.
-   for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
-       uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
-   done
-
-   uv run mypy src                  # strict, library and tests; configured in pyproject.toml
-   uv run ruff check src/ benchmarks/
-   uv run ruff format --check src/ benchmarks/
-   codacy-analysis analyze --files <changed files>   # expect "0 issues found"
-   git worktree add --detach /tmp/prov-min HEAD && (cd /tmp/prov-min && uv sync --locked --group dev && uv run --no-sync pytest src/prov/tests/test_minimal_install.py); rc=$?; git worktree remove --force /tmp/prov-min; (exit $rc)   # when conftest.py or an import changed
-   uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
-   ```
-
-   The first run downloads any interpreter you do not already have cached.
-
-   mypy checks the tests under the same strict settings as the library, so a new test
-   module needs type annotations, including `-> None` on each test function. Older test
-   modules that do not pass yet are listed under `[[tool.mypy.overrides]]` in
-   `pyproject.toml`. Do not add a module to that list. If your change makes a listed module
-   pass, delete its name.
-
-   The last line runs the [Codacy CLI](https://github.com/codacy/codacy-analysis-cli) on
-   the files you changed, Markdown included. Install it once with
-   `npm install -g @codacy/analysis-cli`. Codacy also analyses
-   every pull request on GitHub. That check does not block a merge. The maintainer reviews
-   its findings and merges with none outstanding.
-
-   CI also runs an advisory `own-warnings` job, which fails if `prov` raises a
-   `DeprecationWarning`, `PendingDeprecationWarning` or `FutureWarning` of its own on the
-   newest interpreter.
-
-   The docs build runs with warnings as errors and every cross-reference checked, which
-   is what CI's `docs` job does.
+6. Make your changes, then run the checks in "Checks every pull request must pass"
+   below.
 
 7. Commit and push your branch:
 
@@ -109,6 +75,52 @@ a volunteer-driven project.
    ```
 
 8. Open a pull request on GitHub.
+
+## Checks every pull request must pass
+
+```bash
+# All supported interpreters (matches the CI matrix). "cpython3.11" stops uv from
+# reusing a PyPy 3.11 environment left by the previous run.
+for py in cpython3.11 3.12 3.13 3.14 3.15 pypy3.11; do
+    uv run --python $py --extra rdf --extra xml --extra dot --extra graph pytest || break
+done
+
+uv run mypy src                  # strict, library and tests; configured in pyproject.toml
+uv run ruff check src/ benchmarks/
+uv run ruff format --check src/ benchmarks/
+codacy-analysis analyze --files <changed files>   # expect "0 issues found"
+git worktree add --detach /tmp/prov-min HEAD && (cd /tmp/prov-min && uv sync --locked --group dev && uv run --no-sync pytest src/prov/tests/test_minimal_install.py); rc=$?; git worktree remove --force /tmp/prov-min; (exit $rc)   # when conftest.py or an import changed
+uv run --group docs --extra rdf --extra xml --extra dot --extra graph sphinx-build -W -n -b html docs docs/_build/html   # when a docstring or a page changed
+```
+
+The first run downloads any interpreter you do not already have cached. The interpreter
+loop leaves `.venv` on PyPy, where mypy does not run, so pin any later command with
+`--python 3.12` and keep the extras, as in
+`uv run --python 3.12 --extra rdf --extra xml --extra dot --extra graph mypy src`.
+
+mypy checks the tests under the same strict settings as the library, so a new test module
+needs type annotations, including `-> None` on each test function. Test modules that do not
+pass yet are listed under `[[tool.mypy.overrides]]` in `pyproject.toml` with
+`ignore_errors = true`, and the list only shrinks. A new module never joins it. A pull
+request that makes a listed module pass deletes its name there and from
+`MYPY_OVERRIDE_LIST` in `src/prov/tests/test_public_api.py`;
+`test_mypy_override_list_only_shrinks` fails if the two differ. The pull request that
+empties the list deletes the block, the snapshot and that test.
+
+The Codacy line runs the [Codacy CLI](https://github.com/codacy/codacy-analysis-cli) on
+the files you changed, Markdown included. Install it once with
+`npm install -g @codacy/analysis-cli`. Codacy also analyses every pull request on GitHub,
+and Coveralls reports coverage; neither blocks a merge. The maintainer reviews Codacy's
+findings and merges with none outstanding, and `uv run coverage report` stays above the
+`fail_under` floor in `pyproject.toml`.
+
+CI also runs an advisory `own-warnings` job, which fails if `prov` raises a
+`DeprecationWarning`, `PendingDeprecationWarning` or `FutureWarning` of its own on the
+newest interpreter.
+
+The docs build runs with `-W -n`, as CI's `docs` job does, so every warning and every
+unresolved cross-reference fails. `nitpick_ignore` in `docs/conf.py` lists the private
+names public annotations expose.
 
 ## Pull request guidelines
 
