@@ -162,9 +162,12 @@ class NamespaceManager(dict[str, Namespace]):
                 "a default namespace is set with set_default_namespace(), "
                 "not add_namespace()"
             )
-        if namespace in self.values():
-            #  no need to do anything
-            return namespace
+
+        # Every namespace is stored under its own prefix, so one lookup finds
+        # an equal one.
+        registered = self.get(namespace.prefix)
+        if registered is not None and registered == namespace:
+            return registered
         if namespace in self._rename_map:
             #  already renamed and added
             return self._rename_map[namespace]

@@ -398,6 +398,14 @@ UNIFIED_WITHOUT_A_CONFLICT = [
         ],
         id="absent agent",
     ),
+    pytest.param(
+        [
+            "entity(ex:e, [ex:k=1])",
+            "entity(ex:e, [ex:k=1])",
+            "entity(ex:e, [ex:j=2])",
+        ],
+        id="equal copies and a third",
+    ),
 ]
 
 

@@ -328,7 +328,12 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
 # --- Inherited issue 1: hadMember multi-value narrowing stays unobservable ---
 
 
-def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc) -> None:
+@pytest.mark.parametrize(
+    "order", ["collection-first", "collection-last", "one-shot-iterator"]
+)
+def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
+    doc, order: str
+) -> None:
     # ProvRecord.add_attributes() bypasses its single-value guard for every
     # attribute in a call that also includes prov:collection, so a
     # ProvMembership *can* hold two prov:entity values if constructed
@@ -340,23 +345,55 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc) -> None
     # single (first-inserted) value, exactly as in 2.x. Left alone. (Also:
     # QualifiedNames never collapse, so get_attribute()'s plain-set copy
     # shows both members, unlike the int/float cases above.)
+    #
+    # The rule holds wherever prov:collection sits and for a one-shot iterator.
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
-    membership = ProvMembership(
-        doc,
-        None,
-        [
-            (PROV_ATTR_COLLECTION, collection.identifier),
-            (PROV_ATTR_ENTITY, e1.identifier),
-            (PROV_ATTR_ENTITY, e2.identifier),
-        ],
+    members = [(PROV_ATTR_ENTITY, e1.identifier), (PROV_ATTR_ENTITY, e2.identifier)]
+    collection_pair = (PROV_ATTR_COLLECTION, collection.identifier)
+    pairs = (
+        [*members, collection_pair]
+        if order == "collection-last"
+        else [collection_pair, *members]
     )
+    membership = ProvMembership(
+        doc, None, iter(pairs) if order == "one-shot-iterator" else pairs
+    )
+    assert membership.get_attribute(PROV_ATTR_COLLECTION) == {collection.identifier}
     assert len(membership.get_attribute(PROV_ATTR_ENTITY)) == 2
     assert membership.args[1] in (e1.identifier, e2.identifier)
     assert membership.formal_attributes[1][1] in (e1.identifier, e2.identifier)
     provn = membership.get_provn()
     assert provn.count(str(e1.identifier)) + provn.count(str(e2.identifier)) == 1
+
+
+def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
+    doc,
+) -> None:
+    # The pairs are scanned for prov:collection on the first repeat of a
+    # single-valued attribute and not again, so a call repeating one value n
+    # times costs O(n) rather than O(n^2).
+    comparisons = []
+
+    class CountingName(str):
+        __hash__ = str.__hash__
+
+        def __eq__(self, other: object) -> bool:
+            if other is PROV_ATTR_COLLECTION:
+                comparisons.append(other)
+            return str.__eq__(self, other)
+
+    collection = doc.entity("ex:coll")
+    e1 = doc.entity("ex:e1")
+    pairs = [
+        *[(PROV_ATTR_ENTITY, e1.identifier)] * 50,
+        (CountingName("ex:k"), 1),
+        (PROV_ATTR_COLLECTION, collection.identifier),
+    ]
+    membership = ProvMembership(doc, None, pairs)
+    assert membership.get_attribute(PROV_ATTR_ENTITY) == {e1.identifier}
+    assert len(comparisons) == 1
 
 
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---
