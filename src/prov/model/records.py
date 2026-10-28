@@ -1077,14 +1077,10 @@ class ProvRecord:
         #     ProvException: If `value` differs from it, or cannot be
         #         compared with it.
         existing_value = first(existing_values)
-        is_not_same_value = True
-        # The plain try/except stays, because contextlib.suppress() adds
-        # per-call overhead and this branch runs once per repeated value.
-        try:  # noqa: SIM105
+        try:
             is_not_same_value = value != existing_value
         except TypeError:
-            # Cannot compare them
-            pass  # consider them different values
+            is_not_same_value = True  # values that cannot be compared differ
 
         if is_not_same_value:
             raise ProvException(f"Cannot have more than one value for attribute {attr}")
@@ -1128,8 +1124,6 @@ class ProvRecord:
 
                 value = self._coerce_attribute_value(attr, original_value)
 
-                # `_attributes` is a defaultdict, so this creates the entry even
-                # when the value is then rejected.
                 existing_values = self._attributes[attr]
                 if attr in PROV_ATTRIBUTES and existing_values:
                     if is_collection is None:

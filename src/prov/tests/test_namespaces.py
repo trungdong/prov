@@ -407,7 +407,8 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     assert manager._prefix_renamed_map == {}
 
     foreign = Namespace("ex", "http://x.org/")
-    assert doc.add_namespace(foreign).prefix == "ex_1"
+    renamed = doc.add_namespace(foreign)
+    assert renamed.prefix == "ex_1"
 
     named = doc.valid_qualified_name(foreign["a"])
 
@@ -418,12 +419,11 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
 
     # An equal ex_1 is found by its prefix.
     after_clash = list(manager.items())
-    assert "ex_2" not in manager
     again = doc.add_namespace(Namespace("ex_1", "http://x.org/"))
-    assert again == Namespace("ex_1", "http://x.org/")
+    assert again == renamed
     assert list(manager.items()) == after_clash
-    assert manager._rename_map == {foreign: Namespace("ex_1", "http://x.org/")}
-    assert manager._prefix_renamed_map == {"ex": Namespace("ex_1", "http://x.org/")}
+    assert manager._rename_map == {foreign: renamed}
+    assert manager._prefix_renamed_map == {"ex": renamed}
 
 
 def test_a_bundle_default_bound_to_a_prefix_leaves_no_dn_alias() -> None:

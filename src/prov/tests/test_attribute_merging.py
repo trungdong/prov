@@ -329,12 +329,10 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
 
 
 @pytest.mark.parametrize(
-    ("collection_first", "one_shot"),
-    [(True, False), (False, False), (True, True)],
-    ids=["collection-first", "collection-last", "one-shot-iterator"],
+    "order", ["collection-first", "collection-last", "one-shot-iterator"]
 )
 def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
-    doc, collection_first: bool, one_shot: bool
+    doc, order: str
 ) -> None:
     # ProvRecord.add_attributes() bypasses its single-value guard for every
     # attribute in a call that also includes prov:collection, so a
@@ -348,17 +346,20 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
     # QualifiedNames never collapse, so get_attribute()'s plain-set copy
     # shows both members, unlike the int/float cases above.)
     #
-    # The call-wide rule holds wherever prov:collection sits among the pairs
-    # and when they arrive as a one-shot iterator.
+    # The rule holds wherever prov:collection sits and for a one-shot iterator.
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
     members = [(PROV_ATTR_ENTITY, e1.identifier), (PROV_ATTR_ENTITY, e2.identifier)]
     collection_pair = (PROV_ATTR_COLLECTION, collection.identifier)
     pairs = (
-        [collection_pair, *members] if collection_first else [*members, collection_pair]
+        [*members, collection_pair]
+        if order == "collection-last"
+        else [collection_pair, *members]
     )
-    membership = ProvMembership(doc, None, iter(pairs) if one_shot else pairs)
+    membership = ProvMembership(
+        doc, None, iter(pairs) if order == "one-shot-iterator" else pairs
+    )
     assert membership.get_attribute(PROV_ATTR_COLLECTION) == {collection.identifier}
     assert len(membership.get_attribute(PROV_ATTR_ENTITY)) == 2
     assert membership.args[1] in (e1.identifier, e2.identifier)
