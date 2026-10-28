@@ -4,7 +4,7 @@ Timing suite for the operations the library's performance work tracks. It is
 not part of the test suite and is not shipped.
 
 ```bash
-uv sync --extra rdf --extra xml --extra dot --extra graph --group dev --group bench
+uv sync --extra rdf --extra xml --extra dot --extra graph --group bench --group docs
 uv run pytest benchmarks/test_bench.py
 ```
 

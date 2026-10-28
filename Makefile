@@ -25,10 +25,10 @@ clean-pyc:
 	find . -name '*~' -exec rm -f {} +
 
 lint:
-	uv run ruff check src/
+	uv run ruff check src/ benchmarks/
 
 format:
-	uv run ruff format src/
+	uv run ruff format src/ benchmarks/
 
 test:
 	uv run pytest
