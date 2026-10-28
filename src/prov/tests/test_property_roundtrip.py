@@ -79,7 +79,7 @@ def test_generated_record_roundtrips(doc: ProvDocument, fmt: str) -> None:
     """A record holding typed literals in any spelling, identified or not, survives a round trip."""
     # rdflib rewrites an exponent-form xsd:decimal to its decimal text on read,
     # turning an ill-formed text into a value (conformance caveat C10), and
-    # raises when it orders a NaN decimal against a number, or a NaN beside an
+    # raises when it orders a NaN decimal against a number, or a NaN against an
     # xsd:decimal value under one attribute, on write (C11).
     assume(
         fmt != "rdf"

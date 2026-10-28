@@ -139,10 +139,10 @@ def test_prov_o_reads_an_exponent_decimal_as_a_value() -> None:
 def test_prov_o_cannot_write_a_nan_beside_a_number_when_one_is_a_decimal(
     first: Any, second: Any
 ) -> None:
-    # rdflib's Turtle serializer orders the values of one predicate, and a
-    # Decimal NaN has no order against a number, and an xsd:decimal value has
-    # none against a NaN of another datatype, whichever comes first
-    # (conformance caveat C11).
+    # rdflib's Turtle serializer orders the values of one predicate. A Decimal
+    # NaN has no order against a number, and an xsd:decimal value has none
+    # against a NaN of another datatype, in either stored order (conformance
+    # caveat C11).
     document = ex_document()
     document.entity("ex:e", [("ex:v", first), ("ex:v", second)])
     with pytest.raises(decimal.InvalidOperation):

@@ -272,9 +272,10 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
   and N3 writers order the values of one predicate by value. An `xsd:decimal` `NaN` or `sNaN`
   text, which rdflib parses to a `Decimal`, has no order against any number, and an
   `xsd:decimal` value has none against a NaN of any numeric datatype (a well-formed
-  `xsd:double` or `xsd:float`, or a Python `float`). A record that holds such a pair under one
+  `xsd:double` or `xsd:float`, or a Python `float`). A record that holds either pair under one
   attribute therefore raises `decimal.InvalidOperation` when written to PROV-O in those three
-  syntaxes. N-Triples, N-Quads, RDF/XML and JSON-LD write it, as does every other format.
+  syntaxes. N-Triples, N-Quads, RDF/XML and JSON-LD write such a record, as does every other
+  format.
 
 ## Corpus evidence
 
