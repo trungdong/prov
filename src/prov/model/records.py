@@ -595,6 +595,8 @@ def _value_key(value: Any) -> ValueKey:
     plain ``datetime`` it reads back as (#663). It does not share the key of
     an ``xsd:dateTime`` ``Literal``, whose key holds its text.
     """
+    # Identifiers are the commonest attribute value and subclass none of the
+    # types below, so testing them first changes no key.
     if isinstance(value, Identifier):
         return (type(value), value, None)
     if isinstance(value, Literal):
@@ -1025,7 +1027,11 @@ class ProvRecord:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value, attr)
-            if value is not None and not isinstance(value, _PLAIN_VALUE_BASES):
+            if value is None:
+                raise ProvException(
+                    f"Invalid value for attribute {attr}: {original_value}"
+                )
+            if not isinstance(value, _PLAIN_VALUE_BASES):
                 value = self._literal_for_python_value(attr, value)
 
         if isinstance(value, datetime.datetime):
@@ -1034,9 +1040,6 @@ class ProvRecord:
             detail = time_offset_detail(attr, value)
             if detail is not None:
                 raise ProvValueError(detail)
-        if value is None:
-            raise ProvException(f"Invalid value for attribute {attr}: {original_value}")
-
         return value
 
     def _coerce_time(
@@ -1061,66 +1064,30 @@ class ProvRecord:
             )
         return value
 
-    def _store_attribute_value(
+    def _check_repeated_value(
         self,
         attr: QualifiedName,
         value: CoercedAttributeValue,
-        pairs_for_collection_check: list[AttributePair],
-        is_collection: bool | None,
-    ) -> bool | None:
-        # Add `value` for `attr`, enforcing single-valued (non-collection)
-        # attributes have at most one (distinct) value.
-        #
-        # Returns whether `pairs_for_collection_check` holds a prov:collection,
-        # or None while the pairs are unscanned; the caller passes it back on
-        # its next call.
+        existing_values: TypedValueSet,
+    ) -> None:
+        # Return if `value` equals the one value already held for the
+        # single-valued `attr`, so the caller ignores it.
         #
         # Raises:
-        #     ProvException: If a second, different value is supplied for a
-        #         single-valued (non-collection) attribute.
-        #
-        # A prov:collection among `pairs_for_collection_check` lifts the rule
-        # for the whole call. The pairs are scanned only when a single-valued
-        # attribute repeats, and the result carries to the next call, so a
-        # call's pairs are scanned at most once.
-        #
-        # `_attributes` is a defaultdict(TypedValueSet): every code path below
-        # ends up subscripting `self._attributes[attr]` at least once (the
-        # early-return and raise paths via the guard/`first()`, the fall-through
-        # path via `.add()`), so binding it once up front auto-vivifies the
-        # entry no earlier than it would have been created anyway.
-        existing_values = self._attributes[attr]
-        if attr in PROV_ATTRIBUTES and existing_values:
-            if is_collection is None:
-                is_collection = any(
-                    name == PROV_ATTR_COLLECTION
-                    for name, _ in pairs_for_collection_check
-                )
+        #     ProvException: If `value` differs from it, or cannot be
+        #         compared with it.
+        existing_value = first(existing_values)
+        is_not_same_value = True
+        # The plain try/except stays, because contextlib.suppress() adds
+        # per-call overhead and this branch runs once per repeated value.
+        try:  # noqa: SIM105
+            is_not_same_value = value != existing_value
+        except TypeError:
+            # Cannot compare them
+            pass  # consider them different values
 
-            if not is_collection:
-                existing_value = first(existing_values)
-                is_not_same_value = True
-                # This duplicate-value branch runs at scale in
-                # _unified_records()'s merge loop (unified()/flattened() on
-                # large documents), where contextlib.suppress()'s per-call
-                # context-manager overhead adds up — the plain try/except
-                # stays here.
-                try:  # noqa: SIM105
-                    is_not_same_value = value != existing_value
-                except TypeError:
-                    # Cannot compare them
-                    pass  # consider them different values
-
-                if is_not_same_value:
-                    raise ProvException(
-                        f"Cannot have more than one value for attribute {attr}"
-                    )
-                else:
-                    # Same value, ignore it
-                    return is_collection
-
-        existing_values.add(value)
-        return is_collection
+        if is_not_same_value:
+            raise ProvException(f"Cannot have more than one value for attribute {attr}")
 
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.
@@ -1147,6 +1114,9 @@ class ProvRecord:
             # The duplicate check rescans the pairs, so a one-shot iterator is
             # copied first.
             pairs = list(_attribute_pairs(attributes))
+
+            # A prov:collection anywhere in the call lifts the single-value
+            # rule. The pairs are scanned at most once, on the first repeat.
             is_collection: bool | None = None
 
             for attr_name, original_value in pairs:
@@ -1158,9 +1128,18 @@ class ProvRecord:
 
                 value = self._coerce_attribute_value(attr, original_value)
 
-                is_collection = self._store_attribute_value(
-                    attr, value, pairs, is_collection
-                )
+                # `_attributes` is a defaultdict, so this creates the entry even
+                # when the value is then rejected.
+                existing_values = self._attributes[attr]
+                if attr in PROV_ATTRIBUTES and existing_values:
+                    if is_collection is None:
+                        is_collection = any(
+                            name == PROV_ATTR_COLLECTION for name, _ in pairs
+                        )
+                    if not is_collection:
+                        self._check_repeated_value(attr, value, existing_values)
+                        continue
+                existing_values.add(value)
 
     def __eq__(self, other: Any) -> bool:
         return (

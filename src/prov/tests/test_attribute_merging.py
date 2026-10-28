@@ -367,6 +367,34 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
     assert provn.count(str(e1.identifier)) + provn.count(str(e2.identifier)) == 1
 
 
+def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
+    doc,
+) -> None:
+    # The pairs are scanned for prov:collection on the first repeat of a
+    # single-valued attribute and not again, so a call repeating one value n
+    # times costs O(n) rather than O(n^2).
+    comparisons = []
+
+    class CountingName(str):
+        __hash__ = str.__hash__
+
+        def __eq__(self, other: object) -> bool:
+            if other is PROV_ATTR_COLLECTION:
+                comparisons.append(other)
+            return str.__eq__(self, other)
+
+    collection = doc.entity("ex:coll")
+    e1 = doc.entity("ex:e1")
+    pairs = [
+        *[(PROV_ATTR_ENTITY, e1.identifier)] * 50,
+        (CountingName("ex:k"), 1),
+        (PROV_ATTR_COLLECTION, collection.identifier),
+    ]
+    membership = ProvMembership(doc, None, pairs)
+    assert membership.get_attribute(PROV_ATTR_ENTITY) == {e1.identifier}
+    assert len(comparisons) == 1
+
+
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---
 
 
