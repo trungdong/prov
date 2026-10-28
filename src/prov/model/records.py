@@ -595,6 +595,8 @@ def _value_key(value: Any) -> ValueKey:
     plain ``datetime`` it reads back as (#663). It does not share the key of
     an ``xsd:dateTime`` ``Literal``, whose key holds its text.
     """
+    if isinstance(value, Identifier):
+        return (type(value), value, None)
     if isinstance(value, Literal):
         return value._key()
     if isinstance(value, str):
@@ -1003,7 +1005,7 @@ class ProvRecord:
         # Raises:
         #     ProvException: If the value is invalid for `attr`.
 
-        # the branches below bind `value` to different types
+        # the two branches below bind `value` to different types
         value: CoercedAttributeValue
 
         if attr in PROV_ATTRIBUTE_QNAMES:
@@ -1018,8 +1020,8 @@ class ProvRecord:
                     )
             else:
                 qname = original_value
-            value = self._bundle.mandatory_valid_qname(qname)
-        elif attr in PROV_ATTRIBUTE_LITERALS:
+            return self._bundle.mandatory_valid_qname(qname)
+        if attr in PROV_ATTRIBUTE_LITERALS:
             value = self._coerce_time(attr, original_value)
         else:
             value = self._auto_literal_conversion(original_value, attr)
@@ -1063,7 +1065,7 @@ class ProvRecord:
         self,
         attr: QualifiedName,
         value: CoercedAttributeValue,
-        is_collection: bool,
+        pairs_for_collection_check: list[AttributePair],
     ) -> None:
         # Add `value` for `attr`, enforcing single-valued (non-collection)
         # attributes have at most one (distinct) value.
@@ -1072,13 +1074,23 @@ class ProvRecord:
         #     ProvException: If a second, different value is supplied for a
         #         single-valued (non-collection) attribute.
         #
+        # A prov:collection among `pairs_for_collection_check` lifts the rule
+        # for the whole call. The pairs are scanned only when a single-valued
+        # attribute repeats.
+        #
         # `_attributes` is a defaultdict(TypedValueSet): every code path below
         # ends up subscripting `self._attributes[attr]` at least once (the
         # early-return and raise paths via the guard/`first()`, the fall-through
         # path via `.add()`), so binding it once up front auto-vivifies the
         # entry no earlier than it would have been created anyway.
         existing_values = self._attributes[attr]
-        if not is_collection and attr in PROV_ATTRIBUTES and existing_values:
+        if (
+            attr in PROV_ATTRIBUTES
+            and existing_values
+            and not any(
+                name == PROV_ATTR_COLLECTION for name, _ in pairs_for_collection_check
+            )
+        ):
             existing_value = first(existing_values)
             is_not_same_value = True
             # This duplicate-value branch runs at scale in
@@ -1124,15 +1136,9 @@ class ProvRecord:
                 (non-collection) attribute.
         """
         if attributes:
-            # Two passes follow, so a one-shot iterator is copied first.
+            # The duplicate check rescans the pairs, so a one-shot iterator is
+            # copied first.
             pairs = list(_attribute_pairs(attributes))
-
-            # Check if one of the attributes specifies that the current type
-            # is a collection. In that case multiple attributes of the same
-            # type are allowed.
-            is_collection = any(
-                attr_name == PROV_ATTR_COLLECTION for attr_name, _ in pairs
-            )
 
             for attr_name, original_value in pairs:
                 if original_value is None:
@@ -1143,7 +1149,7 @@ class ProvRecord:
 
                 value = self._coerce_attribute_value(attr, original_value)
 
-                self._store_attribute_value(attr, value, is_collection)
+                self._store_attribute_value(attr, value, pairs)
 
     def __eq__(self, other: Any) -> bool:
         return (

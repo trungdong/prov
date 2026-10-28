@@ -328,7 +328,14 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
 # --- Inherited issue 1: hadMember multi-value narrowing stays unobservable ---
 
 
-def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc) -> None:
+@pytest.mark.parametrize(
+    ("collection_first", "one_shot"),
+    [(True, False), (False, False), (True, True)],
+    ids=["collection-first", "collection-last", "one-shot-iterator"],
+)
+def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
+    doc, collection_first: bool, one_shot: bool
+) -> None:
     # ProvRecord.add_attributes() bypasses its single-value guard for every
     # attribute in a call that also includes prov:collection, so a
     # ProvMembership *can* hold two prov:entity values if constructed
@@ -340,18 +347,19 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(doc) -> None
     # single (first-inserted) value, exactly as in 2.x. Left alone. (Also:
     # QualifiedNames never collapse, so get_attribute()'s plain-set copy
     # shows both members, unlike the int/float cases above.)
+    #
+    # The call-wide rule holds wherever prov:collection sits among the pairs
+    # and when they arrive as a one-shot iterator.
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
-    membership = ProvMembership(
-        doc,
-        None,
-        [
-            (PROV_ATTR_COLLECTION, collection.identifier),
-            (PROV_ATTR_ENTITY, e1.identifier),
-            (PROV_ATTR_ENTITY, e2.identifier),
-        ],
+    members = [(PROV_ATTR_ENTITY, e1.identifier), (PROV_ATTR_ENTITY, e2.identifier)]
+    collection_pair = (PROV_ATTR_COLLECTION, collection.identifier)
+    pairs = (
+        [collection_pair, *members] if collection_first else [*members, collection_pair]
     )
+    membership = ProvMembership(doc, None, iter(pairs) if one_shot else pairs)
+    assert membership.get_attribute(PROV_ATTR_COLLECTION) == {collection.identifier}
     assert len(membership.get_attribute(PROV_ATTR_ENTITY)) == 2
     assert membership.args[1] in (e1.identifier, e2.identifier)
     assert membership.formal_attributes[1][1] in (e1.identifier, e2.identifier)
