@@ -162,6 +162,7 @@ class NamespaceManager(dict[str, Namespace]):
                 "a default namespace is set with set_default_namespace(), "
                 "not add_namespace()"
             )
+
         # Every namespace is stored under its own prefix, so one lookup finds
         # an equal one.
         if self.get(namespace.prefix) == namespace:

@@ -418,13 +418,13 @@ def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
     assert doc._namespaces.lookup("ex_2", "z") is None
 
     # The repeated clash returns its rename, and an equal ex_1 is found by its prefix.
-    before = list(manager.items())
+    after_clash = list(manager.items())
     renamed = doc.add_namespace(Namespace("ex", "http://x.org/"))
     assert renamed == Namespace("ex_1", "http://x.org/")
     assert "ex_2" not in manager
     again = doc.add_namespace(Namespace("ex_1", "http://x.org/"))
     assert again == Namespace("ex_1", "http://x.org/")
-    assert list(manager.items()) == before
+    assert list(manager.items()) == after_clash
     assert manager._rename_map == {foreign: Namespace("ex_1", "http://x.org/")}
     assert manager._prefix_renamed_map == {"ex": Namespace("ex_1", "http://x.org/")}
 

@@ -1066,9 +1066,14 @@ class ProvRecord:
         attr: QualifiedName,
         value: CoercedAttributeValue,
         pairs_for_collection_check: list[AttributePair],
-    ) -> None:
+        is_collection: bool | None,
+    ) -> bool | None:
         # Add `value` for `attr`, enforcing single-valued (non-collection)
         # attributes have at most one (distinct) value.
+        #
+        # Returns whether `pairs_for_collection_check` holds a prov:collection,
+        # or None while the pairs are unscanned; the caller passes it back on
+        # its next call.
         #
         # Raises:
         #     ProvException: If a second, different value is supplied for a
@@ -1076,7 +1081,8 @@ class ProvRecord:
         #
         # A prov:collection among `pairs_for_collection_check` lifts the rule
         # for the whole call. The pairs are scanned only when a single-valued
-        # attribute repeats.
+        # attribute repeats, and the result carries to the next call, so a
+        # call's pairs are scanned at most once.
         #
         # `_attributes` is a defaultdict(TypedValueSet): every code path below
         # ends up subscripting `self._attributes[attr]` at least once (the
@@ -1084,35 +1090,37 @@ class ProvRecord:
         # path via `.add()`), so binding it once up front auto-vivifies the
         # entry no earlier than it would have been created anyway.
         existing_values = self._attributes[attr]
-        if (
-            attr in PROV_ATTRIBUTES
-            and existing_values
-            and not any(
-                name == PROV_ATTR_COLLECTION for name, _ in pairs_for_collection_check
-            )
-        ):
-            existing_value = first(existing_values)
-            is_not_same_value = True
-            # This duplicate-value branch runs at scale in
-            # _unified_records()'s merge loop (unified()/flattened() on
-            # large documents), where contextlib.suppress()'s per-call
-            # context-manager overhead adds up — the plain try/except
-            # stays here.
-            try:  # noqa: SIM105
-                is_not_same_value = value != existing_value
-            except TypeError:
-                # Cannot compare them
-                pass  # consider them different values
-
-            if is_not_same_value:
-                raise ProvException(
-                    f"Cannot have more than one value for attribute {attr}"
+        if attr in PROV_ATTRIBUTES and existing_values:
+            if is_collection is None:
+                is_collection = any(
+                    name == PROV_ATTR_COLLECTION
+                    for name, _ in pairs_for_collection_check
                 )
-            else:
-                # Same value, ignore it
-                return
+
+            if not is_collection:
+                existing_value = first(existing_values)
+                is_not_same_value = True
+                # This duplicate-value branch runs at scale in
+                # _unified_records()'s merge loop (unified()/flattened() on
+                # large documents), where contextlib.suppress()'s per-call
+                # context-manager overhead adds up — the plain try/except
+                # stays here.
+                try:  # noqa: SIM105
+                    is_not_same_value = value != existing_value
+                except TypeError:
+                    # Cannot compare them
+                    pass  # consider them different values
+
+                if is_not_same_value:
+                    raise ProvException(
+                        f"Cannot have more than one value for attribute {attr}"
+                    )
+                else:
+                    # Same value, ignore it
+                    return is_collection
 
         existing_values.add(value)
+        return is_collection
 
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.
@@ -1139,6 +1147,7 @@ class ProvRecord:
             # The duplicate check rescans the pairs, so a one-shot iterator is
             # copied first.
             pairs = list(_attribute_pairs(attributes))
+            is_collection: bool | None = None
 
             for attr_name, original_value in pairs:
                 if original_value is None:
@@ -1149,7 +1158,9 @@ class ProvRecord:
 
                 value = self._coerce_attribute_value(attr, original_value)
 
-                self._store_attribute_value(attr, value, pairs)
+                is_collection = self._store_attribute_value(
+                    attr, value, pairs, is_collection
+                )
 
     def __eq__(self, other: Any) -> bool:
         return (
