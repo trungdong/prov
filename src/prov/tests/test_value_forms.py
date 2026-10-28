@@ -26,6 +26,7 @@ from prov.model import (
     XSD_BOOLEAN,
     XSD_DATE,
     XSD_DECIMAL,
+    XSD_DOUBLE,
     XSD_INT,
     XSD_QNAME,
     XSD_TIME,
@@ -126,12 +127,24 @@ def test_prov_o_reads_an_exponent_decimal_as_a_value() -> None:
     assert value != Literal("1e1", XSD_DECIMAL)
 
 
-@pytest.mark.parametrize("text", ["NaN", "sNaN"])
-def test_prov_o_cannot_write_a_nan_decimal_beside_a_number(text: str) -> None:
+@pytest.mark.parametrize(
+    ("first", "second"),
+    [
+        (Literal("NaN", XSD_DECIMAL), 0),
+        (Literal("sNaN", XSD_DECIMAL), 0),
+        (Literal("NaN", XSD_DECIMAL), Literal("1.5", XSD_DOUBLE)),
+        (Literal("NaN", XSD_DOUBLE), Literal("0.000", XSD_DECIMAL)),
+    ],
+)
+def test_prov_o_cannot_write_a_nan_beside_a_number_when_one_is_a_decimal(
+    first: Any, second: Any
+) -> None:
     # rdflib's Turtle serializer orders the values of one predicate, and a
-    # Decimal NaN has no order against a number (conformance caveat C11).
+    # Decimal NaN has no order against a number, and an xsd:decimal value has
+    # none against a NaN of another datatype, whichever comes first
+    # (conformance caveat C11).
     document = ex_document()
-    document.entity("ex:e", [("ex:v", Literal(text, XSD_DECIMAL)), ("ex:v", 0)])
+    document.entity("ex:e", [("ex:v", first), ("ex:v", second)])
     with pytest.raises(decimal.InvalidOperation):
         document.serialize(format="rdf")
 
