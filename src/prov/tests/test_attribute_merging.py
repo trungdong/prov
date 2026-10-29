@@ -449,14 +449,14 @@ _TWO_USED = [(PROV_ATTR_USED_ENTITY, "ex:u1"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
 
 
 def _row(
-    id: str,
+    row_id: str,
     pairs: list[tuple[Any, Any]],
     attr: str = "prov:entity",
     record_type: Any = PROV_MEMBERSHIP,
     prior: Sequence[tuple[Any, Any]] = (),
     one_shot: bool = False,
 ) -> Any:
-    return pytest.param(record_type, prior, pairs, attr, one_shot, id=id)
+    return pytest.param(record_type, prior, pairs, attr, one_shot, id=row_id)
 
 
 @pytest.mark.parametrize(
