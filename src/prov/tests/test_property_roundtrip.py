@@ -14,11 +14,12 @@ selected in ``conftest.py`` via ``HYPOTHESIS_PROFILE`` (CI uses the bounded
 import math
 import re
 from collections import defaultdict
+from typing import Any
 
 import pytest
 from hypothesis import assume, given
 
-from prov.model import XSD_DECIMAL, XSD_DOUBLE, XSD_FLOAT, Literal, ProvDocument
+from prov.model import XSD_DECIMAL, XSD_FLOAT, Literal, ProvDocument, QualifiedName
 
 from .conftest import ROUNDTRIP_FORMATS, contains_mention, roundtrip_document
 from .strategies import prov_documents, prov_record_pairs, prov_records
@@ -41,9 +42,10 @@ def _is_decimal(value: object) -> bool:
 def _is_nan(value: object) -> bool:
     if isinstance(value, float):
         return math.isnan(value)
+    # A well-formed xsd:double NaN is stored as a float, so only xsd:float stays a Literal.
     return (
         isinstance(value, Literal)
-        and value.datatype in (XSD_DOUBLE, XSD_FLOAT)
+        and value.datatype == XSD_FLOAT
         and value.value == "NaN"
     )
 
@@ -51,7 +53,7 @@ def _is_nan(value: object) -> bool:
 def _has_nan_beside_decimal(document: ProvDocument) -> bool:
     """Whether one attribute of one record holds an xsd:decimal value and a NaN."""
     for record in document.get_records():
-        values: defaultdict[object, list[object]] = defaultdict(list)
+        values: defaultdict[QualifiedName, list[Any]] = defaultdict(list)
         for name, value in record.attributes:
             values[name].append(value)
         if any(
@@ -79,7 +81,7 @@ def test_generated_record_roundtrips(doc: ProvDocument, fmt: str) -> None:
     """A record holding typed literals in any spelling, identified or not, survives a round trip."""
     # rdflib rewrites an exponent-form xsd:decimal to its decimal text on read,
     # turning an ill-formed text into a value (conformance caveat C10), and
-    # raises when it orders a NaN decimal against a number, or a NaN against an
+    # raises when it orders a decimal NaN against a number, or a NaN against an
     # xsd:decimal value under one attribute, on write (C11).
     assume(
         fmt != "rdf"
