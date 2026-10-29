@@ -1092,6 +1092,18 @@ class ProvRecord:
         if is_not_same_value:
             raise ProvException(f"Cannot have more than one value for attribute {attr}")
 
+    def _stores_collection(self, pairs: Iterable[AttributePair]) -> bool:
+        """Return whether a pair lifts the single-value rule for its call.
+
+        A pair does when its value is not ``None`` and its name resolves to
+        ``prov:collection``.
+        """
+        return any(
+            value is not None
+            and self._bundle.valid_qualified_name(name) == PROV_ATTR_COLLECTION
+            for name, value in pairs
+        )
+
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.
 
@@ -1114,13 +1126,11 @@ class ProvRecord:
                 (non-collection) attribute.
         """
         if attributes:
-            # The duplicate check rescans the pairs, so a one-shot iterator is
+            # The collection scan rescans the pairs, so a one-shot iterator is
             # copied first.
             pairs = list(_attribute_pairs(attributes))
 
-            # A pair with a value whose name resolves to prov:collection lifts
-            # the single-value rule for the whole call. The pairs are scanned
-            # at most once, on the first repeat.
+            # The pairs are scanned at most once, on the first repeat.
             is_collection: bool | None = None
 
             for attr_name, original_value in pairs:
@@ -1135,12 +1145,7 @@ class ProvRecord:
                 existing_values = self._attributes.get(attr)
                 if attr in PROV_ATTRIBUTES and existing_values:
                     if is_collection is None:
-                        is_collection = any(
-                            pair_value is not None
-                            and self._bundle.valid_qualified_name(name)
-                            == PROV_ATTR_COLLECTION
-                            for name, pair_value in pairs
-                        )
+                        is_collection = self._stores_collection(pairs)
                     if not is_collection:
                         self._check_repeated_value(attr, value, existing_values)
                         continue
@@ -1608,13 +1613,11 @@ class ProvActivity(ProvElement):
 
     def get_startTime(self) -> datetime.datetime | None:
         """Return the activity's start time, or ``None`` if unset."""
-        values = self._attributes.get(PROV_ATTR_STARTTIME)
-        return first(values) if values else None
+        return first(self._attributes.get(PROV_ATTR_STARTTIME, ()))
 
     def get_endTime(self) -> datetime.datetime | None:
         """Return the activity's end time, or ``None`` if unset."""
-        values = self._attributes.get(PROV_ATTR_ENDTIME)
-        return first(values) if values else None
+        return first(self._attributes.get(PROV_ATTR_ENDTIME, ()))
 
     # Convenient assertions that take the current ProvActivity as the first
     # (formal) argument
