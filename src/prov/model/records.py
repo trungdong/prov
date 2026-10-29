@@ -297,8 +297,8 @@ class TypedValueSet(MutableSet[Any]):
     Backs each attribute's value collection on :class:`ProvRecord`; internal,
     not exported from :mod:`prov.model`. A plain :class:`set` keys on Python
     equality, so it cannot hold both ``2`` and ``2.0`` or both ``1`` and
-    ``True`` (#34). This container keys on the value key, the datatype and
-    the value in that datatype's value space: ``2`` and ``2.0`` are two
+    ``True`` (#34). This container keys on the value key, the datatype's URI
+    and the value in that datatype's value space: ``2`` and ``2.0`` are two
     values, while ``5`` and ``Literal("05", XSD_INT)``, two ``xsd:decimal``
     literals spelled differently (#77) and two tagged strings whose tags
     differ in case (#259) are one each. The first value added for a key is
@@ -533,9 +533,9 @@ class Literal:
         space when the datatype has one here and the text is in its lexical
         space, otherwise the text; and the case-folded language tag (#259, RDF
         1.1 tags are case-insensitive; the stored tag keeps its case)."""
-        value = xsd_value(self._datatype, self._value)
-        langtag = self._langtag.casefold() if self._langtag is not None else None
         datatype = self._datatype
+        value = xsd_value(datatype, self._value)
+        langtag = self._langtag.casefold() if self._langtag is not None else None
         return (
             datatype.uri if datatype is not None else None,
             self._value if value is None else key_slot(value),

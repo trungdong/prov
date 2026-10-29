@@ -3,8 +3,8 @@
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
 the model does not hold as it is, :func:`resolve_name` for a literal
-typed as a qualified name, and :func:`xsd_value` for the value a typed literal's
-text denotes. This module imports nothing from
+typed as a qualified name, :func:`xsd_value` for the value a typed literal's
+text denotes, and :func:`int_datatype` for a plain int's key. This module imports nothing from
 :mod:`prov.model.records`, so it returns text and datatypes and the caller
 builds the ``Literal`` or raises.
 """
@@ -210,8 +210,8 @@ _INT64_MAX = 2**63 - 1
 
 def int_datatype(value: int) -> QualifiedName:
     """The XSD datatype of an ``int`` by magnitude: ``xsd:int``, ``xsd:long``
-    or ``xsd:integer``. Not for a ``bool``, which :func:`canonical_xsd_datatype`
-    excludes."""
+    or ``xsd:integer``. A ``bool`` is an ``int``, so a caller tests for it
+    first."""
     if -_INT32_MAX - 1 <= value <= _INT32_MAX:
         return XSD_INT
     if -_INT64_MAX - 1 <= value <= _INT64_MAX:
