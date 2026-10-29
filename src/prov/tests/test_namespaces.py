@@ -1,5 +1,7 @@
 """Scope, declaration and lookup tests for namespaces, bundles and documents."""
 
+import copy
+import pickle
 from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -391,6 +393,109 @@ def test_lookup_corners() -> None:
     assert doc._lookup("", "a:b") == default["a:b"]
     assert bundle._lookup("ex", "z") is doc.valid_qualified_name("ex:z")
     assert list(bundle.get_registered_namespaces()) == []
+
+
+def _manager(
+    default: str | None = None, *registered: tuple[str, str]
+) -> Callable[[], NamespaceManager]:
+    def build() -> NamespaceManager:
+        manager = NamespaceManager(default=default)
+        for prefix, uri in registered:
+            manager.add_namespace(Namespace(prefix, uri))
+        return manager
+
+    return build
+
+
+def _redefaulted() -> NamespaceManager:
+    manager = _manager("http://d1/", ("ex", "http://ex/"))()
+    manager.set_default_namespace("http://d2/")
+    return manager
+
+
+def _bundle_under_a_document_prefix() -> NamespaceManager:
+    document = ProvDocument()
+    document.add_namespace("http", "urn:h:")
+    bundle = document.bundle("http:b")
+    bundle.add_namespace("a", "http://a/")
+    return bundle._namespaces
+
+
+_COMPACTING_ROWS = {
+    "single": (
+        _manager(None, ("ex", "http://ex.org/")),
+        "http://ex.org/a",
+        ("ex", "http://ex.org/a"),
+    ),
+    "nested-outer-first": (
+        _manager(None, ("o", "http://ex.org/"), ("i", "http://ex.org/a/")),
+        "http://ex.org/a/b",
+        ("o", "http://ex.org/a/b"),
+    ),
+    "nested-inner-first": (
+        _manager(None, ("i", "http://ex.org/a/"), ("o", "http://ex.org/")),
+        "http://ex.org/a/b",
+        ("i", "http://ex.org/a/b"),
+    ),
+    "default-local": (
+        _manager("http://d.org/"),
+        "http://d.org/x",
+        ("", "http://d.org/x"),
+    ),
+    "default-empty-local": (_manager("http://d.org/"), "http://d.org/", None),
+    "default-and-prefix-same-uri": (
+        _manager("http://ex/", ("ex", "http://ex/")),
+        "http://ex/",
+        ("ex", "http://ex/"),
+    ),
+    "prov-uri-under-second-prefix": (
+        _manager(None, ("p", PROV.uri)),
+        PROV.uri + "Entity",
+        ("prov", PROV.uri + "Entity"),
+    ),
+    "replaced-default": (_redefaulted, "http://d1/x", None),
+    "no-match": (
+        _manager(None, ("ex", "http://ex.org/")),
+        "http://other.org/a",
+        None,
+    ),
+    "parent-scope": (_bundle_under_a_document_prefix, "http://a/x", None),
+}
+
+
+@pytest.mark.parametrize(
+    ("setup", "text", "expected"), _COMPACTING_ROWS.values(), ids=_COMPACTING_ROWS
+)
+def test_compacting_a_full_iri_gives_the_scans_answer(
+    setup: Callable[[], NamespaceManager],
+    text: str,
+    expected: tuple[str, str] | None,
+) -> None:
+    manager = setup()
+    name = manager._resolve_prefixed_string(text)
+    assert (None if name is None else (name.namespace.prefix, name.uri)) == expected
+    if manager.parent is not None:
+        # #599: the enclosing scope's prefix reads the text as its own name.
+        assert (
+            manager.valid_qualified_name(text) == Namespace("http", "urn:h:")["//a/x"]
+        )
+
+
+@pytest.mark.parametrize(
+    "protocol", [2, 5, None], ids=["pickle-2", "pickle-5", "deepcopy"]
+)
+def test_a_copied_or_old_manager_compacts(protocol: int | None) -> None:
+    document = ProvDocument()
+    document.set_default_namespace("http://d.org/")
+    document.add_namespace("ex", "http://ex.org/")
+    if protocol is None:
+        copied = copy.deepcopy(document)
+    else:
+        # A pickle from 3.2.3 holds none of the attributes added since.
+        document._namespaces.__dict__.pop("_uris_by_length", None)
+        copied = pickle.loads(pickle.dumps(document, protocol=protocol))
+    assert str(copied.valid_qualified_name("http://ex.org/y")) == "ex:y"
+    assert str(copied.valid_qualified_name("http://d.org/z")) == "z"
 
 
 def test_a_foreign_namespace_that_takes_a_new_prefix_leaves_no_alias() -> None:
