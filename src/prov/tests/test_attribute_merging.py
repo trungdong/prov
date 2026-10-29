@@ -23,6 +23,7 @@ are characterized below too.
 """
 
 import datetime
+from collections.abc import Callable
 
 import pytest
 
@@ -274,10 +275,7 @@ def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc) -> None
     assert e.get_asserted_types() == set()
     assert not e.get_asserted_types()
     assert e.value == set()
-
-
-def _assert_label(record):
-    assert record.label == "ex:e"
+    assert e.label == "ex:e"
 
 
 def _generation_and_activity_document(d):
@@ -299,10 +297,6 @@ def _dot_read(d):
     prov_to_dot(d)
 
 
-def _rdf_read(d):
-    d.serialize(format="rdf")
-
-
 def _record_of_type(d, record_type):
     return next(r for r in d.get_records() if r.get_type() == record_type)
 
@@ -312,48 +306,50 @@ def _keys(d):
 
 
 @pytest.mark.parametrize(
-    "kind, read",
+    "read",
     [
         pytest.param(
-            PROV_ENTITY, lambda r: r.get_asserted_types(), id="asserted-types"
+            lambda d: _record_of_type(d, PROV_ENTITY).get_asserted_types(),
+            id="asserted-types",
         ),
         pytest.param(
-            PROV_ENTITY, lambda r: r.get_attribute("ex:x"), id="get-attribute"
+            lambda d: _record_of_type(d, PROV_ENTITY).get_attribute("ex:x"),
+            id="get-attribute",
         ),
-        pytest.param(PROV_GENERATION, lambda r: r.args, id="args"),
+        pytest.param(lambda d: _record_of_type(d, PROV_GENERATION).args, id="args"),
         pytest.param(
-            PROV_GENERATION, lambda r: r.formal_attributes, id="formal-attributes"
+            lambda d: _record_of_type(d, PROV_GENERATION).formal_attributes,
+            id="formal-attributes",
         ),
-        pytest.param(PROV_ENTITY, _assert_label, id="label"),
-        pytest.param(PROV_ENTITY, lambda r: r.value, id="value"),
-        pytest.param(PROV_ACTIVITY, lambda r: r.get_startTime(), id="start-time"),
-        pytest.param(PROV_ACTIVITY, lambda r: r.get_endTime(), id="end-time"),
-        pytest.param(PROV_ACTIVITY, lambda r: r.args, id="activity-args"),
-    ],
-)
-def test_a_read_leaves_the_record_unchanged(doc, kind, read) -> None:
-    record = _record_of_type(_generation_and_activity_document(doc), kind)
-    before = list(record._attributes)
-
-    read(record)
-
-    assert list(record._attributes) == before
-
-
-@pytest.mark.parametrize(
-    "operation",
-    [
+        pytest.param(lambda d: _record_of_type(d, PROV_ENTITY).label, id="label"),
+        pytest.param(lambda d: _record_of_type(d, PROV_ENTITY).value, id="value"),
+        pytest.param(
+            lambda d: _record_of_type(d, PROV_ACTIVITY).get_startTime(),
+            id="start-time",
+        ),
+        pytest.param(
+            lambda d: _record_of_type(d, PROV_ACTIVITY).get_endTime(), id="end-time"
+        ),
+        pytest.param(
+            lambda d: _record_of_type(d, PROV_ACTIVITY).args, id="activity-args"
+        ),
         pytest.param(lambda d: d.unified(), id="unified"),
+        pytest.param(lambda d: d.flattened(), id="flattened"),
         pytest.param(_graph_read, id="graph"),
         pytest.param(_dot_read, id="dot"),
-        pytest.param(_rdf_read, id="rdf"),
+        *[
+            pytest.param(lambda d, f=f: d.serialize(format=f), id=f"write-{f}")
+            for f in ("json", "jsonld", "provn", "xml", "rdf")
+        ],
     ],
 )
-def test_a_document_operation_leaves_every_record_unchanged(doc, operation) -> None:
+def test_a_read_leaves_every_record_unchanged(
+    doc, read: Callable[[ProvDocument], object]
+) -> None:
     d = _generation_and_activity_document(doc)
     before = _keys(d)
 
-    operation(d)
+    read(d)
 
     assert _keys(d) == before
 
@@ -465,21 +461,12 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
 def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
     doc, order: str
 ) -> None:
-    # ProvRecord.add_attributes() bypasses its single-value guard for every
-    # attribute in a call that also includes prov:collection, so a
-    # ProvMembership *can* hold two prov:entity values if constructed
-    # directly (ProvBundle.membership() itself never does this). Maintainer
-    # ruling: type-aware storage does not change this, because
-    # prov:entity values are always QualifiedNames -- the same Python type --
-    # so there is nothing for the new per-attribute container to newly
-    # distinguish. `args`/`formal_attributes`/`get_provn()` still narrow to a
-    # single (first-inserted) value, exactly as in 2.x. Left alone. (Also:
-    # QualifiedNames never collapse, so get_attribute()'s plain-set copy
-    # shows both members, unlike the int/float cases above.)
-    #
     # A call that stores a prov:collection lifts the single-value rule for
     # every attribute in it, wherever the collection sits and for a one-shot
-    # iterator.
+    # iterator, so a ProvMembership built directly holds two prov:entity
+    # values, and get_attribute() shows both because QualifiedNames never
+    # collapse. args, formal_attributes and get_provn() narrow to the first
+    # value.
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
@@ -511,49 +498,55 @@ _ALL_THREE = [
 
 
 @pytest.mark.parametrize(
-    ("pairs", "stored"),
+    ("prior", "pairs", "stored"),
     [
         pytest.param(
-            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="constant"
+            [],
+            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
+            _ALL_THREE,
+            id="constant",
         ),
         pytest.param(
-            [("prov:collection", "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="string"
+            [], [("prov:collection", "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="string"
         ),
         pytest.param(
-            [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES], None, id="none-collection"
+            [],
+            [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES],
+            None,
+            id="none-collection",
         ),
         pytest.param(
-            [("prov:collection", None), *_TWO_ENTITIES], None, id="string-none"
+            [], [("prov:collection", None), *_TWO_ENTITIES], None, id="string-none"
         ),
-        pytest.param(list(_TWO_ENTITIES), None, id="no-collection"),
+        pytest.param([], list(_TWO_ENTITIES), None, id="no-collection"),
         pytest.param(
+            [],
             [("zz:x", None), (PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
             _ALL_THREE,
             id="unresolvable-none-pair",
         ),
+        pytest.param(
+            [(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]],
+            [_TWO_ENTITIES[1]],
+            None,
+            id="second-call",
+        ),
     ],
 )
-def test_the_hadmember_rule_follows_the_stored_collection(doc, pairs, stored) -> None:
+def test_the_hadmember_rule_follows_the_stored_collection(
+    doc, prior, pairs, stored
+) -> None:
     # The single-value rule is lifted exactly when the call holds a pair that
-    # resolves to prov:collection and has a value.
+    # resolves to prov:collection and has a value. The scan reads the call's
+    # pairs, not the record's earlier state.
+    record = doc.new_record(PROV_MEMBERSHIP, None, prior)
+
     if stored is None:
         with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
-            doc.new_record(PROV_MEMBERSHIP, None, pairs)
+            record.add_attributes(pairs)
     else:
-        record = doc.new_record(PROV_MEMBERSHIP, None, pairs)
+        record.add_attributes(pairs)
         assert sorted((str(n), str(v)) for n, v in record.attributes) == stored
-
-
-def test_a_second_call_does_not_lift_the_rule_from_the_stored_collection(
-    doc,
-) -> None:
-    # The scan reads the call's pairs, not the record's earlier state.
-    record = doc.new_record(
-        PROV_MEMBERSHIP, None, [(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]]
-    )
-
-    with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
-        record.add_attributes([_TWO_ENTITIES[1]])
 
 
 def test_the_scan_registers_a_foreign_namespace_after_a_rejected_repeat(
