@@ -509,6 +509,18 @@ def test_deserialize_membership_entity_array_gives_one_record_per_member() -> No
     assert doc == expected
 
 
+def test_deserialize_membership_entity_array_listing_a_member_twice() -> None:
+    doc = ProvDocument.deserialize(
+        content=_membership_payload(["ex:e1", "ex:e1", "ex:e2"]), format="jsonld"
+    )
+    expected = _new_doc()
+    expected.entity("ex:c")
+    expected.hadMember("ex:c", "ex:e1")
+    expected.hadMember("ex:c", "ex:e2")
+    assert doc == expected
+    assert len(list(doc.get_records(ProvMembership))) == 2
+
+
 def test_deserialize_membership_single_element_array() -> None:
     # ProvToolbox writes the array form even for one member.
     doc = ProvDocument.deserialize(

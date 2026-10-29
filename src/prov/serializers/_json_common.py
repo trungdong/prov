@@ -182,12 +182,12 @@ def _add_memberships(
     other_attributes: list[AttributePair],
     members: Sequence[QualifiedName],
 ) -> None:
-    """Add one ``hadMember`` record per member to ``bundle``.
+    """Add one ``hadMember`` record per distinct member to ``bundle``.
 
     PROV-DM's ``hadMember`` is binary, so a membership listing several members
-    becomes one record per member. Each record carries the identifier and the
-    attributes of the membership. The PROV-JSON, PROV-JSONLD and PROV-XML readers
-    share this fan-out.
+    becomes one record per member, and a member listed twice gives one record.
+    Each record carries the identifier and the attributes of the membership. The
+    PROV-JSON, PROV-JSONLD and PROV-XML readers share this fan-out.
 
     Args:
         bundle: Bundle to add the records to.
@@ -197,7 +197,7 @@ def _add_memberships(
         other_attributes: The membership's other attributes.
         members: The resolved members, one record each.
     """
-    for member in members:
+    for member in dict.fromkeys(members):
         bundle.new_record(
             PROV_MEMBERSHIP,
             identifier,

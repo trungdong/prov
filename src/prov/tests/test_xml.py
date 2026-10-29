@@ -1435,24 +1435,48 @@ def _members_xml(id_attribute: str, entities: tuple[str, ...]) -> str:
 
 
 @pytest.mark.parametrize(
-    ("id_attribute", "identifiers"),
-    [(' prov:id="ex:m"', ["ex:m", "ex:m"]), ("", [None, None])],
-    ids=["identified", "anonymous"],
+    ("id_attribute", "entities", "identifiers", "entity_lists"),
+    [
+        pytest.param(
+            ' prov:id="ex:m"',
+            ("ex:e1", "ex:e2"),
+            ["ex:m", "ex:m"],
+            [["ex:e1"], ["ex:e2"]],
+            id="identified",
+        ),
+        pytest.param(
+            "",
+            ("ex:e1", "ex:e2"),
+            [None, None],
+            [["ex:e1"], ["ex:e2"]],
+            id="anonymous",
+        ),
+        pytest.param(
+            ' prov:id="ex:m"',
+            ("ex:e1", "ex:e1"),
+            ["ex:m"],
+            [["ex:e1"]],
+            id="repeated-member",
+        ),
+        pytest.param(' prov:id="ex:m"', (), ["ex:m"], [[]], id="no-member"),
+    ],
 )
 def test_xml_had_member_with_several_entities_reads_one_record_per_member(
-    id_attribute: str, identifiers: list[str | None]
+    id_attribute: str,
+    entities: tuple[str, ...],
+    identifiers: list[str | None],
+    entity_lists: list[list[str]],
 ) -> None:
     document = prov.ProvDocument.deserialize(
-        content=_members_xml(f'{id_attribute} xsi:type="ex:T"', ("ex:e1", "ex:e2")),
+        content=_members_xml(f'{id_attribute} xsi:type="ex:T"', entities),
         format="xml",
     )
     records = list(document.get_records(prov.ProvMembership))
 
     assert [r.identifier and str(r.identifier) for r in records] == identifiers
-    assert [[str(e) for e in r.get_attribute(PROV_ATTR_ENTITY)] for r in records] == [
-        ["ex:e1"],
-        ["ex:e2"],
-    ]
+    assert [
+        [str(e) for e in r.get_attribute(PROV_ATTR_ENTITY)] for r in records
+    ] == entity_lists
     for record in records:
         assert [str(c) for c in record.get_attribute("prov:collection")] == ["ex:c"]
         assert [str(k) for k in record.get_attribute("ex:k")] == ["v"]
@@ -1496,15 +1520,6 @@ def test_xml_example_33_reads_three_memberships_and_writes_three_elements() -> N
     assert {str(r.get_attribute("prov:collection").pop()) for r in records} == {"ex:c"}
     written = document.serialize(format="xml")
     assert written.count("<prov:hadMember") == 3
-
-
-def test_xml_had_member_without_an_entity_reads_one_record() -> None:
-    document = prov.ProvDocument.deserialize(
-        content=_members_xml(' prov:id="ex:m"', ()), format="xml"
-    )
-    (record,) = document.get_records(prov.ProvMembership)
-
-    assert not record.get_attribute(PROV_ATTR_ENTITY)
 
 
 @pytest.mark.parametrize(
