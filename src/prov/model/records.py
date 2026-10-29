@@ -1143,7 +1143,7 @@ class ProvRecord:
                 value = self._coerce_attribute_value(attr, original_value)
 
                 existing_values = self._attributes.get(attr)
-                if attr in PROV_ATTRIBUTES and existing_values:
+                if existing_values and attr in PROV_ATTRIBUTES:
                     if is_collection is None:
                         is_collection = self._stores_collection(pairs)
                     if not is_collection:

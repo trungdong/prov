@@ -46,18 +46,12 @@ from prov.model import (
     ProvMembership,
     ProvUnificationError,
 )
-from prov.tests.conftest import roundtrip_document
-
-
-def _new_document():
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
-    return d
+from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document, roundtrip_document
 
 
 @pytest.fixture
 def doc():
-    return _new_document()
+    return ex_document()
 
 
 def _typed(values):
@@ -339,7 +333,7 @@ def _keys(d):
         pytest.param(_dot_read, id="dot"),
         *[
             pytest.param(lambda d, f=f: d.serialize(format=f), id=f"write-{f}")
-            for f in ("json", "jsonld", "provn", "xml", "rdf")
+            for f in ROUNDTRIP_FORMATS
         ],
     ],
 )
@@ -355,7 +349,7 @@ def test_a_read_leaves_every_record_unchanged(
 
 
 def _generation_with_extras(peek: bool) -> ProvDocument:
-    d = _generation_and_activity_document(_new_document())
+    d = _generation_and_activity_document(ex_document())
     g = _record_of_type(d, PROV_GENERATION)
     if peek:
         _ = (g.formal_attributes, g.args, g.label, g.get_attribute("ex:y"))
@@ -518,7 +512,7 @@ _ALL_THREE = [
         pytest.param(
             [], [("prov:collection", None), *_TWO_ENTITIES], None, id="string-none"
         ),
-        pytest.param([], list(_TWO_ENTITIES), None, id="no-collection"),
+        pytest.param([], _TWO_ENTITIES, None, id="no-collection"),
         pytest.param(
             [],
             [("zz:x", None), (PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
