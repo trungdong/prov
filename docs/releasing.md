@@ -7,8 +7,8 @@ Substitute the version being released for `X.Y.Z` throughout.
 ## Checklist
 
 1. Pre-flight on the release commit: the gate block of §1, then the own-warnings run,
-   `uv run python benchmarks/ab.py <previous tag> --python 3.12`, the suite-count
-   comparison, and `uv build` with the wheel listing.
+   `uv run python benchmarks/ab.py <previous tag> --python 3.12` run twice, the second time
+   with `--gc`, the suite-count comparison, and `uv build` with the wheel listing.
 2. Stamp, in one commit: `src/prov/__init__.py`, `HISTORY.md`, `ROADMAP.md`,
    `docs/reference/conformance.md`, `CITATION.cff`; the status lines and index rows of the
    specs the release ships; `pyproject.toml` and `README.md` if a serializer changed (§2).
@@ -59,6 +59,13 @@ uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q
 # not ship an unexplained regression. The per-change CI job compares each change with
 # its parent only, so slowdowns under its threshold can add up across a release unseen.
 uv run python benchmarks/ab.py <previous tag> --python 3.12
+
+# The same comparison with garbage collection on. The run above times with it off and
+# this one with it on. The release's HISTORY figure quotes this run beside the first
+# only where a benchmark's change differs between the two by more than 4 percentage
+# points, because each run's figure carries the 2% spread an unchanged tree shows on a
+# quiet machine.
+uv run python benchmarks/ab.py <previous tag> --python 3.12 --gc
 
 # The build, including any package data the release depends on at runtime
 uv build

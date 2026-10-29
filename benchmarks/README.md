@@ -20,12 +20,20 @@ not comparable, and CI runners alone differ in speed by up to a factor of two.
 uv run python benchmarks/ab.py main --python 3.12    # the working tree against main
 uv run python benchmarks/ab.py 3.2.2 --python 3.12   # against a release tag
 uv run python benchmarks/ab.py main --python 3.12 --passes 4 --threshold 0.05
+uv run python benchmarks/ab.py 3.2.3 --python 3.12 --gc   # with garbage collection on
 ```
 
 Both sides must run on the same interpreter, and the script stops if they did
 not. The working tree's environment keeps the interpreter of the last
 `uv run --python`, which after the test loop over every supported interpreter
 is PyPy, while the base gets uv's default. `--python` pins both sides.
+
+`ab.py` times with garbage collection off on both sides (pytest-benchmark's
+`--benchmark-disable-gc`), so a collector pause cannot fall in one round and
+not another. A real workload pays those pauses. With collection on,
+construction, the PROV-JSON read, `unified()` and `prov_to_graph()` take 10 to
+43% longer on Python 3.11 and 3.12 (#693). `--gc` leaves collection on for both
+sides. A plain `pytest` run, as in the first block, leaves it on.
 
 The script checks the base ref out into a temporary git worktree with its own
 locked environment, so a dependency change counts as part of the change
