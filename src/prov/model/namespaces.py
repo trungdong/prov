@@ -44,7 +44,13 @@ def _first_free(prefix: str, taken: Callable[[str], bool]) -> str:
 
 
 class NamespaceManager(dict[str, Namespace]):
-    """Manages namespaces for PROV documents and bundles."""
+    """Manages namespaces for PROV documents and bundles.
+
+    Register namespaces through :meth:`add_namespace` and
+    :meth:`set_default_namespace`. The dict's own write methods (item
+    assignment, ``update``, ``del``, ``pop`` and ``clear``) bypass the
+    manager's indexes and are unsupported.
+    """
 
     parent: NamespaceManager | None = None
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
@@ -68,7 +74,7 @@ class NamespaceManager(dict[str, Namespace]):
         dict.__init__(self)
 
         # Every namespace this dict holds, by URI length and then URI.
-        # _store() keeps it in step with the dict.
+        # The manager's writers keep it in step with the dict.
         self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
         self._default_namespaces = DEFAULT_NAMESPACES
         for prefix, namespace in self._default_namespaces.items():
@@ -138,19 +144,12 @@ class NamespaceManager(dict[str, Namespace]):
 
     def _set_default(self, namespace: Namespace) -> None:
         self._default = namespace
-        self._store("", namespace)
+        self[""] = namespace
+        self._reindex()
         self._resolve_cache.clear()
 
     def _store(self, prefix: str, namespace: Namespace) -> None:
-        """Bind ``prefix`` to ``namespace`` and keep the length index in step."""
-        replaced = self.get(prefix)
-        if replaced is not None:
-            by_uri = self._uris_by_length[len(replaced.uri)]
-            held = [ns for ns in by_uri[replaced.uri] if ns is not replaced]
-            if held:
-                by_uri[replaced.uri] = held
-            else:
-                del by_uri[replaced.uri]
+        """Bind a new ``prefix`` to ``namespace`` and index it."""
         self[prefix] = namespace
         self._index(namespace)
 
@@ -158,15 +157,19 @@ class NamespaceManager(dict[str, Namespace]):
         by_uri = self._uris_by_length.setdefault(len(namespace.uri), {})
         by_uri.setdefault(namespace.uri, []).append(namespace)
 
+    def _reindex(self) -> None:
+        """Rebuild the length index from the dict's namespaces."""
+        self._uris_by_length = {}
+        for namespace in self.values():
+            self._index(namespace)
+
     def __setstate__(self, state: dict[str, Any]) -> None:
         # The dict's items are already set when pickle calls this, so a state
         # from a release without the index gets one built from them. A copy
         # carries its own index and has no items yet.
         self.__dict__.update(state)
         if "_uris_by_length" not in state:
-            self._uris_by_length = {}
-            for namespace in self.values():
-                self._index(namespace)
+            self._reindex()
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""

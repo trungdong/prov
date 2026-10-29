@@ -1714,10 +1714,11 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself() -> None:
     assert identifier.localpart == "thing"
 
 
-_PROV_PREFIX = "@prefix prov: <http://www.w3.org/ns/prov#> ."
+PROV_NS = "http://www.w3.org/ns/prov#"
+_PROV_PREFIX = f"@prefix prov: <{PROV_NS}> ."
 
 
-def _lookup_between_reads() -> object:
+def _lookup_between_reads() -> tuple[object, object]:
     # A binding added between two decodes by one serializer reaches the second.
     graph = Graph().parse(
         data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> ."
@@ -1732,10 +1733,13 @@ def _lookup_between_reads() -> object:
     serializer.document = second
     serializer.decode_container(graph, second)
     (record,) = second.get_records()
-    return record.identifier.namespace.prefix, record.identifier.localpart
+    return (record.identifier.namespace.prefix, record.identifier.localpart), (
+        "exsub",
+        "thing",
+    )
 
 
-def _lookup_outside_a_decode() -> object:
+def _lookup_outside_a_decode() -> tuple[object, object]:
     # Outside a decode nothing is held, so a binding added after a lookup counts.
     graph = Graph().parse(
         data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> .",
@@ -1750,10 +1754,10 @@ def _lookup_outside_a_decode() -> object:
     graph.bind("exsub", "http://example.org/sub/")
     serializer.document = ProvDocument()
     after = serializer.decode_rdf_representation(iri, graph)
-    return before.namespace.prefix, after.namespace.prefix
+    return (before.namespace.prefix, after.namespace.prefix), ("ex", "exsub")
 
 
-def _lookup_in_bundles_sharing_a_binding() -> object:
+def _lookup_in_bundles_sharing_a_binding() -> tuple[object, object]:
     # foaf is a binding rdflib adds to every graph, so the document does not
     # hold it and each name is resolved against the graph.
     trig = f"""
@@ -1770,24 +1774,44 @@ def _lookup_in_bundles_sharing_a_binding() -> object:
     first.entity(foaf["a1"])
     first.entity(foaf["a2"])
     second.entity(foaf["a3"])
-    return read == expected
+    return read, expected
+
+
+def _lookup_of_a_colon_less_iri() -> tuple[object, object]:
+    # The document never compacts a colon-less IRI, so the namespace minted
+    # for the first value is a live binding for the second. SimpleMemory
+    # iterates triples in the order they were added.
+    graph = Graph(store="SimpleMemory")
+    graph.bind("ex", "http://ex.org/")
+    subject = URIRef("http://ex.org/e")
+    graph.add((subject, RDF.type, URIRef(f"{PROV_NS}Entity")))
+    graph.add((subject, URIRef("http://ex.org/p0"), URIRef("foo/x")))
+    graph.add((subject, URIRef("http://ex.org/p1"), URIRef("foo/a/b")))
+    document = ProvDocument()
+    ProvRDFSerializer(document=document).decode_container(graph, document)
+    (record,) = document.get_records()
+    values = {str(name): str(value) for name, value in record.attributes}
+    return values, {"ex:p0": "ns1:x", "ex:p1": "ns1:a/b"}
 
 
 @pytest.mark.parametrize(
-    ("lookup", "expected"),
+    "lookup",
     [
-        pytest.param(_lookup_between_reads, ("exsub", "thing"), id="between-reads"),
-        pytest.param(_lookup_outside_a_decode, ("ex", "exsub"), id="outside-a-decode"),
-        pytest.param(_lookup_in_bundles_sharing_a_binding, True, id="bundles"),
+        pytest.param(_lookup_between_reads, id="between-reads"),
+        pytest.param(_lookup_outside_a_decode, id="outside-a-decode"),
+        pytest.param(_lookup_in_bundles_sharing_a_binding, id="bundles"),
+        pytest.param(_lookup_of_a_colon_less_iri, id="colon-less-iri"),
     ],
 )
-def test_the_graph_lookup_reads_each_graphs_own_bindings(
-    lookup: Callable[[], object], expected: object
+def test_the_graph_lookup_snapshot_lasts_one_decode(
+    lookup: Callable[[], tuple[object, object]],
 ) -> None:
     # The reader resolves an IRI against one snapshot of the source graph's
     # bindings per decode, held across the bundles of one document. A later
-    # decode, and a call outside any decode, read the bindings as they are then.
-    assert lookup() == expected
+    # decode, a call outside any decode and an IRI the document cannot compact
+    # read the bindings as they are then.
+    actual, expected = lookup()
+    assert actual == expected
 
 
 def test_bundle_namespace_order_follows_registration_in_rdf() -> None:
