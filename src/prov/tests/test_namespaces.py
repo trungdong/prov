@@ -479,9 +479,14 @@ def _without_index(document: ProvDocument) -> ProvDocument:
     return document
 
 
+def _pickled(document: ProvDocument) -> ProvDocument:
+    loaded: ProvDocument = pickle.loads(pickle.dumps(document, protocol=5))  # nosec B301 - nosemgrep
+    return loaded
+
+
 _COPIERS = {
-    "pickle-5-old": lambda d: pickle.loads(pickle.dumps(_without_index(d), protocol=5)),
-    "pickle-5-current": lambda d: pickle.loads(pickle.dumps(d, protocol=5)),
+    "pickle-5-old": lambda d: _pickled(_without_index(d)),
+    "pickle-5-current": _pickled,
     "deepcopy": copy.deepcopy,
 }
 
