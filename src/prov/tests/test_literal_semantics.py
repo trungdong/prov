@@ -542,12 +542,10 @@ def test_a_plain_value_keys_as_its_twin(
     assert isinstance(left_key[0], str)
     assert isinstance(right_key[0], str)
     document = ex_document()
-    document.entity("ex:e1", [("ex:a", left)])
+    record = document.entity("ex:e1", [("ex:a", left)])
     assert roundtrip_document(document, "json") == document
     if same:
-        held = ex_document().entity("ex:e1", [("ex:a", left)])
-        twin = ex_document().entity("ex:e1", [("ex:a", right)])
-        assert held == twin
+        assert record == ex_document().entity("ex:e1", [("ex:a", right)])
 
 
 @pytest.mark.parametrize(
