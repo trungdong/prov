@@ -17,7 +17,7 @@ Both sides must run on the same interpreter. The working tree's environment
 keeps the interpreter of the last ``uv run --python``, so ``--python`` pins
 both sides when that differs from the default the base gets.
 
-Timing runs with garbage collection off unless ``--gc`` is given.
+``ab.py`` times with garbage collection off unless ``--gc`` is given.
 
 ``--from-json BASE HEAD`` compares two saved pytest-benchmark runs instead.
 """

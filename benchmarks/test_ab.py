@@ -178,15 +178,15 @@ def test_main_compares_saved_runs(tmp_path, capsys):
 def test_main_passes_gc_to_measure(monkeypatch, argv, gc, disables_gc):
     seen = []
 
-    def fake_measure(*args):
-        seen.append(args[-1])
+    def fake_measure(base_ref, passes, threshold, python, gc):
+        seen.append(gc)
         return [], "min"
 
     monkeypatch.setattr(ab, "measure", fake_measure)
     assert main(argv) == 0
     assert seen == [gc]
     assert ("--benchmark-disable-gc" in pytest_options(gc)) is disables_gc
-    assert set(pytest_options(False)) - set(pytest_options(True)) == {
-        "--benchmark-disable-gc"
+    assert set(pytest_options(False)) == {
+        *pytest_options(True),
+        "--benchmark-disable-gc",
     }
-    assert set(pytest_options(True)) < set(pytest_options(False))

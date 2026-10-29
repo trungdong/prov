@@ -60,11 +60,11 @@ uv run --python 3.15 --extra rdf --extra xml --extra dot --extra graph pytest -q
 # its parent only, so slowdowns under its threshold can add up across a release unseen.
 uv run python benchmarks/ab.py <previous tag> --python 3.12
 
-# The same comparison with garbage collection on. The run above times with it off and
-# this one with it on. The release's HISTORY figure quotes this run beside the first
-# only where a benchmark's change differs between the two by more than 4 percentage
-# points, because each run's figure carries the 2% spread an unchanged tree shows on a
-# quiet machine.
+# The same comparison with garbage collection on, where the run above turns it off. A
+# release's HISTORY takes its speed figures from the first run, and gives this run's
+# beside them only where a benchmark's change differs between the two runs by more than
+# 4 percentage points, because each run's figure carries the 2% spread an unchanged tree
+# shows on a quiet machine.
 uv run python benchmarks/ab.py <previous tag> --python 3.12 --gc
 
 # The build, including any package data the release depends on at runtime
@@ -257,7 +257,7 @@ with these deviations, established on earlier 2.x releases and expected to hold 
 later one.
 
 **No `benchmarks/` directory.** Run `ruff check` and `ruff format --check` on `src/` alone,
-and skip the `ab.py` comparison.
+and skip both `ab.py` runs.
 
 **Only two extras exist.** `2.x` predates the extras split, so it has no `dot` or `graph`
 extra and errors out if you pass them. Every command in §1 that names four extras takes two
