@@ -1092,18 +1092,6 @@ class ProvRecord:
         if is_not_same_value:
             raise ProvException(f"Cannot have more than one value for attribute {attr}")
 
-    def _stores_collection(self, pairs: Iterable[AttributePair]) -> bool:
-        """Return whether a pair lifts the single-value rule for its call.
-
-        A pair does when its value is not ``None`` and its name resolves to
-        ``prov:collection``.
-        """
-        return any(
-            value is not None
-            and self._bundle.valid_qualified_name(name) == PROV_ATTR_COLLECTION
-            for name, value in pairs
-        )
-
     def add_attributes(self, attributes: RecordAttributesArg) -> None:
         """Add attributes to the record.
 
@@ -1123,17 +1111,10 @@ class ProvRecord:
                 qualified name does not resolve by its prefix (#516).
             ProvException: If a value is invalid for its attribute, or a
                 second, different value is supplied for a single-valued
-                (non-collection) attribute.
+                attribute.
         """
         if attributes:
-            # The collection scan rescans the pairs, so a one-shot iterator is
-            # copied first.
-            pairs = list(_attribute_pairs(attributes))
-
-            # The pairs are scanned at most once, on the first repeat.
-            is_collection: bool | None = None
-
-            for attr_name, original_value in pairs:
+            for attr_name, original_value in _attribute_pairs(attributes):
                 if original_value is None:
                     continue
 
@@ -1144,11 +1125,8 @@ class ProvRecord:
 
                 existing_values = self._attributes.get(attr)
                 if existing_values and attr in PROV_ATTRIBUTES:
-                    if is_collection is None:
-                        is_collection = self._stores_collection(pairs)
-                    if not is_collection:
-                        self._check_repeated_value(attr, value, existing_values)
-                        continue
+                    self._check_repeated_value(attr, value, existing_values)
+                    continue
                 self._attributes[attr].add(value)
 
     def __eq__(self, other: Any) -> bool:

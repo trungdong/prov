@@ -307,11 +307,11 @@ same documents and for a document whose bundles disagree about a shared identifi
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `Cannot have more than one value for attribute prov:entity` | [#700](https://github.com/trungdong/prov/issues/700) | `add_attributes([(PROV_ATTR_COLLECTION, None), ("prov:entity", "ex:e1"), ("prov:entity", "ex:e2")])` on a `hadMember` record | A collection value, or one `prov:entity` per record. |
+| `Cannot have more than one value for attribute prov:entity` | [#700](https://github.com/trungdong/prov/issues/700) | `add_attributes([(PROV_ATTR_COLLECTION, "ex:c"), ("prov:entity", "ex:e1"), ("prov:entity", "ex:e2")])` on a `hadMember` record | One `hadMember` per entity. |
 
-A `hadMember` record holds several `prov:entity` values only when the call stores a
-`prov:collection`. The string `"prov:collection"` lifts the rule as the
-`PROV_ATTR_COLLECTION` constant does, where 3.2.3 raised for the second `prov:entity`.
+A PROV-XML `prov:hadMember` with several `<prov:entity>` children reads as one record per
+entity, each with the element's identifier and attributes, as PROV-JSON and PROV-JSONLD
+already read a list.
 
 ## Equality
 

@@ -431,9 +431,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   attributes unchanged, where 3.2.3 added an empty entry that put an attribute asserted
   later in an earlier position in PROV-JSON, PROV-JSONLD and PROV-N output
   ([#696](https://github.com/trungdong/prov/issues/696))
-- A `hadMember` record holds several `prov:entity` values only when the call stores a
-  `prov:collection`, given as the constant or the `"prov:collection"` string. In 3.2.3 a
-  `None` collection lifted the rule and the string did not
+- A `hadMember` holds one `prov:entity`, and a second `prov:entity` raises
+  `ProvException`, where 3.2.3 accepted two asserted after a `prov:collection`. The
+  PROV-XML reader builds one `hadMember` per `<prov:entity>` child, as the other readers
+  do, where 3.2.3 built one record
   ([#700](https://github.com/trungdong/prov/issues/700))
 
 ### Additions

@@ -29,17 +29,20 @@ import pytest
 
 from prov.constants import (
     PROV_ACTIVITY,
+    PROV_DERIVATION,
     PROV_ENTITY,
     PROV_GENERATION,
     PROV_MEMBERSHIP,
     XSD_ANYURI,
     XSD_DECIMAL,
 )
-from prov.identifier import Identifier, Namespace
+from prov.identifier import Identifier
 from prov.model import (
     PROV_ATTR_COLLECTION,
     PROV_ATTR_ENTITY,
+    PROV_ATTR_USED_ENTITY,
     Literal,
+    ProvDerivation,
     ProvDocument,
     ProvEntity,
     ProvException,
@@ -446,144 +449,121 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
     assert a.get_startTime() == datetime.datetime(2020, 1, 1)
 
 
-# --- Inherited issue 1: hadMember multi-value narrowing stays unobservable ---
-
-
-@pytest.mark.parametrize(
-    "order", ["collection-first", "collection-last", "one-shot-iterator"]
-)
-def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
-    doc, order: str
-) -> None:
-    # A call that stores a prov:collection lifts the single-value rule for
-    # every attribute in it, wherever the collection sits and for a one-shot
-    # iterator, so a ProvMembership built directly holds two prov:entity
-    # values, and get_attribute() shows both because QualifiedNames never
-    # collapse. args, formal_attributes and get_provn() narrow to the first
-    # value.
-    collection = doc.entity("ex:coll")
-    e1 = doc.entity("ex:e1")
-    e2 = doc.entity("ex:e2")
-    members = [(PROV_ATTR_ENTITY, e1.identifier), (PROV_ATTR_ENTITY, e2.identifier)]
-    collection_pair = (PROV_ATTR_COLLECTION, collection.identifier)
-    pairs = (
-        [*members, collection_pair]
-        if order == "collection-last"
-        else [collection_pair, *members]
-    )
-    membership = ProvMembership(
-        doc, None, iter(pairs) if order == "one-shot-iterator" else pairs
-    )
-    assert membership.get_attribute(PROV_ATTR_COLLECTION) == {collection.identifier}
-    assert len(membership.get_attribute(PROV_ATTR_ENTITY)) == 2
-    assert membership.args[1] in (e1.identifier, e2.identifier)
-    assert membership.formal_attributes[1][1] in (e1.identifier, e2.identifier)
-    provn = membership.get_provn()
-    assert provn.count(str(e1.identifier)) + provn.count(str(e2.identifier)) == 1
+# --- Inherited issue 1: a PROV attribute holds one value, with or without a collection ---
 
 
 _TWO_ENTITIES = [(PROV_ATTR_ENTITY, "ex:e1"), (PROV_ATTR_ENTITY, "ex:e2")]
-_SINGLE_VALUE_ERROR = "Cannot have more than one value for attribute prov:entity"
-_ALL_THREE = [
-    ("prov:collection", "ex:c"),
-    ("prov:entity", "ex:e1"),
-    ("prov:entity", "ex:e2"),
-]
+_TWO_USED = [(PROV_ATTR_USED_ENTITY, "ex:u1"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
+_RECORD_CLASSES = {PROV_MEMBERSHIP: ProvMembership, PROV_DERIVATION: ProvDerivation}
 
 
 @pytest.mark.parametrize(
-    ("prior", "pairs", "stored"),
+    ("record_type", "prior", "pairs", "attr", "one_shot"),
     [
         pytest.param(
+            PROV_MEMBERSHIP,
             [],
             [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
-            _ALL_THREE,
+            "prov:entity",
+            False,
             id="constant",
         ),
         pytest.param(
-            [], [("prov:collection", "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="string"
+            PROV_MEMBERSHIP,
+            [],
+            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
+            "prov:entity",
+            True,
+            id="constant-one-shot-iterator",
         ),
         pytest.param(
+            PROV_MEMBERSHIP,
+            [],
+            [("prov:collection", "ex:c"), *_TWO_ENTITIES],
+            "prov:entity",
+            False,
+            id="string",
+        ),
+        pytest.param(
+            PROV_MEMBERSHIP,
             [],
             [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES],
-            None,
+            "prov:entity",
+            False,
             id="none-collection",
         ),
         pytest.param(
-            [], [("prov:collection", None), *_TWO_ENTITIES], None, id="string-none"
+            PROV_MEMBERSHIP,
+            [],
+            [("prov:collection", None), *_TWO_ENTITIES],
+            "prov:entity",
+            False,
+            id="string-none",
         ),
-        pytest.param([], _TWO_ENTITIES, None, id="no-collection"),
         pytest.param(
+            PROV_MEMBERSHIP,
+            [],
+            _TWO_ENTITIES,
+            "prov:entity",
+            False,
+            id="no-collection",
+        ),
+        pytest.param(
+            PROV_MEMBERSHIP,
             [],
             [("zz:x", None), (PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
-            _ALL_THREE,
+            "prov:entity",
+            False,
             id="unresolvable-none-pair",
         ),
         pytest.param(
+            PROV_MEMBERSHIP,
             [(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]],
             [_TWO_ENTITIES[1]],
-            None,
+            "prov:entity",
+            False,
             id="second-call",
+        ),
+        pytest.param(
+            PROV_MEMBERSHIP,
+            [],
+            [
+                (PROV_ATTR_COLLECTION, "ex:c1"),
+                (PROV_ATTR_COLLECTION, "ex:c2"),
+                _TWO_ENTITIES[0],
+            ],
+            "prov:collection",
+            False,
+            id="two-collections",
+        ),
+        pytest.param(
+            PROV_DERIVATION,
+            [],
+            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_USED],
+            "prov:usedEntity",
+            False,
+            id="derivation",
         ),
     ],
 )
-def test_the_hadmember_rule_follows_the_stored_collection(
-    doc, prior, pairs, stored
+def test_a_prov_attribute_holds_one_value_whatever_else_the_call_stores(
+    doc, record_type, prior, pairs, attr: str, one_shot: bool
 ) -> None:
-    # The single-value rule is lifted exactly when the call holds a pair that
-    # resolves to prov:collection and has a value. The scan reads the call's
-    # pairs, not the record's earlier state.
-    record = doc.new_record(PROV_MEMBERSHIP, None, prior)
+    # A second, different value raises for every PROV attribute of every record
+    # type, whether or not the call also stores a prov:collection.
+    message = f"Cannot have more than one value for attribute {attr}"
+    supplied = iter(pairs) if one_shot else pairs
 
-    if stored is None:
-        with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
-            record.add_attributes(pairs)
+    if prior:
+        record = doc.new_record(record_type, None, prior)
+        before = record.attributes
+        with pytest.raises(ProvException, match=message):
+            record.add_attributes(supplied)
+        assert record.attributes == before
     else:
-        record.add_attributes(pairs)
-        assert sorted((str(n), str(v)) for n, v in record.attributes) == stored
-
-
-def test_the_scan_registers_a_foreign_namespace_after_a_rejected_repeat(
-    doc,
-) -> None:
-    # The scan resolves every name in the call, so a QualifiedName in a namespace
-    # the document lacks is registered even though the call raises.
-    record = doc.new_record(PROV_MEMBERSHIP, None, [_TWO_ENTITIES[0]])
-    foreign = Namespace("fz", "http://fz.example/")["k"]
-
-    with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
-        record.add_attributes([*_TWO_ENTITIES[1:], (foreign, 1)])
-
-    assert "fz" in {ns.prefix for ns in doc.get_registered_namespaces()}
-
-
-def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
-    doc, monkeypatch
-) -> None:
-    # The pairs are scanned for prov:collection on the first repeat of a
-    # single-valued attribute and not again, so a call repeating one value n
-    # times costs O(n) rather than O(n^2).
-    resolved = []
-    resolve = doc.valid_qualified_name
-
-    def counting(identifier):
-        resolved.append(identifier)
-        return resolve(identifier)
-
-    monkeypatch.setattr(doc, "valid_qualified_name", counting)
-    collection = doc.entity("ex:coll")
-    e1 = doc.entity("ex:e1")
-    pairs = [
-        *[(PROV_ATTR_ENTITY, e1.identifier)] * 50,
-        ("ex:k", 1),
-        (PROV_ATTR_COLLECTION, collection.identifier),
-    ]
-    resolved.clear()
-
-    membership = ProvMembership(doc, None, pairs)
-
-    assert membership.get_attribute(PROV_ATTR_ENTITY) == {e1.identifier}
-    assert len(resolved) == len(pairs)
+        with pytest.raises(ProvException, match=message):
+            doc.new_record(record_type, None, supplied)
+        assert not doc.get_records(_RECORD_CLASSES[record_type])
 
 
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---

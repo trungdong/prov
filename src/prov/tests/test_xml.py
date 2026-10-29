@@ -1522,14 +1522,33 @@ def test_xml_had_member_without_an_entity_reads_one_record() -> None:
     assert not record.get_attribute(PROV_ATTR_ENTITY)
 
 
-def test_xml_other_record_with_a_repeated_formal_child_raises() -> None:
-    content = (
-        f"{_MEMBERSHIP_PREFIX}<prov:wasGeneratedBy>"
-        '<prov:entity prov:ref="ex:e"/><prov:activity prov:ref="ex:a1"/>'
-        '<prov:activity prov:ref="ex:a2"/></prov:wasGeneratedBy></prov:document>'
-    )
-    with pytest.raises(ProvXMLException, match="more than one value"):
-        prov.ProvDocument.deserialize(content=content, format="xml")
+@pytest.mark.parametrize(
+    ("body", "position"),
+    [
+        pytest.param(
+            "<prov:wasGeneratedBy>"
+            '<prov:entity prov:ref="ex:e"/><prov:activity prov:ref="ex:a1"/>'
+            '<prov:activity prov:ref="ex:a2"/></prov:wasGeneratedBy>',
+            "<prov:wasGeneratedBy> with no prov:id",
+            id="other-record-two-activities",
+        ),
+        pytest.param(
+            '<prov:hadMember><prov:collection prov:ref="ex:c1"/>'
+            '<prov:collection prov:ref="ex:c2"/>'
+            '<prov:entity prov:ref="ex:e1"/><prov:entity prov:ref="ex:e2"/>'
+            "</prov:hadMember>",
+            "<prov:hadMember> with no prov:id",
+            id="membership-two-collections",
+        ),
+    ],
+)
+def test_xml_record_with_a_repeated_formal_child_raises(
+    body: str, position: str
+) -> None:
+    with pytest.raises(ProvXMLException, match=rf"{position}: .*more than one value"):
+        prov.ProvDocument.deserialize(
+            content=f"{_MEMBERSHIP_PREFIX}{body}</prov:document>", format="xml"
+        )
 
 
 def test_nested_reference_child_is_used_with_a_warning() -> None:
