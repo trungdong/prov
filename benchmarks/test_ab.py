@@ -183,6 +183,5 @@ def test_main_passes_the_gc_choice_to_measure(monkeypatch, argv, disables_gc):
 
     monkeypatch.setattr(ab, "measure", fake_measure)
     assert main(argv) == 0
-    assert len(seen) == 1
     assert ("--benchmark-disable-gc" in seen[0]) is disables_gc
-    assert set(seen[0]) | {"--benchmark-disable-gc"} == set(pytest_options(False))
+    assert seen == [pytest_options(not disables_gc)]
