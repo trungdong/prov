@@ -1313,8 +1313,11 @@ def test_mention_1(roundtrip) -> None:
 
 _EX_URI = "http://example.org/"
 _NO_ENTITY = "hadMember requires a value for prov:entity"
-_PROVN_PREFIX = "document\nprefix ex <http://example.org/>\nentity(ex:e)\n"
-_PROVN_SKIPPED = f"PROV-N statement skipped: line 4, column 1: {_NO_ENTITY}"
+_PROVN_PARTYLESS = (
+    "document\nprefix ex <http://example.org/>\n"
+    "hadMember(ex:c, -)\nentity(ex:e)\nendDocument"
+)
+_PROVN_SKIPPED = f"PROV-N statement skipped: line 3, column 1: {_NO_ENTITY}"
 _XML_MEMBER = (
     '<prov:document xmlns:prov="http://www.w3.org/ns/prov#"'
     ' xmlns:ex="http://example.org/">\n'
@@ -1351,7 +1354,7 @@ _PARTYLESS = {"prov:collection": "ex:c"}
         pytest.param(
             "provn",
             {"profile": "default"},
-            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_PARTYLESS,
             _PROVN_SKIPPED,
             (),
             id="provn-default",
@@ -1359,7 +1362,7 @@ _PARTYLESS = {"prov:collection": "ex:c"}
         pytest.param(
             "provn",
             {"profile": "lenient"},
-            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_PARTYLESS,
             _PROVN_SKIPPED,
             (),
             id="provn-lenient",
@@ -1376,7 +1379,7 @@ _PARTYLESS = {"prov:collection": "ex:c"}
         pytest.param(
             None,
             {},
-            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_PARTYLESS,
             _PROVN_SKIPPED,
             (),
             id="provn-read-detected",
