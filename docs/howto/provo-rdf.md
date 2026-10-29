@@ -50,7 +50,8 @@ Two relations that share an identifier and differ in a formal attribute cannot r
 because PROV-O names a relation by its identifier; reading such RDF raises
 `prov.serializers.provrdf.ProvRDFException`
 ({doc}`../reference/conformance`, C1). On the same page, C10 covers literals rdflib
-rewrites on read, and C11 a decimal `NaN` beside a number, which rdflib cannot write.
+rewrites on read, and C11 a pair that rdflib's Turtle, long Turtle, TriG and N3 writers cannot
+write, a `NaN` and a number under one attribute where one of them is an `xsd:decimal`.
 
 The reader declares the source's own prefixes and the namespaces its names use, and an
 unused declaration does not survive a round trip ({doc}`../reference/conformance`, PROV-O).

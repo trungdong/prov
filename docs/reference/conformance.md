@@ -268,11 +268,14 @@ A table cell that cites a caveat points here. C3, C4 and C11 apply to inputs no 
   reads in rdflib's normalised form, so `PT0S` reads as `P0D` and `PT90M` as `PT1H30M`
   ([#620](https://github.com/trungdong/prov/issues/620)), and the zero-duration row of the
   converted-value round trip is skipped for RDF.
-- **C11. A `NaN` decimal beside a number.** rdflib's Turtle serializer orders the values of
-  one predicate by value, and a `NaN` or `sNaN` text as `xsd:decimal`, which rdflib parses to
-  a `Decimal`, has no order against a number, so writing a record that holds such a text and
-  a numeric value under one attribute to PROV-O raises `decimal.InvalidOperation`. Every
-  other format writes it.
+- **C11. A `NaN` beside a decimal, or a decimal `NaN` beside a number.** rdflib's Turtle, long
+  Turtle (`longturtle`), TriG and N3 writers order the values of one predicate by value. An
+  `xsd:decimal` `NaN` or `sNaN` text, which rdflib parses to a `Decimal`, has no order against
+  any number, and a well-formed `xsd:decimal` value has none against a NaN of any numeric
+  datatype (a well-formed `xsd:double` or `xsd:float`, or a Python `float`). A record that
+  holds either pair under one attribute therefore raises `decimal.InvalidOperation` when
+  written to PROV-O in those four syntaxes. N-Triples, N-Quads, RDF/XML, JSON-LD, TriX and
+  Hext write such a record, as does every other format.
 
 ## Corpus evidence
 
