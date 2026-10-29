@@ -26,8 +26,8 @@ import datetime
 
 import pytest
 
-from prov.constants import PROV_GENERATION, XSD_ANYURI, XSD_DECIMAL
-from prov.identifier import Identifier
+from prov.constants import PROV_GENERATION, PROV_MEMBERSHIP, XSD_ANYURI, XSD_DECIMAL
+from prov.identifier import Identifier, Namespace
 from prov.model import (
     PROV_ATTR_COLLECTION,
     PROV_ATTR_ENTITY,
@@ -469,7 +469,9 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
     # QualifiedNames never collapse, so get_attribute()'s plain-set copy
     # shows both members, unlike the int/float cases above.)
     #
-    # The rule holds wherever prov:collection sits and for a one-shot iterator.
+    # A call that stores a prov:collection lifts the single-value rule for
+    # every attribute in it, wherever the collection sits and for a one-shot
+    # iterator.
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     e2 = doc.entity("ex:e2")
@@ -491,32 +493,102 @@ def test_hadmember_multivalue_narrows_to_one_value_via_public_views(
     assert provn.count(str(e1.identifier)) + provn.count(str(e2.identifier)) == 1
 
 
-def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
+_TWO_ENTITIES = [(PROV_ATTR_ENTITY, "ex:e1"), (PROV_ATTR_ENTITY, "ex:e2")]
+_SINGLE_VALUE_ERROR = "Cannot have more than one value for attribute prov:entity"
+_ALL_THREE = [
+    ("prov:collection", "ex:c"),
+    ("prov:entity", "ex:e1"),
+    ("prov:entity", "ex:e2"),
+]
+
+
+@pytest.mark.parametrize(
+    ("pairs", "stored"),
+    [
+        pytest.param(
+            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="constant"
+        ),
+        pytest.param(
+            [("prov:collection", "ex:c"), *_TWO_ENTITIES], _ALL_THREE, id="string"
+        ),
+        pytest.param(
+            [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES], None, id="none-collection"
+        ),
+        pytest.param(
+            [("prov:collection", None), *_TWO_ENTITIES], None, id="string-none"
+        ),
+        pytest.param(list(_TWO_ENTITIES), None, id="no-collection"),
+        pytest.param(
+            [("zz:x", None), (PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
+            _ALL_THREE,
+            id="unresolvable-none-pair",
+        ),
+    ],
+)
+def test_the_hadmember_rule_follows_the_stored_collection(doc, pairs, stored) -> None:
+    # The single-value rule is lifted exactly when the call holds a pair that
+    # resolves to prov:collection and has a value.
+    if stored is None:
+        with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
+            doc.new_record(PROV_MEMBERSHIP, None, pairs)
+    else:
+        record = doc.new_record(PROV_MEMBERSHIP, None, pairs)
+        assert sorted((str(n), str(v)) for n, v in record.attributes) == stored
+
+
+def test_a_second_call_does_not_lift_the_rule_from_the_stored_collection(
     doc,
+) -> None:
+    # The scan reads the call's pairs, not the record's earlier state.
+    record = doc.new_record(
+        PROV_MEMBERSHIP, None, [(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]]
+    )
+
+    with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
+        record.add_attributes([_TWO_ENTITIES[1]])
+
+
+def test_the_scan_registers_a_foreign_namespace_after_a_rejected_repeat(
+    doc,
+) -> None:
+    # The scan resolves every later name, so a QualifiedName in a namespace
+    # the document lacks is registered even though the call raises.
+    record = doc.new_record(PROV_MEMBERSHIP, None, [_TWO_ENTITIES[0]])
+    foreign = Namespace("fz", "http://fz.example/")["k"]
+
+    with pytest.raises(ProvException, match=_SINGLE_VALUE_ERROR):
+        record.add_attributes([*_TWO_ENTITIES[1:], (foreign, 1)])
+
+    assert "fz" in {ns.prefix for ns in doc.get_registered_namespaces()}
+
+
+def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
+    doc, monkeypatch
 ) -> None:
     # The pairs are scanned for prov:collection on the first repeat of a
     # single-valued attribute and not again, so a call repeating one value n
     # times costs O(n) rather than O(n^2).
-    comparisons = []
+    resolved = []
+    resolve = doc.valid_qualified_name
 
-    class CountingName(str):
-        __hash__ = str.__hash__
+    def counting(identifier):
+        resolved.append(identifier)
+        return resolve(identifier)
 
-        def __eq__(self, other: object) -> bool:
-            if other is PROV_ATTR_COLLECTION:
-                comparisons.append(other)
-            return str.__eq__(self, other)
-
+    monkeypatch.setattr(doc, "valid_qualified_name", counting)
     collection = doc.entity("ex:coll")
     e1 = doc.entity("ex:e1")
     pairs = [
         *[(PROV_ATTR_ENTITY, e1.identifier)] * 50,
-        (CountingName("ex:k"), 1),
+        ("ex:k", 1),
         (PROV_ATTR_COLLECTION, collection.identifier),
     ]
+    resolved.clear()
+
     membership = ProvMembership(doc, None, pairs)
+
     assert membership.get_attribute(PROV_ATTR_ENTITY) == {e1.identifier}
-    assert len(comparisons) == 1
+    assert len(resolved) <= len(pairs)
 
 
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---

@@ -1118,8 +1118,9 @@ class ProvRecord:
             # copied first.
             pairs = list(_attribute_pairs(attributes))
 
-            # A prov:collection anywhere in the call lifts the single-value
-            # rule. The pairs are scanned at most once, on the first repeat.
+            # A pair with a value whose name resolves to prov:collection lifts
+            # the single-value rule for the whole call. The pairs are scanned
+            # at most once, on the first repeat.
             is_collection: bool | None = None
 
             for attr_name, original_value in pairs:
@@ -1135,7 +1136,10 @@ class ProvRecord:
                 if attr in PROV_ATTRIBUTES and existing_values:
                     if is_collection is None:
                         is_collection = any(
-                            name == PROV_ATTR_COLLECTION for name, _ in pairs
+                            value is not None
+                            and self._bundle.valid_qualified_name(name)
+                            == PROV_ATTR_COLLECTION
+                            for name, value in pairs
                         )
                     if not is_collection:
                         self._check_repeated_value(attr, value, existing_values)
