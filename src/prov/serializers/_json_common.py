@@ -14,13 +14,18 @@ give :func:`json.load`, live here too (#589, #532).
 import json
 import typing
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from prov import Error
 from prov.constants import PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.identifier import Namespace, QualifiedName
-from prov.model import AttributePair, OptionalID, ProvBundle, RecordAttributesArg
+from prov.model import (
+    AttributePair,
+    OptionalID,
+    ProvBundle,
+    QualifiedNameCandidate,
+)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -178,7 +183,7 @@ class _JSONPrefixMap:
 def _add_memberships(
     bundle: ProvBundle,
     identifier: OptionalID,
-    attributes: RecordAttributesArg,
+    attributes: Mapping[QualifiedNameCandidate, Any] | Sequence[AttributePair],
     other_attributes: Sequence[AttributePair],
     members: Sequence[QualifiedName],
 ) -> None:

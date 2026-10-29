@@ -23,15 +23,13 @@ are characterized below too.
 """
 
 import datetime
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import pytest
 
 from prov.constants import (
-    PROV_ACTIVITY,
     PROV_DERIVATION,
-    PROV_ENTITY,
-    PROV_GENERATION,
     PROV_MEMBERSHIP,
     XSD_ANYURI,
     XSD_DECIMAL,
@@ -42,9 +40,11 @@ from prov.model import (
     PROV_ATTR_ENTITY,
     PROV_ATTR_USED_ENTITY,
     Literal,
+    ProvActivity,
     ProvDocument,
     ProvEntity,
     ProvException,
+    ProvGeneration,
     ProvUnificationError,
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document, roundtrip_document
@@ -292,10 +292,6 @@ def _dot_read(d):
     prov_to_dot(d)
 
 
-def _record_of_type(d, record_type):
-    return next(r for r in d.get_records() if r.get_type() == record_type)
-
-
 def _keys(d):
     return [list(r._attributes) for r in d.get_records()]
 
@@ -304,30 +300,28 @@ def _keys(d):
     "read",
     [
         pytest.param(
-            lambda d: _record_of_type(d, PROV_ENTITY).get_asserted_types(),
+            lambda d: d.get_records(ProvEntity)[0].get_asserted_types(),
             id="asserted-types",
         ),
         pytest.param(
-            lambda d: _record_of_type(d, PROV_ENTITY).get_attribute("ex:x"),
+            lambda d: d.get_records(ProvEntity)[0].get_attribute("ex:x"),
             id="get-attribute",
         ),
-        pytest.param(lambda d: _record_of_type(d, PROV_GENERATION).args, id="args"),
+        pytest.param(lambda d: d.get_records(ProvGeneration)[0].args, id="args"),
         pytest.param(
-            lambda d: _record_of_type(d, PROV_GENERATION).formal_attributes,
+            lambda d: d.get_records(ProvGeneration)[0].formal_attributes,
             id="formal-attributes",
         ),
-        pytest.param(lambda d: _record_of_type(d, PROV_ENTITY).label, id="label"),
-        pytest.param(lambda d: _record_of_type(d, PROV_ENTITY).value, id="value"),
+        pytest.param(lambda d: d.get_records(ProvEntity)[0].label, id="label"),
+        pytest.param(lambda d: d.get_records(ProvEntity)[0].value, id="value"),
         pytest.param(
-            lambda d: _record_of_type(d, PROV_ACTIVITY).get_startTime(),
+            lambda d: d.get_records(ProvActivity)[0].get_startTime(),
             id="start-time",
         ),
         pytest.param(
-            lambda d: _record_of_type(d, PROV_ACTIVITY).get_endTime(), id="end-time"
+            lambda d: d.get_records(ProvActivity)[0].get_endTime(), id="end-time"
         ),
-        pytest.param(
-            lambda d: _record_of_type(d, PROV_ACTIVITY).args, id="activity-args"
-        ),
+        pytest.param(lambda d: d.get_records(ProvActivity)[0].args, id="activity-args"),
         pytest.param(lambda d: d.unified(), id="unified"),
         pytest.param(lambda d: d.flattened(), id="flattened"),
         pytest.param(_graph_read, id="graph"),
@@ -351,7 +345,7 @@ def test_a_read_leaves_every_record_unchanged(
 
 def _generation_with_extras(peek: bool) -> ProvDocument:
     d = _generation_and_activity_document(ex_document())
-    g = _record_of_type(d, PROV_GENERATION)
+    g = d.get_records(ProvGeneration)[0]
     if peek:
         _ = (g.formal_attributes, g.args, g.label, g.get_attribute("ex:y"))
     g.add_attributes({"ex:x": 1})
@@ -364,7 +358,7 @@ def _generation_with_extras(peek: bool) -> ProvDocument:
 def test_reads_do_not_change_the_serialised_output_or_attribute_order(fmt) -> None:
     peeked = _generation_with_extras(peek=True)
     plain = _generation_with_extras(peek=False)
-    generation = _record_of_type(peeked, PROV_GENERATION)
+    generation = peeked.get_records(ProvGeneration)[0]
 
     assert peeked.serialize(format=fmt) == plain.serialize(format=fmt)
     assert [str(name) for name in generation._attributes] == [
@@ -454,84 +448,52 @@ _TWO_ENTITIES = [(PROV_ATTR_ENTITY, "ex:e1"), (PROV_ATTR_ENTITY, "ex:e2")]
 _TWO_USED = [(PROV_ATTR_USED_ENTITY, "ex:u1"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
 
 
+def _row(
+    id: str,
+    pairs: list[tuple[Any, Any]],
+    attr: str = "prov:entity",
+    record_type: Any = PROV_MEMBERSHIP,
+    prior: Sequence[tuple[Any, Any]] = (),
+    one_shot: bool = False,
+) -> Any:
+    return pytest.param(record_type, prior, pairs, attr, one_shot, id=id)
+
+
 @pytest.mark.parametrize(
     ("record_type", "prior", "pairs", "attr", "one_shot"),
     [
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
+        _row("constant", [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES]),
+        _row(
+            "constant-one-shot-iterator",
             [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
-            "prov:entity",
-            False,
-            id="constant",
+            one_shot=True,
         ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
-            [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
-            "prov:entity",
-            True,
-            id="constant-one-shot-iterator",
-        ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
-            [("prov:collection", "ex:c"), *_TWO_ENTITIES],
-            "prov:entity",
-            False,
-            id="string",
-        ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
-            [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES],
-            "prov:entity",
-            False,
-            id="none-collection",
-        ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
-            _TWO_ENTITIES,
-            "prov:entity",
-            False,
-            id="no-collection",
-        ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
+        _row("string", [("prov:collection", "ex:c"), *_TWO_ENTITIES]),
+        _row("none-collection", [(PROV_ATTR_COLLECTION, None), *_TWO_ENTITIES]),
+        _row("no-collection", _TWO_ENTITIES),
+        _row(
+            "unresolvable-none-pair",
             [("zz:x", None), (PROV_ATTR_COLLECTION, "ex:c"), *_TWO_ENTITIES],
-            "prov:entity",
-            False,
-            id="unresolvable-none-pair",
         ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]],
+        _row(
+            "second-call",
             [_TWO_ENTITIES[1]],
-            "prov:entity",
-            False,
-            id="second-call",
+            prior=[(PROV_ATTR_COLLECTION, "ex:c"), _TWO_ENTITIES[0]],
         ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
+        _row(
+            "two-collections",
             [
                 (PROV_ATTR_COLLECTION, "ex:c1"),
                 (PROV_ATTR_COLLECTION, "ex:c2"),
                 _TWO_ENTITIES[0],
             ],
-            "prov:collection",
-            False,
-            id="two-collections",
+            attr="prov:collection",
         ),
-        pytest.param(
-            PROV_DERIVATION,
-            [],
+        _row(
+            "derivation",
             [(PROV_ATTR_COLLECTION, "ex:c"), *_TWO_USED],
-            "prov:usedEntity",
-            False,
-            id="derivation",
+            attr="prov:usedEntity",
+            record_type=PROV_DERIVATION,
         ),
     ],
 )

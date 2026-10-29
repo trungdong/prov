@@ -1458,19 +1458,13 @@ def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
     assert warning.filename == __file__
 
 
-_MEMBERSHIP_PREFIX = (
-    '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
-    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-    'xmlns:ex="http://example.org/">'
-)
-
-
 def _members_xml(id_attribute: str, entities: tuple[str, ...]) -> str:
     refs = "".join(f'<prov:entity prov:ref="{e}"/>' for e in entities)
-    return (
-        f"{_MEMBERSHIP_PREFIX}<prov:hadMember{id_attribute}>"
+    return _prov_xml(
+        f"<prov:hadMember{id_attribute}>"
         f'<prov:collection prov:ref="ex:c"/>{refs}<ex:k>v</ex:k>'
-        "</prov:hadMember></prov:document>"
+        "</prov:hadMember>",
+        False,
     )
 
 
@@ -1586,9 +1580,7 @@ def test_xml_record_with_a_repeated_formal_child_raises(
     body: str, position: str
 ) -> None:
     with pytest.raises(ProvXMLException, match=rf"{position}: .*more than one value"):
-        prov.ProvDocument.deserialize(
-            content=f"{_MEMBERSHIP_PREFIX}{body}</prov:document>", format="xml"
-        )
+        prov.ProvDocument.deserialize(content=_prov_xml(body, False), format="xml")
 
 
 def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:

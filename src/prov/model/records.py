@@ -881,10 +881,7 @@ class ProvRecord:
         Pairs are in declaration order; a missing attribute has a value of
         ``None``.
         """
-        return tuple(
-            (attr_name, first(self._attributes.get(attr_name, ())))
-            for attr_name in self.FORMAL_ATTRIBUTES
-        )
+        return tuple(zip(self.FORMAL_ATTRIBUTES, self.args, strict=True))
 
     @property
     def extra_attributes(self) -> tuple[tuple[QualifiedName, Any], ...]:

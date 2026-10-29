@@ -348,9 +348,7 @@ def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> 
 
 
 def test_had_member_array_listing_a_member_twice_reads_one_record() -> None:
-    document = _read(
-        _json({"hadMember": {"ex:m": {"prov:entity": ["ex:e1", "ex:e1", "ex:e2"]}}})
-    )
+    document = _read(_membership(["ex:e1", "ex:e1", "ex:e2"]))
     members = [r.get_attribute("prov:entity") for r in document.get_records()]
     assert [{str(e) for e in m} for m in members] == [{"ex:e1"}, {"ex:e2"}]
 
