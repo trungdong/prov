@@ -307,7 +307,7 @@ same documents and for a document whose bundles disagree about a shared identifi
 
 | Error | Issue | Example | Write instead |
 |---|---|---|---|
-| `Cannot have more than one value for attribute prov:entity` | [#700](https://github.com/trungdong/prov/issues/700) | `add_attributes([("prov:collection", None), ("prov:entity", "ex:e1"), ("prov:entity", "ex:e2")])` on a `hadMember` record | A collection value, or one `prov:entity` per record. |
+| `Cannot have more than one value for attribute prov:entity` | [#700](https://github.com/trungdong/prov/issues/700) | `add_attributes([(PROV_ATTR_COLLECTION, None), ("prov:entity", "ex:e1"), ("prov:entity", "ex:e2")])` on a `hadMember` record | A collection value, or one `prov:entity` per record. |
 
 A `hadMember` record holds several `prov:entity` values only when the call stores a
 `prov:collection`, and the string `"prov:collection"` now stores one, as the
