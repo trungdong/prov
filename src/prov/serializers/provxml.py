@@ -758,6 +758,8 @@ def _add_split_memberships(
     collection: dict[prov.model.QualifiedNameCandidate, Any] = {}
     others: list[prov.model.AttributePair] = []
     for name, value in attributes:
+        # A second collection falls through to the other pairs, where the model
+        # refuses it.
         if name == PROV_ATTR_COLLECTION and name not in collection:
             collection[name] = value
         elif name != PROV_ATTR_ENTITY:

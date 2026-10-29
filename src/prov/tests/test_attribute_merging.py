@@ -42,11 +42,9 @@ from prov.model import (
     PROV_ATTR_ENTITY,
     PROV_ATTR_USED_ENTITY,
     Literal,
-    ProvDerivation,
     ProvDocument,
     ProvEntity,
     ProvException,
-    ProvMembership,
     ProvUnificationError,
 )
 from prov.tests.conftest import ROUNDTRIP_FORMATS, ex_document, roundtrip_document
@@ -454,7 +452,6 @@ def test_activity_settime_raw_assignment_still_produces_typed_storage(doc) -> No
 
 _TWO_ENTITIES = [(PROV_ATTR_ENTITY, "ex:e1"), (PROV_ATTR_ENTITY, "ex:e2")]
 _TWO_USED = [(PROV_ATTR_USED_ENTITY, "ex:u1"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
-_RECORD_CLASSES = {PROV_MEMBERSHIP: ProvMembership, PROV_DERIVATION: ProvDerivation}
 
 
 @pytest.mark.parametrize(
@@ -563,7 +560,7 @@ def test_a_prov_attribute_holds_one_value_whatever_else_the_call_stores(
     else:
         with pytest.raises(ProvException, match=message):
             doc.new_record(record_type, None, supplied)
-        assert not doc.get_records(_RECORD_CLASSES[record_type])
+        assert not doc.get_records()
 
 
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---

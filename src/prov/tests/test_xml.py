@@ -1420,6 +1420,7 @@ def _membership_xml(entity_element: str) -> str:
 
 _MEMBERSHIP_PREFIX = (
     '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
     'xmlns:ex="http://example.org/">'
 )
 
@@ -1442,7 +1443,8 @@ def test_xml_had_member_with_several_entities_reads_one_record_per_member(
     id_attribute: str, identifiers: list[str | None]
 ) -> None:
     document = prov.ProvDocument.deserialize(
-        content=_members_xml(id_attribute, ("ex:e1", "ex:e2")), format="xml"
+        content=_members_xml(f'{id_attribute} xsi:type="ex:T"', ("ex:e1", "ex:e2")),
+        format="xml",
     )
     records = list(document.get_records(prov.ProvMembership))
 
@@ -1454,6 +1456,7 @@ def test_xml_had_member_with_several_entities_reads_one_record_per_member(
     for record in records:
         assert [str(c) for c in record.get_attribute("prov:collection")] == ["ex:c"]
         assert [str(k) for k in record.get_attribute("ex:k")] == ["v"]
+        assert [str(t) for t in record.get_attribute(PROV_TYPE)] == ["ex:T"]
 
 
 def test_xml_had_member_split_equals_the_prov_json_list_read() -> None:
@@ -1477,24 +1480,6 @@ def test_xml_had_member_split_equals_the_prov_json_list_read() -> None:
 
     assert from_xml == from_json
     assert from_xml.serialize(format="json") == from_json.serialize(format="json")
-
-
-def test_xml_had_member_xsi_type_reaches_every_member_record() -> None:
-    content = _members_xml(' prov:id="ex:m"', ("ex:e1", "ex:e2")).replace(
-        "<prov:hadMember ", '<prov:hadMember xsi:type="ex:T" ', 1
-    )
-    content = content.replace(
-        "<prov:document ",
-        '<prov:document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ',
-    )
-    document = prov.ProvDocument.deserialize(content=content, format="xml")
-    records = list(document.get_records(prov.ProvMembership))
-
-    assert len(records) == 2
-    assert [[str(t) for t in r.get_attribute(PROV_TYPE)] for r in records] == [
-        ["ex:T"],
-        ["ex:T"],
-    ]
 
 
 def test_xml_example_33_reads_three_memberships_and_writes_three_elements() -> None:
