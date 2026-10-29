@@ -176,9 +176,11 @@ def worktree(ref: str) -> Generator[Path]:
             subprocess.run(remove, check=False)  # nosec B603 - nosemgrep
 
 
-def run_suite(tree: Path, output: Path, python: str | None, gc: bool) -> bool:
+def run_suite(
+    tree: Path, output: Path, python: str | None, options: tuple[str, ...]
+) -> bool:
     """Time the suite against ``tree``'s source and environment."""
-    pytest = ("pytest", str(SUITE), *pytest_options(gc), f"--benchmark-json={output}")
+    pytest = ("pytest", str(SUITE), *options, f"--benchmark-json={output}")
     pin = ("--python", python) if python else ()
     command = (*UV_RUN, *pin, "--project", str(tree), *pytest)
     done = subprocess.run(command, cwd=HEAD_TREE, check=False)  # nosec B603 - nosemgrep
@@ -189,7 +191,11 @@ def run_suite(tree: Path, output: Path, python: str | None, gc: bool) -> bool:
 
 
 def measure(
-    base_ref: str, passes: int, threshold: float, python: str | None, gc: bool
+    base_ref: str,
+    passes: int,
+    threshold: float,
+    python: str | None,
+    options: tuple[str, ...],
 ) -> tuple[list[Row], str]:
     readings: dict[str, list[dict[str, float]]] = {"base": [], "head": []}
     with worktree(base_ref) as base_tree:
@@ -200,7 +206,7 @@ def measure(
                 print(f"\n== {label}: {side} ==", flush=True)
                 output = base_tree.parent / f"{side}-{len(readings[side]) + 1}.json"
                 outputs[side] = output
-                passed = run_suite(tree, output, python, gc)
+                passed = run_suite(tree, output, python, options)
 
                 # A benchmark of a new feature cannot pass on the base.
                 if not passed and side == "head":
@@ -231,7 +237,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.base_ref:
         parser.error("give a base ref or --from-json")
     rows, statistic = measure(
-        args.base_ref, args.passes, args.threshold, args.python, args.gc
+        args.base_ref, args.passes, args.threshold, args.python, pytest_options(args.gc)
     )
     return report(rows, statistic)
 

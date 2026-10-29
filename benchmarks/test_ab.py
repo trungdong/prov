@@ -172,21 +172,17 @@ def test_main_compares_saved_runs(tmp_path, capsys):
 
 
 @pytest.mark.parametrize(
-    ("argv", "gc", "disables_gc"),
-    [(["main"], False, True), (["main", "--gc"], True, False)],
+    ("argv", "disables_gc"), [(["main"], True), (["main", "--gc"], False)]
 )
-def test_main_passes_gc_to_measure(monkeypatch, argv, gc, disables_gc):
+def test_main_passes_the_gc_choice_to_measure(monkeypatch, argv, disables_gc):
     seen = []
 
-    def fake_measure(base_ref, passes, threshold, python, gc):
-        seen.append(gc)
+    def fake_measure(base_ref, passes, threshold, python, options):
+        seen.append(options)
         return [], "min"
 
     monkeypatch.setattr(ab, "measure", fake_measure)
     assert main(argv) == 0
-    assert seen == [gc]
-    assert ("--benchmark-disable-gc" in pytest_options(gc)) is disables_gc
-    assert set(pytest_options(False)) == {
-        *pytest_options(True),
-        "--benchmark-disable-gc",
-    }
+    assert len(seen) == 1
+    assert ("--benchmark-disable-gc" in seen[0]) is disables_gc
+    assert set(seen[0]) | {"--benchmark-disable-gc"} == set(pytest_options(False))

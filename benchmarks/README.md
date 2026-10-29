@@ -18,7 +18,7 @@ not comparable, and CI runners alone differ in speed by up to a factor of two.
 
 ```bash
 uv run python benchmarks/ab.py main --python 3.12    # the working tree against main
-uv run python benchmarks/ab.py 3.2.2 --python 3.12   # against a release tag
+uv run python benchmarks/ab.py 3.2.3 --python 3.12   # against a release tag
 uv run python benchmarks/ab.py main --python 3.12 --passes 4 --threshold 0.05
 uv run python benchmarks/ab.py 3.2.3 --python 3.12 --gc   # with garbage collection on
 ```
