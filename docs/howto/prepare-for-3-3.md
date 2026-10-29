@@ -311,7 +311,7 @@ same documents and for a document whose bundles disagree about a shared identifi
 
 A PROV-XML `prov:hadMember` with several `<prov:entity>` children reads as one record per
 entity, each with the element's identifier and attributes, as PROV-JSON and PROV-JSONLD
-already read a list.
+already read a list, where 3.2.3 read one record holding every entity.
 
 ## Equality
 
