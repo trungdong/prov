@@ -14,7 +14,7 @@ import pytest
 
 from prov.constants import XSD_INT
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model import Literal, ProvDocument
+from prov.model import Literal, ProvDocument, ProvExceptionInvalidQualifiedName
 
 NS = Namespace("ex", "http://example.org/")
 OBJECTS = [
@@ -163,6 +163,33 @@ def test_equal_identifiers_hash_equal_across_classes() -> None:
 
 def test_namespace_cache_still_interns_qualified_names() -> None:
     assert NS["e1"] is NS["e1"]
+
+
+def test_namespace_cache_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(Namespace, "_CACHE_LIMIT", 3)
+    ns = Namespace("ex", "http://example.org/")
+
+    first = ns["a"]
+    assert list(ns._cache) == ["a"]
+    assert ns["b"].localpart == "b"
+    assert list(ns._cache) == ["a", "b"]
+    assert ns["c"].localpart == "c"
+    assert list(ns._cache) == ["a", "b", "c"]
+
+    # A rejected local part raises without emptying the full cache.
+    with pytest.raises(ProvExceptionInvalidQualifiedName):
+        _ = ns["a b"]
+    assert list(ns._cache) == ["a", "b", "c"]
+
+    # A miss at the limit empties the cache, so the new name sits alone.
+    assert ns["d"].localpart == "d"
+    assert list(ns._cache) == ["d"]
+
+    # A name taken before the flush equals, and hashes as, the one after it.
+    again = ns["a"]
+    assert again == first
+    assert hash(again) == hash(first)
+    assert list(ns._cache) == ["d", "a"]
 
 
 def _slots_across_the_mro(cls: type) -> set[str]:

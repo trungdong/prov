@@ -426,6 +426,10 @@ class Namespace:
 
     _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
 
+    # _cache holds at most this many names. A lookup that misses when
+    # _cache is full clears it, then stores the new name.
+    _CACHE_LIMIT: ClassVar[int] = 10_000
+
     # Bound at runtime only, because a visible __setattr__ makes mypy accept
     # any attribute name.
     if not TYPE_CHECKING:
@@ -549,9 +553,11 @@ class Namespace:
         _set(self, "_cache", {})
 
     def __getitem__(self, localpart: str) -> QualifiedName:
-        if localpart in self._cache:
-            return self._cache[localpart]
-        else:
+        cache = self._cache
+        qname = cache.get(localpart)
+        if qname is None:
             qname = QualifiedName(self, localpart)
-            self._cache[localpart] = qname
-            return qname
+            if len(cache) >= self._CACHE_LIMIT:
+                cache.clear()
+            cache[localpart] = qname
+        return qname
