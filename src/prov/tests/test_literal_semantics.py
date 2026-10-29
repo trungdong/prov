@@ -10,6 +10,7 @@ import math
 import re
 import uuid
 import warnings
+from typing import Any
 
 import pytest
 
@@ -24,8 +25,9 @@ from prov.constants import (
     XSD_INT,
     XSD_INTEGER,
     XSD_LONG,
+    XSD_STRING,
 )
-from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
+from prov.model import Identifier, Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.serializers.provjson import ProvJSONException
 from prov.tests.conftest import (
     ROUNDTRIP_FORMATS,
@@ -402,6 +404,10 @@ class _Stamp(datetime.datetime):
     pass
 
 
+class _Letter(enum.StrEnum):
+    A = "a"
+
+
 # Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
@@ -478,6 +484,86 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     # merge the pair by Python equality whatever the storage did
     both = ex_document().entity("ex:e2", [("ex:a", value), ("ex:a", plain)])
     assert len(both.extra_attributes) == 1
+
+
+_AWARE_DT = datetime.datetime(2012, 1, 1, tzinfo=datetime.UTC)
+
+
+def _only_key(value: object) -> tuple[Any, ...]:
+    """The one key the value set of an attribute assigns to ``value``."""
+    entity = ex_document().entity("ex:e", [("ex:a", 5)])
+    value_set = type(next(iter(entity._attributes.values())))
+    (key,) = value_set([value]).value_keys()
+    return key
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "same"),
+    [
+        ("x", Literal("x", XSD_STRING), True),
+        (True, Literal("true", XSD_BOOLEAN), True),
+        (5, Literal("05", XSD_INT), True),
+        (2**40, Literal(str(2**40), XSD_LONG), True),
+        (1.5, Literal("1.5", XSD_DOUBLE), True),
+        (float("nan"), Literal("NaN", XSD_DOUBLE), True),
+        (_Level.LOW, 5, True),
+        (_Letter.A, "a", True),
+        (_Stamp(2012, 1, 1), datetime.datetime(2012, 1, 1), True),
+        (5, Literal("5", XSD_LONG), False),
+        (2, 2.0, False),
+        (True, 1, False),
+        (
+            _AWARE_DT,
+            Literal(_AWARE_DT.isoformat(), XSD_DATETIME),
+            False,
+        ),
+    ],
+    ids=[
+        "str",
+        "bool",
+        "int",
+        "long",
+        "float",
+        "nan",
+        "int-subclass",
+        "str-subclass",
+        "datetime-subclass",
+        "int-as-long",
+        "int-vs-float",
+        "bool-vs-int",
+        "datetime-vs-literal",
+    ],
+)
+def test_a_plain_value_keys_as_its_twin(
+    left: object, right: object, same: bool
+) -> None:
+    # a plain value keys as the typed Literal the writers would write it as
+    # (#670), and as nothing else (#235, #34)
+    left_key, right_key = _only_key(left), _only_key(right)
+    assert (left_key == right_key) is same
+    if same:
+        # slot 0 is the datatype's URI, an atomic object the collector skips
+        assert isinstance(left_key[0], str)
+        assert isinstance(right_key[0], str)
+        held = ex_document().entity("ex:e1", [("ex:a", left)])
+        twin = ex_document().entity("ex:e1", [("ex:a", right)])
+        assert held == twin
+        document = ex_document()
+        document.entity("ex:e1", [("ex:a", left)])
+        assert roundtrip_document(document, "json") == document
+
+
+@pytest.mark.parametrize(
+    ("value", "slot"),
+    [
+        (ex_document().valid_qualified_name("ex:q"), QualifiedName),
+        (Identifier("http://example.org/i"), Identifier),
+        (decimal.Decimal("1.5"), decimal.Decimal),
+    ],
+    ids=["qualified-name", "identifier", "fallback"],
+)
+def test_a_value_with_no_plain_form_keys_by_its_type(value: object, slot: type) -> None:
+    assert _only_key(value)[0] is slot
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:

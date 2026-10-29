@@ -120,6 +120,7 @@ from prov.model._values import (
     _offset_beyond_xsd_bound,
     _xsd_datetime_text,
     canonical_xsd_datatype as canonical_xsd_datatype,  # re-exported through prov.model
+    int_datatype,
     key_slot,
     no_prov_form_detail,
     python_value_form,
@@ -528,14 +529,15 @@ class Literal:
         return hash(self._key())
 
     def _key(self) -> ValueKey:
-        """The value key (#527): the datatype; the value in its value space
-        when the datatype has one here and the text is in its lexical space,
-        otherwise the text; and the case-folded language tag (#259, RDF 1.1
-        tags are case-insensitive; the stored tag keeps its case)."""
+        """The value key (#527): the datatype's URI; the value in its value
+        space when the datatype has one here and the text is in its lexical
+        space, otherwise the text; and the case-folded language tag (#259, RDF
+        1.1 tags are case-insensitive; the stored tag keeps its case)."""
         value = xsd_value(self._datatype, self._value)
         langtag = self._langtag.casefold() if self._langtag is not None else None
+        datatype = self._datatype
         return (
-            self._datatype,
+            datatype.uri if datatype is not None else None,
             self._value if value is None else key_slot(value),
             langtag,
         )
@@ -578,10 +580,17 @@ CoercedAttributeValue: typing.TypeAlias = (
     QualifiedName | datetime.datetime | Literal | SupportedXSDParsedTypes
 )
 
-# The key two attribute values share when they are the same value: the
-# datatype (or the Python type of a value with no XSD form), the value in its
-# value space or the text when it has none, and the case-folded language tag.
-ValueKey: typing.TypeAlias = tuple[QualifiedName | type | None, object, str | None]
+# The key two attribute values share when they are the same value: the URI of
+# the datatype (or the Python type of a value with no XSD form), the value in
+# its value space or the text when it has none, and the case-folded language
+# tag.
+ValueKey: typing.TypeAlias = tuple[str | type | None, object, str | None]
+
+# The datatype URIs of the plain types, read once.
+_XSD_STRING_URI = XSD_STRING.uri
+_XSD_BOOLEAN_URI = XSD_BOOLEAN.uri
+_XSD_DOUBLE_URI = XSD_DOUBLE.uri
+_XSD_DATETIME_URI = XSD_DATETIME.uri
 
 
 def _value_key(value: Any) -> ValueKey:
@@ -602,15 +611,15 @@ def _value_key(value: Any) -> ValueKey:
     if isinstance(value, Literal):
         return value._key()
     if isinstance(value, str):
-        return (XSD_STRING, value, None)
+        return (_XSD_STRING_URI, value, None)
     if isinstance(value, bool):
-        return (XSD_BOOLEAN, value, None)
+        return (_XSD_BOOLEAN_URI, value, None)
     if isinstance(value, int):
-        return (canonical_xsd_datatype(value), value, None)
+        return (int_datatype(value).uri, value, None)
     if isinstance(value, float):
-        return (XSD_DOUBLE, key_slot(value), None)
+        return (_XSD_DOUBLE_URI, key_slot(value), None)
     if isinstance(value, datetime.datetime):
-        return (XSD_DATETIME, value, None)
+        return (_XSD_DATETIME_URI, value, None)
     return (type(value), value, None)
 
 

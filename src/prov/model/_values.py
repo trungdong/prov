@@ -208,6 +208,17 @@ _INT32_MAX = 2**31 - 1
 _INT64_MAX = 2**63 - 1
 
 
+def int_datatype(value: int) -> QualifiedName:
+    """The XSD datatype of an ``int`` by magnitude: ``xsd:int``, ``xsd:long``
+    or ``xsd:integer``. Not for a ``bool``, which :func:`canonical_xsd_datatype`
+    excludes."""
+    if -_INT32_MAX - 1 <= value <= _INT32_MAX:
+        return XSD_INT
+    if -_INT64_MAX - 1 <= value <= _INT64_MAX:
+        return XSD_LONG
+    return XSD_INTEGER
+
+
 def canonical_xsd_datatype(value: object) -> QualifiedName | None:
     """Return the XSD datatype `prov` asserts for a plain Python value.
 
@@ -218,11 +229,7 @@ def canonical_xsd_datatype(value: object) -> QualifiedName | None:
     if isinstance(value, bool):  # before int: bool is an int subtype
         return None
     if isinstance(value, int):
-        if -_INT32_MAX - 1 <= value <= _INT32_MAX:
-            return XSD_INT
-        if -_INT64_MAX - 1 <= value <= _INT64_MAX:
-            return XSD_LONG
-        return XSD_INTEGER
+        return int_datatype(value)
     if isinstance(value, float):
         return XSD_DOUBLE
     return None
