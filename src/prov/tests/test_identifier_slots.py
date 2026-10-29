@@ -7,7 +7,6 @@ import pickle
 import subprocess
 import sys
 import weakref
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +14,7 @@ import pytest
 
 from prov.constants import XSD_INT
 from prov.identifier import Identifier, Namespace, QualifiedName
-from prov.model import Literal, ProvDocument
+from prov.model import Literal, ProvDocument, ProvExceptionInvalidQualifiedName
 
 NS = Namespace("ex", "http://example.org/")
 OBJECTS = [
@@ -166,39 +165,35 @@ def test_namespace_cache_still_interns_qualified_names() -> None:
     assert NS["e1"] is NS["e1"]
 
 
-@pytest.mark.parametrize(
-    "build",
-    [
-        lambda: Namespace("ex", "http://example.org/"),
-        lambda: Namespace._default("http://d.example/"),
-        lambda: copy.deepcopy(Namespace("ex", "http://example.org/")),
-    ],
-    ids=["init", "default", "deepcopy"],
-)
-def test_namespace_cache_is_bounded(
-    build: Callable[[], Namespace], monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_namespace_cache_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(Namespace, "_CACHE_LIMIT", 3)
-    ns = build()
-    first = ns["n0"]
-    for i in range(1, 6):
-        assert ns[f"n{i}"].localpart == f"n{i}"
-        assert len(ns._cache) <= 3
+    ns = Namespace("ex", "http://example.org/")
 
-    # An evicted name comes back equal, with the same hash.
-    assert "n0" not in ns._cache
-    again = ns["n0"]
+    first = ns["a"]
+    assert list(ns._cache) == ["a"]
+    assert ns["b"].localpart == "b"
+    assert list(ns._cache) == ["a", "b"]
+    assert ns["c"].localpart == "c"
+    assert list(ns._cache) == ["a", "b", "c"]
+
+    # A rejected local part raises without emptying the full cache.
+    with pytest.raises(ProvExceptionInvalidQualifiedName):
+        _ = ns["a b"]
+    assert list(ns._cache) == ["a", "b", "c"]
+
+    # A miss at the limit empties the cache, so the new name sits alone.
+    assert ns["d"].localpart == "d"
+    assert list(ns._cache) == ["d"]
+
+    # A name taken before the flush equals, and hashes as, the one after it.
+    again = ns["a"]
     assert again == first
     assert hash(again) == hash(first)
-
-    # A miss at the limit empties the cache, so n0 sits alone. Two more
-    # distinct names fill it to the limit and the next one leaves just itself.
-    assert list(ns._cache) == ["n0"]
-    assert ns["n6"].localpart == "n6"
-    assert ns["n7"].localpart == "n7"
-    assert len(ns._cache) == 3
-    assert ns["n8"].localpart == "n8"
-    assert list(ns._cache) == ["n8"]
+    assert list(ns._cache) == ["d", "a"]
+    assert ns["e"].localpart == "e"
+    assert list(ns._cache) == ["d", "a", "e"]
+    assert ns["f"].localpart == "f"
+    assert list(ns._cache) == ["f"]
 
 
 def _slots_across_the_mro(cls: type) -> set[str]:

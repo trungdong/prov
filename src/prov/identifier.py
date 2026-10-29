@@ -556,8 +556,8 @@ class Namespace:
         cache = self._cache
         qname = cache.get(localpart)
         if qname is None:
+            qname = QualifiedName(self, localpart)
             if len(cache) >= self._CACHE_LIMIT:
                 cache.clear()
-            qname = QualifiedName(self, localpart)
             cache[localpart] = qname
         return qname
