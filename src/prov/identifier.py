@@ -426,7 +426,8 @@ class Namespace:
 
     _READ_ONLY: ClassVar[frozenset[str]] = frozenset(__slots__) - {"__weakref__"}
 
-    # The most names _cache holds. A lookup that misses at the limit empties it first.
+    # _cache holds at most this many names. A lookup that misses when
+    # _cache is full clears it, then stores the new name.
     _CACHE_LIMIT: ClassVar[int] = 10_000
 
     # Bound at runtime only, because a visible __setattr__ makes mypy accept

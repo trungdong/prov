@@ -182,7 +182,7 @@ def test_namespace_cache_is_bounded(
     ns = build()
     first = ns["n0"]
     for i in range(1, 6):
-        ns[f"n{i}"]
+        assert ns[f"n{i}"].localpart == f"n{i}"
         assert len(ns._cache) <= 3
 
     # An evicted name comes back equal, with the same hash.
@@ -194,10 +194,10 @@ def test_namespace_cache_is_bounded(
     # A miss at the limit empties the cache, so n0 sits alone. Two more
     # distinct names fill it to the limit and the next one leaves just itself.
     assert list(ns._cache) == ["n0"]
-    ns["n6"]
-    ns["n7"]
+    assert ns["n6"].localpart == "n6"
+    assert ns["n7"].localpart == "n7"
     assert len(ns._cache) == 3
-    ns["n8"]
+    assert ns["n8"].localpart == "n8"
     assert list(ns._cache) == ["n8"]
 
 
