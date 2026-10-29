@@ -267,6 +267,10 @@ a type checker reports a call.
    :members:
    :show-inheritance:
 
+.. autoclass:: prov.model.ProvMissingFormalAttribute
+   :members:
+   :show-inheritance:
+
 .. autoclass:: prov.model.ProvValueError
    :members:
    :show-inheritance:

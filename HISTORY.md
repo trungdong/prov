@@ -435,6 +435,10 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   where 3.2.3 accepted several in a call that also held `PROV_ATTR_COLLECTION`. The
   PROV-XML reader reads a `hadMember` with several entities as one per entity, where 3.2.3
   built one record ([#700](https://github.com/trungdong/prov/issues/700))
+- A `hadMember`, `alternateOf`, `specializationOf` or `mentionOf` missing an entity or
+  collection raises `ProvMissingFormalAttribute`, so assert both parties, and every reader
+  skips such a statement with a `ProvWarning`, where 3.2.3 built the record. A `mentionOf`
+  may still omit its bundle ([#710](https://github.com/trungdong/prov/issues/710))
 
 ### Additions
 
