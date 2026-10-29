@@ -419,6 +419,10 @@ class ProvRDFSerializer(Serializer):
     # graph.
     _skipped_bindings: tuple[tuple[str, str], ...] = ()
 
+    # The source's (prefix, IRI) bindings, read when ``decode_document`` starts.
+    # None outside it.
+    _held_bindings: tuple[tuple[str, str], ...] | None = None
+
     def serialize(
         self,
         stream: io.IOBase,
@@ -620,8 +624,10 @@ class ProvRDFSerializer(Serializer):
         declared, which ``compute_qname`` refuses to split. Document
         namespaces are not consulted here: callers only reach this method
         after ``valid_identifier``/``valid_qualified_name`` returned
-        ``None``, which already scanned every document namespace for a
-        URI-prefix match, so any that applied would have resolved there.
+        ``None``, which already matched every document namespace against the
+        IRI, so any that applied would have resolved there.
+
+        Which bindings it reads is set out in :meth:`_source_bindings`.
 
         Args:
             iri: The IRI to resolve.
@@ -634,8 +640,7 @@ class ProvRDFSerializer(Serializer):
             ``iri``.
         """
         best_prefix, best_uri = None, ""
-        for prefix, uri_ref in graph.namespace_manager.namespaces():
-            uri = str(uri_ref)
+        for prefix, uri in self._source_bindings(graph, iri):
             if uri and len(uri) > len(best_uri) and iri.startswith(uri) and iri != uri:
                 best_prefix, best_uri = prefix, uri
         if best_prefix is None:
@@ -646,6 +651,28 @@ class ProvRDFSerializer(Serializer):
             best_prefix, best_uri
         )
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _source_bindings(self, graph: Graph, iri: str) -> tuple[tuple[str, str], ...]:
+        """``graph``'s (prefix, IRI) bindings to resolve ``iri`` against.
+
+        :meth:`decode_document` reads the source's bindings when it starts and
+        holds them until it ends, so a source with many bindings is not walked
+        again for every IRI. A binding the reader mints later is for a
+        namespace already registered on the document, which the caller resolves
+        first for every IRI the document can compact. A colon-less IRI and a
+        ``_:`` IRI are never compacted, so a binding minted mid-decode can be
+        the answer for them. They read the live bindings, as does any call
+        outside :meth:`decode_document`.
+        """
+        if self._held_bindings is not None and ":" in iri and not iri.startswith("_:"):
+            return self._held_bindings
+        return self._live_bindings(graph)
+
+    @staticmethod
+    def _live_bindings(graph: Graph) -> tuple[tuple[str, str], ...]:
+        return tuple(
+            (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
+        )
 
     def _default_name(self, iri: str, uri: str) -> pm.QualifiedName | None:
         """The name ``iri`` has in the document's default namespace when that
@@ -1434,6 +1461,9 @@ class ProvRDFSerializer(Serializer):
         which registers the skipped bindings under it first
         (:meth:`_register_shadowed_bindings`).
 
+        The source's namespace bindings are read once, here, and held until
+        the decode ends (:meth:`_source_bindings`).
+
         Args:
             content: RDF graph (typically a ``Dataset``, as produced by
                 :meth:`encode_document`) to decode.
@@ -1463,6 +1493,21 @@ class ProvRDFSerializer(Serializer):
         except pm.ProvException as exc:
             raise ProvRDFException(f"prefix {prefix!r}, IRI {iri!r}: {exc}") from exc
         self._skipped_bindings = tuple(shadowed)
+        self._held_bindings = self._live_bindings(content)
+        try:
+            self._decode_graphs(content, document, relation_mapper, predicate_mapper)
+        finally:
+            self._held_bindings = None
+
+    def _decode_graphs(
+        self,
+        content: Graph,
+        document: pm.ProvDocument,
+        relation_mapper: RelationMapper,
+        predicate_mapper: PredicateMapper,
+    ) -> None:
+        """Decode ``content``'s default graph into ``document`` and each named
+        graph into one of its bundles."""
         if hasattr(content, "graphs"):
             for graph in content.graphs():
                 if (

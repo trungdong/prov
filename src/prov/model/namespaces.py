@@ -3,6 +3,7 @@
 from __future__ import annotations  # defer eval: NamespaceManager self-refs in __init__
 
 from collections.abc import Callable, Iterable, Iterator, Mapping
+from typing import Any
 
 from prov.constants import PROV, XSD
 from prov.identifier import Identifier, Namespace, QualifiedName
@@ -43,7 +44,12 @@ def _first_free(prefix: str, taken: Callable[[str], bool]) -> str:
 
 
 class NamespaceManager(dict[str, Namespace]):
-    """Manages namespaces for PROV documents and bundles."""
+    """Manages namespaces for PROV documents and bundles.
+
+    Register namespaces through :meth:`add_namespace` and
+    :meth:`set_default_namespace`. Any of the dict's own write methods
+    bypasses the manager's indexes and is unsupported.
+    """
 
     parent: NamespaceManager | None = None
     """Parent :class:`NamespaceManager` this manager is a child of, if any."""
@@ -67,6 +73,7 @@ class NamespaceManager(dict[str, Namespace]):
         dict.__init__(self)
         self._default_namespaces = DEFAULT_NAMESPACES
         self.update(self._default_namespaces)
+        self._reindex()
         self._namespaces: dict[str, Namespace] = {}
 
         # Maps a plain string to the name this manager resolved, possibly one
@@ -133,7 +140,30 @@ class NamespaceManager(dict[str, Namespace]):
     def _set_default(self, namespace: Namespace) -> None:
         self._default = namespace
         self[""] = namespace
+        self._reindex()
         self._resolve_cache.clear()
+
+    def _index(self, namespace: Namespace) -> None:
+        by_uri = self._uris_by_length.setdefault(len(namespace.uri), {})
+        by_uri.setdefault(namespace.uri, []).append(namespace)
+
+    def _reindex(self) -> None:
+        """Rebuild the length index from the dict's namespaces.
+
+        The index holds every namespace the dict holds, by URI length and then
+        URI. The manager's writers keep it in step with the dict.
+        """
+        self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
+        for namespace in self.values():
+            self._index(namespace)
+
+    def __setstate__(self, state: dict[str, Any]) -> None:
+        # The dict's items are already set when pickle calls this, so a state
+        # from a release without the index gets one built from them. A copy
+        # carries its own index and has no items yet.
+        self.__dict__.update(state)
+        if "_uris_by_length" not in state:
+            self._reindex()
 
     def get_default_namespace(self) -> Namespace | None:
         """Return the default namespace, or ``None`` if none is set."""
@@ -201,6 +231,7 @@ class NamespaceManager(dict[str, Namespace]):
         self._resolve_cache.clear()
         self._namespaces[prefix] = namespace
         self[prefix] = namespace
+        self._index(namespace)
         self._uri_map[uri] = namespace
 
         return namespace
@@ -352,10 +383,30 @@ class NamespaceManager(dict[str, Namespace]):
             return None
         #  assuming it is a URI (with the first part as its scheme)
         #  check if the URI can be compacted by any of the registered namespaces
-        for namespace in self.values():
-            local = str_value[len(namespace.uri) :]
-            if str_value.startswith(namespace.uri) and (namespace.prefix or local):
-                return namespace[local]
+        namespace = self._compacting_namespace(str_value)
+        if namespace is None:
+            return None
+        return namespace[str_value[len(namespace.uri) :]]
+
+    def _compacting_namespace(self, iri: str) -> Namespace | None:
+        """The first namespace in the dict's order whose URI prefixes ``iri``.
+
+        A default namespace whose URI is all of ``iri`` does not count, as it
+        has no name for an empty local part. One candidate, the usual case,
+        comes from the length index. Several candidates fall back to a scan in
+        the dict's order.
+        """
+        matches = [
+            namespace
+            for length, by_uri in self._uris_by_length.items()
+            for namespace in by_uri.get(iri[:length], ())
+        ]
+        candidates: Iterable[Namespace] = matches if len(matches) < 2 else self.values()
+        for namespace in candidates:
+            if iri.startswith(namespace.uri) and (
+                namespace.prefix or len(iri) > len(namespace.uri)
+            ):
+                return namespace
         return None
 
     def reject_default_iri(self, text: str) -> None:
