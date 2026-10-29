@@ -488,8 +488,13 @@ def _decode_record_group(
             (all raised further down the call chain, by
             :func:`_decode_record_instance` / :func:`_decode_formal_attribute`);
             or, naming the record, if the model rejects the record's
-            identifier, a value or the record itself (the model's error is
-            the ``__cause__``).
+            identifier, a value or the record itself, other than for a
+            missing party (the model's error is the ``__cause__``).
+
+    Warns:
+        ProvWarning: For each record instance the model refuses for a missing
+            party (``ProvMissingFormalAttribute``); the instance is skipped
+            and the next one of the same key is read.
     """
     try:
         rec_type = PROV_RECORD_IDS_MAP[rec_type_str]

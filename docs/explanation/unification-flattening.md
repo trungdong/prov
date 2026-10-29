@@ -137,7 +137,7 @@ endDocument
 `unified()` is the only place in the model that raises over a same-identifier conflict.
 Asserting records never checks for one, by design, because PROV statements are asserted
 incomplete, one piece at a time, and a later `unified()` call, if any, reconciles them.
-The parties of `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` are the one
+The parties of `hadMember`, `alternateOf`, `specializationOf` and `mentionOf` are an
 exception, since the model refuses those four relations without them
 ([#710](https://github.com/trungdong/prov/issues/710)).
 

@@ -1967,6 +1967,11 @@ class ProvRDFSerializer(Serializer):
             state: Decode state; consumed attributes are removed from it, so
                 what remains afterwards is what could not be converted.
 
+        Warns:
+            ProvWarning: For a subject whose record the model refuses for a
+                missing party (``ProvMissingFormalAttribute``); the subject
+                and its attributes are skipped.
+
         Raises:
             ProvRDFException: If a subject carries more than one value for a
                 formal attribute that :attr:`_DecodeState.unique_sets`
@@ -1974,7 +1979,8 @@ class ProvRDFSerializer(Serializer):
                 on one identified qualified node) -- the documented,
                 permanent PROV-O representational limitation described in
                 ``docs/reference/conformance.md``. Any other ``ProvException``
-                raised while constructing a record (e.g. an unresolvable
+                (not ``ProvMissingFormalAttribute``, which is warned and
+                skipped) raised while constructing a record (e.g. an unresolvable
                 qualified name) is wrapped in a ``ProvRDFException`` naming
                 the subject, with the model's exception as the cause.
         """

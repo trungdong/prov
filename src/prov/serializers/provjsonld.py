@@ -730,8 +730,12 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             yields one record per member) or cannot be
             resolved to a qualified name; if a non-formal attribute's
             value is not a JSON array; or, naming the statement, if the
-            model rejects a value or the record (the model's error is the
-            ``__cause__``).
+            model rejects a value or the record, other than for a missing
+            party (the model's error is the ``__cause__``).
+
+    Warns:
+        ProvWarning: If the model refuses the statement for a missing party
+            (``ProvMissingFormalAttribute``); the statement is skipped.
     """
     rec_type, type_term = _decode_statement_type(item)
     cls = PROV_REC_CLS[rec_type]
