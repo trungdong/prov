@@ -7,6 +7,7 @@ import pickle
 import subprocess
 import sys
 import weakref
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -163,6 +164,41 @@ def test_equal_identifiers_hash_equal_across_classes() -> None:
 
 def test_namespace_cache_still_interns_qualified_names() -> None:
     assert NS["e1"] is NS["e1"]
+
+
+@pytest.mark.parametrize(
+    "build",
+    [
+        lambda: Namespace("ex", "http://example.org/"),
+        lambda: Namespace._default("http://d.example/"),
+        lambda: copy.deepcopy(Namespace("ex", "http://example.org/")),
+    ],
+    ids=["init", "default", "deepcopy"],
+)
+def test_namespace_cache_is_bounded(
+    build: Callable[[], Namespace], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(Namespace, "_CACHE_LIMIT", 3)
+    ns = build()
+    first = ns["n0"]
+    for i in range(1, 6):
+        ns[f"n{i}"]
+        assert len(ns._cache) <= 3
+
+    # An evicted name comes back equal, with the same hash.
+    assert "n0" not in ns._cache
+    again = ns["n0"]
+    assert again == first
+    assert hash(again) == hash(first)
+
+    # A miss at the limit empties the cache, so n0 sits alone. Two more
+    # distinct names fill it to the limit and the next one leaves just itself.
+    assert list(ns._cache) == ["n0"]
+    ns["n6"]
+    ns["n7"]
+    assert len(ns._cache) == 3
+    ns["n8"]
+    assert list(ns._cache) == ["n8"]
 
 
 def _slots_across_the_mro(cls: type) -> set[str]:
