@@ -1,11 +1,12 @@
-"""The JSON machinery PROV-JSON and PROV-JSONLD share.
+"""The machinery the PROV-JSON, PROV-JSONLD and PROV-XML serializers share.
 
 :mod:`prov.serializers.provjson` and :mod:`prov.serializers.provjsonld` both
-write qualified names against a container's prefix map and fan a membership
-out into one ``hadMember`` record per member. Those pieces live here so that
-neither module imports the other's private names. The position helpers that
-PROV-JSON's messages use, and the ``object_pairs_hook`` both readers give
-:func:`json.load`, live here too (#589, #532).
+write qualified names against a container's prefix map. Their readers and
+:mod:`prov.serializers.provxml`'s fan a membership out into one ``hadMember``
+record per member. Those pieces live here so that no module imports another's
+private names. The position helpers that PROV-JSON's messages use, and the
+``object_pairs_hook`` both JSON readers give :func:`json.load`, live here too
+(#589, #532).
 """
 
 import json
@@ -183,8 +184,8 @@ def _add_memberships(
 
     PROV-DM's ``hadMember`` is binary, so a membership listing several members
     becomes one record per member. Each record carries the identifier and the
-    attributes of the membership. The PROV-JSON and PROV-JSONLD readers share
-    this fan-out.
+    attributes of the membership. The PROV-JSON, PROV-JSONLD and PROV-XML readers
+    share this fan-out.
 
     Args:
         bundle: Bundle to add the records to.

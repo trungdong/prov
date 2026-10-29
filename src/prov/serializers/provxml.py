@@ -30,6 +30,7 @@ from prov.model._values import (
 )
 from prov.model.namespaces import _first_free
 from prov.serializers import ProvSerializationError, Serializer, _is_text_stream
+from prov.serializers._json_common import _add_memberships
 
 __author__ = "Lion Krischer"
 __email__ = "krischer@geophysik.uni-muenchen.de"
@@ -422,6 +423,11 @@ class ProvXMLSerializer(Serializer):
             )
             attributes.append((PROV["type"], value))
 
+        if rec_type == PROV_MEMBERSHIP and _add_split_memberships(
+            bundle, prov_rec_id, attributes
+        ):
+            return
+
         rec = bundle.new_record(rec_type, prov_rec_id, attributes)
 
         # Add the actual type in case a base type has been used.
@@ -725,6 +731,39 @@ def _infer_xsd_type(
     if form is None or (text := form[0]) is None:
         return None, v
     return form[1], text
+
+
+def _add_split_memberships(
+    bundle: prov.model.ProvDocument | prov.model.ProvBundle,
+    identifier: prov.model.OptionalID,
+    attributes: list[NameValuePair],
+) -> bool:
+    """Add one ``hadMember`` record per ``prov:entity`` of a membership element.
+
+    PROV-DM's ``hadMember`` is binary, so an element that lists several members
+    becomes one record per member, as in the PROV-JSON and PROV-JSONLD readers.
+
+    Args:
+        bundle: Bundle to add the records to.
+        identifier: The element's ``prov:id``, or ``None``.
+        attributes: The element's ``(name, value)`` pairs.
+
+    Returns:
+        ``True`` when the element lists two or more members and the records are
+        added; ``False`` when it lists fewer and nothing is added.
+    """
+    members = [value for name, value in attributes if name == PROV_ATTR_ENTITY]
+    if len(members) < 2:
+        return False
+    collection: dict[prov.model.QualifiedNameCandidate, Any] = {}
+    others: list[prov.model.AttributePair] = []
+    for name, value in attributes:
+        if name == PROV_ATTR_COLLECTION and name not in collection:
+            collection[name] = value
+        elif name != PROV_ATTR_ENTITY:
+            others.append((name, value))
+    _add_memberships(bundle, identifier, collection, others, members)
+    return True
 
 
 def _extract_attributes(
