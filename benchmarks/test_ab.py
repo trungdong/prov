@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from . import ab
 from .ab import (
     check_measured_tree,
     check_same_interpreter,
@@ -19,6 +20,7 @@ from .ab import (
     judge,
     load_minimums,
     main,
+    pytest_options,
     typical,
 )
 
@@ -167,3 +169,19 @@ def test_main_compares_saved_runs(tmp_path, capsys):
     assert "+5.0%" in out
 
     assert main(["--from-json", str(base), str(head), "--threshold", "0.5"]) == 0
+
+
+@pytest.mark.parametrize(
+    ("argv", "disables_gc"), [(["main"], True), (["main", "--gc"], False)]
+)
+def test_main_passes_the_gc_choice_to_measure(monkeypatch, argv, disables_gc):
+    seen = []
+
+    def fake_measure(base_ref, passes, threshold, python, options):
+        seen.append(options)
+        return [], "min"
+
+    monkeypatch.setattr(ab, "measure", fake_measure)
+    assert main(argv) == 0
+    assert ("--benchmark-disable-gc" in seen[0]) is disables_gc
+    assert seen == [pytest_options(not disables_gc)]

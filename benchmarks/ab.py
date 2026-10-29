@@ -1,7 +1,7 @@
 """Measure a base ref and the working tree on one machine and compare them.
 
 Usage: ``python benchmarks/ab.py BASE_REF [--passes 2] [--threshold 0.10]
-[--python 3.12]``
+[--python 3.12] [--gc]``
 
 The base ref is checked out into a temporary git worktree with its own
 locked environment, so a dependency change counts as part of the change
@@ -16,6 +16,8 @@ ignored.
 Both sides must run on the same interpreter. The working tree's environment
 keeps the interpreter of the last ``uv run --python``, so ``--python`` pins
 both sides when that differs from the default the base gets.
+
+``ab.py`` times with garbage collection off unless ``--gc`` is given.
 
 ``--from-json BASE HEAD`` compares two saved pytest-benchmark runs instead.
 """
@@ -45,13 +47,17 @@ PYTEST_OPTIONS = (
     "--disable-warnings",
     "-p",
     "no:cacheprovider",
-    "--benchmark-disable-gc",
     "--benchmark-warmup=on",
     "--benchmark-warmup-iterations=1",
     "--benchmark-min-rounds=3",
     "--benchmark-max-time=0.5",
     "--benchmark-columns=min,median,rounds",
 )
+
+
+def pytest_options(gc: bool) -> tuple[str, ...]:
+    """The pytest options for one run, with GC disabled unless ``gc``."""
+    return PYTEST_OPTIONS if gc else ("--benchmark-disable-gc", *PYTEST_OPTIONS)
 
 
 @dataclass(frozen=True)
@@ -170,9 +176,11 @@ def worktree(ref: str) -> Generator[Path]:
             subprocess.run(remove, check=False)  # nosec B603 - nosemgrep
 
 
-def run_suite(tree: Path, output: Path, python: str | None) -> bool:
+def run_suite(
+    tree: Path, output: Path, python: str | None, options: tuple[str, ...]
+) -> bool:
     """Time the suite against ``tree``'s source and environment."""
-    pytest = ("pytest", str(SUITE), *PYTEST_OPTIONS, f"--benchmark-json={output}")
+    pytest = ("pytest", str(SUITE), *options, f"--benchmark-json={output}")
     pin = ("--python", python) if python else ()
     command = (*UV_RUN, *pin, "--project", str(tree), *pytest)
     done = subprocess.run(command, cwd=HEAD_TREE, check=False)  # nosec B603 - nosemgrep
@@ -183,7 +191,11 @@ def run_suite(tree: Path, output: Path, python: str | None) -> bool:
 
 
 def measure(
-    base_ref: str, passes: int, threshold: float, python: str | None
+    base_ref: str,
+    passes: int,
+    threshold: float,
+    python: str | None,
+    options: tuple[str, ...],
 ) -> tuple[list[Row], str]:
     readings: dict[str, list[dict[str, float]]] = {"base": [], "head": []}
     with worktree(base_ref) as base_tree:
@@ -194,7 +206,7 @@ def measure(
                 print(f"\n== {label}: {side} ==", flush=True)
                 output = base_tree.parent / f"{side}-{len(readings[side]) + 1}.json"
                 outputs[side] = output
-                passed = run_suite(tree, output, python)
+                passed = run_suite(tree, output, python, options)
 
                 # A benchmark of a new feature cannot pass on the base.
                 if not passed and side == "head":
@@ -214,6 +226,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--passes", type=int, default=2)
     parser.add_argument("--threshold", type=float, default=0.10)
     parser.add_argument("--python", help="interpreter for both sides, as uv names it")
+    parser.add_argument(
+        "--gc", action="store_true", help="leave garbage collection on while timing"
+    )
     args = parser.parse_args(argv)
 
     if args.from_json:
@@ -221,7 +236,9 @@ def main(argv: list[str] | None = None) -> int:
         return report(compare(base, head, args.threshold))
     if not args.base_ref:
         parser.error("give a base ref or --from-json")
-    rows, statistic = measure(args.base_ref, args.passes, args.threshold, args.python)
+    rows, statistic = measure(
+        args.base_ref, args.passes, args.threshold, args.python, pytest_options(args.gc)
+    )
     return report(rows, statistic)
 
 

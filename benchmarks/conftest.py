@@ -30,7 +30,7 @@ def build_document(n: int = N) -> ProvDocument:
     base_time = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
     per_block = 8  # records created per loop iteration
     for i in range(max(1, n // per_block)):
-        target = bundles[i % 5] if i % 5 == 0 else doc
+        target = bundles[(i // 5) % 5] if i % 5 == 0 else doc
         e_in = target.entity(f"ex:input{i}", {"dc:title": f"Input {i}", "ex:size": i})
         e_out = target.entity(
             f"ex:output{i}", {"dc:title": f"Output {i}", "ex:score": i / 7.0}

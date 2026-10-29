@@ -43,3 +43,9 @@ def test_prov_to_graph(benchmark, document):
 def test_equality(benchmark, document):
     other = build_document(N)
     benchmark(lambda: document == other)
+
+
+def test_document_fills_five_bundles():
+    doc = build_document(10_000)
+    assert len(doc.get_records()) == 8000
+    assert [len(b.get_records()) for b in doc.bundles] == [400] * 5
