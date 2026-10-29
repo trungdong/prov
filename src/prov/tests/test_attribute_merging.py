@@ -26,7 +26,14 @@ import datetime
 
 import pytest
 
-from prov.constants import PROV_GENERATION, PROV_MEMBERSHIP, XSD_ANYURI, XSD_DECIMAL
+from prov.constants import (
+    PROV_ACTIVITY,
+    PROV_ENTITY,
+    PROV_GENERATION,
+    PROV_MEMBERSHIP,
+    XSD_ANYURI,
+    XSD_DECIMAL,
+)
 from prov.identifier import Identifier, Namespace
 from prov.model import (
     PROV_ATTR_COLLECTION,
@@ -41,11 +48,15 @@ from prov.model import (
 from prov.tests.conftest import roundtrip_document
 
 
-@pytest.fixture
-def doc():
+def _new_document():
     d = ProvDocument()
     d.add_namespace("ex", "http://example.org/")
     return d
+
+
+@pytest.fixture
+def doc():
+    return _new_document()
 
 
 def _typed(values):
@@ -269,9 +280,7 @@ def _assert_label(record):
     assert record.label == "ex:e"
 
 
-def _generation_and_activity_document():
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
+def _generation_and_activity_document(d):
     d.entity("ex:e")
     d.activity("ex:a")
     d.wasGeneratedBy("ex:e", "ex:a")
@@ -294,6 +303,10 @@ def _rdf_read(d):
     d.serialize(format="rdf")
 
 
+def _record_of_type(d, record_type):
+    return next(r for r in d.get_records() if r.get_type() == record_type)
+
+
 def _keys(d):
     return [list(r._attributes) for r in d.get_records()]
 
@@ -301,25 +314,25 @@ def _keys(d):
 @pytest.mark.parametrize(
     "kind, read",
     [
-        pytest.param("entity", lambda r: r.get_asserted_types(), id="asserted-types"),
-        pytest.param("entity", lambda r: r.get_attribute("ex:x"), id="get-attribute"),
-        pytest.param("generation", lambda r: r.args, id="args"),
         pytest.param(
-            "generation", lambda r: r.formal_attributes, id="formal-attributes"
+            PROV_ENTITY, lambda r: r.get_asserted_types(), id="asserted-types"
         ),
-        pytest.param("entity", lambda r: _assert_label(r), id="label"),
-        pytest.param("entity", lambda r: r.value, id="value"),
-        pytest.param("activity", lambda r: r.get_startTime(), id="start-time"),
-        pytest.param("activity", lambda r: r.get_endTime(), id="end-time"),
-        pytest.param("activity", lambda r: r.args, id="activity-args"),
+        pytest.param(
+            PROV_ENTITY, lambda r: r.get_attribute("ex:x"), id="get-attribute"
+        ),
+        pytest.param(PROV_GENERATION, lambda r: r.args, id="args"),
+        pytest.param(
+            PROV_GENERATION, lambda r: r.formal_attributes, id="formal-attributes"
+        ),
+        pytest.param(PROV_ENTITY, _assert_label, id="label"),
+        pytest.param(PROV_ENTITY, lambda r: r.value, id="value"),
+        pytest.param(PROV_ACTIVITY, lambda r: r.get_startTime(), id="start-time"),
+        pytest.param(PROV_ACTIVITY, lambda r: r.get_endTime(), id="end-time"),
+        pytest.param(PROV_ACTIVITY, lambda r: r.args, id="activity-args"),
     ],
 )
 def test_a_read_leaves_the_record_unchanged(doc, kind, read) -> None:
-    record = {
-        "entity": lambda: doc.entity("ex:e"),
-        "generation": lambda: doc.wasGeneratedBy("ex:e", "ex:a"),
-        "activity": lambda: doc.activity("ex:a"),
-    }[kind]()
+    record = _record_of_type(_generation_and_activity_document(doc), kind)
     before = list(record._attributes)
 
     read(record)
@@ -336,8 +349,8 @@ def test_a_read_leaves_the_record_unchanged(doc, kind, read) -> None:
         pytest.param(_rdf_read, id="rdf"),
     ],
 )
-def test_a_document_operation_leaves_every_record_unchanged(operation) -> None:
-    d = _generation_and_activity_document()
+def test_a_document_operation_leaves_every_record_unchanged(doc, operation) -> None:
+    d = _generation_and_activity_document(doc)
     before = _keys(d)
 
     operation(d)
@@ -346,11 +359,8 @@ def test_a_document_operation_leaves_every_record_unchanged(operation) -> None:
 
 
 def _generation_with_extras(peek: bool) -> ProvDocument:
-    d = ProvDocument()
-    d.add_namespace("ex", "http://example.org/")
-    d.entity("ex:e")
-    d.activity("ex:a")
-    g = d.wasGeneratedBy("ex:e", "ex:a")
+    d = _generation_and_activity_document(_new_document())
+    g = _record_of_type(d, PROV_GENERATION)
     if peek:
         _ = (g.formal_attributes, g.args, g.label, g.get_attribute("ex:y"))
     g.add_attributes({"ex:x": 1})
@@ -363,9 +373,7 @@ def _generation_with_extras(peek: bool) -> ProvDocument:
 def test_reads_do_not_change_the_serialised_output_or_attribute_order(fmt) -> None:
     peeked = _generation_with_extras(peek=True)
     plain = _generation_with_extras(peek=False)
-    generation = next(
-        r for r in peeked.get_records() if r.get_type() == PROV_GENERATION
-    )
+    generation = _record_of_type(peeked, PROV_GENERATION)
 
     assert peeked.serialize(format=fmt) == plain.serialize(format=fmt)
     assert [str(name) for name in generation._attributes] == [
@@ -551,7 +559,7 @@ def test_a_second_call_does_not_lift_the_rule_from_the_stored_collection(
 def test_the_scan_registers_a_foreign_namespace_after_a_rejected_repeat(
     doc,
 ) -> None:
-    # The scan resolves every later name, so a QualifiedName in a namespace
+    # The scan resolves every name in the call, so a QualifiedName in a namespace
     # the document lacks is registered even though the call raises.
     record = doc.new_record(PROV_MEMBERSHIP, None, [_TWO_ENTITIES[0]])
     foreign = Namespace("fz", "http://fz.example/")["k"]
@@ -588,7 +596,7 @@ def test_a_call_scans_for_prov_collection_once_however_many_values_repeat(
     membership = ProvMembership(doc, None, pairs)
 
     assert membership.get_attribute(PROV_ATTR_ENTITY) == {e1.identifier}
-    assert len(resolved) <= len(pairs)
+    assert len(resolved) == len(pairs)
 
 
 # --- Inherited issue 2: extra attribute sharing a formal-attribute name ---

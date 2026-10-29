@@ -84,12 +84,12 @@ def test_encoder_default_fallback_for_non_document() -> None:
 
 
 def test_an_empty_attribute_entry_is_omitted_from_json_and_jsonld() -> None:
-    # A 3.2.x pickle carries empty entries (the _attributes defaultdict made
-    # one for each name read); the writers skip empty value sets.
+    # The subscript seeds the empty entry a 3.2.x pickle holds, and the
+    # writers skip empty value sets.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     e1 = doc.entity("ex:e1")
-    e1._attributes[PROV_LABEL]
+    _ = e1._attributes[PROV_LABEL]
 
     assert "prov:label" not in doc.serialize(format="json")
     assert "prov:label" not in doc.serialize(format="jsonld")
