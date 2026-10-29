@@ -419,6 +419,10 @@ class ProvRDFSerializer(Serializer):
     # graph.
     _skipped_bindings: tuple[tuple[str, str], ...] = ()
 
+    # The bindings of each source store, as ``(prefix, IRI)`` pairs read at
+    # the first lookup in the current decode. ``None`` outside a decode.
+    _bindings_by_store: dict[Any, tuple[tuple[str, str], ...]] | None = None
+
     def serialize(
         self,
         stream: io.IOBase,
@@ -623,6 +627,11 @@ class ProvRDFSerializer(Serializer):
         ``None``, which already scanned every document namespace for a
         URI-prefix match, so any that applied would have resolved there.
 
+        The bindings are the source's as of the first lookup in the current
+        decode (:meth:`_source_bindings`). A binding the reader mints later is
+        for a namespace it has already registered on the document, which the
+        caller resolves first.
+
         Args:
             iri: The IRI to resolve.
             graph: Graph the IRI came from, for its namespace bindings.
@@ -634,8 +643,7 @@ class ProvRDFSerializer(Serializer):
             ``iri``.
         """
         best_prefix, best_uri = None, ""
-        for prefix, uri_ref in graph.namespace_manager.namespaces():
-            uri = str(uri_ref)
+        for prefix, uri in self._source_bindings(graph):
             if uri and len(uri) > len(best_uri) and iri.startswith(uri) and iri != uri:
                 best_prefix, best_uri = prefix, uri
         if best_prefix is None:
@@ -646,6 +654,23 @@ class ProvRDFSerializer(Serializer):
             best_prefix, best_uri
         )
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
+
+    def _source_bindings(self, graph: Graph) -> tuple[tuple[str, str], ...]:
+        """``graph``'s namespace bindings as of the first lookup in this decode.
+
+        Inside a decode the bindings are read once per store, so a graph
+        with many bindings is not walked again for every IRI. Outside a
+        decode the live bindings are read and nothing is held.
+        """
+        held = self._bindings_by_store
+        if held is not None and graph.store in held:
+            return held[graph.store]
+        bindings = tuple(
+            (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
+        )
+        if held is not None:
+            held[graph.store] = bindings
+        return bindings
 
     def _default_name(self, iri: str, uri: str) -> pm.QualifiedName | None:
         """The name ``iri`` has in the document's default namespace when that
@@ -1463,13 +1488,27 @@ class ProvRDFSerializer(Serializer):
         except pm.ProvException as exc:
             raise ProvRDFException(f"prefix {prefix!r}, IRI {iri!r}: {exc}") from exc
         self._skipped_bindings = tuple(shadowed)
+        self._bindings_by_store = {}
+        try:
+            self._decode_graphs(content, document, relation_mapper, predicate_mapper)
+        finally:
+            self._bindings_by_store = None
+
+    def _decode_graphs(
+        self,
+        content: Graph,
+        document: pm.ProvDocument,
+        relation_mapper: RelationMapper,
+        predicate_mapper: PredicateMapper,
+    ) -> None:
+        """Decode each graph of ``content`` into ``document`` or one of its bundles."""
         if hasattr(content, "graphs"):
             for graph in content.graphs():
                 if (
                     isinstance(graph.identifier, BNode)
                     or graph.identifier == DATASET_DEFAULT_GRAPH_ID
                 ):
-                    self.decode_container(
+                    self._decode_container(
                         graph,
                         document,
                         relation_mapper=relation_mapper,
@@ -1491,14 +1530,14 @@ class ProvRDFSerializer(Serializer):
                         raise ProvRDFException(
                             f"bundle {str(graph.identifier)!r}: {exc}"
                         ) from exc
-                    self.decode_container(
+                    self._decode_container(
                         graph,
                         bundle,
                         relation_mapper=relation_mapper,
                         predicate_mapper=predicate_mapper,
                     )
         else:
-            self.decode_container(
+            self._decode_container(
                 content,
                 document,
                 relation_mapper=relation_mapper,
@@ -1525,6 +1564,10 @@ class ProvRDFSerializer(Serializer):
         for unresolvable subject IRIs, ``self.document``'s namespaces) in
         place.
 
+        The graph's own namespace bindings are read once, at the first IRI
+        the call resolves against them. A binding added to the graph after
+        that is seen by the next call.
+
         Args:
             graph: The RDF (sub)graph to decode, e.g. one context of a
                 ``Dataset``.
@@ -1546,6 +1589,21 @@ class ProvRDFSerializer(Serializer):
             UserWarning: If, after decoding, some attributes could not be
                 matched to any formal attribute or converted.
         """
+        self._bindings_by_store = {}
+        try:
+            self._decode_container(graph, bundle, relation_mapper, predicate_mapper)
+        finally:
+            self._bindings_by_store = None
+
+    def _decode_container(
+        self,
+        graph: Graph,
+        bundle: pm.ProvBundle,
+        relation_mapper: RelationMapper,
+        predicate_mapper: PredicateMapper,
+    ) -> None:
+        """Decode ``graph`` into ``bundle`` against the snapshot of the
+        current decode (:meth:`decode_container`)."""
         prov_cls_map = {
             prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
         }

@@ -13,6 +13,7 @@ import os
 import re
 import struct
 import warnings
+from collections.abc import Callable
 from glob import glob
 from io import BytesIO, StringIO
 
@@ -1711,6 +1712,82 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself() -> None:
     assert identifier.namespace.uri == "http://example.org/"
     assert identifier.namespace.prefix == "top"
     assert identifier.localpart == "thing"
+
+
+_PROV_PREFIX = "@prefix prov: <http://www.w3.org/ns/prov#> ."
+
+
+def _lookup_between_reads() -> object:
+    # A binding added between two decodes by one serializer reaches the second.
+    graph = Graph().parse(
+        data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> ."
+        " <http://example.org/sub/thing> a prov:Entity .",
+        format="turtle",
+    )
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_container(graph, first)
+    graph.bind("exsub", "http://example.org/sub/")
+    second = ProvDocument()
+    serializer.document = second
+    serializer.decode_container(graph, second)
+    (record,) = second.get_records()
+    return record.identifier.namespace.prefix, record.identifier.localpart
+
+
+def _lookup_outside_a_decode() -> object:
+    # Outside a decode nothing is held, so a binding added after a lookup counts.
+    graph = Graph().parse(
+        data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> .",
+        format="turtle",
+    )
+    iri = URIRef("http://example.org/sub/x;")
+    first = ProvDocument()
+    serializer = ProvRDFSerializer(document=first)
+    serializer.decode_container(graph, first)
+    serializer.document = ProvDocument()
+    before = serializer.decode_rdf_representation(iri, graph)
+    graph.bind("exsub", "http://example.org/sub/")
+    serializer.document = ProvDocument()
+    after = serializer.decode_rdf_representation(iri, graph)
+    return before.namespace.prefix, after.namespace.prefix
+
+
+def _lookup_in_bundles_sharing_a_binding() -> object:
+    # foaf is a binding rdflib adds to every graph, so the document does not
+    # hold it and each name is resolved against the graph.
+    trig = f"""
+    {_PROV_PREFIX}
+    @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+    <http://example.org/b1> {{ foaf:a1 a prov:Entity . foaf:a2 a prov:Entity . }}
+    <http://example.org/b2> {{ foaf:a3 a prov:Entity . }}
+    """
+    read = ProvDocument.deserialize(content=trig, format="rdf", rdf_format="trig")
+    expected = ProvDocument()
+    expected.add_namespace("ex", "http://example.org/")
+    foaf = expected.add_namespace("foaf", "http://xmlns.com/foaf/0.1/")
+    first, second = expected.bundle("ex:b1"), expected.bundle("ex:b2")
+    first.entity(foaf["a1"])
+    first.entity(foaf["a2"])
+    second.entity(foaf["a3"])
+    return read == expected
+
+
+@pytest.mark.parametrize(
+    ("lookup", "expected"),
+    [
+        pytest.param(_lookup_between_reads, ("exsub", "thing"), id="between-reads"),
+        pytest.param(_lookup_outside_a_decode, ("ex", "exsub"), id="outside-a-decode"),
+        pytest.param(_lookup_in_bundles_sharing_a_binding, True, id="bundles"),
+    ],
+)
+def test_the_graph_lookup_reads_each_graphs_own_bindings(
+    lookup: Callable[[], object], expected: object
+) -> None:
+    # The reader resolves an IRI against one snapshot of the source graph's
+    # bindings per decode, held across the bundles of one document. A later
+    # decode, and a call outside any decode, read the bindings as they are then.
+    assert lookup() == expected
 
 
 def test_bundle_namespace_order_follows_registration_in_rdf() -> None:
