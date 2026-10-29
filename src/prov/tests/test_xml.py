@@ -1418,6 +1418,46 @@ def _membership_xml(entity_element: str) -> str:
     </document>"""
 
 
+def test_nested_reference_child_is_used_with_a_warning() -> None:
+    # ProvToolbox 2.0.4 wraps a hadMember's member in an extra <entity>
+    # element; the schema puts prov:ref on the element itself.
+    xml_string = _membership_xml(
+        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
+    )
+    with pytest.warns(prov.ProvWarning, match="nested"):
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (membership,) = document.get_records(prov.ProvMembership)
+    (member,) = membership.get_attribute(PROV["entity"])
+    assert str(member) == "ex:e1"
+
+
+def test_blank_reference_element_without_ref_raises() -> None:
+    xml_string = _membership_xml("<entity>   </entity>")
+    with pytest.raises(ProvXMLException, match="no prov:ref"):
+        prov.ProvDocument.deserialize(content=xml_string, format="xml")
+
+
+def test_reference_given_as_element_text_still_decodes() -> None:
+    xml_string = _membership_xml("<entity>ex:e1</entity>")
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (membership,) = document.get_records(prov.ProvMembership)
+    (member,) = membership.get_attribute(PROV["entity"])
+    assert str(member) == "ex:e1"
+
+
+def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
+    xml_string = _membership_xml(
+        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        prov.ProvDocument.deserialize(content=xml_string, format="xml")
+    (warning,) = [w for w in caught if issubclass(w.category, prov.ProvWarning)]
+    assert warning.filename == __file__
+
+
 _MEMBERSHIP_PREFIX = (
     '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
     'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
@@ -1549,46 +1589,6 @@ def test_xml_record_with_a_repeated_formal_child_raises(
         prov.ProvDocument.deserialize(
             content=f"{_MEMBERSHIP_PREFIX}{body}</prov:document>", format="xml"
         )
-
-
-def test_nested_reference_child_is_used_with_a_warning() -> None:
-    # ProvToolbox 2.0.4 wraps a hadMember's member in an extra <entity>
-    # element; the schema puts prov:ref on the element itself.
-    xml_string = _membership_xml(
-        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
-    )
-    with pytest.warns(prov.ProvWarning, match="nested"):
-        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
-    (membership,) = document.get_records(prov.ProvMembership)
-    (member,) = membership.get_attribute(PROV["entity"])
-    assert str(member) == "ex:e1"
-
-
-def test_blank_reference_element_without_ref_raises() -> None:
-    xml_string = _membership_xml("<entity>   </entity>")
-    with pytest.raises(ProvXMLException, match="no prov:ref"):
-        prov.ProvDocument.deserialize(content=xml_string, format="xml")
-
-
-def test_reference_given_as_element_text_still_decodes() -> None:
-    xml_string = _membership_xml("<entity>ex:e1</entity>")
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        document = prov.ProvDocument.deserialize(content=xml_string, format="xml")
-    (membership,) = document.get_records(prov.ProvMembership)
-    (member,) = membership.get_attribute(PROV["entity"])
-    assert str(member) == "ex:e1"
-
-
-def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
-    xml_string = _membership_xml(
-        '<entity>\n          <entity prov:ref="ex:e1"/>\n        </entity>'
-    )
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        prov.ProvDocument.deserialize(content=xml_string, format="xml")
-    (warning,) = [w for w in caught if issubclass(w.category, prov.ProvWarning)]
-    assert warning.filename == __file__
 
 
 def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:

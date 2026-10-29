@@ -741,7 +741,8 @@ def _add_split_memberships(
     """Add one ``hadMember`` record per ``prov:entity`` of a membership element.
 
     PROV-DM's ``hadMember`` is binary, so an element that lists several members
-    becomes one record per member, as in the PROV-JSON and PROV-JSONLD readers.
+    becomes one record per distinct member, as in the PROV-JSON and PROV-JSONLD
+    readers.
 
     Args:
         bundle: Bundle to add the records to.
@@ -755,15 +756,12 @@ def _add_split_memberships(
     members = [value for name, value in attributes if name == PROV_ATTR_ENTITY]
     if len(members) < 2:
         return False
-    collection: dict[prov.model.QualifiedNameCandidate, Any] = {}
-    others: list[prov.model.AttributePair] = []
-    for name, value in attributes:
-        # A second collection falls through to the other pairs, where the model
-        # refuses it.
-        if name == PROV_ATTR_COLLECTION and name not in collection:
-            collection[name] = value
-        elif name != PROV_ATTR_ENTITY:
-            others.append((name, value))
+    collection = [pair for pair in attributes if pair[0] == PROV_ATTR_COLLECTION]
+    others = [
+        pair
+        for pair in attributes
+        if pair[0] not in (PROV_ATTR_ENTITY, PROV_ATTR_COLLECTION)
+    ]
     _add_memberships(bundle, identifier, collection, others, members)
     return True
 

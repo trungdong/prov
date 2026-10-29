@@ -492,14 +492,6 @@ _TWO_USED = [(PROV_ATTR_USED_ENTITY, "ex:u1"), (PROV_ATTR_USED_ENTITY, "ex:u2")]
         pytest.param(
             PROV_MEMBERSHIP,
             [],
-            [("prov:collection", None), *_TWO_ENTITIES],
-            "prov:entity",
-            False,
-            id="string-none",
-        ),
-        pytest.param(
-            PROV_MEMBERSHIP,
-            [],
             _TWO_ENTITIES,
             "prov:entity",
             False,

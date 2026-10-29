@@ -20,7 +20,7 @@ from typing import Any
 from prov import Error
 from prov.constants import PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.identifier import Namespace, QualifiedName
-from prov.model import AttributePair, OptionalID, ProvBundle, QualifiedNameCandidate
+from prov.model import AttributePair, OptionalID, ProvBundle, RecordAttributesArg
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -178,8 +178,8 @@ class _JSONPrefixMap:
 def _add_memberships(
     bundle: ProvBundle,
     identifier: OptionalID,
-    attributes: dict[QualifiedNameCandidate, Any],
-    other_attributes: list[AttributePair],
+    attributes: RecordAttributesArg,
+    other_attributes: Sequence[AttributePair],
     members: Sequence[QualifiedName],
 ) -> None:
     """Add one ``hadMember`` record per distinct member to ``bundle``.
@@ -201,6 +201,6 @@ def _add_memberships(
         bundle.new_record(
             PROV_MEMBERSHIP,
             identifier,
-            {**attributes, PROV_ATTR_ENTITY: member},
-            other_attributes,
+            attributes,
+            [(PROV_ATTR_ENTITY, member), *other_attributes],
         )
