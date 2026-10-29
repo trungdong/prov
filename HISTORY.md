@@ -434,13 +434,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   which they were asserted, so the PROV-JSON writer gives the same text whether or not
   something read the record first. 3.2.3 created an empty entry for each name read, so a
   value asserted later under that name took the earlier position. PROV-JSONLD and PROV-N
-  showed this only for a non-formal name read before another non-formal name was asserted
+  showed this only for a non-formal name read, then asserted after another non-formal name
   ([#696](https://github.com/trungdong/prov/issues/696))
 - A `hadMember` record holds several `prov:entity` values only when the call stores a
   `prov:collection`. The `"prov:collection"` spelling of the name stores one, as the
   `PROV_ATTR_COLLECTION` constant does, and a `prov:collection` whose value is `None`
   stores nothing, so two entities given with it raise `ProvException`. 3.2.3 raised for
-  the string spelling and kept both entities, and no collection, for a `None` collection
+  two entities given with the string spelling and kept both entities, and no collection,
+  for a `None` collection
   ([#700](https://github.com/trungdong/prov/issues/700))
 
 ### Additions
