@@ -482,17 +482,24 @@ def test_compacting_a_full_iri_gives_the_scans_answer(
 
 
 @pytest.mark.parametrize(
-    "protocol", [2, 5, None], ids=["pickle-2", "pickle-5", "deepcopy"]
+    ("protocol", "old"),
+    [
+        pytest.param(2, True, id="pickle-2"),
+        pytest.param(5, True, id="pickle-5"),
+        pytest.param(5, False, id="pickle-5-current"),
+        pytest.param(None, False, id="deepcopy"),
+    ],
 )
-def test_a_copied_or_old_manager_compacts(protocol: int | None) -> None:
+def test_a_copied_or_old_manager_compacts(protocol: int | None, old: bool) -> None:
     document = ProvDocument()
     document.set_default_namespace("http://d.org/")
     document.add_namespace("ex", "http://ex.org/")
     if protocol is None:
         copied = copy.deepcopy(document)
     else:
-        # A pickle from 3.2.3 holds none of the attributes added since.
-        document._namespaces.__dict__.pop("_uris_by_length", None)
+        if old:
+            # A pickle from 3.2.3 holds no index.
+            document._namespaces.__dict__.pop("_uris_by_length", None)
         copied = pickle.loads(pickle.dumps(document, protocol=protocol))
     assert str(copied.valid_qualified_name("http://ex.org/y")) == "ex:y"
     assert str(copied.valid_qualified_name("http://d.org/z")) == "z"

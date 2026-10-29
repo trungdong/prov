@@ -11,6 +11,7 @@ from typing import Any, cast
 
 from rdflib import RDF, RDFS, XSD
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
+from rdflib.store import Store
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
@@ -421,7 +422,7 @@ class ProvRDFSerializer(Serializer):
 
     # The bindings of each source store, as ``(prefix, IRI)`` pairs read at
     # the first lookup in the current decode. ``None`` outside a decode.
-    _bindings_by_store: dict[Any, tuple[tuple[str, str], ...]] | None = None
+    _bindings_by_store: dict[Store, tuple[tuple[str, str], ...]] | None = None
 
     def serialize(
         self,
@@ -624,8 +625,8 @@ class ProvRDFSerializer(Serializer):
         declared, which ``compute_qname`` refuses to split. Document
         namespaces are not consulted here: callers only reach this method
         after ``valid_identifier``/``valid_qualified_name`` returned
-        ``None``, which already scanned every document namespace for a
-        URI-prefix match, so any that applied would have resolved there.
+        ``None``, which already matched every document namespace against the
+        IRI, so any that applied would have resolved there.
 
         The bindings are the source's as of the first lookup in the current
         decode (:meth:`_source_bindings`). A binding the reader mints later is

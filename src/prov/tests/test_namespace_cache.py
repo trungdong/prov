@@ -1,5 +1,7 @@
 """The resolve-once cache in NamespaceManager and its invalidation."""
 
+from collections.abc import ValuesView
+
 import pytest
 
 from prov.identifier import Identifier, Namespace
@@ -19,6 +21,27 @@ def test_unresolvable_names_are_not_cached() -> None:
     manager = NamespaceManager()
     assert manager.valid_qualified_name("zz:e1") is None
     assert "zz:e1" not in manager._resolve_cache
+
+
+@pytest.mark.parametrize("count", [50, 200])
+def test_a_read_with_many_namespaces_scans_none(
+    monkeypatch: pytest.MonkeyPatch, count: int
+) -> None:
+    scans = 0
+
+    def counting_values(self: NamespaceManager) -> ValuesView[Namespace]:
+        nonlocal scans
+        scans += 1
+        return dict.values(self)
+
+    monkeypatch.setattr(NamespaceManager, "values", counting_values)
+    manager = NamespaceManager()
+    for i in range(count):
+        iri = f"http://ex.org/run/{i}/out"
+        assert manager.valid_qualified_name(iri) is None
+        manager.add_namespace(Namespace(f"ns{i}", f"http://ex.org/run/{i}/"))
+        assert str(manager.valid_qualified_name(iri)) == f"ns{i}:out"
+    assert scans == 0
 
 
 def test_adding_a_namespace_clears_the_cache() -> None:

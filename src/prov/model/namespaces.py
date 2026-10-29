@@ -67,9 +67,8 @@ class NamespaceManager(dict[str, Namespace]):
         """
         dict.__init__(self)
 
-        # Every namespace this dict holds, by URI length and then URI, in
-        # registration order within a URI. _store() keeps it in step with the
-        # dict, so it exists before the first write.
+        # Every namespace this dict holds, by URI length and then URI.
+        # _store() keeps it in step with the dict.
         self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
         self._default_namespaces = DEFAULT_NAMESPACES
         for prefix, namespace in self._default_namespaces.items():
@@ -392,27 +391,24 @@ class NamespaceManager(dict[str, Namespace]):
         return namespace[str_value[len(namespace.uri) :]]
 
     def _compacting_namespace(self, iri: str) -> Namespace | None:
-        """The first namespace in registration order whose URI prefixes ``iri``.
+        """The first namespace in the dict's order whose URI prefixes ``iri``.
 
         A default namespace whose URI is all of ``iri`` does not count, as it
         has no name for an empty local part. One candidate, the usual case,
         comes from the length index. Several candidates fall back to a scan in
-        registration order.
+        the dict's order.
         """
-        candidates = [
+        matches = [
             namespace
             for length, by_uri in self._uris_by_length.items()
             for namespace in by_uri.get(iri[:length], ())
         ]
-        if len(candidates) > 1:
-            for namespace in self.values():
-                if iri.startswith(namespace.uri) and (
-                    namespace.prefix or len(iri) > len(namespace.uri)
-                ):
-                    return namespace
-            return None
-        if candidates and (candidates[0].prefix or len(iri) > len(candidates[0].uri)):
-            return candidates[0]
+        candidates: Iterable[Namespace] = matches if len(matches) < 2 else self.values()
+        for namespace in candidates:
+            if iri.startswith(namespace.uri) and (
+                namespace.prefix or len(iri) > len(namespace.uri)
+            ):
+                return namespace
         return None
 
     def reject_default_iri(self, text: str) -> None:
