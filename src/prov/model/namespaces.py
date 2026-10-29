@@ -47,9 +47,8 @@ class NamespaceManager(dict[str, Namespace]):
     """Manages namespaces for PROV documents and bundles.
 
     Register namespaces through :meth:`add_namespace` and
-    :meth:`set_default_namespace`. The dict's own write methods (item
-    assignment, ``update``, ``del``, ``pop`` and ``clear``) bypass the
-    manager's indexes and are unsupported.
+    :meth:`set_default_namespace`. Any of the dict's own write methods
+    bypasses the manager's indexes and is unsupported.
     """
 
     parent: NamespaceManager | None = None
@@ -72,13 +71,9 @@ class NamespaceManager(dict[str, Namespace]):
                 child of (default: ``None``).
         """
         dict.__init__(self)
-
-        # Every namespace this dict holds, by URI length and then URI.
-        # The manager's writers keep it in step with the dict.
-        self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
         self._default_namespaces = DEFAULT_NAMESPACES
-        for prefix, namespace in self._default_namespaces.items():
-            self._store(prefix, namespace)
+        self.update(self._default_namespaces)
+        self._reindex()
         self._namespaces: dict[str, Namespace] = {}
 
         # Maps a plain string to the name this manager resolved, possibly one
@@ -148,18 +143,17 @@ class NamespaceManager(dict[str, Namespace]):
         self._reindex()
         self._resolve_cache.clear()
 
-    def _store(self, prefix: str, namespace: Namespace) -> None:
-        """Bind a new ``prefix`` to ``namespace`` and index it."""
-        self[prefix] = namespace
-        self._index(namespace)
-
     def _index(self, namespace: Namespace) -> None:
         by_uri = self._uris_by_length.setdefault(len(namespace.uri), {})
         by_uri.setdefault(namespace.uri, []).append(namespace)
 
     def _reindex(self) -> None:
-        """Rebuild the length index from the dict's namespaces."""
-        self._uris_by_length = {}
+        """Rebuild the length index from the dict's namespaces.
+
+        The index holds every namespace the dict holds, by URI length and then
+        URI. The manager's writers keep it in step with the dict.
+        """
+        self._uris_by_length: dict[int, dict[str, list[Namespace]]] = {}
         for namespace in self.values():
             self._index(namespace)
 
@@ -236,7 +230,8 @@ class NamespaceManager(dict[str, Namespace]):
         # Only now add the namespace to the registry
         self._resolve_cache.clear()
         self._namespaces[prefix] = namespace
-        self._store(prefix, namespace)
+        self[prefix] = namespace
+        self._index(namespace)
         self._uri_map[uri] = namespace
 
         return namespace

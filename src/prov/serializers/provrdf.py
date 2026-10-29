@@ -5,14 +5,12 @@ import io
 import re
 import typing
 from collections import OrderedDict
-from collections.abc import Callable, Generator, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from typing import Any, cast
 
 from rdflib import RDF, RDFS, XSD
 from rdflib.graph import DATASET_DEFAULT_GRAPH_ID, Dataset, Graph
-from rdflib.store import Store
 from rdflib.term import BNode, Literal as RDFLiteral, Node, URIRef
 
 import prov.model as pm
@@ -421,9 +419,9 @@ class ProvRDFSerializer(Serializer):
     # graph.
     _skipped_bindings: tuple[tuple[str, str], ...] = ()
 
-    # The source graph's store and its (prefix, IRI) bindings, read when the
-    # outermost decode starts. None outside a decode.
-    _held_bindings: tuple[Store, tuple[tuple[str, str], ...]] | None = None
+    # The source's (prefix, IRI) bindings, read when ``decode_document`` starts.
+    # None outside it.
+    _held_bindings: tuple[tuple[str, str], ...] | None = None
 
     def serialize(
         self,
@@ -629,11 +627,7 @@ class ProvRDFSerializer(Serializer):
         ``None``, which already matched every document namespace against the
         IRI, so any that applied would have resolved there.
 
-        The bindings are those read when the outermost decode started
-        (:meth:`_source_bindings`). A binding the reader mints later is for a
-        namespace it has already registered on the document, which the caller
-        resolves first, for every IRI the document can compact. Any other IRI
-        reads the live bindings.
+        Which bindings it reads is set out in :meth:`_source_bindings`.
 
         Args:
             iri: The IRI to resolve.
@@ -658,47 +652,27 @@ class ProvRDFSerializer(Serializer):
         )
         return pm.QualifiedName(ns, iri[len(ns.uri) :])
 
+    def _source_bindings(self, graph: Graph, iri: str) -> tuple[tuple[str, str], ...]:
+        """``graph``'s (prefix, IRI) bindings to resolve ``iri`` against.
+
+        :meth:`decode_document` reads the source's bindings when it starts and
+        holds them until it ends, so a source with many bindings is not walked
+        again for every IRI. A binding the reader mints later is for a
+        namespace already registered on the document, which the caller resolves
+        first for every IRI the document can compact. A colon-less IRI and a
+        ``_:`` IRI are never compacted, so a binding minted mid-decode can be
+        the answer for them. They read the live bindings, as does any call
+        outside :meth:`decode_document`.
+        """
+        if self._held_bindings is not None and ":" in iri and not iri.startswith("_:"):
+            return self._held_bindings
+        return self._live_bindings(graph)
+
     @staticmethod
     def _live_bindings(graph: Graph) -> tuple[tuple[str, str], ...]:
         return tuple(
             (prefix, str(uri)) for prefix, uri in graph.namespace_manager.namespaces()
         )
-
-    @contextmanager
-    def _holding_bindings(self, graph: Graph) -> Iterator[None]:
-        """Hold ``graph``'s namespace bindings for the decode inside the block.
-
-        A call inside a decode keeps the outer snapshot, so the bindings are
-        read when the outermost decode starts and released when it ends.
-        """
-        if self._held_bindings is not None:
-            yield
-            return
-        self._held_bindings = (graph.store, self._live_bindings(graph))
-        try:
-            yield
-        finally:
-            self._held_bindings = None
-
-    def _source_bindings(self, graph: Graph, iri: str) -> tuple[tuple[str, str], ...]:
-        """``graph``'s namespace bindings to resolve ``iri`` against.
-
-        Inside a decode, an IRI the document can compact reads the bindings
-        held when the outermost decode started, so a graph with many bindings
-        is not walked again for every IRI. A colon-less IRI and a ``_:`` IRI
-        are never compacted, so a binding the reader minted mid-decode can be
-        the answer for them, and they read the live bindings, as does any
-        graph other than the one held.
-        """
-        held = self._held_bindings
-        if (
-            held is not None
-            and graph.store is held[0]
-            and ":" in iri
-            and not iri.startswith("_:")
-        ):
-            return held[1]
-        return self._live_bindings(graph)
 
     def _default_name(self, iri: str, uri: str) -> pm.QualifiedName | None:
         """The name ``iri`` has in the document's default namespace when that
@@ -1488,10 +1462,7 @@ class ProvRDFSerializer(Serializer):
         (:meth:`_register_shadowed_bindings`).
 
         The source's namespace bindings are read once, here, and held until
-        the decode ends. A binding the reader mints later is for a namespace
-        it has already registered on the document, which resolves first for
-        every IRI the document can compact. Any other IRI reads the live
-        bindings.
+        the decode ends (:meth:`_source_bindings`).
 
         Args:
             content: RDF graph (typically a ``Dataset``, as produced by
@@ -1522,48 +1493,62 @@ class ProvRDFSerializer(Serializer):
         except pm.ProvException as exc:
             raise ProvRDFException(f"prefix {prefix!r}, IRI {iri!r}: {exc}") from exc
         self._skipped_bindings = tuple(shadowed)
-        with self._holding_bindings(content):
-            if hasattr(content, "graphs"):
-                for graph in content.graphs():
-                    if (
-                        isinstance(graph.identifier, BNode)
-                        or graph.identifier == DATASET_DEFAULT_GRAPH_ID
-                    ):
-                        self.decode_container(
-                            graph,
-                            document,
-                            relation_mapper=relation_mapper,
-                            predicate_mapper=predicate_mapper,
+        self._held_bindings = self._live_bindings(content)
+        try:
+            self._decode_graphs(content, document, relation_mapper, predicate_mapper)
+        finally:
+            self._held_bindings = None
+
+    def _decode_graphs(
+        self,
+        content: Graph,
+        document: pm.ProvDocument,
+        relation_mapper: RelationMapper,
+        predicate_mapper: PredicateMapper,
+    ) -> None:
+        """Decode ``content``'s default graph into ``document`` and each named
+        graph into one of its bundles."""
+        if hasattr(content, "graphs"):
+            for graph in content.graphs():
+                if (
+                    isinstance(graph.identifier, BNode)
+                    or graph.identifier == DATASET_DEFAULT_GRAPH_ID
+                ):
+                    self.decode_container(
+                        graph,
+                        document,
+                        relation_mapper=relation_mapper,
+                        predicate_mapper=predicate_mapper,
+                    )
+                else:
+                    # Resolve the bundle IRI to a qualified name; if no
+                    # registered namespace matches (rdflib >= 7 no longer
+                    # carries bundle-graph prefix bindings into TriG output,
+                    # so re-parsed documents may lack them), fall back to
+                    # minting a namespace via compute_qname, as
+                    # decode_rdf_representation does for all other IRIs.
+                    try:
+                        bundle_id = self.decode_rdf_representation(
+                            graph.identifier, graph
                         )
-                    else:
-                        # Resolve the bundle IRI to a qualified name; if no
-                        # registered namespace matches (rdflib >= 7 no longer
-                        # carries bundle-graph prefix bindings into TriG output,
-                        # so re-parsed documents may lack them), fall back to
-                        # minting a namespace via compute_qname, as
-                        # decode_rdf_representation does for all other IRIs.
-                        try:
-                            bundle_id = self.decode_rdf_representation(
-                                graph.identifier, graph
-                            )
-                            bundle = document.bundle(bundle_id)
-                        except pm.ProvException as exc:
-                            raise ProvRDFException(
-                                f"bundle {str(graph.identifier)!r}: {exc}"
-                            ) from exc
-                        self.decode_container(
-                            graph,
-                            bundle,
-                            relation_mapper=relation_mapper,
-                            predicate_mapper=predicate_mapper,
-                        )
-            else:
-                self.decode_container(
-                    content,
-                    document,
-                    relation_mapper=relation_mapper,
-                    predicate_mapper=predicate_mapper,
-                )
+                        bundle = document.bundle(bundle_id)
+                    except pm.ProvException as exc:
+                        raise ProvRDFException(
+                            f"bundle {str(graph.identifier)!r}: {exc}"
+                        ) from exc
+                    self.decode_container(
+                        graph,
+                        bundle,
+                        relation_mapper=relation_mapper,
+                        predicate_mapper=predicate_mapper,
+                    )
+        else:
+            self.decode_container(
+                content,
+                document,
+                relation_mapper=relation_mapper,
+                predicate_mapper=predicate_mapper,
+            )
 
     def decode_container(
         self,
@@ -1584,13 +1569,6 @@ class ProvRDFSerializer(Serializer):
         :meth:`~prov.model.ProvBundle.new_record`. Mutates ``bundle`` (and,
         for unresolvable subject IRIs, ``self.document``'s namespaces) in
         place.
-
-        Called on its own, the graph's namespace bindings are read when the
-        call starts and held until it returns. Called inside
-        :meth:`decode_document`, the bindings read when that decode started
-        stay. A binding the reader mints later is for a namespace it has
-        already registered on the document, which resolves first for every
-        IRI the document can compact. Any other IRI reads the live bindings.
 
         Args:
             graph: The RDF (sub)graph to decode, e.g. one context of a
@@ -1613,25 +1591,22 @@ class ProvRDFSerializer(Serializer):
             UserWarning: If, after decoding, some attributes could not be
                 matched to any formal attribute or converted.
         """
-        with self._holding_bindings(graph):
-            prov_cls_map = {
-                prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
-            }
-            state = _DecodeState()
-            self._decode_type_triples(graph, state, prov_cls_map)
-            self._decode_triples(
-                graph, bundle, state, relation_mapper, predicate_mapper
-            )
-            self._emit_decoded_records(bundle, state)
+        prov_cls_map = {
+            prov_type.uri: base_cls for prov_type, base_cls in PROV_BASE_CLS.items()
+        }
+        state = _DecodeState()
+        self._decode_type_triples(graph, state, prov_cls_map)
+        self._decode_triples(graph, bundle, state, relation_mapper, predicate_mapper)
+        self._emit_decoded_records(bundle, state)
 
-            # Entries are created only when an attribute is gathered and are
-            # removed as records consume them, so whatever remains is unconverted.
-            if state.other_attributes:
-                warn(
-                    "The following attributes were not converted: "
-                    + str(state.other_attributes),
-                    UserWarning,
-                )
+        # Entries are created only when an attribute is gathered and are
+        # removed as records consume them, so whatever remains is unconverted.
+        if state.other_attributes:
+            warn(
+                "The following attributes were not converted: "
+                + str(state.other_attributes),
+                UserWarning,
+            )
 
     def _decode_type_triples(
         self,

@@ -24,7 +24,7 @@ from rdflib.compare import graph_diff
 from rdflib.graph import Dataset, Graph
 
 import prov.model as pm
-from prov.constants import PROV_ATTR_COLLECTION, PROV_ATTR_USED_ENTITY
+from prov.constants import PROV, PROV_ATTR_COLLECTION, PROV_ATTR_USED_ENTITY
 from prov.model import ProvDocument, ProvException, ProvExceptionInvalidQualifiedName
 from prov.serializers.provrdf import (
     ProvRDFException,
@@ -1714,37 +1714,23 @@ def test_resolve_iri_skips_bound_namespace_equal_to_the_iri_itself() -> None:
     assert identifier.localpart == "thing"
 
 
-PROV_NS = "http://www.w3.org/ns/prov#"
-_PROV_PREFIX = f"@prefix prov: <{PROV_NS}> ."
-
-
 def _lookup_between_reads() -> tuple[object, object]:
-    # A binding added between two decodes by one serializer reaches the second.
+    # A binding added after one decode counts for a lookup after it.
     graph = Graph().parse(
-        data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> ."
-        " <http://example.org/sub/thing> a prov:Entity .",
-        format="turtle",
+        data=_TURTLE_PREFIXES + "ex:e a prov:Entity .", format="turtle"
     )
+    iri = URIRef("http://example.org/sub/x;")
     first = ProvDocument()
     serializer = ProvRDFSerializer(document=first)
-    serializer.decode_container(graph, first)
+    serializer.decode_document(graph, first)
     graph.bind("exsub", "http://example.org/sub/")
-    second = ProvDocument()
-    serializer.document = second
-    serializer.decode_container(graph, second)
-    (record,) = second.get_records()
-    return (record.identifier.namespace.prefix, record.identifier.localpart), (
-        "exsub",
-        "thing",
-    )
+    serializer.document = ProvDocument()
+    return serializer.decode_rdf_representation(iri, graph).namespace.prefix, "exsub"
 
 
 def _lookup_outside_a_decode() -> tuple[object, object]:
     # Outside a decode nothing is held, so a binding added after a lookup counts.
-    graph = Graph().parse(
-        data=f"{_PROV_PREFIX} @prefix ex: <http://example.org/> .",
-        format="turtle",
-    )
+    graph = Graph().parse(data=_TURTLE_PREFIXES, format="turtle")
     iri = URIRef("http://example.org/sub/x;")
     first = ProvDocument()
     serializer = ProvRDFSerializer(document=first)
@@ -1761,8 +1747,8 @@ def _lookup_in_bundles_sharing_a_binding() -> tuple[object, object]:
     # foaf is a binding rdflib adds to every graph, so the document does not
     # hold it and each name is resolved against the graph.
     trig = f"""
-    {_PROV_PREFIX}
-    @prefix foaf: <http://xmlns.com/foaf/0.1/> .
+    @prefix prov: <{PROV.uri}> .
+    {_FOAF_PREFIX}
     <http://example.org/b1> {{ foaf:a1 a prov:Entity . foaf:a2 a prov:Entity . }}
     <http://example.org/b2> {{ foaf:a3 a prov:Entity . }}
     """
@@ -1784,11 +1770,11 @@ def _lookup_of_a_colon_less_iri() -> tuple[object, object]:
     graph = Graph(store="SimpleMemory")
     graph.bind("ex", "http://ex.org/")
     subject = URIRef("http://ex.org/e")
-    graph.add((subject, RDF.type, URIRef(f"{PROV_NS}Entity")))
+    graph.add((subject, RDF.type, URIRef(PROV.uri + "Entity")))
     graph.add((subject, URIRef("http://ex.org/p0"), URIRef("foo/x")))
     graph.add((subject, URIRef("http://ex.org/p1"), URIRef("foo/a/b")))
     document = ProvDocument()
-    ProvRDFSerializer(document=document).decode_container(graph, document)
+    ProvRDFSerializer(document=document).decode_document(graph, document)
     (record,) = document.get_records()
     values = {str(name): str(value) for name, value in record.attributes}
     return values, {"ex:p0": "ns1:x", "ex:p1": "ns1:a/b"}
@@ -1806,10 +1792,9 @@ def _lookup_of_a_colon_less_iri() -> tuple[object, object]:
 def test_the_graph_lookup_snapshot_lasts_one_decode(
     lookup: Callable[[], tuple[object, object]],
 ) -> None:
-    # The reader resolves an IRI against one snapshot of the source graph's
-    # bindings per decode, held across the bundles of one document. A later
-    # decode, a call outside any decode and an IRI the document cannot compact
-    # read the bindings as they are then.
+    # decode_document reads the source's bindings once and holds them until it
+    # returns. A call outside it, and an IRI the document cannot compact, read
+    # the bindings as they are then.
     actual, expected = lookup()
     assert actual == expected
 

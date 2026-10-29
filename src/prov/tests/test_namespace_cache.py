@@ -27,6 +27,7 @@ def test_unresolvable_names_are_not_cached() -> None:
 def test_a_read_with_many_namespaces_scans_none(
     monkeypatch: pytest.MonkeyPatch, count: int
 ) -> None:
+    manager = NamespaceManager()
     scans = 0
 
     def counting_values(self: NamespaceManager) -> ValuesView[Namespace]:
@@ -35,7 +36,6 @@ def test_a_read_with_many_namespaces_scans_none(
         return dict.values(self)
 
     monkeypatch.setattr(NamespaceManager, "values", counting_values)
-    manager = NamespaceManager()
     for i in range(count):
         iri = f"http://ex.org/run/{i}/out"
         assert manager.valid_qualified_name(iri) is None

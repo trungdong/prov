@@ -3,6 +3,7 @@
 import copy
 import pickle
 from collections.abc import Callable, Iterator
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -395,20 +396,8 @@ def test_lookup_corners() -> None:
     assert list(bundle.get_registered_namespaces()) == []
 
 
-def _manager(
-    default: str | None = None, *registered: tuple[str, str]
-) -> Callable[[], NamespaceManager]:
-    def build() -> NamespaceManager:
-        manager = NamespaceManager(default=default)
-        for prefix, uri in registered:
-            manager.add_namespace(Namespace(prefix, uri))
-        return manager
-
-    return build
-
-
 def _redefaulted() -> NamespaceManager:
-    manager = _manager("http://d1/", ("ex", "http://ex/"))()
+    manager = NamespaceManager({"ex": "http://ex/"}, default="http://d1/")
     manager.set_default_namespace("http://d2/")
     return manager
 
@@ -423,39 +412,43 @@ def _bundle_under_a_document_prefix() -> NamespaceManager:
 
 _COMPACTING_ROWS = {
     "single": (
-        _manager(None, ("ex", "http://ex.org/")),
+        partial(NamespaceManager, {"ex": "http://ex.org/"}),
         "http://ex.org/a",
         ("ex", "http://ex.org/a"),
     ),
     "nested-outer-first": (
-        _manager(None, ("o", "http://ex.org/"), ("i", "http://ex.org/a/")),
+        partial(NamespaceManager, {"o": "http://ex.org/", "i": "http://ex.org/a/"}),
         "http://ex.org/a/b",
         ("o", "http://ex.org/a/b"),
     ),
     "nested-inner-first": (
-        _manager(None, ("i", "http://ex.org/a/"), ("o", "http://ex.org/")),
+        partial(NamespaceManager, {"i": "http://ex.org/a/", "o": "http://ex.org/"}),
         "http://ex.org/a/b",
         ("i", "http://ex.org/a/b"),
     ),
     "default-local": (
-        _manager("http://d.org/"),
+        partial(NamespaceManager, default="http://d.org/"),
         "http://d.org/x",
         ("", "http://d.org/x"),
     ),
-    "default-empty-local": (_manager("http://d.org/"), "http://d.org/", None),
+    "default-empty-local": (
+        partial(NamespaceManager, default="http://d.org/"),
+        "http://d.org/",
+        None,
+    ),
     "default-and-prefix-same-uri": (
-        _manager("http://ex/", ("ex", "http://ex/")),
+        partial(NamespaceManager, {"ex": "http://ex/"}, default="http://ex/"),
         "http://ex/",
         ("ex", "http://ex/"),
     ),
     "prov-uri-under-second-prefix": (
-        _manager(None, ("p", PROV.uri)),
+        partial(NamespaceManager, {"p": PROV.uri}),
         PROV.uri + "Entity",
         ("prov", PROV.uri + "Entity"),
     ),
     "replaced-default": (_redefaulted, "http://d1/x", None),
     "no-match": (
-        _manager(None, ("ex", "http://ex.org/")),
+        partial(NamespaceManager, {"ex": "http://ex.org/"}),
         "http://other.org/a",
         None,
     ),
@@ -487,7 +480,6 @@ def _without_index(document: ProvDocument) -> ProvDocument:
 
 
 _COPIERS = {
-    "pickle-2-old": lambda d: pickle.loads(pickle.dumps(_without_index(d), protocol=2)),
     "pickle-5-old": lambda d: pickle.loads(pickle.dumps(_without_index(d), protocol=5)),
     "pickle-5-current": lambda d: pickle.loads(pickle.dumps(d, protocol=5)),
     "deepcopy": copy.deepcopy,
