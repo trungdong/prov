@@ -1,23 +1,31 @@
-"""The JSON machinery PROV-JSON and PROV-JSONLD share.
+"""The machinery the PROV-JSON and PROV-JSONLD serializers share.
 
 :mod:`prov.serializers.provjson` and :mod:`prov.serializers.provjsonld` both
-write qualified names against a container's prefix map and fan a membership
-out into one ``hadMember`` record per member. Those pieces live here so that
-neither module imports the other's private names. The position helpers that
-PROV-JSON's messages use, and the ``object_pairs_hook`` both readers give
-:func:`json.load`, live here too (#589, #532).
+write qualified names against a container's prefix map, and their readers fan a
+membership out into one ``hadMember`` record per member. Those pieces live here
+so that neither module imports the other's private names. The position helpers
+that PROV-JSON's messages use, and the ``object_pairs_hook`` both JSON readers
+give :func:`json.load`, live here too (#589, #532).
+
+:mod:`prov.serializers.provxml` borrows only the membership fan-out
+(``_add_memberships``).
 """
 
 import json
 import typing
 from collections import Counter
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from prov import Error
 from prov.constants import PROV_ATTR_ENTITY, PROV_MEMBERSHIP
 from prov.identifier import Namespace, QualifiedName
-from prov.model import AttributePair, OptionalID, ProvBundle, QualifiedNameCandidate
+from prov.model import (
+    AttributePair,
+    OptionalID,
+    ProvBundle,
+    QualifiedNameCandidate,
+)
 
 __author__ = "Trung Dong Huynh"
 __email__ = "trungdong@donggiang.com"
@@ -175,16 +183,16 @@ class _JSONPrefixMap:
 def _add_memberships(
     bundle: ProvBundle,
     identifier: OptionalID,
-    attributes: dict[QualifiedNameCandidate, Any],
-    other_attributes: list[AttributePair],
+    attributes: Mapping[QualifiedNameCandidate, Any] | Sequence[AttributePair],
+    other_attributes: Sequence[AttributePair],
     members: Sequence[QualifiedName],
 ) -> None:
-    """Add one ``hadMember`` record per member to ``bundle``.
+    """Add one ``hadMember`` record per distinct member to ``bundle``.
 
     PROV-DM's ``hadMember`` is binary, so a membership listing several members
-    becomes one record per member. Each record carries the identifier and the
-    attributes of the membership. The PROV-JSON and PROV-JSONLD readers share
-    this fan-out.
+    becomes one record per member, and a member listed twice gives one record.
+    Each record carries the identifier and the attributes of the membership. The
+    PROV-JSON, PROV-JSONLD and PROV-XML readers share this fan-out.
 
     Args:
         bundle: Bundle to add the records to.
@@ -194,10 +202,10 @@ def _add_memberships(
         other_attributes: The membership's other attributes.
         members: The resolved members, one record each.
     """
-    for member in members:
+    for member in dict.fromkeys(members):
         bundle.new_record(
             PROV_MEMBERSHIP,
             identifier,
-            {**attributes, PROV_ATTR_ENTITY: member},
-            other_attributes,
+            attributes,
+            [(PROV_ATTR_ENTITY, member), *other_attributes],
         )

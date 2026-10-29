@@ -301,6 +301,18 @@ arguments. A conflict between two present values, in any position, raises first.
 same documents and for a document whose bundles disagree about a shared identifier.
 `prov_to_dot()` draws such a document as asserted, without merging any records.
 
+## Membership
+
+`prov` 3.3.0 raises {py:class}`~prov.model.ProvException` for this call.
+
+| Error | Issue | Example | Write instead |
+|---|---|---|---|
+| `Cannot have more than one value for attribute prov:entity` | [#700](https://github.com/trungdong/prov/issues/700) | `add_attributes([(PROV_ATTR_COLLECTION, "ex:c"), ("prov:entity", "ex:e1"), ("prov:entity", "ex:e2")])` on a `hadMember` record | One `hadMember` per entity. |
+
+A PROV-XML `prov:hadMember` with several `<prov:entity>` children reads as one record per
+entity, each with the element's identifier and attributes, as PROV-JSON and PROV-JSONLD
+already read a list, where 3.2.3 read one record holding every entity.
+
 ## Equality
 
 `==` on records, bundles, documents and `Literal` values follows one rule in 3.3.0, and

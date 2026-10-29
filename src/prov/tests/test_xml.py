@@ -3,6 +3,7 @@ import datetime
 import difflib
 import inspect
 import io
+import json
 import os
 import re
 import sys
@@ -1455,6 +1456,131 @@ def test_nested_reference_warning_is_attributed_to_the_caller() -> None:
         prov.ProvDocument.deserialize(content=xml_string, format="xml")
     (warning,) = [w for w in caught if issubclass(w.category, prov.ProvWarning)]
     assert warning.filename == __file__
+
+
+def _members_xml(id_attribute: str, entities: tuple[str, ...]) -> str:
+    refs = "".join(f'<prov:entity prov:ref="{e}"/>' for e in entities)
+    return _prov_xml(
+        f"<prov:hadMember{id_attribute}>"
+        f'<prov:collection prov:ref="ex:c"/>{refs}<ex:k>v</ex:k>'
+        "</prov:hadMember>",
+        False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("id_attribute", "entities", "identifiers", "entity_lists"),
+    [
+        pytest.param(
+            ' prov:id="ex:m"',
+            ("ex:e1", "ex:e2"),
+            ["ex:m", "ex:m"],
+            [["ex:e1"], ["ex:e2"]],
+            id="identified",
+        ),
+        pytest.param(
+            "",
+            ("ex:e1", "ex:e2"),
+            [None, None],
+            [["ex:e1"], ["ex:e2"]],
+            id="anonymous",
+        ),
+        pytest.param(
+            ' prov:id="ex:m"',
+            ("ex:e1", "ex:e1"),
+            ["ex:m"],
+            [["ex:e1"]],
+            id="repeated-member",
+        ),
+        pytest.param(' prov:id="ex:m"', (), ["ex:m"], [[]], id="no-member"),
+    ],
+)
+def test_xml_had_member_with_several_entities_reads_one_record_per_member(
+    id_attribute: str,
+    entities: tuple[str, ...],
+    identifiers: list[str | None],
+    entity_lists: list[list[str]],
+) -> None:
+    document = prov.ProvDocument.deserialize(
+        content=_members_xml(f'{id_attribute} xsi:type="ex:T"', entities),
+        format="xml",
+    )
+    records = list(document.get_records(prov.ProvMembership))
+
+    assert [r.identifier and str(r.identifier) for r in records] == identifiers
+    assert [
+        [str(e) for e in r.get_attribute(PROV_ATTR_ENTITY)] for r in records
+    ] == entity_lists
+    for record in records:
+        assert [str(c) for c in record.get_attribute("prov:collection")] == ["ex:c"]
+        assert [str(k) for k in record.get_attribute("ex:k")] == ["v"]
+        assert [str(t) for t in record.get_attribute(PROV_TYPE)] == ["ex:T"]
+
+
+def test_xml_had_member_split_equals_the_prov_json_list_read() -> None:
+    # The split record stores prov:collection before prov:entity, as a PROV-JSON
+    # read does, so the two documents serialise to the same PROV-JSON text.
+    from_xml = prov.ProvDocument.deserialize(
+        content=_members_xml(' prov:id="ex:m"', ("ex:e1", "ex:e2")), format="xml"
+    )
+    json_text = json.dumps(
+        {
+            "prefix": {"ex": "http://example.org/"},
+            "hadMember": {
+                "ex:m": [
+                    {"prov:collection": "ex:c", "prov:entity": entity, "ex:k": "v"}
+                    for entity in ("ex:e1", "ex:e2")
+                ]
+            },
+        }
+    )
+    from_json = prov.ProvDocument.deserialize(content=json_text, format="json")
+
+    assert from_xml == from_json
+    assert from_xml.serialize(format="json") == from_json.serialize(format="json")
+
+
+def test_xml_example_33_reads_three_memberships_and_writes_three_elements() -> None:
+    document = prov.ProvDocument.deserialize(
+        source=os.path.join(DATA_PATH, "example_33.xml"), format="xml"
+    )
+    records = list(document.get_records(prov.ProvMembership))
+
+    assert [str(r.get_attribute(PROV_ATTR_ENTITY).pop()) for r in records] == [
+        "ex:e0",
+        "ex:e1",
+        "ex:e2",
+    ]
+    assert {str(r.get_attribute("prov:collection").pop()) for r in records} == {"ex:c"}
+    written = document.serialize(format="xml")
+    assert written.count("<prov:hadMember") == 3
+
+
+@pytest.mark.parametrize(
+    ("body", "position"),
+    [
+        pytest.param(
+            "<prov:wasGeneratedBy>"
+            '<prov:entity prov:ref="ex:e"/><prov:activity prov:ref="ex:a1"/>'
+            '<prov:activity prov:ref="ex:a2"/></prov:wasGeneratedBy>',
+            "<prov:wasGeneratedBy> with no prov:id",
+            id="other-record-two-activities",
+        ),
+        pytest.param(
+            '<prov:hadMember><prov:collection prov:ref="ex:c1"/>'
+            '<prov:collection prov:ref="ex:c2"/>'
+            '<prov:entity prov:ref="ex:e1"/><prov:entity prov:ref="ex:e2"/>'
+            "</prov:hadMember>",
+            "<prov:hadMember> with no prov:id",
+            id="membership-two-collections",
+        ),
+    ],
+)
+def test_xml_record_with_a_repeated_formal_child_raises(
+    body: str, position: str
+) -> None:
+    with pytest.raises(ProvXMLException, match=rf"{position}: .*more than one value"):
+        prov.ProvDocument.deserialize(content=_prov_xml(body, False), format="xml")
 
 
 def test_xml_writer_rejects_xsi_bound_to_another_iri() -> None:

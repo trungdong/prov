@@ -496,17 +496,27 @@ def _membership_payload(entities) -> str:
     )
 
 
-def test_deserialize_membership_entity_array_gives_one_record_per_member() -> None:
+@pytest.mark.parametrize(
+    "entities",
+    [
+        pytest.param(["ex:e1", "ex:e2"], id="two-members"),
+        pytest.param(["ex:e1", "ex:e1", "ex:e2"], id="a-member-twice"),
+    ],
+)
+def test_deserialize_membership_entity_array_gives_one_record_per_member(
+    entities: list[str],
+) -> None:
     # Submission 4.18: "a single entity or an array of them"; PROV-DM's
-    # hadMember is binary, so the array fans out.
+    # hadMember is binary, so the array fans out, one record per distinct member.
     doc = ProvDocument.deserialize(
-        content=_membership_payload(["ex:e1", "ex:e2"]), format="jsonld"
+        content=_membership_payload(entities), format="jsonld"
     )
     expected = _new_doc()
     expected.entity("ex:c")
     expected.hadMember("ex:c", "ex:e1")
     expected.hadMember("ex:c", "ex:e2")
     assert doc == expected
+    assert len(list(doc.get_records(ProvMembership))) == 2
 
 
 def test_deserialize_membership_single_element_array() -> None:

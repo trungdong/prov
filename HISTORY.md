@@ -427,6 +427,14 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   several lines. `width` sets the limit, and `width=None` writes the one-line shape of
   3.2.x, for output compared byte for byte or read line by line
   ([#131](https://github.com/trungdong/prov/issues/131))
+- A read of a record, such as `label`, `args`, `get_attribute()` or `unified()`, leaves its
+  attributes unchanged, where 3.2.3 added an empty entry that put an attribute asserted
+  later in an earlier position in PROV-JSON, PROV-JSONLD and PROV-N output
+  ([#696](https://github.com/trungdong/prov/issues/696))
+- A record holds one value of each PROV attribute, so assert one `hadMember` per entity,
+  where 3.2.3 accepted several in a call that also held `PROV_ATTR_COLLECTION`. The
+  PROV-XML reader reads a `hadMember` with several entities as one per entity, where 3.2.3
+  built one record ([#700](https://github.com/trungdong/prov/issues/700))
 
 ### Additions
 

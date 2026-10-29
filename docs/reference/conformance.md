@@ -175,6 +175,9 @@ statement's own arguments are errors.
 - A reference element with no `prov:ref` whose child is itself a reference, the shape
   ProvToolbox writes for a `hadMember` member, is resolved with a `ProvWarning`; the intent
   is unambiguous. A reference with neither `prov:ref` nor text raises `ProvXMLException`.
+- A `prov:hadMember` element with several `<prov:entity>` children, which the schema allows,
+  reads as one `hadMember` per member, each with the element's `prov:id`, collection and
+  attributes. An element with no `<prov:entity>` child reads as one `hadMember` with no member.
 - `<prov:other>` elements and attributes the model cannot represent are skipped with a
   `ProvWarning`.
 - Names escaped as in C3 are unescaped.

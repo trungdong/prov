@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 
 import prov
+from prov.constants import PROV_LABEL
 from prov.model import (
     Literal,
     ProvBundle,
@@ -82,18 +83,16 @@ def test_encoder_default_fallback_for_non_document() -> None:
     assert encoder.default("plain string") == '"plain string"'
 
 
-def test_attribute_touched_but_never_set_is_omitted_from_json() -> None:
-    # Accessing .label/.value auto-vivifies an empty set entry in the
-    # record's attribute dict (a plain defaultdict); the encoder must
-    # skip empty attribute value sets rather than emitting them.
+def test_an_empty_attribute_entry_is_omitted_from_json_and_jsonld() -> None:
+    # The subscript seeds the empty entry a 3.2.x pickle holds, and the
+    # writers skip empty value sets.
     doc = ProvDocument()
     doc.add_namespace("ex", "http://example.org/")
     e1 = doc.entity("ex:e1")
-    _ = e1.label  # touches (and auto-vivifies) the "prov:label" entry
+    _ = e1._attributes[PROV_LABEL]
 
-    json_str = doc.serialize(format="json")
-
-    assert "prov:label" not in json_str
+    assert "prov:label" not in doc.serialize(format="json")
+    assert "prov:label" not in doc.serialize(format="jsonld")
 
 
 def test_third_record_with_same_identifier_appends_to_existing_list() -> None:
@@ -346,6 +345,12 @@ def test_had_member_array_gives_every_member_the_identifier_and_attributes() -> 
     )
     assert fanned_out == one_each
     assert [str(r.identifier) for r in fanned_out.get_records()] == ["ex:m", "ex:m"]
+
+
+def test_had_member_array_listing_a_member_twice_reads_one_record() -> None:
+    document = _read(_membership(["ex:e1", "ex:e1", "ex:e2"]))
+    members = [r.get_attribute("prov:entity") for r in document.get_records()]
+    assert [{str(e) for e in m} for m in members] == [{"ex:e1"}, {"ex:e2"}]
 
 
 def test_had_member_array_without_a_collection_reads() -> None:
