@@ -812,7 +812,7 @@ class ProvRecord:
         under Python equality -- this copy never loses information: unlike
         :meth:`get_attribute`/:attr:`value`, there is no lossy case here.
         """
-        return set(self._attributes[PROV_TYPE])
+        return set(self._attributes.get(PROV_TYPE, ()))
 
     def add_asserted_type(self, type_identifier: QualifiedName) -> None:
         """Add a PROV type assertion to the record.
@@ -843,7 +843,7 @@ class ProvRecord:
                 resolved to a valid qualified name.
         """
         attr_name_qn = self._bundle.mandatory_valid_qname(attr_name)
-        return set(self._attributes[attr_name_qn])
+        return set(self._attributes.get(attr_name_qn, ()))
 
     @property
     def identifier(self) -> QualifiedName | None:
@@ -870,7 +870,8 @@ class ProvRecord:
         Missing formal attributes are represented by ``None``.
         """
         return tuple(
-            first(self._attributes[attr_name]) for attr_name in self.FORMAL_ATTRIBUTES
+            first(self._attributes.get(attr_name, ()))
+            for attr_name in self.FORMAL_ATTRIBUTES
         )
 
     @property
@@ -881,7 +882,7 @@ class ProvRecord:
         ``None``.
         """
         return tuple(
-            (attr_name, first(self._attributes[attr_name]))
+            (attr_name, first(self._attributes.get(attr_name, ())))
             for attr_name in self.FORMAL_ATTRIBUTES
         )
 
@@ -906,11 +907,8 @@ class ProvRecord:
         This is the record's ``prov:label`` attribute if set, otherwise its
         identifier.
         """
-        return str(
-            first(self._attributes[PROV_LABEL])
-            if self._attributes[PROV_LABEL]
-            else self._identifier
-        )
+        labels = self._attributes.get(PROV_LABEL)
+        return str(first(labels) if labels else self._identifier)
 
     @property
     def value(self) -> set[Any]:
@@ -920,7 +918,7 @@ class ProvRecord:
         :meth:`get_attribute` for what that means for a Python-equal-but-
         differently-typed pair of ``prov:value`` values (#34).
         """
-        return set(self._attributes[PROV_VALUE])
+        return set(self._attributes.get(PROV_VALUE, ()))
 
     # Handling attributes
     def _auto_literal_conversion(self, literal: Any, attr: QualifiedName) -> Any:
@@ -1133,7 +1131,7 @@ class ProvRecord:
 
                 value = self._coerce_attribute_value(attr, original_value)
 
-                existing_values = self._attributes[attr]
+                existing_values = self._attributes.get(attr)
                 if attr in PROV_ATTRIBUTES and existing_values:
                     if is_collection is None:
                         is_collection = any(
@@ -1142,7 +1140,7 @@ class ProvRecord:
                     if not is_collection:
                         self._check_repeated_value(attr, value, existing_values)
                         continue
-                existing_values.add(value)
+                self._attributes[attr].add(value)
 
     def __eq__(self, other: Any) -> bool:
         return (
@@ -1606,12 +1604,12 @@ class ProvActivity(ProvElement):
 
     def get_startTime(self) -> datetime.datetime | None:
         """Return the activity's start time, or ``None`` if unset."""
-        values = self._attributes[PROV_ATTR_STARTTIME]
+        values = self._attributes.get(PROV_ATTR_STARTTIME)
         return first(values) if values else None
 
     def get_endTime(self) -> datetime.datetime | None:
         """Return the activity's end time, or ``None`` if unset."""
-        values = self._attributes[PROV_ATTR_ENDTIME]
+        values = self._attributes.get(PROV_ATTR_ENDTIME)
         return first(values) if values else None
 
     # Convenient assertions that take the current ProvActivity as the first

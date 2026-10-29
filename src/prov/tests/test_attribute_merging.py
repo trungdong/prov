@@ -26,7 +26,7 @@ import datetime
 
 import pytest
 
-from prov.constants import XSD_ANYURI, XSD_DECIMAL
+from prov.constants import PROV_GENERATION, XSD_ANYURI, XSD_DECIMAL
 from prov.identifier import Identifier
 from prov.model import (
     PROV_ATTR_COLLECTION,
@@ -250,9 +250,8 @@ def test_value_property_returns_a_plain_set_that_collapses_like_2x(doc) -> None:
 
 
 def test_add_asserted_type_mutates_live_storage_not_a_copy(doc) -> None:
-    # add_asserted_type() must keep mutating the record's own storage
-    # directly (self._attributes[...].add(...)) rather than a copy, since a
-    # copy would have nowhere to persist the mutation to.
+    # add_asserted_type() stores into the record's own set, so the assertion
+    # persists; get_asserted_types() returns a copy.
     e = doc.entity("ex:e")
     e.add_asserted_type(doc.valid_qualified_name("ex:Foo"))
     e.add_asserted_type(doc.valid_qualified_name("ex:Bar"))
@@ -264,6 +263,130 @@ def test_accessors_default_empty_still_falsy_and_equal_to_plain_set(doc) -> None
     assert e.get_asserted_types() == set()
     assert not e.get_asserted_types()
     assert e.value == set()
+
+
+def _assert_label(record):
+    assert record.label == "ex:e"
+
+
+def _generation_and_activity_document():
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+    d.entity("ex:e")
+    d.activity("ex:a")
+    d.wasGeneratedBy("ex:e", "ex:a")
+    return d
+
+
+def _graph_read(d):
+    from prov.graph import prov_to_graph
+
+    prov_to_graph(d)
+
+
+def _dot_read(d):
+    from prov.dot import prov_to_dot
+
+    prov_to_dot(d)
+
+
+def _rdf_read(d):
+    d.serialize(format="rdf")
+
+
+def _keys(d):
+    return [list(r._attributes) for r in d.get_records()]
+
+
+@pytest.mark.parametrize(
+    "kind, read",
+    [
+        pytest.param("entity", lambda r: r.get_asserted_types(), id="asserted-types"),
+        pytest.param("entity", lambda r: r.get_attribute("ex:x"), id="get-attribute"),
+        pytest.param("generation", lambda r: r.args, id="args"),
+        pytest.param(
+            "generation", lambda r: r.formal_attributes, id="formal-attributes"
+        ),
+        pytest.param("entity", lambda r: _assert_label(r), id="label"),
+        pytest.param("entity", lambda r: r.value, id="value"),
+        pytest.param("activity", lambda r: r.get_startTime(), id="start-time"),
+        pytest.param("activity", lambda r: r.get_endTime(), id="end-time"),
+        pytest.param("activity", lambda r: r.args, id="activity-args"),
+    ],
+)
+def test_a_read_leaves_the_record_unchanged(doc, kind, read) -> None:
+    record = {
+        "entity": lambda: doc.entity("ex:e"),
+        "generation": lambda: doc.wasGeneratedBy("ex:e", "ex:a"),
+        "activity": lambda: doc.activity("ex:a"),
+    }[kind]()
+    before = list(record._attributes)
+
+    read(record)
+
+    assert list(record._attributes) == before
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        pytest.param(lambda d: d.unified(), id="unified"),
+        pytest.param(_graph_read, id="graph"),
+        pytest.param(_dot_read, id="dot"),
+        pytest.param(_rdf_read, id="rdf"),
+    ],
+)
+def test_a_document_operation_leaves_every_record_unchanged(operation) -> None:
+    d = _generation_and_activity_document()
+    before = _keys(d)
+
+    operation(d)
+
+    assert _keys(d) == before
+
+
+def _generation_with_extras(peek: bool) -> ProvDocument:
+    d = ProvDocument()
+    d.add_namespace("ex", "http://example.org/")
+    d.entity("ex:e")
+    d.activity("ex:a")
+    g = d.wasGeneratedBy("ex:e", "ex:a")
+    if peek:
+        _ = (g.formal_attributes, g.args, g.label, g.get_attribute("ex:y"))
+    g.add_attributes({"ex:x": 1})
+    g.add_attributes({"ex:y": 2})
+    g.add_attributes({"prov:time": datetime.datetime(2020, 1, 1)})
+    return d
+
+
+@pytest.mark.parametrize("fmt", ["json", "jsonld", "provn"])
+def test_reads_do_not_change_the_serialised_output_or_attribute_order(fmt) -> None:
+    peeked = _generation_with_extras(peek=True)
+    plain = _generation_with_extras(peek=False)
+    generation = next(
+        r for r in peeked.get_records() if r.get_type() == PROV_GENERATION
+    )
+
+    assert peeked.serialize(format=fmt) == plain.serialize(format=fmt)
+    assert [str(name) for name in generation._attributes] == [
+        "prov:entity",
+        "prov:activity",
+        "ex:x",
+        "ex:y",
+        "prov:time",
+    ]
+
+
+def test_a_rejected_duplicate_leaves_the_record_unchanged(doc) -> None:
+    r = doc.wasGeneratedBy("ex:e", "ex:a", datetime.datetime(2020, 1, 1))
+    keys = list(r._attributes)
+    attributes = r.attributes
+
+    with pytest.raises(ProvException):
+        r.add_attributes({"prov:time": datetime.datetime(2021, 1, 1)})
+
+    assert list(r._attributes) == keys
+    assert r.attributes == attributes
 
 
 def test_internal_storage_contains_and_discard_are_type_aware(doc) -> None:
