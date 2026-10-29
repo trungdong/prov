@@ -3,10 +3,10 @@
 :mod:`prov.model.records` calls :func:`time_offset_detail` for a time value,
 :func:`python_value_form` and :func:`no_prov_form_detail` for a value of a type
 the model does not hold as it is, :func:`resolve_name` for a literal
-typed as a qualified name, and :func:`xsd_value` for the value a typed literal's
-text denotes. This module imports nothing from
-:mod:`prov.model.records`, so it returns text and datatypes and the caller
-builds the ``Literal`` or raises.
+typed as a qualified name, :func:`xsd_value` for the value a typed literal's
+text denotes, and :func:`int_datatype` for a plain int's key. This module
+imports nothing from :mod:`prov.model.records`, so it returns text and
+datatypes and the caller builds the ``Literal`` or raises.
 """
 
 from __future__ import annotations
@@ -76,11 +76,14 @@ _XSD_DOUBLE_RE = re.compile(
 )
 _XSD_BOOLEANS = {"true": True, "false": False, "1": True, "0": False}
 
+_INT32_MAX = 2**31 - 1
+_INT64_MAX = 2**63 - 1
+
 # xsd:integer and its twelve subtypes with their bounds; None is unbounded.
 _XSD_INTEGER_BOUNDS: dict[QualifiedName, tuple[int | None, int | None]] = {
     XSD_INTEGER: (None, None),
-    XSD_LONG: (-(2**63), 2**63 - 1),
-    XSD_INT: (-(2**31), 2**31 - 1),
+    XSD_LONG: (-_INT64_MAX - 1, _INT64_MAX),
+    XSD_INT: (-_INT32_MAX - 1, _INT32_MAX),
     XSD_SHORT: (-(2**15), 2**15 - 1),
     XSD_BYTE: (-(2**7), 2**7 - 1),
     XSD_UNSIGNEDLONG: (0, 2**64 - 1),
@@ -204,8 +207,15 @@ def _duration_text(value: datetime.timedelta) -> str:
     return f"{sign}P{text or 'T0S'}"
 
 
-_INT32_MAX = 2**31 - 1
-_INT64_MAX = 2**63 - 1
+def int_datatype(value: int) -> QualifiedName:
+    """The XSD datatype of an ``int`` by magnitude: ``xsd:int``, ``xsd:long``
+    or ``xsd:integer``. A ``bool`` is an ``int``, so a caller tests for it
+    first."""
+    if -_INT32_MAX - 1 <= value <= _INT32_MAX:
+        return XSD_INT
+    if -_INT64_MAX - 1 <= value <= _INT64_MAX:
+        return XSD_LONG
+    return XSD_INTEGER
 
 
 def canonical_xsd_datatype(value: object) -> QualifiedName | None:
@@ -218,11 +228,7 @@ def canonical_xsd_datatype(value: object) -> QualifiedName | None:
     if isinstance(value, bool):  # before int: bool is an int subtype
         return None
     if isinstance(value, int):
-        if -_INT32_MAX - 1 <= value <= _INT32_MAX:
-            return XSD_INT
-        if -_INT64_MAX - 1 <= value <= _INT64_MAX:
-            return XSD_LONG
-        return XSD_INTEGER
+        return int_datatype(value)
     if isinstance(value, float):
         return XSD_DOUBLE
     return None

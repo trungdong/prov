@@ -10,11 +10,13 @@ import math
 import re
 import uuid
 import warnings
+from typing import Any
 
 import pytest
 
 from prov.constants import (
     PROV_INTERNATIONALIZEDSTRING,
+    PROV_VALUE,
     XSD,
     XSD_BOOLEAN,
     XSD_DATETIME,
@@ -24,8 +26,9 @@ from prov.constants import (
     XSD_INT,
     XSD_INTEGER,
     XSD_LONG,
+    XSD_STRING,
 )
-from prov.model import Literal, ProvDocument, ProvValueError, QualifiedName
+from prov.model import Identifier, Literal, ProvDocument, ProvValueError, QualifiedName
 from prov.serializers.provjson import ProvJSONException
 from prov.tests.conftest import (
     ROUNDTRIP_FORMATS,
@@ -402,6 +405,10 @@ class _Stamp(datetime.datetime):
     pass
 
 
+class _Letter(enum.StrEnum):
+    A = "a"
+
+
 # Literal(value) spells a Python value in XSD form (E7).
 @pytest.mark.parametrize(
     ("value", "datatype", "text"),
@@ -478,6 +485,80 @@ def test_a_subclass_of_a_plain_type_is_written_as_the_plain_value(
     # merge the pair by Python equality whatever the storage did
     both = ex_document().entity("ex:e2", [("ex:a", value), ("ex:a", plain)])
     assert len(both.extra_attributes) == 1
+
+
+_AWARE_DT = datetime.datetime(2012, 1, 1, tzinfo=datetime.UTC)
+
+
+_VALUE_SET = type(
+    ex_document().entity("ex:e", [(PROV_VALUE, 5)])._attributes[PROV_VALUE]
+)
+
+
+def _only_key(value: object) -> tuple[Any, ...]:
+    """The one key the value set of an attribute assigns to ``value``."""
+    (key,) = _VALUE_SET([value]).value_keys()
+    return key
+
+
+@pytest.mark.parametrize(
+    ("left", "right", "same"),
+    [
+        pytest.param("x", Literal("x", XSD_STRING), True, id="str"),
+        pytest.param(True, Literal("true", XSD_BOOLEAN), True, id="bool"),
+        pytest.param(5, Literal("05", XSD_INT), True, id="int"),
+        pytest.param(2**40, Literal(str(2**40), XSD_LONG), True, id="long"),
+        pytest.param(1.5, Literal("1.5", XSD_DOUBLE), True, id="float"),
+        pytest.param(float("nan"), Literal("NaN", XSD_DOUBLE), True, id="nan"),
+        pytest.param(_Level.LOW, 5, True, id="int-subclass"),
+        pytest.param(_Letter.A, "a", True, id="str-subclass"),
+        pytest.param(
+            _Stamp(2012, 1, 1),
+            datetime.datetime(2012, 1, 1),
+            True,
+            id="datetime-subclass",
+        ),
+        pytest.param(5, Literal("5", XSD_LONG), False, id="int-as-long"),
+        pytest.param(2, 2.0, False, id="int-vs-float"),
+        pytest.param(True, 1, False, id="bool-vs-int"),
+        # a record turns a canonical xsd:dateTime literal into a datetime, so the
+        # key difference does not show through a record
+        pytest.param(
+            _AWARE_DT,
+            Literal(_AWARE_DT.isoformat(), XSD_DATETIME),
+            False,
+            id="datetime-vs-literal",
+        ),
+    ],
+)
+def test_a_plain_value_keys_as_its_twin(
+    left: object, right: object, same: bool
+) -> None:
+    # a plain value keys as the typed Literal the writers would write it as
+    # (#663), and as nothing else (#235, #34)
+    left_key, right_key = _only_key(left), _only_key(right)
+    assert (left_key == right_key) is same
+    # slot 0 is the datatype's URI, an atomic object the collector skips
+    assert isinstance(left_key[0], str)
+    assert isinstance(right_key[0], str)
+    document = ex_document()
+    record = document.entity("ex:e1", [("ex:a", left)])
+    assert roundtrip_document(document, "json") == document
+    if same:
+        assert record == ex_document().entity("ex:e1", [("ex:a", right)])
+
+
+@pytest.mark.parametrize(
+    ("value", "slot"),
+    [
+        (ex_document().valid_qualified_name("ex:q"), QualifiedName),
+        (Identifier("http://example.org/i"), Identifier),
+        (decimal.Decimal("1.5"), decimal.Decimal),
+    ],
+    ids=["qualified-name", "identifier", "fallback"],
+)
+def test_a_value_with_no_plain_form_keys_by_its_type(value: object, slot: type) -> None:
+    assert _only_key(value)[0] is slot
 
 
 def test_float_subclass_with_a_custom_repr_converts_to_decimal() -> None:
