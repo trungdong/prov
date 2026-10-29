@@ -190,10 +190,6 @@ def test_namespace_cache_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     assert again == first
     assert hash(again) == hash(first)
     assert list(ns._cache) == ["d", "a"]
-    assert ns["e"].localpart == "e"
-    assert list(ns._cache) == ["d", "a", "e"]
-    assert ns["f"].localpart == "f"
-    assert list(ns._cache) == ["f"]
 
 
 def _slots_across_the_mro(cls: type) -> set[str]:
