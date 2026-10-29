@@ -427,21 +427,13 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   several lines. `width` sets the limit, and `width=None` writes the one-line shape of
   3.2.x, for output compared byte for byte or read line by line
   ([#131](https://github.com/trungdong/prov/issues/131))
-- Reading a record never adds an attribute to it. `get_attribute()`, `get_asserted_types()`,
-  `label`, `value`, `args`, `formal_attributes`, `get_startTime()` and `get_endTime()` leave
-  the record as it was, and so do `unified()`, `prov_to_graph()`, `prov_to_dot()` and the
-  PROV-O writer, which read formal attributes. A record's attributes keep the order in
-  which they were asserted, so the PROV-JSON writer gives the same text whether or not
-  something read the record first. 3.2.3 created an empty entry for each name read, so a
-  value asserted later under that name took the earlier position. PROV-JSONLD and PROV-N
-  showed this only for a non-formal name read, then asserted after another non-formal name
+- A read of a record, such as `label`, `args`, `get_attribute()` or `unified()`, leaves its
+  attributes unchanged, where 3.2.3 added an empty entry that put an attribute asserted
+  later in an earlier position in PROV-JSON, PROV-JSONLD and PROV-N output
   ([#696](https://github.com/trungdong/prov/issues/696))
 - A `hadMember` record holds several `prov:entity` values only when the call stores a
-  `prov:collection`. The `"prov:collection"` spelling of the name stores one, as the
-  `PROV_ATTR_COLLECTION` constant does, and a `prov:collection` whose value is `None`
-  stores nothing, so two entities given with it raise `ProvException`. 3.2.3 raised for
-  two entities given with the string spelling and kept both entities, and no collection,
-  for a `None` collection
+  `prov:collection`, given as the constant or the `"prov:collection"` string. In 3.2.3 a
+  `None` collection lifted the rule and the string did not
   ([#700](https://github.com/trungdong/prov/issues/700))
 
 ### Additions
