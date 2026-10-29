@@ -1136,10 +1136,10 @@ class ProvRecord:
                 if attr in PROV_ATTRIBUTES and existing_values:
                     if is_collection is None:
                         is_collection = any(
-                            value is not None
+                            pair_value is not None
                             and self._bundle.valid_qualified_name(name)
                             == PROV_ATTR_COLLECTION
-                            for name, value in pairs
+                            for name, pair_value in pairs
                         )
                     if not is_collection:
                         self._check_repeated_value(attr, value, existing_values)
