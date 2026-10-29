@@ -1996,6 +1996,8 @@ class ProvRDFSerializer(Serializer):
                         state.formal_attributes[subj].items(),
                         attrs,
                     )
+            except pm.ProvMissingFormalAttribute as exc:
+                warn(f"subject {subj!r}: {exc}")
             except pm.ProvException as exc:
                 # Only relabel the specific #217 shape: a formal-attribute
                 # predicate repeated in `attrs` (see the duplicate-detection

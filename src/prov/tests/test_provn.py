@@ -1065,10 +1065,19 @@ def test_signed_int_is_still_an_integer_in_an_attribute_value() -> None:
 def test_strict_requires_an_identifier_at_the_named_position() -> None:
     with pytest.raises(ProvNSyntaxError, match="'hadMember' requires an identifier"):
         parse("hadMember(-, -)")
-    # default keeps the model's own scruffy-statement policy (#257): both
-    # markers are accepted, producing a membership with no formal values set.
-    record = only_record(parse("hadMember(-, -)", profile="default"))
-    assert all(value is None for _, value in record.formal_attributes)
+    # default accepts the markers at the grammar and the model then refuses
+    # the membership, so the statement is skipped.
+    with pytest.warns(ProvWarning) as caught:
+        doc = ProvDocument.deserialize(
+            content=f"document\n{PREFIXES}hadMember(-, -)\nendDocument",
+            format="provn",
+            profile="default",
+        )
+    assert [str(w.message) for w in caught] == [
+        "PROV-N statement skipped: line 4, column 1:"
+        " hadMember requires a value for prov:collection"
+    ]
+    assert list(doc.get_records()) == []
 
 
 def test_strict_still_accepts_wasderivedfrom_with_trailing_markers() -> None:

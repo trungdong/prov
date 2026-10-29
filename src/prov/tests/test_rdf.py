@@ -1291,6 +1291,28 @@ def test_blank_node_behind_a_relation_is_dropped(predicate: str, typed: bool) ->
     }
 
 
+def test_blank_node_for_a_membership_entity_drops_then_skips() -> None:
+    # The blank node names no record, so prov:entity is dropped (#639), and the
+    # membership then lacks its entity and is skipped; neither leaves a
+    # conversion UserWarning behind.
+    turtle = _TURTLE_PREFIXES + "ex:m a prov:Membership ; prov:collection ex:c ;"
+    turtle += " prov:entity [] .\n"
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = ProvDocument.deserialize(
+            content=turtle, format="rdf", rdf_format="turtle"
+        )
+    assert [
+        str(w.message) for w in caught if issubclass(w.category, pm.ProvWarning)
+    ] == [
+        "ex:m: prov:entity points at a blank node that names no"
+        " record; the attribute is dropped",
+        "subject 'http://example.org/m': hadMember requires a value for prov:entity",
+    ]
+    assert not [w for w in caught if w.category is UserWarning]
+    assert list(document.get_records()) == []
+
+
 _ELEMENT_BLOCK = "_:p a prov:Plan, prov:Entity .\n"
 _AGENT_BLOCK = "ex:ag a prov:Agent .\n"
 _ASSOCIATION_BLOCK = (

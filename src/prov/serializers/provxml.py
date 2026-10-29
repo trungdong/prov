@@ -19,6 +19,7 @@ from prov.model import (
     NameValuePair,
     ProvException,
     ProvExceptionInvalidQualifiedName,
+    ProvMissingFormalAttribute,
     sorted_attributes,
 )
 from prov.model._values import (
@@ -380,6 +381,8 @@ class ProvXMLSerializer(Serializer):
                     continue
 
                 self._read_record(element, qname.localname, rec_id, bundle, namespaces)
+            except ProvMissingFormalAttribute as exc:
+                warn(f"{_element_position(element, rec_id)}{exc}")
             except ProvException as exc:
                 raise ProvXMLException(
                     f"{_element_position(element, rec_id)}{exc}"

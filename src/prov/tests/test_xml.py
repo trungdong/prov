@@ -1492,7 +1492,6 @@ def _members_xml(id_attribute: str, entities: tuple[str, ...]) -> str:
             [["ex:e1"]],
             id="repeated-member",
         ),
-        pytest.param(' prov:id="ex:m"', (), ["ex:m"], [[]], id="no-member"),
     ],
 )
 def test_xml_had_member_with_several_entities_reads_one_record_per_member(

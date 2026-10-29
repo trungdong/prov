@@ -28,10 +28,11 @@ of two flags, and ``PROFILES`` lists the names:
   keyword that ``prov`` and ProvToolbox write (the Recommendation grammar has no
   Mention production; PROV-Links spells it ``prov:mentionOf``), and the ``-`` marker
   where the grammar has a plain identifier (each rule's smallest ``arities`` entry in
-  ``_KEYWORDS``). It also accepts an identifier or an attribute block on a relation
-  whose production has neither, a statement after a bundle, a ``default`` declaration
-  after a ``prefix`` declaration, and a declaration of ``prov`` or ``xsd`` to its
-  predeclared IRI.
+  ``_KEYWORDS``); for ``hadMember``, ``alternateOf``, ``specializationOf`` and
+  ``mentionOf`` the model then refuses the marker and the statement is skipped. It
+  also accepts an identifier or an attribute block on a relation whose production has
+  neither, a statement after a bundle, a ``default`` declaration after a ``prefix``
+  declaration, and a declaration of ``prov`` or ``xsd`` to its predeclared IRI.
 - ``lenient``: ``recover`` on as well. A statement that fails to parse, including one
   the model rejects, is skipped and parsing resumes at the next statement. A bundle
   whose identifier the model rejects is skipped too.
@@ -103,6 +104,7 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvException,
+    ProvMissingFormalAttribute,
     ProvValueError,
     parse_xsd_datetime,
 )
@@ -476,6 +478,9 @@ class ProvNParser:
             self._expression(bundle)
         except ProvNSyntaxError as error:
             self._skip_or_raise(error)
+        except ProvMissingFormalAttribute as exc:
+            # A relation missing a party is skipped under every profile.
+            self._skip(ProvNSyntaxError(str(exc), start.line, start.column))
         except (ProvException, ValueError, OverflowError) as exc:
             # A model rejection (e.g. from new_record()) is reported as a
             # positioned syntax error and, under lenient, skipped.
@@ -486,6 +491,9 @@ class ProvNParser:
     def _skip_or_raise(self, error: ProvNSyntaxError) -> None:
         if not self._profile.recover:
             raise error
+        self._skip(error)
+
+    def _skip(self, error: ProvNSyntaxError) -> None:
         self.skipped.append(f"PROV-N statement skipped: {error}")
         self._resync()
 
@@ -633,8 +641,10 @@ class ProvNParser:
         self, keyword: Token, rule: _Rule, args: list[Token]
     ) -> None:
         """Under ``strict``, reject '-' where the grammar has a plain
-        identifier (no ``OrMarker``); ``default``/``lenient`` keep accepting
-        it there, matching the model's scruffy-statement policy."""
+        identifier (no ``OrMarker``); ``default``/``lenient`` accept it at the
+        grammar, and for ``hadMember``, ``alternateOf``, ``specializationOf``
+        and ``mentionOf`` the model then refuses it and the statement is
+        skipped."""
         if self._profile.extensions:
             return
         required = min(rule.arities)

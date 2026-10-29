@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
 
+from prov._warnings import warn
 from prov.constants import *
 from prov.identifier import Identifier, Namespace, QualifiedName
 from prov.model import (
@@ -15,6 +16,7 @@ from prov.model import (
     ProvBundle,
     ProvDocument,
     ProvException,
+    ProvMissingFormalAttribute,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -511,7 +513,12 @@ def _decode_record_group(
                 else _resolve_name(bundle, rec_id, rec_id)
             )
             for element in elements:
-                _decode_record_instance(rec_type, rec_id, identifier, element, bundle)
+                try:
+                    _decode_record_instance(
+                        rec_type, rec_id, identifier, element, bundle
+                    )
+                except ProvMissingFormalAttribute as exc:
+                    warn(f"{_position(rec_id, None)}{exc}")
         except ProvException as exc:
             raise ProvJSONException(f"{_position(rec_id, None)}{exc}") from exc
 

@@ -8,9 +8,12 @@ tuples says which test asserts that.
 """
 
 import datetime
+import json
+import warnings
 
 import pytest
 
+import prov
 from prov.model import *
 from prov.tests.conftest import SHARED_TARGETS
 
@@ -1306,6 +1309,162 @@ def test_mention_1(roundtrip) -> None:
     document = new_document()
     document.mention(EX_NS["e2"], EX_NS["e1"], None)
     roundtrip(document)
+
+
+_EX_URI = "http://example.org/"
+_NO_ENTITY = "hadMember requires a value for prov:entity"
+_PROVN_PREFIX = "document\nprefix ex <http://example.org/>\nentity(ex:e)\n"
+_PROVN_SKIPPED = f"PROV-N statement skipped: line 4, column 1: {_NO_ENTITY}"
+_XML_MEMBER = (
+    '<prov:document xmlns:prov="http://www.w3.org/ns/prov#"'
+    ' xmlns:ex="http://example.org/">\n'
+    '<prov:entity prov:id="ex:e"/>\n'
+    '<prov:hadMember prov:id="ex:m"><prov:collection prov:ref="ex:c"/><ex:k>v</ex:k>'
+    "</prov:hadMember>\n</prov:document>"
+)
+_TURTLE_MEMBER = (
+    "@prefix prov: <http://www.w3.org/ns/prov#> .\n"
+    "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n"
+    "@prefix ex: <http://example.org/> .\n"
+    "ex:e a prov:Entity .\n"
+    'ex:m a prov:Membership ; prov:collection ex:c ; rdfs:label "m" .\n'
+)
+
+
+def _json_members(*instances: dict) -> str:
+    return json.dumps(
+        {
+            "prefix": {"ex": _EX_URI},
+            "entity": {"ex:e": {}},
+            "hadMember": {"_:m1": list(instances)},
+        }
+    )
+
+
+_MEMBER = {"prov:collection": "ex:c", "prov:entity": "ex:e2"}
+_PARTYLESS = {"prov:collection": "ex:c"}
+
+
+@pytest.mark.parametrize(
+    ("fmt", "kwargs", "text", "warning", "extra"),
+    [
+        pytest.param(
+            "provn",
+            {"profile": "default"},
+            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_SKIPPED,
+            (),
+            id="provn-default",
+        ),
+        pytest.param(
+            "provn",
+            {"profile": "lenient"},
+            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_SKIPPED,
+            (),
+            id="provn-lenient",
+        ),
+        pytest.param(
+            "provn",
+            {},
+            "document\nprefix ex <http://example.org/>\nbundle ex:b\nentity(ex:e)\n"
+            "hadMember(ex:c, -)\nendBundle\nendDocument",
+            f"PROV-N statement skipped: line 5, column 1: {_NO_ENTITY}",
+            (),
+            id="provn-in-a-bundle",
+        ),
+        pytest.param(
+            None,
+            {},
+            f"{_PROVN_PREFIX}hadMember(ex:c, -)\nendDocument",
+            _PROVN_SKIPPED,
+            (),
+            id="provn-read-detected",
+        ),
+        pytest.param(
+            "json",
+            {},
+            json.dumps(
+                {
+                    "prefix": {"ex": _EX_URI},
+                    "entity": {"ex:e": {}},
+                    "hadMember": {"_:m1": _PARTYLESS},
+                }
+            ),
+            f"record '_:m1': {_NO_ENTITY}",
+            (),
+            id="json",
+        ),
+        pytest.param(
+            "json",
+            {},
+            _json_members(_MEMBER, _PARTYLESS),
+            f"record '_:m1': {_NO_ENTITY}",
+            (("ex:c", "ex:e2"),),
+            id="json-skipped-instance-last",
+        ),
+        pytest.param(
+            "json",
+            {},
+            _json_members(_PARTYLESS, _MEMBER),
+            f"record '_:m1': {_NO_ENTITY}",
+            (("ex:c", "ex:e2"),),
+            id="json-skipped-instance-first",
+        ),
+        pytest.param(
+            "jsonld",
+            {},
+            json.dumps(
+                {
+                    "@context": [{"ex": _EX_URI}],
+                    "@graph": [
+                        {"@type": "Entity", "@id": "ex:e"},
+                        {"@type": "Membership", "collection": "ex:c"},
+                    ],
+                }
+            ),
+            f"an anonymous prov:Membership: {_NO_ENTITY}",
+            (),
+            id="jsonld",
+        ),
+        pytest.param(
+            "xml",
+            {},
+            _XML_MEMBER,
+            f"line 3, <prov:hadMember> 'ex:m': {_NO_ENTITY}",
+            (),
+            id="xml",
+        ),
+        pytest.param(
+            "rdf",
+            {"rdf_format": "turtle"},
+            _TURTLE_MEMBER,
+            f"subject 'http://example.org/m': {_NO_ENTITY}",
+            (),
+            id="rdf",
+        ),
+    ],
+)
+def test_a_reader_skips_a_relation_missing_a_party(
+    fmt: str | None, kwargs: dict, text: str, warning: str, extra: tuple
+) -> None:
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        document = prov.read(text, format=fmt, **kwargs)
+    assert [str(w.message) for w in caught if issubclass(w.category, ProvWarning)] == [
+        warning
+    ]
+    assert not [w for w in caught if w.category is UserWarning]
+    # The statement stays in the scope that held it: a bundle's own records, or
+    # the document's.
+    scope = next(iter(document.bundles), document)
+    assert [str(r.identifier) for r in scope.get_records(ProvEntity)] == ["ex:e"]
+    assert [
+        tuple(str(party) for party in r.args) for r in scope.get_records(ProvMembership)
+    ] == list(extra)
+    assert len(list(scope.get_records())) == 1 + len(extra)
+    if scope is not document:
+        assert list(document.get_records()) == []
 
 
 @pytest.mark.parametrize("fmt", MENTION_TARGETS)

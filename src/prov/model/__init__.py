@@ -77,6 +77,7 @@ from prov.model.records import (
     ProvInvalidation as ProvInvalidation,
     ProvMembership as ProvMembership,
     ProvMention as ProvMention,
+    ProvMissingFormalAttribute as ProvMissingFormalAttribute,
     ProvRecord as ProvRecord,
     ProvRelation as ProvRelation,
     ProvSpecialization as ProvSpecialization,

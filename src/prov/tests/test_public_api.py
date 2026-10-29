@@ -65,6 +65,7 @@ PUBLIC_API = {
         "ProvFutureRejectionWarning",
         "ProvExceptionInvalidQualifiedName",
         "ProvElementIdentifierRequired",
+        "ProvMissingFormalAttribute",
         "ProvUnificationError",
         "ProvValueError",
         # identifiers & literals (historically importable from prov.model too)
@@ -259,6 +260,7 @@ PROV_MODEL_DIR_SNAPSHOT = [
     "ProvInvalidation",
     "ProvMembership",
     "ProvMention",
+    "ProvMissingFormalAttribute",
     "ProvRecord",
     "ProvRelation",
     "ProvSpecialization",

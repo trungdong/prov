@@ -37,6 +37,7 @@ from prov.model import (
     ProvDocument,
     ProvElement,
     ProvException,
+    ProvMissingFormalAttribute,
     ProvRecord,
     QualifiedNameCandidate,
     first,
@@ -762,7 +763,10 @@ def decode_jsonld_statement(item: dict[str, Any], bundle: ProvBundle) -> None:
             if rec_id is not None
             else f"an anonymous {rec_type}"
         )
-        raise ProvJSONLDException(f"{named}: {exc}") from exc
+        if isinstance(exc, ProvMissingFormalAttribute):
+            warn(f"{named}: {exc}")
+        else:
+            raise ProvJSONLDException(f"{named}: {exc}") from exc
 
 
 def decode_jsonld_document(container: Any, document: ProvDocument) -> None:
