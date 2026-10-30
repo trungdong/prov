@@ -173,15 +173,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
 - `xsi` is no longer a built-in prefix outside PROV-XML. An `xsi:` name in code, PROV-JSON
   or PROV-JSONLD needs a declaration like any other prefix. Without one, the PROV-JSON
   reader raises a `ProvJSONException` naming the record and attribute, and in code the
-  model raises `ProvExceptionInvalidQualifiedName` for an attribute name and
-  `ProvElementIdentifierRequired` for an identifier; the PROV-JSONLD reader raises
-  `ProvJSONLDException` with it as the cause. PROV-JSON and PROV-JSONLD that
-  3.2.x wrote with `xsi:` names have no `xsi` entry in their prefix map, so add one before
-  reading them with 3.3.0. A `QualifiedName` built from `prov.constants.XSI` declares
-  itself when it is asserted. `prov.model.DEFAULT_NAMESPACES` no longer has an `xsi` key.
-  PROV-XML still writes and reads `xsi:type` as before, and its writer raises
-  `ProvXMLException` for a document that binds `xsi` to another IRI, which 3.2.x renamed
-  to `xsi_1` ([#510](https://github.com/trungdong/prov/issues/510))
+  model raises `ProvExceptionInvalidQualifiedName` for an attribute name or an
+  identifier; the PROV-JSONLD reader raises `ProvJSONLDException` with it as the cause.
+  PROV-JSON and PROV-JSONLD that 3.2.x wrote with `xsi:` names have no `xsi` entry in
+  their prefix map, so add one before reading them with 3.3.0. A `QualifiedName` built
+  from `prov.constants.XSI` declares itself when it is asserted.
+  `prov.model.DEFAULT_NAMESPACES` no longer has an `xsi` key. PROV-XML still writes and
+  reads `xsi:type` as before, and its writer raises `ProvXMLException` for a document that
+  binds `xsi` to another IRI, which 3.2.x renamed to `xsi_1`
+  ([#510](https://github.com/trungdong/prov/issues/510))
 - A Python `datetime` with a timezone offset beyond ±14:00 is rejected as the value of
   any attribute, not only as a time of the statement, because no writer could emit it as
   an `xsd:dateTime`. 3.2.3 warned only in a time position
@@ -455,6 +455,15 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   string, `null` included, and a value object that holds both `@language` and `@type`,
   which the PROV-JSONLD schema allows in neither of its value shapes, raise as well
   ([#673](https://github.com/trungdong/prov/issues/673))
+- A relation identifier no namespace resolves, such as
+  `doc.used("ex:a", "ex:e", identifier="zz:u")`, raises
+  `ProvExceptionInvalidQualifiedName` with the sentence a qualified name gets, `Invalid
+  Qualified Name: zz:u, the qualified name 'zz:u' does not resolve, because its prefix
+  'zz' is not declared`, from code and from the PROV-JSONLD reader, where 3.2.3 built the
+  relation with no identifier. From code, `identifier="_:u"` raises too, because the model
+  has no blank-node identifiers. A PROV-JSONLD relation whose `@id` is a blank node, such
+  as `"_:u"`, still reads as one with no identifier, as a PROV-JSON `_:` key does
+  ([#725](https://github.com/trungdong/prov/issues/725))
 
 ### Additions
 
@@ -556,6 +565,17 @@ lists each error message with what to write instead. 3.3.0 rejects these inputs.
   so a prefix declared nowhere there is not an error. A stray `{` or `}` among
   statements is a parse error at its statement, which `lenient` skips, where it was a
   tokenisation error that no profile could skip ([#520](https://github.com/trungdong/prov/issues/520))
+- An element identifier no namespace resolves, such as `doc.entity("zz:e")`, raises
+  `ProvExceptionInvalidQualifiedName` with the sentence `Invalid Qualified Name: zz:e, the
+  qualified name 'zz:e' does not resolve, because its prefix 'zz' is not declared`, where
+  3.2.3 raised `ProvElementIdentifierRequired` and said the identifier was missing, and
+  `ProvDocument.bundle()` raises it where 3.2.3 raised a plain `ProvException`. The
+  sentence also follows `Invalid Qualified Name` for an attribute name, a formal
+  attribute's value, which it names, and the identifier given to `add_bundle()`. The
+  PROV-JSONLD reader names the statement in every error it raises while reading one, and
+  the PROV-N reader raises the sentence at its line and column, where 3.2.3 said `cannot
+  resolve 'zz:e': prefix 'zz' is not declared`
+  ([#725](https://github.com/trungdong/prov/issues/725))
 
 ### Project
 

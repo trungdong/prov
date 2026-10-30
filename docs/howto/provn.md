@@ -94,7 +94,7 @@ try:
     pm.ProvDocument.deserialize(content="document\n  entity(ex:e1)\nendDocument", format="provn")
 except ProvNSyntaxError as error:
     print(error.line, error.column, error.message)
-    # 2 10 cannot resolve 'ex:e1': prefix 'ex' is not declared
+    # 2 10 the qualified name 'ex:e1' does not resolve, because its prefix 'ex' is not declared
 ```
 
 ## Write strictly conformant output

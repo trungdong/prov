@@ -1043,7 +1043,7 @@ class ProvRecord:
                     )
             else:
                 qname = original_value
-            return self._bundle.mandatory_valid_qname(qname)
+            return self._bundle.mandatory_valid_qname(qname, attr=attr)
         if attr in PROV_ATTRIBUTE_LITERALS:
             value = self._coerce_time(attr, original_value)
         else:

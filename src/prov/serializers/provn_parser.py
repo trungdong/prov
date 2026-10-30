@@ -802,14 +802,9 @@ class ProvNParser:
         # A name resolves by its prefix in scope, never by compacting an IRI
         # (#553, #599), so http://example.org/e is the undeclared prefix 'http'.
         prefix, local = token.value
-        qname = bundle._lookup(prefix, local)
-        if qname is None:
-            why = (
-                f"prefix '{prefix}' is not declared"
-                if prefix
-                else "no default namespace declared"
-            )
-            raise self._error(f"cannot resolve {token.text!r}: {why}", token)
+        qname = resolve_pair(bundle, prefix, local, shown=token.text)
+        if isinstance(qname, str):
+            raise self._error(qname, token)
         return qname
 
     # -- attributes and literals -----------------------------------------------

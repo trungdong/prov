@@ -70,6 +70,7 @@ from prov.constants import (
     PROV_VALUE,
 )
 from prov.identifier import Identifier, Namespace, QualifiedName
+from prov.model._values import _split_name, unresolved_name_sentence
 from prov.model.namespaces import NamespaceManager
 from prov.model.records import (
     PROV_REC_CLS,
@@ -621,45 +622,34 @@ class ProvBundle:
         return self._namespaces._unresolved_reason(prefix, local, colon, text)
 
     def mandatory_valid_qname(
-        self, identifier: QualifiedNameCandidate
+        self, identifier: QualifiedNameCandidate, *, attr: QualifiedName | None = None
     ) -> QualifiedName:
         """Resolve an identifier to a qualified name, requiring success.
 
         Args:
             identifier: The candidate to resolve.
+            attr: The attribute the identifier is the value of, named in the
+                message when given (default: ``None``).
 
         Returns:
             The resolved :class:`~prov.identifier.QualifiedName`.
 
         Raises:
             ProvExceptionInvalidQualifiedName: If the identifier cannot be
-                resolved to a valid qualified name.
+                resolved to a valid qualified name. A string or IRI that no
+                namespace resolves carries the sentence saying why.
         """
         valid_qname = self._namespaces.valid_qualified_name(identifier)
-        if valid_qname is None:
-            self._reject_default_iri(identifier)
+        if valid_qname is not None:
+            return valid_qname
+        if not isinstance(identifier, (str, Identifier)):
             raise ProvExceptionInvalidQualifiedName(identifier)
-        return valid_qname
-
-    def _asserted_name(
-        self, identifier: QualifiedNameCandidate
-    ) -> QualifiedName | None:
-        """The name ``identifier`` resolves to as an identifier being asserted.
-
-        A string or IRI equal to the IRI of a default namespace in reach has no
-        qualified-name form and is rejected (#473); the readers resolve
-        through :meth:`valid_qualified_name` and keep their fallbacks.
-        """
-        name = self._namespaces.valid_qualified_name(identifier)
-        if name is None:
-            self._reject_default_iri(identifier)
-        return name
-
-    def _reject_default_iri(self, identifier: QualifiedNameCandidate) -> None:
-        """Raise when ``identifier`` is the IRI of a default namespace in reach."""
-        if isinstance(identifier, (str, Identifier)):
-            text = identifier if isinstance(identifier, str) else identifier.uri
-            self._namespaces.reject_default_iri(text)
+        text = identifier if isinstance(identifier, str) else identifier.uri
+        prefix, local = _split_name(text)
+        raise ProvExceptionInvalidQualifiedName(
+            identifier,
+            unresolved_name_sentence(self, prefix, local, ":" in text, text, attr),
+        )
 
     @overload
     def get_records(self, class_or_type_or_tuple: type[_R]) -> list[_R]: ...
@@ -927,6 +917,8 @@ class ProvBundle:
             The newly created and added :class:`ProvRecord`.
 
         Raises:
+            ProvExceptionInvalidQualifiedName: If ``identifier`` is set and
+                no namespace resolves it.
             ProvMissingFormalAttribute: If ``record_type`` is a ``hadMember``,
                 ``alternateOf``, ``specializationOf`` or ``mentionOf`` and
                 ``attributes`` leave a party without a value.
@@ -936,11 +928,9 @@ class ProvBundle:
             attr_list.extend(_attribute_pairs(attributes))
         if other_attributes:
             attr_list.extend(_attribute_pairs(other_attributes))
-        record_identifier = None
-        if identifier:
-            record_identifier = self._namespaces.valid_qualified_name(identifier)
-            if record_identifier is None:
-                self._reject_default_iri(identifier)
+        record_identifier = (
+            self.mandatory_valid_qname(identifier) if identifier else None
+        )
         new_record = PROV_REC_CLS[record_type](self, record_identifier, attr_list)
         self._add_record(new_record)
         return new_record
@@ -2019,7 +2009,7 @@ class ProvDocument(ProvBundle):
 
     # Bundle operations
     def add_bundle(
-        self, bundle: ProvBundle, identifier: QualifiedName | None = None
+        self, bundle: ProvBundle, identifier: QualifiedNameCandidate | None = None
     ) -> None:
         """Add a bundle to this document.
 
@@ -2037,6 +2027,8 @@ class ProvDocument(ProvBundle):
                 document with nested bundles, has no usable identifier, or an
                 identifier collides with an existing bundle, or ``bundle``
                 already belongs to another document.
+            ProvExceptionInvalidQualifiedName: If no namespace resolves
+                ``identifier``.
         """
         if not isinstance(bundle, ProvBundle):
             raise ProvException(
@@ -2089,16 +2081,16 @@ class ProvDocument(ProvBundle):
             The newly created :class:`ProvBundle`.
 
         Raises:
-            ProvException: If ``identifier`` is ``None`` or invalid, or a bundle
-                with that identifier already exists.
+            ProvException: If ``identifier`` is ``None`` or a bundle with that
+                identifier already exists.
+            ProvExceptionInvalidQualifiedName: If no namespace resolves
+                ``identifier``.
         """
         if identifier is None:
             raise ProvException(
                 "An identifier is required. Cannot create an unnamed bundle."
             )
-        valid_id = self._asserted_name(identifier)
-        if valid_id is None:
-            raise ProvException(f'The provided identifier "{identifier}" is not valid')
+        valid_id = self.mandatory_valid_qname(identifier)
         if valid_id in self._bundles:
             raise ProvException("A bundle with that identifier already exists")
         b = ProvBundle(identifier=valid_id, document=self)

@@ -364,6 +364,7 @@ class _DecodeState:
         anonymous: The subjects that are blank nodes typed as a relation. A
             blank node names nothing, so their records get no identifier;
             an element's blank-node label is its identifier.
+        blank_elements: The subjects that are blank nodes typed as an element.
     """
 
     record_types: dict[str, pm.QualifiedName] = field(default_factory=dict)
@@ -375,6 +376,7 @@ class _DecodeState:
     )
     other_attributes: dict[str, list[pm.AttributePair]] = field(default_factory=dict)
     anonymous: set[str] = field(default_factory=set)
+    blank_elements: set[str] = field(default_factory=set)
 
     def register(
         self, subj: str, prov_obj: pm.QualifiedName, blank: bool = False
@@ -389,14 +391,31 @@ class _DecodeState:
         """
         self.record_types[subj] = prov_obj
         klass = pm.PROV_REC_CLS[prov_obj]
-        if blank and issubclass(klass, pm.ProvRelation):
-            self.anonymous.add(subj)
+        if blank:
+            if issubclass(klass, pm.ProvRelation):
+                self.anonymous.add(subj)
+            else:
+                self.blank_elements.add(subj)
         self.formal_attributes[subj] = OrderedDict(
             [(key, None) for key in klass.FORMAL_ATTRIBUTES]
         )
         self.unique_sets[subj] = OrderedDict(
             [(key, []) for key in klass.FORMAL_ATTRIBUTES]
         )
+
+    def identifier_for(self, subj: str, bundle: pm.ProvBundle) -> str | None:
+        """The identifier ``subj``'s records get: ``None`` for an anonymous
+        relation, else ``subj``.
+
+        Raises:
+            ProvElementIdentifierRequired: If ``subj`` is a blank-node element
+                whose label no namespace of ``bundle`` resolves.
+        """
+        if subj in self.anonymous:
+            return None
+        if subj in self.blank_elements and bundle.valid_qualified_name(subj) is None:
+            raise pm.ProvElementIdentifierRequired()
+        return subj
 
 
 def attr2rdf(attr: QualifiedName) -> URIRef:
@@ -1962,8 +1981,8 @@ class ProvRDFSerializer(Serializer):
                 for qname, values in state.unique_sets[subj].items()
                 if values and len(values) > 1
             ]
-            identifier = None if subj in state.anonymous else subj
             try:
+                identifier = state.identifier_for(subj, bundle)
                 for subset in list(walk(items_to_walk)):
                     for prov_type, value in subset.items():
                         state.formal_attributes[subj][prov_type] = value

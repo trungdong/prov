@@ -196,6 +196,32 @@ WRAPPED = [
         id="jsonld-anonymous-usage",
     ),
     pytest.param(
+        "jsonld",
+        _jsonld({"@type": "Entity", "@id": "zz:e"}),
+        ProvJSONLDException,
+        "prov:Entity 'zz:e': ",
+        ProvExceptionInvalidQualifiedName,
+        id="jsonld-element-name",
+    ),
+    pytest.param(
+        "jsonld",
+        _jsonld(
+            {"@type": "Usage", "@id": "zz:u", "activity": "ex:a", "entity": "ex:e"}
+        ),
+        ProvJSONLDException,
+        "prov:Usage 'zz:u': ",
+        ProvExceptionInvalidQualifiedName,
+        id="jsonld-relation-name",
+    ),
+    pytest.param(
+        "jsonld",
+        _jsonld({**_jsonld_bundle(), "@id": "zz:b"}),
+        ProvJSONLDException,
+        "prov:Bundle 'zz:b': ",
+        ProvExceptionInvalidQualifiedName,
+        id="jsonld-bundle-name",
+    ),
+    pytest.param(
         "xml",
         f"""{_XML_ROOT}
   <prov:activity prov:id="ex:a1"><prov:startTime>2012-01-01T00:00:00.1234567Z</prov:startTime></prov:activity>

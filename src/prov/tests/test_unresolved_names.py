@@ -1,5 +1,6 @@
 """A qualified-name value that does not resolve by its prefix is rejected,
-by every reader and at assertion (#516, #551, #553, #599)."""
+by every reader and at assertion (#516, #551, #553, #599), and so is an
+identifier (#725)."""
 
 from __future__ import annotations
 
@@ -23,18 +24,18 @@ from prov.model import (
 )
 from prov.serializers.provjsonld import JSONLD_CONTEXT_URL
 
-from .conftest import default_namespace, ex_document
+from .conftest import (
+    HTTP_PREFIX,
+    NO_PREFIX,
+    UNDECLARED_PREFIX,
+    default_namespace,
+    ex_document,
+    unresolved_sentence,
+)
 from .format_errors import READER_ERRORS
 
 EX = "http://example.org/"
 EX_X = Namespace("ex", EX)["x"]
-UNDECLARED = "its prefix 'zz' is not declared"
-FULL_IRI = "its prefix 'http' is not declared"
-NO_PREFIX = "it has no prefix and no default namespace is declared"
-
-
-def _detail(text: str, reason: str, attr: str = "") -> str:
-    return f"the qualified name {text!r}{attr} does not resolve, because {reason}"
 
 
 def _stored(document: ProvBundle) -> Any:
@@ -227,8 +228,8 @@ def test_json_resolvable_name_reads(
 
 #  Every reader and assertion, one message per reason (#587)
 _REASONS = [
-    pytest.param("zz:x", UNDECLARED, id="undeclared"),
-    pytest.param(f"{EX}x", FULL_IRI, id="full IRI"),
+    pytest.param("zz:x", UNDECLARED_PREFIX, id="undeclared"),
+    pytest.param(f"{EX}x", HTTP_PREFIX, id="full IRI"),
     pytest.param("not a name", NO_PREFIX, id="no prefix"),
     pytest.param("", "it is empty", id="empty"),
 ]
@@ -314,7 +315,9 @@ def test_every_reader_and_assertion_reject_with_one_message(
     read, error, where, attr = _CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read(text, datatype)
-    assert str(ctx.value) == where.format(text=text) + _detail(text, reason, attr)
+    assert str(ctx.value) == where.format(text=text) + unresolved_sentence(
+        text, reason, attr
+    )
 
 
 #  A value equal to a default namespace IRI in reach (#675)
@@ -390,8 +393,7 @@ def _read_rdf_the_default_iri() -> None:
 
 
 # Each channel: its reader, the error it raises, what starts the message and
-# whether the attribute is named after the value. A JSON-LD node reference
-# names no record.
+# whether the attribute is named after the value.
 _DEFAULT_IRI_CHANNELS: dict[
     str, tuple[Callable[[], None], type[Exception], str, str]
 ] = {
@@ -416,7 +418,7 @@ _DEFAULT_IRI_CHANNELS: dict[
     "jsonld-node": (
         _read_jsonld_node_the_default_iri,
         READER_ERRORS["jsonld"],
-        "",
+        f"prov:Entity 'e': Invalid Qualified Name: {DEFAULT_IRI}, ",
         " of k",
     ),
     "jsonld-value": (
@@ -447,7 +449,9 @@ def test_a_value_equal_to_the_default_iri_gives_the_default_reason(
     read, error, where, attr = _DEFAULT_IRI_CHANNELS[channel]
     with pytest.raises(error) as ctx:
         read()
-    assert str(ctx.value) == where + _detail(DEFAULT_IRI, DEFAULT_IRI_REASON, attr)
+    assert str(ctx.value) == where + unresolved_sentence(
+        DEFAULT_IRI, DEFAULT_IRI_REASON, attr
+    )
 
 
 #  A prefix the document declares wins over compaction in a bundle (#599)
@@ -495,3 +499,69 @@ def test_plain_identifier_in_code_still_compacts() -> None:
     # code compacts against the declared namespaces, as the how-to promises.
     document = ex_document()
     assert document.entity(f"{EX}e1").identifier == Namespace("ex", EX)["e1"]
+
+
+#  An identifier no namespace resolves, in each reader's own text (#725)
+def _identifier_json(kind: str, name: str) -> str:
+    if kind == "element":
+        return _json({"entity": {name: {}}})
+    return _json(
+        {
+            "activity": {"ex:a": {}},
+            "entity": {"ex:e": {}},
+            "used": {name: {"prov:activity": "ex:a", "prov:entity": "ex:e"}},
+        }
+    )
+
+
+def _identifier_xml(kind: str, name: str) -> str:
+    if kind == "element":
+        body = f'<prov:entity prov:id="{name}"/>'
+    else:
+        body = (
+            '<prov:activity prov:id="ex:a"/><prov:entity prov:id="ex:e"/>'
+            f'<prov:used prov:id="{name}"><prov:activity prov:ref="ex:a"/>'
+            '<prov:entity prov:ref="ex:e"/></prov:used>'
+        )
+    return (
+        '<prov:document xmlns:prov="http://www.w3.org/ns/prov#" '
+        f'xmlns:ex="{EX}">{body}</prov:document>'
+    )
+
+
+def _identifier_jsonld(kind: str, name: str) -> str:
+    graph: list[dict[str, Any]] = [{"@type": "Entity", "@id": name}]
+    if kind == "relation":
+        graph = [
+            {"@type": "Activity", "@id": "ex:a"},
+            {"@type": "Entity", "@id": "ex:e"},
+            {"@type": "Usage", "@id": name, "activity": "ex:a", "entity": "ex:e"},
+        ]
+    return json.dumps({"@context": [{"ex": EX}, JSONLD_CONTEXT_URL], "@graph": graph})
+
+
+def _identifier_provn(kind: str, name: str) -> str:
+    if kind == "element":
+        body = f"entity({name})\n"
+    else:
+        body = f"activity(ex:a)\nentity(ex:e)\nused({name}; ex:a, ex:e)\n"
+    return f"document\nprefix ex <{EX}>\n{body}endDocument\n"
+
+
+_IDENTIFIER_SOURCES: dict[str, Callable[[str, str], str]] = {
+    "json": _identifier_json,
+    "xml": _identifier_xml,
+    "jsonld": _identifier_jsonld,
+    "provn": _identifier_provn,
+}
+
+
+@pytest.mark.parametrize(("kind", "name"), [("element", "zz:e"), ("relation", "zz:u")])
+@pytest.mark.parametrize("fmt", list(_IDENTIFIER_SOURCES))
+def test_every_reader_rejects_an_unresolved_identifier_with_one_sentence(
+    fmt: str, kind: str, name: str
+) -> None:
+    source = _IDENTIFIER_SOURCES[fmt](kind, name)
+    with pytest.raises(READER_ERRORS[fmt]) as ctx:
+        ProvDocument.deserialize(content=source, format=fmt)
+    assert unresolved_sentence(name, UNDECLARED_PREFIX) in str(ctx.value)

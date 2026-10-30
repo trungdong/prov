@@ -174,3 +174,15 @@ def ex_document() -> ProvDocument:
     document = ProvDocument()
     document.add_namespace("ex", EX_URI)
     return document
+
+
+#  The reasons a name does not resolve, and the sentence that carries one.
+UNDECLARED_PREFIX = "its prefix 'zz' is not declared"
+HTTP_PREFIX = "its prefix 'http' is not declared"
+BLANK_PREFIX = "its prefix '_' is reserved for blank nodes"
+NO_PREFIX = "it has no prefix and no default namespace is declared"
+
+
+def unresolved_sentence(text: str, reason: str, of: str = "") -> str:
+    """The qualified-name sentence for ``text``; ``of`` is ``" of <attribute>"``."""
+    return f"the qualified name {text!r}{of} does not resolve, because {reason}"
